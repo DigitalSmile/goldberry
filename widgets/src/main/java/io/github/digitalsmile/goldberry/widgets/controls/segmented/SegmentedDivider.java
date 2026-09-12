@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -87,8 +87,8 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
     /// how long the fade takes.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        var placed = resolved.inset(new Insets(
-                StyleLength.points(0), StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.percent((float)
+        var placed =
+                resolved.inset(new Insets(Length.points(0), Length.UNDEFINED, Length.points(0), Length.percent((float)
                         (100.0 * boundary / count))));
         return besideTheSelection() ? placed.opacity(0) : placed;
     }
@@ -98,6 +98,6 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
         // Out of flow in Java rather than in the stylesheet, for the indicator's
         // reason: a rule that put this back in flow would take a pixel out of
         // every cell and break the grid rather than restyle the line.
-        return Box.of().style(style).position(PositionType.ABSOLUTE);
+        return Box.of().style(style).position(Position.ABSOLUTE);
     }
 }

@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
@@ -9,6 +13,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.paint.geom.Dasher;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -43,6 +48,22 @@ public final class Frame {
     private final DisplayScale scale;
     private final BlendImage image;
     private final BlendContext context;
+
+    /// Rasterizer paths lent out by [#borrowPath()], never more than a few.
+    ///
+    /// A `BlendPath` is a confined `Arena` and a `bl_path_init`, so one per shape
+    /// per frame is an allocation the frame can trivially avoid -- and used to
+    /// avoid only where somebody remembered to. `BoxPainter` pooled one and
+    /// threaded it through its own public signature; `:widgets` pooled none and
+    /// opened four arenas per chart per frame. The pool is here now, in the one
+    /// place that can see every drawing call (ADR-0277).
+    ///
+    /// A free list rather than a single scratch, because the borrows nest: a
+    /// `canvas` painter filling a [Path] runs inside `BoxPainter`, which is
+    /// holding one of these for the box's own border.
+    private final List<BlendPath> paths = new ArrayList<>();
+
+    private int borrowed;
 
     private boolean ended;
 
@@ -155,10 +176,131 @@ public final class Frame {
         context.fillGlyphRun(x, baseline, font, glyphs, argb);
     }
 
-    /// Fills `path`, with the path's own origin placed at logical `(x, y)`.
+    /// Fills `path`.
+    ///
+    /// The one fill an application writes. [Path] is a value in logical
+    /// coordinates; turning it into something the rasterizer can draw is this
+    /// frame's business and happens against a pooled path, so building a shape
+    /// costs two Java arrays and no native memory at all (ADR-0277).
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
-    public void fillPath(double x, double y, BlendPath path, int argb) {
+    public void fillPath(Path path, int argb) {
+        fillPath(0, 0, path, argb);
+    }
+
+    /// Fills `path`, with the path's own origin placed at logical `(x, y)`.
+    ///
+    /// The origin moves the shape without transforming the frame, which is what
+    /// lets one 24x24 icon path be drawn at several places in a frame without
+    /// being rebuilt and without a `save`/`restore` pair around each one.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void fillPath(double x, double y, Path path, int argb) {
+        requireOpen();
+        Objects.requireNonNull(path, "path");
+        if (path.isEmpty()) {
+            return;
+        }
+        var scratch = borrowPath();
+        try {
+            path.replayInto(scratch);
+            context.fillPath(x, y, scratch, argb);
+        } finally {
+            releasePath();
+        }
+    }
+
+    /// Fills `path` with `gradient`.
+    ///
+    /// The ramp is placed in **this frame's** coordinates and not the path's, so
+    /// one gradient fills a run of figures at the strength each one sits at —
+    /// which is what a chart's bands need and what makes [Gradient] a value
+    /// rather than something attached to a shape (ADR-0207).
+    public void fillPath(Path path, Gradient gradient) {
+        fillPath(0, 0, path, gradient);
+    }
+
+    /// Fills `path` with `gradient`, with the path's own origin at `(x, y)`.
+    ///
+    /// **The origin moves the path and not the ramp.** A gradient is a statement
+    /// about a region of the surface rather than about a shape, so drawing the
+    /// same path at two origins samples two parts of one ramp rather than
+    /// repeating the first (ADR-0207).
+    public void fillPath(double x, double y, Path path, Gradient gradient) {
+        requireOpen();
+        Objects.requireNonNull(path, "path");
+        Objects.requireNonNull(gradient, "gradient");
+        if (path.isEmpty()) {
+            return;
+        }
+        var scratch = borrowPath();
+        try {
+            path.replayInto(scratch);
+            // The native gradient exists for the length of the call. Blend2D
+            // retains its own reference when the style is set, so closing it
+            // here is safe and is what keeps `Gradient` a value with no lifetime.
+            try (var ramp = toBlend(gradient)) {
+                context.fillPath(x, y, scratch, ramp);
+            }
+        } finally {
+            releasePath();
+        }
+    }
+
+    /// Strokes `path` with `stroke`.
+    ///
+    /// The style travels with the call rather than being frame state, for
+    /// [Stroke]'s reason: Blend2D's is context state, and a frame that set it
+    /// once would leak the last icon's weight into whatever drew next.
+    ///
+    /// **A dashed stroke is a solid stroke of a different path.** Blend2D stores
+    /// a dash array and never strokes with it, so the cutting happens here,
+    /// through [Dasher] — see ADR-0278. A solid stroke pays nothing for that:
+    /// the dasher hands back the very path it was given.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void strokePath(Path path, Stroke stroke, int argb) {
+        strokePath(0, 0, path, stroke, argb);
+    }
+
+    /// Strokes `path` with `stroke`, with the path's own origin at `(x, y)`.
+    ///
+    /// The dashing happens in the path's own coordinates and the result is then
+    /// placed, so where the dashes fall does not depend on where the shape is
+    /// drawn — two copies of one path at two origins are dashed alike.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void strokePath(double x, double y, Path path, Stroke stroke, int argb) {
+        requireOpen();
+        Objects.requireNonNull(path, "path");
+        Objects.requireNonNull(stroke, "stroke");
+
+        var drawn = Dasher.dash(path, stroke.dash());
+        if (drawn.isEmpty()) {
+            return;
+        }
+        var scratch = borrowPath();
+        try {
+            drawn.replayInto(scratch);
+            context.strokeWidth(stroke.width());
+            context.strokeCaps(toBlend(stroke.cap()));
+            context.strokeJoin(toBlend(stroke.join()));
+            context.strokeMiterLimit(stroke.miterLimit());
+            context.strokePath(x, y, scratch, argb);
+        } finally {
+            releasePath();
+        }
+    }
+
+    /// Fills `path`, with the path's own origin placed at logical `(x, y)`.
+    ///
+    /// Package-private since ADR-0277: `BlendPath` is a `:natives` type and this
+    /// package is as far as it goes. `:core`'s own painters keep it because they
+    /// build into a pooled path and reset it between shapes, which is cheaper
+    /// than a value they would throw away on the next box.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    void fillPath(double x, double y, BlendPath path, int argb) {
         requireOpen();
         context.fillPath(x, y, path, argb);
     }
@@ -177,7 +319,7 @@ public final class Frame {
     ///
     /// The gradient is the caller's to close, and it may be closed as soon as
     /// this returns — Blend2D retains its own reference for the fill.
-    public void fillPath(double x, double y, BlendPath path, BlendGradient gradient) {
+    void fillPath(double x, double y, BlendPath path, BlendGradient gradient) {
         requireOpen();
         context.fillPath(x, y, path, gradient);
     }
@@ -191,7 +333,7 @@ public final class Frame {
     ///
     /// @param width the stroke width in logical pixels
     /// @param argb  a colour as `0xAARRGGBB`, not premultiplied
-    public void strokePath(
+    void strokePath(
             double x, double y, BlendPath path, double width, BlendStrokeCap cap, BlendStrokeJoin join, int argb) {
         requireOpen();
         context.strokeWidth(width);
@@ -364,8 +506,80 @@ public final class Frame {
         try {
             context.close();
         } finally {
-            image.close();
+            try {
+                // The pool's paths are native allocations of this frame's, and
+                // the frame is what owns them -- so they go back before the
+                // image does, whatever the context did on its way out.
+                paths.forEach(BlendPath::close);
+                paths.clear();
+                borrowed = 0;
+            } finally {
+                image.close();
+            }
         }
+    }
+
+    /// A rasterizer path to build into, reset and ready.
+    ///
+    /// Borrowed and returned rather than allocated: see [#paths]. Must be paired
+    /// with [#releasePath()] in a `finally`, because a painter that throws
+    /// half-way must not leave the frame believing a path is still out.
+    BlendPath borrowPath() {
+        if (borrowed == paths.size()) {
+            paths.add(BlendPath.create());
+        }
+        var path = paths.get(borrowed++);
+        path.reset();
+        return path;
+    }
+
+    void releasePath() {
+        borrowed--;
+    }
+
+    /// A [Gradient] as the rasterizer's own, for the length of one fill.
+    private static BlendGradient toBlend(Gradient gradient) {
+        return switch (gradient) {
+            case Gradient.Linear linear -> {
+                var ramp = BlendGradient.linear(linear.x1(), linear.y1(), linear.x2(), linear.y2());
+                try {
+                    for (var stop : linear.stops()) {
+                        ramp.addStop(stop.offset(), stop.argb());
+                    }
+                } catch (RuntimeException | Error e) {
+                    ramp.close();
+                    throw e;
+                }
+                yield ramp;
+            }
+        };
+    }
+
+    /// A toolkit [Cap] as the rasterizer's own.
+    ///
+    /// A `switch` rather than an ordinal: the two enumerations agree today and
+    /// the C one is not alphabetical — round is 2, with a reversed round at 3 —
+    /// so an ordinal would be a coincidence the next upstream bump could take
+    /// away silently.
+    private static BlendStrokeCap toBlend(Cap cap) {
+        return switch (cap) {
+            case BUTT -> BlendStrokeCap.BUTT;
+            case SQUARE -> BlendStrokeCap.SQUARE;
+            case ROUND -> BlendStrokeCap.ROUND;
+        };
+    }
+
+    /// A toolkit [Join] as the rasterizer's own.
+    ///
+    /// [Join#MITER] is Blend2D's `MITER_CLIP`, which is the variant that cuts the
+    /// spike off at the limit — SVG's `miter` with `stroke-miterlimit`, and the
+    /// reason the limit had to be bound before this could be honest (ADR-0278).
+    private static BlendStrokeJoin toBlend(Join join) {
+        return switch (join) {
+            case MITER -> BlendStrokeJoin.MITER_CLIP;
+            case BEVEL -> BlendStrokeJoin.BEVEL;
+            case ROUND -> BlendStrokeJoin.ROUND;
+        };
     }
 
     private void requireOpen() {

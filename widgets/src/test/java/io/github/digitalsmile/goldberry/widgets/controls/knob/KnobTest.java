@@ -26,7 +26,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -568,9 +568,9 @@ class KnobTest {
     @Test
     @DisplayName("§3's two diameters come out of the cascade")
     void diameters() {
-        assertEquals(StyleLength.points(32), styleOf(new Knob(0, 1, 0, 0, null)).width());
+        assertEquals(Length.points(32), styleOf(new Knob(0, 1, 0, 0, null)).width());
         assertEquals(
-                StyleLength.points(48),
+                Length.points(48),
                 styleOf(new Knob(0, 1, 0, 0, null).styled("large")).width());
         assertEquals(
                 Corners.all(16),

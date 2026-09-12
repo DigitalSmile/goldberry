@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.icon;
 import java.util.Locale;
 import java.util.Objects;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.paint.Path;
 
 /// Turns SVG path data into Blend2D path commands.
 ///
@@ -44,7 +44,7 @@ public final class SvgPath {
     /// must not be disturbed mid-frame.
     ///
     /// @throws IllegalArgumentException if the data is not valid SVG path data
-    public static void appendTo(BlendPath path, String data, double scale) {
+    public static void appendTo(Path.Builder path, String data, double scale) {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(data, "data");
         if (!Double.isFinite(scale) || scale <= 0) {
@@ -55,7 +55,7 @@ public final class SvgPath {
     }
 
     /// Appends `data` unscaled — in its own coordinate space.
-    public static void appendTo(BlendPath path, String data) {
+    public static void appendTo(Path.Builder path, String data) {
         appendTo(path, data, 1.0);
     }
 
@@ -69,7 +69,7 @@ public final class SvgPath {
 
         private final String data;
         private final double scale;
-        private final BlendPath path;
+        private final Path.Builder path;
 
         private int at;
 
@@ -93,7 +93,21 @@ public final class SvgPath {
         /// not merely accounted for.
         private boolean closedAndNotResumed;
 
-        Reader(String data, double scale, BlendPath path) {
+        /// What kind of curve the previous command was, and its last control
+        /// point — the state SVG's `S` and `T` reflect about the current point.
+        ///
+        /// [io.github.digitalsmile.goldberry.paint.Path] has no smooth-curve
+        /// verb, deliberately: `S` and `T` mean nothing without the command
+        /// before them, and a stateful verb would make every consumer of
+        /// [io.github.digitalsmile.goldberry.paint.Path#segments()] carry this
+        /// bookkeeping instead of one reader doing it once (ADR-0277). So the
+        /// reflection happens here and a plain cubic or quadratic comes out.
+        private char controlKind;
+
+        private double controlX;
+        private double controlY;
+
+        Reader(String data, double scale, Path.Builder path) {
             this.data = data;
             this.scale = scale;
             this.path = path;
@@ -121,8 +135,21 @@ public final class SvgPath {
             }
         }
 
+        /// A cubic-family command — `C`, `c`, `S`, `s` — which is what `S`
+        /// reflects.
+        private static final char CUBIC = 'C';
+
+        /// A quadratic-family command — `Q`, `q`, `T`, `t` — which is what `T`
+        /// reflects.
+        private static final char QUAD = 'Q';
+
         private void apply(char command) {
             var relative = Character.isLowerCase(command);
+            // Captured and cleared before the command runs: SVG says a smooth
+            // curve after anything that is not its own family reflects about the
+            // current point, which is the same as having no control at all.
+            var previous = controlKind;
+            controlKind = '\0';
             switch (Character.toUpperCase(command)) {
                 case 'M' -> {
                     x = coordinate(relative, x);
@@ -158,17 +185,20 @@ public final class SvgPath {
                     x = coordinate(relative, x);
                     y = coordinate(relative, y);
                     path.cubicTo(x1, y1, x2, y2, x, y);
+                    remember(CUBIC, x2, y2);
                 }
                 case 'S' -> {
                     requireStarted('S');
+                    // The reflection is taken before the new coordinates are
+                    // read, because it is about where the pen is *now*.
+                    var x1 = previous == CUBIC ? 2 * x - controlX : x;
+                    var y1 = previous == CUBIC ? 2 * y - controlY : y;
                     var x2 = coordinate(relative, x);
                     var y2 = coordinate(relative, y);
                     x = coordinate(relative, x);
                     y = coordinate(relative, y);
-                    // Blend2D reflects the previous control point itself, from
-                    // the command it recorded. Doing it here would need the same
-                    // bookkeeping and would disagree with SVG after a Z.
-                    path.smoothCubicTo(x2, y2, x, y);
+                    path.cubicTo(x1, y1, x2, y2, x, y);
+                    remember(CUBIC, x2, y2);
                 }
                 case 'Q' -> {
                     requireStarted('Q');
@@ -177,17 +207,21 @@ public final class SvgPath {
                     x = coordinate(relative, x);
                     y = coordinate(relative, y);
                     path.quadTo(x1, y1, x, y);
+                    remember(QUAD, x1, y1);
                 }
                 case 'T' -> {
                     requireStarted('T');
+                    var cx = previous == QUAD ? 2 * x - controlX : x;
+                    var cy = previous == QUAD ? 2 * y - controlY : y;
                     x = coordinate(relative, x);
                     y = coordinate(relative, y);
-                    path.smoothQuadTo(x, y);
+                    path.quadTo(cx, cy, x, y);
+                    remember(QUAD, cx, cy);
                 }
                 case 'A' -> {
                     requireStarted('A');
                     // The radii scale with everything else; the rotation does
-                    // not, and it is in degrees here and radians in Blend2D.
+                    // not, and it is in degrees here and radians in a Path.
                     var rx = number() * scale;
                     var ry = number() * scale;
                     var rotation = Math.toRadians(number());
@@ -195,11 +229,11 @@ public final class SvgPath {
                     var sweep = flag();
                     x = coordinate(relative, x);
                     y = coordinate(relative, y);
-                    path.ellipticArcTo(rx, ry, rotation, largeArc, sweep, x, y);
+                    path.arcTo(rx, ry, rotation, largeArc, sweep, x, y);
                 }
                 case 'Z' -> {
                     requireStarted('Z');
-                    path.closeSubPath();
+                    path.close();
                     // The current point returns to where the sub-path began.
                     // Getting this wrong makes the next relative command start
                     // from the end of the outline instead of its beginning.
@@ -311,6 +345,13 @@ public final class SvgPath {
                     return;
                 }
             }
+        }
+
+        /// Records the control point a following `S` or `T` would reflect.
+        private void remember(char kind, double x, double y) {
+            controlKind = kind;
+            controlX = x;
+            controlY = y;
         }
 
         private static boolean isDigit(char c) {

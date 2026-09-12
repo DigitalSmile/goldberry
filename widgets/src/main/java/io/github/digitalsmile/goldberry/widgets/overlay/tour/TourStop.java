@@ -8,9 +8,9 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -281,31 +281,31 @@ record TourStop(
         // insets, so there is nothing left for an alignment to decide.
         return Box.of()
                 .style(style)
-                .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
-                .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START)
+                .direction(io.github.digitalsmile.goldberry.layout.FlexDirection.COLUMN)
+                .alignItems(io.github.digitalsmile.goldberry.layout.Align.FLEX_START)
                 .children(
-                        veil.position(PositionType.ABSOLUTE).inset(Insets.all(StyleLength.points(0))),
-                        ring.position(PositionType.ABSOLUTE)
+                        veil.position(Position.ABSOLUTE).inset(Insets.all(Length.points(0))),
+                        ring.position(Position.ABSOLUTE)
                                 .inset(new Insets(
-                                        StyleLength.points(lit.top() - RING),
-                                        StyleLength.UNDEFINED,
-                                        StyleLength.UNDEFINED,
-                                        StyleLength.points(lit.left() - RING)))
+                                        Length.points(lit.top() - RING),
+                                        Length.UNDEFINED,
+                                        Length.UNDEFINED,
+                                        Length.points(lit.left() - RING)))
                                 .size(
-                                        StyleLength.points(lit.size().width() + RING * 2),
-                                        StyleLength.points(lit.size().height() + RING * 2)),
+                                        Length.points(lit.size().width() + RING * 2),
+                                        Length.points(lit.size().height() + RING * 2)),
                         arriving(card, context.nowMillis())
-                                .position(PositionType.ABSOLUTE)
+                                .position(Position.ABSOLUTE)
                                 // `Insets` is in CSS order -- top, right, bottom, left.
                                 // Left and top the other way round anchors the card by
                                 // its top *and its bottom*, which stretches it down the
                                 // whole window and puts it against the left edge.
                                 .inset(new Insets(
-                                        StyleLength.points(cardTop),
-                                        StyleLength.UNDEFINED,
-                                        StyleLength.UNDEFINED,
-                                        StyleLength.points(cardLeft)))
-                                .size(StyleLength.points(WIDTH), StyleLength.UNDEFINED));
+                                        Length.points(cardTop),
+                                        Length.UNDEFINED,
+                                        Length.UNDEFINED,
+                                        Length.points(cardLeft)))
+                                .size(Length.points(WIDTH), Length.UNDEFINED));
     }
 
     @Override

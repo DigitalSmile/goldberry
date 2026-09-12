@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 
 /// Layer promotion — ADR-0071.
@@ -38,14 +38,14 @@ class LayerTest {
     }
 
     private static Box square(int argb, float size) {
-        return Box.filled(argb).size(StyleLength.points(size), StyleLength.points(size));
+        return Box.filled(argb).size(Length.points(size), Length.points(size));
     }
 
     /// Two 60x60 squares in a row, the second pulled back 30 so they overlap,
     /// under a parent at `opacity`.
     private static Box overlapping(double opacity) {
         return Box.filled(BACKDROP)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.of()
                         .opacity(opacity)
                         .direction(FlexDirection.ROW)
@@ -59,7 +59,7 @@ class LayerTest {
     /// The same tree, with the promoted group itself translated.
     private static Box moved(double opacity, float by) {
         return Box.filled(BACKDROP)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.of()
                         .opacity(opacity)
                         .transform(Transform.of(
@@ -71,7 +71,7 @@ class LayerTest {
     /// A promoted group whose *child* carries the second opacity.
     private static Box childFaded(double groupOpacity, double childOpacity) {
         return Box.filled(BACKDROP)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.of()
                         .opacity(groupOpacity)
                         .direction(FlexDirection.ROW)
@@ -91,7 +91,7 @@ class LayerTest {
         /// the top-left of a 200x200 logical frame rasterized at 2x.
         private static Box fadedSquare() {
             return Box.filled(BACKDROP)
-                    .size(StyleLength.points(200), StyleLength.points(200))
+                    .size(Length.points(200), Length.points(200))
                     .children(Box.of().opacity(0.5).children(square(RED, 60)));
         }
 
@@ -219,7 +219,7 @@ class LayerTest {
                 tree.update(
                         target.frame(),
                         Box.filled(BACKDROP)
-                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .size(Length.points(200), Length.points(200))
                                 .children(square(RED, 60).opacity(0.5)));
                 tree.paint(target.frame());
             } finally {
@@ -274,7 +274,7 @@ class LayerTest {
                 assertEquals(0, tree.layersRepainted(), "settled");
 
                 var recoloured = Box.filled(BACKDROP)
-                        .size(StyleLength.points(200), StyleLength.points(200))
+                        .size(Length.points(200), Length.points(200))
                         .children(Box.of()
                                 .opacity(0.5)
                                 .direction(FlexDirection.ROW)
@@ -370,10 +370,10 @@ class LayerTest {
                 tree.update(
                         target.frame(),
                         Box.filled(BACKDROP)
-                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .size(Length.points(200), Length.points(200))
                                 .children(Box.of()
                                         .opacity(0.5)
-                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .size(Length.points(40), Length.points(40))
                                         .children(square(GREEN, 40)
                                                 .transform(Transform.of(new Transform.Function.Translate(
                                                         Transform.Length.px(80), Transform.Length.px(80)))))));
@@ -397,13 +397,13 @@ class LayerTest {
                 tree.update(
                         target.frame(),
                         Box.filled(BACKDROP)
-                                .size(StyleLength.points(200), StyleLength.points(200))
-                                .padding(StyleLength.points(20))
+                                .size(Length.points(200), Length.points(200))
+                                .padding(Length.points(20))
                                 .children(Box.of()
                                         .opacity(0.5)
                                         .decoration(io.github.digitalsmile.goldberry.css.Decoration.NONE.outline(
                                                 2, 0xFF88C0D0, 2))
-                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .size(Length.points(40), Length.points(40))
                                         .children(square(GREEN, 40))));
                 tree.paint(target.frame());
             } finally {

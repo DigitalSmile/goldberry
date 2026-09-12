@@ -172,7 +172,7 @@ public final class WidgetRenderer {
                 // has no containing block in hand to be a percentage of; `auto`
                 // is not a number at all. Both answer the fallback.
                 return io.github.digitalsmile.goldberry.css.value.CssLength.parse(resolved, lengths)
-                                instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points points
+                                instanceof io.github.digitalsmile.goldberry.layout.Length.Points points
                         ? points.value()
                         : fallback;
             }

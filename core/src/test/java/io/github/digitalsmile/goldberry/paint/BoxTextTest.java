@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
@@ -94,7 +94,7 @@ class BoxTextTest {
     void textPushesItsSiblingsDown() {
         var paragraph = Paragraph.of(font, TEXT);
         var text = Box.text(paragraph, INK);
-        var footer = Box.filled(0xFF88C0D0).size(StyleLength.UNDEFINED, StyleLength.points(20));
+        var footer = Box.filled(0xFF88C0D0).size(Length.UNDEFINED, Length.points(20));
 
         var root = Box.of().direction(FlexDirection.COLUMN).children(text, footer);
         var target = TestFrames.of(300, 400, 1.0f);
@@ -121,7 +121,7 @@ class BoxTextTest {
         var root = Box.of()
                 .direction(FlexDirection.COLUMN)
                 .background(0xFF000000)
-                .padding(StyleLength.points(10))
+                .padding(Length.points(10))
                 .children(text);
 
         var placed = layoutOf(target, root, text);
@@ -178,8 +178,8 @@ class BoxTextTest {
     }
 
     /// Lays `root` out in `target` and returns where `wanted` ended up.
-    private static ComputedLayout layoutOf(TestFrames.Target target, Box root, Box wanted) {
-        var found = new ArrayList<ComputedLayout>();
+    private static LogicalRect layoutOf(TestFrames.Target target, Box root, Box wanted) {
+        var found = new ArrayList<LogicalRect>();
         BoxPainter.forEachBox(target.frame(), root, (box, layout) -> {
             if (box == wanted) {
                 found.add(layout);
@@ -188,7 +188,7 @@ class BoxTextTest {
         return single(found, wanted);
     }
 
-    private static ComputedLayout single(List<ComputedLayout> found, Box wanted) {
+    private static LogicalRect single(List<LogicalRect> found, Box wanted) {
         if (found.size() != 1) {
             throw new AssertionError("expected exactly one placement of " + wanted + ", got " + found.size());
         }

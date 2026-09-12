@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// What a `canvas`'s painter is handed, and what it cannot do with it.
@@ -39,15 +39,11 @@ class CanvasPaintTest {
     /// A 40×40 box at (20, 20) in a 100×100 frame, holding `painter`.
     private static Box scene(Painter painter) {
         return Box.of()
-                .size(StyleLength.points(100), StyleLength.points(100))
+                .size(Length.points(100), Length.points(100))
                 .children(Box.of()
-                        .size(StyleLength.points(40), StyleLength.points(40))
-                        .inset(new Insets(
-                                StyleLength.points(20),
-                                StyleLength.UNDEFINED,
-                                StyleLength.UNDEFINED,
-                                StyleLength.points(20)))
-                        .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
+                        .size(Length.points(40), Length.points(40))
+                        .inset(new Insets(Length.points(20), Length.UNDEFINED, Length.UNDEFINED, Length.points(20)))
+                        .position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
                         .painting(painter));
     }
 
@@ -109,12 +105,8 @@ class CanvasPaintTest {
         try {
             target.frame().fill(WHITE);
             var box = Box.of()
-                    .size(StyleLength.points(100), StyleLength.points(100))
-                    .padding(new Insets(
-                            StyleLength.points(10),
-                            StyleLength.points(10),
-                            StyleLength.points(10),
-                            StyleLength.points(10)))
+                    .size(Length.points(100), Length.points(100))
+                    .padding(new Insets(Length.points(10), Length.points(10), Length.points(10), Length.points(10)))
                     .painting((frame, size) -> frame.fillRect(0, 0, size.width(), size.height(), BLUE));
             BoxPainter.paint(target.frame(), box);
         } finally {
@@ -137,16 +129,14 @@ class CanvasPaintTest {
             // sliver, moves the origin and fades everything, and never puts any
             // of it back.
             var box = Box.of()
-                    .size(StyleLength.points(100), StyleLength.points(100))
+                    .size(Length.points(100), Length.points(100))
                     .children(
-                            Box.of()
-                                    .size(StyleLength.points(50), StyleLength.points(20))
-                                    .painting((frame, size) -> {
-                                        frame.clipTo(0, 0, 2, 2);
-                                        frame.transform(1, 0, 0, 1, 30, 30);
-                                        frame.fillRect(0, 0, 100, 100, BLUE);
-                                    }),
-                            Box.filled(BLACK).size(StyleLength.points(50), StyleLength.points(20)));
+                            Box.of().size(Length.points(50), Length.points(20)).painting((frame, size) -> {
+                                frame.clipTo(0, 0, 2, 2);
+                                frame.transform(1, 0, 0, 1, 30, 30);
+                                frame.fillRect(0, 0, 100, 100, BLUE);
+                            }),
+                            Box.filled(BLACK).size(Length.points(50), Length.points(20)));
             BoxPainter.paint(target.frame(), box);
         } finally {
             target.end();
@@ -171,19 +161,16 @@ class CanvasPaintTest {
             // (ScrollContent). Scrolled down by 15, so the canvas at y=20 draws
             // at y=5.
             var box = Box.of()
-                    .size(StyleLength.points(100), StyleLength.points(100))
+                    .size(Length.points(100), Length.points(100))
                     .children(Box.of()
-                            .size(StyleLength.points(100), StyleLength.points(100))
+                            .size(Length.points(100), Length.points(100))
                             .transform(Transform.of(
                                     new Transform.Function.Translate(Transform.Length.px(0), Transform.Length.px(-15))))
                             .children(Box.of()
-                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .size(Length.points(40), Length.points(40))
                                     .inset(new Insets(
-                                            StyleLength.points(20),
-                                            StyleLength.UNDEFINED,
-                                            StyleLength.UNDEFINED,
-                                            StyleLength.points(20)))
-                                    .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
+                                            Length.points(20), Length.UNDEFINED, Length.UNDEFINED, Length.points(20)))
+                                    .position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
                                     .painting(
                                             (frame, size) -> frame.fillRect(0, 0, size.width(), size.height(), BLUE))));
             BoxPainter.paint(target.frame(), box);
@@ -206,9 +193,9 @@ class CanvasPaintTest {
         var target = TestFrames.of(100, 100, 1.0f);
         try {
             var box = Box.of()
-                    .size(StyleLength.points(100), StyleLength.points(100))
+                    .size(Length.points(100), Length.points(100))
                     .children(Box.of()
-                            .size(StyleLength.points(0), StyleLength.points(0))
+                            .size(Length.points(0), Length.points(0))
                             .painting((frame, size) -> called.add("painted")));
             BoxPainter.paint(target.frame(), box);
         } finally {

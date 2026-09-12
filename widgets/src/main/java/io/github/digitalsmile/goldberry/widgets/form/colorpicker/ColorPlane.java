@@ -9,12 +9,11 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Gradient;
+import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -195,39 +194,29 @@ record ColorPlane(HsvColor colour, PlaneCursor onChange, boolean disabled)
             return;
         }
         frame.fillRect(0, 0, width, height, hue);
-        try (var path = BlendPath.create()) {
-            rect(path, width, height);
-            try (var toWhite = BlendGradient.linear(0, 0, width, 0)) {
-                toWhite.addStop(0, 0xFFFFFFFF);
-                toWhite.addStop(1, 0x00FFFFFF);
-                frame.fillPath(0, 0, path, toWhite);
-            }
-            try (var toBlack = BlendGradient.linear(0, 0, 0, height)) {
-                toBlack.addStop(0, 0x00000000);
-                toBlack.addStop(1, 0xFF000000);
-                frame.fillPath(0, 0, path, toBlack);
-            }
-        }
+        var plane = Path.rect(0, 0, width, height);
+        frame.fillPath(
+                plane,
+                Gradient.linear(0, 0, width, 0, new Gradient.Stop(0, 0xFFFFFFFF), new Gradient.Stop(1, 0x00FFFFFF)));
+        frame.fillPath(
+                plane,
+                Gradient.linear(0, 0, 0, height, new Gradient.Stop(0, 0x00000000), new Gradient.Stop(1, 0xFF000000)));
         cursor(frame, saturation * width, (1 - value) * height, value > 0.5 ? 0xFF000000 : 0xFFFFFFFF);
-    }
-
-    private static void rect(BlendPath path, double width, double height) {
-        path.moveTo(0, 0);
-        path.lineTo(width, 0);
-        path.lineTo(width, height);
-        path.lineTo(0, height);
-        path.closeSubPath();
     }
 
     /// A ring, drawn in whichever of black and white the colour under it is
     /// furthest from — because a cursor is the one mark on this control that has
     /// to be visible over every colour it can be put on.
     private static void cursor(Frame frame, double x, double y, int argb) {
-        try (var ring = BlendPath.create()) {
-            ring.moveTo(x + CURSOR_RADIUS, y);
-            ring.ellipticArcTo(CURSOR_RADIUS, CURSOR_RADIUS, 0, true, true, x - CURSOR_RADIUS, y);
-            ring.ellipticArcTo(CURSOR_RADIUS, CURSOR_RADIUS, 0, true, true, x + CURSOR_RADIUS, y);
-            frame.strokePath(0, 0, ring, 2, BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, argb);
-        }
+        // Two half arcs rather than `Path.circle`, and with the large-arc flag
+        // this control has always set: for an exactly-180 degree sweep the two
+        // flags describe the same curve, and keeping the one that was here is
+        // what says no golden moved for a reason nobody chose (ADR-0277).
+        var ring = Path.builder()
+                .moveTo(x + CURSOR_RADIUS, y)
+                .arcTo(CURSOR_RADIUS, CURSOR_RADIUS, 0, true, true, x - CURSOR_RADIUS, y)
+                .arcTo(CURSOR_RADIUS, CURSOR_RADIUS, 0, true, true, x + CURSOR_RADIUS, y)
+                .build();
+        frame.strokePath(ring, Stroke.round(2), argb);
     }
 }

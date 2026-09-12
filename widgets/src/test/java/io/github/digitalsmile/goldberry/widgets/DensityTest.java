@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// §1.3's density preference, and the promise attached to it: "token-conformant
 /// apps adapt with zero code" ([ADR-0074]).
@@ -33,8 +33,8 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 class DensityTest {
 
     /// §1.3's density row: control heights 32 / 28.
-    private static final StyleLength REGULAR_HEIGHT = StyleLength.points(32);
-    private static final StyleLength COMPACT_HEIGHT = StyleLength.points(28);
+    private static final Length REGULAR_HEIGHT = Length.points(32);
+    private static final Length COMPACT_HEIGHT = Length.points(28);
 
     /// The controls §3 gives a height to. `radio-group` is not among them: it is
     /// a container whose height is the sum of its options, and a density that
@@ -168,7 +168,7 @@ class DensityTest {
         void theGlyphHoldsStill() {
             for (var part : List.of("check-indicator", "radio-indicator")) {
                 assertEquals(
-                        StyleLength.points(16),
+                        Length.points(16),
                         styleOf(part, Density.COMPACT).height(),
                         part + " should stay 16px at compact");
                 assertEquals(
@@ -194,7 +194,7 @@ class DensityTest {
 
     // ---------------------------------------------------------------- helpers
 
-    private static StyleLength heightOf(String type, Density density) {
+    private static Length heightOf(String type, Density density) {
         return styleOf(type, density).height();
     }
 

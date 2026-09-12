@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widget.style;
 
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// One of a box's four corners, named the way a stylesheet names them.
 ///
@@ -53,17 +53,17 @@ public enum Corner {
     /// Insets that pin a box to this corner, `margin` logical pixels from each of
     /// the two edges it touches.
     ///
-    /// The other two edges are [StyleLength#UNDEFINED] and not zero, and the
+    /// The other two edges are [Length#UNDEFINED] and not zero, and the
     /// difference is the whole point: an inset of zero on all four edges pins a
     /// box to every edge and stretches it across the window, which is a scrim
     /// rather than a corner. Undefined leaves the box its own size and lets the
     /// two edges that *are* set decide where that size sits.
     public Insets insets(float margin) {
-        var edge = StyleLength.points(margin);
+        var edge = Length.points(margin);
         return new Insets(
-                isTop() ? edge : StyleLength.UNDEFINED,
-                isStart() ? StyleLength.UNDEFINED : edge,
-                isTop() ? StyleLength.UNDEFINED : edge,
-                isStart() ? edge : StyleLength.UNDEFINED);
+                isTop() ? edge : Length.UNDEFINED,
+                isStart() ? Length.UNDEFINED : edge,
+                isTop() ? Length.UNDEFINED : edge,
+                isStart() ? edge : Length.UNDEFINED);
     }
 }

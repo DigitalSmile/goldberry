@@ -29,14 +29,14 @@ import java.util.Map;
     /// ├──────────────────────────────────┤
     /// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
     /// ├──────────────────────────────────┤
-    /// │ Basic │ Panels │ … │ Charts      │  #gallery — seven screens
+    /// │ Basic │ Panels │ … │ Canvas      │  #gallery — eight screens
     /// │ ┌────────┐ ┌────────┐            │
     /// │ │  card  │ │  card  │  a masonry │
     /// │ └────────┘ └────────┘            │
     /// └──────────────────────────────────┘
     /// ```
 ///
-/// ## Why seven screens and not twelve
+/// ## Why eight screens and not twelve
 ///
 /// Because twelve was one screen per *widget family* and nobody reads a gallery
 /// that way. `Controls`, `Values` and `Text` were three tabs you had to visit in
@@ -82,10 +82,10 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// the one the eighth tab named. A gallery with two orders in it is a gallery
     /// that disagrees with itself (ADR-0110).
     ///
-    /// Seven of them, which is now comfortably inside the ten digits a keyboard
-    /// has — where twelve was two screens past the end of them.
+    /// Eight of them, which is still inside the ten digits a keyboard has — where
+    /// twelve was two screens past the end of them.
     public static final List<String> GALLERY = List.of(
-            "basic", "panels", "overlays", "forms", "navigation", "collections", "charts");
+            "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "canvas");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -102,7 +102,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             "forms", "Forms",
             "navigation", "Navigation",
             "collections", "Collections",
-            "charts", "Charts");
+            "charts", "Charts",
+            "canvas", "Canvas");
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -215,7 +216,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             var model = widget().model();
             var actions = widget().actions();
 
-            // The gallery: one strip, seven screens, none of them closable. It is
+            // The gallery: one strip, eight screens, none of them closable. It is
             // bound like every other control -- `Ctrl+1`... , the Edit menu and
             // the strip itself are three ways to set one property rather than
             // three copies of a selection. Through `inGalleryOrder`, so the order
@@ -241,7 +242,12 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     new Tab("collections", title("collections"),
                             scrolled(new Wall("collections", "Collections", COLLECTIONS_NOTE,
                                     2, Collections.cards()))),
-                    new Tab("charts", title("charts"), scrolled(new Charts()))))),
+                    new Tab("charts", title("charts"), scrolled(new Charts())),
+                    // §1's `canvas`, which is the one screen about a *primitive*
+                    // rather than about a family of widgets -- and the only one
+                    // whose cards respond to the pointer by redrawing themselves
+                    // (ADR-0281).
+                    new Tab("canvas", title("canvas"), scrolled(new CanvasScreen()))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

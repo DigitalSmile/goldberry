@@ -5,12 +5,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// Lays a [Box] tree out with Yoga and paints it with Blend2D.
 ///
@@ -110,9 +110,25 @@ public final class BoxPainter {
     ///
     /// For a box drawn where it was laid out. A box under a `transform` — every
     /// box inside a `scroll`, whose content is translated rather than moved —
-    /// goes through [#paintOne(Frame, BlendPath, Box, ComputedLayout, Affine)].
-    public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout) {
-        paintOne(frame, path, box, layout, Affine.IDENTITY);
+    /// goes through [#paintOne(Frame, Box, LogicalRect, Affine)].
+    public static void paintOne(Frame frame, Box box, LogicalRect layout) {
+        paintOne(frame, box, layout, Affine.IDENTITY);
+    }
+
+    /// [#paintOne(Frame, Box, LogicalRect)] with the ambient matrix.
+    ///
+    /// The rasterizer path this used to take as a parameter is the frame's now
+    /// (ADR-0277). It was there to be pooled — one native allocation per paint
+    /// walk rather than one per rounded corner — and pooling it in `Frame` does
+    /// the same job without a `:natives` type in a signature an application can
+    /// see.
+    public static void paintOne(Frame frame, Box box, LogicalRect layout, Affine ambient) {
+        var path = frame.borrowPath();
+        try {
+            paintOne(frame, path, box, layout, ambient);
+        } finally {
+            frame.releasePath();
+        }
     }
 
     /// The same, told **what matrix the context is already carrying**.
@@ -130,7 +146,7 @@ public final class BoxPainter {
     ///
     /// @param ambient what the frame's transform was set to before this box —
     ///                [Affine#IDENTITY] for the overwhelming majority of boxes
-    public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout, Affine ambient) {
+    static void paintOne(Frame frame, BlendPath path, Box box, LogicalRect layout, Affine ambient) {
         var decoration = box.decoration();
         var x = layout.left();
         var y = layout.top();
@@ -476,12 +492,10 @@ public final class BoxPainter {
     /// caller passes the right base rather than this guessing. Anything that is
     /// not a number is nothing: `auto` padding does not exist and `undefined`
     /// means none.
-    private static double resolve(StyleLength length, double base) {
-        return switch (length) {
-            case StyleLength.Points points -> points.value();
-            case StyleLength.Percent percent -> percent.value() / 100.0 * base;
-            case StyleLength.Keyword ignored -> 0;
-        };
+    /// Delegates to [Length#resolve], which is where this arithmetic moved when
+    /// the hit-test snapshot needed the same answer (ADR-0281).
+    private static double resolve(Length length, double base) {
+        return Length.resolve(length, (float) base);
     }
 
     /// Hands the frame to an application's own painter — §1's `canvas`.
@@ -554,7 +568,7 @@ public final class BoxPainter {
     /// @param clip what an `overflow` above this box confines it to, or
     ///             [Clip#NONE] when nothing does — which is every box in a tree
     ///             with no scroll view in it
-    public record Placed(Box box, ComputedLayout layout, Affine transform, Clip clip) {
+    public record Placed(Box box, LogicalRect layout, Affine transform, Clip clip) {
 
         public Placed {
             Objects.requireNonNull(box, "box");
@@ -564,7 +578,7 @@ public final class BoxPainter {
         }
 
         /// An unclipped box, which is what a caller building one by hand means.
-        public Placed(Box box, ComputedLayout layout, Affine transform) {
+        public Placed(Box box, LogicalRect layout, Affine transform) {
             this(box, layout, transform, Clip.NONE);
         }
 
@@ -586,7 +600,7 @@ public final class BoxPainter {
     /// it on the context, and hit testing, which inverts it — use
     /// [#forEachPlacedBox]; callers that only want rectangles keep the simpler
     /// signature.
-    public static void forEachBox(Frame frame, Box root, BiConsumer<Box, ComputedLayout> visitor) {
+    public static void forEachBox(Frame frame, Box root, BiConsumer<Box, LogicalRect> visitor) {
         Objects.requireNonNull(visitor, "visitor");
         forEachPlacedBox(frame, root, placed -> visitor.accept(placed.box(), placed.layout()));
     }

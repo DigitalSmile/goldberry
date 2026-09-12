@@ -156,6 +156,12 @@ final class Blend2dContext {
         check("bl_context_set_stroke_join", result);
     }
 
+    void contextSetStrokeMiterLimit(MemorySegment context, double miterLimit) {
+        int result;
+        result = calls.contextSetStrokeMiterLimit().call(context, miterLimit);
+        check("bl_context_set_stroke_miter_limit", result);
+    }
+
     /// `BLResult bl_context_{fill,stroke}_path_d_rgba32(BLContextCore*,`
     /// `const BLPoint* origin, const BLPathCore*, uint32_t)`
     ///

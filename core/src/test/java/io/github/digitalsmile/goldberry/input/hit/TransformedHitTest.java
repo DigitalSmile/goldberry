@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.Cursor;
@@ -44,9 +44,9 @@ class TransformedHitTest {
     /// A 40×40 box at the top-left of a 200×200 frame, with `transform` on it.
     private static Box moved(Transform transform) {
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.filled(0xFF00FF00)
-                        .size(StyleLength.points(40), StyleLength.points(40))
+                        .size(Length.points(40), Length.points(40))
                         .transform(transform)
                         .owner("target"));
     }
@@ -102,15 +102,15 @@ class TransformedHitTest {
         // never mentions a transform. A painter that accumulates and a hit test
         // that does not would put the child's ink at 110 and its hit area at 10.
         var child = Box.filled(0xFF0000FF)
-                .size(StyleLength.points(20), StyleLength.points(20))
+                .size(Length.points(20), Length.points(20))
                 .owner("child");
         var parent = Box.filled(0xFF00FF00)
-                .size(StyleLength.points(40), StyleLength.points(40))
+                .size(Length.points(40), Length.points(40))
                 .transform(
                         Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.ZERO)))
                 .children(child);
         var regions = capture(Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(parent));
 
         assertEquals("child", HitTest.at(regions, 110, 10).orElseThrow());
@@ -123,17 +123,17 @@ class TransformedHitTest {
         // both, which is the assertion that fails if the walk overwrites the
         // accumulated matrix instead of composing under it.
         var child = Box.filled(0xFF0000FF)
-                .size(StyleLength.points(20), StyleLength.points(20))
+                .size(Length.points(20), Length.points(20))
                 .transform(
                         Transform.of(new Transform.Function.Translate(Transform.Length.ZERO, Transform.Length.px(50))))
                 .owner("child");
         var parent = Box.filled(0xFF00FF00)
-                .size(StyleLength.points(40), StyleLength.points(40))
+                .size(Length.points(40), Length.points(40))
                 .transform(
                         Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.ZERO)))
                 .children(child);
         var regions = capture(Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(parent));
 
         assertEquals("child", HitTest.at(regions, 110, 60).orElseThrow());
@@ -160,9 +160,9 @@ class TransformedHitTest {
         // must cost the four comparisons it always did rather than a matrix
         // multiply each.
         var regions = capture(Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.filled(0xFF00FF00)
-                        .size(StyleLength.points(40), StyleLength.points(40))
+                        .size(Length.points(40), Length.points(40))
                         .owner("target")));
 
         assertTrue(regions.stream().allMatch(r -> r.inverse() == null));
@@ -176,9 +176,9 @@ class TransformedHitTest {
         // the element tree (ADR-0057), so it is answered by the same `contains`
         // and would go wrong in exactly the same way.
         var regions = capture(Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.filled(0xFF00FF00)
-                        .size(StyleLength.points(40), StyleLength.points(40))
+                        .size(Length.points(40), Length.points(40))
                         .cursor(Cursor.POINTER)
                         .transform(Transform.of(new Transform.Function.Translate(
                                 Transform.Length.px(100), Transform.Length.px(100))))));

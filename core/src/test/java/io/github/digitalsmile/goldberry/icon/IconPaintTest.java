@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.paint.Path;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// Where the ink lands, which is the only thing that proves an icon drew.
@@ -140,9 +140,10 @@ class IconPaintTest {
         // vertex. `l30 0` therefore draws from (10,10) to (40,10) -- and from
         // (10,50) to (40,50) if the pen were left where the outline ended.
         var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try (var path = BlendPath.create()) {
+        try {
+            var path = Path.builder();
             SvgPath.appendTo(path, "M10 10L50 10L50 50Zl30 0");
-            target.frame().strokePath(0, 0, path, 2.0, Icon.CAP, Icon.JOIN, INK);
+            target.frame().strokePath(path.build(), Icon.pen(2.0), INK);
         } finally {
             target.end();
         }
@@ -232,9 +233,10 @@ class IconPaintTest {
 
     private int[] paint(String data) {
         var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try (var path = BlendPath.create()) {
+        try {
+            var path = Path.builder();
             SvgPath.appendTo(path, data);
-            target.frame().strokePath(0, 0, path, 2.0, Icon.CAP, Icon.JOIN, INK);
+            target.frame().strokePath(path.build(), Icon.pen(2.0), INK);
         } finally {
             target.end();
         }

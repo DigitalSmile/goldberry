@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -884,10 +884,8 @@ class TextInputTest {
             return field.render(style, children, context).children();
         }
 
-        private static float points(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength length) {
-            return length instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points p
-                    ? p.value()
-                    : Float.NaN;
+        private static float points(io.github.digitalsmile.goldberry.layout.Length length) {
+            return length instanceof io.github.digitalsmile.goldberry.layout.Length.Points p ? p.value() : Float.NaN;
         }
 
         @Test
@@ -943,7 +941,7 @@ class TextInputTest {
             assertEquals(
                     8,
                     points(ContainingBlock.insetFor(
-                                    PositionType.ABSOLUTE, parts.get(1).inset(), padding)
+                                    Position.ABSOLUTE, parts.get(1).inset(), padding)
                             .left()),
                     0.01,
                     "the text does not start at the field's padding after all");

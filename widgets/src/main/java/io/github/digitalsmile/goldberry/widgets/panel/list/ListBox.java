@@ -125,8 +125,8 @@ record ListBox(
             return Box.of()
                     .style(style)
                     .size(
-                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED,
-                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points((float) height));
+                            io.github.digitalsmile.goldberry.layout.Length.UNDEFINED,
+                            io.github.digitalsmile.goldberry.layout.Length.points((float) height));
         }
     }
 }

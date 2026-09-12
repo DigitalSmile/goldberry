@@ -13,7 +13,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -54,7 +54,7 @@ class CaretWidthTest {
     }
 
     private static void collect(Box box, List<Double> out) {
-        if (box.width() instanceof StyleLength.Points points) {
+        if (box.width() instanceof Length.Points points) {
             out.add((double) points.value());
         }
         box.children().forEach(child -> collect(child, out));

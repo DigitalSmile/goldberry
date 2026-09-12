@@ -19,8 +19,8 @@ import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -96,7 +96,7 @@ class OverlayLayerTest {
 
         assertEquals(1, box.children().size());
         assertEquals(
-                PositionType.RELATIVE,
+                Position.RELATIVE,
                 box.children().getFirst().position(),
                 "the content is in flow; only overlays are taken out of it");
         assertEquals(
@@ -126,7 +126,7 @@ class OverlayLayerTest {
                 after.children().getFirst().width(),
                 "an overlay that changed the content's box would be a layout, not an overlay");
         assertEquals(1.0, after.children().getFirst().flexGrow());
-        assertEquals(PositionType.ABSOLUTE, after.children().get(1).position());
+        assertEquals(Position.ABSOLUTE, after.children().get(1).position());
     }
 
     @Test
@@ -215,20 +215,20 @@ class OverlayLayerTest {
         var margin = 12f;
 
         var topStart = Corner.TOP_START.insets(margin);
-        assertEquals(StyleLength.points(margin), topStart.top());
-        assertEquals(StyleLength.points(margin), topStart.left());
-        assertEquals(StyleLength.UNDEFINED, topStart.right());
+        assertEquals(Length.points(margin), topStart.top());
+        assertEquals(Length.points(margin), topStart.left());
+        assertEquals(Length.UNDEFINED, topStart.right());
         assertEquals(
-                StyleLength.UNDEFINED,
+                Length.UNDEFINED,
                 topStart.bottom(),
                 "an inset of zero on the other edges would stretch the overlay across the window;"
                         + " undefined leaves it its own size");
 
         var bottomEnd = Corner.BOTTOM_END.insets(margin);
-        assertEquals(StyleLength.points(margin), bottomEnd.bottom());
-        assertEquals(StyleLength.points(margin), bottomEnd.right());
-        assertEquals(StyleLength.UNDEFINED, bottomEnd.top());
-        assertEquals(StyleLength.UNDEFINED, bottomEnd.left());
+        assertEquals(Length.points(margin), bottomEnd.bottom());
+        assertEquals(Length.points(margin), bottomEnd.right());
+        assertEquals(Length.UNDEFINED, bottomEnd.top());
+        assertEquals(Length.UNDEFINED, bottomEnd.left());
     }
 
     @Test

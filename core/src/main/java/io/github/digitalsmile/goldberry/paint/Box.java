@@ -6,15 +6,15 @@ import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.Decoration;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.Limits;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Limits;
+import io.github.digitalsmile.goldberry.layout.Overflow;
+import io.github.digitalsmile.goldberry.layout.Position;
+import io.github.digitalsmile.goldberry.layout.Wrap;
+import io.github.digitalsmile.goldberry.layout.Justify;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import java.util.List;
@@ -50,17 +50,17 @@ public record Box(
         // multiple` grew a row of chips that has to fall onto a second line
         // rather than squeeze (ADR-0192).
         Wrap wrap,
-        StyleLength width,
-        StyleLength height,
+        Length width,
+        Length height,
         // How small and how large it may be. Beside `width` and `height`
         // because it is the same question, and one component rather than four
         // because the four are only meaningful together (ADR-0181).
         Limits limits,
         Insets padding,
-        StyleLength gap,
+        Length gap,
         double flexGrow,
         double flexShrink,
-        PositionType position,
+        Position position,
         Insets inset,
         boolean elevated,
         Overflow overflow,
@@ -381,12 +381,12 @@ public record Box(
                 // "Defer to my container", which is Yoga's default and CSS's.
                 Align.AUTO,
                 Wrap.NO_WRAP,
-                StyleLength.UNDEFINED,
-                StyleLength.UNDEFINED,
+                Length.UNDEFINED,
+                Length.UNDEFINED,
                 // No limit on any axis, which is Yoga's own default and CSS's.
                 Limits.NONE,
                 Insets.ZERO,
-                StyleLength.points(0),
+                Length.points(0),
                 0,
                 // CSS's default, and Yoga's under `useWebDefaults` — so a box
                 // built here behaves exactly as one did before this field
@@ -397,8 +397,8 @@ public record Box(
                 // `Insets.ZERO` would be wrong: an inset of zero pins a node to
                 // its container's edge, which is not "no inset at all"
                 // (ADR-0099).
-                PositionType.RELATIVE,
-                Insets.all(StyleLength.UNDEFINED),
+                Position.RELATIVE,
+                Insets.all(Length.UNDEFINED),
                 // In document order, which is where every box is until a widget
                 // says otherwise (ADR-0123).
                 false,
@@ -477,7 +477,7 @@ public record Box(
     ///
     /// @param argb `0xAARRGGBB`, not premultiplied
     public static Box icon(Icon icon, int argb) {
-        var size = StyleLength.points((float) icon.size());
+        var size = Length.points((float) icon.size());
         return of().icon(new Glyph(icon, argb)).size(size, size);
     }
 
@@ -613,7 +613,7 @@ public record Box(
                 flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
-    public Box size(StyleLength w, StyleLength h) {
+    public Box size(Length w, Length h) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, wrap, w, h, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
@@ -621,7 +621,7 @@ public record Box(
 
     /// The same padding on every edge — the common case, and what most of the
     /// toolkit's own boxes want.
-    public Box padding(StyleLength value) {
+    public Box padding(Length value) {
         return padding(Insets.all(value));
     }
 
@@ -650,10 +650,10 @@ public record Box(
     /// The layout half's answer to a box that is not where the flow would put it
     /// — everything in the catalog until `segmented`'s indicator was a box beside
     /// another box. An absolute box is taken out of flow and placed against its
-    /// nearest ancestor that is not [PositionType#STATIC], so it can sit *over*
+    /// nearest ancestor that is not [Position#STATIC], so it can sit *over*
     /// its siblings and move without disturbing them
     /// (ADR-0099).
-    public Box position(PositionType value) {
+    public Box position(Position value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 Objects.requireNonNull(value, "position"), inset, elevated, overflow, text, icon, mark, painting,
@@ -664,7 +664,7 @@ public record Box(
     /// its `top` / `right` / `bottom` / `left`.
     ///
     /// Meaningful on an absolute box and an offset on a relative one, which is
-    /// CSS's rule and Yoga's. An edge left [StyleLength#UNDEFINED] is not
+    /// CSS's rule and Yoga's. An edge left [Length#UNDEFINED] is not
     /// constrained at all: an absolute box with no insets is placed by its
     /// parent's alignment, and one with all four is stretched to fill.
     public Box inset(Insets value) {
@@ -674,7 +674,7 @@ public record Box(
                 owner);
     }
 
-    public Box gap(StyleLength value) {
+    public Box gap(Length value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, wrap, width, height, limits, padding, value, flexGrow, flexShrink, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);

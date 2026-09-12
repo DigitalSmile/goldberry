@@ -30,6 +30,7 @@ public record ContextCalls(
         ContextSetStrokeWidth contextSetStrokeWidth,
         ContextSetStrokeCaps contextSetStrokeCaps,
         ContextSetStrokeJoin contextSetStrokeJoin,
+        ContextSetStrokeMiterLimit contextSetStrokeMiterLimit,
         ContextFillPathDRgba32 contextFillPathDRgba32,
         ContextFillPathD contextFillPathD,
         ContextSetFillStyle contextSetFillStyle,
@@ -61,6 +62,7 @@ public record ContextCalls(
                 new ContextSetStrokeWidth(lookup),
                 new ContextSetStrokeCaps(lookup),
                 new ContextSetStrokeJoin(lookup),
+                new ContextSetStrokeMiterLimit(lookup),
                 new ContextFillPathDRgba32(lookup),
                 new ContextFillPathD(lookup),
                 new ContextSetFillStyle(lookup),
@@ -434,6 +436,36 @@ public record ContextCalls(
                 return (int) FD_bl_context_set_stroke_join.invokeExact(address, context, join);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_set_stroke_join", t);
+            }
+        }
+    }
+
+    /// Sets how far a mitered corner may run out before it is cut off.
+    ///
+    /// A multiple of the stroke width, not a length. SVG's and CSS's default is
+    /// 4, and Blend2D's is too — so this is only ever called to depart from it
+    /// (ADR-0278).
+    ///
+    /// `int bl_context_set_stroke_miter_limit(void*, double)`
+    ///
+    /// @param context the context to set it on
+    /// @param miterLimit the limit, as a multiple of the stroke width
+    public static final class ContextSetStrokeMiterLimit {
+
+        private static final MethodHandle FD_bl_context_set_stroke_miter_limit =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_DOUBLE));
+
+        private final MemorySegment address;
+
+        ContextSetStrokeMiterLimit(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_set_stroke_miter_limit");
+        }
+
+        public int call(MemorySegment context, double miterLimit) {
+            try {
+                return (int) FD_bl_context_set_stroke_miter_limit.invokeExact(address, context, miterLimit);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_set_stroke_miter_limit", t);
             }
         }
     }

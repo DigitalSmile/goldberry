@@ -7,18 +7,17 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Clip;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
@@ -176,7 +175,7 @@ public final class RenderTree implements AutoCloseable {
 
         reconcile(box, scale.factor());
         root.node().calculateLayout(availableWidth, availableHeight);
-        var layout = root.node().layout();
+        var layout = root.layout();
         return new LogicalSize(layout.width(), layout.height());
     }
 
@@ -250,12 +249,13 @@ public final class RenderTree implements AutoCloseable {
             throw new IllegalStateException("this render tree has never been updated, so there is nothing to paint;"
                     + " call update(frame, box) first");
         }
-        // One path, reset between shapes, rather than one per rounded corner per
-        // box per frame. A `BlendPath` is a native allocation and an `Arena`.
+        // The rasterizer path this used to pool is the frame's since ADR-0277:
+        // a `BlendPath` is a native allocation and an `Arena`, and `Frame` now
+        // lends one to every drawing call rather than each caller remembering to.
         layersRepainted = 0;
         layersComposited = 0;
-        try (var path = BlendPath.create()) {
-            var state = new Painting(frame, path, base);
+        {
+            var state = new Painting(frame, base);
             paint(root, 0, 0, 1.0, Affine.IDENTITY, base, state);
             state.untransform();
             // Back to the clip the frame arrived with, for the reason the
@@ -272,7 +272,6 @@ public final class RenderTree implements AutoCloseable {
     private static final class Painting {
 
         private final Frame frame;
-        private final BlendPath path;
         private Affine current = Affine.IDENTITY;
 
         /// The clip the frame arrived with — the damage rectangle, or
@@ -287,9 +286,8 @@ public final class RenderTree implements AutoCloseable {
         /// offers no stack, and a run of unclipped boxes must cost no calls.
         private Clip clip;
 
-        Painting(Frame frame, BlendPath path, Clip base) {
+        Painting(Frame frame, Clip base) {
             this.frame = frame;
-            this.path = path;
             this.base = base;
             this.clip = base;
         }
@@ -357,7 +355,7 @@ public final class RenderTree implements AutoCloseable {
             Painting state) {
 
         var box = object.box();
-        var layout = object.node().layout();
+        var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
@@ -378,9 +376,8 @@ public final class RenderTree implements AutoCloseable {
         state.transform(transform);
         BoxPainter.paintOne(
                 state.frame,
-                state.path,
                 box.fade(alpha),
-                new ComputedLayout((float) left, (float) top, layout.width(), layout.height()),
+                LogicalRect.of((float) left, (float) top, layout.width(), layout.height()),
                 transform);
 
         // The box itself is drawn under its *parent's* clip and the children
@@ -422,8 +419,7 @@ public final class RenderTree implements AutoCloseable {
     /// which is CSS's rule — content scrolls under the border, not over it — and
     /// is what makes a viewport with a 1px edge keep that edge crisp while the
     /// rows inside it slide past.
-    private static Clip clipFor(
-            Box box, Affine transform, Clip parent, double left, double top, ComputedLayout layout) {
+    private static Clip clipFor(Box box, Affine transform, Clip parent, double left, double top, LogicalRect layout) {
 
         if (box.overflow() == Overflow.VISIBLE) {
             return parent;
@@ -438,11 +434,11 @@ public final class RenderTree implements AutoCloseable {
     }
 
     /// One padding edge in logical pixels, against the box's own size.
-    private static double edge(StyleLength length, double base) {
+    private static double edge(Length length, double base) {
         return switch (length) {
-            case StyleLength.Points points -> points.value();
-            case StyleLength.Percent percent -> percent.value() / 100.0 * base;
-            case StyleLength.Keyword ignored -> 0;
+            case Length.Points points -> points.value();
+            case Length.Percent percent -> percent.value() / 100.0 * base;
+            case Length.Keyword ignored -> 0;
         };
     }
 
@@ -476,14 +472,14 @@ public final class RenderTree implements AutoCloseable {
             // box's top-left corner becomes (0, 0), which is the one piece of
             // arithmetic a layer costs.
             layer.paint(scale, into -> {
-                try (var path = BlendPath.create()) {
+                {
                     // [Clip#NONE] and not the clip in force outside: the layer
                     // is rasterized at full extent and it is the *blit* that
                     // gets confined. A clip inside this subtree still applies,
                     // and lands in the layer's own coordinates for free --
                     // every rectangle below is derived from the shifted origin
                     // passed here.
-                    var inner = new Painting(into, path, Clip.NONE);
+                    var inner = new Painting(into, Clip.NONE);
                     paintIntoLayer(object, left - bounds.left(), top - bounds.top(), 1.0, Affine.IDENTITY, inner);
                     inner.untransform();
                 }
@@ -502,10 +498,10 @@ public final class RenderTree implements AutoCloseable {
             RenderObject object, double left, double top, double alpha, Affine transform, Painting state) {
 
         var box = object.box();
-        var layout = object.node().layout();
+        var layout = object.layout();
         state.transform(transform);
-        var computed = new ComputedLayout((float) left, (float) top, layout.width(), layout.height());
-        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha), computed, transform);
+        var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
+        BoxPainter.paintOne(state.frame, box.fade(alpha), computed, transform);
 
         // The promoted node's own `overflow` still clips its children, inside
         // the layer and in the layer's coordinates.
@@ -563,7 +559,7 @@ public final class RenderTree implements AutoCloseable {
             RenderObject object, double left, double top, Affine transform, double[] into, boolean root) {
 
         var box = object.box();
-        var layout = object.node().layout();
+        var layout = object.layout();
         var matrix = root ? transform : compose(transform, box.transform(), left, top, layout.width(), layout.height());
 
         // Outward by the ring's offset and width, which is where `outline` is
@@ -584,7 +580,7 @@ public final class RenderTree implements AutoCloseable {
         cover(into, matrix, l, b);
 
         for (var child : object.children()) {
-            var childLayout = child.node().layout();
+            var childLayout = child.layout();
             accumulate(child, left + childLayout.left(), top + childLayout.top(), matrix, into, false);
         }
     }
@@ -641,13 +637,13 @@ public final class RenderTree implements AutoCloseable {
             Consumer<BoxPainter.Placed> visitor) {
 
         var box = object.box();
-        var layout = object.node().layout();
+        var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var alpha = parentAlpha * box.opacity();
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
-        var computed = new ComputedLayout((float) left, (float) top, layout.width(), layout.height());
+        var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
         visitor.accept(new BoxPainter.Placed(box.fade(alpha), computed, transform, parentClip));
 
         // Exactly the clip the painter computes, from the same inputs in the
@@ -787,7 +783,7 @@ public final class RenderTree implements AutoCloseable {
             boolean[] everything) {
 
         var box = object.box();
-        var layout = object.node().layout();
+        var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());

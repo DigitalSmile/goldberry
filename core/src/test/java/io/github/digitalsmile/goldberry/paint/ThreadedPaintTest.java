@@ -13,9 +13,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
@@ -142,26 +142,26 @@ class ThreadedPaintTest {
                 .children(
                         Box.of()
                                 .background(0xFF88C0D0)
-                                .size(StyleLength.UNDEFINED, StyleLength.points(32))
+                                .size(Length.UNDEFINED, Length.points(32))
                                 .alignItems(Align.CENTER)
-                                .padding(StyleLength.points(8))
+                                .padding(Length.points(8))
                                 .children(Box.text(Paragraph.of(font, "Goldberry"), 0xFF2E3440)),
                         Box.of()
                                 .grow(1)
                                 .direction(FlexDirection.ROW)
-                                .padding(StyleLength.points(12))
-                                .gap(StyleLength.points(12))
+                                .padding(Length.points(12))
+                                .gap(Length.points(12))
                                 .children(
                                         // Half-transparent, so the comparison
                                         // covers blending and not only opaque
                                         // fills -- a band boundary in the middle
                                         // of a composite is the interesting case.
-                                        Box.filled(0x803B4252).size(StyleLength.percent(30), StyleLength.UNDEFINED),
+                                        Box.filled(0x803B4252).size(Length.percent(30), Length.UNDEFINED),
                                         Box.of()
                                                 .grow(1)
                                                 .direction(FlexDirection.COLUMN)
                                                 .background(0xFF4C566A)
-                                                .padding(StyleLength.points(10))
+                                                .padding(Length.points(10))
                                                 .children(Box.text(paragraph, 0xFFECEFF4))));
     }
 }

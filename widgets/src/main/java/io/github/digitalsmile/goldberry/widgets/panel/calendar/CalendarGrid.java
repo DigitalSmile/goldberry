@@ -7,9 +7,9 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -59,7 +59,7 @@ record CalendarGrid(
 
     /// Pinned across the top of the grid, and left to its own height.
     private static final Insets OVER =
-            new Insets(StyleLength.points(0), StyleLength.points(0), StyleLength.UNDEFINED, StyleLength.points(0));
+            new Insets(Length.points(0), Length.points(0), Length.UNDEFINED, Length.points(0));
 
     CalendarGrid {
         weeks = List.copyOf(weeks);
@@ -105,7 +105,7 @@ record CalendarGrid(
                         children.getFirst().opacity(progress),
                         children.get(1)
                                 .opacity(1 - progress)
-                                .position(PositionType.ABSOLUTE)
+                                .position(Position.ABSOLUTE)
                                 .inset(OVER));
     }
 }

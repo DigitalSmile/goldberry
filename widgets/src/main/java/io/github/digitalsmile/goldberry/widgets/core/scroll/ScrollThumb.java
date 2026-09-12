@@ -4,7 +4,7 @@ import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -58,8 +58,8 @@ record ScrollThumb(boolean vertical, double length, double offset, boolean dragg
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
         var sized = vertical
-                ? resolved.height(StyleLength.points((float) length))
-                : resolved.width(StyleLength.points((float) length));
+                ? resolved.height(Length.points((float) length))
+                : resolved.width(Length.points((float) length));
         if (offset == 0) {
             return sized;
         }

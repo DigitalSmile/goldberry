@@ -1674,6 +1674,7 @@ public final class PointerRouter {
             }
             if (chain.get(i).widget() instanceof Handles handles) {
                 event.localTo(localFor(chain.get(i), handles, event));
+                event.contentTo(contentOf(chain.get(i), event));
                 measure(chain.get(i), handles, event::measuredAs);
                 handles.onPointerCapture(event);
             }
@@ -1688,6 +1689,7 @@ public final class PointerRouter {
                 // slider handling it wants the position along *itself*
                 // (ADR-0079) -- or along one named part of itself (ADR-0080).
                 event.localTo(localFor(element, handles, event));
+                event.contentTo(contentOf(element, event));
                 measure(element, handles, event::measuredAs);
                 handles.onPointer(event);
             }
@@ -1780,6 +1782,25 @@ public final class PointerRouter {
     /// rectangle, which is a widget poked directly by a test or one whose box has
     /// not been painted yet. Zero-sized rather than null, so a widget reading
     /// `fractionX()` gets 0 instead of an exception.
+    /// Where the pointer is inside `element`'s content box — its own rectangle
+    /// less its padding.
+    ///
+    /// Mapped through the same inverse [#localTo] uses and for the same reason: a
+    /// box inside a `scroll` is painted a long way from where it was laid out
+    /// (ADR-0281).
+    private PointerEvent.Local contentOf(Element element, PointerEvent event) {
+        for (var region : regions) {
+            if (region.owner() == element) {
+                var inverse = region.inverse();
+                var x = inverse == null ? event.x() : (float) inverse.mapX(event.x(), event.y());
+                var y = inverse == null ? event.y() : (float) inverse.mapY(event.x(), event.y());
+                var content = region.content();
+                return new PointerEvent.Local(x - content.left(), y - content.top(), content.width(), content.height());
+            }
+        }
+        return PointerEvent.Local.UNKNOWN;
+    }
+
     private PointerEvent.Local localTo(Element element, PointerEvent event) {
         for (var region : regions) {
             if (region.owner() == element) {

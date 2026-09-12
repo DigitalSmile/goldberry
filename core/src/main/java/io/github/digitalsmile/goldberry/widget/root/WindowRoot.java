@@ -9,9 +9,9 @@ import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -130,10 +130,10 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
             // Insets on all four sides is Yoga's "fill"; two sides is a corner.
             // One flag, no second placement path (ADR-0121).
             var inset = entry.isFilling()
-                    ? Insets.all(StyleLength.points(0))
+                    ? Insets.all(Length.points(0))
                     : entry.corner().insets(entry.margin());
             boxes.add(children.get(i)
-                    .position(PositionType.ABSOLUTE)
+                    .position(Position.ABSOLUTE)
                     // Against the **window**, not against the application's
                     // content box. An absolutely positioned child is placed
                     // inside its containing block's padding by default, which is

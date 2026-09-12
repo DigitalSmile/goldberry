@@ -15,9 +15,9 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -53,11 +53,11 @@ class StackTest {
     /// for its own sake: the root box is always laid out at the frame's size, so
     /// a stack tested as the root would be 300 wide whatever its children did and
     /// every size assertion here would pass for the wrong reason.
-    private List<ComputedLayout> layouts(Widget stack, String css) {
+    private List<LogicalRect> layouts(Widget stack, String css) {
         var sheets = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
         sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, "#wrap { align-items: flex-start }\n" + css));
         var renderer = new WidgetRenderer(sheets, TestFont.get());
-        var out = new ArrayList<ComputedLayout>();
+        var out = new ArrayList<LogicalRect>();
         var root = new Row(List.of(stack), id("wrap"));
         BoxPainter.forEachBox(target.frame(), renderer.render(new ElementTree(root)), (box, layout) -> out.add(layout));
         // Drop the wrapper, so index 0 is the stack exactly as the assertions read.
@@ -211,7 +211,7 @@ class StackTest {
                 """;
         var sheets = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
         sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
-        var out = new ArrayList<ComputedLayout>();
+        var out = new ArrayList<LogicalRect>();
         BoxPainter.forEachBox(
                 target.frame(),
                 new WidgetRenderer(sheets, TestFont.get()).render(new ElementTree(doc)),

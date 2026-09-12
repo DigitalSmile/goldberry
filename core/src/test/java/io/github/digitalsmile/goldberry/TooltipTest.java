@@ -89,7 +89,7 @@ class TooltipTest {
             return Box.of()
                     .style(style)
                     .grow(1)
-                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.ROW)
+                    .direction(io.github.digitalsmile.goldberry.layout.FlexDirection.ROW)
                     .children(children.toArray(Box[]::new));
         }
     }

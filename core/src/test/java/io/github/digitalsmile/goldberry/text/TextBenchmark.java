@@ -10,11 +10,11 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureProbe;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
@@ -70,7 +70,16 @@ class TextBenchmark {
     @DisplayName("the upcall crossing, and what a measure call costs around it")
     void measureCallbackCost() {
         var paragraph = Paragraph.of(font, PROSE);
-        var measure = paragraph.measureFunction();
+        // The paragraph's own measure is the toolkit's type now (ADR-0279), and
+        // what this benchmark times is the *crossing* -- so it bridges the two
+        // here rather than reaching for the render tree's translator, which is
+        // package-private and rightly so.
+        var paragraphMeasure = paragraph.measureFunction();
+        var measure = (io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction)
+                (width, widthMode, height, heightMode) -> {
+                    var measured = paragraphMeasure.measure(width, mode(widthMode), height, mode(heightMode));
+                    return new MeasuredSize(measured.width(), measured.height());
+                };
 
         // The crossing on its own: a Java upcall invoked from C, returning YGSize
         // by value, doing nothing. Whatever a measure call costs, this is the
@@ -244,5 +253,14 @@ class TextBenchmark {
                 samples[0] / 1000.0,
                 runs,
                 sink);
+    }
+
+    /// The engine's measure mode as the toolkit's, for the bridge above.
+    private static io.github.digitalsmile.goldberry.layout.MeasureMode mode(MeasureMode mode) {
+        return switch (mode) {
+            case UNDEFINED -> io.github.digitalsmile.goldberry.layout.MeasureMode.UNDEFINED;
+            case EXACTLY -> io.github.digitalsmile.goldberry.layout.MeasureMode.EXACTLY;
+            case AT_MOST -> io.github.digitalsmile.goldberry.layout.MeasureMode.AT_MOST;
+        };
     }
 }

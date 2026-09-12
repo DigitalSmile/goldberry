@@ -7,9 +7,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 
 /// The rule on its own — ADR-0272.
 ///
@@ -19,15 +19,15 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 /// `AbsolutePlacementTest` is the other half, against the compiled library.
 class ContainingBlockTest {
 
-    private static final Insets PADDING = Insets.all(StyleLength.points(12));
+    private static final Insets PADDING = Insets.all(Length.points(12));
 
-    private static StyleLength px(float value) {
-        return StyleLength.points(value);
+    private static Length px(float value) {
+        return Length.points(value);
     }
 
     /// `left`/`top` only, which is what every widget in the toolkit writes.
     private static Insets leftTop(float left, float top) {
-        return new Insets(px(top), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(left));
+        return new Insets(px(top), Length.UNDEFINED, Length.UNDEFINED, px(left));
     }
 
     @Nested
@@ -38,7 +38,7 @@ class ContainingBlockTest {
         @DisplayName("an absolute child moves by the containing block's padding, per edge")
         void everyDeclaredEdge() {
             var shifted = ContainingBlock.insetFor(
-                    PositionType.ABSOLUTE,
+                    Position.ABSOLUTE,
                     new Insets(px(1), px(2), px(3), px(4)),
                     new Insets(px(10), px(20), px(30), px(40)));
 
@@ -51,7 +51,7 @@ class ContainingBlockTest {
         @Test
         @DisplayName("left: 0 in a padded block becomes left: padding")
         void zeroIsNotNothing() {
-            assertEquals(leftTop(12, 12), ContainingBlock.insetFor(PositionType.ABSOLUTE, leftTop(0, 0), PADDING));
+            assertEquals(leftTop(12, 12), ContainingBlock.insetFor(Position.ABSOLUTE, leftTop(0, 0), PADDING));
         }
 
         /// Both edges of an axis, which is the case a correction applied *after*
@@ -61,17 +61,17 @@ class ContainingBlockTest {
         @Test
         @DisplayName("both edges of an axis shift, so the derived size is the padding box's")
         void bothEdgesOfAnAxis() {
-            var stretched = new Insets(StyleLength.UNDEFINED, px(0), StyleLength.UNDEFINED, px(0));
+            var stretched = new Insets(Length.UNDEFINED, px(0), Length.UNDEFINED, px(0));
 
             assertEquals(
-                    new Insets(StyleLength.UNDEFINED, px(12), StyleLength.UNDEFINED, px(12)),
-                    ContainingBlock.insetFor(PositionType.ABSOLUTE, stretched, PADDING));
+                    new Insets(Length.UNDEFINED, px(12), Length.UNDEFINED, px(12)),
+                    ContainingBlock.insetFor(Position.ABSOLUTE, stretched, PADDING));
         }
 
         @Test
         @DisplayName("a negative inset shifts too, and may end up negative still")
         void negativeInset() {
-            assertEquals(leftTop(-8, 4), ContainingBlock.insetFor(PositionType.ABSOLUTE, leftTop(-20, -8), PADDING));
+            assertEquals(leftTop(-8, 4), ContainingBlock.insetFor(Position.ABSOLUTE, leftTop(-20, -8), PADDING));
         }
     }
 
@@ -85,14 +85,14 @@ class ContainingBlockTest {
         @DisplayName("a relative box keeps its inset")
         void relative() {
             var inset = leftTop(4, 4);
-            assertSame(inset, ContainingBlock.insetFor(PositionType.RELATIVE, inset, PADDING));
+            assertSame(inset, ContainingBlock.insetFor(Position.RELATIVE, inset, PADDING));
         }
 
         @Test
         @DisplayName("a static box keeps its inset")
         void staticPosition() {
             var inset = leftTop(4, 4);
-            assertSame(inset, ContainingBlock.insetFor(PositionType.STATIC, inset, PADDING));
+            assertSame(inset, ContainingBlock.insetFor(Position.STATIC, inset, PADDING));
         }
 
         /// The edge Yoga already gets right. Defining it in order to correct it
@@ -101,11 +101,11 @@ class ContainingBlockTest {
         @Test
         @DisplayName("an undefined edge stays undefined")
         void undefinedEdge() {
-            var inset = new Insets(StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(0));
+            var inset = new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, px(0));
 
             assertEquals(
-                    new Insets(StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(12)),
-                    ContainingBlock.insetFor(PositionType.ABSOLUTE, inset, PADDING));
+                    new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, px(12)),
+                    ContainingBlock.insetFor(Position.ABSOLUTE, inset, PADDING));
         }
 
         /// A percentage resolves against a size the layout pass has not produced
@@ -114,10 +114,9 @@ class ContainingBlockTest {
         @Test
         @DisplayName("a percentage inset is left where Yoga puts it")
         void percentInset() {
-            var inset = new Insets(
-                    StyleLength.percent(50), StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.percent(50));
+            var inset = new Insets(Length.percent(50), Length.UNDEFINED, Length.UNDEFINED, Length.percent(50));
 
-            assertSame(inset, ContainingBlock.insetFor(PositionType.ABSOLUTE, inset, PADDING));
+            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, PADDING));
         }
 
         @Test
@@ -125,8 +124,7 @@ class ContainingBlockTest {
         void percentPadding() {
             var inset = leftTop(0, 0);
 
-            assertSame(
-                    inset, ContainingBlock.insetFor(PositionType.ABSOLUTE, inset, Insets.all(StyleLength.percent(10))));
+            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, Insets.all(Length.percent(10))));
         }
     }
 
@@ -143,7 +141,7 @@ class ContainingBlockTest {
         void sameInstanceWhenNothingShifts() {
             var inset = leftTop(4, 4);
 
-            assertSame(inset, ContainingBlock.insetFor(PositionType.ABSOLUTE, inset, Insets.ZERO));
+            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, Insets.ZERO));
         }
 
         @Test
@@ -151,8 +149,7 @@ class ContainingBlockTest {
         void undefinedPadding() {
             var inset = leftTop(4, 4);
 
-            assertSame(
-                    inset, ContainingBlock.insetFor(PositionType.ABSOLUTE, inset, Insets.all(StyleLength.UNDEFINED)));
+            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, Insets.all(Length.UNDEFINED)));
         }
     }
 }

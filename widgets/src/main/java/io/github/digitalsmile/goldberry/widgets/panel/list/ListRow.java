@@ -15,8 +15,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Selects;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -296,7 +296,7 @@ record ListRow(
             // that does the checking. See [#checkedPitch].
             return;
         }
-        if (!(style.height() instanceof StyleLength.Points points)) {
+        if (!(style.height() instanceof Length.Points points)) {
             return;
         }
         if (Math.abs(points.value() - checkedPitch) <= SLACK) {

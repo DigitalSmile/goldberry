@@ -9,11 +9,10 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -184,44 +183,33 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
             points.add(new double[] {x.at(index), y.at(values.get(index))});
         }
 
-        // One path per paint. A `BlendPath` is a native allocation, which is why
-        // `BoxPainter` keeps one and resets it -- but a painter is handed no such
-        // scratch, and a sparkline draws one polyline rather than one per box.
-        // Measured before optimised, per the rule the frame path was written by.
-        try (var path = BlendPath.create()) {
-            if (fill) {
-                path.moveTo(points.getFirst()[0], bottom);
-                for (var point : points) {
-                    path.lineTo(point[0], point[1]);
-                }
-                path.lineTo(points.getLast()[0], bottom);
-                path.closeSubPath();
-                frame.fillPath(0, 0, path, CssColor.fade(argb, FILL_ALPHA));
-                path.reset();
+        // Values rather than a pooled native path since ADR-0277: a `Path` is
+        // two Java arrays, and the rasterizer path it is replayed into belongs
+        // to the frame -- so the arena this used to open per paint is gone.
+        if (fill) {
+            var under = Path.builder().moveTo(points.getFirst()[0], bottom);
+            for (var point : points) {
+                under.lineTo(point[0], point[1]);
             }
-
-            path.moveTo(points.getFirst()[0], points.getFirst()[1]);
-            for (var point : points.subList(1, points.size())) {
-                path.lineTo(point[0], point[1]);
-            }
-            // Round, like every stroke in the toolkit: a sparkline's turns are
-            // sharp enough at this size that a miter join spikes past the box.
-            frame.strokePath(0, 0, path, STROKE, BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, argb);
+            under.lineTo(points.getLast()[0], bottom).close();
+            frame.fillPath(under.build(), CssColor.fade(argb, FILL_ALPHA));
         }
 
+        var line = Path.builder().moveTo(points.getFirst()[0], points.getFirst()[1]);
+        for (var point : points.subList(1, points.size())) {
+            line.lineTo(point[0], point[1]);
+        }
+        // Round, like every stroke in the toolkit: a sparkline's turns are
+        // sharp enough at this size that a miter join spikes past the box.
+        frame.strokePath(line.build(), Stroke.round(STROKE), argb);
+
         if (marker) {
-            // A disc, not a square. Two half-arcs, because SVG's `A` -- which is
-            // what Blend2D's path takes -- cannot draw a full circle in one
-            // segment: the start and end points would coincide and the arc is
-            // undefined. The same two-arc trick every SVG circle is made of.
+            // A disc, not a square -- and two half arcs, because SVG's `A`
+            // cannot draw a full circle in one segment: the start and end points
+            // would coincide and the arc is undefined. That is what
+            // `Path.circle` is, so this is now one call.
             var last = points.getLast();
-            try (var dot = BlendPath.create()) {
-                dot.moveTo(last[0] - MARKER, last[1]);
-                dot.ellipticArcTo(MARKER, MARKER, 0, false, true, last[0] + MARKER, last[1]);
-                dot.ellipticArcTo(MARKER, MARKER, 0, false, true, last[0] - MARKER, last[1]);
-                dot.closeSubPath();
-                frame.fillPath(0, 0, dot, argb);
-            }
+            frame.fillPath(Path.circle(last[0], last[1], MARKER), argb);
         }
     }
 

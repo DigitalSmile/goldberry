@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 
@@ -42,7 +42,7 @@ class ElevationTest {
     }
 
     private static Box row(String tag) {
-        return Box.of().owner(tag).size(StyleLength.points(50), StyleLength.points(20));
+        return Box.of().owner(tag).size(Length.points(50), Length.points(20));
     }
 
     @Test
@@ -79,7 +79,7 @@ class ElevationTest {
             tree.update(
                     target.frame(),
                     Box.of()
-                            .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
+                            .direction(io.github.digitalsmile.goldberry.layout.FlexDirection.COLUMN)
                             .children(row("a"), row("b").elevated(true), row("c")));
             var tops = new java.util.HashMap<String, Float>();
             tree.forEachPlacedBox(placed -> {
@@ -109,17 +109,13 @@ class ElevationTest {
                     target.frame(),
                     Box.of()
                             .children(
-                                    row("a").position(
-                                                    io.github.digitalsmile.goldberry.natives.yoga.style.PositionType
-                                                            .ABSOLUTE)
-                                            .inset(io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
-                                                    StyleLength.points(0))),
+                                    row("a").position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
+                                            .inset(io.github.digitalsmile.goldberry.layout.Insets.all(
+                                                    Length.points(0))),
                                     row("b").elevated(true)
-                                            .position(
-                                                    io.github.digitalsmile.goldberry.natives.yoga.style.PositionType
-                                                            .ABSOLUTE)
-                                            .inset(io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
-                                                    StyleLength.points(0)))));
+                                            .position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
+                                            .inset(io.github.digitalsmile.goldberry.layout.Insets.all(
+                                                    Length.points(0)))));
             var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(tree);
             var hit = io.github.digitalsmile.goldberry.input.hit.HitTest.at(regions, 10, 10);
             assertTrue(hit.isPresent(), "nothing was hit");

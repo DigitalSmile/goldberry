@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// A transform reaching Blend2D — the other half of what
 /// [io.github.digitalsmile.goldberry.input.hit.TransformedHitTest] asserts.
@@ -36,9 +36,9 @@ class TransformPaintTest {
             BoxPainter.paint(
                     target.frame(),
                     Box.filled(0xFF000000)
-                            .size(StyleLength.points(200), StyleLength.points(200))
+                            .size(Length.points(200), Length.points(200))
                             .children(Box.filled(GREEN)
-                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .size(Length.points(40), Length.points(40))
                                     .transform(transform)));
         } finally {
             target.end();
@@ -125,14 +125,14 @@ class TransformPaintTest {
             BoxPainter.paint(
                     target.frame(),
                     Box.filled(0xFF000000)
-                            .size(StyleLength.points(200), StyleLength.points(200))
-                            .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
+                            .size(Length.points(200), Length.points(200))
+                            .direction(io.github.digitalsmile.goldberry.layout.FlexDirection.COLUMN)
                             .children(
                                     Box.filled(0xFFFF0000)
-                                            .size(StyleLength.points(40), StyleLength.points(40))
+                                            .size(Length.points(40), Length.points(40))
                                             .transform(Transform.of(new Transform.Function.Translate(
                                                     Transform.Length.px(100), Transform.Length.ZERO))),
-                                    Box.filled(GREEN).size(StyleLength.points(40), StyleLength.points(40))));
+                                    Box.filled(GREEN).size(Length.points(40), Length.points(40))));
         } finally {
             target.end();
         }
@@ -150,12 +150,12 @@ class TransformPaintTest {
             BoxPainter.paint(
                     target.frame(),
                     Box.filled(0xFF000000)
-                            .size(StyleLength.points(200), StyleLength.points(200))
+                            .size(Length.points(200), Length.points(200))
                             .children(Box.filled(0xFFFF0000)
-                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .size(Length.points(40), Length.points(40))
                                     .transform(Transform.of(new Transform.Function.Translate(
                                             Transform.Length.px(100), Transform.Length.ZERO)))
-                                    .children(Box.filled(GREEN).size(StyleLength.points(20), StyleLength.points(20)))));
+                                    .children(Box.filled(GREEN).size(Length.points(20), Length.points(20)))));
         } finally {
             target.end();
         }
@@ -202,9 +202,9 @@ class TransformPaintTest {
     /// the scene as a description it can draw more than once.
     private static Box transformed(Transform transform) {
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .children(Box.filled(GREEN)
-                        .size(StyleLength.points(40), StyleLength.points(40))
+                        .size(Length.points(40), Length.points(40))
                         .transform(transform));
     }
 }

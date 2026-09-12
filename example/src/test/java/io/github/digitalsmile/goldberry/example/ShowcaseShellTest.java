@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's seven screens are named in one place
+/// gallery's eight screens are named in one place
 /// (ADR-0221,
 /// ADR-0222).
 ///
@@ -74,12 +74,13 @@ class ShowcaseShellTest {
     // --- the gallery ---------------------------------------------------------
 
     @Test
-    @DisplayName("seven screens, each with a title and a digit")
-    void sevenScreens() {
+    @DisplayName("eight screens, each with a title and a digit")
+    void eightScreens() {
         assertEquals(
-                List.of("basic", "panels", "overlays", "forms", "navigation", "collections", "charts"), Screen.GALLERY);
+                List.of("basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "canvas"),
+                Screen.GALLERY);
 
-        // The point of seven rather than twelve, in one assertion: a keyboard has
+        // The point of eight rather than twelve, in one assertion: a keyboard has
         // ten digits, and two of the twelve screens had no key at all.
         assertTrue(
                 Screen.GALLERY.size() <= 10, "there are more screens than digits, so some of them have no accelerator");

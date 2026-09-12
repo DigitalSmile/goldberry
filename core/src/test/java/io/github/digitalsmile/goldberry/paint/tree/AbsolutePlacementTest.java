@@ -14,13 +14,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// Where an absolutely positioned child actually lands — ADR-0272.
 ///
@@ -51,8 +51,8 @@ class AbsolutePlacementTest {
         }
     }
 
-    private static StyleLength px(float value) {
-        return StyleLength.points(value);
+    private static Length px(float value) {
+        return Length.points(value);
     }
 
     /// A 200×100 block with `padding: 12px`, holding one 40×20 child.
@@ -65,13 +65,13 @@ class AbsolutePlacementTest {
     }
 
     /// Every box's **absolute** rectangle, in walk order — the root first.
-    private static List<ComputedLayout> layouts(RenderTree tree) {
-        var out = new ArrayList<ComputedLayout>();
+    private static List<LogicalRect> layouts(RenderTree tree) {
+        var out = new ArrayList<LogicalRect>();
         tree.forEachPlacedBox(placed -> out.add(placed.layout()));
         return out;
     }
 
-    private List<ComputedLayout> laidOut(Box root) {
+    private List<LogicalRect> laidOut(Box root) {
         try (var tree = RenderTree.create()) {
             tree.update(target.frame(), root);
             return layouts(tree);
@@ -87,21 +87,21 @@ class AbsolutePlacementTest {
         @Test
         @DisplayName("left: 0; top: 0 inside 12px of padding lands at (12, 12)")
         void zeroInsets() {
-            var placed = laidOut(block(child().position(PositionType.ABSOLUTE)
-                            .inset(new Insets(px(0), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(0)))))
+            var placed = laidOut(block(child().position(Position.ABSOLUTE)
+                            .inset(new Insets(px(0), Length.UNDEFINED, Length.UNDEFINED, px(0)))))
                     .get(1);
 
-            assertEquals(new ComputedLayout(12f, 12f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(12f, 12f, 40f, 20f), placed);
         }
 
         @Test
         @DisplayName("a non-zero inset is measured from the padding edge too")
         void offsetInsets() {
-            var placed = laidOut(block(child().position(PositionType.ABSOLUTE)
-                            .inset(new Insets(px(5), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(30)))))
+            var placed = laidOut(block(child().position(Position.ABSOLUTE)
+                            .inset(new Insets(px(5), Length.UNDEFINED, Length.UNDEFINED, px(30)))))
                     .get(1);
 
-            assertEquals(new ComputedLayout(42f, 17f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(42f, 17f, 40f, 20f), placed);
         }
 
         /// The trailing edge, which is the half nothing in the toolkit writes and
@@ -110,11 +110,11 @@ class AbsolutePlacementTest {
         @Test
         @DisplayName("right: 0; bottom: 0 stops at the far padding edge")
         void trailingInsets() {
-            var placed = laidOut(block(child().position(PositionType.ABSOLUTE)
-                            .inset(new Insets(StyleLength.UNDEFINED, px(0), px(0), StyleLength.UNDEFINED))))
+            var placed = laidOut(block(child().position(Position.ABSOLUTE)
+                            .inset(new Insets(Length.UNDEFINED, px(0), px(0), Length.UNDEFINED))))
                     .get(1);
 
-            assertEquals(new ComputedLayout(148f, 68f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(148f, 68f, 40f, 20f), placed);
         }
 
         /// Why the shift is applied to the style rather than to the answer: with
@@ -125,12 +125,12 @@ class AbsolutePlacementTest {
         @DisplayName("left and right together size the child to the padding box")
         void stretchedAcross() {
             var placed = laidOut(block(Box.filled(CHILD)
-                            .size(StyleLength.UNDEFINED, px(20))
-                            .position(PositionType.ABSOLUTE)
-                            .inset(new Insets(px(0), px(0), StyleLength.UNDEFINED, px(0)))))
+                            .size(Length.UNDEFINED, px(20))
+                            .position(Position.ABSOLUTE)
+                            .inset(new Insets(px(0), px(0), Length.UNDEFINED, px(0)))))
                     .get(1);
 
-            assertEquals(new ComputedLayout(12f, 12f, 176f, 20f), placed);
+            assertEquals(LogicalRect.of(12f, 12f, 176f, 20f), placed);
         }
     }
 
@@ -144,9 +144,9 @@ class AbsolutePlacementTest {
         @Test
         @DisplayName("no insets at all still lands at the padding edge")
         void noInsets() {
-            var placed = laidOut(block(child().position(PositionType.ABSOLUTE))).get(1);
+            var placed = laidOut(block(child().position(Position.ABSOLUTE))).get(1);
 
-            assertEquals(new ComputedLayout(12f, 12f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(12f, 12f, 40f, 20f), placed);
         }
 
         /// Flow put the child inside the padding already. A relative inset offsets
@@ -155,11 +155,11 @@ class AbsolutePlacementTest {
         @Test
         @DisplayName("a relative inset offsets from the flow position, not from the padding twice")
         void relativeIsUnshifted() {
-            var placed = laidOut(block(child().position(PositionType.RELATIVE)
-                            .inset(new Insets(px(5), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(5)))))
+            var placed = laidOut(block(child().position(Position.RELATIVE)
+                            .inset(new Insets(px(5), Length.UNDEFINED, Length.UNDEFINED, px(5)))))
                     .get(1);
 
-            assertEquals(new ComputedLayout(17f, 17f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(17f, 17f, 40f, 20f), placed);
         }
 
         @Test
@@ -167,10 +167,10 @@ class AbsolutePlacementTest {
         void noPadding() {
             var root = Box.filled(PARENT)
                     .size(px(200), px(100))
-                    .children(child().position(PositionType.ABSOLUTE)
-                            .inset(new Insets(px(15), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(30))));
+                    .children(child().position(Position.ABSOLUTE)
+                            .inset(new Insets(px(15), Length.UNDEFINED, Length.UNDEFINED, px(30))));
 
-            assertEquals(new ComputedLayout(30f, 15f, 40f, 20f), laidOut(root).get(1));
+            assertEquals(LogicalRect.of(30f, 15f, 40f, 20f), laidOut(root).get(1));
         }
     }
 
@@ -182,8 +182,8 @@ class AbsolutePlacementTest {
             return Box.filled(PARENT)
                     .size(px(200), px(200))
                     .padding(px(padding))
-                    .children(child().position(PositionType.ABSOLUTE)
-                            .inset(new Insets(px(0), StyleLength.UNDEFINED, StyleLength.UNDEFINED, px(0))));
+                    .children(child().position(Position.ABSOLUTE)
+                            .inset(new Insets(px(0), Length.UNDEFINED, Length.UNDEFINED, px(0))));
         }
 
         private static boolean covers(List<DamageRect> damage, int x, int y) {

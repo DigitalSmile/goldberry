@@ -246,6 +246,24 @@ bl_context_set_stroke_join
 bl_context_fill_path_d_rgba32
 bl_context_stroke_path_d_rgba32
 
+# The miter limit (sec. 5, ADR-0278). One double, and it closes a gap the enums
+# admit to in their own javadoc: BlendStrokeJoin binds three of Blend2D's five,
+# and the two omitted are the miter-with-a-fallback variants, "whose behaviour
+# depends on the miter limit -- and nothing binds that yet". Something binds it
+# now.
+#
+# Its three obvious neighbours are deliberately absent.
+# `bl_context_set_stroke_dash_array`, `_dash_offset` and the `bl_array_*` needed
+# to carry a pattern were added here and taken back out: Blend2D stores a dash
+# array in BLStrokeOptions, retains it, copies it and saves it across
+# save/restore -- and never strokes with it. `core/pathstroke.cpp` is 988 lines
+# and the word "dash" does not appear in it. The calls return BL_SUCCESS and the
+# line comes out solid, which is the worst way for a gap to present itself.
+#
+# So dashing is Goldberry's own, over `paint.Path`, and this list stays five
+# symbols shorter than the first draft of ADR-0278 assumed.
+bl_context_set_stroke_miter_limit
+
 # Gradients (sec. 5, ADR-0207). The first style on this list that is not a
 # colour: every fill until now took an `rgba32` argument, and a gradient is an
 # object with stops that has to outlive the call that sets it. Three symbols

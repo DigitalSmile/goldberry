@@ -286,6 +286,12 @@
 - [ADR-0274 A calendar is told what day it is](adr/0274-a-calendar-is-told-what-day-it-is.md)
 - [ADR-0275 A wheel is a column that wraps](adr/0275-a-wheel-is-a-column-that-wraps.md)
 - [ADR-0276 A plane is HSV, and the hex is the value](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
+- [ADR-0277 A path is a value, and the rasterizer's is package-private](adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md)
+- [ADR-0278 A dash is Goldberry's arithmetic, and not the rasterizer's](adr/0278-a-dash-is-goldberrys-arithmetic-and-not-the-rasterizers.md)
+- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
+- [ADR-0280 `:natives` exports to `:core`, and to nobody else](adr/0280-natives-exports-to-core-and-to-nobody-else.md)
+- [ADR-0281 A canvas hears what it draws on](adr/0281-a-canvas-hears-what-it-draws-on.md)
+- [ADR-0282 A shaped run is a value, and the last leak is one method](adr/0282-a-shaped-run-is-a-value-and-the-last-leak-is-one-method.md)
 
 ---
 

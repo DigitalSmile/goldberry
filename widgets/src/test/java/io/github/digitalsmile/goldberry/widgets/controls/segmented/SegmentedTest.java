@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
@@ -614,7 +614,7 @@ class SegmentedTest {
         void insetIsTheBorder() {
             var bar = styleOf("segmented");
 
-            assertEquals(StyleLength.points(1), bar.padding().top());
+            assertEquals(Length.points(1), bar.padding().top());
             assertEquals(bar.decoration().borderWidth(), 1, 1e-9);
             assertEquals(bar.padding().top(), bar.padding().left());
             assertEquals(bar.padding().top(), bar.padding().bottom());
@@ -629,7 +629,7 @@ class SegmentedTest {
         void dividerIsAHairline() {
             var divider = styleOf("segmented-divider");
 
-            assertEquals(StyleLength.points(1), divider.width());
+            assertEquals(Length.points(1), divider.width());
             assertEquals(
                     styleOf("segmented").decoration().borderColor(),
                     divider.background(),
@@ -654,10 +654,10 @@ class SegmentedTest {
             var cell = styleOf("option");
 
             assertEquals(
-                    StyleLength.UNDEFINED,
+                    Length.UNDEFINED,
                     cell.width(),
                     "a width here would be a number that cannot know how many cells there are");
-            assertEquals(StyleLength.points(12), cell.padding().left(), "§3's padding-x, though");
+            assertEquals(Length.points(12), cell.padding().left(), "§3's padding-x, though");
             assertEquals(0.0, styleOf("segmented").flexGrow(), "the bar itself takes no space it was not given");
             assertEquals(
                     1.0,
@@ -668,9 +668,9 @@ class SegmentedTest {
         @Test
         @DisplayName("a segment's padding-x is §3's 12, at either density")
         void segmentPadding() {
-            assertEquals(StyleLength.points(12), styleOf("option").padding().left());
+            assertEquals(Length.points(12), styleOf("option").padding().left());
             assertEquals(
-                    StyleLength.points(0),
+                    Length.points(0),
                     styleOf("option").padding().top(),
                     "the height comes from the bar, so a segment must not add to it");
         }

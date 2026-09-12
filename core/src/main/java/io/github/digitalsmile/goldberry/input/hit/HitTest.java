@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Clip;
@@ -61,12 +62,38 @@ public final class HitTest {
     ///                it was painted where it was laid out
     /// @param clip    what an `overflow` above this box confines it to, in the
     ///                frame's coordinates, or [Clip#NONE] when nothing does
+    /// @param content the rectangle **inside the padding** — where a `canvas`
+    ///                painter's own origin is, and where its input has to land
+    ///                (ADR-0281). The same as the box's own rectangle for a box
+    ///                with no padding, which is most of them
     public record Region(
-            Object owner, Cursor cursor, float left, float top, float width, float height, Affine inverse, Clip clip) {
+            Object owner,
+            Cursor cursor,
+            float left,
+            float top,
+            float width,
+            float height,
+            Affine inverse,
+            Clip clip,
+            LogicalRect content) {
 
         public Region {
             Objects.requireNonNull(cursor, "cursor");
             Objects.requireNonNull(clip, "clip");
+            content = content == null ? LogicalRect.of(left, top, width, height) : content;
+        }
+
+        /// A region whose content box is its whole rectangle.
+        public Region(
+                Object owner,
+                Cursor cursor,
+                float left,
+                float top,
+                float width,
+                float height,
+                Affine inverse,
+                Clip clip) {
+            this(owner, cursor, left, top, width, height, inverse, clip, LogicalRect.of(left, top, width, height));
         }
 
         /// A rectangle nothing clips.
@@ -199,6 +226,14 @@ public final class HitTest {
                 return;
             }
         }
+        // The content box, resolved exactly as `BoxPainter.paintCanvas` resolves
+        // it -- through `Length.resolve`, which is where that arithmetic lives so
+        // that the painter and this cannot drift (ADR-0281).
+        var padding = placed.box().padding();
+        var left = Length.resolve(padding.left(), layout.width());
+        var top = Length.resolve(padding.top(), layout.height());
+        var right = Length.resolve(padding.right(), layout.width());
+        var bottom = Length.resolve(padding.bottom(), layout.height());
         regions.add(new Region(
                 placed.box().owner(),
                 placed.box().cursor(),
@@ -207,7 +242,12 @@ public final class HitTest {
                 layout.width(),
                 layout.height(),
                 inverse,
-                placed.clip()));
+                placed.clip(),
+                LogicalRect.of(
+                        layout.left() + left,
+                        layout.top() + top,
+                        Math.max(0, layout.width() - left - right),
+                        Math.max(0, layout.height() - top - bottom))));
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

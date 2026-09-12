@@ -10,8 +10,8 @@ import java.util.function.DoubleSupplier;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -147,7 +147,7 @@ record SplitPaneView(
             // frame -- it lands wherever the content does rather than where the
             // fraction says -- which beats a pane of zero width that the next
             // frame corrects visibly.
-            return pane.grow(position).shrink(1).size(StyleLength.UNDEFINED, StyleLength.UNDEFINED);
+            return pane.grow(position).shrink(1).size(Length.UNDEFINED, Length.UNDEFINED);
         }
         if (firstLength == 0) {
             // Collapsed. Still *built*: §5 asks for collapse-to-edge, not for
@@ -158,13 +158,11 @@ record SplitPaneView(
             return pane.grow(0)
                     .shrink(1)
                     .size(
-                            vertical ? StyleLength.UNDEFINED : StyleLength.points(0),
-                            vertical ? StyleLength.points(0) : StyleLength.UNDEFINED);
+                            vertical ? Length.UNDEFINED : Length.points(0),
+                            vertical ? Length.points(0) : Length.UNDEFINED);
         }
-        var main = StyleLength.points((float) firstLength);
-        return pane.grow(0)
-                .shrink(0)
-                .size(vertical ? StyleLength.UNDEFINED : main, vertical ? main : StyleLength.UNDEFINED);
+        var main = Length.points((float) firstLength);
+        return pane.grow(0).shrink(0).size(vertical ? Length.UNDEFINED : main, vertical ? main : Length.UNDEFINED);
     }
 
     /// One side of the split — a node so a stylesheet can reach "the pane" rather

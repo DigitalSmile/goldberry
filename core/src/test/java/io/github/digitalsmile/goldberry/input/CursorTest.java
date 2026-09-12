@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.Cursor;
@@ -142,11 +142,11 @@ class CursorTest {
             // `cursor: pointer`, and CSS's `cursor` is inherited. Walking the
             // stack of rectangles is how that is arrived at here.
             var label = Box.filled(0xFF00FF00)
-                    .size(StyleLength.points(40), StyleLength.points(40))
+                    .size(Length.points(40), Length.points(40))
                     .owner("label");
             var button = Box.filled(0xFFFF0000)
                     .cursor(Cursor.POINTER)
-                    .padding(StyleLength.points(20))
+                    .padding(Length.points(20))
                     .children(label)
                     .owner("button");
 
@@ -158,11 +158,11 @@ class CursorTest {
         void childWins() {
             var field = Box.filled(0xFF00FF00)
                     .cursor(Cursor.TEXT)
-                    .size(StyleLength.points(40), StyleLength.points(40))
+                    .size(Length.points(40), Length.points(40))
                     .owner("field");
             var panel = Box.filled(0xFFFF0000)
                     .cursor(Cursor.POINTER)
-                    .padding(StyleLength.points(20))
+                    .padding(Length.points(20))
                     .children(field)
                     .owner("panel");
 
@@ -176,7 +176,7 @@ class CursorTest {
         void nothingUnderIt() {
             var root = Box.filled(0xFFFF0000)
                     .cursor(Cursor.POINTER)
-                    .size(StyleLength.points(20), StyleLength.points(20))
+                    .size(Length.points(20), Length.points(20))
                     .owner("root");
 
             assertEquals(Cursor.DEFAULT, HitTest.cursorAt(capture(root), 80, 80));

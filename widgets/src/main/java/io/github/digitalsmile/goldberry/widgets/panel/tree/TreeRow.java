@@ -9,7 +9,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -319,7 +319,7 @@ record TreeRow(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style).size(StyleLength.points((float) (depth * INDENT)), StyleLength.UNDEFINED);
+            return Box.of().style(style).size(Length.points((float) (depth * INDENT)), Length.UNDEFINED);
         }
     }
 

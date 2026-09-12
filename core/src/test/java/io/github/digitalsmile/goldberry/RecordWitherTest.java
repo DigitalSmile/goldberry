@@ -62,29 +62,26 @@ class RecordWitherTest {
                                 io.github.digitalsmile.goldberry.css.value.Transform.Length.px(3),
                                 io.github.digitalsmile.goldberry.css.value.Transform.Length.px(4))),
                 io.github.digitalsmile.goldberry.render.Cursor.POINTER,
-                io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN,
-                io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER,
-                io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END,
+                io.github.digitalsmile.goldberry.layout.FlexDirection.COLUMN,
+                io.github.digitalsmile.goldberry.layout.Justify.CENTER,
+                io.github.digitalsmile.goldberry.layout.Align.FLEX_END,
                 // `alignSelf`, and deliberately not `FLEX_END`: two components of
                 // one type holding equal values is exactly what
                 // `componentsAreDistinct` refuses, because a swap between them
                 // would be invisible to the check below.
-                io.github.digitalsmile.goldberry.natives.yoga.style.Align.CENTER,
-                io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
+                io.github.digitalsmile.goldberry.layout.Align.CENTER,
+                io.github.digitalsmile.goldberry.layout.Wrap.WRAP_REVERSE,
                 length(11),
                 length(22),
-                new io.github.digitalsmile.goldberry.natives.yoga.Limits(
-                        length(31), length(32), length(33), length(34)),
-                new io.github.digitalsmile.goldberry.natives.yoga.Insets(
-                        length(41), length(42), length(43), length(44)),
+                new io.github.digitalsmile.goldberry.layout.Limits(length(31), length(32), length(33), length(34)),
+                new io.github.digitalsmile.goldberry.layout.Insets(length(41), length(42), length(43), length(44)),
                 length(55),
                 6,
                 7,
-                io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE,
-                new io.github.digitalsmile.goldberry.natives.yoga.Insets(
-                        length(61), length(62), length(63), length(64)),
+                io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE,
+                new io.github.digitalsmile.goldberry.layout.Insets(length(61), length(62), length(63), length(64)),
                 true,
-                io.github.digitalsmile.goldberry.natives.yoga.style.Overflow.HIDDEN,
+                io.github.digitalsmile.goldberry.layout.Overflow.HIDDEN,
                 null,
                 null,
                 new Box.Mark(Box.Mark.Kind.CHECK, 0xFF445566, 2),
@@ -100,32 +97,32 @@ class RecordWitherTest {
     /// the same shape, so the same check applies unchanged.
     private static ComputedStyle style() {
         return ComputedStyle.INITIAL
-                .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
-                .justifyContent(io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER)
-                .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END)
-                .alignSelf(io.github.digitalsmile.goldberry.natives.yoga.style.Align.CENTER)
-                .wrap(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE)
+                .direction(io.github.digitalsmile.goldberry.layout.FlexDirection.COLUMN)
+                .justifyContent(io.github.digitalsmile.goldberry.layout.Justify.CENTER)
+                .alignItems(io.github.digitalsmile.goldberry.layout.Align.FLEX_END)
+                .alignSelf(io.github.digitalsmile.goldberry.layout.Align.CENTER)
+                .wrap(io.github.digitalsmile.goldberry.layout.Wrap.WRAP_REVERSE)
                 .width(length(11))
                 .height(length(22))
-                .limits(new io.github.digitalsmile.goldberry.natives.yoga.Limits(
+                .limits(new io.github.digitalsmile.goldberry.layout.Limits(
                         length(31), length(32), length(33), length(34)))
-                .padding(new io.github.digitalsmile.goldberry.natives.yoga.Insets(
+                .padding(new io.github.digitalsmile.goldberry.layout.Insets(
                         length(41), length(42), length(43), length(44)))
                 .gap(length(55))
                 .flexGrow(6)
                 .flexShrink(7)
-                .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
-                .inset(new io.github.digitalsmile.goldberry.natives.yoga.Insets(
+                .position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
+                .inset(new io.github.digitalsmile.goldberry.layout.Insets(
                         length(61), length(62), length(63), length(64)))
-                .overflow(io.github.digitalsmile.goldberry.natives.yoga.style.Overflow.HIDDEN)
+                .overflow(io.github.digitalsmile.goldberry.layout.Overflow.HIDDEN)
                 .background(0xFF102030)
                 .color(0xFF405060)
                 .opacity(0.5)
                 .cursor(io.github.digitalsmile.goldberry.render.Cursor.POINTER);
     }
 
-    private static io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength length(float v) {
-        return io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(v);
+    private static io.github.digitalsmile.goldberry.layout.Length length(float v) {
+        return io.github.digitalsmile.goldberry.layout.Length.points(v);
     }
 
     /// Asks every wither to set its component to what it already holds, and
@@ -149,7 +146,7 @@ class RecordWitherTest {
             }
             var component = components.get(method.getName());
             // A one-argument method named after a component, taking that
-            // component's own type, is a wither. `Box.padding(StyleLength)` is
+            // component's own type, is a wither. `Box.padding(Length)` is
             // not — it takes a length where the component is an `Insets`, and is
             // a convenience over the real one.
             if (component == null || !method.getParameterTypes()[0].equals(component.getType())) {

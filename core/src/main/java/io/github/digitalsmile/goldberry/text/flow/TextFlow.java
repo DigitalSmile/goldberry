@@ -7,7 +7,7 @@ import java.util.Objects;
 ///
 /// One value rather than three fields on
 /// [io.github.digitalsmile.goldberry.paint.Box.Text], for
-/// [io.github.digitalsmile.goldberry.natives.yoga.Limits]'s reason — the three
+/// [io.github.digitalsmile.goldberry.layout.Limits]'s reason — the three
 /// are only ever read together, by the one method that draws a paragraph into a
 /// box, and a painter that honoured one and not the others would be a bug nobody
 /// would find.

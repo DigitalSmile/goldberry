@@ -5,7 +5,7 @@ import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -87,7 +87,7 @@ record ProgressFill(double fraction, boolean indeterminate) implements Widget.Le
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var width = StyleLength.percent((float) ((indeterminate ? SWEEP_WIDTH : fraction) * 100));
+        var width = Length.percent((float) ((indeterminate ? SWEEP_WIDTH : fraction) * 100));
         // Applied after `style`, so the theme still owns the colour, the height
         // and the radius of what is being placed -- the split SliderFill states.
         return Box.of().style(style).size(width, style.height()).transform(sweepAt(context));

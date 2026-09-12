@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
@@ -305,22 +305,22 @@ class PaintBenchmark {
                 .children(
                         Box.of()
                                 .background(ACCENT)
-                                .size(StyleLength.UNDEFINED, StyleLength.points(32))
+                                .size(Length.UNDEFINED, Length.points(32))
                                 .alignItems(Align.CENTER)
-                                .padding(StyleLength.points(16))
+                                .padding(Length.points(16))
                                 .children(Box.text(title, ON_ACCENT)),
                         Box.of()
                                 .grow(1)
                                 .direction(FlexDirection.ROW)
-                                .padding(StyleLength.points(16))
-                                .gap(StyleLength.points(16))
+                                .padding(Length.points(16))
+                                .gap(Length.points(16))
                                 .children(
-                                        Box.filled(PANEL).size(StyleLength.percent(25), StyleLength.UNDEFINED),
+                                        Box.filled(PANEL).size(Length.percent(25), Length.UNDEFINED),
                                         Box.of()
                                                 .grow(1)
                                                 .direction(FlexDirection.COLUMN)
                                                 .background(MUTED)
-                                                .padding(StyleLength.points(16))
+                                                .padding(Length.points(16))
                                                 .children(Box.text(body, ON_PANEL))));
     }
 }

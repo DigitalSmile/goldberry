@@ -13,10 +13,10 @@ import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Overflow;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -291,16 +291,16 @@ record TextAreaBox(
             if (i < rects.size()) {
                 var rect = rects.get(i);
                 boxes.add(children.get(i)
-                        .position(PositionType.ABSOLUTE)
+                        .position(Position.ABSOLUTE)
                         .inset(leftTop(rect.x(), rect.y()))
-                        .size(StyleLength.points((float) rect.width()), StyleLength.points((float) lineHeight)));
+                        .size(Length.points((float) rect.width()), Length.points((float) lineHeight)));
             } else {
                 boxes.add(Box.of());
             }
         }
 
         boxes.add(children.get(children.size() - 2)
-                .position(PositionType.ABSOLUTE)
+                .position(Position.ABSOLUTE)
                 .inset(leftTop(0, -offset))
                 // A definite width, because an absolutely positioned box has no
                 // parent width to wrap against -- and it is the same number the
@@ -311,21 +311,19 @@ record TextAreaBox(
                 // `contentWidth` reports as "do not wrap": a definite width of
                 // one point would put every word on a line of its own for one
                 // frame, which is exactly what the Forms golden showed.
-                .size(
-                        Double.isFinite(width) ? StyleLength.points((float) width) : StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED));
+                .size(Double.isFinite(width) ? Length.points((float) width) : Length.UNDEFINED, Length.UNDEFINED));
 
         var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
         var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth);
         boxes.add(children.get(children.size() - 1)
-                .position(PositionType.ABSOLUTE)
+                .position(Position.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
-                .size(StyleLength.points((float) caretWidth), StyleLength.points((float) lineHeight)));
+                .size(Length.points((float) caretWidth), Length.points((float) lineHeight)));
 
         return Box.of()
                 .style(style)
                 .children(boxes.toArray(Box[]::new))
-                .size(StyleLength.UNDEFINED, StyleLength.points((float) height(lines.size(), lineHeight, padding)))
+                .size(Length.UNDEFINED, Length.points((float) height(lines.size(), lineHeight, padding)))
                 .cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT)
                 .overflow(Overflow.HIDDEN);
     }
@@ -390,11 +388,7 @@ record TextAreaBox(
     }
 
     private static Insets leftTop(double left, double top) {
-        return new Insets(
-                StyleLength.points((float) top),
-                StyleLength.UNDEFINED,
-                StyleLength.UNDEFINED,
-                StyleLength.points((float) left));
+        return new Insets(Length.points((float) top), Length.UNDEFINED, Length.UNDEFINED, Length.points((float) left));
     }
 
     private static Insets2 padding(ComputedStyle style) {
@@ -404,12 +398,12 @@ record TextAreaBox(
                 points(style.padding().bottom()));
     }
 
-    private static double points(StyleLength length) {
-        return length instanceof StyleLength.Points p ? p.value() : 0;
+    private static double points(Length length) {
+        return length instanceof Length.Points p ? p.value() : 0;
     }
 
     /// The three padding edges this control reads. Not `Insets`, which is four
-    /// `StyleLength`s and needs resolving at every use.
+    /// `Length`s and needs resolving at every use.
     private record Insets2(double left, double top, double bottom) {}
 
     /// A placed rectangle, one line tall.

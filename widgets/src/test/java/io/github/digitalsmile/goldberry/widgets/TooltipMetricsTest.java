@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// What a `tooltip` actually resolves to, against what `design-system.md` §3
 /// says it should.
@@ -84,15 +84,14 @@ class TooltipMetricsTest {
     void padding() {
         var style = styleOf("tooltip");
 
-        assertEquals(StyleLength.points(8), style.padding().top());
-        assertEquals(StyleLength.points(8), style.padding().bottom());
-        assertEquals(StyleLength.points(12), style.padding().left());
-        assertEquals(StyleLength.points(12), style.padding().right());
+        assertEquals(Length.points(8), style.padding().top());
+        assertEquals(Length.points(8), style.padding().bottom());
+        assertEquals(Length.points(12), style.padding().left());
+        assertEquals(Length.points(12), style.padding().right());
 
         for (var edge : List.of(style.padding().top(), style.padding().left())) {
             assertTrue(
-                    RAMP.contains((int) ((StyleLength.Points) edge).value()),
-                    () -> edge + " is not on §1.3's legal ramp");
+                    RAMP.contains((int) ((Length.Points) edge).value()), () -> edge + " is not on §1.3's legal ramp");
         }
     }
 

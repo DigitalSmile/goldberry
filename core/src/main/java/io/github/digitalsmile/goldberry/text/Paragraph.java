@@ -8,12 +8,10 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.layout.Measure;
+import io.github.digitalsmile.goldberry.layout.MeasureMode;
+import io.github.digitalsmile.goldberry.layout.MeasuredSize;
 import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
@@ -30,7 +28,7 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 /// ## Shaped once, wrapped many times
 ///
 /// The text is shaped **once**, when the paragraph is created, and never again.
-/// Wrapping is then pure arithmetic over that one `GlyphRun`: a line is a range
+/// Wrapping is then pure arithmetic over that one `ShapedRun`: a line is a range
 /// of glyphs, and re-wrapping at a new width produces new ranges over the same
 /// glyphs. A measure callback therefore costs a scan, not a shaping pass.
 ///
@@ -74,7 +72,7 @@ public final class Paragraph {
     private final String text;
 
     /// The whole paragraph, shaped once, in design units.
-    private final GlyphRun run;
+    private final ShapedRun run;
 
     /// `advanceBefore[o]` is the advance, in design units, of every glyph whose
     /// cluster is before text offset `o`. Prefix sums, so the width of any range
@@ -221,7 +219,7 @@ public final class Paragraph {
         return layout;
     }
 
-    /// A [MeasureFunction] that reports this paragraph's size to Yoga.
+    /// A [Measure] that reports this paragraph's size to the layout engine.
     ///
     /// Attach it to a leaf node and the flexbox algorithm treats the text as
     /// content: it proposes a width, this wraps at that width, and the height
@@ -232,7 +230,7 @@ public final class Paragraph {
     /// *available* width instead would make every paragraph claim the full
     /// column even when it wrapped well short of it, and a centred parent would
     /// then centre empty space.
-    public MeasureFunction measureFunction() {
+    public Measure measureFunction() {
         return measureFunction(TextFlow.NORMAL);
     }
 
@@ -252,7 +250,7 @@ public final class Paragraph {
     ///
     /// [MeasureMode#EXACTLY] still wins under either value, because a parent that
     /// has already decided a width is not asking.
-    public MeasureFunction measureFunction(TextFlow flow) {
+    public Measure measureFunction(TextFlow flow) {
         Objects.requireNonNull(flow, "flow");
         var wraps = flow.wraps();
         return (width, widthMode, height, heightMode) -> {
@@ -451,7 +449,7 @@ public final class Paragraph {
     /// The whole paragraph as one shaped run, in design units.
     ///
     /// A [TextLine]'s glyph range indexes into this.
-    public GlyphRun glyphs() {
+    public ShapedRun glyphs() {
         return run;
     }
 

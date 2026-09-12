@@ -1,48 +1,65 @@
 package io.github.digitalsmile.goldberry.icon;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.paint.Path;
 
 class SvgPathTest {
 
-    @BeforeEach
-    void requireRenderer() {
-        RendererRequirement.enforce();
-    }
-
     @ParameterizedTest
     @CsvSource({
-        // data, expected vertex count
-        "'M0 0',                     1", // one move
-        "'M0 0L10 10',               2",
-        "'M0 0 10 10',               2", // a repeated M is an L
-        "'M0 0 10 10 20 20',         3",
-        "'M0 0L10 10L20 0Z',         4", // Z contributes a vertex of its own
-        "'M0 0H10',                  2",
-        "'M0 0V10',                  2",
-        "'M0 0C1 1 2 2 3 3',         4", // a cubic is three vertices plus the move
-        "'M0 0Q1 1 2 2',             3",
-        "'M0 0C1 1 2 2 3 3S4 4 5 5', 7",
-        "'M0 0Q1 1 2 2T4 4',         5",
+        // data, the segments it must produce, in order
+        "'M0 0',                     M",
+        "'M0 0L10 10',               ML",
+        "'M0 0 10 10',               ML", // a repeated M is an L
+        "'M0 0 10 10 20 20',         MLL",
+        "'M0 0L10 10L20 0Z',         MLLZ",
+        "'M0 0H10',                  ML",
+        "'M0 0V10',                  ML",
+        "'M0 0C1 1 2 2 3 3',         MC",
+        "'M0 0Q1 1 2 2',             MQ",
+        // `S` and `T` are cubics and quadratics once their control point has
+        // been reflected -- a Path has no smooth verb, and this is where that
+        // shows (ADR-0277).
+        "'M0 0C1 1 2 2 3 3S4 4 5 5', MCC",
+        "'M0 0Q1 1 2 2T4 4',         MQQ",
+        "'M0 0A5 5 0 0 1 1 1',       MA",
     })
     @DisplayName("each command produces the geometry it should")
-    void commandsProduceGeometry(String data, long vertices) {
-        try (var path = BlendPath.create()) {
-            SvgPath.appendTo(path, data);
+    void commandsProduceGeometry(String data, String shape) {
+        // The *kinds* in order, which is a stronger claim than the vertex count
+        // this used to assert: a reader that parsed a `C` as an `L` kept the
+        // count and changed the picture.
+        var path = Path.builder();
+        SvgPath.appendTo(path, data);
 
-            assertEquals(vertices, path.vertexCount(), () -> "for \"" + data + "\"");
+        assertEquals(shape, shapeOf(path.build()), () -> "for \"" + data + "\"");
+    }
+
+    /// A path's segments as one letter each, in SVG's own vocabulary.
+    private static String shapeOf(Path path) {
+        var shape = new StringBuilder();
+        for (var segment : path.segments()) {
+            shape.append(
+                    switch (segment) {
+                        case Path.Segment.MoveTo ignored -> 'M';
+                        case Path.Segment.LineTo ignored -> 'L';
+                        case Path.Segment.QuadTo ignored -> 'Q';
+                        case Path.Segment.CubicTo ignored -> 'C';
+                        case Path.Segment.ArcTo ignored -> 'A';
+                        case Path.Segment.Close ignored -> 'Z';
+                    });
         }
+        return shape.toString();
     }
 
     @Test
@@ -53,12 +70,16 @@ class SvgPathTest {
         // ignored the distinction entirely, so the two are compared by drawn
         // ink in IconPaintTest -- here the assertion is that both parse and
         // produce the same shape of command stream.
-        try (var absolute = BlendPath.create();
-                var relative = BlendPath.create()) {
-            SvgPath.appendTo(absolute, "M10 10L20 10L20 20Z");
-            SvgPath.appendTo(relative, "m10 10l10 0l0 10z");
+        var absolute = Path.builder();
+        var relative = Path.builder();
+        SvgPath.appendTo(absolute, "M10 10L20 10L20 20Z");
+        SvgPath.appendTo(relative, "m10 10l10 0l0 10z");
 
-            assertEquals(absolute.vertexCount(), relative.vertexCount());
+        {
+            // The same path, not merely the same count: a `Path` is a value, so
+            // the two can simply be compared -- which is what this test always
+            // meant and could not previously say.
+            assertEquals(absolute.build(), relative.build());
         }
     }
 
@@ -69,15 +90,13 @@ class SvgPathTest {
         // move back to the sub-path start, then the line. Blend2D rejects a
         // line-to straight after a close -- there is no figure to extend -- so
         // that implicit move is issued rather than merely accounted for.
-        //
-        // Whether it went back to the right point cannot be seen in a count.
-        // `IconPaintTest.penReturnsToTheSubPathStartAfterClose` asserts that by
-        // looking at where the ink landed.
-        try (var path = BlendPath.create()) {
-            SvgPath.appendTo(path, "M10 10L20 10L20 20Zl5 0");
+        var path = Path.builder();
+        SvgPath.appendTo(path, "M10 10L20 10L20 20Zl5 0");
 
-            assertEquals(6, path.vertexCount());
-        }
+        // And the implicit move goes back to where the sub-path began, which a
+        // count could never have said and the segment list states outright.
+        assertEquals("MLLZML", shapeOf(path.build()));
+        assertEquals(new Path.Segment.MoveTo(10, 10), path.build().segments().get(4));
     }
 
     @ParameterizedTest
@@ -93,11 +112,10 @@ class SvgPathTest {
             })
     @DisplayName("the number grammar is SVG's, not whitespace-splitting")
     void parsesSvgNumberGrammar(String data) {
-        try (var path = BlendPath.create()) {
-            SvgPath.appendTo(path, data);
+        var path = Path.builder();
+        SvgPath.appendTo(path, data);
 
-            assertTrue(path.vertexCount() >= 2, () -> "\"" + data + "\" produced nothing");
-        }
+        assertTrue(path.build().segmentCount() >= 2, () -> "\"" + data + "\" produced nothing");
     }
 
     @Test
@@ -108,20 +126,22 @@ class SvgPathTest {
         // characters. The spelled-out form below is the SAME arc, and the
         // large-arc=1 form is a different one; asserting against both is what
         // distinguishes "parsed the flags" from "happened to parse something".
-        try (var packed = BlendPath.create();
-                var same = BlendPath.create();
-                var different = BlendPath.create()) {
+        var packed = Path.builder();
+        var same = Path.builder();
+        var different = Path.builder();
 
-            SvgPath.appendTo(packed, "M0 0A5 5 0 011 1");
-            SvgPath.appendTo(same, "M0 0A5 5 0 0 1 1 1");
-            SvgPath.appendTo(different, "M0 0A5 5 0 1 1 1 1");
+        SvgPath.appendTo(packed, "M0 0A5 5 0 011 1");
+        SvgPath.appendTo(same, "M0 0A5 5 0 0 1 1 1");
+        SvgPath.appendTo(different, "M0 0A5 5 0 1 1 1 1");
 
-            assertEquals(same.vertexCount(), packed.vertexCount());
-            assertTrue(
-                    different.vertexCount() > packed.vertexCount(),
-                    () -> "the large arc should need more vertices than the small one: " + different.vertexCount()
-                            + " vs " + packed.vertexCount());
-        }
+        // Read off the arc itself rather than inferred from how many cubics the
+        // rasterizer needed for it -- the flags are in the segment now.
+        assertEquals(same.build(), packed.build());
+        var small = (Path.Segment.ArcTo) packed.build().segments().getLast();
+        var large = (Path.Segment.ArcTo) different.build().segments().getLast();
+        assertFalse(small.largeArc(), "`011 1` packs large-arc=0");
+        assertTrue(large.largeArc(), "and `1 1 1 1` is the other one");
+        assertTrue(small.sweep() && large.sweep(), "both sweep positively");
     }
 
     @ParameterizedTest
@@ -137,34 +157,31 @@ class SvgPathTest {
             })
     @DisplayName("malformed data is refused rather than half-drawn")
     void malformedDataIsRefused(String data) {
-        try (var path = BlendPath.create()) {
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> SvgPath.appendTo(path, data),
-                    () -> "\"" + data + "\" should not have parsed");
-        }
+        var path = Path.builder();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SvgPath.appendTo(path, data),
+                () -> "\"" + data + "\" should not have parsed");
     }
 
     @Test
     @DisplayName("the failure message says where, and quotes only the region")
     void failureMessageIsLocated() {
         var data = "M0 0" + "L1 1".repeat(30) + "X";
-        try (var path = BlendPath.create()) {
-            var thrown = assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, data));
+        var path = Path.builder();
+        var thrown = assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, data));
 
-            assertTrue(thrown.getMessage().contains("at index"), thrown::getMessage);
-            // The excerpt is bounded, so a long icon does not print in full.
-            assertTrue(thrown.getMessage().length() < data.length(), thrown::getMessage);
-        }
+        assertTrue(thrown.getMessage().contains("at index"), thrown::getMessage);
+        // The excerpt is bounded, so a long icon does not print in full.
+        assertTrue(thrown.getMessage().length() < data.length(), thrown::getMessage);
     }
 
     @ParameterizedTest
     @ValueSource(doubles = {0, -1, Double.NaN, Double.POSITIVE_INFINITY})
     @DisplayName("a scale that would collapse or mirror the icon is refused")
     void refusesAnUnusableScale(double scale) {
-        try (var path = BlendPath.create()) {
-            assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, "M0 0L1 1", scale));
-        }
+        var path = Path.builder();
+        assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, "M0 0L1 1", scale));
     }
 
     @Test
@@ -180,14 +197,13 @@ class SvgPathTest {
         for (var name : names) {
             var data = io.github.digitalsmile.goldberry.assets.BundledAssets.icon(name)
                     .orElseThrow();
-            try (var path = BlendPath.create()) {
-                try {
-                    SvgPath.appendTo(path, data);
-                } catch (RuntimeException e) {
-                    throw new AssertionError("icon \"" + name + "\" did not parse: " + data, e);
-                }
-                assertTrue(path.vertexCount() > 0, () -> "icon \"" + name + "\" produced no geometry");
+            var path = Path.builder();
+            try {
+                SvgPath.appendTo(path, data);
+            } catch (RuntimeException e) {
+                throw new AssertionError("icon \"" + name + "\" did not parse: " + data, e);
             }
+            assertFalse(path.isEmpty(), () -> "icon \"" + name + "\" produced no geometry");
         }
     }
 }

@@ -10,9 +10,9 @@ import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Path;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -269,7 +269,7 @@ record DonutSurface(
             }
 
             var angle = DonutGeometry.START;
-            try (var path = BlendPath.create()) {
+            {
                 for (var i = 0; i < values.size(); i++) {
                     var value = Math.max(0, values.get(i));
                     if (value <= 0) {
@@ -283,14 +283,13 @@ record DonutSurface(
                     var from = angle + GAP / 2;
                     var to = angle + sweep - GAP / 2;
                     if (to > from) {
-                        arc(path, geometry, from, to);
                         // Faded when another slice is being read, so the ring says
                         // which one the hole is talking about. Nothing is faded
                         // when nothing is hovered, which is what makes a golden
                         // image of a donut the donut.
                         var colour =
                                 hovered < 0 || hovered == i ? colours.get(i) : CssColor.fade(colours.get(i), FADED);
-                        frame.fillPath(0, 0, path, colour);
+                        frame.fillPath(slice(geometry, from, to), colour);
                     }
                     angle += sweep;
                 }
@@ -337,25 +336,26 @@ record DonutSurface(
         /// One slice: out along the outer edge, in at the end, back along the
         /// inner edge.
         ///
-        /// Two arcs rather than one, because SVG's `A` — which is what Blend2D's
-        /// path takes — draws an arc *to* a point and a full circle has nowhere
+        /// Two arcs rather than one, because SVG's `A` — which is what a [Path]
+        /// carries — draws an arc *to* a point and a full circle has nowhere
         /// to go. `largeArc` is the flag that decides which way round a sweep of
         /// more than half a turn goes, and getting it wrong draws the complement
         /// of the slice, which is a picture that is exactly wrong rather than
         /// obviously wrong.
-        private static void arc(BlendPath path, DonutGeometry geometry, double from, double to) {
+        private static Path slice(DonutGeometry geometry, double from, double to) {
 
             var cx = geometry.cx();
             var cy = geometry.cy();
             var outer = geometry.outer();
             var inner = geometry.inner();
             var large = (to - from) > Math.PI;
-            path.reset();
-            path.moveTo(cx + outer * Math.cos(from), cy + outer * Math.sin(from));
-            path.ellipticArcTo(outer, outer, 0, large, true, cx + outer * Math.cos(to), cy + outer * Math.sin(to));
-            path.lineTo(cx + inner * Math.cos(to), cy + inner * Math.sin(to));
-            path.ellipticArcTo(inner, inner, 0, large, false, cx + inner * Math.cos(from), cy + inner * Math.sin(from));
-            path.closeSubPath();
+            return Path.builder()
+                    .moveTo(cx + outer * Math.cos(from), cy + outer * Math.sin(from))
+                    .arcTo(outer, outer, 0, large, true, cx + outer * Math.cos(to), cy + outer * Math.sin(to))
+                    .lineTo(cx + inner * Math.cos(to), cy + inner * Math.sin(to))
+                    .arcTo(inner, inner, 0, large, false, cx + inner * Math.cos(from), cy + inner * Math.sin(from))
+                    .close()
+                    .build();
         }
     }
 

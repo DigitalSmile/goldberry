@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -37,7 +37,7 @@ record TabIndicator(boolean selected, int colour) implements Widget.Leaf, Styled
     /// Across the bottom, and nothing about the top: the header's height is the
     /// header's.
     private static final Insets PINNED =
-            new Insets(StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.points(0), StyleLength.points(0));
+            new Insets(Length.UNDEFINED, Length.points(0), Length.points(0), Length.points(0));
 
     @Override
     public String cssType() {
@@ -64,6 +64,6 @@ record TabIndicator(boolean selected, int colour) implements Widget.Leaf, Styled
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).position(PositionType.ABSOLUTE).inset(PINNED);
+        return Box.of().style(style).position(Position.ABSOLUTE).inset(PINNED);
     }
 }

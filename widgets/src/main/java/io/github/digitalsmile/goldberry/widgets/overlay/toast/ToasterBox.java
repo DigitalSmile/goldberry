@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
@@ -68,7 +68,7 @@ record ToasterBox(List<Widget> children, Corner corner, OnFrame onFrame)
         // sum of its children, which is circular -- so `toaster` writes pixels
         // and anything else reads as none rather than as a guess.
         onFrame.frame(context.nowMillis(),
-                style.gap() instanceof StyleLength.Points(var points) ? points : 0);
+                style.gap() instanceof Length.Points(var points) ? points : 0);
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 }

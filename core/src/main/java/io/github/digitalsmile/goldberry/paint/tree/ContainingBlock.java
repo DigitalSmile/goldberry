@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.paint.tree;
 
 import java.util.Objects;
 
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 
 /// The one rule Yoga does not implement: an absolutely positioned box is placed
 /// against its containing block's **padding** box.
@@ -67,12 +67,12 @@ public final class ContainingBlock {
     /// @param blockPadding  the containing block's `padding`
     /// @return the inset Yoga has to be given for the child to land where CSS
     ///         says it should
-    public static Insets insetFor(PositionType position, Insets inset, Insets blockPadding) {
+    public static Insets insetFor(Position position, Insets inset, Insets blockPadding) {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(blockPadding, "blockPadding");
 
-        if (position != PositionType.ABSOLUTE) {
+        if (position != Position.ABSOLUTE) {
             return inset;
         }
         var top = shift(inset.top(), blockPadding.top());
@@ -126,25 +126,25 @@ public final class ContainingBlock {
     /// A padding to subtract rather than add. Anything that is not a length in
     /// points is handed back untouched, so that [#shift] declines it for exactly
     /// the reasons it declines the same value on the way in.
-    private static StyleLength negated(StyleLength padding) {
-        return padding instanceof StyleLength.Points space ? StyleLength.points(-space.value()) : padding;
+    private static Length negated(Length padding) {
+        return padding instanceof Length.Points space ? Length.points(-space.value()) : padding;
     }
 
     /// One edge, moved from the border box to the padding box.
     ///
     /// Returns the argument unchanged — by identity, which is what
     /// [#insetFor] reads — for every case that cannot or must not shift.
-    private static StyleLength shift(StyleLength inset, StyleLength padding) {
-        if (!(inset instanceof StyleLength.Points offset)) {
+    private static Length shift(Length inset, Length padding) {
+        if (!(inset instanceof Length.Points offset)) {
             // UNDEFINED is the edge Yoga already gets right; AUTO is not a value
             // Yoga has for an inset at all, and a percentage cannot be added to.
             return inset;
         }
-        if (!(padding instanceof StyleLength.Points space) || space.value() == 0f) {
+        if (!(padding instanceof Length.Points space) || space.value() == 0f) {
             // No padding to move past — and an undefined padding is Yoga's zero,
             // so this is the common case rather than the unhandled one.
             return inset;
         }
-        return StyleLength.points(offset.value() + space.value());
+        return Length.points(offset.value() + space.value());
     }
 }

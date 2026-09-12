@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -108,7 +108,7 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
         if (count == 0) {
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
-        var share = StyleLength.percent((float) (100.0 / count));
+        var share = Length.percent((float) (100.0 / count));
         // The parts come first and size themselves: `count - 1` dividers, then
         // the indicator, whose width is the same proportion written through
         // `restyle` so that the travel beside it can transition. Everything after

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.layout.MeasureMode;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Wrapping, and the number a measure function reports.

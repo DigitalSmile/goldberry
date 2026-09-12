@@ -33,8 +33,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -238,15 +238,11 @@ class ButtonTest {
             var style = style(null);
 
             // docs/design-system.md §3: height 32, padding-x 12, gap 6, radius 8.
-            assertEquals(StyleLength.points(32), style.height());
+            assertEquals(Length.points(32), style.height());
             assertEquals(
-                    new Insets(
-                            StyleLength.points(0),
-                            StyleLength.points(12),
-                            StyleLength.points(0),
-                            StyleLength.points(12)),
+                    new Insets(Length.points(0), Length.points(12), Length.points(0), Length.points(12)),
                     style.padding());
-            assertEquals(StyleLength.points(6), style.gap());
+            assertEquals(Length.points(6), style.gap());
             assertEquals(Corners.all(8), style.decoration().corners());
 
             // And no border, because §3's button row does not have one. The
@@ -323,7 +319,7 @@ class ButtonTest {
             var style = style(":root { --gb-button-bg: #ff0000 }");
 
             assertEquals(0xFFFF0000, style.background());
-            assertEquals(StyleLength.points(32), style.height(), "and the metrics are untouched");
+            assertEquals(Length.points(32), style.height(), "and the metrics are untouched");
         }
 
         @Test
@@ -448,7 +444,7 @@ class ButtonTest {
 
             assertEquals(2, box.children().size());
             assertEquals(icon, box.children().getFirst().icon().icon());
-            assertEquals(StyleLength.points(16), box.children().getFirst().width());
+            assertEquals(Length.points(16), box.children().getFirst().width());
             assertEquals("Save", box.children().get(1).text().paragraph().text());
         }
 

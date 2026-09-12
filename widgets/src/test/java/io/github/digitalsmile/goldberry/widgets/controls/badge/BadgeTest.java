@@ -20,8 +20,8 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -100,11 +100,11 @@ class BadgeTest {
     void metrics() {
         var style = styleOf(new Badge("3"), Theme.NORD_DARK);
 
-        assertEquals(StyleLength.points(20), style.height());
-        assertEquals(StyleLength.points(4), style.padding().left());
-        assertEquals(StyleLength.points(4), style.padding().right());
+        assertEquals(Length.points(20), style.height());
+        assertEquals(Length.points(4), style.padding().left());
+        assertEquals(Length.points(4), style.padding().right());
         assertEquals(
-                StyleLength.points(0),
+                Length.points(0),
                 style.padding().top(),
                 "no vertical padding: the height is pinned and centring does the rest");
         assertEquals(
@@ -131,7 +131,7 @@ class BadgeTest {
 
         assertEquals(style.height(), style.limits().minWidth());
         assertEquals(
-                StyleLength.UNDEFINED,
+                Length.UNDEFINED,
                 style.limits().maxWidth(),
                 "and no maximum: a badge grows with its content, which is the other half of the row");
     }
@@ -148,7 +148,7 @@ class BadgeTest {
 
         assertTrue(
                 List.of(2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64)
-                        .contains((int) ((StyleLength.Points) padding.left()).value()),
+                        .contains((int) ((Length.Points) padding.left()).value()),
                 () -> padding.left() + " is not on §1.3's legal ramp");
     }
     /// §3.1 has no `badge` row, and its preamble says anything not listed does not

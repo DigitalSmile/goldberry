@@ -10,7 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// The four enclosed glyphs a `message` draws — that each one is a ring or a
 /// triangle with something inside it, and that it stays inside its box.
@@ -52,10 +52,10 @@ class EnclosedMarkTest {
     private static TestFrames.Target paint(Box.Mark.Kind kind) {
         var target = TestFrames.of(SIZE + MARGIN * 2, SIZE + MARGIN * 2, 1f);
         var box = Box.of()
-                .padding(StyleLength.points(MARGIN))
+                .padding(Length.points(MARGIN))
                 .children(Box.of()
                         .mark(new Box.Mark(kind, 0xFFFFFFFF, 2))
-                        .size(StyleLength.points(SIZE), StyleLength.points(SIZE)));
+                        .size(Length.points(SIZE), Length.points(SIZE)));
         BoxPainter.paint(target.frame(), box);
         // Ended before the pixels are read: a context that has not been ended may
         // still have work queued, and half of an antialiased ring is a flake.

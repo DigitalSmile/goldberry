@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.form.colorpicker;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
@@ -7,12 +8,11 @@ import java.util.function.DoubleConsumer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Gradient;
+import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -134,24 +134,16 @@ record ColorRamp(Kind kind, HsvColor colour, DoubleConsumer onChange, boolean di
         if (kind == Kind.ALPHA) {
             chequer(frame, width, height);
         }
-        try (var path = BlendPath.create()) {
-            path.moveTo(0, 0);
-            path.lineTo(width, 0);
-            path.lineTo(width, height);
-            path.lineTo(0, height);
-            path.closeSubPath();
-            try (var ramp = BlendGradient.linear(0, 0, width, 0)) {
-                if (kind == Kind.HUE) {
-                    for (var stop = 0; stop <= 6; stop++) {
-                        ramp.addStop(stop / 6.0, new HsvColor(stop * 60.0, 1, 1, 1).toArgb());
-                    }
-                } else {
-                    ramp.addStop(0, argb & 0x00FFFFFF);
-                    ramp.addStop(1, argb);
-                }
-                frame.fillPath(0, 0, path, ramp);
+        var stops = new ArrayList<Gradient.Stop>();
+        if (kind == Kind.HUE) {
+            for (var stop = 0; stop <= 6; stop++) {
+                stops.add(new Gradient.Stop(stop / 6.0, new HsvColor(stop * 60.0, 1, 1, 1).toArgb()));
             }
+        } else {
+            stops.add(new Gradient.Stop(0, argb & 0x00FFFFFF));
+            stops.add(new Gradient.Stop(1, argb));
         }
+        frame.fillPath(Path.rect(0, 0, width, height), new Gradient.Linear(0, 0, width, 0, stops));
         thumb(frame, position * width, height);
     }
 
@@ -177,11 +169,8 @@ record ColorRamp(Kind kind, HsvColor colour, DoubleConsumer onChange, boolean di
     /// ramps — the plane's cursor picks one or the other from the colour under
     /// it, and a ramp's thumb crosses colours it cannot choose between.
     private static void thumb(Frame frame, double x, double height) {
-        try (var bar = BlendPath.create()) {
-            bar.moveTo(x, 0);
-            bar.lineTo(x, height);
-            frame.strokePath(0, 0, bar, 4, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, 0xFF000000);
-            frame.strokePath(0, 0, bar, 2, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, 0xFFFFFFFF);
-        }
+        var bar = Path.line(x, 0, x, height);
+        frame.strokePath(bar, Stroke.of(4), 0xFF000000);
+        frame.strokePath(bar, Stroke.of(2), 0xFFFFFFFF);
     }
 }

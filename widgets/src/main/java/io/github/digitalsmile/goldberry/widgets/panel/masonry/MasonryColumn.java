@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -39,7 +39,7 @@ record MasonryColumn(List<Widget> children, int count) implements Widget.Leaf, S
 
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        return resolved.width(StyleLength.percent((float) (100.0 / Math.max(1, count))));
+        return resolved.width(Length.percent((float) (100.0 / Math.max(1, count))));
     }
 
     @Override

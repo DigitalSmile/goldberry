@@ -181,8 +181,8 @@ class SparklineTest {
 
         var box = renderer.render(tree)
                 .size(
-                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(40),
-                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(20));
+                        io.github.digitalsmile.goldberry.layout.Length.points(40),
+                        io.github.digitalsmile.goldberry.layout.Length.points(20));
         assertNotNull(box.painting(), "a sparkline is a canvas");
 
         // Painted, because "the cascade said red" is only worth asserting if red

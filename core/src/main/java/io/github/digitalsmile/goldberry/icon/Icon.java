@@ -4,10 +4,9 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.Stroke;
 
 /// One bundled icon, parsed once and drawn many times.
 ///
@@ -22,20 +21,26 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 /// is no transform to get wrong at draw time. Drawing the same symbol at two
 /// sizes is two `Icon`s.
 ///
-/// Confined to the thread that created it, and must be closed.
+/// Immutable and safe to share since ADR-0277: its geometry is a
+/// [Path] rather than a native allocation, so an icon is a value like any other.
 public final class Icon implements AutoCloseable {
 
     /// Lucide's stroke ends and corners. Not a choice — it is how the set is
     /// drawn, and butt caps make every icon look clipped.
-    static final BlendStrokeCap CAP = BlendStrokeCap.ROUND;
-    static final BlendStrokeJoin JOIN = BlendStrokeJoin.ROUND;
+    ///
+    /// The width is the icon's own, so this is the pen without it: [#draw] and
+    /// anything drawing an [#outline()] by hand both start here rather than
+    /// naming two enum constants and hoping they match.
+    public static Stroke pen(double strokeWidth) {
+        return Stroke.round(strokeWidth);
+    }
 
     private final String name;
     private final double size;
     private final double strokeWidth;
-    private final BlendPath path;
+    private final Path path;
 
-    private Icon(String name, double size, double strokeWidth, BlendPath path) {
+    private Icon(String name, double size, double strokeWidth, Path path) {
         this.name = name;
         this.size = size;
         this.strokeWidth = strokeWidth;
@@ -73,14 +78,9 @@ public final class Icon implements AutoCloseable {
         }
 
         var scale = size / BundledAssets.ICON_SIZE;
-        var path = BlendPath.create();
-        try {
-            SvgPath.appendTo(path, pathData, scale);
-        } catch (RuntimeException | Error e) {
-            path.close();
-            throw e;
-        }
-        return new Icon(name, size, BundledAssets.ICON_STROKE_WIDTH * scale, path);
+        var builder = Path.builder();
+        SvgPath.appendTo(builder, pathData, scale);
+        return new Icon(name, size, BundledAssets.ICON_STROKE_WIDTH * scale, builder.build());
     }
 
     /// The icon's name, for diagnostics.
@@ -108,21 +108,30 @@ public final class Icon implements AutoCloseable {
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void draw(Frame frame, double x, double y, int argb) {
         Objects.requireNonNull(frame, "frame");
-        frame.strokePath(x, y, path, strokeWidth, CAP, JOIN, argb);
+        frame.strokePath(x, y, path, pen(strokeWidth), argb);
     }
 
-    /// The path, for anything that wants to draw it differently. Exposed the way
-    /// [io.github.digitalsmile.goldberry.text.font.Font] exposes its Blend2D objects:
-    /// `:core` builds them and `Frame` draws them, and hiding the type would
-    /// mean a second drawing API that only this class could reach.
-    public BlendPath path() {
+    /// The outline, for anything that wants to draw it differently — filled, at
+    /// another weight, or written out as SVG.
+    ///
+    /// A [Path] since ADR-0277, and so a **value**: handing one out no longer
+    /// hands out a native resource with a thread and a lifetime, which is what
+    /// this accessor used to do.
+    public Path outline() {
         return path;
     }
 
-    /// Releases the path. Idempotent.
+    /// Does nothing, and is kept so that existing `try`-with-resources keeps
+    /// compiling.
+    ///
+    /// An icon held a `BlendPath` — a confined `Arena` and a native allocation —
+    /// until ADR-0277 made its geometry a value. There is nothing left to
+    /// release: an `Icon` is now two doubles, a name and two Java arrays, and it
+    /// is garbage like anything else. [AutoCloseable] stays for one release so
+    /// that closing one is harmless rather than a compile error.
     @Override
     public void close() {
-        path.close();
+        // Deliberately empty -- see the javadoc.
     }
 
     @Override

@@ -72,6 +72,8 @@ public final class PointerEvent {
     private boolean consumed;
     private Local local = Local.UNKNOWN;
 
+    private Local content = Local.UNKNOWN;
+
     /// Where an event happened **inside the widget currently handling it**, and
     /// how big that widget is.
     ///
@@ -157,6 +159,27 @@ public final class PointerEvent {
     public void measuredAs(Extent bounds, Extent part) {
         this.bounds = bounds == null ? Extent.NONE : bounds;
         this.part = part == null ? this.bounds : part;
+    }
+
+    /// Where the pointer is inside the handling widget's **content box** — the
+    /// rectangle inside its padding.
+    ///
+    /// The same as [#local()] for a widget with no padding, which is most of
+    /// them. It exists because a `canvas` painter is handed a frame whose origin
+    /// is the content corner and is clipped to it (ADR-0193), so a canvas that
+    /// read `local()` would have its input offset from its ink by exactly the
+    /// padding — and `canvas { padding: 8px }` is documented as a framed drawing
+    /// surface rather than a surprise. This is the half that makes that true of
+    /// input as well as of paint (ADR-0281).
+    public Local content() {
+        return content;
+    }
+
+    /// Re-points [#content()] at the widget about to handle this.
+    ///
+    /// The router's, alongside [#localTo].
+    public void contentTo(Local value) {
+        this.content = value == null ? Local.UNKNOWN : value;
     }
 
     /// Re-points [#local()] at the widget about to handle this.

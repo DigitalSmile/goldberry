@@ -10,8 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// Yoga's layout arriving in Blend2D's pixels.
 ///
@@ -52,10 +52,10 @@ class BoxPainterTest {
         // and shallow trees hide it, because the outermost parent is at 0,0.
         var target = TestFrames.of(100, 100, 1f);
         var root = Box.of()
-                .padding(StyleLength.points(10))
+                .padding(Length.points(10))
                 .children(Box.of()
                         .grow(1)
-                        .padding(StyleLength.points(10))
+                        .padding(Length.points(10))
                         .children(Box.filled(0xFF00FF00).grow(1)));
 
         BoxPainter.paint(target.frame(), root);
@@ -102,7 +102,7 @@ class BoxPainterTest {
         // logical points must cover 100 physical pixels — once, not twice: a
         // scale applied in both the layout and the paint would give 200.
         var target = TestFrames.of(200, 200, 2f);
-        var root = Box.of().children(Box.filled(0xFFFFFFFF).size(StyleLength.points(50), StyleLength.points(50)));
+        var root = Box.of().children(Box.filled(0xFFFFFFFF).size(Length.points(50), Length.points(50)));
 
         BoxPainter.paint(target.frame(), root);
 
@@ -138,8 +138,8 @@ class BoxPainterTest {
         var target = TestFrames.of(100, 40, 1f);
         var root = Box.of()
                 .direction(FlexDirection.ROW)
-                .padding(StyleLength.points(10))
-                .gap(StyleLength.points(20))
+                .padding(Length.points(10))
+                .gap(Length.points(20))
                 .children(Box.filled(0xFFFFFFFF).grow(1), Box.filled(0xFFFFFFFF).grow(1));
 
         BoxPainter.paint(target.frame(), root);

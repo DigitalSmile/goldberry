@@ -520,7 +520,7 @@ public final class Element implements BuildContext, StyleElement {
         // hand to be a percentage of -- `Paints.Context.length`'s rule exactly.
         return io.github.digitalsmile.goldberry.css.value.CssLength.parse(
                                 resolved, io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT)
-                        instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points points
+                        instanceof io.github.digitalsmile.goldberry.layout.Length.Points points
                 ? points.value()
                 : fallback;
     }

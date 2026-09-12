@@ -199,7 +199,7 @@ class TourTest {
             // The card is the third child, and its `top` is what the
             // above-or-below decision comes out as.
             var inset = box.children().get(2).inset().top();
-            return ((io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points) inset).value();
+            return ((io.github.digitalsmile.goldberry.layout.Length.Points) inset).value();
         }
 
         /// A target chosen so the two answers differ, which is the only fixture

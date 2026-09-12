@@ -17,17 +17,17 @@ import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Justify;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Limits;
+import io.github.digitalsmile.goldberry.layout.Overflow;
+import io.github.digitalsmile.goldberry.layout.Position;
+import io.github.digitalsmile.goldberry.layout.Wrap;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.motion.Easing;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.Limits;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
@@ -83,22 +83,22 @@ public record ComputedStyle(
         // either: every row in the catalog was a row that fitted, until `select
         // multiple` grew a row of chips (ADR-0192).
         Wrap wrap,
-        StyleLength width,
-        StyleLength height,
+        Length width,
+        Length height,
         // §8 listed `min-width` / `max-width` from the start and nothing had
         // needed them: every box in the catalog was either its content's size or
         // a fixed one, so `dialog`, `toast` and `tooltip` each wrote a *width*
         // where they meant a maximum and lived with it (ADR-0181).
         Limits limits,
         Insets padding,
-        StyleLength gap,
+        Length gap,
         double flexGrow,
         double flexShrink,
         // `position` and `inset` are the layout half's answer to a box that is
         // not where the flow would put it. §8 listed them from the start and
         // nothing had needed one: every widget until `segmented`'s travelling
         // indicator was a box beside another box (ADR-0099).
-        PositionType position,
+        Position position,
         Insets inset,
         // §8 has listed `overflow` since the beginning and nothing had needed
         // it: until `scroll`, no box in the catalog had content it was meant to
@@ -152,25 +152,25 @@ public record ComputedStyle(
             Align.AUTO,
             // One line, however much it overflows -- Yoga's default and CSS's.
             Wrap.NO_WRAP,
-            StyleLength.UNDEFINED,
-            StyleLength.UNDEFINED,
+            Length.UNDEFINED,
+            Length.UNDEFINED,
             // No limit on any axis, which is Yoga's default and CSS's. Undefined
             // rather than zero: a minimum of zero constrains nothing, but a
             // maximum of zero is a box that may not exist.
             Limits.NONE,
             Insets.ZERO,
-            StyleLength.points(0),
+            Length.points(0),
             0,
             // CSS's default and Yoga's under `useWebDefaults`: a width is a
             // preferred width, and a cramped row may take it back.
             1,
-            PositionType.RELATIVE,
+            Position.RELATIVE,
             // Not `Insets.ZERO`: an inset of zero pins a node to its container's
             // edge, and "no inset at all" is what a node that never mentions one
             // must get. Yoga spells that `undefined`, and the difference only
             // shows on an absolute node -- where zero would stretch it and
             // undefined leaves it where the alignment put it.
-            Insets.all(StyleLength.UNDEFINED),
+            Insets.all(Length.UNDEFINED),
             // CSS's initial value, and Yoga's: a box that says nothing lets its
             // content spill rather than cutting it off, because a clip nobody
             // asked for is content that vanishes with no rule to blame.
@@ -417,7 +417,7 @@ public record ComputedStyle(
             // is how a container declines to be the thing an absolute
             // descendant is placed against (ADR-0099).
             case "position" ->
-                keyword(value, PositionType.class).map(this::position).orElseGet(() -> dropped(property, value));
+                keyword(value, Position.class).map(this::position).orElseGet(() -> dropped(property, value));
 
             // The same 1-4 shorthand `padding` takes, over the same [Insets] --
             // an inset is a padding measured from the outside.
@@ -841,7 +841,7 @@ public record ComputedStyle(
                 cursor);
     }
 
-    public ComputedStyle width(StyleLength v) {
+    public ComputedStyle width(Length v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -871,7 +871,7 @@ public record ComputedStyle(
                 cursor);
     }
 
-    public ComputedStyle height(StyleLength v) {
+    public ComputedStyle height(Length v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -963,7 +963,7 @@ public record ComputedStyle(
                 cursor);
     }
 
-    public ComputedStyle gap(StyleLength v) {
+    public ComputedStyle gap(Length v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -1053,7 +1053,7 @@ public record ComputedStyle(
                 cursor);
     }
 
-    public ComputedStyle position(PositionType v) {
+    public ComputedStyle position(Position v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -1500,9 +1500,8 @@ public record ComputedStyle(
     /// engine. Refused here so `border-radius: 50%` is a dropped declaration with
     /// a warning naming it, rather than a corner that is silently square.
     private static java.util.Optional<Double> points(List<Token> value, CssLength.Context context) {
-        return length(value, context)
-                .filter(StyleLength.Points.class::isInstance)
-                .map(v -> (double) ((StyleLength.Points) v).value());
+        return length(value, context).filter(Length.Points.class::isInstance).map(v ->
+                (double) ((Length.Points) v).value());
     }
 
     /// A font family name — an identifier or a quoted string.
@@ -1764,7 +1763,7 @@ public record ComputedStyle(
         return java.util.Optional.ofNullable(CssColor.parse(value));
     }
 
-    private static java.util.Optional<StyleLength> length(List<Token> value, CssLength.Context context) {
+    private static java.util.Optional<Length> length(List<Token> value, CssLength.Context context) {
         return java.util.Optional.ofNullable(CssLength.parse(value, context));
     }
 
@@ -1774,7 +1773,7 @@ public record ComputedStyle(
     /// whole rather than applied to two edges out of four — a half-applied
     /// shorthand is harder to see than one that did nothing.
     private static java.util.Optional<Insets> insets(List<Token> value, CssLength.Context context) {
-        var parts = new java.util.ArrayList<StyleLength>();
+        var parts = new java.util.ArrayList<Length>();
         for (var token : split(value)) {
             var length = CssLength.parse(token, context);
             if (length == null) {
@@ -1885,7 +1884,7 @@ public record ComputedStyle(
     /// have longhands over the same [Insets] — `padding-top` and `top` set the
     /// same edge of different sets, and a switch over full property names would
     /// have to list both spellings of each of the four.
-    private static Insets edge(Insets base, Edge edge, StyleLength value) {
+    private static Insets edge(Insets base, Edge edge, Length value) {
         return switch (edge) {
             case TOP -> new Insets(value, base.right(), base.bottom(), base.left());
             case RIGHT -> new Insets(base.top(), value, base.bottom(), base.left());

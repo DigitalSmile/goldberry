@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.layout.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Layer;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 
@@ -147,30 +148,38 @@ public final class RenderObject implements AutoCloseable {
     /// every frame and Yoga's layout cache would never hit once — which is the
     /// same amount of work as throwing the tree away, with the memory management
     /// of keeping it.
+    /// Where this node was laid out, in the toolkit's own geometry.
+    ///
+    /// The conversion lives here rather than at each caller because this class is
+    /// already the one place a `YogaNode` is touched — see [Yoga].
+    LogicalRect layout() {
+        return Yoga.rect(node.layout());
+    }
+
     void apply(Box box, Insets inset) {
         var previous = applied;
         applied = box;
 
         if (previous == null || previous.direction() != box.direction()) {
-            node.setFlexDirection(box.direction());
+            node.setFlexDirection(Yoga.direction(box.direction()));
         }
         if (previous == null || previous.justifyContent() != box.justifyContent()) {
-            node.setJustifyContent(box.justifyContent());
+            node.setJustifyContent(Yoga.justify(box.justifyContent()));
         }
         if (previous == null || previous.alignItems() != box.alignItems()) {
-            node.setAlignItems(box.alignItems());
+            node.setAlignItems(Yoga.align(box.alignItems()));
         }
         if (previous == null || previous.alignSelf() != box.alignSelf()) {
-            node.setAlignSelf(box.alignSelf());
+            node.setAlignSelf(Yoga.align(box.alignSelf()));
         }
         if (previous == null || previous.wrap() != box.wrap()) {
-            node.setFlexWrap(box.wrap());
+            node.setFlexWrap(Yoga.wrap(box.wrap()));
         }
         if (previous == null || !previous.width().equals(box.width())) {
-            node.setWidth(box.width());
+            node.setWidth(Yoga.length(box.width()));
         }
         if (previous == null || !previous.height().equals(box.height())) {
-            node.setHeight(box.height());
+            node.setHeight(Yoga.length(box.height()));
         }
         // The four limits, together, because they arrive together. Skipped
         // wholesale when neither frame had any -- which is nearly every node --
@@ -178,23 +187,23 @@ public final class RenderObject implements AutoCloseable {
         // than four foreign calls (ADR-0181).
         var limits = box.limits();
         if (previous == null ? !limits.isNone() : !previous.limits().equals(limits)) {
-            node.setMinWidth(limits.minWidth());
-            node.setMaxWidth(limits.maxWidth());
-            node.setMinHeight(limits.minHeight());
-            node.setMaxHeight(limits.maxHeight());
+            node.setMinWidth(Yoga.length(limits.minWidth()));
+            node.setMaxWidth(Yoga.length(limits.maxWidth()));
+            node.setMinHeight(Yoga.length(limits.minHeight()));
+            node.setMaxHeight(Yoga.length(limits.maxHeight()));
         }
         var padding = box.padding();
         if (previous == null || !previous.padding().equals(padding)) {
             // Per edge rather than Edge.ALL, because `padding: 0 12px` is what a
             // control wants and Yoga resolves the more specific edge over ALL
             // only if both are set.
-            node.setPadding(Edge.TOP, padding.top());
-            node.setPadding(Edge.RIGHT, padding.right());
-            node.setPadding(Edge.BOTTOM, padding.bottom());
-            node.setPadding(Edge.LEFT, padding.left());
+            node.setPadding(Edge.TOP, Yoga.length(padding.top()));
+            node.setPadding(Edge.RIGHT, Yoga.length(padding.right()));
+            node.setPadding(Edge.BOTTOM, Yoga.length(padding.bottom()));
+            node.setPadding(Edge.LEFT, Yoga.length(padding.left()));
         }
         if (previous == null || !previous.gap().equals(box.gap())) {
-            node.setGap(Gutter.ALL, box.gap());
+            node.setGap(Gutter.ALL, Yoga.length(box.gap()));
         }
         if (previous == null || previous.flexGrow() != box.flexGrow()) {
             node.setFlexGrow((float) box.flexGrow());
@@ -203,7 +212,7 @@ public final class RenderObject implements AutoCloseable {
             node.setFlexShrink((float) box.flexShrink());
         }
         if (previous == null || previous.position() != box.position()) {
-            node.setPositionType(box.position());
+            node.setPositionType(Yoga.position(box.position()));
         }
         // Yoga's half of `overflow`: a node that is not VISIBLE does not grow to
         // contain a child that overruns it. Without this a viewport would simply
@@ -211,7 +220,7 @@ public final class RenderObject implements AutoCloseable {
         // clip in the painter hides the overflow, and this is what *creates* it
         // (ADR-0114).
         if (previous == null || previous.overflow() != box.overflow()) {
-            node.setOverflow(box.overflow());
+            node.setOverflow(Yoga.overflow(box.overflow()));
         }
         // Against `appliedInset` rather than against `previous.inset()`, because
         // the value on the node is the box's inset shifted by the containing
@@ -224,10 +233,10 @@ public final class RenderObject implements AutoCloseable {
             // more specific edge over `Edge.ALL` only when both are set, so a
             // node that named one edge and left the rest undefined would keep
             // whichever ALL had been given.
-            node.setPosition(Edge.TOP, inset.top());
-            node.setPosition(Edge.RIGHT, inset.right());
-            node.setPosition(Edge.BOTTOM, inset.bottom());
-            node.setPosition(Edge.LEFT, inset.left());
+            node.setPosition(Edge.TOP, Yoga.length(inset.top()));
+            node.setPosition(Edge.RIGHT, Yoga.length(inset.right()));
+            node.setPosition(Edge.BOTTOM, Yoga.length(inset.bottom()));
+            node.setPosition(Edge.LEFT, Yoga.length(inset.left()));
         }
 
         applyMeasure(box);
@@ -258,7 +267,7 @@ public final class RenderObject implements AutoCloseable {
         // rule** -- `white-space` is what decides whether the callback takes the
         // width Yoga offers or reports its own, so a restyle that changes it has
         // to rebind even though the text did not change (ADR-0255).
-        node.setMeasureFunction(paragraph.measureFunction(flow));
+        node.setMeasureFunction(Yoga.measure(paragraph.measureFunction(flow)));
         // And then say so, because **Yoga does not dirty a node when its measure
         // function is replaced**. It dirties on a style change, and the text is
         // not a style — from Yoga's point of view nothing about this node

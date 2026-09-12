@@ -5,9 +5,9 @@ import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -52,7 +52,7 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     /// Pinned to the track's top and bottom, and to its left — the horizontal
     /// place is the transform's, because that is the half that has to move.
     private static final Insets PINNED =
-            new Insets(StyleLength.points(0), StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.points(0));
+            new Insets(Length.points(0), Length.UNDEFINED, Length.points(0), Length.points(0));
 
     SegmentedIndicator {
         if (count <= 0) {
@@ -93,7 +93,7 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
         var cell = Math.max(index, 0);
-        return resolved.width(StyleLength.percent((float) (100.0 / count)))
+        return resolved.width(Length.percent((float) (100.0 / count)))
                 // §3's "radius 8 outer, 0 between", on the fill: the pill is round
                 // only at the ends of the bar, and square everywhere between --
                 // which is a third thing a selector cannot say, because it depends
@@ -112,6 +112,6 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
         // push the labels along. Pinned in Java rather than in `controls.css`
         // for `row`'s reason -- a stylesheet that could put this back in flow
         // would break the widget rather than restyle it.
-        return Box.of().style(style).position(PositionType.ABSOLUTE).inset(PINNED);
+        return Box.of().style(style).position(Position.ABSOLUTE).inset(PINNED);
     }
 }

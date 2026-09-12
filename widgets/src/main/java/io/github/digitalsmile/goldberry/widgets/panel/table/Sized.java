@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 
 /// How a [Column]'s width reaches a box — the **one** copy of it.
@@ -20,14 +20,12 @@ final class Sized {
 
     static Box apply(Box box, Column<?> column) {
         if (column.fixed()) {
-            return box.size(StyleLength.points((float) column.width()), StyleLength.UNDEFINED)
+            return box.size(Length.points((float) column.width()), Length.UNDEFINED)
                     .shrink(0);
         }
         // A zero basis, so the share is of the *whole* leftover rather than of
         // whatever is left after each cell's own content has claimed its width --
         // otherwise a column of long strings would quietly outgrow its weight.
-        return box.size(StyleLength.points(0), StyleLength.UNDEFINED)
-                .grow(column.width())
-                .shrink(1);
+        return box.size(Length.points(0), Length.UNDEFINED).grow(column.width()).shrink(1);
     }
 }

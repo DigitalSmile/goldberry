@@ -15,10 +15,10 @@ import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Overflow;
 
 /// `overflow` and the clip it puts on the painter — ADR-0114.
 ///
@@ -52,15 +52,14 @@ class ClipTest {
     /// perfectly, clips nothing, and has no content to scroll. The `scroll`
     /// widget sets it on its content for the same reason (ADR-0114, ADR-0076).
     private static Box filled(int argb, double width, double height) {
-        return Box.of().background(argb).shrink(0).size(StyleLength.points((float) width), StyleLength.points((float)
-                height));
+        return Box.of().background(argb).shrink(0).size(Length.points((float) width), Length.points((float) height));
     }
 
     /// A 50x50 viewport at the origin holding a 50x200 column — the shape every
     /// scroll view has.
     private static Box viewport(Overflow overflow) {
         return Box.of()
-                .size(StyleLength.points(50), StyleLength.points(50))
+                .size(Length.points(50), Length.points(50))
                 .overflow(overflow)
                 .direction(FlexDirection.COLUMN)
                 .children(filled(0xFFFF0000, 50, 200));
@@ -189,12 +188,12 @@ class ClipTest {
         @DisplayName("a viewport inside a viewport intersects, and unwinds one level")
         void nestedClipsIntersect() {
             var inner = Box.of()
-                    .size(StyleLength.points(200), StyleLength.points(20))
+                    .size(Length.points(200), Length.points(20))
                     .overflow(Overflow.HIDDEN)
                     .direction(FlexDirection.COLUMN)
                     .children(filled(0xFF00FF00, 200, 200));
             var outer = Box.of()
-                    .size(StyleLength.points(50), StyleLength.points(200))
+                    .size(Length.points(50), Length.points(200))
                     .overflow(Overflow.HIDDEN)
                     .direction(FlexDirection.COLUMN)
                     .children(inner, filled(0xFF0000FF, 200, 100));
@@ -217,8 +216,8 @@ class ClipTest {
         void clipsToPaddingBox() {
             var root = Box.of()
                     .background(0xFF0000FF)
-                    .size(StyleLength.points(50), StyleLength.points(50))
-                    .padding(Insets.all(StyleLength.points(10)))
+                    .size(Length.points(50), Length.points(50))
+                    .padding(Insets.all(Length.points(10)))
                     .overflow(Overflow.HIDDEN)
                     .direction(FlexDirection.COLUMN)
                     .children(filled(0xFFFF0000, 50, 200));
@@ -260,7 +259,7 @@ class ClipTest {
             var owner = new Object();
             var content = filled(0xFFFF0000, 50, 200).owner(owner);
             var root = Box.of()
-                    .size(StyleLength.points(50), StyleLength.points(50))
+                    .size(Length.points(50), Length.points(50))
                     .overflow(Overflow.HIDDEN)
                     .direction(FlexDirection.COLUMN)
                     .children(content);
@@ -281,7 +280,7 @@ class ClipTest {
             var owner = new Object();
             var content = filled(0xFFFF0000, 50, 200).owner(owner);
             var root = Box.of()
-                    .size(StyleLength.points(50), StyleLength.points(50))
+                    .size(Length.points(50), Length.points(50))
                     .overflow(Overflow.VISIBLE)
                     .direction(FlexDirection.COLUMN)
                     .children(content);

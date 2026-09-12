@@ -399,6 +399,47 @@ panel.surface-demo {
   --gb-field-label-width: 72px;
 }
 
+/* --- Canvas ---------------------------------------------------------------- */
+
+/* A `canvas` is not measured: it takes the size the layout gives it and tells
+   its painter what that turned out to be. A canvas in a column with nothing to
+   size it is zero tall -- which is a stylesheet's job to fix and deliberately not
+   a default the toolkit guesses, because an intrinsic size would be a number
+   invented by the toolkit and drawn by the application (ADR-0193).
+
+   So every canvas on this screen is given a height here, and that is the whole
+   of what these rules are for. */
+#paths,
+#pointer,
+#plan {
+  height: 200px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* **Padding on the pointer card, and on purpose.** The painter draws inside it
+   and is clipped to it, so this is the rule that makes the crosshair card a test
+   as well as a demonstration: input is reported from the rectangle the painter
+   was given, so the crosshair lands under the pointer rather than eight pixels
+   from it (ADR-0281). */
+#pointer {
+  padding: 8px;
+}
+
+/* Crosshairs over the card that reports a position, and a grab hand over the one
+   that moves. `cursor:` on a canvas is the stylesheet's like it is on any other
+   box -- nothing about the widget had to be taught it. */
+#pointer {
+  cursor: crosshair;
+}
+
+#plan {
+  cursor: grab;
+}
+
 /* --- Navigation ------------------------------------------------------------ */
 
 /* The demo strip fills what its card leaves it, so its panel is a panel rather

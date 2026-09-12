@@ -8,6 +8,16 @@
 /// wrapper packages, so nothing here can reach a raw `MemorySegment` even by
 /// accident -- the boundary in §3.1 is the module graph, not a convention.
 module io.github.digitalsmile.goldberry.core {
+    // Still `transitive`, and that is the part of ADR-0280 that has not landed.
+    // Three APIs in the text stack still name a `:natives` type in an exported
+    // signature -- `Font.shape` returns a `GlyphRun`, `Paragraph.measureFunction`
+    // returns a `MeasureFunction`, and `Frame.drawGlyphs` takes a `BlendFont` and
+    // a `BlendGlyphBuffer` -- so dropping `transitive` would leave those
+    // unreadable by the modules that already compile against them.
+    //
+    // `-Xlint:exports` under `-Werror` names all eleven sites the moment this
+    // word is removed, which is a better enumeration of the remaining work than
+    // any list written by hand. None of the three has a consumer outside `:core`.
     requires transitive io.github.digitalsmile.goldberry.natives;
 
     // Named here rather than taken through :natives. Logging is not the native
@@ -96,6 +106,13 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.bind.registry;
     exports io.github.digitalsmile.goldberry.bind.runtime;
 
+    // The flexbox vocabulary a `Box` and a `ComputedStyle` are written in
+    // (ADR-0279). Its own package rather than part of `css` or `paint`, because
+    // both of those name it and neither owns it -- and because what it replaced
+    // was `:natives`' own vocabulary, reaching applications through every widget
+    // that returns a Box.
+    exports io.github.digitalsmile.goldberry.layout;
+
     // Pointer input: hit testing against the painted frame, and the dispatch
     // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
     exports io.github.digitalsmile.goldberry.input;
@@ -157,6 +174,13 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.render.event;
     exports io.github.digitalsmile.goldberry.render;
     exports io.github.digitalsmile.goldberry.stats;
+    // Geometry over a `paint.Path` that the rasterizer does not do for us
+    // (ADR-0278): flattening a curve to straight segments, and cutting a path
+    // into a dash pattern's on runs. Its own package rather than more static
+    // methods on `Path`, because both are algorithms over a value rather than
+    // things the value knows about itself -- and both are worth testing without
+    // a frame.
+    exports io.github.digitalsmile.goldberry.paint.geom;
     exports io.github.digitalsmile.goldberry.paint.tree;
     exports io.github.digitalsmile.goldberry.paint;
 }

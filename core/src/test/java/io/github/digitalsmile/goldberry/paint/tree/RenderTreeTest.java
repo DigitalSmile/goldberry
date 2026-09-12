@@ -17,13 +17,13 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Wrap;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.ParagraphCache;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -57,14 +57,14 @@ class RenderTreeTest {
     }
 
     /// Every box's rectangle, in walk order.
-    private static List<ComputedLayout> layouts(RenderTree tree) {
-        var out = new ArrayList<ComputedLayout>();
+    private static List<LogicalRect> layouts(RenderTree tree) {
+        var out = new ArrayList<LogicalRect>();
         tree.forEachPlacedBox(placed -> out.add(placed.layout()));
         return out;
     }
 
     private static Box sized(float width, float height) {
-        return Box.filled(0xFF00FF00).size(StyleLength.points(width), StyleLength.points(height));
+        return Box.filled(0xFF00FF00).size(Length.points(width), Length.points(height));
     }
 
     @Nested
@@ -77,13 +77,13 @@ class RenderTreeTest {
         @DisplayName("a retained tree lays out identically to a thrown-away one")
         void matchesBoxPainter() {
             var box = Box.filled(0xFF000000)
-                    .size(StyleLength.points(200), StyleLength.points(200))
+                    .size(Length.points(200), Length.points(200))
                     .direction(FlexDirection.COLUMN)
-                    .padding(StyleLength.points(8))
-                    .gap(StyleLength.points(4))
+                    .padding(Length.points(8))
+                    .gap(Length.points(4))
                     .children(sized(40, 20), sized(60, 30), Box.of().grow(1));
 
-            var thrownAway = new ArrayList<ComputedLayout>();
+            var thrownAway = new ArrayList<LogicalRect>();
             BoxPainter.forEachBox(target.frame(), box, (b, layout) -> thrownAway.add(layout));
 
             try (var tree = RenderTree.create()) {
@@ -98,11 +98,11 @@ class RenderTreeTest {
             // The failure this catches: a guard that skips a setter Yoga needed,
             // which produces a correct first frame and a wrong second one.
             var box = Box.filled(0xFF000000)
-                    .size(StyleLength.points(200), StyleLength.points(200))
+                    .size(Length.points(200), Length.points(200))
                     .direction(FlexDirection.COLUMN)
                     .children(sized(40, 20), sized(60, 30));
 
-            var expected = new ArrayList<ComputedLayout>();
+            var expected = new ArrayList<LogicalRect>();
             BoxPainter.forEachBox(target.frame(), box, (b, layout) -> expected.add(layout));
 
             try (var tree = RenderTree.create()) {
@@ -126,7 +126,7 @@ class RenderTreeTest {
             // identity where the box is rebuilt every frame, this is what would
             // fail: the node would keep the old width forever.
             try (var tree = RenderTree.create()) {
-                var root = Box.of().size(StyleLength.points(200), StyleLength.points(200));
+                var root = Box.of().size(Length.points(200), Length.points(200));
 
                 tree.update(target.frame(), root.children(sized(40, 20)));
                 assertEquals(40, layouts(tree).get(1).width());
@@ -146,7 +146,7 @@ class RenderTreeTest {
             try (var tree = RenderTree.create()) {
                 var row = Box.of()
                         .direction(FlexDirection.ROW)
-                        .size(StyleLength.points(200), StyleLength.points(200))
+                        .size(Length.points(200), Length.points(200))
                         .children(sized(80, 20), sized(80, 20), sized(80, 20));
 
                 tree.update(target.frame(), row.wrap(Wrap.NO_WRAP));
@@ -174,9 +174,7 @@ class RenderTreeTest {
         @DisplayName("an added child appears and a removed one goes")
         void structureChange() {
             try (var tree = RenderTree.create()) {
-                var root = Box.of()
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .direction(FlexDirection.COLUMN);
+                var root = Box.of().size(Length.points(200), Length.points(200)).direction(FlexDirection.COLUMN);
 
                 tree.update(target.frame(), root.children(sized(40, 20)));
                 assertEquals(2, tree.size());
@@ -199,7 +197,7 @@ class RenderTreeTest {
             // wrapper that cleared the measure function and left Yoga's cached
             // measurement in place.
             try (var tree = RenderTree.create()) {
-                var root = Box.of().size(StyleLength.points(200), StyleLength.points(200));
+                var root = Box.of().size(Length.points(200), Length.points(200));
 
                 tree.update(target.frame(), root.children(Box.text(Paragraph.of(font, "hello"), 0xFFFFFFFF)));
                 assertEquals(2, tree.size());
@@ -220,7 +218,7 @@ class RenderTreeTest {
                 tree.update(
                         target.frame(),
                         Box.of()
-                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .size(Length.points(200), Length.points(200))
                                 .children(sized(10, 10), sized(20, 20), sized(30, 30)));
                 assertEquals(4, tree.size());
 
@@ -247,9 +245,7 @@ class RenderTreeTest {
             assertTrue(first == second, "the cache is what makes identity stable");
 
             try (var tree = RenderTree.create()) {
-                var root = Box.of()
-                        .size(StyleLength.points(120), StyleLength.points(200))
-                        .direction(FlexDirection.COLUMN);
+                var root = Box.of().size(Length.points(120), Length.points(200)).direction(FlexDirection.COLUMN);
 
                 tree.update(target.frame(), root.children(Box.text(first, 0xFF000000)));
                 var height = layouts(tree).get(1).height();
@@ -267,9 +263,7 @@ class RenderTreeTest {
             // keeps measuring the first paragraph and the new text is laid out
             // at the old one's height, with nothing to report.
             try (var tree = RenderTree.create()) {
-                var root = Box.of()
-                        .size(StyleLength.points(90), StyleLength.points(200))
-                        .direction(FlexDirection.COLUMN);
+                var root = Box.of().size(Length.points(90), Length.points(200)).direction(FlexDirection.COLUMN);
 
                 tree.update(target.frame(), root.children(Box.text(Paragraph.of(font, "one"), 0xFF000000)));
                 var shortHeight = layouts(tree).get(1).height();
@@ -301,8 +295,8 @@ class RenderTreeTest {
             var half = TestFrames.of(300, 300, 1.5f);
             try (var tree = RenderTree.create()) {
                 var box = Box.of()
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .padding(StyleLength.points(5))
+                        .size(Length.points(200), Length.points(200))
+                        .padding(Length.points(5))
                         .children(sized(33, 33));
 
                 tree.update(target.frame(), box);
@@ -362,9 +356,9 @@ class RenderTreeTest {
                 tree.update(
                         target.frame(),
                         Box.of()
-                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .size(Length.points(200), Length.points(200))
                                 .children(Box.filled(0xFF00FF00)
-                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .size(Length.points(40), Length.points(40))
                                         .transform(Transform.of(new Transform.Function.Translate(
                                                 Transform.Length.px(100), Transform.Length.ZERO)))
                                         .children(sized(20, 20))));
@@ -387,7 +381,7 @@ class RenderTreeTest {
             // for twice per frame.
             try (var tree = RenderTree.create()) {
                 var box = Box.filled(0xFF000000)
-                        .size(StyleLength.points(200), StyleLength.points(200))
+                        .size(Length.points(200), Length.points(200))
                         .children(sized(40, 40).owner("target"));
 
                 tree.update(target.frame(), box);
@@ -411,12 +405,11 @@ class RenderTreeTest {
     class Limits {
 
         /// The rectangle a box of `content` size comes out as under `limits`.
-        private ComputedLayout laidOut(
-                io.github.digitalsmile.goldberry.natives.yoga.Limits limits, float width, float height) {
+        private LogicalRect laidOut(io.github.digitalsmile.goldberry.layout.Limits limits, float width, float height) {
             var box = Box.filled(0xFF000000)
-                    .size(StyleLength.points(width), StyleLength.points(height))
+                    .size(Length.points(width), Length.points(height))
                     .limits(limits);
-            var out = new ArrayList<ComputedLayout>();
+            var out = new ArrayList<LogicalRect>();
             BoxPainter.forEachBox(target.frame(), box, (b, layout) -> out.add(layout));
             return out.getFirst();
         }
@@ -426,10 +419,8 @@ class RenderTreeTest {
         @Test
         @DisplayName("a minimum widens a box that asked to be smaller")
         void minimumWidens() {
-            var laid = laidOut(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.minWidth(StyleLength.points(320)),
-                    120,
-                    40);
+            var laid =
+                    laidOut(io.github.digitalsmile.goldberry.layout.Limits.NONE.minWidth(Length.points(320)), 120, 40);
 
             assertEquals(320, laid.width(), 0.5, "the minimum did not reach Yoga");
         }
@@ -437,10 +428,8 @@ class RenderTreeTest {
         @Test
         @DisplayName("a maximum narrows a box that asked to be bigger")
         void maximumNarrows() {
-            var laid = laidOut(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.maxWidth(StyleLength.points(200)),
-                    600,
-                    40);
+            var laid =
+                    laidOut(io.github.digitalsmile.goldberry.layout.Limits.NONE.maxWidth(Length.points(200)), 600, 40);
 
             assertEquals(200, laid.width(), 0.5);
         }
@@ -448,9 +437,9 @@ class RenderTreeTest {
         @Test
         @DisplayName("both axes, and a box between its limits is left alone")
         void bothAxesAndTheMiddle() {
-            var limits = new io.github.digitalsmile.goldberry.natives.yoga.Limits(
-                    StyleLength.points(100), StyleLength.points(300),
-                    StyleLength.points(50), StyleLength.points(150));
+            var limits = new io.github.digitalsmile.goldberry.layout.Limits(
+                    Length.points(100), Length.points(300),
+                    Length.points(50), Length.points(150));
 
             var tall = laidOut(limits, 40, 400);
             assertEquals(100, tall.width(), 0.5);
@@ -468,9 +457,8 @@ class RenderTreeTest {
         @Test
         @DisplayName("a limit that arrives after the first frame still reaches Yoga")
         void appliedOnAFrameThatChanged() {
-            var plain = Box.filled(0xFF000000).size(StyleLength.points(600), StyleLength.points(40));
-            var capped = plain.limits(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.maxWidth(StyleLength.points(200)));
+            var plain = Box.filled(0xFF000000).size(Length.points(600), Length.points(40));
+            var capped = plain.limits(io.github.digitalsmile.goldberry.layout.Limits.NONE.maxWidth(Length.points(200)));
 
             try (var tree = RenderTree.create()) {
                 tree.update(target.frame(), plain);

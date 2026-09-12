@@ -5,8 +5,8 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
+import io.github.digitalsmile.goldberry.text.ShapedRun;
+import io.github.digitalsmile.goldberry.text.TextDirection;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 import java.util.Objects;
@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 /// 128&times; for a 16-point Inter — with nothing reporting a problem. See
 /// ADR-0034.
 ///
-/// It also makes a shaping result **size-independent**: the same [GlyphRun] is
+/// It also makes a shaping result **size-independent**: the same [ShapedRun] is
 /// correct at every size, which is what a paragraph cache will want when it
 /// arrives.
 ///
@@ -186,7 +186,7 @@ public final class Font implements AutoCloseable {
     ///
     /// The result is in font design units and is therefore correct at any size:
     /// it is this face's shaping of that string, not this `Font`'s.
-    public GlyphRun shape(CharSequence text) {
+    public ShapedRun shape(CharSequence text) {
         return shape(text, null);
     }
 
@@ -204,26 +204,63 @@ public final class Font implements AutoCloseable {
     /// real bidi is run splitting, and this is not it.
     ///
     /// @param direction the direction to shape in, or null to guess
-    public GlyphRun shape(CharSequence text, @Nullable TextDirection direction) {
+    public ShapedRun shape(CharSequence text, @Nullable TextDirection direction) {
         requireUsable();
         Objects.requireNonNull(text, "text");
         if (text.isEmpty()) {
-            return GlyphRun.EMPTY;
+            return ShapedRun.EMPTY;
         }
         this.text.reset();
         this.text.addText(text);
         this.text.guessSegmentProperties();
         if (direction != null) {
-            this.text.setDirection(direction);
+            // The one place the two direction vocabularies meet, and a `switch`
+            // rather than an ordinal for the reason every other translation in
+            // the toolkit is one: the shaper numbers left-to-right as 4
+            // (ADR-0282).
+            this.text.setDirection(
+                    switch (direction) {
+                        case LTR -> io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection.LTR;
+                        case RTL -> io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection.RTL;
+                    });
         }
-        return this.text.shape(shaper);
+        return copyOut(this.text.shape(shaper));
+    }
+
+    /// The shaper's run as the toolkit's.
+    ///
+    /// One pass over the glyphs, into six arrays. A copy rather than a view,
+    /// because the thing being copied out of is `:natives`' and the thing being
+    /// handed to an application must not be (ADR-0282) — and because shaping
+    /// already allocates six arrays of its own, so this is a doubling of
+    /// something that happens once per text change rather than once per frame.
+    private static ShapedRun copyOut(io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun run) {
+        var length = run.length();
+        if (length == 0) {
+            return ShapedRun.EMPTY;
+        }
+        var glyphIds = new int[length];
+        var clusters = new int[length];
+        var xAdvances = new int[length];
+        var yAdvances = new int[length];
+        var xOffsets = new int[length];
+        var yOffsets = new int[length];
+        for (var i = 0; i < length; i++) {
+            glyphIds[i] = run.glyphId(i);
+            clusters[i] = run.cluster(i);
+            xAdvances[i] = run.xAdvance(i);
+            yAdvances[i] = run.yAdvance(i);
+            xOffsets[i] = run.xOffset(i);
+            yOffsets[i] = run.yOffset(i);
+        }
+        return ShapedRun.of(glyphIds, clusters, xAdvances, yAdvances, xOffsets, yOffsets);
     }
 
     /// How wide a shaped run is, in logical units.
     ///
     /// The sum of the advances, not the extent of the ink: a trailing space
     /// moves the pen and draws nothing, and a layout pass has to account for it.
-    public double widthOf(GlyphRun run) {
+    public double widthOf(ShapedRun run) {
         requireUsable();
         Objects.requireNonNull(run, "run");
         // The cast is explicit because the advance is a 26.6 fixed-point `long`
@@ -262,7 +299,7 @@ public final class Font implements AutoCloseable {
     ///
     /// Shapes and draws in one step, which is the convenient thing and not the
     /// efficient one: text drawn every frame should be shaped once and drawn
-    /// through [#draw(Frame, double, double, GlyphRun, int)].
+    /// through [#draw(Frame, double, double, ShapedRun, int)].
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void draw(Frame frame, double x, double baseline, CharSequence text, int argb) {
@@ -275,7 +312,7 @@ public final class Font implements AutoCloseable {
     /// `baseline - ascent()`.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
-    public void draw(Frame frame, double x, double baseline, GlyphRun run, int argb) {
+    public void draw(Frame frame, double x, double baseline, ShapedRun run, int argb) {
         Objects.requireNonNull(run, "run");
         draw(frame, x, baseline, run, 0, run.length(), argb);
     }
@@ -292,7 +329,7 @@ public final class Font implements AutoCloseable {
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     /// @throws IndexOutOfBoundsException if the range is not within the run
-    public void draw(Frame frame, double x, double baseline, GlyphRun run, int from, int to, int argb) {
+    public void draw(Frame frame, double x, double baseline, ShapedRun run, int from, int to, int argb) {
         requireUsable();
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(run, "run");
@@ -322,7 +359,7 @@ public final class Font implements AutoCloseable {
     }
 
     /// The face's units per em — the grid its outlines are designed on, and the
-    /// units a [GlyphRun] from [#shape] is in.
+    /// units a [ShapedRun] from [#shape] is in.
     public int unitsPerEm() {
         return unitsPerEm;
     }

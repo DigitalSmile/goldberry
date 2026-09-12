@@ -23,8 +23,8 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -133,7 +133,7 @@ class ProgressTest {
         void valueIsAWidth() {
             var fill = fillOf(new Progress(0.4), 0);
 
-            assertEquals(StyleLength.percent(40), fill.width());
+            assertEquals(Length.percent(40), fill.width());
             assertEquals(0, fill.flexGrow(), 1e-9, "a progress fill grows into nothing");
         }
     }
@@ -209,7 +209,7 @@ class ProgressTest {
             // 0.3 of the track wide, so it has the other 0.7 to cross -- which
             // in units of the bar itself, which is what a percentage translate
             // means, is 233%.
-            assertEquals(StyleLength.percent(30), fillOf(Progress.sweeping(), 0).width());
+            assertEquals(Length.percent(30), fillOf(Progress.sweeping(), 0).width());
             assertEquals(0, translateOf(fillOf(Progress.sweeping(), 0)), 1e-6);
             assertEquals(700.0 / 3, translateOf(fillOf(Progress.sweeping(), 600)), 1e-6);
             assertEquals(0, translateOf(fillOf(Progress.sweeping(), 1200)), 1e-6);
@@ -288,7 +288,7 @@ class ProgressTest {
 
             var bar = ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT);
 
-            assertEquals(StyleLength.points(4), bar.height());
+            assertEquals(Length.points(4), bar.height());
             assertEquals(Corners.all(2), bar.decoration().corners(), "half of 4 is a pill");
         }
 
@@ -302,11 +302,11 @@ class ProgressTest {
                             progress:indeterminate { gap: 7px }
                             """));
 
-            assertEquals(StyleLength.points(7), gapOf(Progress.sweeping(), sheets));
-            assertNotEquals(StyleLength.points(7), gapOf(new Progress(0.4), sheets));
+            assertEquals(Length.points(7), gapOf(Progress.sweeping(), sheets));
+            assertNotEquals(Length.points(7), gapOf(new Progress(0.4), sheets));
         }
 
-        private static StyleLength gapOf(Widget widget, List<Stylesheet> sheets) {
+        private static Length gapOf(Widget widget, List<Stylesheet> sheets) {
             // Rendered rather than resolved directly: `:indeterminate` is mirrored
             // onto the element by the renderer, which is the step being asserted.
             var tree = new ElementTree(widget);

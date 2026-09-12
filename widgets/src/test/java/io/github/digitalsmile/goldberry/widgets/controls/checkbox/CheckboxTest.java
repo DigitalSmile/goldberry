@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -345,12 +345,12 @@ class CheckboxTest {
             // "hit targets >= 32x32 even when the visual is smaller (checkbox
             // glyph 16px, hit area 32)" -- which is exactly this pair of numbers.
             var control = style("checkbox");
-            assertEquals(StyleLength.points(32), control.height());
-            assertEquals(StyleLength.points(8), control.gap());
+            assertEquals(Length.points(32), control.height());
+            assertEquals(Length.points(8), control.gap());
 
             var glyph = style("check-indicator");
-            assertEquals(StyleLength.points(16), glyph.width());
-            assertEquals(StyleLength.points(16), glyph.height());
+            assertEquals(Length.points(16), glyph.width());
+            assertEquals(Length.points(16), glyph.height());
             assertEquals(Corners.all(4), glyph.decoration().corners(), "§1.5's small-control corner");
             assertTrue(
                     glyph.decoration().hasBorder(),

@@ -6,9 +6,9 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -140,14 +140,11 @@ record TourVeil(
     }
 
     private static Box band(Box box, double x, double y, double width, double height) {
-        return box.position(PositionType.ABSOLUTE)
+        return box.position(Position.ABSOLUTE)
                 // CSS order: top, right, bottom, left.
                 .inset(new Insets(
-                        StyleLength.points((float) y),
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.points((float) x)))
-                .size(StyleLength.points((float) width), StyleLength.points((float) height));
+                        Length.points((float) y), Length.UNDEFINED, Length.UNDEFINED, Length.points((float) x)))
+                .size(Length.points((float) width), Length.points((float) height));
     }
 
     private static Box collapsed(Box box) {

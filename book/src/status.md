@@ -14,6 +14,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
+| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input too |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
@@ -6536,6 +6537,80 @@ libdecor and the two packages from two phases that
 Answering it also unblocks the fractional-scaling entry, which was given up "for
 as long as decorations are unobtainable on the better path". Everything
 outstanding is in [TODO.md](TODO.md).
+
+## M3.5 — the `:natives` seal
+
+**Started.** `docs/ARCHITECTURE.md` §3.1 has always said a raw `MemorySegment`
+never leaves `:natives`, and `ExportedSurfaceTest` has always enforced it. The
+second half of that rule — **no `:natives` type in an application-facing
+signature** — was never written down and was broken in two families.
+
+- **The paint family is closed** ([ADR-0277](adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md)).
+  `paint.Path` is an immutable outline over two parallel arrays, with a sealed
+  `Path.Segment` of six records for reading one back; `Stroke`, `Cap`, `Join`,
+  `Dash` and a sealed `Gradient` sit beside it. `Frame` takes those and nothing
+  else in public: the `BlendPath` overloads are package-private, and the seam is a
+  single package-private `Path.replayInto(BlendPath)`. `Icon` holds a `Path` now
+  rather than a native allocation, `SvgPath` parses into a `Path.Builder` —
+  computing SVG's `S` and `T` reflections itself, since a `Path` has no stateful
+  verb — and `BoxPainter.paintOne` lost the `BlendPath` parameter it only carried
+  to pool one. **The frame pools it instead**, in the one place that sees every
+  drawing call: `:core` had done that by hand and `:widgets` had not, so a chart
+  opened four confined arenas per paint. Three stroked icons cost 0.206 ms before
+  and 0.106 ms after; the frame itself is unchanged. Not one golden image moved,
+  which is the evidence that the geometry did not.
+- **Dashing is built, and is not a binding** ([ADR-0278](adr/0278-a-dash-is-goldberrys-arithmetic-and-not-the-rasterizers.md)).
+  Blend2D has a dash API, stores what it is given, and never strokes with it —
+  `core/pathstroke.cpp` is 988 lines with no occurrence of the word. Six symbols
+  were added to the export list and five were taken back out; what shipped is
+  `paint.geom.Flattener` and `paint.geom.Dasher`, so a dashed stroke is a solid
+  stroke of a different path and behaves identically on all four targets. The one
+  symbol kept is `bl_context_set_stroke_miter_limit`, which closes a gap
+  `BlendStrokeJoin` had admitted to in its own javadoc.
+- **The layout family is closed, and sealed**
+  ([ADR-0279](adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md),
+  [ADR-0280](adr/0280-natives-exports-to-core-and-to-nobody-else.md)). A
+  `goldberry.layout` package holds `Length`, `Insets`, `Limits`, `FlexDirection`,
+  `Justify`, `Align`, `Wrap`, `Position`, `Overflow` and the measure protocol;
+  `Box`, `ComputedStyle` and `CssLength.parse` are written in it; `ComputedLayout`
+  was **deleted** rather than mirrored, because `render.model.LogicalRect` was
+  already the toolkit's rectangle. The translation is one package-private file
+  beside `RenderObject`, the only class that ever touches a `YogaNode` — and
+  `YogaTest` checks every constant by name from `values()`, because the compiler
+  guarantees the `switch` is exhaustive and cannot guarantee an arm names the
+  right counterpart. Around a thousand references moved across 84 files, and no
+  golden image did. `:natives` now exports its Yoga packages **to `:core` and to
+  nobody else**, which was verified by compiling a module that tries to import
+  `StyleLength` and watching javac refuse it.
+- **The shaping family is closed, and sealed**
+  ([ADR-0282](adr/0282-a-shaped-run-is-a-value-and-the-last-leak-is-one-method.md)).
+  `text.ShapedRun` and `text.TextDirection` replaced the shaper's own types —
+  a shaped run is six `int[]` with no foreign memory and nothing to close — and
+  HarfBuzz's two packages now export to `:core` and nobody else, checked by
+  compiling a module that tries to name `GlyphRun`.
+- **What is left is one method.** `Frame.drawGlyphs(double, double, BlendFont,
+  BlendGlyphBuffer, int)`, whose only caller is `Font.draw`. The other leaks were
+  *values* and a value can be mirrored; this one passes **handles**, and the
+  difficulty is ownership: glyph rasterization needs a context, a font and a
+  staged buffer, `paint` owns the first and `text.font` the other two, and within
+  one module Java has nothing between package-private and public. The answer is
+  to move the native font into `paint`; it changes where fonts are created, so it
+  gets its own decision rather than being improvised. **The enumeration is free**:
+  delete `transitive` from `:core`'s `requires` and `-Xlint:exports` under
+  `-Werror` names every site — which is why the planned `PublicSurfaceTest` was
+  never written.
+- **And a `canvas` hears input** ([ADR-0281](adr/0281-a-canvas-hears-what-it-draws-on.md)),
+  which was `docs/gaps.md` G3 and the last **now** on that list. Almost nothing
+  had to be built: `Handles`, the router, implicit capture on press, the wheel,
+  focus and per-box cursors all existed and were tested — `Canvas` simply
+  implemented none of them. The one real piece of work is the coordinate space. A
+  canvas painter draws inside the padding (ADR-0193), so the hit-test snapshot now
+  records a content rectangle beside the border box and `PointerEvent.content()`
+  reports the pointer inside it; `Length.resolve` is the single implementation
+  both the painter and the snapshot call, so they cannot drift. Making the widget
+  focusable immediately failed `SemanticsSweepTest` — every focusable widget must
+  say what it is — so a canvas is a `Role.FIGURE` and its name is the
+  application's.
 
 ## M4 — GPU
 

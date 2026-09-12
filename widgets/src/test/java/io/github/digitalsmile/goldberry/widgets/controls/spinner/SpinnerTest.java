@@ -15,8 +15,8 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -128,7 +128,7 @@ class SpinnerTest {
                 style.color(),
                 box.mark().argb(),
                 "`color` inherits, so a spinner in a primary button is that label's colour");
-        assertEquals(StyleLength.points(16), style.width(), "§3's small-indicator 16");
-        assertEquals(StyleLength.points(16), style.height());
+        assertEquals(Length.points(16), style.width(), "§3's small-indicator 16");
+        assertEquals(Length.points(16), style.height());
     }
 }

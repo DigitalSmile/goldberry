@@ -16,11 +16,11 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Justify;
+import io.github.digitalsmile.goldberry.layout.Length;
 
 /// Where the CSS engine meets the box tree.
 ///
@@ -75,10 +75,10 @@ class BoxStyleTest {
         assertEquals(FlexDirection.COLUMN, box.direction());
         assertEquals(Justify.SPACE_BETWEEN, box.justifyContent());
         assertEquals(Align.CENTER, box.alignItems());
-        assertEquals(StyleLength.points(320), box.width());
-        assertEquals(StyleLength.percent(50), box.height());
-        assertEquals(Insets.all(StyleLength.points(8)), box.padding());
-        assertEquals(StyleLength.points(4), box.gap());
+        assertEquals(Length.points(320), box.width());
+        assertEquals(Length.percent(50), box.height());
+        assertEquals(Insets.all(Length.points(8)), box.padding());
+        assertEquals(Length.points(4), box.gap());
         assertEquals(2.0, box.flexGrow());
     }
 

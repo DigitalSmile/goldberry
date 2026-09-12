@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 
@@ -40,10 +40,10 @@ class HitTestTest {
     @DisplayName("the topmost box under a point wins")
     void topmostWins() {
         var child = Box.filled(0xFF00FF00)
-                .size(StyleLength.points(40), StyleLength.points(40))
+                .size(Length.points(40), Length.points(40))
                 .owner("child");
         var root = Box.filled(0xFFFF0000)
-                .padding(StyleLength.points(20))
+                .padding(Length.points(20))
                 .children(child)
                 .owner("root");
 
@@ -59,7 +59,7 @@ class HitTestTest {
     @DisplayName("a point outside everything hits nothing")
     void missesEverything() {
         var root = Box.filled(0xFFFF0000)
-                .size(StyleLength.points(20), StyleLength.points(20))
+                .size(Length.points(20), Length.points(20))
                 .owner("root");
 
         assertTrue(HitTest.at(capture(root, 100, 100, 1.0f), 50, 50).isEmpty());
@@ -70,9 +70,9 @@ class HitTestTest {
     void untaggedBoxesAreSkipped() {
         // A box nobody claimed has nowhere to deliver an event, so hit testing
         // passes through it rather than returning something undeliverable.
-        var child = Box.filled(0xFF00FF00).size(StyleLength.points(40), StyleLength.points(40));
+        var child = Box.filled(0xFF00FF00).size(Length.points(40), Length.points(40));
         var root = Box.filled(0xFFFF0000)
-                .padding(StyleLength.points(20))
+                .padding(Length.points(20))
                 .children(child)
                 .owner("root");
 
@@ -98,7 +98,7 @@ class HitTestTest {
     @DisplayName("regions are recorded parents first, as a paint draws them")
     void paintOrder() {
         var child = Box.filled(0xFF00FF00)
-                .size(StyleLength.points(10), StyleLength.points(10))
+                .size(Length.points(10), Length.points(10))
                 .owner("child");
         var root = Box.filled(0xFFFF0000).children(child).owner("root");
 

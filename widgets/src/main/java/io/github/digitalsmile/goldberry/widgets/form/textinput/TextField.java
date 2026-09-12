@@ -12,9 +12,9 @@ import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -297,15 +297,14 @@ record TextField(
         // it has to follow the text: a field at a larger `font-size` has a taller
         // line, and a CSS height that disagreed would be wrong at every size but
         // one.
-        var line = StyleLength.points((float) paragraph.font().lineHeight());
+        var line = Length.points((float) paragraph.font().lineHeight());
 
         var selection = children.get(0)
-                .position(PositionType.ABSOLUTE)
-                .inset(new Insets(
-                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                (paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
+                .position(Position.ABSOLUTE)
+                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                        (paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
                 .size(
-                        StyleLength.points(
+                        Length.points(
                                 (float) paragraph.widthBetween(clamp(edit.start(), length), clamp(edit.end(), length))),
                         line);
 
@@ -316,17 +315,15 @@ record TextField(
         // same way, and the two that are not text take their height from the line
         // rather than from the control.
         var value = children.get(1)
-                .position(PositionType.ABSOLUTE)
+                .position(Position.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                -offset)));
+                        Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float) -offset)));
 
         var caret = children.get(2)
-                .position(PositionType.ABSOLUTE)
-                .inset(new Insets(
-                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
-                .size(StyleLength.points((float) caretWidth), line);
+                .position(Position.ABSOLUTE)
+                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                        (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
+                .size(Length.points((float) caretWidth), line);
 
         return Box.of()
                 .style(style)
@@ -339,7 +336,7 @@ record TextField(
                 // Read by Yoga for sizing and by the painter as a clip
                 // (ADR-0114). Without it a field would draw its text over the
                 // control beside it the moment the text outgrew the box.
-                .overflow(io.github.digitalsmile.goldberry.natives.yoga.style.Overflow.HIDDEN);
+                .overflow(io.github.digitalsmile.goldberry.layout.Overflow.HIDDEN);
     }
 
     /// The field's left padding in logical pixels, or 0 when the style gives none
@@ -349,7 +346,7 @@ record TextField(
     /// something this can resolve without the width Yoga has not computed yet, so
     /// it reads as zero rather than as a guess.
     private static double leftPadding(ComputedStyle style) {
-        return style.padding().left() instanceof StyleLength.Points points ? points.value() : 0;
+        return style.padding().left() instanceof Length.Points points ? points.value() : 0;
     }
 
     private static int clamp(int offset, int length) {

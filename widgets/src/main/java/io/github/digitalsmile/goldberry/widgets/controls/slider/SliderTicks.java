@@ -6,9 +6,9 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.Justify;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -43,7 +43,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///                 descendant combinator
 record SliderTicks(int count, boolean disabled) implements Widget.Leaf, Styled, Paints {
 
-    private static final StyleLength ZERO = StyleLength.points(0);
+    private static final Length ZERO = Length.points(0);
 
     SliderTicks {
         if (count < 2) {

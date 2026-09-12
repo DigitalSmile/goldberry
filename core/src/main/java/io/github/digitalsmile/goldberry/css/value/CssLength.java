@@ -6,9 +6,9 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 
-/// Reads a CSS length into the [StyleLength] Yoga takes.
+/// Reads a CSS length into the [Length] Yoga takes.
 ///
 /// ## Units
 ///
@@ -42,7 +42,7 @@ public final class CssLength {
     /// Parses a length.
     ///
     /// @return the length, or null if these tokens are not one
-    public static @Nullable StyleLength parse(List<Token> value, Context context) {
+    public static @Nullable Length parse(List<Token> value, Context context) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1) {
             return null;
@@ -50,24 +50,24 @@ public final class CssLength {
         var token = tokens.getFirst();
 
         if (token.isIdent("auto")) {
-            return StyleLength.AUTO;
+            return Length.AUTO;
         }
         if (token.is(TokenType.PERCENTAGE)) {
-            return StyleLength.percent((float) token.numeric());
+            return Length.percent((float) token.numeric());
         }
         if (token.is(TokenType.NUMBER)) {
             // Unitless zero is the one number CSS accepts as a length, because
             // "0" has no direction to be wrong about. Anything else unitless is
             // an author error worth surfacing rather than guessing px for.
-            return token.numeric() == 0 ? StyleLength.points(0) : null;
+            return token.numeric() == 0 ? Length.points(0) : null;
         }
         if (!token.is(TokenType.DIMENSION)) {
             return null;
         }
         return switch (token.unit()) {
-            case "px" -> StyleLength.points((float) token.numeric());
-            case "em" -> StyleLength.points((float) (token.numeric() * context.fontSize()));
-            case "rem" -> StyleLength.points((float) (token.numeric() * context.rootFontSize()));
+            case "px" -> Length.points((float) token.numeric());
+            case "em" -> Length.points((float) (token.numeric() * context.fontSize()));
+            case "rem" -> Length.points((float) (token.numeric() * context.rootFontSize()));
             default -> null;
         };
     }

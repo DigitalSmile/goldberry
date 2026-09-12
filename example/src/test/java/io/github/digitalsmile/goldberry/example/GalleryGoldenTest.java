@@ -197,6 +197,16 @@ class GalleryGoldenTest {
         paint("gallery-charts", "charts", Theme.NORD_DARK, 1200, 900);
     }
 
+    @Test
+    @DisplayName("the canvas screen")
+    void canvas() {
+        // §1's `canvas`, and the one screen whose cards respond to the pointer.
+        // The picture is taken **at rest**: neither interactive card draws
+        // anything extra until something touches it, which is what makes a
+        // surface an application controls photographable at all (ADR-0281).
+        paint("gallery-canvas", "canvas", Theme.NORD_DARK, 1200, 900);
+    }
+
     /// The same screen at the size a small window gives it.
     ///
     /// Worth a picture of its own because a masonry's columns are a *count* and

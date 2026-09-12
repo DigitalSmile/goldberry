@@ -560,6 +560,24 @@ public final class BlendContext implements AutoCloseable {
         calls.contextSetStrokeJoin(context, join);
     }
 
+    /// Sets how far a [BlendStrokeJoin#MITER_CLIP] corner may run out before it
+    /// is cut off, as a multiple of the stroke width.
+    ///
+    /// Blend2D's default is 4, which is SVG's and CSS's, so this is only ever
+    /// called to depart from it (ADR-0278).
+    ///
+    /// @throws IllegalArgumentException if the limit is not a finite number of at
+    ///         least 1. Below 1 a miter is shorter than the bevel it falls back
+    ///         to, which is not a corner any renderer draws.
+    public void strokeMiterLimit(double miterLimit) {
+        requireUsable();
+        if (!Double.isFinite(miterLimit) || miterLimit < 1) {
+            throw new IllegalArgumentException(
+                    "a miter limit must be a finite number of at least 1, and " + miterLimit + " is not");
+        }
+        calls.contextSetStrokeMiterLimit(context, miterLimit);
+    }
+
     /// Whether the context has been closed.
     public boolean isClosed() {
         return ended;

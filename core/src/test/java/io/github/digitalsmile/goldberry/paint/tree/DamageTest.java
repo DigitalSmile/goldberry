@@ -11,8 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.DamageRect;
@@ -43,11 +43,11 @@ class DamageTest {
 
     private static Box tree(int firstColour, float firstHeight) {
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .direction(FlexDirection.COLUMN)
                 .children(
-                        Box.filled(firstColour).size(StyleLength.points(50), StyleLength.points(firstHeight)),
-                        Box.filled(0xFF00FF00).size(StyleLength.points(50), StyleLength.points(20)));
+                        Box.filled(firstColour).size(Length.points(50), Length.points(firstHeight)),
+                        Box.filled(0xFF00FF00).size(Length.points(50), Length.points(20)));
     }
 
     private static boolean covers(List<DamageRect> damage, int x, int y) {
@@ -263,12 +263,12 @@ class DamageTest {
     private static Box scattered(int colour) {
         var children = new Box[12];
         for (var i = 0; i < children.length; i++) {
-            children[i] = Box.filled(colour).size(StyleLength.points(4), StyleLength.points(4));
+            children[i] = Box.filled(colour).size(Length.points(4), Length.points(4));
         }
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(200))
+                .size(Length.points(200), Length.points(200))
                 .direction(FlexDirection.COLUMN)
-                .gap(StyleLength.points(12))
+                .gap(Length.points(12))
                 .children(children);
     }
 }

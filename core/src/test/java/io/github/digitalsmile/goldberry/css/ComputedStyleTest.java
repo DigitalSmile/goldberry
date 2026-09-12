@@ -18,12 +18,12 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Justify;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.motion.Easing;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
@@ -187,24 +187,23 @@ class ComputedStyleTest {
         @DisplayName("`flex-wrap` takes CSS's three spellings, `nowrap` included")
         void flexWrap() {
             assertEquals(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP,
+                    io.github.digitalsmile.goldberry.layout.Wrap.WRAP,
                     compute("button { flex-wrap: wrap }").wrap());
             assertEquals(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
+                    io.github.digitalsmile.goldberry.layout.Wrap.WRAP_REVERSE,
                     compute("button { flex-wrap: wrap-reverse }").wrap());
             // The one that needs its own line of code: CSS spells the default as
             // one word and `YGWrap` spells it as two, so the generic keyword
             // parser turns `nowrap` into `NOWRAP` and finds nothing.
             assertEquals(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
+                    io.github.digitalsmile.goldberry.layout.Wrap.NO_WRAP,
                     compute("button { flex-wrap: nowrap }").wrap());
         }
 
         @Test
         @DisplayName("one line is what a box wraps as until a rule says otherwise")
         void flexWrapDefaultsToOneLine() {
-            assertEquals(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP, ComputedStyle.INITIAL.wrap());
+            assertEquals(io.github.digitalsmile.goldberry.layout.Wrap.NO_WRAP, ComputedStyle.INITIAL.wrap());
             assertEquals(
                     ComputedStyle.INITIAL.wrap(),
                     compute("button { flex-wrap: sideways }").wrap(),
@@ -241,15 +240,15 @@ class ComputedStyleTest {
         void lengths() {
             var style = compute("button { width: 120px; height: 50%; padding: 8px }");
 
-            assertEquals(StyleLength.points(120), style.width());
-            assertEquals(StyleLength.percent(50), style.height());
-            assertEquals(Insets.all(StyleLength.points(8)), style.padding());
+            assertEquals(Length.points(120), style.width());
+            assertEquals(Length.percent(50), style.height());
+            assertEquals(Insets.all(Length.points(8)), style.padding());
         }
 
         @Test
         @DisplayName("auto is a length")
         void auto() {
-            assertEquals(StyleLength.AUTO, compute("button { width: auto }").width());
+            assertEquals(Length.AUTO, compute("button { width: auto }").width());
         }
 
         @Test
@@ -272,7 +271,7 @@ class ComputedStyleTest {
         void em() {
             var style = compute("button { font-size: 20px; padding: 1.5em }");
 
-            assertEquals(Insets.all(StyleLength.points(30)), style.padding());
+            assertEquals(Insets.all(Length.points(30)), style.padding());
         }
 
         /// The half that needs no declaration: an element that says nothing about
@@ -283,7 +282,7 @@ class ComputedStyleTest {
             // `Typography.INITIAL` is 13, so 1.5em is 19.5 -- not the 24 the old
             // code produced from `Context.DEFAULT`'s unrelated 16.
             assertEquals(
-                    Insets.all(StyleLength.points(19.5f)),
+                    Insets.all(Length.points(19.5f)),
                     compute("button { padding: 1.5em }").padding());
         }
 
@@ -298,7 +297,7 @@ class ComputedStyleTest {
             assertEquals(30.0, child.typography().size(), 1e-9, "font-size resolved against something other than 20");
             // And `padding` is then against the 30 this element just became, not
             // against the 20 it inherited -- the two passes, visible in one style.
-            assertEquals(Insets.all(StyleLength.points(30)), child.padding());
+            assertEquals(Insets.all(Length.points(30)), child.padding());
         }
 
         /// Inheritance carries the size, so a child that declares nothing
@@ -308,7 +307,7 @@ class ComputedStyleTest {
         void emAgainstAnInheritedSize() {
             var child = computeChild("window { font-size: 20px } button { padding: 2em }");
 
-            assertEquals(Insets.all(StyleLength.points(40)), child.padding());
+            assertEquals(Insets.all(Length.points(40)), child.padding());
         }
 
         @Test
@@ -322,14 +321,14 @@ class ComputedStyleTest {
             // Root 16, and the element's own size is `Typography.INITIAL`'s 13
             // -- `rem` must ignore the local one either way ([ADR-0242]).
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
-            assertEquals(Insets.all(StyleLength.points(32)), style.padding());
+            assertEquals(Insets.all(Length.points(32)), style.padding());
         }
 
         @Test
         @DisplayName("a unitless zero is a length; any other unitless number is not")
         void unitlessZero() {
             assertEquals(
-                    Insets.all(StyleLength.points(0)),
+                    Insets.all(Length.points(0)),
                     compute("button { padding: 0 }").padding());
             // "padding: 8" is an author error, and guessing px would hide it.
             assertEquals(
@@ -463,7 +462,7 @@ class ComputedStyleTest {
             var style = ComputedStyle.of(declarations, CssLength.Context.DEFAULT);
 
             assertEquals(0xFF2E3440, style.background());
-            assertEquals(Insets.all(StyleLength.points(8)), style.padding());
+            assertEquals(Insets.all(Length.points(8)), style.padding());
             assertEquals(FlexDirection.COLUMN, style.direction());
         }
     }
@@ -476,7 +475,7 @@ class ComputedStyleTest {
         @DisplayName("one value is every edge")
         void one() {
             assertEquals(
-                    Insets.all(StyleLength.points(12)),
+                    Insets.all(Length.points(12)),
                     compute("button { padding: 12px }").padding());
         }
 
@@ -487,11 +486,7 @@ class ComputedStyleTest {
             // own metric, and supporting only one value would mean no control
             // could state it.
             assertEquals(
-                    new Insets(
-                            StyleLength.points(0),
-                            StyleLength.points(12),
-                            StyleLength.points(0),
-                            StyleLength.points(12)),
+                    new Insets(Length.points(0), Length.points(12), Length.points(0), Length.points(12)),
                     compute("button { padding: 0 12px }").padding());
         }
 
@@ -499,8 +494,7 @@ class ComputedStyleTest {
         @DisplayName("three values give the bottom its own, and the sides share")
         void three() {
             assertEquals(
-                    new Insets(
-                            StyleLength.points(1), StyleLength.points(2), StyleLength.points(3), StyleLength.points(2)),
+                    new Insets(Length.points(1), Length.points(2), Length.points(3), Length.points(2)),
                     compute("button { padding: 1px 2px 3px }").padding());
         }
 
@@ -510,8 +504,7 @@ class ComputedStyleTest {
             // CSS's order, not a reading order. Two orders for one concept is how
             // a padding lands on the wrong pair of edges.
             assertEquals(
-                    new Insets(
-                            StyleLength.points(1), StyleLength.points(2), StyleLength.points(3), StyleLength.points(4)),
+                    new Insets(Length.points(1), Length.points(2), Length.points(3), Length.points(4)),
                     compute("button { padding: 1px 2px 3px 4px }").padding());
         }
 
@@ -521,11 +514,7 @@ class ComputedStyleTest {
             var style = compute("button { padding: 4px; padding-left: 16px }");
 
             assertEquals(
-                    new Insets(
-                            StyleLength.points(4),
-                            StyleLength.points(4),
-                            StyleLength.points(4),
-                            StyleLength.points(16)),
+                    new Insets(Length.points(4), Length.points(4), Length.points(4), Length.points(16)),
                     style.padding());
         }
 
@@ -971,7 +960,7 @@ class ComputedStyleTest {
                         style.alignItems(),
                         "a value this toolkit has not got must never be applied");
                 assertEquals(
-                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(4),
+                        io.github.digitalsmile.goldberry.layout.Length.points(4),
                         style.gap(),
                         "and the declarations around it still are");
             }
@@ -1009,10 +998,10 @@ class ComputedStyleTest {
                     }
                     """);
 
-            assertEquals(StyleLength.points(320), style.limits().minWidth());
-            assertEquals(StyleLength.points(640), style.limits().maxWidth());
-            assertEquals(StyleLength.points(40), style.limits().minHeight());
-            assertEquals(StyleLength.points(80), style.limits().maxHeight());
+            assertEquals(Length.points(320), style.limits().minWidth());
+            assertEquals(Length.points(640), style.limits().maxWidth());
+            assertEquals(Length.points(40), style.limits().minHeight());
+            assertEquals(Length.points(80), style.limits().maxHeight());
         }
 
         /// The form `dialog` needs: §2 asks for "max 80% window", and a
@@ -1022,7 +1011,7 @@ class ComputedStyleTest {
         void percentages() {
             var style = compute("button { max-width: 80% }");
 
-            assertEquals(StyleLength.percent(80), style.limits().maxWidth());
+            assertEquals(Length.percent(80), style.limits().maxWidth());
         }
 
         /// Undefined, not zero. A minimum of zero constrains nothing, but a
@@ -1034,8 +1023,8 @@ class ComputedStyleTest {
             var none = ComputedStyle.INITIAL.limits();
 
             assertTrue(none.isNone());
-            assertEquals(StyleLength.UNDEFINED, none.maxWidth());
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE, none);
+            assertEquals(Length.UNDEFINED, none.maxWidth());
+            assertEquals(io.github.digitalsmile.goldberry.layout.Limits.NONE, none);
         }
 
         /// Setting one leaves the other three alone, which is the whole reason
@@ -1046,9 +1035,9 @@ class ComputedStyleTest {
         void oneAtATime() {
             var style = compute("button { min-width: 320px }");
 
-            assertEquals(StyleLength.points(320), style.limits().minWidth());
-            assertEquals(StyleLength.UNDEFINED, style.limits().maxWidth());
-            assertEquals(StyleLength.UNDEFINED, style.limits().minHeight());
+            assertEquals(Length.points(320), style.limits().minWidth());
+            assertEquals(Length.UNDEFINED, style.limits().maxWidth());
+            assertEquals(Length.UNDEFINED, style.limits().minHeight());
             assertFalse(style.limits().isNone());
         }
 

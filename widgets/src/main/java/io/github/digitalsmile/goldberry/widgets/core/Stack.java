@@ -5,7 +5,7 @@ import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -106,7 +106,7 @@ public record Stack(List<Widget> children, Attributes attributes)
             // The first stays in flow because something has to give the stack a
             // size; everything after it is taken out so that adding an overlay
             // cannot resize what it sits on.
-            laid[i] = i == 0 ? boxes.get(i) : boxes.get(i).position(PositionType.ABSOLUTE);
+            laid[i] = i == 0 ? boxes.get(i) : boxes.get(i).position(Position.ABSOLUTE);
         }
         return Box.of().children(laid).style(style);
     }

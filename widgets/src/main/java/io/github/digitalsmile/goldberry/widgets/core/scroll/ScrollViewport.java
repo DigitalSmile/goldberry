@@ -11,8 +11,8 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -191,8 +191,7 @@ record ScrollViewport(
     public ComputedStyle restyle(ComputedStyle resolved) {
         return Double.isNaN(height)
                 ? resolved
-                : resolved.height(
-                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points((float) height));
+                : resolved.height(io.github.digitalsmile.goldberry.layout.Length.points((float) height));
     }
 
     @Override

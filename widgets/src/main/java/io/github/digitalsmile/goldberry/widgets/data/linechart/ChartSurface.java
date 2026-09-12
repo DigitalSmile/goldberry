@@ -9,12 +9,11 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.Gradient;
+import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -797,7 +796,7 @@ record ChartSurface(
         /// ([io.github.digitalsmile.goldberry.widgets.data.NullPolicy]).
         private void paintLines(Frame frame, PlotGeometry geometry) {
             var points = points();
-            try (var path = BlendPath.create()) {
+            {
                 for (var s = 0; s < series.size(); s++) {
                     if (!shows(s)) {
                         continue;
@@ -822,7 +821,7 @@ record ChartSurface(
                                 var at = Math.max(
                                         geometry.left() + STROKE,
                                         Math.min(xAt(geometry, x, run[0]), geometry.right() - STROKE));
-                                dot(frame, path, at, geometry.y().at(values.get(run[0])), colours.get(s));
+                                dot(frame, at, geometry.y().at(values.get(run[0])), colours.get(s));
                             }
                             continue;
                         }
@@ -845,17 +844,16 @@ record ChartSurface(
                         // built from the raw values under a smoothed line would
                         // show its own straight edges through it.
                         if (fill != Fill.NONE) {
-                            fillUnder(frame, path, geometry, xs, ys, colours.get(s));
+                            fillUnder(frame, geometry, xs, ys, colours.get(s));
                         }
-                        path.reset();
-                        addRun(path, xs, ys, true);
-                        frame.strokePath(
-                                0, 0, path, STROKE, BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
+                        var line = Path.builder();
+                        addRun(line, xs, ys, true);
+                        frame.strokePath(line.build(), Stroke.round(STROKE), colours.get(s));
                         if (marked(geometry, points)) {
                             // A dot per reading, so a sparse series reads as
                             // readings rather than as a continuous measurement.
                             for (var i = 0; i < xs.length; i++) {
-                                dot(frame, path, xs[i], ys[i], colours.get(s));
+                                dot(frame, xs[i], ys[i], colours.get(s));
                             }
                         }
                     }
@@ -874,11 +872,10 @@ record ChartSurface(
         /// above or below zero fills to the edge it can see rather than off it.
         ///
         /// The path is the run itself, down to the baseline at each end and
-        /// closed. It reuses the caller's [BlendPath] rather than making one:
-        /// this runs per run per series per frame, and a path is a native
-        /// allocation.
-        private void fillUnder(
-                Frame frame, BlendPath path, PlotGeometry geometry, double[] xs, double[] ys, int colour) {
+        /// closed. A [Path] rather than the pooled native one this used to be
+        /// handed: since ADR-0277 the rasterizer path belongs to the frame, and
+        /// building a shape costs two Java arrays.
+        private void fillUnder(Frame frame, PlotGeometry geometry, double[] xs, double[] ys, int colour) {
 
             if (xs.length < 2) {
                 return;
@@ -886,15 +883,12 @@ record ChartSurface(
             var zero = logarithmic ? geometry.bottom() : geometry.y().at(0);
             var baseline = Math.max(geometry.top(), Math.min(geometry.bottom(), zero));
 
-            path.reset();
-            path.moveTo(xs[0], baseline);
-            path.lineTo(xs[0], ys[0]);
-            addRun(path, xs, ys, false);
-            path.lineTo(xs[xs.length - 1], baseline);
-            path.closeSubPath();
+            var builder = Path.builder().moveTo(xs[0], baseline).lineTo(xs[0], ys[0]);
+            addRun(builder, xs, ys, false);
+            var path = builder.lineTo(xs[xs.length - 1], baseline).close().build();
 
             if (fill == Fill.SOLID) {
-                frame.fillPath(0, 0, path, CssColor.fade(colour, UNDER_LINE_ALPHA));
+                frame.fillPath(path, CssColor.fade(colour, UNDER_LINE_ALPHA));
                 return;
             }
             // **The extreme of this run, not the top of the plot.** A ramp
@@ -930,16 +924,14 @@ record ChartSurface(
         /// coincide — is filled flat instead. A zero-length gradient is a
         /// division by nothing in Blend2D's ramp and comes out as the last stop,
         /// which is to say invisible.
-        private static void gradient(Frame frame, BlendPath path, double from, double to, int colour, double alpha) {
+        private static void gradient(Frame frame, Path path, double from, double to, int colour, double alpha) {
 
             var near = CssColor.fade(colour, alpha);
             if (Math.abs(to - from) < 1) {
-                frame.fillPath(0, 0, path, near);
+                frame.fillPath(path, near);
                 return;
             }
-            try (var ramp = BlendGradient.fade(0, from, 0, to, near)) {
-                frame.fillPath(0, 0, path, ramp);
-            }
+            frame.fillPath(path, Gradient.fade(0, from, 0, to, near));
         }
 
         /// The limits, as lines and shaded regions.
@@ -1073,7 +1065,7 @@ record ChartSurface(
         /// figure drawn twice — and a chart whose band was straight where its
         /// line was smooth would be two charts. `moveTo` is the caller's, so a
         /// band can start somewhere else and come back along its own underside.
-        private void addRun(BlendPath path, double[] xs, double[] ys, boolean start) {
+        private void addRun(Path.Builder path, double[] xs, double[] ys, boolean start) {
             if (xs.length == 0) {
                 return;
             }
@@ -1113,7 +1105,7 @@ record ChartSurface(
         /// is the difference the reader is being shown. Drawing the underside
         /// straight while the top curved would make a band that is thicker than
         /// its own numbers wherever the curve bulges.
-        private void addRunReversed(BlendPath path, double[] xs, double[] ys) {
+        private void addRunReversed(Path.Builder path, double[] xs, double[] ys) {
             var n = xs.length;
             if (n == 0) {
                 return;
@@ -1176,14 +1168,8 @@ record ChartSurface(
         /// exists to stop a reading being dropped a rendering that drops it
         /// anyway. This is the smallest mark that reads as a point rather than as
         /// dirt on the screen.
-        private static void dot(Frame frame, BlendPath path, double x, double y, int colour) {
-
-            path.reset();
-            path.moveTo(x - STROKE, y);
-            path.ellipticArcTo(STROKE, STROKE, 0, false, true, x + STROKE, y);
-            path.ellipticArcTo(STROKE, STROKE, 0, false, true, x - STROKE, y);
-            path.closeSubPath();
-            frame.fillPath(0, 0, path, colour);
+        private static void dot(Frame frame, double x, double y, int colour) {
+            frame.fillPath(Path.circle(x, y, STROKE), colour);
         }
 
         /// Stacked bands, drawn back to front so each sits on the one below.
@@ -1211,7 +1197,7 @@ record ChartSurface(
             }
             var runs = io.github.digitalsmile.goldberry.widgets.data.Gaps.stackRuns(shownSeries, longest);
 
-            try (var path = BlendPath.create()) {
+            {
                 for (var s = 0; s < series.size(); s++) {
                     if (!shows(s)) {
                         continue;
@@ -1253,16 +1239,16 @@ record ChartSurface(
                             overs[i] = geometry.y().at(top[run[0] + i]);
                             unders[i] = geometry.y().at(beneath[run[0] + i]);
                         }
-                        path.reset();
-                        addRun(path, xs, overs, true);
+                        var builder = Path.builder();
+                        addRun(builder, xs, overs, true);
                         // Back along the band beneath, so the fill is the
                         // difference between the two rather than everything under
                         // the top -- and in the **same curve**, or a smooth band
                         // would be thicker than its own numbers wherever the top
                         // bulged.
-                        path.lineTo(xs[span - 1], unders[span - 1]);
-                        addRunReversed(path, xs, unders);
-                        path.closeSubPath();
+                        builder.lineTo(xs[span - 1], unders[span - 1]);
+                        addRunReversed(builder, xs, unders);
+                        var path = builder.close().build();
                         if (fill == Fill.GRADIENT) {
                             // **Across the band's own extent**, not the plot's.
                             // A stack's bands are adjacent, so a ramp anchored to
@@ -1277,7 +1263,7 @@ record ChartSurface(
                             }
                             gradient(frame, path, high, low, colours.get(s), BAND_ALPHA);
                         } else {
-                            frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), BAND_ALPHA));
+                            frame.fillPath(path, CssColor.fade(colours.get(s), BAND_ALPHA));
                         }
                     }
 
@@ -1420,35 +1406,27 @@ record ChartSurface(
             if (mode != ChartPlot.Mode.LINE) {
                 return;
             }
-            try (var dot = BlendPath.create()) {
-                for (var s = 0; s < series.size(); s++) {
-                    if (!shows(s)) {
-                        continue;
-                    }
-                    // Nothing to mark where there is nothing -- and the readout
-                    // leaves the row out for the same reason.
-                    if (!series.get(s).has(hovered)) {
-                        continue;
-                    }
-                    var y = geometry.y().at(series.get(s).at(hovered));
-                    // Two half-arcs, because SVG's `A` -- which is what a
-                    // Blend2D path takes -- cannot draw a full circle in one
-                    // segment: the start and end points would coincide and the
-                    // arc is undefined. Getting it wrong gives a wedge, a square
-                    // or nothing, and all three look plausible until a test
-                    // reads the corners of the bounding box.
-                    dot.reset();
-                    dot.moveTo(x - MARKER, y);
-                    dot.ellipticArcTo(MARKER, MARKER, 0, false, true, x + MARKER, y);
-                    dot.ellipticArcTo(MARKER, MARKER, 0, false, true, x - MARKER, y);
-                    dot.closeSubPath();
-                    // A ring in the **readout's** surface colour rather than the
-                    // page's: the marker sits on the series line, and a ring
-                    // the colour of the page would cut the line in half wherever
-                    // the chart is on a card.
-                    frame.strokePath(0, 0, dot, 2, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, ring);
-                    frame.fillPath(0, 0, dot, colours.get(s));
+            for (var s = 0; s < series.size(); s++) {
+                if (!shows(s)) {
+                    continue;
                 }
+                // Nothing to mark where there is nothing -- and the readout
+                // leaves the row out for the same reason.
+                if (!series.get(s).has(hovered)) {
+                    continue;
+                }
+                var y = geometry.y().at(series.get(s).at(hovered));
+                // Two half arcs, because SVG's `A` cannot draw a full circle in
+                // one segment: the start and end points would coincide and the
+                // arc is undefined. That is what `Path.circle` is made of, so
+                // this is one call rather than four.
+                var dot = Path.circle(x, y, MARKER);
+                // A ring in the **readout's** surface colour rather than the
+                // page's: the marker sits on the series line, and a ring
+                // the colour of the page would cut the line in half wherever
+                // the chart is on a card.
+                frame.strokePath(dot, Stroke.of(2), ring);
+                frame.fillPath(dot, colours.get(s));
             }
         }
 
@@ -1492,13 +1470,12 @@ record ChartSurface(
             left = Math.max(geometry.left(), Math.min(left, geometry.right() - width));
             var top = geometry.top();
 
-            try (var path = BlendPath.create()) {
-                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(path, 0, 0, width, height, 6);
-                frame.fillPath(left, top, path, readout.background());
-                path.reset();
-                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(path, 0.5, 0.5, width - 1, height - 1, 5.5);
-                frame.strokePath(left, top, path, 1, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, readout.border());
-            }
+            frame.fillPath(left, top, Path.roundRect(0, 0, width, height, 6), readout.background());
+            // Inset by half the stroke width, because a border is stroked down
+            // the middle of its path -- and the radius comes in with it, or the
+            // corner would not be concentric with the fill under it.
+            frame.strokePath(
+                    left, top, Path.roundRect(0.5, 0.5, width - 1, height - 1, 5.5), Stroke.of(1), readout.border());
 
             var y = top + READOUT_PADDING;
             readout.title().paint(frame, left + READOUT_PADDING, y, Paragraph.UNCONSTRAINED, readout.ink());

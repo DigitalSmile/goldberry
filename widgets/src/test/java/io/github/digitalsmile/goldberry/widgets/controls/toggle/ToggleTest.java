@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -78,7 +78,7 @@ class ToggleTest {
             var style = ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT);
 
             // The id wins on specificity, which is what says all three matched.
-            assertEquals(StyleLength.points(2), style.gap());
+            assertEquals(Length.points(2), style.gap());
         }
 
         /// The parts are the fifth and sixth, and neither is in the catalog —
@@ -364,15 +364,15 @@ class ToggleTest {
             var track = styleOf(1, 0);
             var thumb = styleOf(1, 0, 0);
 
-            assertEquals(StyleLength.points(36), track.width());
-            assertEquals(StyleLength.points(20), track.height());
-            assertEquals(StyleLength.points(16), thumb.width());
-            assertEquals(StyleLength.points(16), thumb.height());
+            assertEquals(Length.points(36), track.width());
+            assertEquals(Length.points(20), track.height());
+            assertEquals(Length.points(16), thumb.width());
+            assertEquals(Length.points(16), thumb.height());
 
             var padding = track.padding();
-            assertEquals(StyleLength.points(2), padding.left());
-            assertEquals(StyleLength.points(2), padding.right());
-            assertEquals(StyleLength.points(2), padding.top());
+            assertEquals(Length.points(2), padding.left());
+            assertEquals(Length.points(2), padding.right());
+            assertEquals(Length.points(2), padding.top());
             // §3's travel 16 is what is *left over* rather than a number chosen
             // separately: change the track width and the travel is wrong.
             assertEquals(
@@ -410,8 +410,8 @@ class ToggleTest {
             assertEquals(2, new Toggle("Frost", true).children().size());
         }
 
-        private static float points(StyleLength length) {
-            return ((StyleLength.Points) length).value();
+        private static float points(Length length) {
+            return ((Length.Points) length).value();
         }
 
         /// Walks into the element tree by child index: 1 is the track's element
@@ -434,8 +434,8 @@ class ToggleTest {
         @Test
         @DisplayName("the control is the density's height, like every other control")
         void heightFollowsTheDensity() {
-            assertEquals(StyleLength.points(32), toggleStyle(Density.REGULAR).height());
-            assertEquals(StyleLength.points(28), toggleStyle(Density.COMPACT).height());
+            assertEquals(Length.points(32), toggleStyle(Density.REGULAR).height());
+            assertEquals(Length.points(28), toggleStyle(Density.COMPACT).height());
         }
 
         /// The track is §3's 36×20 at either density: §3's toggle row gives no
@@ -450,8 +450,8 @@ class ToggleTest {
                 var track = ComputedStyle.of(
                         resolver.resolve(tree.root().children().getFirst()), CssLength.Context.DEFAULT);
 
-                assertEquals(StyleLength.points(36), track.width(), "track width at " + density);
-                assertEquals(StyleLength.points(20), track.height(), "track height at " + density);
+                assertEquals(Length.points(36), track.width(), "track width at " + density);
+                assertEquals(Length.points(20), track.height(), "track height at " + density);
             }
         }
 

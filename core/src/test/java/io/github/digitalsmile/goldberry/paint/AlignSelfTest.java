@@ -12,10 +12,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Align;
+import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// `align-self` — where **one child** sits in its parent's cross axis
 /// ([ADR-0244]).
@@ -46,8 +46,8 @@ class AlignSelfTest {
     }
 
     /// The laid-out boxes, parent first.
-    private List<ComputedLayout> layouts(Box root) {
-        var out = new ArrayList<ComputedLayout>();
+    private List<LogicalRect> layouts(Box root) {
+        var out = new ArrayList<LogicalRect>();
         BoxPainter.forEachBox(target.frame(), root, (box, layout) -> out.add(layout));
         return out;
     }
@@ -56,14 +56,14 @@ class AlignSelfTest {
     /// children — the second of which is given `self`.
     private Box row(Align self) {
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(100))
+                .size(Length.points(200), Length.points(100))
                 .direction(FlexDirection.ROW)
                 .alignItems(Align.FLEX_START)
                 .children(child(), child().alignSelf(self));
     }
 
     private static Box child() {
-        return Box.filled(0xFF00FF00).size(StyleLength.points(40), StyleLength.points(20));
+        return Box.filled(0xFF00FF00).size(Length.points(40), Length.points(20));
     }
 
     @Test
@@ -91,13 +91,13 @@ class AlignSelfTest {
     @DisplayName("stretch fills the cross axis")
     void stretch() {
         var row = Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(100))
+                .size(Length.points(200), Length.points(100))
                 .direction(FlexDirection.ROW)
                 .alignItems(Align.FLEX_START)
                 .children(
-                        Box.filled(0xFF00FF00).size(StyleLength.points(40), StyleLength.points(20)),
+                        Box.filled(0xFF00FF00).size(Length.points(40), Length.points(20)),
                         Box.filled(0xFF0000FF)
-                                .size(StyleLength.points(40), StyleLength.UNDEFINED)
+                                .size(Length.points(40), Length.UNDEFINED)
                                 .alignSelf(Align.STRETCH));
 
         var placed = layouts(row);
@@ -127,7 +127,7 @@ class AlignSelfTest {
 
     private Box rowWithNothingSaid() {
         return Box.filled(0xFF000000)
-                .size(StyleLength.points(200), StyleLength.points(100))
+                .size(Length.points(200), Length.points(100))
                 .direction(FlexDirection.ROW)
                 .alignItems(Align.FLEX_START)
                 .children(child(), child());

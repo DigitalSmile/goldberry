@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -101,7 +101,7 @@ class SliderTest {
                     new Slider(0, 1, 0.5, 0, null, null, false, new Attributes("gain", Set.of("vertical"), "gain")));
 
             assertEquals(
-                    StyleLength.points(2),
+                    Length.points(2),
                     ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT)
                             .gap());
         }
@@ -485,7 +485,7 @@ class SliderTest {
                     Attributes.NONE);
             var style = styleOf(labelled, 1);
 
-            assertEquals(StyleLength.points(40), style.width(), "a fixed box is what makes an alignment mean anything");
+            assertEquals(Length.points(40), style.width(), "a fixed box is what makes an alignment mean anything");
             assertEquals(TextAlign.END, style.textAlign());
             assertEquals(TextAlign.END, style.textFlow().textAlign(), "and it reaches the paragraph");
         }
@@ -500,14 +500,14 @@ class SliderTest {
             var groove = styleOf(slider, 0, 0);
             var thumb = styleOf(slider, 0, 0, 1);
 
-            assertEquals(StyleLength.points(32), control.height(), "§1.3's hit target");
+            assertEquals(Length.points(32), control.height(), "§1.3's hit target");
             assertEquals(
-                    StyleLength.points(32),
+                    Length.points(32),
                     track.height(),
                     "the track is the whole hit target: it is what the pointer is mapped along");
-            assertEquals(StyleLength.points(4), groove.height(), "§3's groove");
-            assertEquals(StyleLength.points(16), thumb.width());
-            assertEquals(StyleLength.points(16), thumb.height());
+            assertEquals(Length.points(4), groove.height(), "§3's groove");
+            assertEquals(Length.points(16), thumb.width());
+            assertEquals(Length.points(16), thumb.height());
         }
 
         /// The marks name the positions the thumb's **centre** reaches, and that
@@ -525,9 +525,9 @@ class SliderTest {
             // The relation rather than the number: 8 is half of 16 because the
             // marks name where the thumb's centre can be, so a theme that moved
             // the thumb would have to move this with it.
-            if (thumb.width() instanceof StyleLength.Points(var width)
-                    && ticks.padding().left() instanceof StyleLength.Points(var left)
-                    && ticks.padding().right() instanceof StyleLength.Points(var right)) {
+            if (thumb.width() instanceof Length.Points(var width)
+                    && ticks.padding().left() instanceof Length.Points(var left)
+                    && ticks.padding().right() instanceof Length.Points(var right)) {
                 assertEquals(width / 2, left, 1e-6, "the scale starts under the thumb's centre");
                 assertEquals(width / 2, right, 1e-6, "and ends under it");
             } else {
