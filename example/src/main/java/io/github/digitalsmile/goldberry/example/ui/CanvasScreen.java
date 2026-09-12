@@ -18,6 +18,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
+import io.github.digitalsmile.goldberry.paint.CanvasStyle;
 import io.github.digitalsmile.goldberry.paint.Dash;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Gradient;
@@ -358,7 +359,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// `Image` being a value rather than a handle makes: it is a static field
         /// here, with no lifetime travelling alongside it and nothing to close
         /// (ADR-0283).
-        private void paintImages(Frame frame, LogicalSize size) {
+        private void paintImages(Frame frame, LogicalSize size, CanvasStyle style) {
             var image = Sample.IMAGE;
             var width = size.width();
 
@@ -393,9 +394,13 @@ public record CanvasScreen() implements Widget.Stateful {
             // What the last clipboard key did. Empty until one is pressed, so the
             // golden image is still of a card nobody has touched.
             if (!note.isEmpty()) {
-                try (var font = Font.bundled(BundledFont.UI, 12)) {
-                    Paragraph.of(font, note).paint(frame, 8, size.height() - 22, width - 16, ACCENT);
-                }
+                // `style.font()` rather than `Font.bundled(BundledFont.UI, 12)`,
+                // which is what this line used to be and what G11 was about: the
+                // card's own `font-family` and `font-size` reach the drawing, so
+                // a theme switch moves this text with the rest of the screen —
+                // and the face is the renderer's book rather than a fresh parse
+                // of the file every frame (ADR-0288).
+                Paragraph.of(style.font(), note).paint(frame, 8, size.height() - 22, width - 16, ACCENT);
             }
 
             // 4. And faded, stretched across whatever width the card turned out to

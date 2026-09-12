@@ -74,7 +74,7 @@ compiler's answer.
 | [G8](#g8) | `goldberry-html`: Markdown through md4c | Note preview (E1), Note → HTML in the Viewer (D1) | medium |
 | ~~[G9](#g9)~~ | ~~Native file dialogs~~ | **closed** — ADR-0287 | done |
 | ~~[G10](#g10)~~ | ~~Gradients as a `core.paint` value~~ | **closed** — ADR-0277 | done |
-| [G11](#g11) | The computed font of a box, inside a painter | canvas text that follows the theme rather than naming a font | low |
+| ~~[G11](#g11)~~ | ~~The computed font of a box, inside a painter~~ | **closed** — ADR-0288 | done |
 | [G12](#g12) | Deep-link URI handling and single-instance handoff | `brd://open/<token>` (plan D5) | medium |
 | ~~[G13](#g13)~~ | ~~The other `natives` leak: Yoga through `paint.Box`~~ | **closed** — ADR-0279, ADR-0280 | done |
 | [G14](#g14) | The last `natives` leak: **one method**, `Frame.drawGlyphs` | sealing `blend2d` | low |
@@ -467,12 +467,42 @@ not a default branch that draws something else.
 ---
 
 <a id="g11"></a>
-### G11 — The computed font, inside a painter
+### G11 — The computed font, inside a painter — **closed**
 
-A painter is given a `Frame` and a size. It is not given the `ComputedStyle` of the box it is painting,
-so canvas text has to name a font (`BundledFont.UI`) rather than inherit the one the cascade resolved.
-Fine for brd today — a board's fonts are the *document's*, not the theme's — and wrong for a chart or a
-custom control. `Painter.paint(Frame, LogicalSize, ComputedStyle)`, or a `Frame.style()`.
+Landed as [ADR-0288](../book/src/adr/0288-a-painter-is-told-what-the-cascade-resolved.md).
+
+```java
+new Canvas((frame, size, style) -> {                    // one parameter more
+    Paragraph.of(style.font(), title).paint(frame, 0, 0, size.width(), style.ink());
+});
+```
+
+A three-parameter painter is a `StyledPainter` and is handed a `CanvasStyle`:
+the node's **own** resolved font — the opened face at the size the cascade
+settled, out of the renderer's book — its resolved `color`, this frame's time on
+the renderer's clock, and whether the user asked for less movement.
+
+**The two-parameter form is unchanged and is not second class.** `StyledPainter`
+is a *subtype* of `Painter`, so the compiler picks between them by arity with no
+cast, `new Canvas(null)` still resolves, and nothing in `paint` — `Box`,
+`BoxPainter`, `Offscreen` — changed at all.
+
+Two departures from what this entry proposed:
+
+- **It is a `CanvasStyle`, not a `ComputedStyle`.** What a painter needs is an
+  opened `Font`, and only the renderer can make one; a `ComputedStyle` hands over
+  the *description* and leaves the caller to parse the file — which is the line
+  the showcase had actually written, once per frame.
+- **It is a snapshot taken when the box is built.** `Paints.Context` answers for
+  the node currently rendering, so a context read during the paint pass answers
+  for whichever node rendered last. That is also why the theme-token accessors
+  are not on it: a painter cannot name in advance the tokens it will want, and a
+  widget that needs them is a `Paints` and reads them in `render`.
+
+The frame clock came with it, which this entry did not ask for and an animated
+canvas had no other way to reach: `Paints.Context.nowMillis()` is read once per
+frame and shared, so two canvases animate on one tick and a test's virtual clock
+drives both.
 
 ---
 
@@ -598,3 +628,4 @@ preedit" as hardening work.
 | G6 | ADR-0285 | the wordless sticky: a caret, a selection and an undo stack over a canvas, with no `text-input` in sight |
 | G7 | ADR-0286 | the paste path: a screenshot off the clipboard is an `Image`, and a copied shape can offer its own format beside a PNG |
 | G9 | ADR-0287 | the export path: "save as" and "import an image" are the desktop's own dialog, and a `.am` snapshot can be opened from disk |
+| G11 | ADR-0288 | nothing brd had; a board's fonts are the document's — it is the *chart* and the custom control that could not follow a theme |

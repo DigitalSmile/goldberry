@@ -297,6 +297,7 @@
 - [ADR-0285 A caret is the text stack's, not a control's](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
 - [ADR-0286 A clipboard write is an offer, not a copy](adr/0286-a-clipboard-write-is-an-offer.md)
 - [ADR-0287 A file dialog is the desktop's, and the answer comes back later](adr/0287-a-file-dialog-is-the-desktops-and-the-answer-comes-back-later.md)
+- [ADR-0288 A painter is told what the cascade resolved](adr/0288-a-painter-is-told-what-the-cascade-resolved.md)
 
 ---
 

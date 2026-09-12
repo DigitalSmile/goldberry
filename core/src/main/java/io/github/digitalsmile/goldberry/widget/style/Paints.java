@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widget.style;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.CanvasStyle;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -148,6 +149,31 @@ public interface Paints extends Widget {
         /// contribute to it, and nothing here lets it try.
         default FrameStats frames() {
             return FrameStats.none();
+        }
+
+        /// Everything a `canvas` painter needs from the cascade, snapshotted for
+        /// one node.
+        ///
+        /// `docs/gaps.md` G11. A painter is handed a frame and a size and nothing
+        /// else, so canvas text had to name a font rather than inherit the one
+        /// the cascade resolved. This is the bridge: a widget that draws through
+        /// a [io.github.digitalsmile.goldberry.paint.StyledPainter] binds it here
+        /// and hands the result to [io.github.digitalsmile.goldberry.paint.Box#painting].
+        ///
+        /// ```java
+        /// return Box.of().style(style).painting(painter.bound(context.canvasStyle(style)));
+        /// ```
+        ///
+        /// **A snapshot, taken now.** Every value is read during `render`, while
+        /// this context still knows which node it is answering for — [#color] and
+        /// [#length] resolve against the element currently being rendered, so a
+        /// context held until paint time would answer for whichever node rendered
+        /// last. That is also why the token accessors are not on
+        /// [io.github.digitalsmile.goldberry.paint.CanvasStyle]: a painter cannot
+        /// name in advance the tokens it will want, and a widget that needs them
+        /// is a `Paints` and reads them right here.
+        default CanvasStyle canvasStyle(ComputedStyle style) {
+            return new CanvasStyle(font(style), style.color(), nowMillis(), reducedMotion());
         }
 
         /// Whether the user asked for less movement (§1.7).
