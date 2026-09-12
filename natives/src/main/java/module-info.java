@@ -64,9 +64,20 @@ module io.github.digitalsmile.goldberry.natives {
     // `layout` vocabulary (ADR-0279). The translation to what is below happens
     // in two package-private files in `:core`, and the compiler is what says so
     // now rather than a convention.
-    exports io.github.digitalsmile.goldberry.natives.blend2d;
-    exports io.github.digitalsmile.goldberry.natives.blend2d.enums;
-    exports io.github.digitalsmile.goldberry.natives.blend2d.error;
+    //
+    // **All three wrapped libraries are qualified now** (ADR-0290). Blend2D was
+    // the last one open, because `Frame.drawGlyphs` took a `BlendFont` and a
+    // `BlendGlyphBuffer` and was public; `paint.GlyphPen` owns them, that method
+    // is package-private, and `:core` no longer requires this module
+    // `transitive`ly. What is left unqualified is SDL's wrappers, which an
+    // application legitimately names -- a `BackendWindow` handed to a popup, a
+    // tray, a cursor.
+    exports io.github.digitalsmile.goldberry.natives.blend2d to
+            io.github.digitalsmile.goldberry.core;
+    exports io.github.digitalsmile.goldberry.natives.blend2d.enums to
+            io.github.digitalsmile.goldberry.core;
+    exports io.github.digitalsmile.goldberry.natives.blend2d.error to
+            io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.harfbuzz to
             io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.harfbuzz.enums to

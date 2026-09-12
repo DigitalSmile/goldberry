@@ -299,6 +299,7 @@
 - [ADR-0287 A file dialog is the desktop's, and the answer comes back later](adr/0287-a-file-dialog-is-the-desktops-and-the-answer-comes-back-later.md)
 - [ADR-0288 A painter is told what the cascade resolved](adr/0288-a-painter-is-told-what-the-cascade-resolved.md)
 - [ADR-0289 A composition is not an edit](adr/0289-a-composition-is-not-an-edit.md)
+- [ADR-0290 The pen belongs to the rasterizer](adr/0290-the-pen-belongs-to-the-rasterizer.md)
 
 ---
 

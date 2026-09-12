@@ -158,11 +158,16 @@ public final class Frame {
 
     /// Draws staged glyphs with `(x, baseline)` on the baseline.
     ///
+    /// **Package-private, and that is the end of `docs/gaps.md` G14.** This was
+    /// the last method in the toolkit's public surface with a `:natives` type in
+    /// its signature, and the reason `:core` could not drop `requires transitive`
+    /// (ADR-0290). [GlyphPen] is in this package now and is its only caller;
+    /// [Font][io.github.digitalsmile.goldberry.text.font.Font] is the public way
+    /// to draw text and always was.
+    ///
     /// The primitive, not the text API. It takes a font and a buffer of
     /// positioned glyphs because that is what a rasterizer draws; deciding
-    /// *which* glyphs, at what positions, is shaping, and
-    /// [Font][io.github.digitalsmile.goldberry.text.font.Font] is what joins the two.
-    /// Call that instead unless there is a reason not to.
+    /// *which* glyphs, at what positions, is shaping.
     ///
     /// `baseline` is the line the letters sit on — an `a` is above it, a `g`
     /// hangs below — so the top of a line of text is `baseline - ascent`.
@@ -173,7 +178,7 @@ public final class Frame {
     /// what lets one shaping result be drawn at any size (ADR-0034).
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
-    public void drawGlyphs(double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
+    void drawGlyphs(double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
         requireOpen();
         context.fillGlyphRun(x, baseline, font, glyphs, argb);
     }

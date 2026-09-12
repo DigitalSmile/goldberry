@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.natives;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -189,6 +190,50 @@ class ExportedSurfaceTest {
                 "a holder's `call` takes and returns raw addresses, and its package is what "
                         + "--initialize-at-build-time names (ADR-0173). Exporting one puts the "
                         + "foreign boundary in an application's reach: " + leaked);
+    }
+
+    @Test
+    @DisplayName("exports every wrapped library to :core and to nobody else")
+    void wrappedLibrariesAreSealed() {
+        // ADR-0280 said this and could only do two thirds of it: Blend2D stayed
+        // open because `Frame.drawGlyphs` was public and took a `BlendFont`.
+        // `paint.GlyphPen` owns that handle now, the method is package-private,
+        // and this is the assertion that the door is shut (ADR-0290).
+        //
+        // An application module that names a `BlendPath`, a `StyleLength` or a
+        // `hb_buffer` does not compile. Only `:core` can, and `:core` is where
+        // the foreign boundary is supposed to end.
+        var mustBeQualified = List.of(
+                "io.github.digitalsmile.goldberry.natives.blend2d",
+                "io.github.digitalsmile.goldberry.natives.blend2d.enums",
+                "io.github.digitalsmile.goldberry.natives.blend2d.error",
+                "io.github.digitalsmile.goldberry.natives.yoga",
+                "io.github.digitalsmile.goldberry.natives.yoga.style",
+                "io.github.digitalsmile.goldberry.natives.yoga.measure",
+                "io.github.digitalsmile.goldberry.natives.harfbuzz",
+                "io.github.digitalsmile.goldberry.natives.harfbuzz.enums");
+
+        var descriptor = descriptor(classesRoot());
+        var open = exportedPackages();
+        var leaked = mustBeQualified.stream().filter(open::contains).toList();
+
+        assertTrue(
+                leaked.isEmpty(),
+                "a wrapped library exported unqualified is reachable by every application that "
+                        + "requires :widgets, which is how `paint.Box` came to be typed on Yoga: " + leaked);
+
+        // And that they are exported at all, to the one module that may read
+        // them -- an export silently deleted would pass the check above.
+        for (var name : mustBeQualified) {
+            var targets = descriptor.exports().stream()
+                    .filter(e -> e.source().equals(name))
+                    .flatMap(e -> e.targets().stream())
+                    .toList();
+            assertEquals(
+                    List.of("io.github.digitalsmile.goldberry.core"),
+                    targets,
+                    name + " should be exported to :core and to nobody else");
+        }
     }
 
     @Test

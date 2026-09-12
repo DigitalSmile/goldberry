@@ -4,8 +4,8 @@ import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontFace;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
+import io.github.digitalsmile.goldberry.paint.GlyphFace;
 
 /// One typeface — everything about a font except the size.
 ///
@@ -50,7 +50,7 @@ public final class FontFace implements AutoCloseable {
 
     private final String name;
     private final ShapedFont shaper;
-    private final BlendFontFace painter;
+    private final GlyphFace painter;
     private final int unitsPerEm;
 
     private boolean closed;
@@ -65,7 +65,7 @@ public final class FontFace implements AutoCloseable {
             // Read once, here, and never again: it is a property of the face,
             // and every Font over it needs the same number.
             this.unitsPerEm = shaper.unitsPerEm();
-            this.painter = BlendFontFace.fromBytes(data);
+            this.painter = GlyphFace.of(name, data);
         } catch (RuntimeException | Error e) {
             shaper.close();
             throw e;
@@ -128,7 +128,7 @@ public final class FontFace implements AutoCloseable {
         return shaper;
     }
 
-    BlendFontFace painter() {
+    GlyphFace painter() {
         requireUsable();
         return painter;
     }

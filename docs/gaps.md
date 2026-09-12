@@ -29,9 +29,9 @@ sanctioned pattern — imports:
 |---|---|---|
 | `widgets.*`, `widget.*`, `css.*`, `icon.*`, `render.model.*`, `Application`/`Host`/`Goldberry` | yes | yes |
 | `paint.Painter` / `paint.Frame` | yes (the canvas painter) | once (`paint.Box`, in a custom widget) |
-| **`natives.blend2d.*`** | ~~yes~~ **closed** — `paint.Path`, `paint.Stroke`, `paint.Gradient` | never |
+| **`natives.blend2d.*`** | ~~yes~~ **closed and sealed** — `paint.Path`, `paint.Stroke`, `paint.Gradient` | never |
 | **`natives.yoga.*`** | no | ~~yes~~ **closed and sealed** — `io.…goldberry.layout` |
-| `natives.harfbuzz.*`, `natives.blend2d` fonts | no | only inside `:core`, and [G14](#g14) is the rest |
+| `natives.harfbuzz.*`, `natives.blend2d` fonts | no | ~~only inside `:core`~~ **closed and sealed** — `paint.GlyphPen`, `text.ShapedRun` |
 
 **This section was wrong when it was written, and the correction matters.** It
 measured the leak by what *brd* imports, and concluded there was "exactly one
@@ -51,12 +51,13 @@ The root cause was neither file. It was the module graph: `:core` declared
 exported its wrapper packages unqualified, so every application that required
 `:widgets` could see both families.
 
-Both are now closed — [G1](#g1), [G2](#g2) and [G10](#g10) for drawing,
-[G13](#g13) for layout — and the layout half is **sealed**: `:natives` exports its
-Yoga packages to `:core` and to nobody else, so a module that names `StyleLength`
-does not compile. What is left is the text stack, which is [G14](#g14), and the
-way to enumerate it is to delete one word from a module descriptor and read the
-compiler's answer.
+Both are closed — [G1](#g1), [G2](#g2) and [G10](#g10) for drawing,
+[G13](#g13) for layout, [G14](#g14) for the last method of the text stack — and
+**all three wrapped libraries are sealed**: `:natives` exports Blend2D, Yoga and
+HarfBuzz to `:core` and to nobody else, and `:core` no longer requires `:natives`
+`transitive`ly. A module that names a `BlendPath` or a `StyleLength` does not
+compile. The rule at the top of this section is a compiler error now rather than
+a rule.
 
 ---
 
@@ -77,7 +78,7 @@ compiler's answer.
 | ~~[G11](#g11)~~ | ~~The computed font of a box, inside a painter~~ | **closed** — ADR-0288 | done |
 | [G12](#g12) | Deep-link URI handling and single-instance handoff | `brd://open/<token>` (plan D5) | medium |
 | ~~[G13](#g13)~~ | ~~The other `natives` leak: Yoga through `paint.Box`~~ | **closed** — ADR-0279, ADR-0280 | done |
-| [G14](#g14) | The last `natives` leak: **one method**, `Frame.drawGlyphs` | sealing `blend2d` | low |
+| ~~[G14](#g14)~~ | ~~The last `natives` leak: **one method**, `Frame.drawGlyphs`~~ | **closed** — ADR-0290 | done |
 | ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; `text-input` is [G16](#g16) | done |
 | [G16](#g16) | IME preedit in `text-input` | typing Japanese, Chinese or Korean into a *field* rather than a canvas | medium |
 
@@ -547,33 +548,49 @@ compiling one.
 ---
 
 <a id="g14"></a>
-### G14 — The last `natives` leak: one method
+### G14 — The last `natives` leak: one method — **closed**
 
-**Mostly closed** by [ADR-0282](../book/src/adr/0282-a-shaped-run-is-a-value-and-the-last-leak-is-one-method.md).
-`GlyphRun` and `TextDirection` are `text.ShapedRun` and `text.TextDirection` now,
-and HarfBuzz's packages are sealed to `:core` alongside Yoga's.
-
-**Today.** One method remains:
+Landed as [ADR-0290](../book/src/adr/0290-the-pen-belongs-to-the-rasterizer.md).
 
 ```java
-public void Frame.drawGlyphs(double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb);
+package io.github.digitalsmile.goldberry.paint;
+
+public final class GlyphFace implements AutoCloseable {   // a typeface, to the rasterizer
+    public static GlyphFace of(String name, byte[] data);
+}
+
+public final class GlyphPen implements AutoCloseable {    // that face at one size
+    public static GlyphPen on(GlyphFace face, double size);
+    public void draw(Frame frame, double x, double baseline, ShapedRun run, int from, int to, int argb);
+    public double ascent(); public double descent(); public double lineHeight();
+}
 ```
 
-`Font.draw` is its only caller and nothing outside `:core` touches it. The other
-two leaks were **values**, and a value can be mirrored; these are **handles**, and
-the difficulty is ownership rather than transcription — rasterizing a glyph needs
-a context, a font and a staged buffer, `paint` owns the first and `text.font` the
-other two, and within one module Java offers nothing between package-private and
-public.
+The entry's own instruction — delete one word from a module descriptor and read
+the compiler's answer — turned out to name **two sites, both on one line**.
+`Font.shape` and `Paragraph.measureFunction` had already been fixed by ADR-0282
+and ADR-0279, and the descriptor's claim of eleven was stale.
 
-**Proposed.** Move the native font into `paint`: a pen there owns the `BlendFont`
-and the buffer, `text.font` becomes shaping and metrics, and `Frame.drawGlyphs`
-goes package-private. It is a change to the text stack's shape — font creation is
-`FontFace`'s today, with the fallback chain and the paragraph cache built on it —
-so it wants its own ADR rather than being improvised.
+So the fix is the one this entry proposed: the native font and the staged buffer
+moved into `paint`, where the context they need already lived, and
+`Frame.drawGlyphs` is package-private with `GlyphPen` as its only caller.
+`text.font` kept what it is actually about — shaping, metrics, the fallback
+chain, the paragraph cache — and `Font.draw` is three lines of delegation.
 
-**Closing it** seals `blend2d` and lets `:core` drop `requires transitive` for
-good. Nothing brd does is blocked on it.
+**`:core` no longer requires `:natives` `transitive`ly, and Blend2D is sealed to
+`:core` beside Yoga and HarfBuzz.** ADR-0280 said it was doing this and could only
+do two thirds; it is true now, and the compiler is what says so: an application
+module naming a `BlendPath` does not compile, `-Xlint:exports` under `-Werror`
+fails the build the moment a `:natives` type reappears in an exported signature,
+and a test asserts that each of the eight wrapped packages is exported to `:core`
+and to nobody else.
+
+**`GlyphFace` and `GlyphPen` are public**, which is more surface than the leak
+they replaced and is deliberate: a custom widget that wants to draw a shaped run
+— a terminal, a music stave, a diff view with its own layout — has a supported
+way to now, and it is the way the toolkit's own text stack draws.
+
+Nothing brd was blocked on, and no golden image moved.
 
 ---
 
@@ -680,3 +697,4 @@ what the platforms' own fields do is the first step, not the last.
 | G9 | ADR-0287 | the export path: "save as" and "import an image" are the desktop's own dialog, and a `.am` snapshot can be opened from disk |
 | G11 | ADR-0288 | nothing brd had; a board's fonts are the document's — it is the *chart* and the custom control that could not follow a theme |
 | G15 | ADR-0289 | the wordless-in-Japanese sticky: a composition, its clause and its caret are drawn, and the candidate window lands under them |
+| G14 | ADR-0290 | nothing brd had; it is the toolkit's own boundary, and closing it is what makes "`natives.*` is not application API" a compiler error rather than a rule |

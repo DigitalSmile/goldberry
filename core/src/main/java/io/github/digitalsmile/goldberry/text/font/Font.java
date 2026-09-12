@@ -2,9 +2,8 @@ package io.github.digitalsmile.goldberry.text.font;
 
 import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.GlyphPen;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.text.ShapedRun;
 import io.github.digitalsmile.goldberry.text.TextDirection;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
@@ -66,13 +65,12 @@ public final class Font implements AutoCloseable {
     private final boolean ownsFace;
 
     private final ShapedFont shaper;
-    private final BlendFont painter;
+    private final GlyphPen painter;
 
     /// Reused across calls, both of them: a paragraph reshapes on every width a
     /// layout pass proposes, and allocating native memory inside a measure
     /// callback is the one place it is least affordable.
     private final ShapingBuffer text;
-    private final BlendGlyphBuffer glyphs;
 
     private final double size;
     private final int unitsPerEm;
@@ -96,7 +94,7 @@ public final class Font implements AutoCloseable {
         this.shaper = face.shaper();
         this.unitsPerEm = face.unitsPerEm();
         try {
-            this.painter = BlendFont.on(face.painter(), size);
+            this.painter = GlyphPen.on(face.painter(), size);
         } catch (RuntimeException | Error e) {
             closeFaceIfOwned();
             throw e;
@@ -104,14 +102,6 @@ public final class Font implements AutoCloseable {
         try {
             this.text = ShapingBuffer.create();
         } catch (RuntimeException | Error e) {
-            painter.close();
-            closeFaceIfOwned();
-            throw e;
-        }
-        try {
-            this.glyphs = BlendGlyphBuffer.create();
-        } catch (RuntimeException | Error e) {
-            text.close();
             painter.close();
             closeFaceIfOwned();
             throw e;
@@ -338,19 +328,10 @@ public final class Font implements AutoCloseable {
             return;
         }
 
-        glyphs.clear();
-        for (var i = from; i < to; i++) {
-            // Straight across, in design units, with no arithmetic in between.
-            // The four numbers HarfBuzz reports per glyph are the four fields
-            // BLGlyphPlacement holds, in the same order and the same width --
-            // which is the whole reason this loop is a copy and not a
-            // conversion.
-            glyphs.add(
-                    run.glyphId(i),
-                    run.xOffset(i), run.yOffset(i),
-                    run.xAdvance(i), run.yAdvance(i));
-        }
-        frame.drawGlyphs(x, baseline, painter, glyphs, argb);
+        // The copy into the rasterizer's staged buffer is the pen's, in `paint`,
+        // beside the context it draws into -- which is what closed the last of
+        // the module boundary's leaks (ADR-0290).
+        painter.draw(frame, x, baseline, run, from, to, argb);
     }
 
     /// The size this font was created at, in logical units.
@@ -368,20 +349,20 @@ public final class Font implements AutoCloseable {
     /// logical units.
     public double ascent() {
         requireUsable();
-        return painter.metrics().ascent();
+        return painter.ascent();
     }
 
     /// How far below the baseline it reaches, also positive.
     public double descent() {
         requireUsable();
-        return painter.metrics().descent();
+        return painter.descent();
     }
 
     /// The distance from one baseline to the next, as the font itself specifies
     /// it — not a `line-height` a style may impose on top.
     public double lineHeight() {
         requireUsable();
-        return painter.metrics().lineHeight();
+        return painter.lineHeight();
     }
 
     /// Converts a measurement in design units to logical units.
@@ -409,18 +390,14 @@ public final class Font implements AutoCloseable {
         }
         closed = true;
         try {
-            glyphs.close();
+            text.close();
         } finally {
             try {
-                text.close();
+                painter.close();
             } finally {
-                try {
-                    painter.close();
-                } finally {
-                    // The shaper belongs to the face, not to this font: closing
-                    // it here would break every other size over the same face.
-                    closeFaceIfOwned();
-                }
+                // The shaper belongs to the face, not to this font: closing it
+                // here would break every other size over the same face.
+                closeFaceIfOwned();
             }
         }
     }

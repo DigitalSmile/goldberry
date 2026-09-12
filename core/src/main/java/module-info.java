@@ -8,17 +8,19 @@
 /// wrapper packages, so nothing here can reach a raw `MemorySegment` even by
 /// accident -- the boundary in §3.1 is the module graph, not a convention.
 module io.github.digitalsmile.goldberry.core {
-    // Still `transitive`, and that is the part of ADR-0280 that has not landed.
-    // Three APIs in the text stack still name a `:natives` type in an exported
-    // signature -- `Font.shape` returns a `GlyphRun`, `Paragraph.measureFunction`
-    // returns a `MeasureFunction`, and `Frame.drawGlyphs` takes a `BlendFont` and
-    // a `BlendGlyphBuffer` -- so dropping `transitive` would leave those
-    // unreadable by the modules that already compile against them.
+    // **Not `transitive`, and that is the end of ADR-0280** (ADR-0290). No type
+    // of `:natives` appears in a signature this module exports, so nothing that
+    // requires `:core` needs to be able to read it -- and `-Xlint:exports` under
+    // `-Werror` is what says so, not a comment: adding `transitive` back and
+    // naming a `BlendFont` in a public method fails the build at that method.
     //
-    // `-Xlint:exports` under `-Werror` names all eleven sites the moment this
-    // word is removed, which is a better enumeration of the remaining work than
-    // any list written by hand. None of the three has a consumer outside `:core`.
-    requires transitive io.github.digitalsmile.goldberry.natives;
+    // The last three sites were `Font.shape` returning a `GlyphRun` (ADR-0282),
+    // `Paragraph.measureFunction` returning a `MeasureFunction` (ADR-0279), and
+    // `Frame.drawGlyphs` taking a `BlendFont` and a `BlendGlyphBuffer`. The third
+    // was the stubborn one: the other two were *values* and a value can be
+    // mirrored, where a font and a staged buffer are handles whose owner had to
+    // move. `paint.GlyphPen` is where they live now.
+    requires io.github.digitalsmile.goldberry.natives;
 
     // Named here rather than taken through :natives. Logging is not the native
     // layer's to lend: this module reaches for it directly, which is what makes
