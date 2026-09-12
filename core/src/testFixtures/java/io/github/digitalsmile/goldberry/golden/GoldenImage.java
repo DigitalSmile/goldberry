@@ -7,7 +7,9 @@ import java.util.function.Consumer;
 
 import org.opentest4j.AssertionFailedError;
 
-import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.offscreen.Offscreen;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
 /// Renders a scene and compares it against a committed image.
 ///
@@ -81,16 +83,48 @@ public final class GoldenImage {
             float scale,
             Consumer<io.github.digitalsmile.goldberry.paint.Frame> scene) {
 
-        var target = TestFrames.of(width, height, scale);
-        try {
-            scene.accept(target.frame());
-        } finally {
-            // Before reading a pixel: Blend2D may still have work queued, and a
-            // buffer read from an unended context is half-drawn (ADR-0042).
-            target.end();
-        }
+        assertMatches(name, width, height, scale, painting(scene));
+    }
 
-        var actual = toImage(target, width, height);
+    /// A scene that is rendered rather than painted — a whole widget tree, for
+    /// instance.
+    ///
+    /// The size and the scale are arguments rather than captured by the caller
+    /// because of the scale sweep below: the same scene has to be re-rendered at
+    /// 2&times; and 1.5&times; into a correspondingly larger buffer, and a scene
+    /// that had already decided how big it was could not be.
+    @FunctionalInterface
+    public interface Scene {
+
+        /// Renders into a buffer of `size` physical pixels at `scale`.
+        io.github.digitalsmile.goldberry.image.Image render(PhysicalSize size, DisplayScale scale);
+    }
+
+    /// A [Scene] that runs a painter over the whole buffer — what the
+    /// [Consumer][java.util.function.Consumer] form above is, once.
+    ///
+    /// Package-private because [ScaleInvariance] needs the same adapter for its
+    /// own painter-shaped entry point, and because an application would call
+    /// `Offscreen` directly rather than going through a golden harness.
+    static Scene painting(Consumer<io.github.digitalsmile.goldberry.paint.Frame> scene) {
+        return (size, scale) -> Offscreen.of(size).scale(scale).paint((frame, logical) -> scene.accept(frame));
+    }
+
+    /// [#assertMatches(String, int, int, float, Consumer)] for a scene that
+    /// renders itself.
+    public static void assertMatches(String name, int width, int height, float scale, Scene scene) {
+
+        // Through the shipped `Offscreen` rather than through a frame this
+        // harness opens itself (ADR-0284). It owns the buffer, the frame and the
+        // ending of it -- including the part that used to be a comment here,
+        // that a buffer read from a context which has not ended is half-drawn
+        // (ADR-0042).
+        //
+        // The point is not the four lines saved. It is that every golden in this
+        // repository is now a test of the API an application would use to take
+        // the same picture: if `Offscreen` and a window ever disagree about how a
+        // scene is drawn, a golden moves.
+        var actual = toImage(scene.render(new PhysicalSize(width, height), new DisplayScale(scale)));
         var goldenFile = GOLDEN_DIR.resolve(name + ".png");
 
         if (Boolean.getBoolean(UPDATE_PROPERTY)) {
@@ -124,14 +158,24 @@ public final class GoldenImage {
                 + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
     }
 
-    /// Package-private so [ScaleInvariance] can read back the frame it drew the
-    /// same way this does.
-    static Png.Image toImage(TestFrames.Target target, int width, int height) {
-        var pixels = target.buffer().pixels().duplicate().order(ByteOrder.LITTLE_ENDIAN);
+    /// A rendered image as the harness's own pixel record.
+    ///
+    /// Package-private so [ScaleInvariance] can read back what it drew the same
+    /// way this does.
+    ///
+    /// **Premultiplied**, which is what the buffer holds and not what
+    /// `Image.argb` returns. A golden is a comparison between two rasters and
+    /// never a colour anybody names, so the two sides only have to agree with
+    /// each other — and unpremultiplying both would round twice for nothing.
+    static Png.Image toImage(io.github.digitalsmile.goldberry.image.Image image) {
+        var buffer = image.pixels();
+        var pixels = buffer.pixels().duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        var width = image.width();
+        var height = image.height();
         var argb = new int[width * height];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                argb[y * width + x] = pixels.getInt(y * target.buffer().stride() + x * 4);
+                argb[y * width + x] = pixels.getInt(y * buffer.stride() + x * 4);
             }
         }
         return new Png.Image(width, height, argb);

@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -31,7 +32,6 @@ import io.github.digitalsmile.goldberry.widgets.form.Carets;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
-import io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit;
 
 /// The node a stylesheet calls `text-area`.
 ///

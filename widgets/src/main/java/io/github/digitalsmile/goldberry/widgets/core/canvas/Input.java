@@ -73,9 +73,22 @@ public interface Input {
     /// Committed text, when this canvas has the focus.
     ///
     /// Not the same as [#onKey]: this is what an input method produced, which for
-    /// anything but a Latin keyboard is not a key at all. In-canvas *editing* —
-    /// a caret, a selection, preedit — is `docs/gaps.md` G6 and is not this.
+    /// anything but a Latin keyboard is not a key at all. It is what
+    /// [io.github.digitalsmile.goldberry.text.edit.Editor#onText] takes, which is
+    /// how a canvas gets a caret in it (ADR-0285).
     default void onText(TextEvent event) {}
+
+    /// The focus arrived or left.
+    ///
+    /// **What a caret is for.** Everything else a canvas draws looks the same
+    /// focused or not, so this was not worth a method until something on a canvas
+    /// had to stop blinking when the user clicked elsewhere (ADR-0285). A canvas
+    /// that ignores it draws the same picture either way, which is what a chart
+    /// wants.
+    ///
+    /// @param fromKeyboard whether the focus arrived by `Tab` rather than by a
+    ///        click — the same distinction `:focus-visible` is drawn on
+    default void onFocusChanged(boolean focused, boolean fromKeyboard) {}
 
     /// What a screen reader should call this canvas, or null for nothing.
     ///
@@ -88,6 +101,22 @@ public interface Input {
     /// is the same rule every other widget's name follows.
     default @Nullable String accessibleName() {
         return null;
+    }
+
+    /// Whether the platform's text input — the input method, the dead keys, the
+    /// on-screen keyboard where there is one — should be on while this canvas has
+    /// the focus.
+    ///
+    /// **False by default, and this is the switch a canvas being typed into
+    /// needs.** Committed text is delivered to whatever has the focus, but on a
+    /// desktop the platform does not *produce* any until it is told that
+    /// something is being typed into: a canvas holding an
+    /// [io.github.digitalsmile.goldberry.text.edit.Editor] and not saying so gets
+    /// keys and never a character (ADR-0285). A board that only wants arrow keys
+    /// leaves it false, because turning it on pops a keyboard over the board on
+    /// the platforms that have one.
+    default boolean wantsText() {
+        return false;
     }
 
     /// Whether this canvas takes the focus, and so whether keys reach it.

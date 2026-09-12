@@ -104,11 +104,13 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.tree;
 
     /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
-    /// it, and the editing model it is built on
-    /// ([io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]) is
-    /// exported beside it: `text-area`, `code-input` and every picker that owns
-    /// a typed field are the same editing rules over a different widget, and an
-    /// application writing its own field should not have to reimplement them.
+    /// it; what it is built on is **not here any more**. The editing model —
+    /// [io.github.digitalsmile.goldberry.text.edit.TextEdit] and its undo stack —
+    /// moved to `:core`'s text stack, because nothing in it ever named a widget
+    /// and an application editing text on a `canvas` could not reach a control's
+    /// package to borrow it (ADR-0285). `text-area`, `code-input` and every
+    /// picker that owns a typed field read it from there now, and so can an
+    /// application.
     exports io.github.digitalsmile.goldberry.widgets.form.textinput;
 
     /// §4's layout contract and its validation model.

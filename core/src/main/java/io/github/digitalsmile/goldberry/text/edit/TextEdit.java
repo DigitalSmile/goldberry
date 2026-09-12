@@ -1,15 +1,20 @@
-package io.github.digitalsmile.goldberry.widgets.form.textinput;
+package io.github.digitalsmile.goldberry.text.edit;
 
 import java.text.BreakIterator;
 import java.util.Objects;
 
-/// The text of a field, and where the caret and the selection are in it.
+/// A string being edited, and where the caret and the selection are in it.
 ///
 /// **A value.** Every operation returns a new `TextEdit` rather than changing
 /// this one, which is the same choice `Widget` makes and it buys the same three
-/// things: a `State` holds one and swaps it, undo is a stack of these rather
-/// than a log of inverse operations, and every editing rule in `docs/core-widgets.md`
+/// things: a holder swaps one for another, undo is a stack of these rather than a
+/// log of inverse operations, and every editing rule in `docs/core-widgets.md`
 /// §4 can be tested without a window, a font or a frame.
+///
+/// **It does not know it is in a control.** This lived in `text-input`'s package
+/// until ADR-0285 and never named a widget while it did; the words "field" below
+/// are the shortest name for "the string being edited" and not a claim about what
+/// is drawing it. [Editor] is the same rules driven from a `canvas`.
 ///
 /// The cost is a `String` copy per keystroke. For a single-line field that is a
 /// few hundred characters of `System.arraycopy` and is not measurable beside the

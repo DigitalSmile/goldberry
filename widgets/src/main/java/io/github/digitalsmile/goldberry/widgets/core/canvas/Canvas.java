@@ -153,6 +153,22 @@ public record Canvas(@Nullable Painter painter, @Nullable Input input, Attribute
         }
     }
 
+    /// Whether the platform's input method is on while this canvas has the
+    /// keyboard — [Input#wantsText()], and false when there is no input at all.
+    @Override
+    public boolean wantsTextInput() {
+        return input != null && input.wantsText();
+    }
+
+    /// Passed through so a painter can draw a caret only while it is being typed
+    /// into (ADR-0285).
+    @Override
+    public void onFocusChanged(boolean focused, boolean fromKeyboard) {
+        if (input != null) {
+            input.onFocusChanged(focused, fromKeyboard);
+        }
+    }
+
     @Override
     public void onText(TextEvent event) {
         if (input != null) {

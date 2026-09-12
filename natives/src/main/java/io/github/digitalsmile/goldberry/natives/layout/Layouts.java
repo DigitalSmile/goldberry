@@ -461,6 +461,26 @@ public final class Layouts {
                     ValueLayout.JAVA_DOUBLE.withName("h")));
 
     /// ```c
+    /// struct BLRectI { int x, y, w, h; };
+    /// ```
+    ///
+    /// Integers, and [#BL_RECT]'s reasoning inverted: this is the *source*
+    /// rectangle of a blit, which addresses an image's own pixels rather than a
+    /// position in the coordinate space. Half a source pixel is not a thing an
+    /// image has.
+    ///
+    /// Added for `Frame.drawImage`'s crop (ADR-0283). The C probe reported this
+    /// struct from the beginning — see `goldberry_shim.c` — so the row was
+    /// verified on all four targets before anything in Java named it.
+    public static final NativeStructLayout BL_RECT_I = new NativeStructLayout(
+            "BLRectI",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h")));
+
+    /// ```c
     /// struct BLSizeI { int w, h; };
     /// ```
     public static final NativeStructLayout BL_SIZE_I = new NativeStructLayout(
@@ -737,6 +757,7 @@ public final class Layouts {
                 BL_IMAGE_DATA,
                 BL_CONTEXT_CREATE_INFO,
                 BL_RECT,
+                BL_RECT_I,
                 BL_SIZE_I,
                 BL_POINT_I,
                 BL_POINT,

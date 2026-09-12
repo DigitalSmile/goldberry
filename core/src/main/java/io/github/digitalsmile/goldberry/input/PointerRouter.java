@@ -465,6 +465,27 @@ public final class PointerRouter {
         sink.accept(cursor);
     }
 
+    /// Whether the platform's text input was last asked to be on.
+    private boolean textInputActive;
+
+    private Consumer<Boolean> textInputSink = active -> {};
+
+    /// Where to send "the focused widget is typed into" when it changes.
+    ///
+    /// [#onCursorChange]'s twin, and for the same reason: turning an input method
+    /// on is a platform call, the router must not know about the platform, and
+    /// the widget must not know about the window. `Window` wires this to the
+    /// backend; a test wires it to a flag (ADR-0285).
+    public void onTextInputChange(Consumer<Boolean> sink) {
+        this.textInputSink = Objects.requireNonNull(sink, "sink");
+        sink.accept(textInputActive);
+    }
+
+    /// Whether the focused widget has asked for the platform's text input.
+    public boolean textInputActive() {
+        return textInputActive;
+    }
+
     /// What the pointer currently looks like.
     public Cursor cursor() {
         return cursor;
@@ -754,6 +775,11 @@ public final class PointerRouter {
                 mark(focused, PseudoClass.FOCUS_VISIBLE, true);
             }
         }
+        // Before the handlers, not after: `text-input` turns the platform's input
+        // on from its own `onFocusChanged` for the read-only and disabled cases
+        // this cannot see, and whoever speaks last wins. Asking first and letting
+        // a control correct it is the order that leaves both right (ADR-0285).
+        updateTextInput();
         // After both pseudo-classes are settled, because a handler may look at
         // them -- and after `focused` is reassigned, because a handler that
         // raises a change will have this router asked about focus again before
@@ -765,6 +791,17 @@ public final class PointerRouter {
             notifyFocus(focused, true, fromKeyboard);
         }
         notifyFocusWithin(lost, focused, fromKeyboard);
+    }
+
+    /// Asks whatever has the focus whether it is typed into, and tells the window
+    /// if the answer changed.
+    private void updateTextInput() {
+        var wanted = focused != null && focused.widget() instanceof Handles handles && handles.wantsTextInput();
+        if (wanted == textInputActive) {
+            return;
+        }
+        textInputActive = wanted;
+        textInputSink.accept(wanted);
     }
 
     private static void notifyFocus(Element element, boolean gained, boolean fromKeyboard) {

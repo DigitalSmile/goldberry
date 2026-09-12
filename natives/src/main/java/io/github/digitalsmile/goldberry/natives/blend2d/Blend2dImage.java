@@ -4,6 +4,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.calls.ImageCalls;
@@ -24,6 +25,13 @@ final class Blend2dImage {
     private static final long IMAGE_DATA_STRIDE = Layouts.BL_IMAGE_DATA.offsetOf("stride");
 
     private static final long IMAGE_DATA_FORMAT = Layouts.BL_IMAGE_DATA.offsetOf("format");
+
+    /// `BLImageData.size` is a nested `BLSizeI`, so its two ints are at the
+    /// struct's offset and four bytes past it. Read through the layout rather
+    /// than assumed, for the reason every other offset here is.
+    private static final long IMAGE_DATA_WIDTH = Layouts.BL_IMAGE_DATA.offsetOf("size");
+
+    private static final long IMAGE_DATA_HEIGHT = IMAGE_DATA_WIDTH + Integer.BYTES;
 
     private static final class Holder {
         private static final Blend2dImage INSTANCE =
@@ -75,6 +83,63 @@ final class Blend2dImage {
         check("bl_image_destroy", calls.imageDestroy().call(image));
     }
 
+    /// Initialises `image` as an empty one, owning nothing.
+    ///
+    /// `BLResult bl_image_init(BLImageCore*)`
+    void imageInit(MemorySegment image) {
+        check("bl_image_init", calls.imageInit().call(image));
+    }
+
+    /// Decodes `data` into `image`, which Blend2D resizes and allocates for.
+    ///
+    /// `BLResult bl_image_read_from_data(BLImageCore*, const void*, size_t,`
+    /// `const BLArrayCore* codecs)`
+    ///
+    /// NULL codecs, which Blend2D reads as "the built-in ones" — this library is
+    /// compiled with the PNG, JPEG and QOI codecs in it, so no codec object has
+    /// to be constructed and no `bl_image_codec_*` symbol is bound (ADR-0283).
+    void imageReadFromData(MemorySegment image, MemorySegment data, long size) {
+        check("bl_image_read_from_data", calls.imageReadFromData().call(image, data, size, MemorySegment.NULL));
+    }
+
+    /// Converts `image` to `format`, in place.
+    ///
+    /// `BLResult bl_image_convert(BLImageCore*, BLFormat)`
+    void imageConvert(MemorySegment image, BlendFormat format) {
+        check("bl_image_convert", calls.imageConvert().call(image, format.nativeValue()));
+    }
+
+    /// Copies `image`'s pixels into `destination`, row by row.
+    ///
+    /// **Where the decode stops being Blend2D's.** The segment built here is the
+    /// only one in this module that points at memory Blend2D allocated, it is
+    /// reinterpreted to exactly the rows the image says it has, and it does not
+    /// leave this method — §3.1's rule is that a segment never leaves the module,
+    /// and the narrower rule this keeps is that it never leaves the call.
+    ///
+    /// Row by row rather than in one `copy`, because the two strides need not
+    /// agree: Blend2D pads a row to its own alignment and the destination is
+    /// whatever the caller allocated.
+    ///
+    /// @param destination a direct buffer, at least `stride * (height - 1) + width * 4` bytes
+    /// @param destinationStride bytes per row in `destination`
+    // Restricted: `bl_image_get_data` reports an address and carries no extent,
+    // so the pointer has to be resized before anything can be read through it.
+    // The extent given is the one the image itself just stated -- its stride
+    // times one row short of its height, plus a row -- which is exactly the
+    // region Blend2D allocated and nothing more.
+    @SuppressWarnings("restricted")
+    void copyPixels(MemorySegment image, ByteBuffer destination, int destinationStride) {
+        var data = imageData(image);
+        var rowBytes = Math.multiplyExact(data.width(), 4);
+        var source = MemorySegment.ofAddress(data.pixels())
+                .reinterpret(Math.addExact(Math.multiplyExact(data.stride(), data.height() - 1L), rowBytes));
+        var into = MemorySegment.ofBuffer(destination);
+        for (var y = 0; y < data.height(); y++) {
+            MemorySegment.copy(source, y * data.stride(), into, (long) y * destinationStride, rowBytes);
+        }
+    }
+
     /// Reads back where Blend2D thinks the pixels are.
     ///
     /// Used by the tests rather than by the paint path: it is how "the image
@@ -87,6 +152,8 @@ final class Blend2dImage {
             return new ImageData(
                     data.get(ValueLayout.ADDRESS, IMAGE_DATA_PIXELS).address(),
                     data.get(ValueLayout.JAVA_LONG, IMAGE_DATA_STRIDE),
+                    data.get(ValueLayout.JAVA_INT, IMAGE_DATA_WIDTH),
+                    data.get(ValueLayout.JAVA_INT, IMAGE_DATA_HEIGHT),
                     BlendFormat.of(data.get(ValueLayout.JAVA_INT, IMAGE_DATA_FORMAT)));
         }
     }
@@ -94,7 +161,11 @@ final class Blend2dImage {
     /// What `bl_image_get_data` reported. Addresses as `long`, because a raw
     /// [MemorySegment] may not leave this module and a test only needs to
     /// compare the number.
-    record ImageData(long pixels, long stride, BlendFormat format) {}
+    ///
+    /// The size is read back rather than remembered because of the decode: a
+    /// [BlendImage] over a borrowed buffer was told how big it is, and an image
+    /// `bl_image_read_from_data` filled in was not.
+    record ImageData(long pixels, long stride, int width, int height, BlendFormat format) {}
 
     /// A `BLResult` that is not `BL_SUCCESS` is the call reporting a problem, not
     /// the crossing failing -- so it is raised as a [BlendException] naming the

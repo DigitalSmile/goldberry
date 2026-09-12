@@ -8,7 +8,8 @@ import java.util.function.Consumer;
 import org.opentest4j.AssertionFailedError;
 
 import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
 /// The second half of a golden: the same scene, drawn at another display scale.
 ///
@@ -123,13 +124,9 @@ public final class ScaleInvariance {
     /// @param height likewise
     public static void assertSamePictureAtEveryScale(String name, int width, int height, Consumer<Frame> scene) {
 
-        var target = TestFrames.of(width, height, 1.0f);
-        try {
-            scene.accept(target.frame());
-        } finally {
-            target.end();
-        }
-        assertScaleInvariant(name, width, height, 1.0f, scene, GoldenImage.toImage(target, width, height));
+        var rendered = GoldenImage.painting(scene);
+        var reference = GoldenImage.toImage(rendered.render(new PhysicalSize(width, height), DisplayScale.ONE));
+        assertScaleInvariant(name, width, height, 1.0f, rendered, reference);
     }
 
     /// Re-renders `scene` at each configured multiple of `scale` and asserts it
@@ -139,7 +136,7 @@ public final class ScaleInvariance {
     /// question is whether the renderer agrees with itself across scales, and
     /// comparing against the file would fold in a stale golden as well.
     static void assertScaleInvariant(
-            String name, int width, int height, float scale, Consumer<Frame> scene, Png.Image reference) {
+            String name, int width, int height, float scale, GoldenImage.Scene scene, Png.Image reference) {
 
         for (var multiplier : multipliers()) {
             var result = measure(width, height, scale, multiplier, scene, reference);
@@ -189,22 +186,16 @@ public final class ScaleInvariance {
     /// Paints the scene at `scale * multiplier` into the same logical area and
     /// brings it back to the reference's size.
     private static Result measure(
-            int width, int height, float scale, float multiplier, Consumer<Frame> scene, Png.Image reference) {
+            int width, int height, float scale, float multiplier, GoldenImage.Scene scene, Png.Image reference) {
 
-        // The frame is described in PHYSICAL pixels (TestFrames), so both the
+        // The render is described in PHYSICAL pixels (Offscreen), so both the
         // buffer and the scale are multiplied and the logical size — which is
         // the buffer divided by the scale — comes out unchanged. That is the
         // whole setup: same picture to draw, different device to draw it on.
         var physicalWidth = Math.round(width * multiplier);
         var physicalHeight = Math.round(height * multiplier);
-        var target = TestFrames.of(physicalWidth, physicalHeight, scale * multiplier);
-        try {
-            scene.accept(target.frame());
-        } finally {
-            target.end();
-        }
-
-        var drawn = GoldenImage.toImage(target, physicalWidth, physicalHeight);
+        var drawn = GoldenImage.toImage(
+                scene.render(new PhysicalSize(physicalWidth, physicalHeight), new DisplayScale(scale * multiplier)));
         var resampled = resample(drawn, width, height);
         return compare(reference, resampled, multiplier);
     }

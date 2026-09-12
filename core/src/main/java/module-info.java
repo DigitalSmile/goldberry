@@ -139,6 +139,22 @@ module io.github.digitalsmile.goldberry.core {
     // because `Easing` is named by a `transition` a stylesheet writes.
     exports io.github.digitalsmile.goldberry.motion;
 
+    // A decoded image, and the PNG encoder that writes one back out (ADR-0283).
+    // Its own package rather than a class in `paint`, because `paint` is not the
+    // only thing that wants the value: a frame draws one, an offscreen render
+    // produces one, and a clipboard will carry one -- and `paint` already depends
+    // on `render`, so an Image in `paint` would have pointed that dependency both
+    // ways.
+    exports io.github.digitalsmile.goldberry.image;
+    exports io.github.digitalsmile.goldberry.image.png;
+
+    // Rendering a scene without a window (ADR-0284): a painter or a whole widget
+    // tree into an `image.Image`. Its own package rather than part of `render`,
+    // because `render` is the backend SPI underneath everything and this composes
+    // the layers above it -- the element tree, the cascade, the render tree and
+    // the paint pipeline.
+    exports io.github.digitalsmile.goldberry.offscreen;
+
     // Icons: the bundled Lucide set and the SVG path reader that gets it onto a
     // Blend2D path (ADR-0043). Separate from `text` because an icon shares
     // nothing with the font chain except the context it is drawn into.
@@ -148,6 +164,13 @@ module io.github.digitalsmile.goldberry.core {
     // libraries know nothing of each other, and this package is what holds them
     // to the one thing they must agree on: the units a glyph position is in.
     exports io.github.digitalsmile.goldberry.text;
+
+    // Editing text: the caret, the selection, the undo stack and where a caret
+    // lands on a wrapped paragraph (ADR-0285). Its own package beside the shaping
+    // it is arithmetic over, and exported because an application editing text on
+    // a `canvas` -- a sticky, a label on a shape -- is the case the widget
+    // catalogue cannot serve.
+    exports io.github.digitalsmile.goldberry.text.edit;
 
     // The font chain -- a face, a sized font, and the fallback list a
     // paragraph is shaped against -- separately from the paragraph itself

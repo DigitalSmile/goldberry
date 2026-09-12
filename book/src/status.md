@@ -14,7 +14,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
-| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input too |
+| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image and takes a caret; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
@@ -6611,6 +6611,48 @@ signature** — was never written down and was broken in two families.
   focusable immediately failed `SemanticsSweepTest` — every focusable widget must
   say what it is — so a canvas is a `Role.FIGURE` and its name is the
   application's.
+- **And a canvas can draw an image** ([ADR-0283](adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)),
+  which was `docs/gaps.md` G4 and is what G5 and G7 were waiting on. `image.Image`
+  decodes PNG, JPEG and QOI — the codecs were compiled into `libgoldberry` from
+  M0 and the export list had simply never named them — and is a **value**: the
+  decoder's allocation is copied into a `PixelBuffer` and destroyed before
+  `decode` returns, so there is no `close()`, no lifetime, and the showcase holds
+  one in a static field. Three symbols were added and no more, because the PNG
+  *writer* is `java.base`'s `Deflater` and four chunks rather than seven more
+  bindings — ADR-0278's reasoning a second time. `Frame.drawImage` has four
+  overloads, and natural size is one image pixel per **device** pixel, so the
+  scale sweep over the Canvas golden is what checks it. The one exception to "a
+  rasterizer never allocates our pixels" is the decoder, because the size of a PNG
+  is inside the PNG; it lasts one `try` block.
+- **And a scene can be photographed with no window**
+  ([ADR-0284](adr/0284-a-picture-with-no-window-under-it.md)), which was
+  `docs/gaps.md` G5 — a server-rendered preview, an OpenGraph card, an export.
+  `offscreen.Offscreen` runs the window's own sequence: three passes, two of them
+  measuring and drawing nothing, with a **virtual** clock so the same document is
+  the same picture twice. The pieces were all public; the sequence existed only
+  inside `Launcher` and inside a golden harness that had copied it.
+  **The harness is a consumer of it now**, so every golden in the repository is a
+  test of the API an application would use — and wiring it up immediately found a
+  bug: the harness never called `ElementTree.flush()`, so a `masonry` rearranging
+  itself when told its column widths was applied in a window and never in a
+  golden. Nine gallery images were re-blessed; removing only that one call
+  reproduces all nine of the old ones byte for byte, which is what says it was the
+  cause.
+- **And text can be edited outside a control**
+  ([ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)), which
+  is `docs/gaps.md` G6 apart from IME preedit. `TextEdit` and `EditHistory` were
+  already built and in the wrong module — the rules of text editing lived inside
+  `text-input` — so they moved to `text.edit` beside the shaping they are
+  arithmetic over. What was genuinely missing is the two-dimensional half:
+  `TextGeometry` answers where a caret is on a **wrapped** paragraph, what `Up`
+  means when lines differ in length (a column is an *x*, not a character count),
+  and what shape a selection is across a line break. `Editor` is the whole editor
+  without a widget — `text-input`'s key map, its undo coalescing and its
+  clipboard, over a canvas at any transform — and `Input` gained
+  `onFocusChanged`, because everything else a canvas draws looks the same focused
+  or not and a caret does not. **IME preedit is not in it**:
+  `SDL_EVENT_TEXT_EDITING` is not bound at all, which is M5's item and G15's
+  entry.
 
 ## M4 — GPU
 

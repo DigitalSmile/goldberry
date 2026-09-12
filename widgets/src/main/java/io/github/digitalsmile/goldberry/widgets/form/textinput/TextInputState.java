@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.edit.EditHistory;
+import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -242,11 +244,12 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // because a popup is not a value and is not collected with the tree.
         closeSuggestions();
         stopBlinking();
-        if (focused && host != null) {
-            // The window would otherwise keep an on-screen keyboard up for a
-            // field that has gone away.
-            host.textInput(false);
-        }
+        // The platform's text input is **not** turned off here any more. It is
+        // the router's now (ADR-0285), and the router is the one that knows what
+        // has the focus *after* this field has gone: a field that turned it off
+        // on the way out left the router believing it was still on, so the next
+        // field focused agreed with the stale answer and was never told. The
+        // router notices the unmount on the same frame, through `refocus`.
         super.dispose();
     }
 

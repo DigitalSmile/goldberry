@@ -17,13 +17,24 @@ import io.github.digitalsmile.goldberry.natives.Downcalls;
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
 public record ImageCalls(
-        ImageInitAsFromData imageInitAsFromData, ImageDestroy imageDestroy, ImageGetData imageGetData) {
+        ImageInitAsFromData imageInitAsFromData,
+        ImageInit imageInit,
+        ImageReadFromData imageReadFromData,
+        ImageConvert imageConvert,
+        ImageDestroy imageDestroy,
+        ImageGetData imageGetData) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static ImageCalls bind(SymbolLookup lookup) {
-        return new ImageCalls(new ImageInitAsFromData(lookup), new ImageDestroy(lookup), new ImageGetData(lookup));
+        return new ImageCalls(
+                new ImageInitAsFromData(lookup),
+                new ImageInit(lookup),
+                new ImageReadFromData(lookup),
+                new ImageConvert(lookup),
+                new ImageDestroy(lookup),
+                new ImageGetData(lookup));
     }
 
     /// Wraps memory the caller owns as an image, copying nothing.
@@ -69,6 +80,100 @@ public record ImageCalls(
                         address, image, width, height, format, pixels, stride, accessFlags, destroyFunc, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_image_init_as_from_data", t);
+            }
+        }
+    }
+
+    /// Initialises an empty image — no pixels, no size, nothing allocated.
+    ///
+    /// The starting point for a *decode* rather than for a frame:
+    /// [ImageReadFromData] is what gives it a size, because only the decoder
+    /// knows one (ADR-0283).
+    ///
+    /// `int bl_image_init(void*)`
+    ///
+    /// @param image an uninitialised `BLImageCore` to take over
+    public static final class ImageInit {
+
+        private static final MethodHandle FD_bl_image_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        ImageInit(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_image_init");
+        }
+
+        public int call(MemorySegment image) {
+            try {
+                return (int) FD_bl_image_init.invokeExact(address, image);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_image_init", t);
+            }
+        }
+    }
+
+    /// Decodes encoded bytes — a PNG, a JPEG, a QOI — into an image Blend2D
+    /// allocates.
+    ///
+    /// **The one call here that allocates pixels.** Everything else in this
+    /// module hands Blend2D memory Java already owns, and cannot: the size of a
+    /// PNG is inside the PNG. The wrapper copies the result out and destroys the
+    /// image on the same call, so the allocation does not outlive the decode
+    /// (ADR-0283).
+    ///
+    /// `int bl_image_read_from_data(void*, const void*, size_t, const void*)`
+    ///
+    /// @param image an initialised `BLImageCore` to decode into
+    /// @param data the first encoded byte
+    /// @param size how many bytes there are
+    /// @param codecs a `BLArray` of codecs to consider, or NULL for the built-in
+    ///        ones — which is what this library is compiled with
+    public static final class ImageReadFromData {
+
+        private static final MethodHandle FD_bl_image_read_from_data =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS));
+
+        private final MemorySegment address;
+
+        ImageReadFromData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_image_read_from_data");
+        }
+
+        public int call(MemorySegment image, MemorySegment data, long size, MemorySegment codecs) {
+            try {
+                return (int) FD_bl_image_read_from_data.invokeExact(address, image, data, size, codecs);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_image_read_from_data", t);
+            }
+        }
+    }
+
+    /// Converts an image to another pixel format, in place.
+    ///
+    /// What a decode needs after it: a PNG with no alpha channel arrives as
+    /// `XRGB32` and every buffer in this toolkit is premultiplied BGRA, so the
+    /// format is normalised once here rather than asked about at every blit.
+    ///
+    /// `int bl_image_convert(void*, int)`
+    ///
+    /// @param image the image to convert
+    /// @param format a `BLFormat`
+    public static final class ImageConvert {
+
+        private static final MethodHandle FD_bl_image_convert =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        ImageConvert(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_image_convert");
+        }
+
+        public int call(MemorySegment image, int format) {
+            try {
+                return (int) FD_bl_image_convert.invokeExact(address, image, format);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_image_convert", t);
             }
         }
     }

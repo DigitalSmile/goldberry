@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -191,6 +192,18 @@ record TextField(
     /// exceptions are `Tab`, which is focus traversal and must reach the router,
     /// and `Enter` and `Escape`, which belong to the form or the dialog around
     /// this and not to the field.
+    /// The platform's text input is on while a field that can be typed into has
+    /// the keyboard.
+    ///
+    /// Declared as well as set from [TextEditor#focusChanged], which is not
+    /// belt and braces: the router asks this *before* the handlers run and the
+    /// state corrects it afterwards, so the two orders agree and a field that is
+    /// disabled between frames is still right (ADR-0285).
+    @Override
+    public boolean wantsTextInput() {
+        return !disabled && !readOnly;
+    }
+
     @Override
     public void onKey(KeyEvent event) {
         if (disabled || event.kind() != KeyEvent.Kind.PRESSED) {

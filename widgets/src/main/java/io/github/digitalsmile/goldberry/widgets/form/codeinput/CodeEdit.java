@@ -5,7 +5,7 @@ import java.util.Objects;
 /// What a [CodeInput] holds, and which box is next — §4's editing model for the
 /// one-time-code field.
 ///
-/// **A value**, for [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]'s
+/// **A value**, for [io.github.digitalsmile.goldberry.text.edit.TextEdit]'s
 /// reasons: a `State` holds one and swaps it, and every rule §4 states can be
 /// tested with no font, no frame and no window.
 ///

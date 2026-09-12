@@ -410,6 +410,9 @@ panel.surface-demo {
    So every canvas on this screen is given a height here, and that is the whole
    of what these rules are for. */
 #paths,
+#images,
+#rendered,
+#sticky,
 #pointer,
 #plan {
   height: 200px;
@@ -438,6 +441,13 @@ panel.surface-demo {
 
 #plan {
   cursor: grab;
+}
+
+/* The one canvas on this screen that is typed into. `text` is what a reader
+   expects over something with a caret in it, and `cursor:` on a canvas is the
+   stylesheet's like it is on any other box (ADR-0285). */
+#sticky {
+  cursor: text;
 }
 
 /* --- Navigation ------------------------------------------------------------ */

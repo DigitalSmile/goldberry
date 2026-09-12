@@ -111,6 +111,25 @@ public interface Handles extends Widget {
 
     default void onText(TextEvent event) {}
 
+    /// Whether the **platform's** text input should be on while this widget has
+    /// the focus.
+    ///
+    /// Not the same question as [#onText]: every focused widget is offered
+    /// committed text, and on a desktop the platform sends it whether or not
+    /// anybody asked. What this turns on is `SDL_StartTextInput` — the input
+    /// method, the dead keys, the on-screen keyboard on the platforms that have
+    /// one — and leaving it on for a board that only wants arrow keys pops a
+    /// keyboard over the board (ADR-0285).
+    ///
+    /// False by default, so a widget that is not typed into costs nothing. The
+    /// router asks the focused widget on every focus change and tells the window,
+    /// which is the same one-wire arrangement the cursor has (§7.3): the router
+    /// knows nothing about the platform and the widget knows nothing about the
+    /// window.
+    default boolean wantsTextInput() {
+        return false;
+    }
+
     /// Whether this widget can take keyboard focus.
     ///
     /// False by default: most nodes are scenery, and a Tab traversal that

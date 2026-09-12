@@ -565,6 +565,82 @@ description had no effect.
   ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
   measured a case that needs it.
 
+## Images, and what the primitive is not
+
+- **There is no `img` widget.** `image.Image` and `Frame.drawImage` are the
+  primitive ([ADR-0283](adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)),
+  and a `canvas` is how an application draws one today. A catalogue entry would
+  need `object-fit`, an intrinsic size that participates in layout, a loading and
+  an error state, and a decode that does not happen on the UI thread — which is a
+  widget's worth of decisions and not a drawing call's. Nothing has needed it:
+  the first consumer draws images onto a board it is already painting by hand.
+- **Nothing decodes off the UI thread.** `Image.decode` is synchronous, and a
+  large JPEG is tens of milliseconds. The seam exists — a decode is a pure
+  function from bytes to a value with no thread affinity at all, which is exactly
+  what ADR-0020's virtual threads are for — and nothing has measured a case that
+  needs it yet.
+- **No image cache.** Decoding the same file twice decodes it twice. A cache
+  wants an eviction policy and a key that is not a `byte[]`, and an application
+  holding its own `Map<Id, Image>` is what a value type makes easy.
+- **PNG is the only format written.** The decoder reads PNG, JPEG and QOI;
+  `encodePng` writes the first. JPEG encoding would be seven more exported
+  symbols and a codec object family, and is a decision with its own reasons
+  rather than a side effect of this one.
+- **One frame only.** `bl_image_read_from_data` decodes a single image; an APNG
+  or an animated GIF is a sequence and a clock, and would be its own record.
+- **No `Image.scaled(...)`.** Scaling happens at the blit, which is where the
+  destination size is known. A resampled *copy* — for a thumbnail written to disk
+  — is a different operation and would need a filter argument that
+  `bl_image_scale` has and nothing has asked for.
+
+## Rendering without a window
+
+- **The frame sequence exists twice.** `Launcher.paint` and `Offscreen` run the
+  same steps in the same order, and only one of them is the hot path with damage,
+  frame statistics, the HUD and the models' refresh woven through it
+  ([ADR-0284](adr/0284-a-picture-with-no-window-under-it.md)). Extracting the
+  common core is the right refactor and was not taken during a feature: what holds
+  them together meanwhile is that every golden image goes through `Offscreen`, so
+  a divergence moves a picture.
+- **No animation strip.** One call, one picture. A caller wanting frame 3 of a
+  transition wants to drive the clock between paints, which is an object with a
+  lifetime rather than a builder that renders once.
+- **No reuse and no cache.** Each render builds a fresh element tree and unmounts
+  it, so rendering the same document twice does the work twice. A font book can be
+  handed in and kept; nothing else can.
+- **Nothing renders off the UI thread**, and nothing says it must not. A render
+  touches no window and no backend, so a server thread is probably fine — "probably"
+  is why it is written here rather than in the javadoc. What would have to be
+  checked first is the shaping cache and Blend2D's own worker pool.
+
+## Editing text
+
+- **Two key maps.** `text.edit.Editor` and `TextField` map the same keys to the
+  same intents and agree because they were written from each other, not because
+  anything enforces it
+  ([ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)).
+  Converging them means `text-input` and `text-area` holding an `Editor` instead
+  of their own state machines — a rewrite of two controls, with a hundred golden
+  images and a full interaction suite behind them, and not something to do inside
+  a feature that was about something else.
+- **IME preedit is missing entirely**, and it is a native change before it is a
+  toolkit one: `SDL_EVENT_TEXT_EDITING` is not bound, `SDL_SetTextInputArea` is
+  not bound, and neither the router nor `Handles` has anywhere to deliver a
+  composition string to. Committed text works and always has, so a Latin keyboard
+  and most dictation is fine; what is missing is the inline candidate display a
+  CJK input method draws. M5 owns it and `docs/gaps.md` G15 states the shape.
+- **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
+  not promise visual order for mixed-direction text, and a caret in it needs a
+  walk the toolkit does not have. Latin, Cyrillic and CJK are exact; Arabic and
+  Hebrew are approximate in the same way the paragraph is.
+- **An `Editor` does not scroll.** It draws where it is told and does not know it
+  has been clipped. A canvas with a long document moves its own transform, which
+  it is already doing for everything else on it; a *widget* wanting this is
+  `text-area`, which has a viewport.
+- **No word-wrap-aware `PageUp`/`PageDown`.** The page is ten lines, hard-coded,
+  because an editor drawn on a canvas has no viewport to measure. A caller that
+  knows its own height moves the caret itself.
+
 ## Content modules
 
 `docs/content-widgets.md` specifies eleven optional modules; **none of them

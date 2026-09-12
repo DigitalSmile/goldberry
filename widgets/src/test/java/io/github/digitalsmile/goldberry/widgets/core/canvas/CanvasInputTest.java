@@ -47,6 +47,7 @@ class CanvasInputTest {
     private static final class Recorder implements Input {
         private final List<PointerEvent> pointers = new ArrayList<>();
         private final List<KeyEvent> keys = new ArrayList<>();
+        private final List<Boolean> focus = new ArrayList<>();
         private final boolean focusable;
 
         Recorder() {
@@ -65,6 +66,11 @@ class CanvasInputTest {
         @Override
         public void onKey(KeyEvent event) {
             keys.add(event);
+        }
+
+        @Override
+        public void onFocusChanged(boolean focused, boolean fromKeyboard) {
+            focus.add(focused);
         }
 
         @Override
@@ -212,6 +218,24 @@ class CanvasInputTest {
         @DisplayName("the input survives a change of attributes")
         void attributesSurvive() {
             assertSame(input, canvas.withAttributes(canvas.attributes()).input());
+        }
+
+        @Test
+        @DisplayName("the focus reaches the input, so a canvas can draw a caret")
+        void focusIsPassedThrough() {
+            // The one thing G3 did not need and G6 does: everything else a canvas
+            // draws looks the same focused or not, and a caret does not
+            // (ADR-0285).
+            canvas.onFocusChanged(true, true);
+            canvas.onFocusChanged(false, false);
+
+            assertEquals(List.of(true, false), input.focus);
+        }
+
+        @Test
+        @DisplayName("a canvas with no input still takes the focus notification without falling over")
+        void focusWithoutAnInput() {
+            new Canvas(null, null, canvas.attributes()).onFocusChanged(true, false);
         }
 
         @Test

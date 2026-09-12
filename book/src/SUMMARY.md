@@ -292,6 +292,9 @@
 - [ADR-0280 `:natives` exports to `:core`, and to nobody else](adr/0280-natives-exports-to-core-and-to-nobody-else.md)
 - [ADR-0281 A canvas hears what it draws on](adr/0281-a-canvas-hears-what-it-draws-on.md)
 - [ADR-0282 A shaped run is a value, and the last leak is one method](adr/0282-a-shaped-run-is-a-value-and-the-last-leak-is-one-method.md)
+- [ADR-0283 An image is a value, and the decoder is the one thing Blend2D allocates](adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)
+- [ADR-0284 A picture with no window under it](adr/0284-a-picture-with-no-window-under-it.md)
+- [ADR-0285 A caret is the text stack's, not a control's](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
 
 ---
 

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.edit.EditHistory;
+import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 
 /// What [TextField] tells its state, and the only thing the two share.
 ///

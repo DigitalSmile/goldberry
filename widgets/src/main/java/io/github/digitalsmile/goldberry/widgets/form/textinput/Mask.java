@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+
 /// What a `password` field draws instead of what it holds, and how to get back.
 ///
 /// One bullet per **code point**, which is what every platform does — a masked

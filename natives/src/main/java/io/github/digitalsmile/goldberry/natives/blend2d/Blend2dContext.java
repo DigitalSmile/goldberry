@@ -233,10 +233,22 @@ final class Blend2dContext {
     /// units, so the image is drawn to that size rather than one pixel per unit.
     /// The same, into a destination `BLRect` rather than at a point — which is
     /// what reconciles a raster measured in physical pixels with a context
-    /// measured in logical ones (ADR-0157). Same NULL `img_area`.
+    /// measured in logical ones (ADR-0157). NULL `img_area`, which Blend2D reads
+    /// as the whole image.
     void contextBlitScaledImage(MemorySegment context, MemorySegment rect, MemorySegment image) {
+        contextBlitScaledImage(context, rect, image, MemorySegment.NULL);
+    }
+
+    /// The same with an `img_area` — a `const BLRectI*` naming the part of the
+    /// source to draw.
+    ///
+    /// The first `BLRectI` to cross in either direction, which is why
+    /// `Layouts.BL_RECT_I` exists (ADR-0283). A layer never wanted one; a drawn
+    /// image with a crop does.
+    void contextBlitScaledImage(
+            MemorySegment context, MemorySegment rect, MemorySegment image, MemorySegment sourceRect) {
         int result;
-        result = calls.contextBlitScaledImageD().call(context, rect, image, MemorySegment.NULL);
+        result = calls.contextBlitScaledImageD().call(context, rect, image, sourceRect);
         check("bl_context_blit_scaled_image_d", result);
     }
 

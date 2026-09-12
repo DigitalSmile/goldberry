@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widgets.form.textinput;
+package io.github.digitalsmile.goldberry.text.edit;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

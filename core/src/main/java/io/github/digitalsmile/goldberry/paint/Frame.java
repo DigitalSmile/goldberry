@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
@@ -17,6 +18,7 @@ import io.github.digitalsmile.goldberry.paint.geom.Dasher;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
@@ -433,6 +435,111 @@ public final class Frame {
                     // Context state, so it must go back: the next thing drawn on
                     // this frame did not ask to be faded, and the bug would show
                     // up somewhere else entirely.
+                    context.globalAlpha(1);
+                }
+            }
+        }
+    }
+
+    /// Draws `image` at its natural size, with its top-left corner at logical
+    /// `(x, y)`.
+    ///
+    /// **Natural size means one image pixel per device pixel**, not per logical
+    /// unit: a 64&times;64 icon covers 64 logical pixels at 100% and 32 at 200%,
+    /// and is crisp on both. The alternative — 64 logical units everywhere —
+    /// would double its physical size on a retina display and smear it, which is
+    /// the bug ADR-0157 found in layers and is the same arithmetic here.
+    ///
+    /// An image that is meant to *scale* with the interface rather than stay
+    /// pixel-exact is one whose size the caller states, which is the overload
+    /// below.
+    public void drawImage(Image image, double x, double y) {
+        Objects.requireNonNull(image, "image");
+        var factor = scale.factor();
+        drawImage(image, image.bounds(), x, y, image.width() / factor, image.height() / factor, 1);
+    }
+
+    /// Draws `image` into the logical rectangle `(x, y, width, height)`, scaled to
+    /// fit it.
+    ///
+    /// Nothing here preserves the aspect ratio: a caller that wants `contain` or
+    /// `cover` behaviour is doing layout, and knows both the image's size and the
+    /// box's. Doing it silently would make the two cases indistinguishable.
+    public void drawImage(Image image, double x, double y, double width, double height) {
+        drawImage(image, x, y, width, height, 1);
+    }
+
+    /// The same, faded to `alpha`.
+    ///
+    /// One image faded once — unlike [#drawLayer], there is no group here for the
+    /// fade to mean anything subtler than "draw this more faintly".
+    ///
+    /// @param alpha 0 to 1
+    public void drawImage(Image image, double x, double y, double width, double height, double alpha) {
+        Objects.requireNonNull(image, "image");
+        drawImage(image, image.bounds(), x, y, width, height, alpha);
+    }
+
+    /// Draws the part of `image` inside `source` into the logical rectangle
+    /// `(x, y, width, height)`, faded to `alpha`.
+    ///
+    /// **The crop, and the one overload with two coordinate spaces in it.**
+    /// `source` is in the image's own pixels — it is which pixels to take — and
+    /// the destination is in logical units, which is where they go. They are
+    /// deliberately not related: a caller drawing a 200&times;200 region into a
+    /// 100&times;100 box is asking for it to be scaled down, and one drawing it
+    /// into a 200&times;200 box at 200% is asking for it to stay pixel-exact
+    /// (ADR-0283).
+    ///
+    /// @param source the region of the image to draw, which must lie inside it
+    /// @param alpha 0 to 1
+    /// @throws IllegalArgumentException if `source` runs outside the image, or is
+    ///         empty, or the destination rectangle is not positive
+    public void drawImage(
+            Image image, PhysicalRect source, double x, double y, double width, double height, double alpha) {
+        requireOpen();
+        Objects.requireNonNull(image, "image");
+        Objects.requireNonNull(source, "source");
+        if (alpha <= 0) {
+            // Invisible, and a blit is a full read of the source region.
+            return;
+        }
+        if (!(alpha <= 1)) {
+            throw new IllegalArgumentException("an alpha is between 0 and 1, and " + alpha + " is not");
+        }
+        if (source.isEmpty()) {
+            throw new IllegalArgumentException("there is nothing to draw: the source rectangle is " + source);
+        }
+        // Checked here rather than left to Blend2D, which intersects an
+        // out-of-range source rectangle with the image and draws the overlap. That
+        // silently draws something smaller than was asked for, in the wrong place
+        // -- a crop whose numbers came from a document that was edited elsewhere
+        // is exactly the case that needs to be told.
+        if (!source.fitsWithin(image.size())) {
+            throw new IllegalArgumentException(
+                    "the source rectangle " + source + " is not inside a " + image.size() + " image");
+        }
+        if (!(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException(
+                    "an image is drawn into a positive rectangle, and " + width + "x" + height + " is not one");
+        }
+
+        var buffer = image.pixels();
+        // A view over the image's pixels, made and dropped here -- exactly as
+        // `drawLayer` does, and for the same reason: an image is a view, views are
+        // cheap, and holding one across frames would mean holding a native handle
+        // to a buffer whose lifetime is the application's.
+        try (var view = BlendImage.wrapping(
+                buffer.pixels(), buffer.size().width(), buffer.size().height(), buffer.stride())) {
+            var faded = alpha < 1;
+            if (faded) {
+                context.globalAlpha(alpha);
+            }
+            try {
+                context.blitScaled(x, y, width, height, view, source.x(), source.y(), source.width(), source.height());
+            } finally {
+                if (faded) {
+                    // Context state, so it goes back -- see `drawLayer`.
                     context.globalAlpha(1);
                 }
             }

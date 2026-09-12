@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widgets.form.textinput;
+package io.github.digitalsmile.goldberry.text.edit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

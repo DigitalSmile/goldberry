@@ -607,6 +607,10 @@ public final class Window implements AutoCloseable {
             // The router decides the shape and knows nothing about the platform;
             // this is the one wire between the two (§7.3).
             router.onCursorChange(window::setCursor);
+            // And the other platform effect focus has: an input method is on
+            // while something typed-into has the keyboard, and off otherwise
+            // (ADR-0285).
+            router.onTextInputChange(window::textInput);
         }
         return this;
     }

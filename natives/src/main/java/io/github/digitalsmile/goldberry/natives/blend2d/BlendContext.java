@@ -62,6 +62,7 @@ public final class BlendContext implements AutoCloseable {
     private final Arena arena;
     private final MemorySegment context;
     private final MemorySegment rect;
+    private final MemorySegment sourceRect;
     private final MemorySegment origin;
     private final MemorySegment matrix;
     private final Thread owner = Thread.currentThread();
@@ -75,6 +76,11 @@ public final class BlendContext implements AutoCloseable {
     private static final long RECT_Y = Layouts.BL_RECT.offsetOf("y");
     private static final long RECT_W = Layouts.BL_RECT.offsetOf("w");
     private static final long RECT_H = Layouts.BL_RECT.offsetOf("h");
+
+    private static final long RECT_I_X = Layouts.BL_RECT_I.offsetOf("x");
+    private static final long RECT_I_Y = Layouts.BL_RECT_I.offsetOf("y");
+    private static final long RECT_I_W = Layouts.BL_RECT_I.offsetOf("w");
+    private static final long RECT_I_H = Layouts.BL_RECT_I.offsetOf("h");
 
     private static final long POINT_X = Layouts.BL_POINT.offsetOf("x");
     private static final long POINT_Y = Layouts.BL_POINT.offsetOf("y");
@@ -98,6 +104,13 @@ public final class BlendContext implements AutoCloseable {
             // keep -- allocating per call would put a confined arena on the hot
             // path to hold sixteen bytes for the duration of one call.
             this.rect = arena.allocate(Layouts.BL_RECT.layout());
+            // And one BLRectI beside it, for the source rectangle of a cropped
+            // blit -- four ints rather than four doubles, because it addresses an
+            // image's own pixels (ADR-0283). Allocated with the rest whether or
+            // not this context ever blits a crop: it is sixteen bytes in an arena
+            // that is being set up anyway, and a lazily-allocated one would be a
+            // second lifetime to reason about.
+            this.sourceRect = arena.allocate(Layouts.BL_RECT_I.layout());
             // One BLPoint, reused for every glyph run, for the same reason.
             this.origin = arena.allocate(Layouts.BL_POINT.layout());
             // One BLMatrix2D, reused for every transformed box. A frame with an
@@ -375,6 +388,60 @@ public final class BlendContext implements AutoCloseable {
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
         calls.contextBlitScaledImage(context, rect, layer.pointer());
+    }
+
+    /// [#blitScaled] of a *part* of the image — the source rectangle in the
+    /// image's own pixels.
+    ///
+    /// What a crop is: an application that carries a sub-rectangle of an image
+    /// draws that rectangle, rather than drawing the whole thing and clipping it
+    /// to what should show (ADR-0283). The two spaces in play are the image's
+    /// pixels, which the source rectangle is in, and the context's logical units,
+    /// which the destination is in; nothing here relates them, because the caller
+    /// asking for a crop is the only one that knows whether it wants the part
+    /// stretched or shown at size.
+    ///
+    /// @param sourceX left edge of the source rectangle, in image pixels
+    /// @param sourceY top edge, in image pixels
+    /// @param sourceWidth width of the source rectangle, in image pixels
+    /// @param sourceHeight height, in image pixels
+    /// @throws IllegalArgumentException if the origin is not drawable, or either
+    ///         size is not positive
+    public void blitScaled(
+            double x,
+            double y,
+            double width,
+            double height,
+            BlendImage source,
+            int sourceX,
+            int sourceY,
+            int sourceWidth,
+            int sourceHeight) {
+        requireUsable();
+        Objects.requireNonNull(source, "source");
+        requireDrawableOrigin(x, y);
+        if (!(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException(
+                    "an image is blitted into a positive rectangle, and " + width + "x" + height + " is not one");
+        }
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+            throw new IllegalArgumentException(
+                    "a source rectangle is positive, and " + sourceWidth + "x" + sourceHeight + " is not one");
+        }
+        // Not clamped to the image here. Blend2D intersects the source rectangle
+        // with the image itself and draws the intersection, so an out-of-range
+        // crop draws less rather than reporting an error -- and a wrapper that
+        // rejected it would need the image's size, which is `BlendImage`'s to
+        // state and not this context's to re-derive.
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_X, x);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
+        sourceRect.set(ValueLayout.JAVA_INT, RECT_I_X, sourceX);
+        sourceRect.set(ValueLayout.JAVA_INT, RECT_I_Y, sourceY);
+        sourceRect.set(ValueLayout.JAVA_INT, RECT_I_W, sourceWidth);
+        sourceRect.set(ValueLayout.JAVA_INT, RECT_I_H, sourceHeight);
+        calls.contextBlitScaledImage(context, rect, source.pointer(), sourceRect);
     }
 
     /// Draws `layer` with its top-left corner at logical `(x, y)`, one image

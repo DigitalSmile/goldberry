@@ -175,11 +175,33 @@ SDL_DestroySurface
 # Which Blend2D is linked in.
 bl_runtime_query_info
 
-# Images. Only the external-data constructor is bound: Goldberry never asks
-# Blend2D to allocate pixels, it hands over the ones it already has.
+# Images. The external-data constructor is what the frame path uses: Goldberry
+# never asks Blend2D to allocate pixels it will paint into, it hands over the
+# ones it already has.
 bl_image_init_as_from_data
 bl_image_destroy
 bl_image_get_data
+#
+# Decoding, which is the one place that rule has to bend (sec. 5, ADR-0283).
+# Only the decoder knows how big a PNG is, so it must allocate: an empty image is
+# initialised, handed the encoded bytes, and its pixels are copied into a buffer
+# Java owns before the handle is destroyed on the same call. Nothing keeps a
+# Blend2D allocation past `Image.decode`.
+#
+# `bl_image_read_from_data` takes a codec array, and NULL means the built-in
+# ones -- PNG, JPEG and QOI are compiled into this library already
+# (CMakeLists.txt's Blend2D options), so no codec object crosses and none of the
+# `bl_image_codec_*` family is bound. There is no encode symbol here for the
+# same reason a dash is not a symbol (ADR-0278): PNG is written by
+# `image.png.PngEncoder`, in java.base, over Deflater.
+bl_image_init
+bl_image_read_from_data
+#
+# And the conversion after it, because a PNG without an alpha channel decodes to
+# XRGB32 while every buffer in the toolkit is premultiplied BGRA. Converting
+# once at decode is what keeps `Frame.drawImage` from having to ask what format
+# it is blitting.
+bl_image_convert
 
 # Rendering context lifecycle.
 bl_context_init_as
@@ -295,8 +317,11 @@ bl_context_fill_path_d
 # bl_image_init_as_from_data above, because Goldberry never asks Blend2D to
 # allocate pixels.
 #
-# `img_area` is passed as NULL, which Blend2D reads as the whole image, so no
-# BLRectI crosses and no layout row is needed for one.
+# `img_area` was passed as NULL for a layer, which Blend2D reads as the whole
+# image. A drawn image may want a part of one -- the crop an application carries
+# on an image shape -- so a BLRectI crosses here now and `Layouts.BL_RECT_I` is
+# the row that says what shape it is (ADR-0283). The C probe had always reported
+# that struct; only the Java side was missing.
 bl_context_blit_image_d
 #
 # And the scaled form, which is what a layer actually needs. A layer's raster is

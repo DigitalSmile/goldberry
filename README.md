@@ -238,6 +238,40 @@ therefore drawn mirrored, which is an approximation that says so rather than a
 crash ([ADR-0218](book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md))
 — fallback between the UI and emoji faces, and style runs within a paragraph.
 
+## Editing text
+
+`text-input` and `text-area` are controls, with a border, a placeholder and a
+validation state. Underneath them is an editor that is none of those things, and
+it is reachable on its own — a caret in a sticky on a board, a label on a shape,
+anything drawn on a `canvas` at the application's own transform
+([ADR-0285](book/src/adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)):
+
+```java
+var editor = new Editor(font).multiline(true).wrapWidth(240).clipboard(window.clipboard());
+
+new Canvas((frame, size) -> editor.paint(frame, 8, 8, ink, focused), new Input() {
+    public boolean wantsText()      { return true; }   // turns the keyboard on
+    public void onKey(KeyEvent e)   { if (editor.onKey(e)) e.consume(); }
+    public void onText(TextEvent e) { if (editor.onText(e.text())) e.consume(); }
+    public void onFocusChanged(boolean focused, boolean fromKeyboard) { … }
+});
+```
+
+`wantsText()` is not optional: the platform produces no characters until
+something says it is being typed into, so an editor on a canvas that has not said
+so gets arrow keys and nothing else. The router asks the focused widget and tells
+the window, exactly as it does for the cursor.
+
+It is `text-input`'s key map, key for key: arrows and `Ctrl`+arrows, `Home` and
+`End` on the **visual** line, `Shift` to extend, `Ctrl+Z` and `Ctrl+Shift+Z` with
+a typing run folded into one step, and cut, copy and paste. A key it does not
+handle is not consumed, so `Tab` still moves focus.
+
+`TextGeometry` beside it answers the questions a wrapped paragraph raises — where
+the caret is, what a click landed on, what `Up` means when lines differ in length,
+and what shape a selection is across a break. The IME's inline composition is the
+one piece not there yet.
+
 ## Icons
 
 Lucide's 1544 icons ship in `goldberry-core` as path data in a 24×24 box. They
@@ -259,6 +293,58 @@ An icon is not a `Box` yet — the showcase draws them over its sidebar rather t
 laying them out in it — because nothing decides an icon's intrinsic size until
 the widget model does
 ([ADR-0004](book/src/adr/0004-three-tree-retained-declarative-model.md)).
+
+## Images
+
+Encoded bytes become an `Image` — PNG, JPEG and QOI, decoded by the codecs
+already inside `libgoldberry`
+([ADR-0283](book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)):
+
+```java
+var logo = Image.decode(Files.readAllBytes(file));      // or Image.decode(file)
+
+window.onPaint(frame -> {
+    frame.drawImage(logo, 16, 16);                      // at its natural size
+    frame.drawImage(logo, 16, 96, 240, 120, 0.4);       // scaled, and faded
+    frame.drawImage(logo, PhysicalRect.of(0, 0, 64, 64), 280, 96, 128, 128, 1);
+});
+```
+
+Unlike a `Font` or an `Icon`, an image has **nothing to close**. The decoder is
+the one thing in the toolkit allowed to allocate pixels Goldberry did not — the
+size of a PNG is inside the PNG — and its allocation is copied into a Java-owned
+buffer and released before `decode` returns. So an image is a value: put it in a
+field, a record or a cache, and draw it as many times as you like.
+
+Natural size is one image pixel per **device** pixel, so a 96×64 image is 96
+logical points wide at 100% and 48 at 200% — crisp on both, rather than twice as
+large on the second. `Image.encodePng()` writes one back out, in `java.base`,
+with no native call in the encode.
+
+There is no `img` widget yet: a `canvas` is how an application draws an image
+today, and the showcase's Canvas screen does exactly that.
+
+### A picture with no window
+
+The same `Image` comes back from an offscreen render — a painter, or a whole
+widget tree, drawn with no display, no SDL and no compositor
+([ADR-0284](book/src/adr/0284-a-picture-with-no-window-under-it.md)):
+
+```java
+var png = Offscreen.of(1200, 900)                       // physical pixels
+        .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
+        .render(new DocumentPreview(document))          // or .paint(painter)
+        .encodePng();
+```
+
+`render(...)` runs the window's own sequence — mount, lay out, tell each widget
+what it came out as, advance a **virtual** clock past the arrival transitions,
+measure again, and paint what that settled into. So a `masonry` is photographed
+arranged and a `text-area` wrapped as wide as it really is, and two renders of one
+document are the same bytes: the clock is frozen and cannot be made otherwise,
+because a preview that is not reproducible cannot be cached.
+
+Goldberry's own golden images go through it, which is how the two stay honest.
 
 ## Widgets
 

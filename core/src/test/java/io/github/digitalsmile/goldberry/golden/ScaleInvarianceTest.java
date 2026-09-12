@@ -15,7 +15,6 @@ import org.opentest4j.AssertionFailedError;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// The check that closes ADR-0157's gap, checked itself.
 ///
@@ -174,17 +173,16 @@ class ScaleInvarianceTest {
 
         /// Renders `scene` at 1x, which is what a golden pins and what the check
         /// compares the other scales against.
-        private Png.Image at1x(Consumer<Frame> scene) {
-            var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-            try {
-                scene.accept(target.frame());
-            } finally {
-                target.end();
-            }
-            return GoldenImage.toImage(target, WIDTH, HEIGHT);
+        private Png.Image at1x(GoldenImage.Scene scene) {
+            return GoldenImage.toImage(scene.render(
+                    new io.github.digitalsmile.goldberry.render.model.PhysicalSize(WIDTH, HEIGHT),
+                    io.github.digitalsmile.goldberry.render.model.DisplayScale.ONE));
         }
 
-        private void check(Consumer<Frame> scene) {
+        private void check(Consumer<Frame> painter) {
+            // Through the same adapter the harness uses, so what is swept here is
+            // what a golden sweeps (ADR-0284).
+            var scene = GoldenImage.painting(painter);
             ScaleInvariance.assertScaleInvariant("scale-invariance-self-test", WIDTH, HEIGHT, 1.0f, scene, at1x(scene));
         }
 

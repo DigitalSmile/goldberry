@@ -16,10 +16,8 @@ import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
@@ -97,62 +95,47 @@ class GalleryGoldenTest {
                 model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
-        var tree = new ElementTree(new Screen(
+        var root = new Screen(
                 model,
                 actions,
                 inflater,
                 plus,
                 () -> {},
-                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus)));
+                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus));
 
+        // **Through the shipped `Offscreen`** (ADR-0284), which is the same
+        // sequence this method used to spell out for itself: mount, lay out, feed
+        // the regions back, advance a frozen clock, and paint the second frame.
+        //
+        // Every one of those steps was here as a comment explaining why the naive
+        // version was wrong — a `message` photographed at zero opacity, a
+        // `text-area` wrapped as though it were narrow, a `spinner` caught at a
+        // random angle against a wall clock. They are the API's now, so the next
+        // application to render a screen headlessly gets them without having read
+        // this file.
+        //
+        // `font(...)` and not `fonts(...)`: these goldens were taken with the
+        // one-font renderer, which ignores `font-family`, `font-size` and
+        // `font-weight`. Handing over a book would be a typography change wearing
+        // an infrastructure change's clothes.
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
-        // A **frozen** clock, and the Values screen is why: it has a `spinner` on
-        // it, whose rotation is a function of the frame clock rather than of a
-        // transition (ADR-0081). Against `Clock.system()` this image is a lottery
-        // — it failed by 113 pixels and a channel delta of 144, which is a
-        // spinner caught a few degrees round. A virtual clock at zero is the
-        // frame every machine gets.
-        var clock = io.github.digitalsmile.goldberry.motion.Clock.virtual();
-        var renderer = new WidgetRenderer(sheets, font).clock(clock);
 
-        // **Two frames, not one.** The first mounts the tree; the second is the
-        // one that is drawn. A newly mounted element deliberately starts no
-        // transition and a clock-driven arrival has no beginning until something
-        // reads the clock, so a screen painted once shows every arriving widget
-        // at the *start* of its entrance — which for §7's `message` means four
-        // banners at zero opacity, holding their space and drawing nothing. The
-        // real loop paints the second frame 16ms later and nobody ever sees the
-        // first.
-        //
-        // 200ms is past `Phase.DURATION_MILLIS`, so everything that arrives has
-        // arrived. It is still a frozen clock and still deterministic: the
-        // `spinner` on the Values screen and the `skeleton`s on Panels are at
-        // whatever they are at 200ms, on every machine.
-        //
-        // **And the regions are fed back**, which is the other half of the entry
-        // TODO.md filed under `text-area` and was open until `masonry` became the
-        // second widget to need it. `Measured` is delivered by the *router*, from
-        // the rectangles a laid-out frame produced — so a harness that only
-        // rendered gave every self-measuring widget a first-frame answer for
-        // ever: a `text-area` that wrapped as though it were narrow, and a
-        // `masonry` photographed mid-settle.
-        //
-        // A real window does render → lay out → hand the router the regions, so
-        // that is what this does, twice.
-        var target = io.github.digitalsmile.goldberry.paint.TestFrames.of(width, height, 1.0f);
-        try (var render = io.github.digitalsmile.goldberry.paint.tree.RenderTree.create()) {
-            var router = new io.github.digitalsmile.goldberry.input.PointerRouter();
-            render.update(target.frame(), renderer.render(tree));
-            router.updateRegions(io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
-            clock.advance(200);
-            render.update(target.frame(), renderer.render(tree));
-            router.updateRegions(io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
-        } finally {
-            target.end();
-        }
-
-        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        // The size and the scale are the harness's rather than captured here,
+        // because a golden that matches is then re-rendered at 2x and 1.5x and
+        // checked for describing the same picture (ADR-0162). The whole screen
+        // goes through that sweep now, which it always did — the difference is
+        // that the render it sweeps is one an application could have written.
+        GoldenImage.assertMatches(
+                name,
+                width,
+                height,
+                1.0f,
+                (size, scale) -> Offscreen.of(size)
+                        .scale(scale)
+                        .stylesheets(sheets)
+                        .font(font)
+                        .render(root));
     }
 
     @Test
