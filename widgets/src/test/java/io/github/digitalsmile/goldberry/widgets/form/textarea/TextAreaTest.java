@@ -309,15 +309,31 @@ class TextAreaTest {
     class Shared {
 
         @Test
-        @DisplayName("the parts are the same three, so the stylesheet is one")
+        @DisplayName("the parts are the same four, so the stylesheet is one")
         void sharesItsParts() {
             var tree = mounted(new TextArea("one", null));
             var parts = box(tree).children();
+            var maxRows = new TextArea("one", null).maxRows();
 
-            assertTrue(
-                    parts.get(parts.size() - 2) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Value);
-            assertTrue(
-                    parts.get(parts.size() - 1) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
+            // `maxRows` highlights, the value, the caret, then `maxRows`
+            // underlines. The bounded runs are what a wrapped selection and a
+            // wrapped composition need (ADR-0292), and the two singletons sit
+            // between them at fixed positions so the reconciler matches them by
+            // index through every edit.
+            for (var i = 0; i < maxRows; i++) {
+                assertTrue(
+                        parts.get(i) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Highlight,
+                        "part " + i + " should be a highlight");
+            }
+            assertTrue(parts.get(maxRows) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Value);
+            assertTrue(parts.get(maxRows + 1) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
+            for (var i = 0; i < maxRows; i++) {
+                assertTrue(
+                        parts.get(maxRows + 2 + i)
+                                instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Underline,
+                        "part " + (maxRows + 2 + i) + " should be an underline");
+            }
+            assertEquals(2 * maxRows + 2, parts.size());
         }
 
         @Test

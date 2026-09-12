@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
@@ -70,6 +73,41 @@ interface TextEditor {
     ///
     /// @return whether anything was inserted
     boolean type(String text);
+
+    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    ///
+    /// **Nothing is inserted.** What changes is what the field *draws*: the
+    /// composition is spliced into the display string and marked with a span, and
+    /// the text, the caret offset, the undo history and the bound value are
+    /// untouched until the accepted candidate arrives through [#type] (ADR-0292).
+    ///
+    /// A **`password` refuses**, and that is the one decision in G16 that was not
+    /// mechanical: the candidate window an input method opens is a separate,
+    /// unmasked window showing what is being typed, so a masked field that
+    /// composed would put the password on screen beside itself. Windows and macOS
+    /// both disable the IME for a secure field, and this does the same —
+    /// committed text still arrives, so the field still takes every character; it
+    /// simply shows nothing inline.
+    ///
+    /// @param text        the composition so far, or `""` when it has ended
+    /// @param caret       where the caret sits inside it, as a char offset
+    /// @param clauseStart where the converting clause begins, or -1 for none
+    /// @param clauseEnd   where it ends, or -1
+    /// @return whether anything changed, which is whether to consume the event
+    boolean compose(String text, int caret, int clauseStart, int clauseEnd);
+
+    /// The line being typed on, in this field's **content** coordinates, or empty
+    /// when it is not being typed into.
+    ///
+    /// [io.github.digitalsmile.goldberry.input.handler.Handles#caretArea]'s
+    /// answer: what the platform is told so an input method can put its candidate
+    /// window beside the text rather than over it (ADR-0289). Answered here
+    /// rather than in `render` because the router asks after every event, and
+    /// only the state has the last frame's shaped paragraph.
+    Optional<LogicalRect> caretArea();
+
+    /// Where the caret is inside [#caretArea], as an x offset from its left edge.
+    double caretOffset();
 
     /// The pointer went down or was dragged to `x`, measured from this field's
     /// left edge.

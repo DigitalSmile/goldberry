@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -96,6 +97,29 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     private Mask mask = Mask.of("", false);
     private double leftPadding;
 
+    /// What an input method is composing, or `""` when it is not —
+    /// `docs/gaps.md` G16.
+    ///
+    /// **Beside [#edit], never in it.** A composition is a proposal: `にほんご`
+    /// becomes `日本語` and every character of what was typed is replaced when the
+    /// user picks a candidate. A field that inserted this would fire
+    /// [TextInput#report] for keystrokes the user never chose, fill the undo
+    /// history with them, and take them out again (ADR-0292).
+    ///
+    /// It is *displayed* inside the text — spliced at the caret in [#build], so
+    /// the characters after it move along as they do in every native field — and
+    /// that splice is the only place it appears.
+    private String preedit = "";
+
+    /// Where the caret sits inside [#preedit], as a char offset.
+    private int preeditCaret;
+
+    /// The clause the input method is converting, within [#preedit]; -1 when the
+    /// platform reports none.
+    private int preeditClauseStart = -1;
+
+    private int preeditClauseEnd = -1;
+
     @Override
     protected void initState() {
         super.initState();
@@ -154,11 +178,41 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // answer is visible.
         syncSuggestions(input);
 
-        var showPlaceholder = edit.isEmpty() && !input.placeholder().isEmpty();
+        // A composition ends when the field stops being typed into, and nothing
+        // else would clear it: the empty TEXT_EDITING goes to whatever has focus,
+        // which by then is something else.
+        if (!focused || input.disabled() || input.readOnly() || input.password()) {
+            preedit = "";
+            preeditClauseStart = -1;
+            preeditClauseEnd = -1;
+        }
+
+        var displayed = mask.displayed(edit);
+        var shown = mask.display();
+        var composing = Composing.NONE;
+        if (!preedit.isEmpty()) {
+            // Spliced at the caret, and the caret moves *into* it -- which is
+            // where every native field puts it, because an input method walks a
+            // caret through the string it is assembling.
+            var at = displayed.caret();
+            shown = new StringBuilder(shown).insert(at, preedit).toString();
+            displayed = new TextEdit(shown, at + preeditCaret, at + preeditCaret);
+            composing = new Composing(
+                    at,
+                    at + preedit.length(),
+                    preeditClauseStart < 0 ? -1 : at + preeditClauseStart,
+                    preeditClauseEnd < 0 ? -1 : at + preeditClauseEnd);
+        }
+
+        // The placeholder is what an *empty* field shows, and a field being
+        // composed into is not empty however little of it is committed.
+        var showPlaceholder =
+                edit.isEmpty() && preedit.isEmpty() && !input.placeholder().isEmpty();
         return new TextField(
-                showPlaceholder ? input.placeholder() : mask.display(),
+                showPlaceholder ? input.placeholder() : shown,
                 showPlaceholder,
-                mask.displayed(edit),
+                displayed,
+                composing,
                 focused && !input.disabled(),
                 caretShown,
                 input.disabled(),
@@ -329,12 +383,91 @@ final class TextInputState extends State<TextInput> implements TextEditor {
 
     @Override
     public boolean type(String typed) {
+        // The composition is over the moment its result arrives, and the empty
+        // TEXT_EDITING that says so is not ordered against this one on every
+        // platform -- so clearing it here is what keeps an accepted candidate
+        // from drawing twice, once underlined and once committed (ADR-0289).
+        var wasComposing = clearPreedit();
         var room = room();
         var insertion = room < 0 ? typed : clip(typed, room);
         if (insertion.isEmpty()) {
+            return wasComposing;
+        }
+        return apply(edit.insert(insertion), EditHistory.Kind.TYPING, true) || wasComposing;
+    }
+
+    @Override
+    public boolean compose(String text, int caret, int clauseStart, int clauseEnd) {
+        var input = widget();
+        if (input.disabled() || input.readOnly() || input.password()) {
+            // A `password` refuses -- see [TextEditor#compose]. The candidate
+            // window is an unmasked window showing what is being typed, and a
+            // masked field that composed would put the password beside itself.
             return false;
         }
-        return apply(edit.insert(insertion), EditHistory.Kind.TYPING, true);
+        var clamped = Math.clamp(caret, 0, text.length());
+        var end = clauseStart < 0 ? -1 : Math.clamp(clauseStart + Math.max(0, clauseEnd), 0, text.length());
+        if (preedit.equals(text) && preeditCaret == clamped && preeditClauseStart == clauseStart) {
+            return !text.isEmpty();
+        }
+        setState(() -> {
+            preedit = text;
+            preeditCaret = clamped;
+            preeditClauseStart = clauseStart;
+            preeditClauseEnd = end;
+        });
+        // A composition moving is the caret moving, and a caret that blinked out
+        // mid-composition is one the user cannot find.
+        solid();
+        return true;
+    }
+
+    /// Drops any composition. @return whether there was one
+    private boolean clearPreedit() {
+        if (preedit.isEmpty()) {
+            return false;
+        }
+        setState(() -> {
+            preedit = "";
+            preeditCaret = 0;
+            preeditClauseStart = -1;
+            preeditClauseEnd = -1;
+        });
+        return true;
+    }
+
+    /// The field's content box, which for a single-line field **is** the line
+    /// being typed on — [TextEditor#caretArea].
+    ///
+    /// The whole box rather than the caret's own sliver, because that is what an
+    /// input method uses the rectangle for: keeping its candidate list clear of
+    /// the text it would otherwise cover.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.model.LogicalRect> caretArea() {
+        if (!focused || widget().disabled() || widget().readOnly() || bounds.width() <= 0) {
+            return java.util.Optional.empty();
+        }
+        var width = bounds.width() - 2 * leftPadding;
+        return java.util.Optional.of(io.github.digitalsmile.goldberry.render.model.LogicalRect.of(
+                0, 0, (float) Math.max(1, width), Math.max(1, bounds.height())));
+    }
+
+    @Override
+    public double caretOffset() {
+        var shaped = paragraph;
+        if (shaped == null) {
+            return 0;
+        }
+        return shaped.widthBetween(
+                        0, Math.clamp(displayCaret(), 0, shaped.text().length()))
+                - scrollOffset;
+    }
+
+    /// The caret's offset into what is **drawn** — inside the composition while
+    /// there is one.
+    private int displayCaret() {
+        var at = mask.display(edit.caret());
+        return preedit.isEmpty() ? at : at + preeditCaret;
     }
 
     @Override

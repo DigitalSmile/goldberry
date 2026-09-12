@@ -1901,6 +1901,20 @@ text-selection {
   border-radius: 2px;
 }
 
+/* The rule under text an input method has not finished with (docs/gaps.md G16).
+   `--gb-text` and not the accent, for `text-caret`'s reason: a composition is
+   the text it is about to become, and the line says "not yet" rather than
+   "chosen". Its *thickness* is the widget's -- a hairline at every size, because
+   an underline that grew with the font would read as a highlight by the time the
+   font was large enough to want one (ADR-0292).
+
+   The clause an input method is converting is drawn with `text-selection`
+   instead, which is free while a composition is open: a composition replaces the
+   selection when it commits, so there is no selection to draw. */
+text-composition {
+  background: var(--gb-text);
+}
+
 /* ----------------------------------------------------------- text-area --
  *
  * §4's multi-line field. It is `text-input`'s surface with more than one line in

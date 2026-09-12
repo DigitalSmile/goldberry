@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -9,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
@@ -19,6 +21,7 @@ import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
@@ -30,7 +33,9 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.form.Carets;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Underline;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 
 /// The node a stylesheet calls `text-area`.
@@ -70,6 +75,8 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// @param display     the text to draw, or the placeholder
 /// @param placeholder whether `display` is the placeholder
 /// @param edit        where the caret and the selection are
+/// @param composing   which part of `display` an input method has not finished
+///                    with — [Composing#NONE] almost always
 /// @param focused     whether it has the keyboard
 /// @param caretShown  whether this is the lit half of the blink
 /// @param rows        its minimum height in lines
@@ -82,6 +89,7 @@ record TextAreaBox(
         String display,
         boolean placeholder,
         TextEdit edit,
+        Composing composing,
         boolean focused,
         boolean caretShown,
         int rows,
@@ -246,6 +254,30 @@ record TextAreaBox(
         }
     }
 
+    /// The composition an input method is assembling — `docs/gaps.md` G16, and
+    /// `text-input`'s handler exactly. Not an edit: see [AreaEditor#compose].
+    @Override
+    public void onPreedit(PreeditEvent event) {
+        if (disabled || readOnly) {
+            return;
+        }
+        if (editor.compose(event.text(), event.caret(), event.start(), event.length())) {
+            event.consume();
+        }
+    }
+
+    /// Where this control's caret is, so the platform can place a candidate
+    /// window beside it (ADR-0289).
+    @Override
+    public Optional<LogicalRect> caretArea() {
+        return editor.caretArea();
+    }
+
+    @Override
+    public double caretOffsetIn(LogicalRect area) {
+        return editor.caretOffset();
+    }
+
     // --- drawing --------------------------------------------------------------
 
     @Override
@@ -261,12 +293,21 @@ record TextAreaBox(
         // `text-value` already does for an empty field. Keeping the count fixed
         // also keeps the value and the caret at stable positions, so the
         // reconciler matches them by position through every edit.
-        var parts = new ArrayList<Widget>(maxRows + 2);
+        var parts = new ArrayList<Widget>(2 * maxRows + 2);
+        // While a composition is open the highlights draw its converting clause:
+        // there is no selection to draw, because a composition replaces one when
+        // it commits (ADR-0292).
+        var wash = focused && (composing.hasClause() || (!composing.isActive() && edit.hasSelection()));
         for (var i = 0; i < maxRows; i++) {
-            parts.add(new Highlight(focused && edit.hasSelection()));
+            parts.add(new Highlight(wash));
         }
         parts.add(new Value(display, placeholder));
         parts.add(new Caret(focused && caretShown && !edit.hasSelection()));
+        // And [#maxRows] underlines after them, for the highlights' reason: a
+        // composition can wrap, and a run of wrapped text is not a rectangle.
+        for (var i = 0; i < maxRows; i++) {
+            parts.add(new Underline(focused && composing.isActive()));
+        }
         return parts;
     }
 
@@ -286,7 +327,12 @@ record TextAreaBox(
         // padding on the way to Yoga (ADR-0272), so a rectangle that added the
         // padding itself — which is what these three did until that landed —
         // would now be a padding's width too far in and a line too far down.
-        var rects = selectionRects(paragraph, lines, offset, lineHeight);
+        // The selection, or the clause an input method is converting -- never
+        // both, because there is never both (ADR-0292).
+        var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
+        var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
+        var drawWash = composing.hasClause() || (!composing.isActive() && edit.hasSelection());
+        var rects = drawWash ? spanRects(paragraph, lines, washStart, washEnd, offset, lineHeight) : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < rects.size()) {
                 var rect = rects.get(i);
@@ -299,7 +345,7 @@ record TextAreaBox(
             }
         }
 
-        boxes.add(children.get(children.size() - 2)
+        boxes.add(children.get(maxRows)
                 .position(Position.ABSOLUTE)
                 .inset(leftTop(0, -offset))
                 // A definite width, because an absolutely positioned box has no
@@ -315,10 +361,28 @@ record TextAreaBox(
 
         var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
         var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth);
-        boxes.add(children.get(children.size() - 1)
+        boxes.add(children.get(maxRows + 1)
                 .position(Position.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
                 .size(Length.points((float) caretWidth), Length.points((float) lineHeight)));
+
+        // The rules under the composition, last so they are drawn over the
+        // glyphs -- a mark on them rather than a wash behind them. Each sits on
+        // the foot of its own line.
+        var composed = composing.isActive()
+                ? spanRects(paragraph, lines, composing.start(), composing.end(), offset, lineHeight)
+                : List.<Rect>of();
+        for (var i = 0; i < maxRows; i++) {
+            if (i < composed.size()) {
+                var rect = composed.get(i);
+                boxes.add(children.get(maxRows + 2 + i)
+                        .position(Position.ABSOLUTE)
+                        .inset(leftTop(rect.x(), rect.y() + lineHeight - Underline.THICKNESS))
+                        .size(Length.points((float) rect.width()), Length.points((float) Underline.THICKNESS)));
+            } else {
+                boxes.add(Box.of());
+            }
+        }
 
         return Box.of()
                 .style(style)
@@ -340,29 +404,32 @@ record TextAreaBox(
         return shown * lineHeight + padding.top() + padding.bottom();
     }
 
-    /// One rectangle per visual line the selection covers.
+    /// One rectangle per visual line a span of the display covers — the
+    /// selection, the clause an input method is converting, or the composition
+    /// being underlined.
     ///
     /// A run of wrapped text is not a rectangle, which is the whole of what a
     /// second dimension costs the selection — and the reason `Paragraph`'s two
     /// measurements take a **line's** range rather than an offset.
-    private List<Rect> selectionRects(Paragraph paragraph, List<TextLine> lines, double offset, double lineHeight) {
+    private List<Rect> spanRects(
+            Paragraph paragraph, List<TextLine> lines, int start, int end, double offset, double lineHeight) {
         var rects = new ArrayList<Rect>();
-        if (!edit.hasSelection() || !focused) {
+        if (!focused || end <= start) {
             return rects;
         }
-        var from = Math.clamp(edit.start(), 0, display.length());
-        var to = Math.clamp(edit.end(), 0, display.length());
+        var from = Math.clamp(start, 0, display.length());
+        var to = Math.clamp(end, 0, display.length());
         for (var i = 0; i < lines.size() && rects.size() < maxRows; i++) {
             var line = lines.get(i);
-            var start = Math.max(from, line.start());
-            var end = Math.min(to, line.end());
-            if (start >= end) {
+            var left = Math.max(from, line.start());
+            var right = Math.min(to, line.end());
+            if (left >= right) {
                 continue;
             }
             rects.add(new Rect(
-                    paragraph.widthBetween(line.start(), start),
+                    paragraph.widthBetween(line.start(), left),
                     i * lineHeight - offset,
-                    Math.max(1, paragraph.widthBetween(start, end))));
+                    Math.max(1, paragraph.widthBetween(left, right))));
         }
         return rects;
     }

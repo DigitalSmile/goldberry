@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 
 /// What [TextAreaBox] tells its state — `text-input`'s seam, with a second
@@ -65,6 +68,30 @@ interface AreaEditor {
 
     /// Committed text arrived, or `Enter` produced a newline.
     boolean type(String text);
+
+    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    ///
+    /// `text-input`'s
+    /// [compose][io.github.digitalsmile.goldberry.widgets.form.textinput.TextEditor]
+    /// exactly: nothing is inserted, the composition is spliced into what is
+    /// *drawn*, and the text, the caret, the undo history and the bound value
+    /// only move when the accepted candidate arrives through [#type]
+    /// (ADR-0292). There is no masked `text-area`, so the one refusal that
+    /// control has does not arise here.
+    ///
+    /// @return whether anything changed, which is whether to consume the event
+    boolean compose(String text, int caret, int clauseStart, int clauseEnd);
+
+    /// The **line** the caret is on, in this control's content coordinates, or
+    /// empty when it is not being typed into.
+    ///
+    /// The line rather than the whole control, unlike `text-input`: a `text-area`
+    /// is many lines tall, and a candidate window kept clear of all of them would
+    /// be pushed a long way from the text it belongs to.
+    Optional<LogicalRect> caretArea();
+
+    /// Where the caret is inside [#caretArea], as an x offset from its left edge.
+    double caretOffset();
 
     /// The pointer went down or was dragged to a point in this control.
     void pointerAt(double x, double y, boolean extend, int clickCount);

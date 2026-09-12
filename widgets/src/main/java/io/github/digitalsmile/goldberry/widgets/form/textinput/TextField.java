@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
@@ -25,7 +26,9 @@ import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Underline;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 
 /// The node a stylesheet calls `text-input`, and everything that needs a frame.
@@ -39,11 +42,17 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// ## What it is made of
 ///
 /// ```
-/// text-input          this node. Clips, takes the focus, the keys and the pointer
-/// ├── text-selection  the highlight, behind the text
-/// ├── text-value      the text, or the placeholder
-/// └── text-caret      the insertion point
+/// text-input             this node. Clips, takes the focus, the keys and the pointer
+/// ├── text-selection     the highlight, behind the text
+/// ├── text-value         the text, or the placeholder
+/// ├── text-caret         the insertion point
+/// └── text-composition   the rule under what an input method is still assembling
 /// ```
+///
+/// The fourth is drawn only while a composition is open, which is never on a
+/// Latin keyboard — and while one is, the **highlight draws the converting
+/// clause** rather than a selection, because a composition replaces the selection
+/// when it commits and every platform's input method collapses it (ADR-0292).
 ///
 /// All three children are **absolutely positioned by this node**, because where
 /// they go is a measurement rather than a layout: a caret's x is the width of the
@@ -60,10 +69,13 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// does, and is wrong only on the first frame and on the frame a resize lands.
 /// Neither is visible: both are followed immediately by another.
 ///
-/// @param display     the text to draw — already masked, if the field masks
+/// @param display     the text to draw — already masked, if the field masks, and
+///                    with any composition spliced in
 /// @param placeholder whether `display` is the placeholder
 /// @param edit        where the caret and the selection are, in **display**
 ///                    offsets
+/// @param composing   which part of `display` an input method has not finished
+///                    with, in display offsets — [Composing#NONE] almost always
 /// @param focused     whether this field has the keyboard
 /// @param caretShown  whether this is the lit half of the blink
 /// @param disabled    whether it refuses everything and matches `:disabled`
@@ -74,6 +86,7 @@ record TextField(
         String display,
         boolean placeholder,
         TextEdit edit,
+        Composing composing,
         boolean focused,
         boolean caretShown,
         boolean disabled,
@@ -263,14 +276,44 @@ record TextField(
         }
     }
 
+    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    ///
+    /// Not an edit: see [TextEditor#compose]. A `password` refuses, so the event
+    /// is left unconsumed and the field draws nothing inline.
+    @Override
+    public void onPreedit(PreeditEvent event) {
+        if (disabled || readOnly) {
+            return;
+        }
+        if (editor.compose(event.text(), event.caret(), event.start(), event.length())) {
+            event.consume();
+        }
+    }
+
+    /// Where this field's caret is, so the platform can place a candidate window
+    /// beside it rather than over it (ADR-0289).
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.model.LogicalRect> caretArea() {
+        return editor.caretArea();
+    }
+
+    @Override
+    public double caretOffsetIn(io.github.digitalsmile.goldberry.render.model.LogicalRect area) {
+        return editor.caretOffset();
+    }
+
     // --- drawing --------------------------------------------------------------
 
     @Override
     public List<Widget> children() {
         return List.of(
-                new Highlight(focused && edit.hasSelection()),
+                // While a composition is open the highlight draws its converting
+                // clause: there is no selection to draw, because a composition
+                // replaces one when it commits.
+                new Highlight(focused && (composing.hasClause() || (!composing.isActive() && edit.hasSelection()))),
                 new Value(display, placeholder),
-                new Caret(focused && caretShown && !edit.hasSelection()));
+                new Caret(focused && caretShown && !edit.hasSelection()),
+                new Underline(focused && composing.isActive()));
     }
 
     @Override
@@ -312,13 +355,17 @@ record TextField(
         // one.
         var line = Length.points((float) paragraph.font().lineHeight());
 
+        // The highlight covers the selection, or the clause an input method is
+        // converting when there is one -- never both, because there is never
+        // both.
+        var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
+        var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
         var selection = children.get(0)
                 .position(Position.ABSOLUTE)
                 .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                        (paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
+                        (paragraph.widthBetween(0, clamp(washStart, length)) - offset))))
                 .size(
-                        Length.points(
-                                (float) paragraph.widthBetween(clamp(edit.start(), length), clamp(edit.end(), length))),
+                        Length.points((float) paragraph.widthBetween(clamp(washStart, length), clamp(washEnd, length))),
                         line);
 
         // Only the left edge is pinned. An absolute box with no top or bottom is
@@ -338,9 +385,22 @@ record TextField(
                         (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
                 .size(Length.points((float) caretWidth), line);
 
+        // The rule under the composition, sitting on the bottom of the line
+        // rather than filling it: `bottom` is pinned instead of nothing, so the
+        // field's `align-items` still decides where the line is and this sits at
+        // the foot of it.
+        var underline = children.get(3)
+                .position(Position.ABSOLUTE)
+                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                        (paragraph.widthBetween(0, clamp(composing.start(), length)) - offset))))
+                .size(
+                        Length.points((float) paragraph.widthBetween(
+                                clamp(composing.start(), length), clamp(composing.end(), length))),
+                        Length.points((float) Underline.THICKNESS));
+
         return Box.of()
                 .style(style)
-                .children(selection, value, caret)
+                .children(selection, value, caret, underline)
                 // The I-beam over the whole field and not only over the text:
                 // the padding is part of the field, clicking it puts the caret
                 // somewhere, and a pointer that changed shape over the gap would

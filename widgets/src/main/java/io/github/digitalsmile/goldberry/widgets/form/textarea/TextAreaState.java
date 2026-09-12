@@ -3,15 +3,18 @@ package io.github.digitalsmile.goldberry.widgets.form.textarea;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /// What a [TextArea] holds — `text-input`'s state, with a column to remember.
@@ -61,6 +64,17 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private double leftPadding;
     private double topPadding;
 
+    /// What an input method is composing, or `""` when it is not —
+    /// `docs/gaps.md` G16. Beside [#edit] and never in it; see
+    /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEditor#compose].
+    private String preedit = "";
+
+    private int preeditCaret;
+
+    private int preeditClauseStart = -1;
+
+    private int preeditClauseEnd = -1;
+
     /// The value the widget last offered, so a change to it can be told from a
     /// constant that has always been there — see
     /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput].
@@ -78,11 +92,36 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         host = context.host().orElse(null);
         follow();
         var area = widget();
-        var showPlaceholder = edit.isEmpty() && !area.placeholder().isEmpty();
+        // A composition ends when the control stops being typed into, and nothing
+        // else would clear it: the empty TEXT_EDITING goes to whatever has focus.
+        if (!focused || area.disabled() || area.readOnly()) {
+            preedit = "";
+            preeditClauseStart = -1;
+            preeditClauseEnd = -1;
+        }
+
+        var shown = edit.text();
+        var displayed = edit;
+        var composing = Composing.NONE;
+        if (!preedit.isEmpty()) {
+            // Spliced at the caret, with the caret inside it -- `text-input`'s
+            // arrangement, and every native field's (ADR-0292).
+            var at = edit.caret();
+            shown = new StringBuilder(shown).insert(at, preedit).toString();
+            displayed = new TextEdit(shown, at + preeditCaret, at + preeditCaret);
+            composing = new Composing(
+                    at,
+                    at + preedit.length(),
+                    preeditClauseStart < 0 ? -1 : at + preeditClauseStart,
+                    preeditClauseEnd < 0 ? -1 : at + preeditClauseEnd);
+        }
+
+        var showPlaceholder = edit.isEmpty() && preedit.isEmpty() && !area.placeholder().isEmpty();
         return new TextAreaBox(
-                showPlaceholder ? area.placeholder() : edit.text(),
+                showPlaceholder ? area.placeholder() : shown,
                 showPlaceholder,
-                edit,
+                displayed,
+                composing,
                 focused && !area.disabled(),
                 caretShown,
                 area.rows(),
@@ -191,12 +230,91 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public boolean type(String typed) {
+        // Clears the composition first, for `text-input`'s reason: the empty
+        // TEXT_EDITING is not ordered against this one on every platform, and an
+        // accepted candidate must not draw twice (ADR-0289).
+        var wasComposing = clearPreedit();
         var room = room();
         var insertion = room < 0 ? typed : clip(typed, room);
         if (insertion.isEmpty()) {
+            return wasComposing;
+        }
+        return apply(edit.insert(insertion), EditHistory.Kind.TYPING, true) || wasComposing;
+    }
+
+    @Override
+    public boolean compose(String text, int caret, int clauseStart, int clauseEnd) {
+        var area = widget();
+        if (area.disabled() || area.readOnly()) {
             return false;
         }
-        return apply(edit.insert(insertion), EditHistory.Kind.TYPING, true);
+        var clamped = Math.clamp(caret, 0, text.length());
+        var end = clauseStart < 0 ? -1 : Math.clamp(clauseStart + Math.max(0, clauseEnd), 0, text.length());
+        if (preedit.equals(text) && preeditCaret == clamped && preeditClauseStart == clauseStart) {
+            return !text.isEmpty();
+        }
+        setState(() -> {
+            preedit = text;
+            preeditCaret = clamped;
+            preeditClauseStart = clauseStart;
+            preeditClauseEnd = end;
+        });
+        solid();
+        return true;
+    }
+
+    /// Drops any composition. @return whether there was one
+    private boolean clearPreedit() {
+        if (preedit.isEmpty()) {
+            return false;
+        }
+        setState(() -> {
+            preedit = "";
+            preeditCaret = 0;
+            preeditClauseStart = -1;
+            preeditClauseEnd = -1;
+        });
+        return true;
+    }
+
+    /// The caret's **line**, in this control's content coordinates — the whole
+    /// control would push a candidate window a long way from the text.
+    @Override
+    public Optional<LogicalRect> caretArea() {
+        var shaped = paragraph;
+        if (!focused || shaped == null || widget().disabled() || widget().readOnly()) {
+            return Optional.empty();
+        }
+        var lineHeight = shaped.font().lineHeight();
+        var layout = lines();
+        if (layout.isEmpty()) {
+            return Optional.empty();
+        }
+        var index = lineIndex(layout, displayCaret());
+        var line = layout.get(index);
+        return Optional.of(LogicalRect.of(
+                0,
+                (float) (index * lineHeight - scrollOffset),
+                (float) Math.max(1, shaped.widthBetween(line.start(), line.end())),
+                (float) lineHeight));
+    }
+
+    @Override
+    public double caretOffset() {
+        var shaped = paragraph;
+        var layout = lines();
+        if (shaped == null || layout.isEmpty()) {
+            return 0;
+        }
+        var at = displayCaret();
+        var line = layout.get(lineIndex(layout, at));
+        return shaped.widthBetween(line.start(), Math.clamp(at, line.start(), line.end()));
+    }
+
+    /// The caret's offset into what is **drawn** — inside the composition while
+    /// there is one.
+    private int displayCaret() {
+        return preedit.isEmpty() ? edit.caret() : edit.caret() + preeditCaret;
     }
 
     @Override

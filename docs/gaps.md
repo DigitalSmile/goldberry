@@ -79,8 +79,8 @@ a rule.
 | ~~[G12](#g12)~~ | ~~Deep-link URI handling and single-instance handoff~~ | **not Goldberry's** — ADR-0291 | answered |
 | ~~[G13](#g13)~~ | ~~The other `natives` leak: Yoga through `paint.Box`~~ | **closed** — ADR-0279, ADR-0280 | done |
 | ~~[G14](#g14)~~ | ~~The last `natives` leak: **one method**, `Frame.drawGlyphs`~~ | **closed** — ADR-0290 | done |
-| ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; `text-input` is [G16](#g16) | done |
-| [G16](#g16) | IME preedit in `text-input` | typing Japanese, Chinese or Korean into a *field* rather than a canvas | medium |
+| ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; the fields are [G16](#g16) | done |
+| ~~[G16](#g16)~~ | ~~IME preedit in `text-input`~~ | **closed** — ADR-0292; `text-area` too | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -98,6 +98,8 @@ a rule.
   today, which is what brd's board is anyway.
 - **Widget catalogue**: menus, dialogs, toasts, tree, tabs, table, cards, masonry, scroll, text inputs,
   charts. The assistant panel, the board list and the settings dialog are compositions of these.
+  `text-input` and `text-area` take an input method inline ([G16](#g16)); a `password` deliberately
+  does not, because a candidate window is an unmasked window.
 - **Stylesheets and theming**: `Controls.stylesheets(Theme[, Density])`, the cascade, `Icons`.
 - **Markup and binding**: `Widgets.inflater(...)` over KDL, `@Bind`/`@Action` with `Models`.
 - **Shortcuts, overlays, popups, tray**: `Host.shortcut(...)`, `Host.overlay(...)`, `Popup`, tray SPI.
@@ -690,31 +692,51 @@ The native surface gained one symbol, one struct and one event constant. The
 headless backend can be a Japanese user — `composeText`, `inputText`,
 `endComposing` — so this is testable with no input method installed.
 
+`text-input` and `text-area` were left out of this one and are [G16](#g16),
+which is closed too.
+
 ---
 
 <a id="g16"></a>
-### G16 — IME preedit in `text-input`
+### G16 — IME preedit in `text-input` — **closed**
 
-**Today.** [G15](#g15) closed it for a `canvas` — `text.edit.Editor` composes, and
-a sticky drawn on a canvas takes Japanese. The toolkit's own **field** does not:
-`text-input` has its own editing model (`TextInputState` over `TextEdit`), and its
-caret and selection are absolutely positioned *boxes* rather than a painter's
-rectangles, so the same feature is a different piece of work there.
+Landed as [ADR-0292](../book/src/adr/0292-a-field-composes-and-a-password-does-not.md),
+and in `text-area` as well — `controls.css` says the two controls "must not look
+like they were designed by different people", and shipping this in one of them
+would have been exactly that.
 
-**Needed for.** Any dialog, search box or settings field typed in a language that
-composes — which for brd is the board title, the assistant prompt and the search
-bar, not the board itself.
+Nothing to call: a `text-input` and a `text-area` compose because they are the
+toolkit's own widgets. Type Japanese into one and the composition appears
+underlined at the caret, with the clause the input method is converting
+highlighted, and the candidate window opens beside the line rather than over it.
 
-**Why it is Goldberry's.** It is the toolkit's own widget. Nothing an application
-can do reaches inside it.
+**A composition is still not an edit.** It is held beside the value and spliced
+only into what is drawn, so `onChange` fires once — for the accepted candidate —
+rather than once per keystroke of a string that is about to be replaced. The undo
+history does not grow, and a `bind=` property does not see the intermediate text.
 
-**Proposed.** `TextField.onPreedit` into `TextInputState`, the composition spliced
-into the paragraph the field shapes, an underline as one more absolutely
-positioned box beside the caret and the selection, and `caretArea()` answered from
-the geometry the field already computes for its caret. The one decision that is
-not mechanical is what a `password` does with a composition: masking it hides
-which candidate is being chosen, and not masking it shows the password. Looking at
-what the platforms' own fields do is the first step, not the last.
+**A `password` refuses to compose**, which is the one decision this entry said was
+not mechanical. The reason is not the bullets: a candidate window is a **second,
+unmasked window** showing what is being typed, drawn by the input method beside
+the field, so a masked field that composed would put the password on screen in a
+window the application does not own. Windows disables the IME for a secure edit
+control and macOS's `NSSecureTextField` refuses marked text; this does the same.
+Committed text still arrives, so the field still takes every character.
+
+Two smaller notes:
+
+- **The highlight draws the clause**, because a composition replaces the selection
+  when it commits and every input method collapses it — so the part is free. The
+  new part is `text-composition`, the rule under the whole composition, drawn in
+  front of the glyphs rather than behind them.
+- **The caret's rectangle differs between the two controls**: a `text-input`
+  reports its whole content box, because a single-line field *is* the line; a
+  `text-area` reports the caret's line, because a candidate window kept clear of
+  ten lines would be a long way from the text.
+
+No golden image moved, and nothing about `Mask` changed — a composition being a
+second instance of "what is drawn is not what is held" is why this was 250 lines
+rather than a rewrite.
 
 ---
 
@@ -749,5 +771,6 @@ at this and said no" is a result and an entry that quietly disappeared is not.
 | G9 | ADR-0287 | the export path: "save as" and "import an image" are the desktop's own dialog, and a `.am` snapshot can be opened from disk |
 | G11 | ADR-0288 | nothing brd had; a board's fonts are the document's — it is the *chart* and the custom control that could not follow a theme |
 | G15 | ADR-0289 | the wordless-in-Japanese sticky: a composition, its clause and its caret are drawn, and the candidate window lands under them |
+| G16 | ADR-0292 | nothing brd had; it is the toolkit's own fields — the board title, the assistant prompt and the search bar take Japanese now, and a password deliberately does not |
 | G14 | ADR-0290 | nothing brd had; it is the toolkit's own boundary, and closing it is what makes "`natives.*` is not application API" a compiler error rather than a rule |
 | G12 | ADR-0291 | nothing — it is the entry that was **answered** rather than built: brd writes its own lock, socket and packaging line, and the toolkit stops carrying the question |
