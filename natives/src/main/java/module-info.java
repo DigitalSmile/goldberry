@@ -72,6 +72,7 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.harfbuzz.enums to
             io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.sdl;
+    exports io.github.digitalsmile.goldberry.natives.sdl.dialog;
     exports io.github.digitalsmile.goldberry.natives.sdl.event;
     exports io.github.digitalsmile.goldberry.natives.sdl.window;
     exports io.github.digitalsmile.goldberry.natives.sdl.desktop;

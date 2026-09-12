@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -428,6 +429,20 @@ public class TestHost implements Host {
     @Override
     public Clipboard clipboard() {
         return clipboard;
+    }
+
+    /// Real scriptable file dialogs, for the reason the clipboard below is real:
+    /// a test of an "Export…" button wants to say what the user picked, and a
+    /// host that always refused would make every such test pass for the wrong
+    /// reason.
+    ///
+    /// Reach it to script an answer — `host.fileDialogs().answerWith(...)` — and
+    /// to read what was asked for.
+    private final HeadlessFileDialogs fileDialogs = new HeadlessFileDialogs();
+
+    @Override
+    public HeadlessFileDialogs fileDialogs() {
+        return fileDialogs;
     }
 
     /// A real headless backend, made on first use, so that a tray shown through

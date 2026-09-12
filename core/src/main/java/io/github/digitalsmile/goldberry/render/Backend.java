@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
@@ -114,6 +116,22 @@ public interface Backend extends AutoCloseable {
     /// session, which is why this is on the backend and not on [BackendWindow].
     default Clipboard clipboard() {
         return Clipboard.none();
+    }
+
+    /// The platform's own open, save and folder dialogs.
+    ///
+    /// Never null and never [Optional], for [#clipboard()]'s reason rather than
+    /// [#createPopup]'s: a caller that got an empty Optional would write
+    /// [FileDialogs#none()] itself. Absence is asked about with
+    /// [FileDialogs#supported()] and answered with a [FileChoice.Failed], so an
+    /// export on a backend with no dialogs says so instead of quietly doing
+    /// nothing.
+    ///
+    /// Process-global rather than per window, like the clipboard and the tray —
+    /// the owner window is a parameter of the request, because modality is the
+    /// only thing a window contributes to it.
+    default FileDialogs fileDialogs() {
+        return FileDialogs.none();
     }
 
     /// Waits for platform events and delivers them, then returns.

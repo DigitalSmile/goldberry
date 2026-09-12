@@ -192,6 +192,16 @@ SDL_GetTrayEntryChecked
 SDL_CreateSurfaceFrom
 SDL_DestroySurface
 
+# The platform's own file dialogs (docs/gaps.md G9). Export a board as a PNG,
+# import an image, open a snapshot: all three are a path the user chose, and a
+# toolkit that drew its own file browser would be drawing the one part of the
+# desktop the desktop is certain to have already. Asynchronous -- the answer
+# arrives in an upcall, which on Linux comes back from the DBus thread that
+# talks to the XDG portal.
+SDL_ShowOpenFileDialog
+SDL_ShowSaveFileDialog
+SDL_ShowOpenFolderDialog
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

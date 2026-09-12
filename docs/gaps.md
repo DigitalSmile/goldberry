@@ -72,7 +72,7 @@ compiler's answer.
 | ~~[G6](#g6)~~ | ~~In-canvas text editing: caret, selection, undo~~ | **closed** — ADR-0285; IME preedit is [G15](#g15) | done |
 | ~~[G7](#g7)~~ | ~~Clipboard beyond text: images and custom types~~ | **closed** — ADR-0286 | done |
 | [G8](#g8) | `goldberry-html`: Markdown through md4c | Note preview (E1), Note → HTML in the Viewer (D1) | medium |
-| [G9](#g9) | Native file dialogs | export PNG/SVG/MD (G3), import an image | medium |
+| ~~[G9](#g9)~~ | ~~Native file dialogs~~ | **closed** — ADR-0287 | done |
 | ~~[G10](#g10)~~ | ~~Gradients as a `core.paint` value~~ | **closed** — ADR-0277 | done |
 | [G11](#g11) | The computed font of a box, inside a painter | canvas text that follows the theme rather than naming a font | low |
 | [G12](#g12) | Deep-link URI handling and single-instance handoff | `brd://open/<token>` (plan D5) | medium |
@@ -404,15 +404,49 @@ a second text stack.
 ---
 
 <a id="g9"></a>
-### G9 — Native file dialogs
+### G9 — Native file dialogs — **closed**
 
-**Today.** No binding. SDL3 has `SDL_ShowOpenFileDialog` / `SDL_ShowSaveFileDialog`.
+Landed as [ADR-0287](../book/src/adr/0287-a-file-dialog-is-the-desktops-and-the-answer-comes-back-later.md).
 
-**Needed for.** Export a board as PNG or SVG and a note as Markdown (plan G3); import an image; open a
-local `.am` snapshot while sync is still being built.
+```java
+host.fileDialog(
+        FileDialogSpec.saveFile().filters(FileFilter.of("PNG image", "png")).startingAt(lastExport),
+        choice -> switch (choice) {
+            case FileChoice.Chosen(var paths, var filter) -> Files.write(paths.getFirst(), board.encodePng());
+            case FileChoice.Cancelled ignored             -> { }
+            case FileChoice.Failed(var message)           -> toast(message);
+        });
+```
 
-**Proposed.** `Dialogs.openFile(...)`, `Dialogs.saveFile(...)`, `Dialogs.openFolder(...)`, async with a
-callback on the UI thread, with filters and a starting directory.
+`FileDialogSpec.openFile()`, `saveFile()` and `openFolder()` are the three this
+entry asked for, as a value rather than three static calls — `.filters(...)`,
+`.startingAt(...)`, `.allowMany(...)` — and `Host.fileDialogs()` is the
+process-global facility underneath, for the menu that wants `supported()` before
+it offers an "Export…" item.
+
+**There is no blocking overload and there will not be one.** The UI thread is the
+only thread allowed to touch windows, and on Linux blocking it also stops the
+pump the XDG portal needs in order to answer — a deadlock rather than a stutter.
+The callback is on the UI thread, exactly once, and `Host.fileDialog` asks for
+the frame behind it, which a dialog's answer otherwise arrives without.
+
+**Filters are extensions, not patterns.** `FileFilter.of("Images", "png", ".jpg")`
+— the dot is optional, the case does not matter, and `*.png` or `image/png` is
+**refused**, because each platform's own dialect is a different one and a wrong
+pattern is a dialog that lists nothing.
+
+Two departures worth knowing about:
+
+- **Cancelling is not failing.** `FileChoice` is sealed over `Chosen`,
+  `Cancelled` and `Failed`; an export the user changed their mind about leaves no
+  error to show.
+- **No title, accept label or cancel label.** SDL exposes them only through
+  `SDL_ShowFileDialogWithProperties`, and macOS has no dialog title at all. The
+  record has room for them the day something needs them.
+
+The native surface gained three symbols. The headless backend has **real**
+dialogs a test scripts — `answerWith(...)` says what the user did, `shown()` says
+what was asked for — so an export button is testable with no desktop under it.
 
 ---
 
@@ -563,3 +597,4 @@ preedit" as hardening work.
 | G5 | ADR-0284 | the `render/` service's "headless Goldberry" TODO: `preview.png` is `Offscreen.of(...).render(...).encodePng()` |
 | G6 | ADR-0285 | the wordless sticky: a caret, a selection and an undo stack over a canvas, with no `text-input` in sight |
 | G7 | ADR-0286 | the paste path: a screenshot off the clipboard is an `Image`, and a copied shape can offer its own format beside a PNG |
+| G9 | ADR-0287 | the export path: "save as" and "import an image" are the desktop's own dialog, and a `.am` snapshot can be opened from disk |

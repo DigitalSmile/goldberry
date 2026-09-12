@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,9 @@ import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -1374,6 +1378,28 @@ final class Launcher implements Host {
     @Override
     public Clipboard clipboard() {
         return GoldberryRuntime.get().backend().clipboard();
+    }
+
+    @Override
+    public FileDialogs fileDialogs() {
+        return GoldberryRuntime.get().backend().fileDialogs();
+    }
+
+    /// The dialog is modal for **this** window, which is the one difference from
+    /// the default on [Host]: a launcher is the only implementation that has a
+    /// window to name, and a dialog with no owner is a second top-level window on
+    /// Windows and macOS — one the user can lose behind the one that opened it.
+    ///
+    /// The repaint is the default's, and the reason is written there.
+    @Override
+    public void fileDialog(FileDialogSpec spec, Consumer<FileChoice> onChoice) {
+        fileDialogs().show(window.backendWindow(), spec, choice -> {
+            try {
+                onChoice.accept(choice);
+            } finally {
+                repaint();
+            }
+        });
     }
 
     /// The tray is the backend's, like the clipboard, because both belong to the

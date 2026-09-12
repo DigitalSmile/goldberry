@@ -162,6 +162,14 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board) implements Ho
         return board;
     }
 
+    /// No file dialogs: this host has no desktop under it, and
+    /// [io.github.digitalsmile.goldberry.render.dialog.FileDialogs#none()] is
+    /// exactly what a backend in that position reports.
+    @Override
+    public io.github.digitalsmile.goldberry.render.dialog.FileDialogs fileDialogs() {
+        return io.github.digitalsmile.goldberry.render.dialog.FileDialogs.none();
+    }
+
     /// No tray: this host exists to drive a `tour` and has no desktop under it,
     /// which is the answer a session without a notification area gives anyway.
     @Override

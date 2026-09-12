@@ -186,6 +186,8 @@ public final class HeadlessBackend implements Backend {
     /// the reservation is there so that a test which confuses the work area with
     /// the display's full size fails, which is the mistake the two rectangles
     /// exist to tell apart.
+    private final HeadlessFileDialogs fileDialogs = new HeadlessFileDialogs();
+
     private LogicalRect workArea = LogicalRect.of(0, 0, 1920, 1040);
 
     /// The work area every window on this backend reports.
@@ -260,6 +262,17 @@ public final class HeadlessBackend implements Backend {
     @Override
     public Clipboard clipboard() {
         return clipboard;
+    }
+
+    /// File dialogs a test scripts the answers to.
+    ///
+    /// Narrowed to [HeadlessFileDialogs] rather than returned as the SPI type,
+    /// for the reason [#trays()] is public: a test that cannot reach
+    /// `answerWith(...)` has to cast, and the cast would be the only thing in the
+    /// test that knows which backend it is running on.
+    @Override
+    public HeadlessFileDialogs fileDialogs() {
+        return fileDialogs;
     }
 
     @Override

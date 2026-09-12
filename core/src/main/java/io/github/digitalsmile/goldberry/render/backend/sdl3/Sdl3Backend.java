@@ -28,6 +28,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -92,6 +93,7 @@ public final class Sdl3Backend implements Backend {
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
     private final Clipboard clipboard = new Sdl3Clipboard();
+    private final Sdl3FileDialogs fileDialogs = new Sdl3FileDialogs(this::wakeup);
 
     /// The trays this application has up. Held so that closing the backend
     /// takes them down: a tray icon left in the notification area after the
@@ -475,11 +477,19 @@ public final class Sdl3Backend implements Backend {
 
         var translated = new ArrayList<BackendEvent>();
 
+        // Before the wait, not after: a dialog answers on the platform's own
+        // thread and wakes this loop, and delivering its answer first is what
+        // makes the repaint it asks for part of this pump rather than the next.
+        var dialogAnswers = fileDialogs.deliverPending();
+
         adoptDisplayRate();
 
         // Shortened when a frame is being held back, so the wait ends when that
-        // frame comes due rather than at the loop's one-second heartbeat.
-        var wait = pacer.capWait(timeout, anyFramePending(), System.nanoTime());
+        // frame comes due rather than at the loop's one-second heartbeat. Zeroed
+        // when a dialog answered while this was being set up, so its consumer is
+        // not made to wait out a second of quiet.
+        var wait =
+                fileDialogs.hasPending() ? Duration.ZERO : pacer.capWait(timeout, anyFramePending(), System.nanoTime());
 
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
@@ -514,7 +524,7 @@ public final class Sdl3Backend implements Backend {
             // Requests made while handling a FrameDue are deliberately left for
             // the next pump: draining until empty here would let a
             // self-scheduling animation hold the loop and starve input.
-            return translated.size() + emitDueFrames(sink);
+            return dialogAnswers + translated.size() + emitDueFrames(sink);
         } finally {
             activeSink = null;
         }
@@ -961,6 +971,14 @@ public final class Sdl3Backend implements Backend {
     @Override
     public Clipboard clipboard() {
         return clipboard;
+    }
+
+    /// The platform's file dialogs, held for [#clipboard()]'s reason: what the
+    /// wrapper holds is three symbol addresses and one upcall stub, and remaking
+    /// it per export would remake the stub.
+    @Override
+    public FileDialogs fileDialogs() {
+        return fileDialogs;
     }
 
     SdlVideo video() {

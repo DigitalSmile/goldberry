@@ -1,7 +1,12 @@
 package io.github.digitalsmile.goldberry;
 
+import java.util.function.Consumer;
+
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
+import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -470,6 +475,51 @@ public interface Host {
     /// [Clipboard#none()], which accepts
     /// nothing and always reads empty.
     Clipboard clipboard();
+
+    /// The platform's own open, save and folder dialogs — `docs/gaps.md` G9.
+    ///
+    /// On [Host] for the clipboard's reason: the consumer is a widget — a
+    /// toolbar's "Export…" — and reaching a window's backend from a widget is
+    /// what [io.github.digitalsmile.goldberry.widget.BuildContext#host()] exists
+    /// to avoid (ADR-0140).
+    ///
+    /// Never null: a backend with no dialogs reports [FileDialogs#none()], which
+    /// answers every request with a [FileChoice.Failed]. Ask
+    /// [FileDialogs#supported()] before offering the menu item.
+    ///
+    /// Most callers want [#fileDialog] instead, which fills in this window as the
+    /// one to be modal for and asks for the frame the answer needs.
+    FileDialogs fileDialogs();
+
+    /// Puts a file dialog up over this window and returns at once.
+    ///
+    /// ```java
+    /// host.fileDialog(FileDialogSpec.saveFile().filters(FileFilter.of("PNG image", "png")), choice -> {
+    ///     if (choice instanceof FileChoice.Chosen chosen) {
+    ///         Files.write(chosen.path(), board.encodePng());
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// **The answer arrives with a repaint behind it**, and without one a dialog
+    /// looks broken in a way nothing reports — the same failure a tray row has
+    /// (ADR-0191), and for the same reason: the user's choice comes back from the
+    /// platform's own thread, produces no input event, and so nothing would ask
+    /// for the frame that draws what it changed.
+    ///
+    /// On the UI thread, exactly once per call.
+    ///
+    /// @param spec     which dialog, and what to suggest
+    /// @param onChoice told once, with one of [FileChoice]'s three cases
+    default void fileDialog(FileDialogSpec spec, Consumer<FileChoice> onChoice) {
+        fileDialogs().show(null, spec, choice -> {
+            try {
+                onChoice.accept(choice);
+            } finally {
+                repaint();
+            }
+        });
+    }
 
     /// Puts an icon in the desktop's notification area — `docs/core-widgets.md`
     /// §9's `tray-icon`.
