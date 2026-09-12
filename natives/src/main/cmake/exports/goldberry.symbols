@@ -138,6 +138,27 @@ SDL_GetClipboardText
 SDL_SetClipboardText
 SDL_HasClipboardText
 SDL_free
+#
+# And the clipboard's other half, which is bytes under a MIME type: an image
+# pasted from a browser, a document's own format copied between two of its
+# windows (sec. 4, ADR-0286).
+#
+# `SDL_SetClipboardData` is **lazy** and this is the whole of why it needs three
+# symbols rather than one: an application does not put bytes on a clipboard, it
+# advertises the types it can produce and is asked to produce one when somebody
+# pastes. So a write hands over two callbacks and a list of MIME types, and the
+# bytes stay ours -- in an arena the cleanup callback closes when the offer is
+# replaced. That is the second upcall family in this library after Yoga's measure
+# (ADR-0017), and the first where the *caller* owns memory across it.
+SDL_SetClipboardData
+SDL_ClearClipboardData
+#
+# The read is the ordinary shape: SDL allocates, we copy, SDL_free above closes
+# the loop. `SDL_HasClipboardData` is the cheap question -- on X11 and Wayland a
+# read is a round trip to the owning client and `has` is answered from what the
+# compositor already said.
+SDL_GetClipboardData
+SDL_HasClipboardData
 
 # The system tray (sec. 9's `tray-icon`). SDL owns the platform menu here --
 # these entries are drawn by the desktop shell and not by Goldberry, which is

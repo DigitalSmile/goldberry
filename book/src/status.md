@@ -14,7 +14,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
-| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image and takes a caret; a scene renders with no window |
+| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
@@ -6653,6 +6653,17 @@ signature** — was never written down and was broken in two families.
   or not and a caret does not. **IME preedit is not in it**:
   `SDL_EVENT_TEXT_EDITING` is not bound at all, which is M5's item and G15's
   entry.
+- **And the clipboard carries more than text**
+  ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)), which is
+  `docs/gaps.md` G7: `has`/`read`/`write` over a MIME type, with
+  `Image.fromClipboard` and `toClipboard` beside the decoder rather than on the
+  SPI — a backend implementing a clipboard should not have to know what a PNG is.
+  A write is an **offer**: `SDL_SetClipboardData` keeps two callbacks and asks for
+  the bytes when somebody pastes, so this is the second upcall family after Yoga's
+  measure and the first where memory outlives the call. Each offer carries its own
+  id, because the cleanup for the previous one arrives while the next is being
+  installed — a single "current offer" field frees the wrong arena every time
+  somebody copies twice. The showcase's image card pastes a screenshot now.
 
 ## M4 — GPU
 

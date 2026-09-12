@@ -70,7 +70,7 @@ compiler's answer.
 | ~~[G4](#g4)~~ | ~~An image primitive: decode bytes, draw into a frame~~ | **closed** — ADR-0283 | done |
 | ~~[G5](#g5)~~ | ~~Shipped offscreen render + PNG encode~~ | **closed** — ADR-0283, ADR-0284 | done |
 | ~~[G6](#g6)~~ | ~~In-canvas text editing: caret, selection, undo~~ | **closed** — ADR-0285; IME preedit is [G15](#g15) | done |
-| [G7](#g7) | Clipboard beyond text: images and custom types | paste a screenshot, copy shapes between boards | medium |
+| ~~[G7](#g7)~~ | ~~Clipboard beyond text: images and custom types~~ | **closed** — ADR-0286 | done |
 | [G8](#g8) | `goldberry-html`: Markdown through md4c | Note preview (E1), Note → HTML in the Viewer (D1) | medium |
 | [G9](#g9) | Native file dialogs | export PNG/SVG/MD (G3), import an image | medium |
 | ~~[G10](#g10)~~ | ~~Gradients as a `core.paint` value~~ | **closed** — ADR-0277 | done |
@@ -98,8 +98,9 @@ compiler's answer.
 - **Stylesheets and theming**: `Controls.stylesheets(Theme[, Density])`, the cascade, `Icons`.
 - **Markup and binding**: `Widgets.inflater(...)` over KDL, `@Bind`/`@Action` with `Models`.
 - **Shortcuts, overlays, popups, tray**: `Host.shortcut(...)`, `Host.overlay(...)`, `Popup`, tray SPI.
-- **Clipboard (text)**, **cursors**, **headless backend**, **start-up timeline** (`Startup`), **frame
-  stats**/HUD.
+- **The clipboard, both halves**: text, and bytes under any MIME type, with `Image.fromClipboard` /
+  `toClipboard` for the common one.
+- **Cursors**, **headless backend**, **start-up timeline** (`Startup`), **frame stats**/HUD.
 
 ---
 
@@ -349,23 +350,43 @@ did, so a Latin keyboard is complete and an input method's *result* arrives; wha
 is missing is the inline composition a CJK user sees while choosing.
 
 <a id="g7"></a>
-### G7 — Clipboard beyond text
+### G7 — Clipboard beyond text — **closed**
 
-**Today.** `render.Clipboard` is `hasText` / `text` / `text(String)`.
+Landed as [ADR-0286](../book/src/adr/0286-a-clipboard-write-is-an-offer.md).
 
-**Needed for.** Pasting a screenshot onto a board is the most-used way anything gets onto one (plan B3,
-C5). Copying shapes between two brd windows needs a custom type as well.
+```java
+boolean has(String mime);                       // cheap: what has been advertised
+byte[]  read(String mime);                      // a round trip to the owner
+boolean write(String mime, byte[] bytes);
+boolean write(Map<String, byte[]> byMime);      // one copy, several types, in order
+boolean clear();
+```
 
-**Proposed.** `boolean hasImage()`, `Image image()`, `boolean image(Image)`, and a typed pair —
-`boolean has(String mime)` / `byte[] read(String mime)` / `boolean write(String mime, byte[] bytes)`.
+and the image half, which is **not** on the clipboard:
 
-**The type in those signatures exists now** — `image.Image`, from [G4](#g4), which
-decodes what a platform hands over and encodes what it is given. What is left here
-is the platform half: SDL3 has no clipboard image API of its own, so this is
-`SDL_SetClipboardData` with a callback per MIME type, and it is the whole of the
-remaining work.
+```java
+Image.onClipboard(clipboard);                   // boolean
+Image.fromClipboard(clipboard);                 // Optional<Image>
+image.toClipboard(clipboard);                   // as image/png
+```
 
----
+**A departure from what this entry proposed, and the reason matters to brd.**
+`hasImage()`/`image()`/`image(Image)` would have put the decoder inside the
+backend SPI — every backend implementing a clipboard would have to know what a
+PNG is. A clipboard is bytes and a MIME type; what makes those an image lives
+beside the decoder. Your paste is `Image.fromClipboard(window.clipboard())`.
+
+**A write is an offer, not a copy.** `SDL_SetClipboardData` advertises types and
+asks for the bytes when somebody pastes, so the bytes stay in Goldberry's arena
+until the offer is replaced. That matters to brd in one visible way: copying a
+shape should hand over **both** the document's own format and a PNG, in that
+order, so that pasting back into a board keeps the shape and pasting into a chat
+window gets a picture. `write(Map)` in a `LinkedHashMap` is how that is said.
+
+Reading an image tries `image/png`, `image/jpeg` and `image/qoi` — the formats the
+decoder has. A clipboard offering only WebP finds nothing rather than throwing;
+bytes advertised as a PNG that are not one raise `ImageDecodeException`, because
+the clipboard lied and a paste command should say so.
 
 <a id="g8"></a>
 ### G8 — `goldberry-html`: Markdown through md4c
@@ -541,3 +562,4 @@ preedit" as hardening work.
 | G4 | ADR-0283 | the grey box with the dashed border: an `image` shape draws its own pixels now, and a paste can decode what it was given |
 | G5 | ADR-0284 | the `render/` service's "headless Goldberry" TODO: `preview.png` is `Offscreen.of(...).render(...).encodePng()` |
 | G6 | ADR-0285 | the wordless sticky: a caret, a selection and an undo stack over a canvas, with no `text-input` in sight |
+| G7 | ADR-0286 | the paste path: a screenshot off the clipboard is an `Image`, and a copied shape can offer its own format beside a PNG |

@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.natives.sdl.calls;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
@@ -19,6 +20,10 @@ public record SdlClipboardCalls(
         GetClipboardText getClipboardText,
         SetClipboardText setClipboardText,
         HasClipboardText hasClipboardText,
+        SetClipboardData setClipboardData,
+        ClearClipboardData clearClipboardData,
+        GetClipboardData getClipboardData,
+        HasClipboardData hasClipboardData,
         Free free) {
 
     /// Binds every function above.
@@ -29,7 +34,131 @@ public record SdlClipboardCalls(
                 new GetClipboardText(lookup),
                 new SetClipboardText(lookup),
                 new HasClipboardText(lookup),
+                new SetClipboardData(lookup),
+                new ClearClipboardData(lookup),
+                new GetClipboardData(lookup),
+                new HasClipboardData(lookup),
                 new Free(lookup));
+    }
+
+    /// Offers the clipboard a list of MIME types and two callbacks to produce
+    /// them with.
+    ///
+    /// **Lazy, and that is the point.** The bytes are not copied here: SDL keeps
+    /// the callbacks and calls the first one when another application actually
+    /// pastes, which is what the platform protocols do underneath — an X11
+    /// selection owner is asked to serialise on demand. The data the callback
+    /// returns must stay valid until the cleanup callback says otherwise.
+    ///
+    /// `bool SDL_SetClipboardData(SDL_ClipboardDataCallback, SDL_ClipboardCleanupCallback,`
+    /// `void* userdata, const char* const* mime_types, size_t num_mime_types)`
+    ///
+    /// @param callback  produces the bytes for one MIME type
+    /// @param cleanup   called when this offer is replaced or cleared
+    /// @param userdata  handed back to both, unread by SDL
+    /// @param mimeTypes an array of NUL-terminated strings
+    /// @param count     how many of them
+    public static final class SetClipboardData {
+
+        private static final MethodHandle FD_SDL_SetClipboardData =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        SetClipboardData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetClipboardData");
+        }
+
+        public boolean call(
+                MemorySegment callback,
+                MemorySegment cleanup,
+                MemorySegment userdata,
+                MemorySegment mimeTypes,
+                long count) {
+            try {
+                return (boolean)
+                        FD_SDL_SetClipboardData.invokeExact(address, callback, cleanup, userdata, mimeTypes, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetClipboardData", t);
+            }
+        }
+    }
+
+    /// Drops whatever this application was offering, which calls its cleanup.
+    ///
+    /// `bool SDL_ClearClipboardData(void)`
+    public static final class ClearClipboardData {
+
+        private static final MethodHandle FD_SDL_ClearClipboardData =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        ClearClipboardData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_ClearClipboardData");
+        }
+
+        public boolean call() {
+            try {
+                return (boolean) FD_SDL_ClearClipboardData.invokeExact(address);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_ClearClipboardData", t);
+            }
+        }
+    }
+
+    /// Reads one MIME type off the clipboard, whoever owns it.
+    ///
+    /// A **round trip to the owning application** on X11 and Wayland, and the
+    /// bytes come back in SDL's allocator — so [SdlClipboardCalls.Free] closes
+    /// this loop exactly as it does for text.
+    ///
+    /// `void* SDL_GetClipboardData(const char* mime_type, size_t* size)`
+    ///
+    /// @param mime a NUL-terminated MIME type
+    /// @param size filled in with how many bytes came back
+    /// @return the bytes, which the caller owns, or NULL
+    public static final class GetClipboardData {
+
+        private static final MethodHandle FD_SDL_GetClipboardData =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetClipboardData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetClipboardData");
+        }
+
+        public MemorySegment call(MemorySegment mime, MemorySegment size) {
+            try {
+                return (MemorySegment) FD_SDL_GetClipboardData.invokeExact(address, mime, size);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetClipboardData", t);
+            }
+        }
+    }
+
+    /// Whether the clipboard can produce this MIME type.
+    ///
+    /// `bool SDL_HasClipboardData(const char* mime_type)`
+    public static final class HasClipboardData {
+
+        private static final MethodHandle FD_SDL_HasClipboardData =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        HasClipboardData(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_HasClipboardData");
+        }
+
+        public boolean call(MemorySegment mime) {
+            try {
+                return (boolean) FD_SDL_HasClipboardData.invokeExact(address, mime);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_HasClipboardData", t);
+            }
+        }
     }
 
     /// The clipboard’s text.

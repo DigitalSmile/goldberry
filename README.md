@@ -324,6 +324,30 @@ with no native call in the encode.
 There is no `img` widget yet: a `canvas` is how an application draws an image
 today, and the showcase's Canvas screen does exactly that.
 
+### Off the clipboard, and onto it
+
+A pasted screenshot is how most things reach a board, so it is one call
+([ADR-0286](book/src/adr/0286-a-clipboard-write-is-an-offer.md)):
+
+```java
+Image.fromClipboard(window.clipboard()).ifPresent(board::add);   // Ctrl+V
+picture.toClipboard(window.clipboard());                          // Ctrl+C
+```
+
+Underneath is the clipboard's other half — `has`, `read` and `write` over a MIME
+type — which is what a document's own format travels as. One copy can offer
+several types at once, in order, so pasting a shape back into your application
+keeps the shape and pasting it into a chat window gets a picture:
+
+```java
+clipboard.write(new LinkedHashMap<>(Map.of(
+        "application/x-yourapp-shape", shape.bytes(),
+        Image.PNG_MIME, picture.encodePng())));
+```
+
+A write is an **offer**, not a copy: the platform asks for the bytes when
+somebody actually pastes, which is what X11 and Wayland do underneath.
+
 ### A picture with no window
 
 The same `Image` comes back from an offscreen render — a painter, or a whole

@@ -147,6 +147,8 @@ text — the one kind of package reference no compiler checks.
 
 ## 4. Backend SPI
 
+**The clipboard has two halves.** Text is a value and is copied; everything else is a *transfer negotiation* — `has`/`read`/`write` over a MIME type, where a write advertises what this application can produce and the platform asks for the bytes when somebody pastes. That laziness is the protocol rather than SDL's choice, so it reaches the SPI: `Clipboard.write(Map)` offers several types in order, and the bytes stay in the toolkit's arena until the offer is replaced. What turns those bytes into an image is `image.Image`, not the SPI (ADR-0286).
+
 The only platform-facing interface. Everything above it is platform-agnostic.
 
 ```java

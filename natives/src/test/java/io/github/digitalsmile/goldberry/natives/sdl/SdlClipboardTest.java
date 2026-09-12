@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -92,6 +93,99 @@ class SdlClipboardTest {
         clipboard.text(text);
 
         assertEquals(text, clipboard.text());
+    }
+
+    // --- bytes under a MIME type (ADR-0286) ----------------------------------
+
+    @Test
+    @DisplayName("round-trips bytes through the platform, which runs the upcall")
+    void roundTripsData() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+        var bytes = new byte[] {0, 1, 2, (byte) 0xFF, 'g', 'b'};
+
+        assertTrue(clipboard.write("application/x-goldberry-test", bytes));
+
+        // This is the assertion the whole design is for: reading it back runs
+        // SDL's request path, which calls **our** callback to produce the bytes.
+        // A wrong descriptor, a wrong `size_t*` write or a stub in a closed arena
+        // all land here rather than somewhere later.
+        assertTrue(clipboard.has("application/x-goldberry-test"));
+        assertArrayEquals(bytes, clipboard.read("application/x-goldberry-test"));
+
+        // Twice, because the first read frees what SDL allocated.
+        assertArrayEquals(bytes, clipboard.read("application/x-goldberry-test"));
+    }
+
+    @Test
+    @DisplayName("a type nobody offered reads as nothing rather than as a crash")
+    void unknownTypeIsEmpty() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+        clipboard.write("application/x-goldberry-test", new byte[] {1});
+
+        assertFalse(clipboard.has("application/x-goldberry-absent"));
+        assertEquals(0, clipboard.read("application/x-goldberry-absent").length);
+    }
+
+    @Test
+    @DisplayName("one copy can offer several types, and each comes back whole")
+    void offersSeveralTypes() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+        var shape = new byte[] {'s', 'h', 'a', 'p', 'e'};
+        var picture = new byte[] {'p', 'n', 'g'};
+
+        // What one copy is on a board: the document's own format for pasting
+        // back into it, and a picture for pasting anywhere else.
+        assertTrue(clipboard.write(new java.util.LinkedHashMap<>(
+                java.util.Map.of("application/x-goldberry-shape", shape, "application/x-goldberry-picture", picture))));
+
+        assertArrayEquals(shape, clipboard.read("application/x-goldberry-shape"));
+        assertArrayEquals(picture, clipboard.read("application/x-goldberry-picture"));
+    }
+
+    @Test
+    @DisplayName("replacing an offer releases the one it replaced")
+    void oneOfferAtATime() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+
+        clipboard.write("application/x-goldberry-test", new byte[] {1});
+        clipboard.write("application/x-goldberry-test", new byte[] {2});
+        clipboard.write("application/x-goldberry-test", new byte[] {3});
+
+        // SDL calls the cleanup callback for what it is dropping, and that is
+        // what closes the arena. Without it every copy in a session's life would
+        // hold its bytes until the process ended.
+        assertEquals(1, clipboard.liveOffers(), "only the current offer is still holding memory");
+        assertArrayEquals(new byte[] {3}, clipboard.read("application/x-goldberry-test"));
+
+        clipboard.clear();
+        assertEquals(0, clipboard.liveOffers(), "and clearing lets the last one go");
+    }
+
+    @Test
+    @DisplayName("an empty offer is a clear rather than an advertisement of nothing")
+    void emptyOfferClears() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+        clipboard.write("application/x-goldberry-test", new byte[] {1});
+
+        clipboard.write(java.util.Map.of());
+
+        assertFalse(clipboard.has("application/x-goldberry-test"));
+        assertEquals(0, clipboard.liveOffers());
     }
 
     /// Starts SDL's video subsystem, or reports that this machine has none.

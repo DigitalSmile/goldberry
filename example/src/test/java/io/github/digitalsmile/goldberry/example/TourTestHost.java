@@ -20,7 +20,11 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// A host that answers `anchor` from a captured frame — enough to draw a tour.
-record TourTestHost(List<HitTest.Region> regions) implements Host {
+record TourTestHost(List<HitTest.Region> regions, Clipboard board) implements Host {
+
+    TourTestHost(List<HitTest.Region> regions) {
+        this(regions, Clipboard.none());
+    }
 
     @Override
     public Optional<HitTest.Region> anchor(String id) {
@@ -153,7 +157,9 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
 
     @Override
     public Clipboard clipboard() {
-        return Clipboard.none();
+        // Whatever the test handed over, which for a test about copying and
+        // pasting is a real in-memory one (ADR-0286).
+        return board;
     }
 
     /// No tray: this host exists to drive a `tour` and has no desktop under it,

@@ -450,6 +450,12 @@ panel.surface-demo {
   cursor: text;
 }
 
+/* The image card takes the keyboard now, for Ctrl+C and Ctrl+V (ADR-0286), so it
+   has a focus ring like anything else that does. */
+#images {
+  cursor: default;
+}
+
 /* --- Navigation ------------------------------------------------------------ */
 
 /* The demo strip fills what its card leaves it, so its panel is a panel rather

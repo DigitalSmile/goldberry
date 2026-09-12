@@ -5,11 +5,14 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import io.github.digitalsmile.goldberry.image.png.PngEncoder;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendDecodedImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
@@ -39,6 +42,13 @@ import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 /// with no alpha channel is converted at decode rather than asked about at every
 /// blit. [#argb(int, int)] undoes the premultiplication so that a caller reading
 /// one pixel reads the `0xAARRGGBB` the rest of the toolkit is written in.
+///
+/// ## Off a clipboard, and onto one
+///
+/// [#fromClipboard] and [#toClipboard] — a pasted screenshot is the most common
+/// way anything reaches a board, and a copied picture is how it leaves. They are
+/// here rather than on [Clipboard] because a clipboard is bytes and a MIME type:
+/// a backend implementing one should not have to know what a PNG is (ADR-0286).
 ///
 /// ## Drawing one
 ///
@@ -162,6 +172,67 @@ public final class Image {
             }
         }
         return new Image(buffer);
+    }
+
+    /// The MIME type an image is put on a clipboard as, and the first one looked
+    /// for when reading one off.
+    ///
+    /// PNG because it is lossless, carries an alpha channel and is what every
+    /// desktop and every browser offers — a screenshot copied out of anything
+    /// arrives as this.
+    public static final String PNG_MIME = "image/png";
+
+    /// The types [#fromClipboard] will try, in order.
+    ///
+    /// Only the ones the decoder can actually read (ADR-0283): a clipboard
+    /// advertising `image/webp` and nothing else is a paste this toolkit cannot
+    /// do, and saying so by finding nothing is better than throwing from inside a
+    /// decoder that was handed bytes it does not know.
+    private static final List<String> CLIPBOARD_MIMES = List.of(PNG_MIME, "image/jpeg", "image/jpg", "image/qoi");
+
+    /// Whether `clipboard` holds an image this toolkit can decode.
+    ///
+    /// The cheap question — it asks what the platform has already advertised and
+    /// does not fetch anything.
+    public static boolean onClipboard(Clipboard clipboard) {
+        Objects.requireNonNull(clipboard, "clipboard");
+        return CLIPBOARD_MIMES.stream().anyMatch(clipboard::has);
+    }
+
+    /// The image on `clipboard`, or empty when it holds none this toolkit can
+    /// read.
+    ///
+    /// **This is a paste**, so it is a round trip to whichever application owns
+    /// the clipboard — see [Clipboard#read]. Bytes that are advertised and then
+    /// fail to decode raise [ImageDecodeException] rather than coming back empty:
+    /// the clipboard said it had a PNG, and an application offering to paste
+    /// should be told that it lied.
+    public static Optional<Image> fromClipboard(Clipboard clipboard) {
+        Objects.requireNonNull(clipboard, "clipboard");
+        for (var mime : CLIPBOARD_MIMES) {
+            if (!clipboard.has(mime)) {
+                continue;
+            }
+            var bytes = clipboard.read(mime);
+            if (bytes.length > 0) {
+                return Optional.of(decode(bytes));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /// Puts this image on `clipboard` as a PNG, replacing whatever was there.
+    ///
+    /// Encoding happens **now** rather than when somebody pastes, which is a
+    /// choice: the platform's own offer is lazy (ADR-0286), and an image that
+    /// encoded on demand would hold a reference to itself for as long as it was
+    /// on the clipboard and encode again for every paste. A UI-sized PNG is
+    /// milliseconds and a copy is a deliberate act.
+    ///
+    /// @return whether the platform accepted it
+    public boolean toClipboard(Clipboard clipboard) {
+        Objects.requireNonNull(clipboard, "clipboard");
+        return clipboard.write(PNG_MIME, encodePng());
     }
 
     /// An image over pixels somebody else rasterized.

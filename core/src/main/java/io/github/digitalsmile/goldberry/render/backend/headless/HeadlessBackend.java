@@ -3,7 +3,9 @@ package io.github.digitalsmile.goldberry.render.backend.headless;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -70,6 +72,15 @@ public final class HeadlessBackend implements Backend {
     /// last written is what is read.
     private final StringBuilder clipboardText = new StringBuilder();
 
+    /// The byte half of the same clipboard, which a headless test needs for the
+    /// same reason it needs the text half: a paste that could not possibly have
+    /// anything to paste tests nothing (ADR-0286).
+    ///
+    /// Eager where a platform's is lazy — there is no other application to ask,
+    /// so the bytes are simply kept. What that cannot model is a *refusal*, and
+    /// nothing here pretends to.
+    private final Map<String, byte[]> clipboardData = new LinkedHashMap<>();
+
     private final Clipboard clipboard = new Clipboard() {
 
         @Override
@@ -93,8 +104,42 @@ public final class HeadlessBackend implements Backend {
         }
 
         @Override
+        public boolean has(String mime) {
+            requireUiThread();
+            return clipboardData.containsKey(mime);
+        }
+
+        @Override
+        public byte[] read(String mime) {
+            requireUiThread();
+            var bytes = clipboardData.get(mime);
+            // A copy, because what a platform hands back is a copy: a test that
+            // mutated what it pasted and saw the clipboard change would be
+            // learning something about this class rather than about a clipboard.
+            return bytes == null ? new byte[0] : bytes.clone();
+        }
+
+        @Override
+        public boolean write(Map<String, byte[]> byMime) {
+            requireUiThread();
+            clipboardData.clear();
+            byMime.forEach((mime, bytes) -> clipboardData.put(
+                    Objects.requireNonNull(mime, "mime"),
+                    Objects.requireNonNull(bytes, "bytes").clone()));
+            return true;
+        }
+
+        @Override
+        public boolean clear() {
+            requireUiThread();
+            clipboardData.clear();
+            clipboardText.setLength(0);
+            return true;
+        }
+
+        @Override
         public String toString() {
-            return "Clipboard[headless, " + clipboardText.length() + " chars]";
+            return "Clipboard[headless, " + clipboardText.length() + " chars, " + clipboardData.size() + " types]";
         }
     };
 

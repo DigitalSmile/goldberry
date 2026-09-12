@@ -231,6 +231,11 @@ public record CanvasScreen() implements Widget.Stateful {
             }
         }
 
+        /// An image pasted onto the image card, or null for the one that ships
+        /// with the showcase. Null at rest, so the golden is the same picture on
+        /// every machine whatever happens to be on the clipboard.
+        private Image pasted;
+
         /// Whether the sticky has the keyboard, which is the only reason to draw
         /// a caret at all. Starts false, so the golden image is the same picture
         /// on every machine.
@@ -330,8 +335,10 @@ public record CanvasScreen() implements Widget.Stateful {
         /// `Image` being a value rather than a handle makes: it is a static field
         /// here, with no lifetime travelling alongside it and nothing to close
         /// (ADR-0283).
-        private static void paintImages(Frame frame, LogicalSize size) {
-            var image = Sample.IMAGE;
+        private void paintImages(Frame frame, LogicalSize size) {
+            // What Ctrl+V put there, or the file this card ships with. A paste is
+            // an ordinary `Image` and is drawn by the same four calls (ADR-0286).
+            var image = pasted == null ? Sample.IMAGE : pasted;
             var width = size.width();
 
             // 1. Natural size: one image pixel per *device* pixel, so this is 96
@@ -501,10 +508,51 @@ public record CanvasScreen() implements Widget.Stateful {
                             captioned(
                                     "An image, and a piece of one",
                                     id("images-card"),
-                                    new Canvas(CanvasState::paintImages, id("images")),
+                                    new Canvas(
+                                            this::paintImages,
+                                            new Input() {
+
+                                                @Override
+                                                public void onKey(KeyEvent event) {
+                                                    if (event.kind() != KeyEvent.Kind.PRESSED
+                                                            || !event.modifiers()
+                                                                    .control()) {
+                                                        return;
+                                                    }
+                                                    var board = host == null ? null : host.clipboard();
+                                                    if (board == null) {
+                                                        return;
+                                                    }
+                                                    switch (event.key()) {
+                                                        case C -> {
+                                                            // Out of the application and
+                                                            // into anything: a PNG is what
+                                                            // every desktop pastes.
+                                                            if ((pasted == null ? Sample.IMAGE : pasted)
+                                                                    .toClipboard(board)) {
+                                                                event.consume();
+                                                            }
+                                                        }
+                                                        case V ->
+                                                            Image.fromClipboard(board)
+                                                                    .ifPresent(image -> {
+                                                                        setState(() -> pasted = image);
+                                                                        event.consume();
+                                                                    });
+                                                        default -> {}
+                                                    }
+                                                }
+
+                                                @Override
+                                                public String accessibleName() {
+                                                    return "A picture, and a piece of it";
+                                                }
+                                            },
+                                            id("images")),
                                     caption("One decoded PNG drawn four ways: at natural size, stretched into a"
-                                            + " rectangle, cropped to a source region, and faded. It is a"
-                                            + " value — decoded once, held in a field, closed never.")),
+                                            + " rectangle, cropped to a source region, and faded. Click it and"
+                                            + " press Ctrl+V to paste a screenshot in, or Ctrl+C to copy this"
+                                            + " one out.")),
                             captioned(
                                     "Rendered with no window",
                                     id("rendered-card"),

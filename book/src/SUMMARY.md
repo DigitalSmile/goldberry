@@ -295,6 +295,7 @@
 - [ADR-0283 An image is a value, and the decoder is the one thing Blend2D allocates](adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)
 - [ADR-0284 A picture with no window under it](adr/0284-a-picture-with-no-window-under-it.md)
 - [ADR-0285 A caret is the text stack's, not a control's](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
+- [ADR-0286 A clipboard write is an offer, not a copy](adr/0286-a-clipboard-write-is-an-offer.md)
 
 ---
 

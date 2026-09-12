@@ -641,6 +641,27 @@ description had no effect.
   because an editor drawn on a canvas has no viewport to measure. A caller that
   knows its own height moves the caret itself.
 
+## The clipboard
+
+- **Nothing watches it.** There is no "the clipboard changed" notification, so a
+  paste button cannot grey itself out until its menu opens and asks
+  ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
+  deliver ownership changes and Windows has a viewer chain; what is missing is a
+  consumer worth the plumbing.
+- **No file lists.** `text/uri-list` is bytes like anything else and works today,
+  but nothing turns those bytes into paths, and a drag-and-drop of files is a
+  different platform mechanism again (`SDL_EVENT_DROP_FILE`), unbound.
+- **No primary selection.** X11's middle-click buffer has its own SDL calls
+  (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
+  the widgets that would fill it — a text field on X11 — would have to know they
+  are on X11.
+- **The headless clipboard is eager.** It keeps the bytes rather than serialising
+  on demand, so nothing in a test exercises the *laziness* the platform imposes;
+  the upcall path is covered in `:natives` against the real SDL instead.
+- **A refusal is not modelled anywhere.** Every write returns a boolean and the
+  in-memory clipboard always returns true, so the branch an application writes for
+  "the compositor declined" is only ever taken on a real desktop.
+
 ## Content modules
 
 `docs/content-widgets.md` specifies eleven optional modules; **none of them
