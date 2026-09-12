@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Located;
@@ -486,6 +487,79 @@ public final class PointerRouter {
         return textInputActive;
     }
 
+    /// Where the text being typed is, and where the caret is inside it — what an
+    /// input method needs in order to put its candidate window somewhere sensible
+    /// (`docs/gaps.md` G15).
+    ///
+    /// @param area   the line being typed on, in **window** logical coordinates,
+    ///               or null when nothing is being typed into
+    /// @param cursor the caret's x offset from the area's left edge
+    @FunctionalInterface
+    public interface CaretAreaSink {
+        void accept(@Nullable LogicalRect area, double cursor);
+    }
+
+    private CaretAreaSink caretAreaSink = (area, cursor) -> {};
+
+    /// The last area published, so an unchanged caret is not re-sent per event.
+    private @Nullable LogicalRect caretArea;
+
+    private double caretAreaCursor;
+
+    /// Where to send the caret's rectangle when it moves.
+    ///
+    /// [#onTextInputChange]'s twin once more: placing a candidate window is a
+    /// platform call, the router must not know about the platform, and the widget
+    /// must not know about the window (ADR-0289).
+    public void onCaretAreaChange(CaretAreaSink sink) {
+        this.caretAreaSink = Objects.requireNonNull(sink, "sink");
+        sink.accept(caretArea, caretAreaCursor);
+    }
+
+    /// Asks whatever has the focus where its caret is, and tells the window when
+    /// the answer changes.
+    ///
+    /// Called after every event that could have moved a caret — a key, a
+    /// character, a composition, a click, a focus change — because that is the
+    /// complete list and any of them missing is a candidate list left behind.
+    ///
+    /// **Translated by the region's content origin, and not through its
+    /// transform.** A caret inside a CSS-transformed subtree is reported where it
+    /// was laid out rather than where it is painted; the candidate window is then
+    /// in the wrong place and nothing else is wrong, which is a better trade than
+    /// carrying a forward affine through the hit test for a case an editable
+    /// canvas does not have.
+    private void updateCaretArea() {
+        LogicalRect area = null;
+        var cursor = 0d;
+        if (focused != null && focused.widget() instanceof Handles handles) {
+            var local = handles.caretArea();
+            if (local.isPresent()) {
+                var rect = local.get();
+                var origin = contentOrigin(focused);
+                area = LogicalRect.of(origin[0] + rect.left(), origin[1] + rect.top(), rect.width(), rect.height());
+                cursor = handles.caretOffsetIn(rect);
+            }
+        }
+        if (java.util.Objects.equals(area, caretArea) && cursor == caretAreaCursor) {
+            return;
+        }
+        caretArea = area;
+        caretAreaCursor = cursor;
+        caretAreaSink.accept(area, cursor);
+    }
+
+    /// The window-space top-left of `element`'s content box, or the origin when it
+    /// has no region — a widget poked by a test, or one not painted yet.
+    private float[] contentOrigin(Element element) {
+        for (var region : regions) {
+            if (region.owner() == element) {
+                return new float[] {region.content().left(), region.content().top()};
+            }
+        }
+        return new float[] {0, 0};
+    }
+
     /// What the pointer currently looks like.
     public Cursor cursor() {
         return cursor;
@@ -780,6 +854,7 @@ public final class PointerRouter {
         // this cannot see, and whoever speaks last wins. Asking first and letting
         // a control correct it is the order that leaves both right (ADR-0285).
         updateTextInput();
+        updateCaretArea();
         // After both pseudo-classes are settled, because a handler may look at
         // them -- and after `focused` is reassigned, because a handler that
         // raises a change will have this router asked about focus again before
@@ -1089,12 +1164,43 @@ public final class PointerRouter {
         }
         for (var element : chain) {
             if (event.isConsumed()) {
-                return;
+                break;
             }
             if (element.widget() instanceof Handles handles) {
                 handles.onText(event);
             }
         }
+        updateCaretArea();
+    }
+
+    /// Delivers the composition an input method is assembling to whatever has
+    /// focus — `docs/gaps.md` G15.
+    ///
+    /// [#textInput]'s shape, with one difference that is the whole point: there
+    /// is **no capture phase**. A container reads what was typed before its child
+    /// does because a `select` filters on it and a menu navigates by it
+    /// ([ADR-0246]); nothing can usefully do either with a string the user has
+    /// not accepted yet, and offering it would invite a widget to act on
+    /// characters that are about to be replaced.
+    ///
+    /// Dropped when nothing has focus, like text: a composition with no field
+    /// under it has nowhere to be drawn.
+    public void preedit(String text, int start, int length) {
+        if (focused == null) {
+            return;
+        }
+        var event = new PreeditEvent(text, start, length, focused);
+        for (var element : chain(focused)) {
+            if (event.isConsumed()) {
+                break;
+            }
+            if (element.widget() instanceof Handles handles) {
+                handles.onPreedit(event);
+            }
+        }
+        // A composition grows and the caret moves with it, so the candidate
+        // window has to follow — this is the event that moves it most.
+        updateCaretArea();
     }
 
     /// Moves focus `direction` places through the focusable nodes, wrapping.

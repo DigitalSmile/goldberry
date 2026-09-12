@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.canvas;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -8,12 +9,14 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Painter;
 import io.github.digitalsmile.goldberry.paint.StyledPainter;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -225,6 +228,28 @@ public record Canvas(@Nullable Painter painter, @Nullable Input input, Attribute
         if (input != null) {
             input.onText(event);
         }
+    }
+
+    /// Passed through so an editor over a canvas can draw what an input method is
+    /// composing — `docs/gaps.md` G15, and the last piece of ADR-0285's caret.
+    @Override
+    public void onPreedit(PreeditEvent event) {
+        if (input != null) {
+            input.onPreedit(event);
+        }
+    }
+
+    /// Where this canvas's caret is, so the platform can place a candidate
+    /// window — [Input#caretArea()]. Nothing, when the canvas hears nothing.
+    @Override
+    public Optional<LogicalRect> caretArea() {
+        return input == null ? Optional.empty() : input.caretArea();
+    }
+
+    /// Where the caret is within it — [Input#caretOffsetIn].
+    @Override
+    public double caretOffsetIn(LogicalRect area) {
+        return input == null ? 0 : input.caretOffsetIn(area);
     }
 
     /// A picture of data a reader reaches with the keyboard, which is what a

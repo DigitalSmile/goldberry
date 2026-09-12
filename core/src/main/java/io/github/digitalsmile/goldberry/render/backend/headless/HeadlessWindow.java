@@ -32,6 +32,8 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     private DisplayScale scale;
     private String title;
     private boolean textInputActive;
+    private @Nullable LogicalRect textInputArea;
+    private double textInputCursor;
     private boolean open = true;
     private boolean framePending;
 
@@ -183,6 +185,33 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
             return;
         }
         this.textInputActive = active;
+    }
+
+    /// [BackendWindow#textInputArea], remembered rather than sent anywhere.
+    ///
+    /// A real backend hands this to the platform and the platform draws the
+    /// candidate window; there is nothing here to draw it. What a test can still
+    /// assert is the part Goldberry is responsible for — that the area follows
+    /// the caret and is cleared when focus leaves — which is what
+    /// [#textInputAreaValue()] and [#textInputCursor()] are for.
+    @Override
+    public void textInputArea(@Nullable LogicalRect area, double cursor) {
+        backend.requireUiThread();
+        if (!isOpen()) {
+            return;
+        }
+        this.textInputArea = area;
+        this.textInputCursor = cursor;
+    }
+
+    /// The last area a field reported, or empty if it has been cleared.
+    public Optional<LogicalRect> textInputAreaValue() {
+        return Optional.ofNullable(textInputArea);
+    }
+
+    /// The caret offset that came with it.
+    public double textInputCursor() {
+        return textInputCursor;
     }
 
     /// Whether [#textInput(boolean)] was last asked to turn it on.
@@ -396,6 +425,33 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.requireUiThread();
         requireOpen();
         backend.post(new BackendEvent.KeyReleased(this, keycode, modifiers));
+    }
+
+    /// Queues the composition an input method is assembling — `docs/gaps.md` G15.
+    ///
+    /// What a test of a Japanese, Chinese or Korean user does: several of these
+    /// as the string grows, then an [#inputText] with the accepted candidate and
+    /// an [#endComposing] to close it.
+    ///
+    /// @param start  where the converting clause begins inside `text`, as a char
+    ///               offset, or -1 for a platform that reports none
+    /// @param length how many chars of it, or -1
+    public void composeText(String text, int start, int length) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.TextEditing(this, Objects.requireNonNull(text, "text"), start, length));
+    }
+
+    /// [#composeText] with no converting clause, which is what several platforms
+    /// report.
+    public void composeText(String text) {
+        composeText(text, -1, -1);
+    }
+
+    /// Queues the end of a composition — the empty `TEXT_EDITING` that arrives
+    /// whether the user accepted a candidate or abandoned one.
+    public void endComposing() {
+        composeText("", -1, -1);
     }
 
     /// Queues committed text, as the platform's own translation would produce.

@@ -611,6 +611,7 @@ public final class Window implements AutoCloseable {
             // while something typed-into has the keyboard, and off otherwise
             // (ADR-0285).
             router.onTextInputChange(window::textInput);
+            router.onCaretAreaChange(window::textInputArea);
         }
         return this;
     }
@@ -809,6 +810,17 @@ public final class Window implements AutoCloseable {
     void handleTextInput(String text) {
         if (router != null) {
             router.textInput(text);
+        }
+    }
+
+    /// The composition an input method is assembling — `docs/gaps.md` G15.
+    ///
+    /// Routed to the focused node exactly as committed text is, and separately
+    /// from it: a preedit is not an edit, and the widget that draws it is the one
+    /// that has the caret (ADR-0289).
+    void handlePreedit(String text, int start, int length) {
+        if (router != null) {
+            router.preedit(text, start, length);
         }
     }
 

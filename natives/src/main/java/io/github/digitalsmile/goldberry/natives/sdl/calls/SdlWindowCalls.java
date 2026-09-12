@@ -33,7 +33,8 @@ public record SdlWindowCalls(
         GetWindowId getWindowId,
         StartTextInput startTextInput,
         StopTextInput stopTextInput,
-        TextInputActive textInputActive) {
+        TextInputActive textInputActive,
+        SetTextInputArea setTextInputArea) {
 
     /// Binds every function above.
     ///
@@ -55,7 +56,41 @@ public record SdlWindowCalls(
                 new GetWindowId(lookup),
                 new StartTextInput(lookup),
                 new StopTextInput(lookup),
-                new TextInputActive(lookup));
+                new TextInputActive(lookup),
+                new SetTextInputArea(lookup));
+    }
+
+    /// Tells the platform where the text being typed is, so a candidate window
+    /// can be put beside it rather than wherever the compositor guesses.
+    ///
+    /// `bool SDL_SetTextInputArea(SDL_Window* window, const SDL_Rect* rect, int cursor)`
+    ///
+    /// The rectangle is in the window's own **logical** coordinates, and `cursor`
+    /// is the caret's offset from its left edge — an input method uses the first
+    /// to keep its list clear of the text and the second to align it under the
+    /// insertion point.
+    ///
+    /// @param window the window being typed into
+    /// @param rect   an `SDL_Rect`, or NULL to clear the area
+    /// @param cursor the caret's x offset within `rect`
+    public static final class SetTextInputArea {
+
+        private static final MethodHandle FD_SDL_SetTextInputArea =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        SetTextInputArea(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetTextInputArea");
+        }
+
+        public boolean call(MemorySegment window, MemorySegment rect, int cursor) {
+            try {
+                return (boolean) FD_SDL_SetTextInputArea.invokeExact(address, window, rect, cursor);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetTextInputArea", t);
+            }
+        }
     }
 
     /// Creates a top-level window.

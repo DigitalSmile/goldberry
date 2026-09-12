@@ -286,6 +286,32 @@ public final class Layouts {
                     MemoryLayout.paddingLayout(4),
                     ValueLayout.ADDRESS.withName("text")));
 
+    /// The composition string an input method is assembling, before it is
+    /// committed.
+    ///
+    /// ```c
+    /// typedef struct SDL_TextEditingEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; const char *text; Sint32 start; Sint32 length;
+    /// } SDL_TextEditingEvent;
+    /// ```
+    ///
+    /// `text` points into SDL's own memory and is valid only until the next
+    /// pump, like [#SDL_TEXT_INPUT_EVENT]'s, so it is copied out immediately.
+    /// `start` and `length` are **byte** offsets into that string and are `-1`
+    /// when the platform does not report a selection within the composition.
+    public static final NativeStructLayout SDL_TEXT_EDITING_EVENT = new NativeStructLayout(
+            "SDL_TextEditingEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("text"),
+                    ValueLayout.JAVA_INT.withName("start"),
+                    ValueLayout.JAVA_INT.withName("length")));
+
     /// A window's CPU-side surface — where the present path writes pixels.
     ///
     /// ```c
@@ -749,6 +775,7 @@ public final class Layouts {
                 SDL_MOUSE_WHEEL_EVENT,
                 SDL_KEYBOARD_EVENT,
                 SDL_TEXT_INPUT_EVENT,
+                SDL_TEXT_EDITING_EVENT,
                 SDL_SURFACE,
                 SDL_DISPLAY_MODE,
                 SDL_RECT,

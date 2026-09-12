@@ -56,6 +56,9 @@ public final class SdlEventBuffer implements AutoCloseable {
     private static final long KEY_MOD_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("mod");
     private static final long KEY_REPEAT_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("repeat");
     private static final long TEXT_POINTER_OFFSET = Layouts.SDL_TEXT_INPUT_EVENT.offsetOf("text");
+    private static final long EDIT_POINTER_OFFSET = Layouts.SDL_TEXT_EDITING_EVENT.offsetOf("text");
+    private static final long EDIT_START_OFFSET = Layouts.SDL_TEXT_EDITING_EVENT.offsetOf("start");
+    private static final long EDIT_LENGTH_OFFSET = Layouts.SDL_TEXT_EDITING_EVENT.offsetOf("length");
     private static final long DATA2_OFFSET = Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
 
     /// Null for a borrowed view — see [#borrowing].
@@ -225,6 +228,37 @@ public final class SdlEventBuffer implements AutoCloseable {
             return "";
         }
         return readCString(pointer);
+    }
+
+    /// The composition an input method is assembling, for a [SdlEventType#TEXT_EDITING].
+    ///
+    /// Empty when the composition has ended, which is how SDL says "the candidate
+    /// window has closed" — with or without a [#committedText] before it.
+    ///
+    /// Copied out here for [#committedText]'s reason: the pointer is into SDL's
+    /// own storage and is valid until the next pump.
+    public String editingText() {
+        var pointer = event.get(ValueLayout.ADDRESS, EDIT_POINTER_OFFSET);
+        if (MemorySegment.NULL.equals(pointer)) {
+            return "";
+        }
+        return readCString(pointer);
+    }
+
+    /// Where the selection inside the composition starts, as a **byte** offset
+    /// into [#editingText], or `-1` when the platform does not report one.
+    ///
+    /// Bytes rather than characters because that is what SDL hands over, and
+    /// translating it is a decision about the text stack rather than about the
+    /// event — see `io.github.digitalsmile.goldberry.input.event.PreeditEvent`.
+    public int editingStart() {
+        return event.get(ValueLayout.JAVA_INT, EDIT_START_OFFSET);
+    }
+
+    /// How many bytes of [#editingText] are selected, or `-1` when the platform
+    /// does not report a selection.
+    public int editingLength() {
+        return event.get(ValueLayout.JAVA_INT, EDIT_LENGTH_OFFSET);
     }
 
     // Restricted: the string's extent is not known until it is walked, which is

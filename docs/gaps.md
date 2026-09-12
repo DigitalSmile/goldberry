@@ -78,7 +78,8 @@ compiler's answer.
 | [G12](#g12) | Deep-link URI handling and single-instance handoff | `brd://open/<token>` (plan D5) | medium |
 | ~~[G13](#g13)~~ | ~~The other `natives` leak: Yoga through `paint.Box`~~ | **closed** — ADR-0279, ADR-0280 | done |
 | [G14](#g14) | The last `natives` leak: **one method**, `Frame.drawGlyphs` | sealing `blend2d` | low |
-| [G15](#g15) | IME preedit: the composition string, inline | typing Japanese, Chinese or Korean into a sticky | medium |
+| ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; `text-input` is [G16](#g16) | done |
+| [G16](#g16) | IME preedit in `text-input` | typing Japanese, Chinese or Korean into a *field* rather than a canvas | medium |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -87,8 +88,9 @@ compiler's answer.
   None of it touches `natives`. brd's stickies are wordless because brd has not done this yet, not
   because it cannot.
 - **Editing text on a canvas.** `text.edit.Editor` over a `canvas`: a caret, a selection, word jumps,
-  `Home`/`End` on the visual line, undo that folds a typing run, and the clipboard — none of it a
-  `text-input`. [G15](#g15) is the one part still missing, and it is the IME's composition string.
+  `Home`/`End` on the visual line, undo that folds a typing run, the clipboard — and, since
+  [G15](#g15), the IME's composition string with its converting clause and a candidate window that
+  lands under the caret. None of it a `text-input`, and nothing left out.
 - **Images on a canvas.** `Image.decode(bytes | file)`, `Frame.drawImage(...)` with a crop and an alpha,
   and `Image.encodePng()` — all of it in `io.github.digitalsmile.goldberry.image`, none of it touching
   `natives`, and nothing to close. There is no `img` *widget* yet; a `canvas` is how an image is drawn
@@ -345,9 +347,10 @@ for — and `Input.wantsText()` is the switch that turns the **platform's** text
 input on, without which a canvas receives arrow keys and never a character. That
 call used to be `text-input`'s own; it is the router's now, beside the cursor.
 
-**IME preedit is not in it** — see [G15](#g15). Committed text works and always
-did, so a Latin keyboard is complete and an input method's *result* arrives; what
-is missing is the inline composition a CJK user sees while choosing.
+**IME preedit was not in it** — it is [G15](#g15), and that is closed now too.
+Committed text always worked, so a Latin keyboard was complete and an input
+method's *result* arrived; what was missing is the inline composition a CJK user
+sees while choosing, and `Editor.onPreedit` is it.
 
 <a id="g7"></a>
 ### G7 — Clipboard beyond text — **closed**
@@ -575,31 +578,78 @@ good. Nothing brd does is blocked on it.
 ---
 
 <a id="g15"></a>
-### G15 — IME preedit, inline
+### G15 — IME preedit, inline — **closed**
 
-**Today.** `SDL_EVENT_TEXT_INPUT` is bound and delivers **committed** text, which
-is what `Editor.onText` takes and what an input method produces when the user
-accepts a candidate. The *composition* — the underlined string being assembled,
-with its own cursor — is `SDL_EVENT_TEXT_EDITING`, and it is **not bound at all**;
-neither is `SDL_SetTextInputArea`, which is how the platform is told where to put
-the candidate window.
+Landed as [ADR-0289](../book/src/adr/0289-a-composition-is-not-an-edit.md).
 
-So today a Japanese, Chinese or Korean user typing into a sticky sees nothing at
-all until they commit, and the candidate window opens wherever the compositor
-guesses.
+```java
+new Canvas(painter, new Input() {
+    public boolean wantsText()                { return true; }
+    public void onText(TextEvent e)           { if (editor.onText(e.text())) e.consume(); }
+    public void onPreedit(PreeditEvent e)     { if (editor.onPreedit(e)) e.consume(); }
+    public Optional<LogicalRect> caretArea()  { return Optional.of(editor.caretLine().offsetBy(8, 8)); }
+    public double caretOffsetIn(LogicalRect a) { return editor.caret().x(); }
+});
+```
 
-**Needed for.** Any sticky, label or note typed in a language that composes —
-which is not a minority case for a board tool.
+`PreeditEvent` is a **third** keyboard event beside `KeyEvent` and `TextEvent`,
+routed to the focused node the same way, and `Editor.onPreedit` takes it whole.
+Typing Japanese into a sticky now shows the underlined composition, the clause
+the input method is converting, and a caret inside it — and the candidate window
+opens under the caret rather than wherever the compositor guessed.
 
-**Proposed.** The event and the area call bound in `:natives`; a `PreeditEvent`
-routed to the focused node beside `TextEvent`; a preedit string and its cursor on
-`Editor`, drawn under the caret and **not** in the text, because a composition is
-not an edit until it is committed; and `SDL_SetTextInputArea` fed from
-`TextGeometry.caretAt`, which is already the right rectangle.
+**A composition is not an edit**, and that is the whole design. The string is held
+beside the document, never in it: `Editor.text()` does not move, the undo history
+does not grow, and nothing bound to the value fires until the user accepts a
+candidate and it arrives as committed text. What changes is `displayText()` — the
+document with the composition spliced in at the caret — so the words after it move
+along as they do in a native field, and a click during a composition maps back out
+to the document.
 
-**Why it is Goldberry's.** It is a platform binding and an input route — the
-toolkit's half of the world twice over. Goldberry's own M5 already lists "IME
-preedit" as hardening work.
+**The caret's rectangle is the toolkit's job, not the application's.** The router
+asks the focused widget `caretArea()` after every event that could have moved a
+caret and hands the answer to the window, which is `SDL_SetTextInputArea`. Only
+the widget knows where its own caret is; nobody has to remember to publish it.
+
+Two notes for brd:
+
+- `Handles.onPreedit` is a `default` that does nothing, so a canvas that ignores
+  it is exactly as correct as before — it still receives every committed
+  character. What it loses is the underline a CJK user types against.
+- A **CSS-transformed** ancestor is not compensated: the caret is reported where
+  it was laid out, so a candidate window under a transformed canvas is in the
+  wrong place. Nothing else is wrong, and a board that scales its own contents
+  inside an untransformed canvas is unaffected.
+
+The native surface gained one symbol, one struct and one event constant. The
+headless backend can be a Japanese user — `composeText`, `inputText`,
+`endComposing` — so this is testable with no input method installed.
+
+---
+
+<a id="g16"></a>
+### G16 — IME preedit in `text-input`
+
+**Today.** [G15](#g15) closed it for a `canvas` — `text.edit.Editor` composes, and
+a sticky drawn on a canvas takes Japanese. The toolkit's own **field** does not:
+`text-input` has its own editing model (`TextInputState` over `TextEdit`), and its
+caret and selection are absolutely positioned *boxes* rather than a painter's
+rectangles, so the same feature is a different piece of work there.
+
+**Needed for.** Any dialog, search box or settings field typed in a language that
+composes — which for brd is the board title, the assistant prompt and the search
+bar, not the board itself.
+
+**Why it is Goldberry's.** It is the toolkit's own widget. Nothing an application
+can do reaches inside it.
+
+**Proposed.** `TextField.onPreedit` into `TextInputState`, the composition spliced
+into the paragraph the field shapes, an underline as one more absolutely
+positioned box beside the caret and the selection, and `caretArea()` answered from
+the geometry the field already computes for its caret. The one decision that is
+not mechanical is what a `password` does with a composition: masking it hides
+which candidate is being chosen, and not masking it shows the password. Looking at
+what the platforms' own fields do is the first step, not the last.
 
 ---
 
@@ -629,3 +679,4 @@ preedit" as hardening work.
 | G7 | ADR-0286 | the paste path: a screenshot off the clipboard is an `Image`, and a copied shape can offer its own format beside a PNG |
 | G9 | ADR-0287 | the export path: "save as" and "import an image" are the desktop's own dialog, and a `.am` snapshot can be opened from disk |
 | G11 | ADR-0288 | nothing brd had; a board's fonts are the document's — it is the *chart* and the custom control that could not follow a theme |
+| G15 | ADR-0289 | the wordless-in-Japanese sticky: a composition, its clause and its caret are drawn, and the candidate window lands under them |

@@ -86,6 +86,18 @@ public enum SdlEventType {
     /// text, and on a compose or IME sequence several keys produce one character.
     TEXT_INPUT(0x303),
 
+    /// The composition string an input method is assembling — `SDL_TextEditingEvent`.
+    ///
+    /// Not an edit, and that is the whole of why it is a separate event
+    /// (ADR-0289): a Japanese, Chinese or Korean user sees an underlined string
+    /// being built and chooses among candidates, and only what they accept
+    /// arrives as [#TEXT_INPUT]. A toolkit that inserted this into the document
+    /// would be inserting text the user has not chosen, and then deleting it.
+    ///
+    /// Arrives only between `SDL_StartTextInput` and `SDL_StopTextInput`, and
+    /// an empty string means the composition has ended.
+    TEXT_EDITING(0x302),
+
     USER(0x8000);
 
     private final int value;

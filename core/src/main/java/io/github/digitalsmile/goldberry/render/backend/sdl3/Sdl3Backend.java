@@ -739,6 +739,19 @@ public final class Sdl3Backend implements Backend {
             // Copied out of SDL's memory here, while the event is still the
             // current one -- the pointer dies at the next pump.
             out.add(new BackendEvent.TextInput(window, eventBuffer.committedText()));
+        } else if (type == SdlEventType.TEXT_EDITING.value()) {
+            // Copied out here for TEXT_INPUT's reason, and translated here for
+            // one of its own: SDL reports the selection inside a composition in
+            // **UTF-8 bytes**, and everything above this line counts in Java
+            // chars. Doing it once, where the bytes and the string are both in
+            // hand, is the difference between one conversion and every consumer
+            // writing its own (ADR-0289).
+            var composing = eventBuffer.editingText();
+            out.add(new BackendEvent.TextEditing(
+                    window,
+                    composing,
+                    charOffset(composing, eventBuffer.editingStart()),
+                    charSpan(composing, eventBuffer.editingStart(), eventBuffer.editingLength())));
         } else if (type == SdlEventType.MOUSE_MOTION.value()) {
             // The modifiers are **polled**, not read off the event: SDL's mouse
             // events carry no `mod` field where its keyboard events do. Read here,
@@ -884,6 +897,56 @@ public final class Sdl3Backend implements Backend {
             }
         }
         return false;
+    }
+
+    /// A UTF-8 **byte** offset into `text`, as a char offset into the same string.
+    ///
+    /// `-1` passes through: it is SDL's "this platform does not report a
+    /// selection", and inventing a zero would put a caret where the input method
+    /// never claimed one was.
+    ///
+    /// Clamped rather than checked. A byte offset that lands inside a character
+    /// is not something this layer can act on, and reporting it upward would give
+    /// every caller an error case for something no input method is supposed to
+    /// produce; the nearest boundary is the only useful answer.
+    static int charOffset(String text, int byteOffset) {
+        if (byteOffset < 0) {
+            return -1;
+        }
+        if (byteOffset == 0 || text.isEmpty()) {
+            return 0;
+        }
+        var bytes = 0;
+        var i = 0;
+        while (i < text.length()) {
+            if (bytes >= byteOffset) {
+                return i;
+            }
+            var codePoint = text.codePointAt(i);
+            bytes += utf8Length(codePoint);
+            i += Character.charCount(codePoint);
+        }
+        return text.length();
+    }
+
+    /// The same translation for a length, which is a difference of two offsets
+    /// rather than one offset — a UTF-8 span of six bytes is two chars or six
+    /// depending entirely on where it starts.
+    static int charSpan(String text, int byteStart, int byteLength) {
+        if (byteStart < 0 || byteLength < 0) {
+            return -1;
+        }
+        return charOffset(text, byteStart + byteLength) - charOffset(text, byteStart);
+    }
+
+    private static int utf8Length(int codePoint) {
+        if (codePoint < 0x80) {
+            return 1;
+        }
+        if (codePoint < 0x800) {
+            return 2;
+        }
+        return codePoint < 0x10000 ? 3 : 4;
     }
 
     @Override

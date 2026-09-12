@@ -1,11 +1,15 @@
 package io.github.digitalsmile.goldberry.input.handler;
 
+import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// A widget that reacts to the pointer.
@@ -110,6 +114,56 @@ public interface Handles extends Widget {
     default void onTextCapture(TextEvent event) {}
 
     default void onText(TextEvent event) {}
+
+    /// The composition an input method is assembling, before the user has
+    /// accepted it — `docs/gaps.md` G15.
+    ///
+    /// Offered to the focused node and its ancestors, like [#onText], and with
+    /// **no capture phase**: nothing above the field can usefully act on
+    /// characters that are about to be replaced.
+    ///
+    /// A widget that ignores this is exactly as correct as it was before — the
+    /// committed text still arrives through [#onText], which is what a Latin
+    /// keyboard produces and all an input method's *result* ever was. What it
+    /// loses is the underlined string a CJK user watches while choosing, and
+    /// without it they type blind until they commit (ADR-0289).
+    ///
+    /// **Do not insert it.** See [PreeditEvent]: it is drawn beside the document,
+    /// not in it.
+    default void onPreedit(PreeditEvent event) {}
+
+    /// Where this widget's caret is, in its **own content coordinates** — the
+    /// same frame [PointerEvent#content()] is measured in.
+    ///
+    /// The toolkit passes it to the platform so an input method can put its
+    /// candidate window beside the text rather than wherever the compositor
+    /// guesses (`docs/gaps.md` G15). Asked after every event that could have
+    /// moved a caret, and cheap: a widget that returns an equal rectangle costs
+    /// one comparison.
+    ///
+    /// Empty means "I have no caret", which is the honest answer for everything
+    /// that is not being typed into and the default here.
+    ///
+    /// **The rectangle is the line, not the caret.** An input method uses it to
+    /// keep its list clear of the text it would otherwise cover, so a one-pixel
+    /// rectangle makes for a list drawn over the words; the caret's position
+    /// within it is [#caretOffsetIn].
+    default Optional<LogicalRect> caretArea() {
+        return Optional.empty();
+    }
+
+    /// Where the caret is inside [#caretArea], as an x offset from its left edge.
+    ///
+    /// Separate from the rectangle because they are two different facts and a
+    /// widget that has one usually has the other for free —
+    /// [io.github.digitalsmile.goldberry.text.edit.Editor#caret] is the caret and
+    /// the line it is on in one object.
+    ///
+    /// Zero by default, which is the left edge and is where a list goes when
+    /// nothing better is known.
+    default double caretOffsetIn(LogicalRect area) {
+        return 0;
+    }
 
     /// Whether the **platform's** text input should be on while this widget has
     /// the focus.

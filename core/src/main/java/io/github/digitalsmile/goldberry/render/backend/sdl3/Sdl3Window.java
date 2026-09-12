@@ -307,6 +307,29 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
     }
 
+    /// [BackendWindow#textInputArea] through `SDL_SetTextInputArea`.
+    ///
+    /// Rounded to whole logical pixels because SDL's `SDL_Rect` is integral, and
+    /// **outward** rather than to nearest: an area a pixel short can let a
+    /// candidate window overlap the line it is about to replace, and a pixel of
+    /// extra clearance costs nothing.
+    @Override
+    public void textInputArea(@Nullable LogicalRect area, double cursor) {
+        backend.requireUiThread();
+        if (!isOpen()) {
+            return;
+        }
+        if (area == null) {
+            video().clearTextInputArea(handle);
+            return;
+        }
+        var x = (int) Math.floor(area.left());
+        var y = (int) Math.floor(area.top());
+        var right = (int) Math.ceil(area.right());
+        var bottom = (int) Math.ceil(area.bottom());
+        video().setTextInputArea(handle, x, y, right - x, bottom - y, (int) Math.round(cursor));
+    }
+
     @Override
     public void setTitle(String title) {
         backend.requireUiThread();

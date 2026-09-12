@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.render.window;
 import java.util.List;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
@@ -201,6 +203,30 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// @param active whether committed text should be delivered
     default void textInput(boolean active) {}
+
+    /// Tells the platform where the text being typed is, so an input method can
+    /// put its candidate window beside it — `docs/gaps.md` G15.
+    ///
+    /// Without it the list opens wherever the compositor guesses, which on a
+    /// large window is routinely over the very text being composed. With it, a
+    /// CJK user sees the same arrangement a native application gives them.
+    ///
+    /// Called by whatever owns the caret, whenever the caret moves — the cost is
+    /// one platform call and the alternative is a list that sits still while the
+    /// text scrolls out from under it. Null clears the area, which is what focus
+    /// leaving an editable field does.
+    ///
+    /// The rectangle is the **line** being typed on, in this window's logical
+    /// coordinates, and `cursor` is the caret's offset from its left edge: an
+    /// input method uses the first to keep its list clear of the text and the
+    /// second to align it under the insertion point.
+    ///
+    /// Failure is not reported, on [#textInput]'s reasoning: a platform that will
+    /// not place a candidate window is one that still delivers the text.
+    ///
+    /// @param area   the line being typed on, or null to clear it
+    /// @param cursor the caret's x offset from `area`'s left edge
+    default void textInputArea(@Nullable LogicalRect area, double cursor) {}
 
     /// Sets the window title.
     void setTitle(String title);

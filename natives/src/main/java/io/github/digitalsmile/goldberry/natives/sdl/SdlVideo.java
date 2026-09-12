@@ -294,6 +294,42 @@ public final class SdlVideo {
         }
     }
 
+    /// Tells the platform where the text being typed is — `docs/gaps.md` G15.
+    ///
+    /// Without it, the candidate window an input method opens goes wherever the
+    /// compositor guesses, which on a large window is routinely over the very
+    /// text being composed. With it, the list sits under the caret like a native
+    /// application's.
+    ///
+    /// All four numbers and the cursor offset are in the window's own **logical**
+    /// coordinates, which is what SDL's own units for this call are.
+    ///
+    /// A refusal is logged rather than thrown, on [#startTextInput]'s reasoning:
+    /// a platform that will not place a candidate window is one that still
+    /// delivers the text.
+    ///
+    /// @param cursor the caret's x offset from the rectangle's left edge
+    public void setTextInputArea(SdlWindowHandle window, int x, int y, int width, int height, int cursor) {
+        try (var arena = Arena.ofConfined()) {
+            var rect = arena.allocate(Layouts.SDL_RECT.layout());
+            rect.set(ValueLayout.JAVA_INT, RECT_X, x);
+            rect.set(ValueLayout.JAVA_INT, RECT_Y, y);
+            rect.set(ValueLayout.JAVA_INT, RECT_W, width);
+            rect.set(ValueLayout.JAVA_INT, RECT_H, height);
+            if (!sdlWindowCalls.setTextInputArea().call(window.pointer(), rect, cursor)) {
+                LOG.debug("SDL_SetTextInputArea() refused: {}", Sdl.get().lastError());
+            }
+        }
+    }
+
+    /// Clears the area set by [#setTextInputArea], which is what focus leaving an
+    /// editable field does.
+    public void clearTextInputArea(SdlWindowHandle window) {
+        if (!sdlWindowCalls.setTextInputArea().call(window.pointer(), MemorySegment.NULL, 0)) {
+            LOG.debug("SDL_SetTextInputArea(NULL) refused: {}", Sdl.get().lastError());
+        }
+    }
+
     /// Whether `window` is currently receiving committed text.
     ///
     /// SDL's own answer rather than a flag kept here, so it stays right across

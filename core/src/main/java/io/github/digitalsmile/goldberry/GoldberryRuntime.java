@@ -188,6 +188,8 @@ final class GoldberryRuntime {
             case BackendEvent.KeyPressed key -> window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());
             case BackendEvent.KeyReleased key -> window.handleKeyReleased(key.keycode(), key.modifiers());
             case BackendEvent.TextInput text -> window.handleTextInput(text.text());
+            case BackendEvent.TextEditing preedit ->
+                window.handlePreedit(preedit.text(), preedit.start(), preedit.length());
         }
     }
 

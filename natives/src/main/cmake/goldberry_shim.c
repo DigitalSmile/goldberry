@@ -219,6 +219,14 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_TextInputEvent, windowID),
     GB_FIELD(SDL_TextInputEvent, text),
 
+    GB_STRUCT(SDL_TextEditingEvent),
+    GB_FIELD(SDL_TextEditingEvent, type),
+    GB_FIELD(SDL_TextEditingEvent, timestamp),
+    GB_FIELD(SDL_TextEditingEvent, windowID),
+    GB_FIELD(SDL_TextEditingEvent, text),
+    GB_FIELD(SDL_TextEditingEvent, start),
+    GB_FIELD(SDL_TextEditingEvent, length),
+
     GB_STRUCT(SDL_Surface),
     GB_FIELD(SDL_Surface, flags),
     GB_FIELD(SDL_Surface, format),
@@ -251,6 +259,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_KEY_DOWN", SDL_EVENT_KEY_DOWN),
     GB_CONSTANT("SDL_EVENT_KEY_UP", SDL_EVENT_KEY_UP),
     GB_CONSTANT("SDL_EVENT_TEXT_INPUT", SDL_EVENT_TEXT_INPUT),
+    GB_CONSTANT("SDL_EVENT_TEXT_EDITING", SDL_EVENT_TEXT_EDITING),
     GB_CONSTANT("SDL_EVENT_MOUSE_MOTION", SDL_EVENT_MOUSE_MOTION),
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_DOWN", SDL_EVENT_MOUSE_BUTTON_DOWN),
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_UP", SDL_EVENT_MOUSE_BUTTON_UP),

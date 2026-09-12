@@ -131,6 +131,12 @@ SDL_StartTextInput
 SDL_StopTextInput
 SDL_TextInputActive
 
+# Where the text being typed is, so an input method can put its candidate window
+# beside it (docs/gaps.md G15). Without this the list opens wherever the
+# compositor guesses, which on a large window is routinely over the text being
+# composed. Logical coordinates, like SDL's own units for the call.
+SDL_SetTextInputArea
+
 # The clipboard (sec. 4). SDL_GetClipboardText allocates and the caller frees,
 # which is the only reason SDL_free is on this list -- it is SDL's allocator and
 # not the C library's, and freeing across that boundary is undefined.

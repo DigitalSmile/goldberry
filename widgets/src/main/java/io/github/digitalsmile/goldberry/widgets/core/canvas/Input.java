@@ -1,10 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.core.canvas;
 
+import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// What a `canvas` does with input — [io.github.digitalsmile.goldberry.paint.Painter]'s
 /// sibling.
@@ -77,6 +81,46 @@ public interface Input {
     /// [io.github.digitalsmile.goldberry.text.edit.Editor#onText] takes, which is
     /// how a canvas gets a caret in it (ADR-0285).
     default void onText(TextEvent event) {}
+
+    /// The composition an input method is assembling, before the user has
+    /// accepted it — `docs/gaps.md` G15.
+    ///
+    /// [io.github.digitalsmile.goldberry.text.edit.Editor#onPreedit] takes it
+    /// whole. A canvas that ignores it still receives every committed character,
+    /// which is what a Latin keyboard produces; what a Japanese, Chinese or
+    /// Korean user loses is the underlined string they watch while choosing, and
+    /// without it they type blind until they commit (ADR-0289).
+    ///
+    /// **Not an edit.** See
+    /// [io.github.digitalsmile.goldberry.input.event.PreeditEvent].
+    default void onPreedit(PreeditEvent event) {}
+
+    /// Where this canvas's caret is, in the **same coordinates the painter draws
+    /// in** — what [io.github.digitalsmile.goldberry.input.event.PointerEvent#content()]
+    /// is measured in.
+    ///
+    /// Handed to the platform so an input method can put its candidate window
+    /// beside the text (`docs/gaps.md` G15). Only a canvas knows where its own
+    /// caret is, which is why this is a question rather than something the
+    /// toolkit works out.
+    ///
+    /// ```java
+    /// public Optional<LogicalRect> caretArea() {
+    ///     return Optional.of(editor.caretLine().offsetBy(8, 8));   // the painter's own origin
+    /// }
+    /// ```
+    ///
+    /// Empty — the default — means "nothing is being typed into me", which is
+    /// what a chart answers.
+    default Optional<LogicalRect> caretArea() {
+        return Optional.empty();
+    }
+
+    /// Where the caret is inside [#caretArea], as an x offset from its left edge
+    /// — [io.github.digitalsmile.goldberry.text.edit.Editor#caret]`.x()`.
+    default double caretOffsetIn(LogicalRect area) {
+        return 0;
+    }
 
     /// The focus arrived or left.
     ///

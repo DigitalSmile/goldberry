@@ -211,4 +211,26 @@ public sealed interface BackendEvent {
     /// toolkit that derived text from keystrokes would be wrong in every language
     /// that needs one. The platform already knows the answer; this carries it.
     record TextInput(BackendWindow window, String text) implements BackendEvent {}
+
+    /// The composition an input method is assembling, before the user has
+    /// accepted it — `docs/gaps.md` G15.
+    ///
+    /// **Not text, and not an edit.** A Japanese, Chinese or Korean user types
+    /// several keys, sees an underlined string being built with a candidate list
+    /// beside it, and only what they accept arrives as [TextInput]. A toolkit
+    /// that inserted this into the document would be inserting characters the
+    /// user has not chosen and then deleting them again — visible as flicker,
+    /// wrong in the undo history, and wrong in anything watching the value
+    /// (ADR-0289).
+    ///
+    /// An **empty** `text` means the composition has ended, with or without a
+    /// [TextInput] before it: an accepted candidate commits, and an abandoned one
+    /// does not.
+    ///
+    /// @param window the window with keyboard focus
+    /// @param text   the composition so far, or `""` when it has ended
+    /// @param start  where the selection inside it starts, as a **char** offset
+    ///               into `text`, or `-1` when the platform reports none
+    /// @param length how many chars of it are selected, or `-1` for none
+    record TextEditing(BackendWindow window, String text, int start, int length) implements BackendEvent {}
 }
