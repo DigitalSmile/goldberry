@@ -104,6 +104,78 @@ class ImageClipboardCardTest {
         assertFalse(event.isConsumed());
     }
 
+    @org.junit.jupiter.api.Nested
+    @DisplayName("through the router, which is how a user reaches it")
+    class ThroughTheRouter {
+
+        /// Click the card and press Ctrl+C, the way somebody would.
+        ///
+        /// **The test the first version of this file did not have.** Dispatching
+        /// to the widget proves it handles a key; it does not prove the key ever
+        /// arrives, which needs a hit region to click, a focusable canvas and a
+        /// router that walks the focused chain. Reported as "nothing happens on
+        /// Ctrl+C" and reproduced here in one pass (ADR-0286).
+        @Test
+        @DisplayName("clicking the card focuses it, and Ctrl+C then copies")
+        void aClickAndAKey() {
+            var host = new TourTestHost(List.of(), clipboard);
+            var tree = new ElementTree(new CanvasScreen(), host);
+            var sheets = new java.util.ArrayList<io.github.digitalsmile.goldberry.css.Stylesheet>(
+                    io.github.digitalsmile.goldberry.widgets.Controls.stylesheets(
+                            io.github.digitalsmile.goldberry.css.Theme.NORD_DARK));
+            // The application's own sheet, because that is what gives the canvas
+            // its height — without it the card lays out zero pixels tall, there is
+            // nothing to click, and every assertion below fails for a reason that
+            // has nothing to do with the clipboard.
+            sheets.add(io.github.digitalsmile.goldberry.css.Stylesheet.resource(
+                    io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION,
+                    Showcase.class,
+                    "showcase.css"));
+
+            try (var fonts = io.github.digitalsmile.goldberry.text.font.Fonts.bundled()) {
+                var renderer = new io.github.digitalsmile.goldberry.widget.WidgetRenderer(sheets, fonts);
+                var target = io.github.digitalsmile.goldberry.paint.TestFrames.of(1200, 900, 1.0f);
+                try (var render = io.github.digitalsmile.goldberry.paint.tree.RenderTree.create()) {
+                    var router = new io.github.digitalsmile.goldberry.input.PointerRouter();
+                    router.focusRoot(tree.root());
+                    renderer.prepare(tree);
+                    tree.flush();
+                    render.update(target.frame(), renderer.render(tree));
+                    var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render);
+                    router.updateRegions(regions);
+
+                    var region = regions.stream()
+                            .filter(candidate ->
+                                    candidate.owner() instanceof Element owner && "images".equals(owner.id()))
+                            .findFirst()
+                            .orElseThrow(() -> new AssertionError("the image card has no hit region to click"));
+                    assertTrue(region.height() > 0, "a canvas with no height cannot be clicked: " + region);
+
+                    router.pointerPressed(
+                            region.left() + 20,
+                            region.top() + 20,
+                            io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
+                            1);
+                    router.pointerReleased(
+                            region.left() + 20,
+                            region.top() + 20,
+                            io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
+                            1);
+
+                    var focused = router.focused();
+                    assertTrue(focused != null && "images".equals(focused.id()), "the click focused the card");
+
+                    assertTrue(
+                            router.keyPressed(Key.C, new Modifiers(false, true, false, false), false),
+                            "Ctrl+C reached the card through the focused chain");
+                    assertTrue(clipboard.has(Image.PNG_MIME), "and put a picture on the clipboard");
+                } finally {
+                    target.end();
+                }
+            }
+        }
+    }
+
     @Test
     @DisplayName("the card is drawn on rather than typed into")
     void doesNotAskForTheKeyboard() {

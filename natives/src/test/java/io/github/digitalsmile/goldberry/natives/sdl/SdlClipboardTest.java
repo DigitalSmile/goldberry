@@ -188,6 +188,25 @@ class SdlClipboardTest {
         assertEquals(0, clipboard.liveOffers());
     }
 
+    @Test
+    @DisplayName("an image/png offer is one the platform advertises like any other")
+    void carriesAnImageType() {
+        if (!startVideo()) {
+            return;
+        }
+        var clipboard = SdlClipboard.get();
+
+        // The one MIME type this toolkit puts pictures on a clipboard as
+        // (ADR-0283, ADR-0286). Nothing here decodes it -- `:core` does that --
+        // and what is being proven is that SDL treats it exactly like the private
+        // types above, which is what a paste into another application depends on.
+        var png = new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+        assertTrue(clipboard.write("image/png", png));
+
+        assertTrue(clipboard.has("image/png"));
+        assertArrayEquals(png, clipboard.read("image/png"));
+    }
+
     /// Starts SDL's video subsystem, or reports that this machine has none.
     ///
     /// Returning false rather than skipping through an assumption keeps the

@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.paint.Path;
 import io.github.digitalsmile.goldberry.paint.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
+import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.edit.Editor;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -231,6 +232,14 @@ public record CanvasScreen() implements Widget.Stateful {
             }
         }
 
+        /// What the last clipboard key did, drawn on the card.
+        ///
+        /// **A demo whose success looks the same as its failure is a bad demo.**
+        /// Ctrl+C changes nothing visible and Ctrl+V with an empty clipboard
+        /// changes nothing either, so without this the card cannot be told from a
+        /// broken one — which is how it was reported (ADR-0286).
+        private String note = "";
+
         /// An image pasted onto the image card, or null for the one that ships
         /// with the showcase. Null at rest, so the golden is the same picture on
         /// every machine whatever happens to be on the clipboard.
@@ -356,6 +365,14 @@ public record CanvasScreen() implements Widget.Stateful {
             // its size, because a crop and a scale are separate decisions.
             frame.drawImage(image, PhysicalRect.of(13, 11, 26, 26), 256, 8, 64, 64, 1);
             frame.strokePath(Path.roundRect(256, 8, 64, 64, 4), Stroke.of(1), MUTED);
+
+            // What the last clipboard key did. Empty until one is pressed, so the
+            // golden image is still of a card nobody has touched.
+            if (!note.isEmpty()) {
+                try (var font = Font.bundled(BundledFont.UI, 12)) {
+                    Paragraph.of(font, note).paint(frame, 8, size.height() - 22, width - 16, ACCENT);
+                }
+            }
 
             // 4. And faded, stretched across whatever width the card turned out to
             // have. The fade is the frame's, applied once to the blit and put back
@@ -525,20 +542,37 @@ public record CanvasScreen() implements Widget.Stateful {
                                                     }
                                                     switch (event.key()) {
                                                         case C -> {
-                                                            // Out of the application and
-                                                            // into anything: a PNG is what
-                                                            // every desktop pastes.
-                                                            if ((pasted == null ? Sample.IMAGE : pasted)
-                                                                    .toClipboard(board)) {
+                                                            // Out of the application
+                                                            // and into anything: a
+                                                            // PNG is what every
+                                                            // desktop pastes.
+                                                            var copied = (pasted == null ? Sample.IMAGE : pasted)
+                                                                    .toClipboard(board);
+                                                            setState(() -> note = copied
+                                                                    ? "Copied as image/png."
+                                                                    : "The platform declined it.");
+                                                            if (copied) {
                                                                 event.consume();
                                                             }
                                                         }
-                                                        case V ->
-                                                            Image.fromClipboard(board)
-                                                                    .ifPresent(image -> {
-                                                                        setState(() -> pasted = image);
-                                                                        event.consume();
-                                                                    });
+                                                        case V -> {
+                                                            var found = Image.fromClipboard(board);
+                                                            setState(() -> {
+                                                                found.ifPresent(image -> pasted = image);
+                                                                note = found.isPresent()
+                                                                        ? "Pasted "
+                                                                                + found.get()
+                                                                                        .width()
+                                                                                + "x"
+                                                                                + found.get()
+                                                                                        .height()
+                                                                                + "."
+                                                                        : "No image on the clipboard.";
+                                                            });
+                                                            if (found.isPresent()) {
+                                                                event.consume();
+                                                            }
+                                                        }
                                                         default -> {}
                                                     }
                                                 }
