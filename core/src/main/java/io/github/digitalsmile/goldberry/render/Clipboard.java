@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.render;
 
+import java.util.List;
 import java.util.Map;
 
 /// The session's clipboard, as the toolkit sees it.
@@ -87,6 +88,20 @@ public interface Clipboard {
     /// that owns the clipboard, which may be a browser that is busy.
     default byte[] read(String mime) {
         return new byte[0];
+    }
+
+    /// Every MIME type the clipboard is currently offering, in the order its
+    /// owner advertised them.
+    ///
+    /// Cheap, like [#has]. What it is **for** is the failing case: a paste that
+    /// found no image needs to be able to say whether there was nothing there at
+    /// all or something in a format this toolkit cannot read, and those are the
+    /// same answer from [#has] alone (ADR-0286).
+    ///
+    /// Empty when the platform cannot say, which is not the same as an empty
+    /// clipboard — some platforms report the text half here and some do not.
+    default List<String> types() {
+        return List.of();
     }
 
     /// Offers `bytes` as `mime`, replacing whatever this application was

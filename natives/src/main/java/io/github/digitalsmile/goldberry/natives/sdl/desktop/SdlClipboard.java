@@ -9,6 +9,7 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -209,6 +210,32 @@ public final class SdlClipboard {
         }
     }
 
+    /// Every MIME type the clipboard is currently offering, in the order the
+    /// owner advertised them.
+    ///
+    /// What a paste that found nothing needs in order to say **why**: "there is no
+    /// image" and "there is an image in a format this toolkit cannot read" are the
+    /// same answer from [#has] and completely different answers to a user.
+    ///
+    /// Cheap, like [#has] — the types are what the compositor has already been
+    /// told, not a request to the owner.
+    public List<String> types() {
+        try (var arena = Arena.ofConfined()) {
+            var count = arena.allocate(ValueLayout.JAVA_LONG);
+            var array = sdlClipboardCalls.getClipboardMimeTypes().call(count);
+            if (MemorySegment.NULL.equals(array)) {
+                return List.of();
+            }
+            try {
+                return readStrings(array, count.get(ValueLayout.JAVA_LONG, 0));
+            } finally {
+                // One free for the array and its strings together -- SDL
+                // allocates them as one block.
+                release(array);
+            }
+        }
+    }
+
     /// Offers every type in `byMime` to the clipboard, replacing whatever this
     /// application was offering.
     ///
@@ -373,6 +400,24 @@ public final class SdlClipboard {
     /// over. See the note on this class.
     private void release(MemorySegment pointer) {
         sdlClipboardCalls.free().call(pointer);
+    }
+
+    // Restricted: a `char**` arrives as a bare pointer, and the count SDL just
+    // reported is its extent.
+    @SuppressWarnings("restricted")
+    private static List<String> readStrings(MemorySegment array, long count) {
+        if (count <= 0) {
+            return List.of();
+        }
+        var pointers = array.reinterpret(count * ValueLayout.ADDRESS.byteSize());
+        var types = new java.util.ArrayList<String>((int) count);
+        for (var i = 0; i < count; i++) {
+            var pointer = pointers.getAtIndex(ValueLayout.ADDRESS, i);
+            if (!MemorySegment.NULL.equals(pointer)) {
+                types.add(readCString(pointer));
+            }
+        }
+        return List.copyOf(types);
     }
 
     // Restricted: the string's extent is not known until it is walked, which is

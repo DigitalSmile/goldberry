@@ -24,6 +24,7 @@ public record SdlClipboardCalls(
         ClearClipboardData clearClipboardData,
         GetClipboardData getClipboardData,
         HasClipboardData hasClipboardData,
+        GetClipboardMimeTypes getClipboardMimeTypes,
         Free free) {
 
     /// Binds every function above.
@@ -38,6 +39,7 @@ public record SdlClipboardCalls(
                 new ClearClipboardData(lookup),
                 new GetClipboardData(lookup),
                 new HasClipboardData(lookup),
+                new GetClipboardMimeTypes(lookup),
                 new Free(lookup));
     }
 
@@ -157,6 +159,36 @@ public record SdlClipboardCalls(
                 return (boolean) FD_SDL_HasClipboardData.invokeExact(address, mime);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_HasClipboardData", t);
+            }
+        }
+    }
+
+    /// Every MIME type the clipboard is currently offering.
+    ///
+    /// `char** SDL_GetClipboardMimeTypes(size_t* num_mime_types)`
+    ///
+    /// A NUL-terminated array of NUL-terminated strings, allocated as one block:
+    /// a single [SdlClipboardCalls.Free] releases the array and the strings with
+    /// it.
+    ///
+    /// @param count filled in with how many types there are, or NULL
+    /// @return the types, which the caller owns, or NULL
+    public static final class GetClipboardMimeTypes {
+
+        private static final MethodHandle FD_SDL_GetClipboardMimeTypes =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetClipboardMimeTypes(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetClipboardMimeTypes");
+        }
+
+        public MemorySegment call(MemorySegment count) {
+            try {
+                return (MemorySegment) FD_SDL_GetClipboardMimeTypes.invokeExact(address, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetClipboardMimeTypes", t);
             }
         }
     }

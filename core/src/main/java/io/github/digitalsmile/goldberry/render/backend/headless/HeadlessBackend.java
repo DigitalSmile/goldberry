@@ -120,6 +120,12 @@ public final class HeadlessBackend implements Backend {
         }
 
         @Override
+        public java.util.List<String> types() {
+            requireUiThread();
+            return java.util.List.copyOf(clipboardData.keySet());
+        }
+
+        @Override
         public boolean write(Map<String, byte[]> byMime) {
             requireUiThread();
             clipboardData.clear();

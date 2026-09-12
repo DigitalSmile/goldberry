@@ -83,9 +83,23 @@ class ImageClipboardCardTest {
     }
 
     @Test
-    @DisplayName("Ctrl+V takes an image off the clipboard")
+    @DisplayName("Ctrl+V takes an image off the clipboard and drops it under the pointer")
     void pastesAnImage() {
         Image.ofArgb(4, 4, new int[16]).toClipboard(clipboard);
+
+        // Where the pointer is, because that is where a paste onto a board lands.
+        // Without a move first the paste still has to go somewhere, which the
+        // corner is.
+        images.onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
+                io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.MOVED,
+                40,
+                30,
+                null,
+                0,
+                Float.NaN,
+                Float.NaN,
+                Modifiers.NONE,
+                null));
 
         var event = control(Key.V);
         images.onKey(event);

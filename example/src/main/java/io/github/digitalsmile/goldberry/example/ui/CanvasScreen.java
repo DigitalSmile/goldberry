@@ -240,10 +240,24 @@ public record CanvasScreen() implements Widget.Stateful {
         /// broken one — which is how it was reported (ADR-0286).
         private String note = "";
 
-        /// An image pasted onto the image card, or null for the one that ships
-        /// with the showcase. Null at rest, so the golden is the same picture on
-        /// every machine whatever happens to be on the clipboard.
+        /// An image pasted onto the image card, and where it was dropped.
+        ///
+        /// **Under the pointer**, which is what pasting onto a board means: the
+        /// picture goes where you are looking rather than replacing the card.
+        /// Null at rest, so the golden is the same picture on every machine
+        /// whatever happens to be on the clipboard.
         private Image pasted;
+
+        private float pastedX;
+
+        private float pastedY;
+
+        /// Where the pointer last was over the image card, for a paste to land
+        /// at. NaN until it has been over it — a paste before then goes to the
+        /// corner rather than to a coordinate nobody chose.
+        private float pointerX = Float.NaN;
+
+        private float pointerY = Float.NaN;
 
         /// Whether the sticky has the keyboard, which is the only reason to draw
         /// a caret at all. Starts false, so the golden image is the same picture
@@ -345,9 +359,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// here, with no lifetime travelling alongside it and nothing to close
         /// (ADR-0283).
         private void paintImages(Frame frame, LogicalSize size) {
-            // What Ctrl+V put there, or the file this card ships with. A paste is
-            // an ordinary `Image` and is drawn by the same four calls (ADR-0286).
-            var image = pasted == null ? Sample.IMAGE : pasted;
+            var image = Sample.IMAGE;
             var width = size.width();
 
             // 1. Natural size: one image pixel per *device* pixel, so this is 96
@@ -366,6 +378,18 @@ public record CanvasScreen() implements Widget.Stateful {
             frame.drawImage(image, PhysicalRect.of(13, 11, 26, 26), 256, 8, 64, 64, 1);
             frame.strokePath(Path.roundRect(256, 8, 64, 64, 4), Stroke.of(1), MUTED);
 
+            // What was pasted, where it was dropped, scaled down to fit the card
+            // if it is a screenshot rather than an icon. Drawn **over** the demo
+            // rather than instead of it, because that is what a paste onto a board
+            // is (ADR-0286).
+            if (pasted != null) {
+                var fit = Math.min(1, Math.min(220f / pasted.width(), 110f / pasted.height()));
+                var wide = pasted.width() * fit;
+                var tall = pasted.height() * fit;
+                frame.drawImage(pasted, pastedX, pastedY, wide, tall);
+                frame.strokePath(Path.roundRect(pastedX, pastedY, wide, tall, 3), Stroke.of(1), ACCENT);
+            }
+
             // What the last clipboard key did. Empty until one is pressed, so the
             // golden image is still of a card nobody has touched.
             if (!note.isEmpty()) {
@@ -381,6 +405,20 @@ public record CanvasScreen() implements Widget.Stateful {
             frame.drawImage(image, 8, 96, strip, 56, 0.35);
             frame.strokePath(
                     Path.circle(8 + strip * 0.5f, 124, 18), Stroke.round(1.5).dash(Dash.of(0.5, 6)), ACCENT);
+        }
+
+        /// Why a paste found nothing, in the words of what is actually there.
+        ///
+        /// "There is no image" and "there is an image in a format this toolkit
+        /// cannot read" are the same answer from `has(mime)` and completely
+        /// different answers to somebody who has just pressed Ctrl+V, so the card
+        /// says what the clipboard is offering (ADR-0286).
+        private static String describe(io.github.digitalsmile.goldberry.render.Clipboard board) {
+            var types = board.types();
+            if (types.isEmpty()) {
+                return board.hasText() ? "The clipboard holds text, not an image." : "The clipboard is empty.";
+            }
+            return "Nothing here can decode: " + String.join(", ", types);
         }
 
         /// The picture [Rendered] took, drawn twice.
@@ -530,6 +568,20 @@ public record CanvasScreen() implements Widget.Stateful {
                                             new Input() {
 
                                                 @Override
+                                                public void onPointer(PointerEvent event) {
+                                                    // Where a paste will land.
+                                                    // `content()` and not
+                                                    // `local()`, so it is the
+                                                    // rectangle the painter draws
+                                                    // in (ADR-0281).
+                                                    var at = event.content();
+                                                    setState(() -> {
+                                                        pointerX = at.x();
+                                                        pointerY = at.y();
+                                                    });
+                                                }
+
+                                                @Override
                                                 public void onKey(KeyEvent event) {
                                                     if (event.kind() != KeyEvent.Kind.PRESSED
                                                             || !event.modifiers()
@@ -558,7 +610,11 @@ public record CanvasScreen() implements Widget.Stateful {
                                                         case V -> {
                                                             var found = Image.fromClipboard(board);
                                                             setState(() -> {
-                                                                found.ifPresent(image -> pasted = image);
+                                                                found.ifPresent(image -> {
+                                                                    pasted = image;
+                                                                    pastedX = Float.isNaN(pointerX) ? 8 : pointerX;
+                                                                    pastedY = Float.isNaN(pointerY) ? 8 : pointerY;
+                                                                });
                                                                 note = found.isPresent()
                                                                         ? "Pasted "
                                                                                 + found.get()
@@ -566,8 +622,8 @@ public record CanvasScreen() implements Widget.Stateful {
                                                                                 + "x"
                                                                                 + found.get()
                                                                                         .height()
-                                                                                + "."
-                                                                        : "No image on the clipboard.";
+                                                                                + " under the pointer."
+                                                                        : describe(board);
                                                             });
                                                             if (found.isPresent()) {
                                                                 event.consume();
@@ -584,9 +640,9 @@ public record CanvasScreen() implements Widget.Stateful {
                                             },
                                             id("images")),
                                     caption("One decoded PNG drawn four ways: at natural size, stretched into a"
-                                            + " rectangle, cropped to a source region, and faded. Click it and"
-                                            + " press Ctrl+V to paste a screenshot in, or Ctrl+C to copy this"
-                                            + " one out.")),
+                                            + " rectangle, cropped to a source region, and faded. Click it,"
+                                            + " then Ctrl+V drops a screenshot under the pointer and Ctrl+C"
+                                            + " copies this picture out.")),
                             captioned(
                                     "Rendered with no window",
                                     id("rendered-card"),

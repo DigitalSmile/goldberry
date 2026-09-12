@@ -159,6 +159,13 @@ SDL_ClearClipboardData
 # compositor already said.
 SDL_GetClipboardData
 SDL_HasClipboardData
+#
+# And what the clipboard is actually offering, which is the question a paste that
+# found nothing has to be able to answer: "no image" and "no image *this* toolkit
+# can decode" look identical from `SDL_HasClipboardData` alone, and the difference
+# is the whole of what a user needs to be told. One SDL_free releases the array
+# and its strings together.
+SDL_GetClipboardMimeTypes
 
 # The system tray (sec. 9's `tray-icon`). SDL owns the platform menu here --
 # these entries are drawn by the desktop shell and not by Goldberry, which is

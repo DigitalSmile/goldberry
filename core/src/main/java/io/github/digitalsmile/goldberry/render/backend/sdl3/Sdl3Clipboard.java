@@ -43,6 +43,11 @@ final class Sdl3Clipboard implements Clipboard {
     }
 
     @Override
+    public java.util.List<String> types() {
+        return clipboard.types();
+    }
+
+    @Override
     public boolean write(java.util.Map<String, byte[]> byMime) {
         return clipboard.write(byMime);
     }
