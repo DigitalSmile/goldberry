@@ -210,6 +210,19 @@ section-header {
   flex-shrink: 0;
 }
 
+/* Reset sits at the far end of the notice bar, away from the four buttons that
+   spawn things. This was a `spacer` in `Notifications.bar` -- a widget in the
+   tree that drew nothing and existed to be measured -- and `margin-left: auto`
+   is the declaration that replaces one (ADR-0311, ADR-0312).
+
+   The statusbar keeps its `spacer`, and deliberately: it is a §1 widget an
+   application writes in markup, and a gallery that used it nowhere would be a
+   gallery that quietly deprecated it. A margin is the better answer when the
+   thing doing the pushing is toolkit code with a stylesheet of its own. */
+#clear-notices {
+  margin-left: auto;
+}
+
 /* --- Basic ----------------------------------------------------------------- */
 
 /* §1.4's six ranks, written out so that the card is the scale rather than a

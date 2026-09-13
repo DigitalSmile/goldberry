@@ -17,8 +17,14 @@
 masonry id="panels-wall" columns=2 {
 
   // The point of the card: a `panel` and a `card` beside each other at the same
-  // size is the only way to see an elevation expressed as contrast rather than
-  // as a shadow -- a card on its own looks exactly like a panel (ADR-0164).
+  // size, which is the only way to see an elevation at all -- a card on its own
+  // looks like whatever you assume a surface looks like.
+  //
+  // For most of this toolkit's life the difference here was contrast alone,
+  // because §10's subset had no `box-shadow` (ADR-0164). It has one now, and
+  // each theme ships the alpha for it, so the three below are §1.5's ladder in
+  // order: flat, level 1, and level 1 lifting to level 2 under the pointer
+  // (ADR-0310, ADR-0312).
   card id="surface-card" class="wall-card" {
     text class="card-title" "Surfaces"
     row id="surfaces" {
@@ -29,13 +35,15 @@ surface is, and nothing else."
       }
       card class="surface-demo" {
         text class="caption" "card"
-        text "Raised by contrast rather than by a shadow — there is no \
-`box-shadow` in the subset, and nothing here paints outside its own rectangle."
+        text "§1.5's level 1: a shadow and an edge. The shadow says \"nearer\" \
+against the page; the rim is what says it against another card, where a shadow \
+falls on the card's own colour and says almost nothing."
       }
       card class="surface-demo interactive" {
         text class="caption" "card.interactive"
-        text "The optional hover-elevation. Opt-in, because a card that lit up \
-under the pointer would promise it does something."
+        text "The optional hover-elevation, and it is an elevation now. Point at \
+it: the shadow's blur, offset and alpha all move together, which is what rising \
+off a page looks like."
       }
     }
   }

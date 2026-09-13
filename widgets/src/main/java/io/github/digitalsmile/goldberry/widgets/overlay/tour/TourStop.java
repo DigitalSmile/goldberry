@@ -23,7 +23,6 @@ import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// One stop of a [Tour]: the veil, and the card beside the target.
@@ -124,8 +123,12 @@ record TourStop(
     @Override
     public List<Widget> children() {
         var buttons = new ArrayList<Widget>(4);
+        // Skip leads and the rest go to the far end, which `controls.css` does
+        // with `margin-right: auto` on this button. It was a `Spacer` here: a
+        // widget in the tree that drew nothing and existed to be measured. The
+        // swap is pixel-identical, which the tour goldens were used to check
+        // (ADR-0311, ADR-0312).
         buttons.add(new Button("Skip", onSkip).withAttributes(Attributes.NONE.classes("tour-skip")));
-        buttons.add(new Spacer());
         if (onBack != null) {
             buttons.add(new Button("Back", onBack).withAttributes(Attributes.NONE.classes("tour-back")));
         }

@@ -2928,9 +2928,20 @@ hud-caption {
  * into it and every property it needs is written here. That includes `color`,
  * which everywhere else in the catalog comes from an ancestor.
  *
- * The elevation is a border rather than a shadow: §8's subset has no
- * `box-shadow`, and a floating panel with no edge at all disappears into a
- * surface of the same colour underneath it.
+ * The elevation is a border rather than a shadow, and the reason has changed
+ * without the rule changing. It used to be that §8's subset had no `box-shadow`;
+ * it has one now (ADR-0310) and this panel still cannot use it, because **a
+ * popup window is created at exactly this panel's measured size** (ADR-0104).
+ * A shadow is drawn outside the box that casts it, so every pixel of one here
+ * would fall outside the window and be clipped away — the toolkit would pay for
+ * a run of fills and draw nothing at all.
+ *
+ * What it would take is a popup window sized to the panel *plus* the shadow's
+ * reach, with the extra transparent, which needs a compositor that honours a
+ * transparent popup on all three platforms — the same thing the rounded corners
+ * are waiting on. Until then the edge is the elevation, and it is not a
+ * placeholder: a floating panel with no edge at all disappears into a surface of
+ * the same colour underneath it, which a shadow does not fix either.
  */
 popover {
   flex-direction: column;
@@ -3699,9 +3710,22 @@ affix-content {
 
 /* A pinned child sits above what scrolls under it. §1.5's elevation, applied
    the moment it lifts and not before -- which is the whole reason `:affixed` is
-   a pseudo-class rather than something an author writes. */
+   a pseudo-class rather than something an author writes.
+
+   It is the elevation now and not only a fill. §1.7's motion table has said
+   "detach/attach: `opacity` on the elevation shadow, fast" since before there
+   was a shadow to put an opacity on; `transition: box-shadow` is that line, and
+   it animates the alpha along with the blur and the offset -- so the shadow
+   arrives as the child lifts rather than appearing under a child that is already
+   pinned (ADR-0312).
+
+   The fill has to come with it. The content scrolling underneath is what a
+   transparent pinned child would show through itself, and a shadow cast by a
+   thing you can see through is a smear. */
 affix:affixed > affix-content {
   background: var(--gb-surface);
+  box-shadow: var(--gb-elevation-1);
+  transition: box-shadow var(--gb-motion-fast);
 }
 
 /* --- tour (§5) -------------------------------------------------------- */
@@ -3733,13 +3757,17 @@ tour-ring {
   border-radius: 6px;
 }
 
-/* §1.5's dialog elevation: the 12 radius, because a tour card is a dialog by
-   any other name. */
+/* §1.5's dialog elevation: the 12 radius and, now that the property exists, the
+   shadow that goes with it -- because a tour card is a dialog by any other name
+   and is lit the same way (ADR-0312). It has a veil under it exactly as a dialog
+   does; what it does not have is a scrim across the whole window, because the
+   point of a tour is that you can still see the thing it is pointing at. */
 tour-card {
   background: var(--gb-surface);
   border: 1px solid var(--gb-border);
   border-radius: 12px;
   padding: 16px;
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* The gap belongs to the column *inside* the card, not to the card: the card
@@ -3749,8 +3777,7 @@ tour-card > column {
   gap: 8px;
 }
 
-/* The buttons sit under the text with a little more air, and Skip is pushed to
-   the far end by a spacer rather than by an alignment -- §1.3 again, and the
+/* The buttons sit under the text with a little more air -- §1.3 again, and the
    same shape every dialog footer has. */
 tour-card > column > row {
   gap: 8px;
@@ -3792,10 +3819,23 @@ text.tour-count {
   color: var(--gb-text-muted);
 }
 
-/* Skip is the way out and must not compete with the way on. */
+/* Skip is the way out and must not compete with the way on — and it stays at the
+   leading edge while everything after it goes to the far one.
+
+   That push was a `spacer` between them: a widget in the tree that drew nothing,
+   existed to be measured, and had to be remembered by whoever read
+   `TourStop.children` later. One `auto` margin absorbs the same free space and
+   is a declaration rather than a node — pixel for pixel the same picture, which
+   the tour goldens were used to check (ADR-0311, ADR-0312).
+
+   On the **trailing** edge of the leading button rather than the leading edge of
+   the trailing one, because the trailing group is one button or two depending on
+   whether there is a stop to go back to — and two auto margins would split the
+   free space between them and open a hole in the middle of the pair. */
 button.tour-skip {
   background: transparent;
   color: var(--gb-text-muted);
+  margin-right: auto;
 }
 
 /* The forward button is `button.primary` by another name, so it takes that
@@ -3838,10 +3878,16 @@ panel {
 
 /* ------------------------------------------------------------------ card --
  *
- * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens" and
- * §10's subset has no `box-shadow` — nothing in this toolkit paints outside a
- * box's own rectangle — so **elevation is an edge**, exactly as `popover`'s is
- * (ADR-0104, ADR-0164): a brighter surface and a stronger border than the page.
+ * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens", and
+ * for two hundred records there were none: §10's subset had no `box-shadow` and
+ * nothing in this toolkit painted outside a box's own rectangle, so **elevation
+ * was an edge** (ADR-0104, ADR-0164).
+ *
+ * **It is an edge and a shadow now** (ADR-0312). The edge did not go away and is
+ * not going to: a shadow says "nearer" by darkening what is underneath, and a
+ * card sitting on *another card* is sitting on its own colour, where the shadow
+ * says almost nothing and the rim says it exactly. The two answer the same
+ * question against different backgrounds, which is why §5 asked for both.
  */
 card {
   flex-direction: column;
@@ -3866,16 +3912,29 @@ card {
   background: var(--gb-surface-raised);
   border: 1px solid var(--gb-border-strong);
   border-radius: 8px;
+  /* §1.5's level 1 — "raised: menus, cards, popovers". The token and not the
+     numbers: a card is black-over-whatever-is-underneath, so the alpha belongs
+     to the theme (ADR-0310). */
+  box-shadow: var(--gb-elevation-1);
 }
 
-/* §5's "hover-elevation optional via class". Opt-in, because a card that lit up
-   under the pointer would promise it does something, and most cards do not. */
+/* §5's "hover-elevation optional via class", and it is an elevation now rather
+   than an edge standing in for one. Opt-in, because a card that lit up under the
+   pointer would promise it does something, and most cards do not.
+
+   Both properties move together: the rim brightens to the accent while the card
+   lifts from §1.5's level 1 to its level 2. `transition: box-shadow` animates
+   every component of the shadow, so the blur and the offset grow with the alpha
+   — which is what an object actually rising off a page does, and is why this
+   reads as a lift rather than as a stain darkening under a card that has not
+   moved (ADR-0310, ADR-0312). */
 card.interactive {
-  transition: border-color var(--gb-motion-base);
+  transition: border-color var(--gb-motion-base), box-shadow var(--gb-motion-base);
 }
 
 card.interactive:hover {
   border-color: var(--gb-accent);
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* ------------------------------------------------------------- group-box --
@@ -4367,11 +4426,13 @@ message-dismiss:focus-visible {
  * and §1.5's radius 12 for a dialog, which is the widest radius in the system
  * and the only place it is used.
  *
- * **Elevation 2 is an edge and a scrim, not a shadow.** §1.5 asks for
- * `0 8px 32px rgba(0,0,0,.35)` under a dialog and §8's subset has no
- * `box-shadow` — ADR-0164 met the same wall for `card` and answered it the same
- * way: a raised thing is told apart by its edge. Here the veil does most of that
- * work, which is why a dialog needs it least of the three elevations.
+ * **Elevation 2 is a shadow, an edge and a scrim.** §1.5 asks for `0 8px 32px`
+ * under a dialog, and for as long as §8's subset had no `box-shadow` this was an
+ * edge and a scrim standing in for one — ADR-0164 met the same wall for `card`
+ * and answered it the same way. The shadow exists now and the theme owns its
+ * alpha (ADR-0310, ADR-0312), so all three are here: the scrim separates the
+ * dialog from the window, the shadow lifts it off the scrim, and the edge is
+ * what tells it apart from a surface its own colour.
  */
 /* **No padding across, and that is what makes `max-width: 80%` mean what §2
    says.** A percentage resolves against the containing block, and a dialog's is
@@ -4409,6 +4470,11 @@ dialog {
   background: var(--gb-surface-raised);
   border: 1px solid var(--gb-border-strong);
   border-radius: 12px;
+  /* §1.5's level 2, named there for dialogs exactly: "overlay: dialogs — shadow
+     0 8px 32px + veil scrim". The scrim has been here since the dialog was
+     built and the shadow could not be; both halves of that sentence are true
+     now (ADR-0312). */
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* §1.4's `title` rank: a dialog's heading is the largest text in the catalog
@@ -4427,10 +4493,16 @@ dialog-body {
   color: var(--gb-text);
 }
 
-/* §2: "action bar gap 8, top margin 24". The margin is `padding-top` on this
-   node rather than a margin on the panel, because §8's subset has no `margin`
-   and a gap on the panel would apply between the title and the body as well —
-   which §2 puts at 8, not 24.
+/* §2: "action bar gap 8, top margin 24". **A margin now**, which is what §2
+   said and what this node could not write: the subset had none, so the number
+   went on as `padding-top` instead, and the comment saying so has been here
+   since (ADR-0311, ADR-0312). A gap on the panel is still the wrong answer and
+   was never the alternative — it would apply between the title and the body as
+   well, which §2 puts at 8 and not 24.
+
+   Padding and margin are the same picture here, because this row has no fill of
+   its own and nothing to clip: what changes is that the declaration now says
+   what it means.
  *
  * `flex-end` is affirmative-right, which is macOS' and Linux' order and what
  * ships. **A Windows theme flips the bar with one declaration**:
@@ -4443,7 +4515,7 @@ dialog-actions {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 24px;
+  margin-top: 24px;
   flex-shrink: 0;
 }
 
@@ -4487,6 +4559,13 @@ toast {
   border: 1px solid var(--gb-border-strong);
   color: var(--gb-text);
   flex-shrink: 0;
+  /* §1.5's level 2. A toast sits in the window's own overlay layer with the
+     application's content directly under it and **no scrim** to separate the
+     two, which is the case for the heavier of the two shadowed levels rather
+     than the lighter: a card is on the page and a toast has left it (ADR-0312).
+     The edge stays, for `card`'s reason — a toast over a surface its own colour
+     needs one. */
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* The words take the width and the button does not, so a long notification wraps

@@ -33,17 +33,17 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// **elevation is an edge**, a brighter surface and a stronger border than the
 /// page it sits on.
 ///
-/// The property exists now — `box-shadow`, with `--gb-elevation-1/-2/-3` in both
-/// themes (ADR-0310) — and this card still does not use it, which is a decision
-/// rather than an omission: adding one is a change to every golden in the
-/// catalog that contains a card, and it belongs in its own change.
+/// **It is an edge and a shadow now** — `box-shadow`, at §1.5's level 1, with
+/// `--gb-elevation-1/-2/-3` in both themes (ADR-0310, ADR-0312), and
+/// `class="interactive"` lifting to level 2 under the pointer with the blur and
+/// the offset animating along with the alpha.
 ///
-/// The edge is **not** going away when that happens, and it never was only a
-/// workaround. A shadow says "this is nearer" by faking a light source onto what
-/// is underneath; a border and a lift in tone say it by contrast. A card sitting
-/// on *another card* is sitting on its own colour, where the first says almost
-/// nothing and the second says it exactly. The tokens are the same pair `panel`
-/// and `popover` already use, one step apart.
+/// The edge did not go away and is not going to, and it never was only a
+/// workaround. A shadow says "this is nearer" by darkening what is underneath; a
+/// border and a lift in tone say it by contrast. A card sitting on *another
+/// card* is sitting on its own colour, where the first says almost nothing and
+/// the second says it exactly — which is why §5 asked for both and why the
+/// Panels screen puts a card inside a card.
 ///
 /// ## Everything else about it is `panel`'s
 ///

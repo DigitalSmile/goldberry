@@ -19,6 +19,12 @@ row id="bar" {
   text id="startup" class="caption" bind="app.startup"
   text id="status" class="caption" bind="app.status"
 
+  // §1's `spacer`, which is `flex-grow: 1` with a name. The catalog itself does
+  // not use one any more -- `margin-left: auto` says the same thing as a
+  // declaration rather than as a node (ADR-0311) -- but the widget is markup's
+  // answer to the same question, and a document has no stylesheet of its own to
+  // put a margin in. The notice bar on the Overlays screen is the other half of
+  // the comparison: same shape, done with a margin.
   spacer
 
   // §10's "global switch from dark to light". A `toggle` and not a `button`,

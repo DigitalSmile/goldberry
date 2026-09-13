@@ -63,6 +63,8 @@ Global **text-scale token 90–150%**; every component must survive 150% without
 
 The blur is drawn as a stack of nested rounded-rectangle fills rather than a real Gaussian: the rasterizer has no blur, and a one-pixel band is a gradient. The shadow is painted **under** the box rather than knocked out of it, which differs from CSS only where a background is translucent — see the ADR.
 
+**What wears which** ([ADR-0312](../book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` level 1, lifting to level 2 on `card.interactive:hover`; `affix:affixed` level 1; `dialog`, `tour-card` and `toast` level 2. **`popover`, `menu` and `tooltip` are an edge and not a shadow** — they are drawn in popup windows sized to the panel, so a shadow would fall outside the window and be clipped; that is a platform limit rather than a design one, and it is why the elevation *edge* stays part of the system rather than being a stand-in that went away. The edge stays on the shadowed surfaces too: a shadow cast onto another card falls on that card's own colour and says almost nothing, where a rim says it exactly. `--gb-elevation-3` is defined in both themes and used by nothing — it is the level for something the pointer is dragging.
+
 **Materials — three, only three:**
 
 | Material | Dark recipe | Light recipe | Used by |

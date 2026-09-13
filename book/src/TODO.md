@@ -909,25 +909,35 @@ on, which in four cases is the same thing.
   band. `ShadowPaintTest.throughATranslucentBox` pins the current behaviour, so
   the day that lands there is a test that says the deviation is gone. —
   [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
-- **Nothing in the catalog wears an elevation yet.** `--gb-elevation-1/-2/-3`
-  ship in both themes and `box-shadow` draws, and `controls.css` reads neither.
-  Putting a shadow under `card`, `menu`, `popover` and `dialog` is what §1.5's
-  ladder is *for*, and it is a visual change to the whole catalog — every golden
-  that contains one of those four moves — so it belongs in its own change with
-  its own pictures rather than riding along with the property. The edge stays
-  either way: ADR-0166's `--gb-border-strong` is what tells a card apart when it
-  sits on another card, where a shadow cast onto the same colour says nothing. —
-  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md),
+- ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
+  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
+  §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,
+  `tour-card` and `toast` at level 2, and `affix:affixed` at level 1 with the
+  `transition: box-shadow` §1.7's motion table has asked for since before there
+  was a shadow. The edges all stay, for ADR-0166's reason: a shadow cast onto
+  another card falls on that card's own colour and says almost nothing, where the
+  rim says it exactly.
+
+  **`popover`, `menu` and `tooltip` are the ones still without**, and no longer
+  because the subset lacks the property. They are drawn in popup windows created
+  at the panel's own measured size (ADR-0104), so a shadow — which is drawn
+  outside the box that casts it — would fall entirely outside the window and be
+  clipped: a run of fills that draws nothing. What it needs is a popup sized to
+  the panel *plus* the shadow's reach with the extra transparent, which wants the
+  same transparent-popup compositor support the rounded corners are waiting on.
+  `--gb-elevation-3` is unused and stays so: it is the level for a thing the
+  pointer is dragging, and nothing here is dragged. —
+  [ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md),
   [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
-- **Nothing in the catalog uses a margin yet.** The property resolves and lays
-  out ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md))
-  and `controls.css` reads it nowhere. Several places in the catalog space
-  themselves with a `flex-grow: 1` spacer box — a box in the tree that draws
-  nothing and exists to be measured — and `margin-left: auto` is the declaration
-  that replaces one. Rewriting them changes the layout of real widgets, so it
-  wants its own change and its own goldens rather than riding along with the
-  property. The same call [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
-  made about elevation.
+- ~~**Nothing in the catalog uses a margin yet.**~~ **It does**
+  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)):
+  `dialog-actions` writes the top margin §2 asked for instead of the
+  `padding-top` that stood in for it, and `tour-card`'s footer lost the `Spacer`
+  that pushed Skip away from Back and Next — `margin-right: auto`, pixel for
+  pixel the same picture. The showcase's notice bar likewise. **`spacer` is not
+  deprecated**: it is a §1 widget an application writes in markup, and a document
+  has no stylesheet of its own to put a margin in, so the showcase's status bar
+  keeps one on purpose with the notice bar beside it as the comparison.
 - **A dropped declaration is reported once, and `align-items: start` is why.** The
   Panels screen filled the console while it scrolled: `start` is CSS's alias for
   `flex-start` and Yoga has only the second, so the declaration was dropped —

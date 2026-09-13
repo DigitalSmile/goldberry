@@ -11,7 +11,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.overlay.message.Message;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -176,7 +175,8 @@ public final class Notifications {
                     buttons.add(new Button(label, () -> spawn(kind))
                             .withAttributes(Attributes.NONE.id("spawn-" + kind.cssClass())));
                 }
-                buttons.add(new Spacer());
+                // `#clear-notices { margin-left: auto }` is what pushes Reset
+                // to the far end now, where a `Spacer` used to (ADR-0312).
                 buttons.add(new Button("Reset", this::clear)
                         .withAttributes(Attributes.NONE.id("clear-notices").classes("ghost")));
                 return new Row(buttons.toArray(Widget[]::new))

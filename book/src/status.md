@@ -6804,6 +6804,68 @@ before it.
   this engine with four longhands over a value a shorthand also sets, and
   `margin: 8px; margin-left: 20px` is the test that failed.
 
+### The catalog puts both properties on
+
+- **Five surfaces wear §1.5's elevation now**
+  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
+  level 1, `dialog`, `tour-card` and `toast` at level 2, and
+  `affix:affixed > affix-content` at level 1. ADR-0310 and ADR-0311 both ended
+  with the same sentence -- nothing in the catalog uses it yet -- and this is
+  what that sentence was deferring.
+- **`card.interactive` is a hover-*elevation* at last.** §5 has specified one
+  since the section was written and it was a border colour standing in for one.
+  Both properties move together now, and `transition: box-shadow` interpolates
+  the blur and the offset along with the alpha -- which is the difference between
+  a card that rises and a stain darkening under a card that has not moved.
+- **`affix` is §1.7's line, finally.** "detach/attach: `opacity` on the elevation
+  shadow, fast" has been in the motion table since before there was a shadow to
+  put an opacity on. `affix-pinned.png` is the whole argument for the widget in
+  one picture: the pinned header casts onto the rows sliding under it.
+- **`toast` at level 2 is the one judgement rather than a quotation.** §1.5's
+  ladder gives level 1 to things raised off the page and level 2 to overlays; a
+  toast is in the window's own overlay layer with the application's content
+  directly under it and **no scrim** between the two, so it has left the page
+  and level 1 over an arbitrary background does not say so.
+- **Every edge stays, and not one was a placeholder.** A shadow says "nearer" by
+  darkening what is underneath, and a card on *another card* is on its own
+  colour -- where the shadow says almost nothing and the rim says it exactly. The
+  Panels screen has a card inside a card, which is that sentence as a picture.
+- **`popover`, `menu` and `tooltip` are still edges**, which is exactly §1.5's
+  level-1 list minus cards. The reason changed without the rule changing: they
+  are drawn in popup windows created at the panel's own measured size
+  (ADR-0104), and a shadow is drawn *outside* the box that casts it -- so every
+  pixel of one would fall outside the window and be clipped, for a run of fills
+  that draws nothing. It wants a popup sized to the panel plus the shadow's
+  reach with the extra transparent, which is the same compositor support the
+  rounded corners are waiting on.
+- **`dialog-actions` writes the margin §2 asked for**, where it had been
+  `padding-top` with a comment apologising for the substitution. The picture is
+  identical -- the row has no fill and nothing to clip -- and the declaration now
+  says what it means.
+- **`tour-card`'s footer lost its `Spacer`.** `TourStop` built
+  `[Skip][Spacer][Back?][Next]` and builds `[Skip][Back?][Next]` with
+  `margin-right: auto` on Skip: one widget fewer in the tree, and **pixel for
+  pixel the same picture** -- checked by regenerating the tour goldens with the
+  spacer put back. It has to be: the spacer absorbs `W − Σwidths − n·g` and the
+  auto margin absorbs the same quantity with one gap fewer. The margin is on the
+  *trailing* edge of the leading button, because the trailing group is one button
+  or two and two auto margins would split the free space and open a hole between
+  them.
+- **`spacer` is not deprecated and the showcase still uses one**, in the status
+  bar, on purpose: it is a §1 widget an application writes in markup and a
+  document has no stylesheet to put a margin in. The notice bar on the Overlays
+  screen is the other half of the comparison -- same shape, `margin-left: auto`.
+- **Twenty-six goldens moved**, every gallery screen among them, because every
+  screen is a wall of cards. They were reviewed rather than accepted blind.
+- **`RuleBucketTest` caught a selector on the way.**
+  `tour-card > column > row .tour-skip` has a rightmost compound naming no type,
+  so the cascade would check it against every element of every kind (ADR-0152).
+  It is `button.tour-skip` now, folded into the rule that was already there --
+  two rules with one selector being its own small defect.
+- **Five comments stopped being wrong**, which is most of the value here: `card`,
+  `dialog`, `dialog-actions`, `affix` and `tour-card` each described a property
+  that did not exist, and a reader had no way to tell which were still true.
+
 ### Not started
 
 **Client-side decorations**, and — since `breadcrumbs` opened the `nav` package
