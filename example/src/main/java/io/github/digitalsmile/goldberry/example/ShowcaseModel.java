@@ -265,6 +265,75 @@ public final class ShowcaseModel {
     @Bind("app.tab")
     private String tab = "Rivendell";
 
+    // --- the chips (ADR-0305) ------------------------------------------------
+
+    /// The three filters the Basic screen's chip row offers.
+    ///
+    /// Three booleans rather than a `Set<String>`, because a chip's `bind=` reads
+    /// **one** value and §9's binding has no way to say "is this string in that
+    /// set". That is the shape of the widget rather than a shortcut: a chip is a
+    /// control with a state, exactly like the `checkbox` three cards above it,
+    /// and a set would need a second kind of binding for no new behaviour
+    /// (ADR-0063).
+    ///
+    /// Independent, and that is the argument for chips over `segmented`: none,
+    /// some or all of them may be on, and nothing about the row makes that wrong.
+    @Bind("app.chip-unread")
+    private boolean chipUnread = true;
+
+    @Bind("app.chip-starred")
+    private boolean chipStarred;
+
+    @Bind("app.chip-archived")
+    private boolean chipArchived;
+
+    /// The tags the Basic screen's dismissable row shows.
+    ///
+    /// A list because a × **removes** one, which is a structural change: the row
+    /// is a different tree afterwards rather than the same tree with a different
+    /// value, and the widget cannot make it happen itself — a chip asks and this
+    /// list is what answers (ADR-0063).
+    ///
+    /// Assignment is what is observed, which is why it is replaced rather than
+    /// edited: a list mutated in place changes nothing anybody can see
+    /// (ADR-0109).
+    @Bind("app.tags")
+    private List<String> tags = List.of("java", "kdl", "blend2d", "harfbuzz", "yoga");
+
+    // --- the trail (ADR-0306) ------------------------------------------------
+
+    /// Where the Navigation screen's breadcrumbs say you are.
+    ///
+    /// The whole path, root first, and the **application** owns it: the trail
+    /// draws what is here and a crumb asks for a prefix of it, which is the same
+    /// loop every other control in this window runs.
+    @Bind("app.path")
+    private List<String> path = List.of("Home", "Library", "Reference");
+
+    /// The places a deeper path goes, in order — the trail's equivalent of
+    /// [#STAGES], and long enough to push the row past its overflow twice over.
+    static final List<String> DEEPER = List.of(
+            "Library",
+            "Reference",
+            "Middle-earth",
+            "Shire",
+            "Hobbiton",
+            "Bag End",
+            "The Red Book",
+            "Chapter One",
+            "A Long-expected Party");
+
+    // --- the icon sheet (ADR-0307) -------------------------------------------
+
+    /// What the Icons screen's search field holds.
+    ///
+    /// Bound so the field reads it and **watched** by the screen, which are two
+    /// different things: the field shows the value, and the sheet is a different
+    /// number of rows per query — a value for one and a structure for the other
+    /// (ADR-0109).
+    @Bind("app.icon-query")
+    private String iconQuery = "";
+
     /// Which gallery screen is showing — the tab strip under the bar (ADR-0110).
     /// `Ctrl+1`, a menu item and the strip itself are three ways to set one value
     /// rather than three copies of a selection.
@@ -333,6 +402,25 @@ public final class ShowcaseModel {
         return clicks;
     }
 
+    /// The tags the chip row shows, for the card that builds one chip per tag.
+    ///
+    /// A reader rather than a binding, because what the card needs is the **list**
+    /// and a `bind=` reads one value: the row is a different tree per tag, which
+    /// is Java's half of the split this screen makes everywhere.
+    public List<String> tags() {
+        return tags;
+    }
+
+    /// The path the breadcrumbs draw, root first.
+    public List<String> path() {
+        return path;
+    }
+
+    /// What the icon sheet is filtering on.
+    public String iconQuery() {
+        return iconQuery;
+    }
+
     /// Everything that *happens* to these values. One method per thing a control
     /// can ask for, and no state of its own.
     ///
@@ -363,6 +451,81 @@ public final class ShowcaseModel {
         @Action("app.pick-screen")
         public void pickScreen(String name) {
             values.screen = name;
+        }
+
+        // --- the chips -------------------------------------------------------
+
+        /// One `press` per chip, because a `press=` is a [Runnable] and names no
+        /// value.
+        ///
+        /// A valued `change=` would be the other shape — one action taking the
+        /// chip's name — and it is deliberately not what §3 gives a chip: a chip
+        /// reports **that it was chosen** and not *what* was chosen, because the
+        /// value is the widget itself. A row of three that shared one handler
+        /// would be a `segmented` with rounder corners.
+        @Action("app.toggle-unread")
+        public void toggleUnread() {
+            values.chipUnread = !values.chipUnread;
+        }
+
+        @Action("app.toggle-starred")
+        public void toggleStarred() {
+            values.chipStarred = !values.chipStarred;
+        }
+
+        @Action("app.toggle-archived")
+        public void toggleArchived() {
+            values.chipArchived = !values.chipArchived;
+        }
+
+        /// Takes a tag off the row — what a chip's × asks for.
+        ///
+        /// The chip removes nothing itself: it asks, and this is the only thing
+        /// that can shorten the list. A `dismiss` handler that did nothing would
+        /// leave the chip where it was, which is the visible form of "the model
+        /// did not change" (ADR-0063).
+        public void dropTag(String tag) {
+            var remaining = new java.util.ArrayList<>(values.tags);
+            remaining.remove(tag);
+            values.tags = List.copyOf(remaining);
+        }
+
+        /// Puts the five back, so the card can be tried more than once.
+        @Action("app.reset-tags")
+        public void resetTags() {
+            values.tags = List.of("java", "kdl", "blend2d", "harfbuzz", "yoga");
+        }
+
+        // --- the trail -------------------------------------------------------
+
+        /// Walks back up the path to `depth` steps.
+        ///
+        /// What a crumb asks for. The trail draws whatever this leaves behind,
+        /// and a crumb that asked for a depth the path no longer has is clamped
+        /// rather than refused — the path is the application's and may have
+        /// changed since the frame the click was aimed at.
+        public void goUp(int depth) {
+            var wanted = Math.max(1, Math.min(depth, values.path.size()));
+            values.path = List.copyOf(values.path.subList(0, wanted));
+        }
+
+        /// Goes deeper, so the trail can be pushed past its overflow.
+        @Action("app.go-deeper")
+        public void goDeeper() {
+            if (values.path.size() >= DEEPER.size() + 1) {
+                return;
+            }
+            var next = new java.util.ArrayList<>(values.path);
+            next.add(DEEPER.get(values.path.size() - 1));
+            values.path = List.copyOf(next);
+        }
+
+        // --- the icon sheet --------------------------------------------------
+
+        /// What the search field reports on every keystroke.
+        @Action("app.set-icon-query")
+        public void setIconQuery(String value) {
+            values.iconQuery = value == null ? "" : value;
         }
 
         // --- the road --------------------------------------------------------

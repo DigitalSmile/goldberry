@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.chip.Chip;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
@@ -86,11 +87,12 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
 
     @Override
     public Widget build(BuildContext context) {
-        var extra = new ArrayList<Widget>(3);
+        var extra = new ArrayList<Widget>(4);
         if (model.isProseShown()) {
             extra.add(prose());
         }
         extra.add(road());
+        extra.add(tags());
         // A value, like every other widget here: the state that remembers what
         // the last dialog answered is the card's own, made once when it is
         // mounted and kept across the rebuilds this screen does for everything
@@ -108,6 +110,46 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
                         new Text("A paragraph, and a window edge to drag", Attributes.NONE.classes("card-title")),
                         new Text(PROSE).id("prose")),
                 Attributes.NONE.id("prose-card").classes("wall-card"));
+    }
+
+    /// The dismissable chips, and the fourth card that cannot be a document.
+    ///
+    /// A × **removes** a chip, so the row is a different *tree* after a dismiss
+    /// rather than the same tree with a different value — and §8's markup has no
+    /// way to describe a list that shortens. It is the road card's reason wearing
+    /// different clothes, and it is the clearest demonstration of ADR-0063 on this
+    /// screen: the chip asks, `dropTag` answers, and the row redraws from what the
+    /// model now holds. Delete `dropTag` and the × stops working, which is the
+    /// behaviour rather than a bug.
+    ///
+    /// `Reset` rather than leaving an emptied row, because a card a reader can
+    /// only use once is a card most readers never see working.
+    private Widget tags() {
+        var tags = model.tags();
+        var chips = new ArrayList<Widget>(tags.size() + 1);
+        for (var tag : tags) {
+            // Keyed by the tag, so removing one from the middle reconciles the
+            // rest in place rather than shuffling every chip's state along one
+            // (ADR-0004).
+            chips.add(new Chip(tag)
+                    .onDismiss(() -> actions.dropTag(tag))
+                    .keyed(tag)
+                    .id("tag-" + tag));
+        }
+        if (tags.isEmpty()) {
+            chips.add(new Text("Nothing left to take off.", Attributes.NONE.classes("caption")));
+        }
+        return new Card(
+                List.of(
+                        new Text("Tags you can take off", Attributes.NONE.classes("card-title")),
+                        new Row(chips, Attributes.NONE.id("chip-tags")),
+                        new Text(
+                                "Each × asks the model to drop one. The chip removes nothing itself —"
+                                        + " which is why this card is Java and the two rows above it are"
+                                        + " basic.kdl.",
+                                Attributes.NONE.classes("caption")),
+                        new Button("Put them back", actions::resetTags).id("reset-tags")),
+                Attributes.NONE.id("tag-card").classes("wall-card"));
     }
 
     /// The counter, and the card that is in Java because two of its buttons

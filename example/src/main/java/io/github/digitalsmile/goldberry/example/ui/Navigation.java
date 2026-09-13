@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
@@ -7,16 +8,19 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs.Breadcrumbs;
+import io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs.Crumb;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Navigation** screen: the three ways this toolkit moves a reader around a
 /// window that is bigger than itself.
 ///
 /// A tab strip *replaces* what is on screen, an affixed header *keeps* something
-/// on screen while the rest of it travels, and a tour *walks* somebody through
-/// things that are already there. They are on one screen because choosing between
-/// them is a single decision and it used to be spread over three tabs
-/// ([ADR-0222]).
+/// on screen while the rest of it travels, a trail *says where you are*, and a
+/// tour *walks* somebody through things that are already there. They are on one
+/// screen because choosing between them is a single decision and it used to be
+/// spread over three tabs ([ADR-0222]).
 ///
 /// ## Why this screen is not in a viewport
 ///
@@ -32,14 +36,62 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
 
     private static final String NOTE =
             "A strip replaces what is on screen, an affixed header keeps something on it while"
-                    + " the rest travels, and a tour walks you through what is already there."
+                    + " the rest travels, a trail says where you are, and a tour walks you through"
+                    + " what is already there."
                     + " This screen is the one the gallery does not put in a viewport: the"
                     + " card below owns one, and §2.4 bans a scroller inside a scroller.";
 
     @Override
     public Widget build(BuildContext context) {
         return new Wall(
-                "navigation", "Navigation", NOTE, 2, List.of(new TabsDemo(model, actions), new Scrolling(), tour()));
+                "navigation",
+                "Navigation",
+                NOTE,
+                2,
+                List.of(new TabsDemo(model, actions), trail(), new Scrolling(), tour()));
+    }
+
+    /// §6's `breadcrumbs`, driven by the model's path ([ADR-0306]).
+    ///
+    /// The card is here rather than in a document for the reason the road card on
+    /// the Basic screen is: the crumbs are **one per element of a list that
+    /// changes**, and §8's markup has no way to describe that. A static trail
+    /// would have been writable in KDL and would have shown nothing — the point
+    /// of this widget is what it does when the path gets too long for the row.
+    ///
+    /// **Every crumb gets the same handler**, which is the arrangement the widget
+    /// is designed around: a trail is built from a loop, so the last one is
+    /// handed a `press` it must not run, and the trail silently demotes it rather
+    /// than making the common case an error.
+    private Widget trail() {
+        var path = model.path();
+        var crumbs = new ArrayList<Widget>(path.size());
+        for (var depth = 0; depth < path.size(); depth++) {
+            var steps = depth + 1;
+            crumbs.add(new Crumb(path.get(depth), () -> actions.goUp(steps))
+                    .keyed(path.get(depth))
+                    .id("crumb-" + depth));
+        }
+        return Notifications.card(
+                "trail-card",
+                "The path to here",
+                List.of(
+                        new Breadcrumbs(crumbs.toArray(Widget[]::new)).id("path"),
+                        new Text(
+                                "Click a step to go back up it. The last crumb is where you are and is"
+                                        + " not a link — the trail decides that, not the document, so a"
+                                        + " loop that hands every crumb the same action still ends"
+                                        + " somewhere inert.",
+                                Attributes.NONE.classes("caption")),
+                        new Row(
+                                List.of(new Button("Go deeper", actions::goDeeper).id("go-deeper")),
+                                Attributes.NONE.id("trail-actions")),
+                        new Text(
+                                "Past four steps the middle collapses into a … that opens a menu of"
+                                        + " what it hid. Nothing is elided inside a name: a truncated"
+                                        + " folder is worse than a hidden one, because it still looks"
+                                        + " like a name.",
+                                Attributes.NONE.classes("caption"))));
     }
 
     /// The tour's own card. A button and a paragraph, because everything else

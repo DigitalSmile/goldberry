@@ -117,6 +117,7 @@ public final class Controls {
                 "progress",
                 "spinner",
                 "badge",
+                "chip",
                 "knob");
     }
 }

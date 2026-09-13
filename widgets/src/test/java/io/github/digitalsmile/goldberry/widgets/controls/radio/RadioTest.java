@@ -147,6 +147,7 @@ class RadioTest {
                             "progress",
                             "spinner",
                             "badge",
+                            "chip",
                             "knob"),
                     Controls.controlTypes());
         }

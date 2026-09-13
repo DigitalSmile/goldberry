@@ -29,6 +29,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
+import io.github.digitalsmile.goldberry.widgets.controls.chip.Chip;
 import io.github.digitalsmile.goldberry.widgets.controls.knob.Knob;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.progressbar.Progress;
@@ -37,6 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a radio group actually looks like (§14, [ADR-0050]).
 ///
@@ -317,6 +319,7 @@ class RadioGoldenTest {
                                     #panel { flex-direction: column; padding: 12px; gap: 8px;
                                              background: var(--gb-surface) }
                                     #group { gap: 8px }
+                                    #chips { flex-direction: row; gap: 8px }
                                     """)),
                             TestFont.get())
                     // **A virtual clock, and this scene needs one now.** Every
@@ -332,7 +335,12 @@ class RadioGoldenTest {
             // frame that fitted only because the last two controls were falling
             // off the bottom is the same defect ADR-0076 found in six scenes at
             // once: an image is not evidence of a control it clipped away.
-            GoldenImage.assertMatches(name, 300, 370, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
+            // 370 -> 402 when the chip row joined: 24 of control plus the
+            // column's 8px gap. A frame that fitted only because the last
+            // control was falling off the bottom is the defect ADR-0076 found in
+            // six scenes at once -- an image is not evidence of a control it
+            // clipped away.
+            GoldenImage.assertMatches(name, 300, 402, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }
 
@@ -380,6 +388,15 @@ class RadioGoldenTest {
                         // is in the scene rather than exempted from it
                         // (ADR-0089).
                         new Knob(0, 1, 0.4, 0, null),
+                        // A `chip` is filled and is still here rather than
+                        // exempted with the badge, because the fill it is filled
+                        // *with* is `--gb-badge-bg` -- one step off the panel --
+                        // and a chip is a control you have to be able to find in
+                        // a row of them. Two of them, chosen and not, because the
+                        // pair is the whole question: the unchosen one must be
+                        // visible against the panel and the chosen one must be
+                        // distinguishable from the unchosen one (ADR-0305).
+                        new Row(List.of(new Chip("Unread"), new Chip("Starred", true, null)), id("chips")),
                         // A closed `select` is a field, and a field is exactly
                         // the shape that disappears on a panel: it is a border
                         // and a fill one step off whatever is behind it, so the

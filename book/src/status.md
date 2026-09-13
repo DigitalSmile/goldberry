@@ -6563,14 +6563,79 @@ is the `scroll` box's.
   that have a field and lands on top of a 24-point swatch for the one that does
   not. Found in the first picture of the closed control.
 
+### `chip`, and the word that was doing three jobs
+
+- **§3 gained a `chip` row and the catalog gained the widget**
+  ([ADR-0305](adr/0305-a-chip-is-a-badge-you-can-press.md)). `badge` was described
+  as a "count/status **chip**", `select multiple` had a `select-chip` part, and
+  what neither of them was is the thing the word usually means: a small rounded
+  label you can **choose** and **take away**.
+- **One sentence separates it from `badge`**, and everything else falls out of it:
+  *a badge answers what is true, a chip answers what you picked*. So a chip is
+  focusable, carries `:checked`, and has a keyboard — and a badge, which is a
+  status on a wall, is none of the three. Growing `badge` a `press` would have
+  made every status badge in every application a Tab stop the moment the
+  capability existed.
+- **The two share their hue tokens and part on the rest fill.** One set of five
+  semantic fills rather than two that have to be kept agreeing; but a badge's
+  `--gb-surface-2` is a plate you read *beside* something, and a chip is a control
+  at rest that has to be a findable target, so it takes `--gb-button-bg`.
+- **A dot takes the foreground its own fill guarantees contrast against**, which
+  is the rule an image found. `chip.success chip-dot { background: var(--gb-success) }`
+  reads correctly and draws a green dot on a green plate — the first golden of it
+  came out with no dot at all.
+- **Both delete keys dismiss**, unlike `tab`'s one: a chip is commonly the last
+  thing before a text field, where `Backspace` is what a hand reaches for, and
+  binding one of the two would have made it a coin toss. It is the whole reason
+  the × can stay out of the Tab order.
+- **It binds.** `bind=` drives `selected` the way it drives a `checkbox`'s tick,
+  so the showcase's filter row is three properties, three actions and no Java —
+  and any number of the three may be on, which is the argument for a row of chips
+  over a `segmented`.
+
+### `breadcrumbs`, and the `nav` package finally has something in it
+
+- **§6's first widget is built**
+  ([ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)). `nav` has been in
+  §11's package table since v0.2 with nothing in it; `steps` and `wizard` now have
+  somewhere to land that is not `panel`.
+- **The trail decides which crumb is current** — the last one, written down on
+  every build, which is `tabs` telling a `tab` it is selected. A document cannot
+  say otherwise, because a document that could mark a middle crumb current would
+  describe a path that does not end anywhere.
+- **A current crumb is demoted silently rather than refused.** A trail is built
+  from a loop over a path, so every crumb gets the same `press=` and the last one
+  is *supposed* to be inert; refusing it would make the ordinary way of writing
+  one an error.
+- **The `…` is the one part in the catalog that takes the focus.** Every other —
+  `tab-close`, `select-chip-remove`, `chip-dismiss` — is deliberately not a Tab
+  stop because the keyboard reaches it through the control it sits in. This one
+  has no such route: the crumbs behind it are **not in the tree**, so a
+  pointer-only `…` would put part of a navigation path out of a keyboard's reach.
+- **Nothing is elided inside a name**, which is §6's own argument and the reason
+  the overflow is a menu rather than a truncation: a shortened folder name still
+  looks like a name.
+- **The semantics are incomplete and say so.** §6 asks for a navigation landmark
+  containing links; `Role` has neither `LINK` nor a landmark, so the crumbs answer
+  `BUTTON` and the row answers `GROUP`. Inventing the constants now would make a
+  gap look closed — `docs/gaps.md` carries it until the AccessKit bridge.
+
 ### Not started
 
-**Client-side decorations**, and nothing else in the catalog. §4 and §7 are
-both **complete**, mechanism and all.
+**Client-side decorations**, and — since `breadcrumbs` opened the `nav` package
+— `steps` and `wizard`, which are the other two of §6. §4 and §7 are both
+**complete**, mechanism and all, and §3 gained `chip`
+([ADR-0305](adr/0305-a-chip-is-a-badge-you-can-press.md)).
 
-What is left of M3 is therefore one platform question rather than any widget
-work: whether Goldberry carries its own decorations —
-`SdlWindowFlag.BORDERLESS` already describes the design — or keeps depending on
+The two `nav` widgets are ordinary widget work with nothing blocking them: the
+package exists, and `steps` is a child of `wizard` rather than a drawing, so they
+go in that order. `link`, `timeline` and `button`'s four remaining options are the
+rest of the catalog's written-down surface, and all of it is in
+[TODO.md](TODO.md).
+
+What is left of M3 that is **not** widget work is one platform question: whether
+Goldberry carries its own decorations — `SdlWindowFlag.BORDERLESS` already
+describes the design — or keeps depending on
 libdecor and the two packages from two phases that
 [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md) and
 [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md) found.

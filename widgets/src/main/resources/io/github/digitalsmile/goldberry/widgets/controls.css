@@ -386,6 +386,9 @@ slider:focus-visible,
 knob:focus-visible,
 select:focus-visible,
 option:focus-visible,
+chip:focus-visible,
+crumb:focus-visible,
+crumb-overflow:focus-visible,
 text-input:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
@@ -1354,6 +1357,243 @@ badge.success {
 badge.info {
   background: var(--gb-badge-info-bg);
   color: var(--gb-badge-info-text);
+}
+
+/* ------------------------------------------------------------------ chip --
+ *
+ * §3 gained a `chip` row for this widget rather than the numbers being picked
+ * here (Principle 3, "token or extend"): height 24, padding-x 8, radius `full`,
+ * `body`, dot 6, dismiss 12.
+ *
+ * **It is a badge you can press, and every number says so.** Four taller than a
+ * `badge` because 20 is a plate you read and 24 is a target you hit -- §2.2 asks
+ * for 24 as the smallest pointer target in a dense row, and a chip is a control
+ * where a badge is not. `body` rather than `caption` for the same reason: a
+ * filter you choose is content, and a count beside a heading is metadata.
+ *
+ * `border-radius: 12px` on a 24px box is §1.5's `full`, spelled the way
+ * `badge` and `toggle-track` already spell it -- §8's subset has no percentage
+ * radius and the painter's four cubics want a number (ADR-0064).
+ *
+ * The height is pinned and there is no vertical padding, which is `badge`'s
+ * arrangement and its argument: the two cannot both be right, and `align-items:
+ * center` is what puts a label in a height it did not choose.
+ *
+ * `flex-shrink: 0` -- a row of filters that gave width back would ellipse the
+ * words a user is choosing between, and a chip that reads `Unre` is not a
+ * shorter chip but a wrong one. A wrapped row is the answer to a narrow one,
+ * which is `select`'s chips exactly (ADR-0192).
+ */
+chip {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+
+  /* **The control surface, not the badge's** -- and this is the one place the
+     two widgets deliberately part company. `--gb-badge-bg` is `--gb-surface-2`,
+     one step off a card, which is right for a plate you read *beside* something
+     and invisible for a target you have to find: the first drawing of the
+     showcase's filter row was one filled chip and two labels floating on the
+     card. A chip is a control at rest, so it takes what a control at rest takes.
+
+     The *variants* below still share the badge's hue tokens, which is the
+     sharing that was worth having -- one set of five semantic fills rather than
+     two that have to be kept agreeing (ADR-0305). */
+  background: var(--gb-button-bg);
+  color: var(--gb-button-text);
+}
+
+/* §2.1: hover moves the **surface** and never the ink, one step each way — the
+   button's own two tokens, for the reason above. */
+chip:hover {
+  background: var(--gb-button-bg-hover);
+}
+
+chip:active {
+  background: var(--gb-button-bg-active);
+}
+
+/* **Chosen.** `:checked` and not a class, because it is the same fact a `tab`, a
+   `radio` and an `option` report and there is no reason for a fourth spelling.
+
+   A *filled* accent rather than an outline: a row of chips is scanned rather
+   than read, and the one that is on has to be findable without comparing edges.
+   `--gb-accent-fill` is the token that exists precisely because `--gb-accent` is
+   chosen as a fill and its companion text token carries the 4.5:1 (§1.2). */
+chip:checked {
+  background: var(--gb-accent-fill);
+  color: var(--gb-badge-accent-text);
+}
+
+chip:checked:hover {
+  background: var(--gb-accent-bg-hover);
+}
+
+chip:checked:active {
+  background: var(--gb-accent-bg-active);
+}
+
+/* An outlined chip: the `.ghost` of this widget, for a row where the unchosen
+   ones should recede rather than sit on plates of their own. */
+chip.outlined {
+  background: none;
+  border: 1px solid var(--gb-border);
+  color: var(--gb-text);
+}
+
+chip.outlined:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* **An outlined chip that is chosen is still filled.** `chip.outlined` and
+   `chip:checked` are the same specificity, so without this the later rule wins
+   and an outlined filter row would have no way to show which filter is on —
+   which is the one thing a filter row exists to show. Specificity rather than
+   source order, so it holds wherever the rules end up. */
+chip.outlined:checked {
+  background: var(--gb-accent-fill);
+  border-color: var(--gb-accent-fill);
+  color: var(--gb-badge-accent-text);
+}
+
+chip.outlined:checked:hover {
+  background: var(--gb-accent-bg-hover);
+}
+
+/* `.outlined` last, so a chip carrying both it and a hue is outlined: the hue
+   rules above set a fill, and §8's cascade takes the later rule at equal
+   specificity. Written out rather than relying on source order alone, because
+   "it works because of where it is in the file" is how a rule stops working when
+   somebody tidies the file. */
+chip.outlined.danger,
+chip.outlined.warning,
+chip.outlined.success,
+chip.outlined.info {
+  background: none;
+  color: var(--gb-text);
+}
+
+/* The semantic hues, and the same tokens `badge` uses -- §1.2 lets the aurora
+   hues appear "only with semantic meaning", and a chip carrying a status is the
+   same claim a badge carrying one makes. Shared rather than copied, because two
+   sets of five that have to be kept agreeing is how they stop agreeing
+   (ADR-0087). */
+chip.danger {
+  background: var(--gb-badge-danger-bg);
+  color: var(--gb-badge-danger-text);
+}
+
+chip.warning {
+  background: var(--gb-badge-warning-bg);
+  color: var(--gb-badge-warning-text);
+}
+
+chip.success {
+  background: var(--gb-badge-success-bg);
+  color: var(--gb-badge-success-text);
+}
+
+chip.info {
+  background: var(--gb-badge-info-bg);
+  color: var(--gb-badge-info-text);
+}
+
+/* The status dot. A **box** and not a mark, so its colour is `background` and it
+   does not inherit the label's ink -- which is the whole point: a muted chip with
+   a live red dot is the arrangement this exists for (see ChipDot).
+
+   6 is off §1.3's ramp and is the one number here that is not derived. It is
+   half of §1.3's 12 and the smallest circle that reads as deliberate at 100%
+   scale; 4 is a speck and 8 is a bullet beside a `body` line. */
+chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: var(--gb-accent-fill);
+}
+
+/* **A dot takes the foreground its own fill guarantees contrast against**, and
+   the hue itself only when there is no fill. That is one rule rather than four,
+   and it is the rule because the obvious alternative is wrong in a way an image
+   is the only thing that shows: `chip.success chip-dot { background:
+   var(--gb-success) }` puts a green dot on a green plate, and the first golden
+   of it came out with no dot at all.
+
+   So a *filled* variant's dot is that variant's text token -- the one §1.2's
+   4.5:1 was chosen for -- and the `.outlined` forms below, which have no fill,
+   take the hue. The useful arrangement is the second: a chip with a quiet
+   surface and a live status on it, which is what a dot is for at all. */
+chip.danger chip-dot {
+  background: var(--gb-badge-danger-text);
+}
+
+chip.warning chip-dot {
+  background: var(--gb-badge-warning-text);
+}
+
+chip.success chip-dot {
+  background: var(--gb-badge-success-text);
+}
+
+chip.info chip-dot {
+  background: var(--gb-badge-info-text);
+}
+
+/* No fill, so the hue itself -- and this is the pairing worth writing a chip for:
+   `chip.outlined.success` with a dot is a neutral pill with a green light
+   on it, which is how a status reads in every console that has one. */
+chip.outlined.danger chip-dot {
+  background: var(--gb-danger);
+}
+
+chip.outlined.warning chip-dot {
+  background: var(--gb-warning);
+}
+
+chip.outlined.success chip-dot {
+  background: var(--gb-success);
+}
+
+chip.outlined.info chip-dot {
+  background: var(--gb-info);
+}
+
+/* A chosen chip's dot is on the accent fill, where an accent dot would vanish.
+   The same rule as the filled variants, for the same reason. */
+chip:checked chip-dot {
+  background: var(--gb-badge-accent-text);
+}
+
+/* The words. `flex-shrink: 0` so that a chip in a wrapping row keeps its label
+   whole -- the row wraps, the word does not break. */
+chip-label {
+  flex-shrink: 0;
+}
+
+/* The ×, and the same 12 square `tab-close` and `select-chip-remove` are: it is
+   the lesser of the two things on the plate, and §2.2's hit target is the chip's
+   own 24 because the mark is centred in a box as tall as the row. */
+chip-dismiss {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity var(--gb-motion-fast);
+}
+
+chip-dismiss:hover {
+  opacity: 1;
 }
 
 /* ------------------------------------------------------------------ knob --
@@ -4413,4 +4653,100 @@ masonry-column {
    here would be drawn around every card in the wall. */
 masonry-cell {
   flex-direction: column;
+}
+
+/* ----------------------------------------------------------- breadcrumbs --
+ *
+ * §3's row: "height 24; `body`; separator = `chevron-right` 16 in
+ * `--gb-text-muted`, gap 4; overflow menu after 4 crumbs". Every number below is
+ * that row, and the one behaviour it does not mention -- what the current crumb
+ * looks like -- is §6's sentence rather than a choice made here.
+ *
+ * The row does not wrap and does not shrink its crumbs. A path that wrapped to
+ * two lines would put "where you are" under "where you started", which is the
+ * one arrangement a trail must not have; the answer to a narrow window is the
+ * overflow menu, which is why there is one (ADR-0306).
+ */
+breadcrumbs {
+  height: 24px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-text-muted);
+}
+
+/* A step. Muted until you are on it, because the whole row is context for the
+   last item -- a trail in full-strength ink competes with the heading under it.
+
+   Padding-x 4 and a small radius so the hover wash reads as a target rather than
+   as a highlighted word; 4 is §1.3's legal value below the component default,
+   the same one `badge` and `button.link` reach for and for the same reason. */
+crumb {
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+crumb:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+/* **Where you are.** Full-strength ink and the strong weight, and deliberately
+   *no fill and no hover*: §6 says the current page "is not a link", and a filled
+   current crumb reads as a button -- which would invite exactly the click the
+   sentence exists to prevent. `cursor: default` is the other half of saying so,
+   because a pointer that stays an arrow is the fastest way a user finds out.
+
+   `:checked` is the pseudo-class a `tab`, a `radio` and an `option` already use
+   for "this one of the set is the one"; a trail is the same fact. */
+crumb:checked {
+  color: var(--gb-text);
+  font-weight: var(--gb-weight-strong);
+  background: none;
+  cursor: default;
+}
+
+crumb:checked:hover {
+  background: none;
+  color: var(--gb-text);
+}
+
+/* §3's "separator = chevron-right 16 in --gb-text-muted". Square, and it has to
+   be: the chevron is a mark drawn to fill its box, so 16 wide and 24 tall would
+   draw a stretched one -- `tab-new`'s lesson, and the two numbers are one
+   number for the same reason. */
+crumb-separator {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+/* The `…`. A crumb's metrics, because it stands where a crumb would and a row
+   whose collapsed middle was a different height would step. */
+crumb-overflow {
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+crumb-overflow:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
 }

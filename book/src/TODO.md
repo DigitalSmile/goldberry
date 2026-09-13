@@ -149,6 +149,17 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
   [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 
+- **A trail is not a landmark, and a crumb is not a link.** §6 gives
+  `breadcrumbs` "navigation landmark containing links, current page marked", and
+  `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
+  boundary with content in it and no better word" — and the crumbs answer
+  `Role.BUTTON`, which is true of what pressing one does and silent about what it
+  *is*. The third of the three, "current page marked", **is** built, through
+  `:checked` and the accessible name.
+  Filed rather than guessed at, for the reason the two entries below are: a role
+  nothing can consume is a constant written for a bridge that does not exist, and
+  adding `LINK` and a landmark now would make this gap look closed. M5. —
+  [ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)
 - **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
   answers `Role.SLIDER`, which is true as far as it goes — a control whose value
   you move continuously — and says nothing about the second axis. `GROUP` is "a
@@ -326,7 +337,7 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
   [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
-- **The catalog's specified surface roughly tripled, and none of it is built.**
+- **The catalog's specified surface roughly tripled, and most of it is built now.**
   `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
   `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,
   `code-input`, autocomplete on both `text-input` and `select`, tree-select, `collapse`,
@@ -334,16 +345,40 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `tour`, `tree`, `calendar`, `timeline`, and `button`'s `outlined` / `square` /
   `circle` / `float` options — each with a `design-system.md` §3 metrics row and, where
   it moves, a §3.1 row. §5 requires a spec **and** a metrics row **and** gallery
-  coverage before code, in that order: these have passed two gates of three, and the
-  third is what "built" means. **One of them is built now** — `segmented`, which was in
-  this list and is out of it — and the way it went is the argument for writing them down
-  first, read from the other end: two of its five specified metrics and both of its
-  specified transitions turned out to be undrawable in §8's subset, and that was found
-  by implementing it rather than by writing it. The other twenty are still only written
-  down. The point of writing them down first is that the arguments are cheap now and
-  expensive later — `message` against `toast`, `segmented` against `radio-group`,
-  `code-input` against a styled `text-input` are all decisions that would otherwise be
-  made by whoever happened to need one.
+  coverage before code, in that order: they had passed two gates of three, and the
+  third is what "built" means.
+
+  **This entry said "none of it is built" and then "one of them is built now", and
+  it is out of date in the good direction.** What is left of the list is four
+  widgets and four options:
+
+  - **`link`** — §2's *text* widget, and the one still blocked rather than merely
+    unwritten: it needs `text-decoration` in §8's subset, because "never by colour
+    alone" makes the underline non-optional. Not the same thing as `button.link`,
+    which is built ([ADR-0293](adr/0293-a-button-that-reads-as-a-link.md)).
+  - **`steps` and `wizard`** — the other two of §6's `nav` group. The package
+    exists now, because `breadcrumbs` opened it
+    ([ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)), so they have
+    somewhere to land.
+  - **`timeline`** — §10's, and the only one of the four with nothing waiting on
+    it.
+  - **`button`'s `outlined` / `square` / `circle` / `float`** — four classes and
+    no Java at all, which is what makes them the cheapest thing on this list and
+    also the reason nothing has needed them.
+
+  Everything else on it went in: `segmented` first, then `affix`, the three
+  pickers, `code-input`, autocomplete on both controls, tree-select, `collapse`,
+  `carousel`, `statistic`, `skeleton`, `message`, `tour`, `tree`, `calendar`, and
+  `breadcrumbs` last.
+
+  **The way `segmented` went is still the argument for writing them down first**,
+  read from the other end: two of its five specified metrics and both of its
+  specified transitions turned out to be undrawable in §8's subset, and that was
+  found by implementing it rather than by writing it. The point of writing them
+  down first is that the arguments are cheap then and expensive later — `message`
+  against `toast`, `segmented` against `radio-group`, `code-input` against a
+  styled `text-input` are all decisions that would otherwise have been made by
+  whoever happened to need one, and none of them was.
 - **A `list` is Java, like `canvas` and like autocomplete.** An item-factory is a
   function and §8's documents have no way to write one, so no markup builds a
   list — the same wall, reached for the third time, and the third different

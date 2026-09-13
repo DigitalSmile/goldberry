@@ -630,3 +630,25 @@ sparkline {
 #watch-card {
   --gb-chart-1: var(--gb-warning);
 }
+
+/* --- the chip rows (ADR-0305) ---------------------------------------------- */
+
+/* `flex-wrap`, which the chip row is the second consumer of: a filter row is as
+   wide as its filters and a card is as wide as the column it landed in, so the
+   row that cannot shrink has to be the row that wraps (ADR-0192). */
+#chip-filters, #chip-status, #chip-tags {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* --- the trail (ADR-0306) -------------------------------------------------- */
+
+#trail-actions {
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}

@@ -142,6 +142,12 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;
     exports io.github.digitalsmile.goldberry.widgets.controls.checkbox;
+
+    /// `chip` — §3's small rounded label you can choose and take away. A package
+    /// of its own for the reason every control has one: its dot, its label and
+    /// its × are parts, and a part is styleable and not constructible
+    /// (ADR-0065, ADR-0305).
+    exports io.github.digitalsmile.goldberry.widgets.controls.chip;
     exports io.github.digitalsmile.goldberry.widgets.controls.knob;
 
     /// `option`, which is `segmented`'s child node **and** `select`'s — one
@@ -160,6 +166,12 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.slider;
     exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
     exports io.github.digitalsmile.goldberry.widgets.controls.toggle;
+
+    /// `docs/core-widgets.md` §6's `nav` group — the package §11's table has
+    /// named since v0.2 and which had nothing in it until `breadcrumbs`
+    /// (ADR-0306). `steps` and `wizard` join it here; the separator, the `…` and
+    /// the row itself are parts and stay inside.
+    exports io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
 
     /// `docs/core-widgets.md` §7's `overlay` group. `hud` is the first of it and
     /// the only one that needs no popup: it floats in the window's own overlay

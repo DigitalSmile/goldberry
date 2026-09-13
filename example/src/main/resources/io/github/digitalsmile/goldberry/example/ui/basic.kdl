@@ -132,8 +132,8 @@ property, and not one of them owns it."
     toggle id="prose-switch-off" on=#true disabled=#true "Bound by oath"
   }
 
-  card id="chip-card" class="wall-card" {
-    text class="card-title" "Chips"
+  card id="badge-card" class="wall-card" {
+    text class="card-title" "Badges"
     row id="badges" {
       badge "9"
       badge class="info" "Shire"
@@ -144,6 +144,54 @@ property, and not one of them owns it."
     text class="caption" "A badge takes its rank from a class, and the bare one \
 takes the neutral surface -- five hues on one row so that §1.2's rule about \
 never carrying meaning in colour alone has something to be read against."
+  }
+
+  // §3's `chip`, and the card exists to sit next to the one above it: a badge and
+  // a chip look alike on purpose and share their fill tokens, and the difference
+  // is that you can press one of them (ADR-0305).
+  //
+  // The tags row is **not** here and is in Java, for the reason the road card is:
+  // a × *removes* a chip, which is a different tree rather than a different
+  // value, and §8's markup has no way to describe a list that shortens.
+  card id="chip-card" class="wall-card" {
+    text class="card-title" "Chips"
+
+    // Three filters, three properties, three actions -- and none of the three
+    // owns its own state. Pressing one asks; the model answers; `:checked`
+    // follows the binding back down. Exactly the loop the radio group two cards
+    // up runs, with the difference that any number of these may be on at once,
+    // which is the whole reason a row of chips is not a `segmented` (ADR-0063).
+    //
+    // `outlined`, and the reason is the card rather than the widget: §1.5 makes a
+    // `card`'s fill `--gb-surface-2`, and a control at rest takes
+    // `--gb-button-bg`, and on the Nord dark theme both of those are `--nord2`.
+    // So a *filled* chip at rest is exactly the colour of the card under it --
+    // which is true of the default `button` two cards up as well, and is a fact
+    // about the palette rather than about either widget. An outlined chip draws
+    // its own edge, so the row reads as three targets wherever it is put.
+    row id="chip-filters" {
+      chip id="chip-unread" class="outlined" bind="app.chip-unread" press="app.toggle-unread" "Unread"
+      chip id="chip-starred" class="outlined" bind="app.chip-starred" press="app.toggle-starred" "Starred"
+      chip id="chip-archived" class="outlined" bind="app.chip-archived" press="app.toggle-archived" "Archived"
+    }
+    text class="caption" "Press one. Each is bound to its own boolean and asks an \
+action to flip it -- none of them sets its own state, which is why all three can \
+be on at once and why a fourth would need no new code. They are `outlined` because \
+a card's fill and a control's rest fill are the same Nord step, so a filled chip \
+at rest would be the colour of the card under it."
+
+    // The leading slot, both ways it can be filled. An outlined chip has no fill,
+    // so its dot takes the hue itself; a filled one's dot takes the foreground
+    // that fill already guarantees contrast against -- which is one rule, and the
+    // first golden of the other one came out with no dot at all.
+    row id="chip-status" {
+      chip id="chip-live" class="outlined success" dot=#true "Live"
+      chip id="chip-degraded" class="outlined warning" dot=#true "Degraded"
+      chip id="chip-down" class="danger" dot=#true "Down"
+      chip id="chip-sealed" class="outlined" disabled=#true "Sealed"
+    }
+    text class="caption" "A dot or an icon, never both -- they are the same status \
+at two resolutions, and asking for each is refused where the chip is built."
   }
 
   // §3's controls whose value is a *number*, and the two that report one back.

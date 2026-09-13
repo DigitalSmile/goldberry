@@ -47,7 +47,7 @@ class ImmutabilityTest {
         for (var type : allTypes()) {
             var markup =
                     switch (type) {
-                        case "text", "button", "badge" -> type + " \"x\"";
+                        case "text", "button", "badge", "chip" -> type + " \"x\"";
                         case "radio" -> "radio value=\"x\" \"X\"";
                         case "option" -> "option value=\"x\" \"X\"";
                         default -> type;
