@@ -24,8 +24,10 @@ import io.github.digitalsmile.goldberry.widgets.Density;
 /// ## Why this exists
 ///
 /// §8's subset is deliberately small and **an unsupported declaration is not an
-/// error**: a stylesheet naming `box-shadow` before it is implemented should not
-/// stop a window opening. So the engine drops it and carries on, which is the
+/// error**: a stylesheet naming `backdrop-filter` before it is implemented should
+/// not stop a window opening. (The example was `box-shadow` until ADR-0310 built
+/// it; that and `letter-spacing` are what is left of §8's unimplemented list.) So the engine drops it and carries on,
+/// which is the
 /// right behaviour for an *application's* stylesheet and the wrong signal for the
 /// toolkit's own — `border-bottom` shipped in `table-head`, drew nothing, and the
 /// only trace was one debug line among thousands.

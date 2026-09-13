@@ -2564,7 +2564,11 @@ is the `scroll` box's.
   in this toolkit paints outside a box's own rectangle, so a card is raised by
   contrast — `--gb-surface-2` against the page, plus a border — which is the
   answer `popover` reached first and is the honest version of the same idea, since
-  contrast is what a rasterizer with no shadow pass can express. **A group box's
+  contrast is what a rasterizer with no shadow pass can express. (**What changed
+  since**: both halves of that reason expired and the property is built —
+  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md). The edge stays, and
+  is still what tells a card sitting on another card apart; `card` does not wear
+  an elevation yet.) **A group box's
   title is above the frame, not through it**: a legend that breaks a border needs
   a notch the subset cannot express, or the page's own background painted behind
   the words, which is wrong the moment the box sits on anything but the page — and
@@ -4461,9 +4465,11 @@ is the `scroll` box's.
 - **And the toolkit's own stylesheets are linted.** `SupportedPropertyTest`
   resolves every rule the catalog and the showcase ship through the **real**
   cascade and fails on anything reported as unsupported. The asymmetry is the
-  point: an application naming `box-shadow` before it exists must not stop a
+  point: an application naming a property before it exists must not stop a
   window opening, but the toolkit was being held to that same lenient standard
-  against itself.
+  against itself. (The example was `box-shadow` until
+  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md) built it;
+  `backdrop-filter` is what it is now.)
 - **It asserts the behaviour rather than a copy of it.** No list of supported
   properties to drift — it attaches an appender and reads what the cascade
   actually said, so a property added to the engine tomorrow needs no edit here.
@@ -5762,7 +5768,10 @@ is the `scroll` box's.
 - **The note was right about three properties and wrong about the fourth.**
   `box-shadow` needs a drawing `Box` has no field for, `backdrop-filter` needs a
   second pass over what is underneath, and `letter-spacing` needs the shaper to
-  be told something before it shapes. `text-align` needs neither engine:
+  be told something before it shapes. (**What changed since**: two, not three.
+  `box-shadow` needed no `Box` field either — it is a component of `Decoration`
+  and a stack of rounded rectangles, and the *drawing* was the whole of the
+  problem, [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md).) `text-align` needs neither engine:
   `Paragraph.paint` is already handed the box's width, because it has to be or
   the text could not wrap to it, and every `TextLine` has already measured
   itself. The two numbers were in the same method the whole time.
@@ -6678,6 +6687,64 @@ is the `scroll` box's.
   asserted the filtered sheet against the wall's 1.0 ms and failed under a full
   build at 1.25, because 1085 elements is still five times a wall's and the number
   straddles the line.
+
+### A shadow, and the two ADRs it reverses
+
+- **`box-shadow` draws**
+  ([ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)). `<x> <y> <blur>
+  [<spread>] <color>`, one shadow per box, painted under the background and
+  outside the border — which is the property §8 has listed since the first day
+  and which [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+  and [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md) each named
+  as an alternative and turned down.
+- **Two of the three reasons it was turned down had expired.** "`Box` has no
+  field for it" and "nothing paints outside a box's own rectangle" were both true
+  when they were written and neither is now: the focus ring is drawn outside the
+  border box and the damage rectangle has grown for it for two hundred records.
+  The third — the rasterizer has no blur — is still true, and is the interesting
+  one.
+- **So the blur is a stack of rounded rectangles.** One band per logical pixel,
+  between four and forty-eight, nested and filled outermost first. That is the
+  primitive Blend2D is fastest at, and at one-pixel bands it is a gradient.
+- **The alphas are solved for, not read off the curve.** Nested fills composite,
+  so a point under the outer five bands lands at `1 - Π(1 - aᵢ)` and not at the
+  fifth band's alpha. Reading the fade curve straight gives a shadow far too
+  heavy in the middle with rings in it; the curve is the *accumulated* alpha and
+  each band is `1 - (1 - Aₖ)/(1 - Aₖ₋₁)`. The profile is smoothstep, which is
+  exactly 0.5 on the shape's own edge — what a blur is — and flat at both ends, so
+  the fade has no seam.
+- **The bands under an opaque box are never built.** The painter says whether the
+  background will cover its own rectangle; when it will, the bands inside it are
+  dropped. They are always a suffix, so nothing earlier changes. `0 2px 8px` is
+  eight bands and five after; `0 8px 32px` is thirty-one and twenty-two.
+- **It rides on `Decoration`, not on `Box`.** A drop shadow is drawn *around* a
+  box and not in it, and its geometry is derived from the corner radii — the
+  sentence `Decoration` opens with. The alternative was `Box`'s twenty-eighth
+  component and a wither in every one of the other twenty-seven.
+- **`--gb-elevation-1/-2/-3`, in both themes, as whole `box-shadow` values.** A
+  rule writes `box-shadow: var(--gb-elevation-2)` and chooses **nothing** — not
+  the offset, not the blur, and above all not the alpha. That last one is why
+  they exist: black at 16% is a clear soft edge on nord-light's `#eceff4` and
+  very nearly nothing on nord-0, so an application picking the number picks one
+  number and is wrong on one theme, which is exactly what `--gb-surface-2` cost
+  three widgets.
+- **The alpha is the theme's and the geometry is not.** §1.5's `0 2px 8px` and
+  `0 8px 32px` are identical in the two files; only the alpha differs, by roughly
+  two and a half times. `ThemeTest` asserts both halves, and two goldens — one per
+  theme — are what the difference looks like.
+- **`transition: box-shadow` animates**, because a transition naming a property
+  the engine resolves and cannot move is the silent nothing `Transitions` refuses
+  by policy. Every component interpolates; arriving from `none` fades the shape
+  in at full size rather than inflating it.
+- **The damage rectangle is asymmetric now.** `0 8px 32px` reaches 24px below a
+  box and 8px above it, so one outset on four sides would repaint bands nothing
+  drew in — and, for a shadow offset further than it is blurred, miss one, which
+  leaves a smear nothing repaints over.
+- **What it does not do**: knock the border box out of the shadow, which CSS
+  does and which needs a fill rule or a path clip the binding does not export;
+  and put a shadow on any widget, which is a change to every golden containing a
+  `card`, a `menu`, a `popover` or a `dialog` and belongs in its own. Both are in
+  [TODO.md](TODO.md).
 
 ### Not started
 

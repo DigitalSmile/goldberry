@@ -24,21 +24,26 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// }
 /// ```
 ///
-/// ## The elevation is not a shadow, because there are none
+/// ## The elevation is an edge, and no longer because it has to be
 ///
-/// §5 says "shadow tokens" and §10's CSS subset has no `box-shadow` — the whole
-/// supported property list is flex, box, colour, text, transform and transition,
-/// and nothing paints outside a box's own rectangle. `popover` hit this first and
-/// answered it the same way
+/// §5 says "shadow tokens". When this was built §10's CSS subset had no
+/// `box-shadow` and nothing painted outside a box's own rectangle, so `popover`
+/// hit the wall first and answered it the same way
 /// (ADR-0104):
 /// **elevation is an edge**, a brighter surface and a stronger border than the
 /// page it sits on.
 ///
-/// That is not a workaround so much as the honest version of the same idea. A
-/// shadow says "this is nearer" by faking a light source; a border and a lift in
-/// tone say it by contrast, and contrast is what a raster with no shadow pass can
-/// actually express. The tokens exist and it is the same pair `panel` and
-/// `popover` already use, one step apart.
+/// The property exists now — `box-shadow`, with `--gb-elevation-1/-2/-3` in both
+/// themes (ADR-0310) — and this card still does not use it, which is a decision
+/// rather than an omission: adding one is a change to every golden in the
+/// catalog that contains a card, and it belongs in its own change.
+///
+/// The edge is **not** going away when that happens, and it never was only a
+/// workaround. A shadow says "this is nearer" by faking a light source onto what
+/// is underneath; a border and a lift in tone say it by contrast. A card sitting
+/// on *another card* is sitting on its own colour, where the first says almost
+/// nothing and the second says it exactly. The tokens are the same pair `panel`
+/// and `popover` already use, one step apart.
 ///
 /// ## Everything else about it is `panel`'s
 ///

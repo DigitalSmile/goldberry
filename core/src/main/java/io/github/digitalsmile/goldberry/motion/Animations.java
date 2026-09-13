@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.css.value.Shadow;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 
 /// One node's running transitions — `docs/design-system.md` §1.7.
@@ -217,12 +219,14 @@ public final class Animations {
     /// Colours are carried as their `0xAARRGGBB` bits in a `Double`, which is
     /// exact — a double holds every 32-bit integer — so the four numeric
     /// properties share one representation. `transform` is the [Transform]
-    /// itself; see [Running] for why that is worth a boxed value.
+    /// itself and `box-shadow` the [Shadow] itself; see [Running] for why that
+    /// is worth a boxed value.
     private static Object valueOf(ComputedStyle style, Animatable property) {
         return switch (property) {
             case OPACITY -> style.opacity();
             case BACKGROUND_COLOR -> (double) style.background();
             case BORDER_COLOR -> (double) style.decoration().borderColor();
+            case BOX_SHADOW -> style.decoration().shadow();
             case COLOR -> (double) style.color();
             case TRANSFORM -> style.transform();
         };
@@ -233,6 +237,7 @@ public final class Animations {
             case OPACITY -> style.opacity((Double) value);
             case BACKGROUND_COLOR -> style.background(argb(value));
             case BORDER_COLOR -> style.decoration(style.decoration().borderColor(argb(value)));
+            case BOX_SHADOW -> style.decoration(style.decoration().shadow((Shadow) value));
             case COLOR -> style.color(argb(value));
             case TRANSFORM -> style.transform((Transform) value);
         };
@@ -263,8 +268,8 @@ public final class Animations {
     private static Object interpolate(Animatable property, Object from, Object to, double t) {
         return switch (property) {
             case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
-            case BACKGROUND_COLOR, BORDER_COLOR, COLOR ->
-                (double) io.github.digitalsmile.goldberry.css.value.CssColor.mix(argb(from), argb(to), t);
+            case BACKGROUND_COLOR, BORDER_COLOR, COLOR -> (double) CssColor.mix(argb(from), argb(to), t);
+            case BOX_SHADOW -> ((Shadow) from).mix((Shadow) to, t);
             case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
         };
     }

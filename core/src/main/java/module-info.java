@@ -207,6 +207,12 @@ module io.github.digitalsmile.goldberry.core {
     // things the value knows about itself -- and both are worth testing without
     // a frame.
     exports io.github.digitalsmile.goldberry.paint.geom;
+    // What turns one `box-shadow` into the run of rounded-rectangle fills a
+    // rasterizer with no blur can draw (ADR-0310): the band alphas, and the band
+    // shapes. Its own package for `paint.geom`'s reason -- both halves are
+    // arithmetic over values, neither needs a `Frame`, and both are wrong in
+    // ways only a unit test notices.
+    exports io.github.digitalsmile.goldberry.paint.shadow;
     exports io.github.digitalsmile.goldberry.paint.tree;
     exports io.github.digitalsmile.goldberry.paint;
 }

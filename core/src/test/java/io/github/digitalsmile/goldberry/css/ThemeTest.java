@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.css.value.Shadow;
 
 class ThemeTest {
 
@@ -37,6 +38,12 @@ class ThemeTest {
             "--gb-success",
             "--gb-info",
             "--gb-selection");
+
+    /// §1.5's three shadowed levels. Not in [#SEMANTIC_TOKENS] because those are
+    /// asserted to resolve to a *colour* and these are whole `box-shadow` values
+    /// — which is the point of them (ADR-0310).
+    private static final List<String> ELEVATION_TOKENS =
+            List.of("--gb-elevation-1", "--gb-elevation-2", "--gb-elevation-3");
 
     /// A theme is only ever seen through the cascade, so resolve it the way a
     /// widget would rather than reading the file.
@@ -176,6 +183,104 @@ class ThemeTest {
                     () -> "--gb-surface-2 is expected to be darker than --gb-surface on the light theme."
                             + " If the themes have been made to agree, reopen the question of whether"
                             + " --gb-surface-2 should keep existing rather than editing this test.");
+        }
+    }
+
+    /// §1.5's elevation, as three `box-shadow` tokens per theme (ADR-0310).
+    ///
+    /// The reason these are tokens at all is the reason `--gb-surface-2` cost
+    /// three widgets a bug: a shadow is black cast onto whatever is underneath,
+    /// and the same alpha reads completely differently over `#eceff4` and over
+    /// `#2e3440`. A widget choosing its own would be right on one theme.
+    @Nested
+    @DisplayName("elevation")
+    class Elevation2 {
+
+        /// A token as the cascade delivers it, read as the `box-shadow` it is.
+        private Shadow shadowOf(Theme theme, String token) {
+            return styleWith(theme, "button { box-shadow: var(" + token + ") }")
+                    .decoration()
+                    .shadow();
+        }
+
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("all three levels are defined, and each is a shadow the engine draws")
+        void everyLevelResolves(Theme theme) {
+            // Defined is not enough. A token that survives `var()` expansion and
+            // then fails `Shadow.parse` is a rule that silently does nothing,
+            // which is the failure mode `--gb-border-strong` had for months.
+            for (var token : ELEVATION_TOKENS) {
+                var shadow = shadowOf(theme, token);
+                assertTrue(shadow.hasInk(), () -> theme + "'s " + token + " did not resolve to a drawable shadow");
+                assertTrue(shadow.blur() > 0, () -> theme + "'s " + token + " has no blur");
+            }
+        }
+
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("the ladder only ever goes up")
+        void theLadderClimbs(Theme theme) {
+            var one = shadowOf(theme, "--gb-elevation-1");
+            var two = shadowOf(theme, "--gb-elevation-2");
+            var three = shadowOf(theme, "--gb-elevation-3");
+
+            assertTrue(two.blur() > one.blur(), () -> theme + ": level 2 is not softer than level 1");
+            assertTrue(three.blur() > two.blur(), () -> theme + ": level 3 is not softer than level 2");
+            assertTrue(two.offsetY() > one.offsetY(), () -> theme + ": level 2 is not further off the page");
+            assertTrue(three.offsetY() > two.offsetY(), () -> theme + ": level 3 is not further off the page");
+            assertTrue(alphaOf(two) > alphaOf(one), () -> theme + ": level 2 is not darker than level 1");
+            assertTrue(alphaOf(three) > alphaOf(two), () -> theme + ": level 3 is not darker than level 2");
+        }
+
+        /// The whole reason the alpha belongs to the theme and not to the widget.
+        ///
+        /// A shadow is black over whatever is underneath, so what it costs in
+        /// contrast depends entirely on how light that is. `rgba(0, 0, 0, .16)`
+        /// is a clear soft edge on nord-light's near-white page and very nearly
+        /// nothing on nord-0. If an application had to pick the number, it would
+        /// pick one — and be wrong on one theme.
+        @ParameterizedTest
+        @ValueSource(strings = {"--gb-elevation-1", "--gb-elevation-2", "--gb-elevation-3"})
+        @DisplayName("the dark theme casts a heavier shadow than the light one, at every level")
+        void darkIsHeavier(String token) {
+            assertTrue(
+                    alphaOf(shadowOf(Theme.NORD_DARK, token)) > alphaOf(shadowOf(Theme.NORD_LIGHT, token)),
+                    () -> token + " is no darker on nord-dark than on nord-light, which is the whole"
+                            + " reason it is a theme token rather than a number in a widget");
+        }
+
+        /// The other half of the same statement: an object 8px off the page
+        /// throws the same *shape* whatever colour the page is. Only the alpha is
+        /// a question about the theme, so only the alpha differs — which is also
+        /// what lets a `transition: box-shadow` between two levels look the same
+        /// on both themes.
+        @ParameterizedTest
+        @ValueSource(strings = {"--gb-elevation-1", "--gb-elevation-2", "--gb-elevation-3"})
+        @DisplayName("and the geometry is identical in the two files")
+        void geometryIsShared(String token) {
+            var light = shadowOf(Theme.NORD_LIGHT, token);
+            var dark = shadowOf(Theme.NORD_DARK, token);
+
+            assertEquals(light.offsetX(), dark.offsetX(), () -> token + "'s x offset");
+            assertEquals(light.offsetY(), dark.offsetY(), () -> token + "'s y offset");
+            assertEquals(light.blur(), dark.blur(), () -> token + "'s blur");
+            assertEquals(light.spread(), dark.spread(), () -> token + "'s spread");
+        }
+
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("every level is cast downwards, because light comes from above")
+        void castsDown(Theme theme) {
+            for (var token : ELEVATION_TOKENS) {
+                var shadow = shadowOf(theme, token);
+                assertEquals(0, shadow.offsetX(), () -> theme + "'s " + token + " is cast sideways");
+                assertTrue(shadow.offsetY() > 0, () -> theme + "'s " + token + " is cast upwards");
+            }
+        }
+
+        private double alphaOf(Shadow shadow) {
+            return (shadow.argb() >>> 24) / 255.0;
         }
     }
 

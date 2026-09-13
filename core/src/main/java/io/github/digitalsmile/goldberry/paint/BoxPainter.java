@@ -96,8 +96,13 @@ public final class BoxPainter {
         }
     }
 
-    /// Everything one box puts on the screen, in the order CSS paints it:
-    /// background, border, content, then the focus ring on top.
+    /// Everything one box puts on the screen, in the order CSS paints it: the
+    /// drop shadow, the background, the border, the content, then the focus ring
+    /// on top.
+    ///
+    /// The shadow is first because it is *cast* by the box: it is the one thing
+    /// drawn outside the border box that belongs **under** it, which is what
+    /// tells it apart from the ring (ADR-0310).
     ///
     /// The ring is last because it is drawn *outside* the border box and must
     /// survive whatever the box itself drew — and it is drawn per box rather than
@@ -152,6 +157,15 @@ public final class BoxPainter {
         var y = layout.top();
         var width = layout.width();
         var height = layout.height();
+        var opaque = (box.background() >>> 24) == 0xFF;
+
+        if (decoration.hasShadow()) {
+            // Told whether the background will cover its own rectangle, so the
+            // bands that would be hidden under an opaque box are never built --
+            // which is half of them for a shadow with any offset, on every
+            // shadowed surface the design system has.
+            ShadowPainter.paint(frame, path, decoration.shadow(), x, y, width, height, decoration.corners(), opaque);
+        }
 
         if ((box.background() >>> 24) != 0) {
             if (!decoration.corners().isSquare()) {

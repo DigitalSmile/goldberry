@@ -18,8 +18,9 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 /// ## Why this is asked and not logged
 ///
 /// §8's subset is deliberately small and an unsupported declaration is
-/// deliberately **not** an error: naming `box-shadow` before it exists must not
-/// stop a window opening. So the engine logs and carries on — which is right, and
+/// deliberately **not** an error: naming `backdrop-filter` before it exists must
+/// not stop a window opening. (That example was `box-shadow` until ADR-0310 built
+/// it.) So the engine logs and carries on — which is right, and
 /// is why `border-bottom`, `currentColor`, `margin` and `max-width` were each
 /// written into the toolkit's own sheets, silently discarded, and found by
 /// looking at a picture.

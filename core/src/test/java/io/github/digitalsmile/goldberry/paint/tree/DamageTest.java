@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Decoration;
+import io.github.digitalsmile.goldberry.css.value.Shadow;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -174,6 +176,68 @@ class DamageTest {
         } finally {
             larger.end();
         }
+    }
+
+    @Test
+    @DisplayName("a shadow is damaged where it is cast, which is not where the box is")
+    void shadowReachesOutsideTheBox() {
+        // A box's shadow is drawn outside its own rectangle, so a box whose
+        // shadow changed and whose rectangle did not still has to repaint the
+        // ground around it. Getting this wrong leaves the old shadow on screen:
+        // a stale smear that survives until something else happens to repaint
+        // over it, which is precisely the failure damage is easy to be quietly
+        // wrong about (ADR-0310).
+        //
+        // The second child sits at y=20..40 and casts `0 8px 24px`, which reaches
+        // 20px below its bottom edge -- to y=60, twenty pixels past anything the
+        // box itself draws.
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), shadowed(0x00000000));
+            render.damage(target.frame());
+
+            render.update(target.frame(), shadowed(0xFF000000));
+            var damage = render.damage(target.frame());
+
+            assertTrue(covers(damage, 25, 50), "the ground the shadow is cast on is not being repainted");
+            assertTrue(covers(damage, 25, 58), "nor is the far edge of it");
+        }
+    }
+
+    @Test
+    @DisplayName("and an unshadowed box claims no ground it does not draw on")
+    void noShadowClaimsNothing() {
+        // The other half: `Decoration.NONE` carries `Shadow.NONE`, and an
+        // ordinary box -- which is every box in an ordinary window -- must cost
+        // exactly its own rectangle. A symmetric outset taken from the shadow
+        // unconditionally would quietly widen every damage rectangle in the
+        // toolkit.
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), tree(0xFFFF0000, 20));
+            render.damage(target.frame());
+
+            render.update(target.frame(), tree(0xFF0000FF, 20));
+            var damage = render.damage(target.frame());
+
+            assertTrue(covers(damage, 25, 10), "the box that changed colour");
+            assertTrue(damage.stream().noneMatch(r -> r.y() + r.height() > 41), "damage spilled past the box");
+        }
+    }
+
+    /// [#tree] with a shadow under its second child, at `argb`.
+    ///
+    /// The colour is the variable so that the *geometry* never changes between
+    /// the two frames: what differs is a shadow appearing, and if the damage
+    /// followed the boxes rather than what they draw, nothing outside them would
+    /// be repainted.
+    private static Box shadowed(int argb) {
+        return Box.filled(0xFF000000)
+                .size(Length.points(200), Length.points(200))
+                .direction(FlexDirection.COLUMN)
+                .children(
+                        Box.filled(0xFFFF0000).size(Length.points(50), Length.points(20)),
+                        Box.filled(0xFF00FF00)
+                                .size(Length.points(50), Length.points(20))
+                                .decoration(Decoration.NONE.shadow(new Shadow(0, 8, 24, 0, argb))));
     }
 
     @Test

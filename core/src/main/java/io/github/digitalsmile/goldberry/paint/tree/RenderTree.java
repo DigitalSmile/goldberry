@@ -563,14 +563,22 @@ public final class RenderTree implements AutoCloseable {
         var matrix = root ? transform : compose(transform, box.transform(), left, top, layout.width(), layout.height());
 
         // Outward by the ring's offset and width, which is where `outline` is
-        // drawn and is the one part of a box that is deliberately outside it.
-        var out = box.decoration().hasOutline()
-                ? box.decoration().outlineOffset() + box.decoration().outlineWidth()
-                : 0;
-        var l = left - out;
-        var t = top - out;
-        var r = left + layout.width() + out;
-        var b = top + layout.height() + out;
+        // drawn, and by the shadow's reach, which is where `box-shadow` is --
+        // the two parts of a box that are deliberately outside it.
+        //
+        // The ring is symmetric and the shadow is not: `0 8px 32px` reaches 24px
+        // below the box and 8px above it, so taking one outset for all four
+        // sides would repaint a band nothing drew in on three of them and, worse,
+        // the day a shadow is offset further than it is blurred, *miss* one --
+        // which leaves a smear that survives until something else repaints over
+        // it (ADR-0310).
+        var decoration = box.decoration();
+        var ring = decoration.hasOutline() ? decoration.outlineOffset() + decoration.outlineWidth() : 0;
+        var shadow = decoration.shadow();
+        var l = left - Math.max(ring, shadow.outsetLeft());
+        var t = top - Math.max(ring, shadow.outsetTop());
+        var r = left + layout.width() + Math.max(ring, shadow.outsetRight());
+        var b = top + layout.height() + Math.max(ring, shadow.outsetBottom());
 
         // All four corners, because a rotation turns a rectangle into one that is
         // not axis-aligned and taking two corners would miss half of it.

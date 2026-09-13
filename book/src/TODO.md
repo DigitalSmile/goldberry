@@ -333,7 +333,9 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   ADR-0216**: `border-radius: 7px 7px 0 0` and `background: none` were two more
   rules doing nothing, with the property spelled right and the value refused.
   **An application's stylesheet is still on its own**, deliberately: naming
-  `box-shadow` before it exists must not stop a window opening. —
+  `backdrop-filter` before it exists must not stop a window opening. (That
+  sentence said `box-shadow` until ADR-0310 built it; `backdrop-filter` and
+  `letter-spacing` are what is left of §8's unimplemented list.) —
   [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
   [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
@@ -882,6 +884,32 @@ on, which in four cases is the same thing.
 
 ## Style, colour and motion
 
+- **An outer shadow is painted *under* the box, not cut out of it.** CSS knocks
+  the border box out of a `box-shadow` so a translucent background does not have
+  its own shadow showing through from underneath. The toolkit paints the whole
+  shape and relies on the box being drawn on top — and cannot do better today,
+  because cutting the hole needs a path clip or a fill rule and the Blend2D
+  binding exports neither. The obvious trick is worse than the problem: a
+  reversed sub-path under the default non-zero winding *fills* the parts of
+  itself the outer shape does not cover, so the inner half of a blur would paint
+  a dark ring where it was supposed to erase one. **It is invisible under an
+  opaque background**, which is every shadowed surface the design system has, and
+  shows under a box mid-`opacity` transition, which fades its shadow by the same
+  factor and so darkens itself slightly. What it would take: `BLContextSetFillRule`
+  or a path-clip call on the export list, and then one reversed sub-path per
+  band. `ShadowPaintTest.throughATranslucentBox` pins the current behaviour, so
+  the day that lands there is a test that says the deviation is gone. —
+  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+- **Nothing in the catalog wears an elevation yet.** `--gb-elevation-1/-2/-3`
+  ship in both themes and `box-shadow` draws, and `controls.css` reads neither.
+  Putting a shadow under `card`, `menu`, `popover` and `dialog` is what §1.5's
+  ladder is *for*, and it is a visual change to the whole catalog — every golden
+  that contains one of those four moves — so it belongs in its own change with
+  its own pictures rather than riding along with the property. The edge stays
+  either way: ADR-0166's `--gb-border-strong` is what tells a card apart when it
+  sits on another card, where a shadow cast onto the same colour says nothing. —
+  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md),
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 - **A dropped declaration is reported once, and `align-items: start` is why.** The
   Panels screen filled the console while it scrolled: `start` is CSS's alias for
   `flex-start` and Yoga has only the second, so the declaration was dropped —
@@ -1611,8 +1639,10 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**A slider's value label is left-aligned in its box, because §8's subset has
   no `text-align`.**~~ **It is `text-align: end` now, and nothing had to be added
   to `Box`.** The entry's reason was quoting §8's own note — "`Box` cannot express
-  them" — and that note was right about `box-shadow`, `backdrop-filter` and
-  `letter-spacing` and wrong about this one. `Paragraph.paint` is already handed
+  them" — and that note was right about `backdrop-filter` and `letter-spacing`,
+  wrong about this one, and has since been overtaken on `box-shadow` too
+  ([ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md): a `Decoration`
+  component and a stack of rounded rectangles, no `Box` field required). `Paragraph.paint` is already handed
   the box's width, because it has to be or the text could not wrap to it, and
   every `TextLine` has already measured itself: the two numbers an alignment
   needs were in the same method the whole time, and what was missing was a

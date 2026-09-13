@@ -56,8 +56,12 @@ Global **text-scale token 90–150%**; every component must survive 150% without
 
 **Elevation:** three levels only —
 - `0` flat: inline content.
-- `1` raised: menus, cards, popovers — raised surface or frost, shadow `0 2px 8px rgba(0,0,0,.25)`.
-- `2` overlay: dialogs — shadow `0 8px 32px rgba(0,0,0,.35)` + veil scrim.
+- `1` raised: menus, cards, popovers — raised surface or frost, shadow `0 2px 8px`.
+- `2` overlay: dialogs — shadow `0 8px 32px` + veil scrim.
+
+**The shadows are theme tokens, and a rule never writes the numbers.** `box-shadow` is built ([ADR-0310](../book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md)) and each theme ships `--gb-elevation-1`, `--gb-elevation-2` and `--gb-elevation-3` as whole shadow values: a rule says `box-shadow: var(--gb-elevation-2)` and chooses nothing. The **geometry** above is the same in both themes — an object 8px off the page throws the same shape whatever colour the page is. The **alpha** is not, and that is the reason these are tokens at all: black at 16% is a clear soft edge on nord-light's `#eceff4` and very nearly nothing on nord-0, so the dark theme runs roughly two and a half times heavier. The single `rgba(0,0,0,.25)` / `.35` this line used to pin was one theme's answer written as if it were both. `--gb-elevation-3` is a level above the two here, for something the pointer is dragging.
+
+The blur is drawn as a stack of nested rounded-rectangle fills rather than a real Gaussian: the rasterizer has no blur, and a one-pixel band is a gradient. The shadow is painted **under** the box rather than knocked out of it, which differs from CSS only where a background is translucent — see the ADR.
 
 **Materials — three, only three:**
 

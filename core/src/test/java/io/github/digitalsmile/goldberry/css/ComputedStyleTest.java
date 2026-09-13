@@ -412,8 +412,11 @@ class ComputedStyleTest {
         @DisplayName("an unknown property is ignored rather than fatal")
         void unknownProperty() {
             // §8's property list is longer than this record; a stylesheet naming
-            // box-shadow early must not stop a window opening.
-            var style = compute("button { box-shadow: 0 1px 2px black; color: red }");
+            // a property the engine has not grown yet must not stop a window
+            // opening. This was `box-shadow` for two hundred ADRs and is
+            // `backdrop-filter` now (ADR-0310) -- what is left of that list is
+            // that and `letter-spacing`.
+            var style = compute("button { backdrop-filter: blur(24px); color: red }");
             assertEquals(0xFFFF0000, style.color());
         }
 

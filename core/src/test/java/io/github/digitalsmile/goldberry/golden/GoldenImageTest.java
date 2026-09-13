@@ -160,6 +160,41 @@ class GoldenImageTest {
                 "nested-column", 200, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
+    /// A card on a page, elevated by the theme's own token — the picture the two
+    /// ADRs that turned `box-shadow` down were arguing about (ADR-0310).
+    ///
+    /// One golden per theme, because the alpha is the half of an elevation token
+    /// that belongs to the theme: the geometry is identical in the two files and
+    /// the weight is not, and a single image could not say that.
+    private Box elevatedTree(Theme theme) {
+        var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
+                root { background: var(--gb-bg); padding: 16px; gap: 12px }
+                card {
+                  background: var(--gb-surface-raised);
+                  border-radius: 8px;
+                  flex-grow: 1;
+                  box-shadow: var(--gb-elevation-1);
+                }
+                card.overlay { box-shadow: var(--gb-elevation-2) }
+                """);
+        var tree = new Node("root").with(new Node("card"), new Node("card", "overlay"));
+        return build(tree, List.of(base, theme.load()));
+    }
+
+    @Test
+    @DisplayName("two elevations on nord-light, cast by the theme's own tokens")
+    void elevationLight() {
+        GoldenImage.assertMatches(
+                "elevation-light", 220, 90, 1.0f, frame -> BoxPainter.paint(frame, elevatedTree(Theme.NORD_LIGHT)));
+    }
+
+    @Test
+    @DisplayName("the same two on nord-dark, which needs a much heavier shadow to read at all")
+    void elevationDark() {
+        GoldenImage.assertMatches(
+                "elevation-dark", 220, 90, 1.0f, frame -> BoxPainter.paint(frame, elevatedTree(Theme.NORD_DARK)));
+    }
+
     @Test
     @DisplayName("the same tree under nord-light and nord-dark")
     void nordLight() {

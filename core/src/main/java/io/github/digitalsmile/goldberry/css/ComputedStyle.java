@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.css.value.Shadow;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.Align;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
@@ -522,6 +523,22 @@ public record ComputedStyle(
                         .map(v -> decoration(decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
                         .orElseGet(() -> dropped(property, value));
 
+            // §8 listed it from the beginning and two ADRs turned it down: a
+            // card's elevation became an edge (ADR-0166) because `Box` had no
+            // field for a shadow and nothing in the toolkit painted outside a
+            // box's own rectangle. Both of those stopped being true -- the ring
+            // paints outside the rectangle and the damage rectangle already grows
+            // for it -- so the reason left was the drawing, and a rasterizer
+            // with no blur can still draw a fade out of the one primitive it is
+            // fastest at (ADR-0310). `--gb-elevation-1/-2/-3` are what a rule
+            // should name; the numbers in them are the theme's, because the same
+            // alpha that reads as a shadow on nord-light is invisible on
+            // nord-dark.
+            case "box-shadow" -> {
+                var parsed = Shadow.parse(value, context);
+                yield parsed == null ? dropped(property, value) : decoration(decoration.shadow(parsed));
+            }
+
             // --- the typography half (docs/design-system.md §1.4) ------------
             //
             // Inherited, which is what makes `panel { font-size: 13px }` reach
@@ -586,9 +603,12 @@ public record ComputedStyle(
             case "cursor" -> keyword(value, Cursor.class).map(this::cursor).orElseGet(() -> dropped(property, value));
 
             // Not an error. §8's property list is longer than this record, and a
-            // stylesheet naming `box-shadow` before it is implemented should not
-            // stop a window opening -- but it is logged, because "my shadow does
-            // nothing" needs an answer.
+            // stylesheet naming a property before it is implemented should not
+            // stop a window opening -- but it is logged, because "my
+            // `backdrop-filter` does nothing" needs an answer. `box-shadow` was
+            // this comment's example for two hundred ADRs and is a case above
+            // now (ADR-0310); `backdrop-filter` and `letter-spacing` are what is
+            // left of §8's list.
             default -> {
                 LOG.debug("ignoring unsupported property \"{}\"", property);
                 yield this;

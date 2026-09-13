@@ -72,6 +72,31 @@
      can see. */
   --gb-border-strong: rgba(255, 255, 255, 0.20);
 
+  /* §1.5's elevation, as three whole `box-shadow` values (ADR-0310).
+
+     **The token is the whole shadow and not its colour.** A rule writes
+     `box-shadow: var(--gb-elevation-2)` and chooses nothing — not the offset,
+     not the blur, and above all not the alpha. That last one is the reason
+     these exist: a shadow is black cast onto whatever is underneath, and the
+     same alpha that reads as a soft lift on nord-light's `#eceff4` is very
+     nearly invisible on nord-0. A widget picking its own `rgba(0, 0, 0, .25)`
+     would be right on one theme and wrong on the other, which is exactly the
+     mistake `--gb-surface-2` cost three widgets (ADR-0245).
+
+     The **geometry** is the same in both files on purpose — an object 8px off
+     the page throws the same shape whatever colour the page is — and §1.5's
+     numbers are what it is: `0 2px 8px` raised, `0 8px 32px` overlay. Only the
+     alpha differs, and here it is roughly two and a half times the light
+     theme's.
+
+     Three, where §1.5's ladder names two shadowed levels: `-1` is its "raised"
+     (menus, cards, popovers), `-2` its "overlay" (dialogs, over the veil), and
+     `-3` is above both — a thing the pointer is dragging, which has left the
+     surface entirely and wants to look like it. */
+  --gb-elevation-1: 0 2px 8px rgba(0, 0, 0, 0.44);
+  --gb-elevation-2: 0 8px 32px rgba(0, 0, 0, 0.56);
+  --gb-elevation-3: 0 16px 48px rgba(0, 0, 0, 0.68);
+
 
   /* The surface of something **raised** — `card`, and whatever else is above the
      page (ADR-0166).

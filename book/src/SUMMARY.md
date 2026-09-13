@@ -319,6 +319,7 @@
 - [ADR-0307 The eleventh screen has no digit](adr/0307-the-eleventh-screen-has-no-digit.md)
 - [ADR-0308 A tooltip follows the focus ring](adr/0308-a-tooltip-follows-the-focus-ring.md)
 - [ADR-0309 A sheet of icons reflows, and pays for it](adr/0309-a-sheet-of-icons-reflows-and-pays-for-it.md)
+- [ADR-0310 A shadow is a stack of rectangles](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
 
 ---
 

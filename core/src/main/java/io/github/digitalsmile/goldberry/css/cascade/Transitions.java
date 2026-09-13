@@ -42,13 +42,20 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
     /// The properties a transition may name.
     ///
-    /// Five, and the fifth arrived last: `transform` was named here as absent for
-    /// as long as `Box` carried no matrix and hit testing could not invert one.
-    /// Both now exist, and the reason it was worth waiting for is that a
-    /// transform the painter applies and hit testing does not would produce a
-    /// control that looks right and does not respond where it looks like it
-    /// should — a failure with no error and no wrong pixel
+    /// Six. The fifth was `transform`, named here as absent for as long as `Box`
+    /// carried no matrix and hit testing could not invert one. Both now exist,
+    /// and the reason it was worth waiting for is that a transform the painter
+    /// applies and hit testing does not would produce a control that looks right
+    /// and does not respond where it looks like it should — a failure with no
+    /// error and no wrong pixel
     /// (ADR-0068).
+    ///
+    /// The sixth arrived with the shadow itself: `box-shadow` is the property
+    /// §1.7 names for `affix`'s detach — "opacity on the elevation shadow" — and
+    /// the one a `card.interactive` needs to lift under the pointer. It is here
+    /// rather than deferred because a `transition` naming a property the engine
+    /// resolves but cannot animate is exactly the silent-nothing this enum's own
+    /// class note refuses (ADR-0310).
     public enum Animatable {
 
         /// Fades. The one every control uses for `:disabled`.
@@ -59,6 +66,12 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
         /// The border, so a checkbox's glyph outline can follow its hover.
         BORDER_COLOR("border-color"),
+
+        /// The drop shadow — §1.5's elevation, moving. Every component of it
+        /// interpolates, so a card lifting from `--gb-elevation-1` to `-2` grows
+        /// its blur and its offset as well as its alpha, which is what an object
+        /// rising off a page actually does.
+        BOX_SHADOW("box-shadow"),
 
         /// The foreground: text, icons, and a checkbox's mark.
         COLOR("color"),
