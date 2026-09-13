@@ -1694,6 +1694,27 @@ second.
   the click on the thing it describes, taking the next tooltip's timer with it. It
   also cannot end up under the pointer, by construction: it is placed outside the
   anchor's rectangle and the pointer is inside it, above or flipped below.
+- **And it closes when the pointer leaves a button that was clicked**, which is
+  the same sentence's other half and was a separate defect
+  ([ADR-0308](adr/0308-a-tooltip-follows-the-focus-ring.md)). §7 shows a tooltip
+  "on hover **and on keyboard focus**", and the fallback asked only whether
+  anything was focused — but a *click* focuses things, so after one the target was
+  still the button, `pointingChanged` found it unchanged and returned early, and
+  the tooltip sat there until something else took the focus. The fallback now asks
+  `PointerRouter.focusedFromKeyboard()`, which is the distinction the router
+  already kept for `:focus-visible` (ADR-0054): **a tooltip follows the focus
+  ring**. The first draft of the regression test passed against the unfixed
+  launcher, because its target was not focusable and the click therefore focused
+  nothing — which is the whole mechanism, missed by the test written to catch it.
+- **And it closes when its anchor goes away**, which it did not for a long time.
+  `Launcher.pointingChanged` is the only caller of `hideTooltip`, and the only thing
+  that reaches it is the router noticing the hovered node *moved* — so a click that
+  rebuilt the tree unmounted the anchor and told nobody, and the tooltip hung over
+  replaced content until the user moved the mouse. The router now enforces for
+  `hovered` the rule ADR-0180 already enforced for `focused` — it never holds an
+  element that is not in the tree — and re-resolves what the pointer is over against
+  the frame just painted
+  ([ADR-0303](adr/0303-the-router-lets-go-of-what-the-pointer-was-over.md)).
 
 ### `menu`, `item` and `separator`
 

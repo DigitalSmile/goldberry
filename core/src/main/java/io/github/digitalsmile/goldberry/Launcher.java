@@ -762,13 +762,33 @@ final class Launcher implements Host {
     }
 
     /// The node whose tooltip should show: what the pointer is on, or — when the
-    /// pointer is on nothing — what the keyboard is on.
+    /// pointer is on nothing — what the **keyboard** is on.
     ///
     /// The pointer wins because it is the more recent statement of intent: a
     /// keyboard user who reaches for the mouse is looking at where the mouse is.
+    ///
+    /// ## Keyboard focus, and not merely focus
+    ///
+    /// §7 says a tooltip shows "on hover *and on keyboard focus*", and the second
+    /// half of that has to mean what it says. **Clicking a button focuses it** —
+    /// so a fallback that asked only [io.github.digitalsmile.goldberry.input.PointerRouter#focused()]
+    /// kept the tooltip alive after the pointer left the thing that had just been
+    /// clicked: `hovered` went null, focus was still the button, the target had
+    /// not changed, and `pointingChanged` returned early without hiding anything.
+    /// The tooltip then sat there until something else took the focus
+    /// ([ADR-0308]).
+    ///
+    /// `focusedFromKeyboard()` is the distinction the router already keeps for
+    /// `:focus-visible` ([ADR-0054]), and it is the same distinction for the same
+    /// reason: focus that arrived by pointer is a side effect of the click, not a
+    /// statement about where the user is working. **A tooltip follows the focus
+    /// ring**, which is one sentence and is also exactly what the code now does.
     private io.github.digitalsmile.goldberry.widget.Element tooltipTarget() {
         var hovered = withTooltip(router.hovered());
-        return hovered != null ? hovered : withTooltip(router.focused());
+        if (hovered != null) {
+            return hovered;
+        }
+        return router.focusedFromKeyboard() ? withTooltip(router.focused()) : null;
     }
 
     /// `element`, or the nearest ancestor of it that has a tooltip.

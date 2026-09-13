@@ -312,6 +312,8 @@
 - [ADR-0300 A document is read, and the application answers](adr/0300-a-document-is-read-and-the-application-answers.md)
 - [ADR-0301 A selection is geometry the frame already had](adr/0301-a-selection-is-geometry-the-frame-already-had.md)
 - [ADR-0302 A subpath is anchored where it was written](adr/0302-a-subpath-is-anchored-where-it-was-written.md)
+- [ADR-0303 The router lets go of what the pointer was over](adr/0303-the-router-lets-go-of-what-the-pointer-was-over.md)
+- [ADR-0308 A tooltip follows the focus ring](adr/0308-a-tooltip-follows-the-focus-ring.md)
 
 ---
 

@@ -149,6 +149,7 @@ public final class PointerRouter {
         // per mouse move ([ADR-0232]).
         modal = deepestModal(focusRoot);
         refocus();
+        rehover();
         notifyMeasured();
         notifyLocated();
         // The shape follows the frame and not only the pointer ([ADR-0237]). A
@@ -194,6 +195,54 @@ public final class PointerRouter {
         for (var element : chain(pressed)) {
             mark(element, PseudoClass.ACTIVE, true);
         }
+    }
+
+    /// Lets go of a hovered element that has left the tree, and finds what the
+    /// pointer is over now.
+    ///
+    /// [#refocus]'s twin, for the same reason and by the same rule: **the router
+    /// never holds an element that is not in the tree.** The keyboard half was
+    /// fixed when a closing dialog left the router holding a dead element; the
+    /// pointer half had exactly the same hole and a different symptom.
+    ///
+    /// ## The symptom, which is a tooltip that will not go away
+    ///
+    /// [#updateHover] is the only thing that clears `hovered` or tells
+    /// [#onPointingChanged] anything, and it runs on pointer **motion**. So a
+    /// click that rebuilds the tree — a tab that switches, a row that deletes
+    /// itself, a dialog that opens — unmounts the element under the pointer and
+    /// nothing says so. The launcher's tooltip stayed open, anchored to a
+    /// rectangle nothing paints any more, until the user moved the mouse
+    /// ([ADR-0303]).
+    ///
+    /// [#restate] is not the place for it and says so in its own words: it
+    /// re-asserts what the pointer is over and deliberately emits no `ENTERED` or
+    /// `EXITED`, "the pointer has not moved and the element under it is the one
+    /// that was there". That sentence is exactly the case this handles and its
+    /// negation — the element under the pointer is **gone**, so something did
+    /// enter and exit, and a listener that is told nothing is a listener that is
+    /// wrong.
+    ///
+    /// ## Only when the element is gone, and not every frame
+    ///
+    /// The wider rule — re-hit-test every frame, so hover follows content that
+    /// scrolls under a still pointer — is a different decision with its own
+    /// costs, and this is not it. The check is `isMounted` on one field, which is
+    /// a field read on the frame path, and the re-hit-test happens only in the
+    /// frame where something really was unmounted.
+    ///
+    /// The new element is resolved against the regions of the frame **just
+    /// painted**, which is why this runs from [#updateRegions] after they are
+    /// replaced: the answer has to come from the tree the user is looking at.
+    private void rehover() {
+        if (hovered == null || hovered.isMounted()) {
+            return;
+        }
+        // NaN is "the pointer is not in this window", and there is nothing under
+        // a pointer that is not here -- so the hover is dropped rather than
+        // hit-tested against a position that means nothing.
+        var under = Float.isNaN(pointerX) ? null : elementAt(pointerX, pointerY);
+        updateHover(under, pointerX, pointerY);
     }
 
     /// Puts the keyboard back when whatever had it has left the tree.
@@ -450,6 +499,26 @@ public final class PointerRouter {
 
     public @Nullable Element focused() {
         return focused;
+    }
+
+    /// Whether the **keyboard** put the focus where it is.
+    ///
+    /// The same fact `:focus-visible` is mirrored from, and the distinction
+    /// [ADR-0054] exists to keep: a control clicked with a mouse is focused and
+    /// draws no ring, because focus that arrived by pointer is a side effect of
+    /// the click rather than a statement about where the user is working.
+    ///
+    /// Exposed because the ring is not the only thing that has to know. §7 shows a
+    /// tooltip "on hover **and on keyboard focus**", and a launcher reading
+    /// [#focused()] alone cannot tell the two apart — which is how a tooltip
+    /// survived the pointer leaving the button that had just been clicked
+    /// ([ADR-0308]).
+    ///
+    /// False whenever nothing is focused, which is the reading that needs no
+    /// null check at the call site: "the keyboard is on this" is false when the
+    /// keyboard is on nothing.
+    public boolean focusedFromKeyboard() {
+        return focused != null && focusFromKeyboard;
     }
 
     /// The shape the pointer is currently showing.

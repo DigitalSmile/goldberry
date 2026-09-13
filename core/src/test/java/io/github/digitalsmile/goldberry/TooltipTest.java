@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Timeout;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
@@ -39,6 +40,49 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// router knows what is hovered, the loop owns the delay, and the launcher owns
 /// the window ([ADR-0105]).
 class TooltipTest {
+
+    /// The same, but in the Tab order — for the keyboard half of §7.
+    ///
+    /// A second type rather than a flag on [Target], because `Target` is what
+    /// every other test here hovers and making it focusable would put a focus
+    /// ring in nine assertions that are about something else.
+    private record Focusable(Attributes attributes)
+            implements Widget.Leaf,
+                    Styled,
+                    Paints,
+                    Attributed<Focusable>,
+                    io.github.digitalsmile.goldberry.input.handler.Handles {
+
+        @Override
+        public String cssType() {
+            return "target";
+        }
+
+        @Override
+        public String id() {
+            return attributes.id();
+        }
+
+        @Override
+        public Set<String> classes() {
+            return attributes.classes();
+        }
+
+        @Override
+        public boolean isFocusable() {
+            return true;
+        }
+
+        @Override
+        public Focusable withAttributes(Attributes value) {
+            return new Focusable(value);
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).grow(1);
+        }
+    }
 
     /// A node that fills its window and carries a tooltip.
     private record Target(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Target> {
@@ -239,6 +283,77 @@ class TooltipTest {
                 }))));
 
         assertFalse(appeared[0]);
+    }
+
+    /// **The bug this file was missing**: click the thing, move the pointer off
+    /// it, and the tooltip stays ([ADR-0308]).
+    ///
+    /// A click **focuses** the control. `tooltipTarget` fell back to
+    /// `router.focused()` whenever nothing was hovered, so when the pointer left
+    /// the answer was still the button — the target had not changed,
+    /// `pointingChanged` returned early, and nothing ever hid the popup. It then
+    /// sat over the window until something else took the focus.
+    ///
+    /// The pointer leaves by `PointerExited` rather than by moving elsewhere,
+    /// because that is the shape the report had and the one where the fallback
+    /// bites: there is nothing else under the pointer to take the hover.
+    @Test
+    @Timeout(20)
+    @DisplayName("clicking a widget and moving the pointer off it closes the tooltip")
+    void aClickDoesNotPinTheTooltip() {
+        var upAfterTheClick = new boolean[1];
+        var stillUpAfterLeaving = new boolean[1];
+        Goldberry.launch(new TestApp(
+                // **Focusable**, which is the whole point: a click on something
+                // that cannot take the focus never reaches the fallback, and the
+                // first draft of this test used `Target` and passed against the
+                // unfixed launcher.
+                new Focusable(Attributes.NONE.tooltip("Save the document")).id("target"),
+                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                    upAfterTheClick[0] = tooltipWindow().isPresent();
+                    // Press and release where the pointer already is, which is
+                    // what focuses the target.
+                    backend.post(new BackendEvent.PointerPressed(ownerWindow(), 50, 50, 1, 1, 0));
+                    backend.post(new BackendEvent.PointerReleased(ownerWindow(), 50, 50, 1, 1, 0));
+                    later(150, () -> {
+                        backend.post(new BackendEvent.PointerExited(ownerWindow()));
+                        // Comfortably past `SPURIOUS_EXIT_NANOS`, so this exit is
+                        // the user's rather than the one opening a popup provokes.
+                        later(500, () -> {
+                            stillUpAfterLeaving[0] = tooltipWindow().isPresent();
+                            Goldberry.stop();
+                        });
+                    });
+                }))));
+
+        assertTrue(upAfterTheClick[0], "the tooltip never opened, so the rest of this proves nothing");
+        assertFalse(
+                stillUpAfterLeaving[0],
+                "the pointer left and the tooltip stayed: §7's keyboard-focus"
+                        + " fallback caught a focus the mouse had put there");
+    }
+
+    /// And the half that must **not** regress: §7 asks for a tooltip on keyboard
+    /// focus, and the fix above is one `focusedFromKeyboard()` away from removing
+    /// it entirely.
+    ///
+    /// Tab moves the focus, nothing is hovered, and the tooltip opens anyway.
+    @Test
+    @Timeout(20)
+    @DisplayName("but tabbing to it still opens one, with no pointer involved")
+    void keyboardFocusStillShowsIt() {
+        var shown = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Focusable(Attributes.NONE.tooltip("Save the document")).id("target"),
+                host -> later(150, () -> {
+                    backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.TAB.sdlKeycode(), 0, false));
+                    later(900, () -> {
+                        shown[0] = tooltipWindow().isPresent();
+                        Goldberry.stop();
+                    });
+                })));
+
+        assertTrue(shown[0], "a keyboard user gets the same tooltips a pointer user does (§7)");
     }
 
     /// Runs `action` on the UI thread after `millis`.
