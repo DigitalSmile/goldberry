@@ -6746,6 +6746,64 @@ is the `scroll` box's.
   `card`, a `menu`, a `popover` or a `dialog` and belongs in its own. Both are in
   [TODO.md](TODO.md).
 
+### `margin`, and two defects older than it
+
+- **`margin` resolves and lays out**
+  ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)).
+  The shorthand and its four longhands, over the same `Insets` that `padding` and
+  `inset` use, applied per edge in `RenderObject.apply`. It is the third of the
+  four properties a widget reached for and did not find — `border-bottom`,
+  `currentColor`, `margin`, `max-width` — and the one whose binding had been in
+  place the whole time: Yoga has had `YGNodeStyleSetMargin` since ADR-0029.
+- **`TODO.md` had closed the case on the wrong evidence.** `tab-new` wanted a
+  margin to sit somewhere other than the top of its row, `align-self` answered
+  that (ADR-0244), and the entry recorded "no live consumer". But `align-self` is
+  the **cross** axis: on the main axis a box that wants to centre itself, or sit
+  at the far end of a row its container is not arranging for it, had no spelling
+  at all. `justify-content` is the container's decision about every child at once,
+  and a `flex-grow: 1` spacer is a box in the tree that draws nothing.
+- **So `auto` is the half that mattered.** `Length.AUTO` on an edge reaches Yoga's
+  own `YGNodeStyleSetMarginAuto` and absorbs the free space on that side —
+  `margin: 0 auto` centres, `margin-left: auto` pushes one box to the end of a
+  toolbar with no spacer between.
+- **Negative margins are allowed and not clamped**, unlike a radius or a border
+  width: those are clamped because a negative one is arithmetic that went wrong,
+  and a negative margin is a technique. **No collapsing**, because CSS collapses
+  adjacent vertical margins in *block* layout and never in flex — asserted rather
+  than assumed, since it is the first thing an author who learnt CSS on documents
+  expects to be wrong.
+- **A box with no margin costs one comparison**, not four foreign calls: a first
+  apply that sees `Insets.ZERO` is skipped wholesale, which is ADR-0181's
+  arrangement for `limits` and worth more here, because Yoga's default margin is
+  zero and nothing in the catalog wears one.
+
+Two defects turned up on the way, neither about `margin` and both reachable
+before it.
+
+- **`padding: auto` closed the window.** Yoga's setters come in pairs and four of
+  them have no `auto` half — there is no `YGNodeStyleSetPaddingAuto`. `Yoga` binds
+  those without it and refuses an `auto` **by name**, which is right for a binding
+  and made `padding: auto` in a stylesheet an exception thrown in the middle of a
+  layout pass. `CssLength` reads `auto` for any length, so it was reachable from
+  ten properties, `min-width: auto` among them — valid CSS, and what that property
+  computes to on a flex item in a browser. `ComputedStyle` has a `fixed()` beside
+  its `length()` now and those ten go through it; `width`, `height` and `margin`
+  do not, because Yoga binds all three with their auto call.
+- **The cascade returned its winners in hash order.** Nothing between
+  `StyleResolver.resolve` and `ComputedStyle.apply` re-orders, so the order
+  properties come out in *is* the order they are applied in — and a `padding`
+  applied after a `padding-left` overwrites the edge the longhand set. `cascade()`
+  used a `HashMap`, so which way round a pair came out was whichever way their
+  names' buckets fell: `padding`/`padding-left` fell the right way and
+  `inset`/`left` fell the wrong one, so **`inset: 8px; left: 20px` resolved to 8px
+  on all four edges**. It is a `LinkedHashMap` filled from the already-sorted
+  match list now, with a `remove` before each `put`, because `LinkedHashMap` keeps
+  a re-put key at its *first* position and the position that matters is the
+  winning declaration's.
+- **It took a new property to find it.** `margin` is the first property added to
+  this engine with four longhands over a value a shorthand also sets, and
+  `margin: 8px; margin-left: 20px` is the test that failed.
+
 ### Not started
 
 **Client-side decorations**, and — since `breadcrumbs` opened the `nav` package

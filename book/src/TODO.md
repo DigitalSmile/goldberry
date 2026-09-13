@@ -314,15 +314,24 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   draws the list it is given. —
   [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
-- **`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
-  and `currentColor`. Three properties a widget reached for and did not find, all
-  silently ignored — the subset is right to be small. **And `tab-new` no longer
-  wants it**: what it was reaching for was a way to sit somewhere other than the
-  top of its row, which `align-self` answers
-  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)). So `margin` has *no*
-  live consumer — Yoga's binding for it has been there since ADR-0029, and the
-  subset's own rule is what keeps it out rather than any difficulty. This entry
-  is now a record of that rule working. ~~and nothing warns when a
+- ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
+  and `currentColor`.~~ **It is now**
+  ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
+  and this entry closed the case on the wrong evidence. It was right that
+  `tab-new` stopped wanting one — what that widget reached for was a way to sit
+  somewhere other than the top of its row, which `align-self` answers
+  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — and wrong to conclude
+  from it that the property had no consumer, because `align-self` is the **cross**
+  axis. On the main axis a box that wants to centre itself, or to sit at the far
+  end of a row its container is not arranging for it, had no spelling at all:
+  `justify-content` is the container's decision about every child at once, and a
+  `flex-grow: 1` spacer is a box in the tree that draws nothing. `margin: 0 auto`
+  and `margin-left: auto` are what those are, and Yoga's binding has had the
+  `auto` call since ADR-0029.
+
+  The entry's other half stands and is worth keeping: three properties a widget
+  reached for and did not find, all silently ignored, and the subset is right to
+  be small. ~~and nothing warns when a
   declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
   `border-bottom` was written a fourth time, in `table-head`, and drew nothing
   ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
@@ -910,6 +919,15 @@ on, which in four cases is the same thing.
   sits on another card, where a shadow cast onto the same colour says nothing. —
   [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md),
   [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+- **Nothing in the catalog uses a margin yet.** The property resolves and lays
+  out ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md))
+  and `controls.css` reads it nowhere. Several places in the catalog space
+  themselves with a `flex-grow: 1` spacer box — a box in the tree that draws
+  nothing and exists to be measured — and `margin-left: auto` is the declaration
+  that replaces one. Rewriting them changes the layout of real widgets, so it
+  wants its own change and its own goldens rather than riding along with the
+  property. The same call [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+  made about elevation.
 - **A dropped declaration is reported once, and `align-items: start` is why.** The
   Panels screen filled the console while it scrolled: `start` is CSS's alias for
   `flex-start` and Yoga has only the second, so the declaration was dropped —

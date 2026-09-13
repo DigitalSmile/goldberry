@@ -196,6 +196,33 @@ class GoldenImageTest {
     }
 
     @Test
+    @DisplayName("margin moves boxes, and `auto` centres one")
+    void margins() {
+        // Three rows over one page, each saying one thing a picture can check.
+        // The top row's cells are pushed apart by their own margins; the middle
+        // one holds a single cell with `margin: 0 auto`, which is the case
+        // nothing in the subset could express before; the bottom one pushes one
+        // cell to the far edge with `margin-left: auto` and no spacer box
+        // (ADR-0311).
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; flex-direction: column; padding: 8px; gap: 8px }
+                row { flex-direction: row; height: 24px; background: #d8dee9 }
+                cell { background: #5e81ac; width: 40px }
+                row.spaced cell { margin: 4px 6px }
+                row.centred cell { margin: 0 auto }
+                row.pushed cell.end { margin-left: auto }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("row", "spaced").with(new Node("cell"), new Node("cell")),
+                        new Node("row", "centred").with(new Node("cell")),
+                        new Node("row", "pushed").with(new Node("cell"), new Node("cell", "end")));
+
+        GoldenImage.assertMatches(
+                "margins", 220, 104, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
     @DisplayName("the same tree under nord-light and nord-dark")
     void nordLight() {
         GoldenImage.assertMatches(

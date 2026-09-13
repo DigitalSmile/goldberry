@@ -91,6 +91,19 @@ public record ComputedStyle(
         // a fixed one, so `dialog`, `toast` and `tooltip` each wrote a *width*
         // where they meant a maximum and lived with it (ADR-0181).
         Limits limits,
+        // §8 listed it from the start and it was one of four properties written
+        // into the toolkit's own sheets, silently discarded, and found by
+        // looking at a picture (ADR-0215). Everything it needed was already
+        // bound: Yoga has had `YGNodeStyleSetMargin` since the first day and
+        // `Yoga` binds it **with** its `auto` function, which `padding` and
+        // `inset` are bound without (ADR-0311).
+        //
+        // Separate from `padding` and not a second use of it, because the two
+        // answer opposite questions — padding is room *inside* a box for its
+        // own content, margin is room *outside* it that its container has to
+        // give up. A widget that wanted the second and reached for the first
+        // grew instead of moving.
+        Insets margin,
         Insets padding,
         Length gap,
         double flexGrow,
@@ -159,6 +172,10 @@ public record ComputedStyle(
             // rather than zero: a minimum of zero constrains nothing, but a
             // maximum of zero is a box that may not exist.
             Limits.NONE,
+            // Zero on every edge, which is CSS's initial value. Not
+            // `Insets.NONE` like `inset` below: an undefined margin and a zero
+            // one lay out identically, and zero is the one a reader can add up.
+            Insets.ZERO,
             Insets.ZERO,
             Length.points(0),
             0,
@@ -201,6 +218,7 @@ public record ComputedStyle(
         Objects.requireNonNull(alignItems, "alignItems");
         Objects.requireNonNull(width, "width");
         Objects.requireNonNull(height, "height");
+        Objects.requireNonNull(margin, "margin");
         Objects.requireNonNull(padding, "padding");
         Objects.requireNonNull(gap, "gap");
         Objects.requireNonNull(position, "position");
@@ -376,11 +394,37 @@ public record ComputedStyle(
             // the top. `padding: 0 12px` is the form a control is written in, so
             // supporting only the one-value form would mean no button could
             // state its own metrics.
-            case "padding" -> insets(value, context).map(this::padding).orElseGet(() -> dropped(property, value));
+            //
+            // `fixed` and not `length`, here and everywhere below: Yoga has no
+            // `YGNodeStyleSetPaddingAuto`, so `padding: auto` reached a binding
+            // that refuses `auto` **by name** and threw mid-frame. §8's rule for
+            // a value the engine cannot honour is to drop the declaration, and
+            // this is where that decision belongs — the layout pass is far too
+            // late to be making it (ADR-0311).
+            case "padding" ->
+                insets(value, context, false).map(this::padding).orElseGet(() -> dropped(property, value));
 
             case "padding-top", "padding-right", "padding-bottom", "padding-left" ->
-                length(value, context)
+                fixed(value, context)
                         .map(v -> padding(edge(padding, edgeOf(property), v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // The same shorthand over the other side of the box — and the one
+            // property here where `auto` is a *value* rather than a refusal.
+            // `margin: 0 auto` is how a box centres itself in a container it
+            // does not control, which is the whole reason the property was
+            // wanted: `align-self: center` centres on the **cross** axis, and
+            // nothing in the subset centred on the main one (ADR-0311).
+            //
+            // Negative margins are allowed and deliberately not clamped. A
+            // negative margin pulls a box over its neighbour, which is how a
+            // row of overlapping avatars is written and how a control escapes
+            // its container's padding on one edge.
+            case "margin" -> insets(value, context, true).map(this::margin).orElseGet(() -> dropped(property, value));
+
+            case "margin-top", "margin-right", "margin-bottom", "margin-left" ->
+                length(value, context)
+                        .map(v -> margin(edge(margin, edgeOf(property), v)))
                         .orElseGet(() -> dropped(property, value));
 
             // §2 asks a `dialog` for "min width 320, max 80% window", and until
@@ -389,18 +433,18 @@ public record ComputedStyle(
             // wide. `toast` and `tooltip` each wrote a *width* meaning a maximum
             // for the same reason (ADR-0181).
             case "min-width" ->
-                length(value, context).map(v -> limits(limits.minWidth(v))).orElseGet(() -> dropped(property, value));
+                fixed(value, context).map(v -> limits(limits.minWidth(v))).orElseGet(() -> dropped(property, value));
 
             case "max-width" ->
-                length(value, context).map(v -> limits(limits.maxWidth(v))).orElseGet(() -> dropped(property, value));
+                fixed(value, context).map(v -> limits(limits.maxWidth(v))).orElseGet(() -> dropped(property, value));
 
             case "min-height" ->
-                length(value, context).map(v -> limits(limits.minHeight(v))).orElseGet(() -> dropped(property, value));
+                fixed(value, context).map(v -> limits(limits.minHeight(v))).orElseGet(() -> dropped(property, value));
 
             case "max-height" ->
-                length(value, context).map(v -> limits(limits.maxHeight(v))).orElseGet(() -> dropped(property, value));
+                fixed(value, context).map(v -> limits(limits.maxHeight(v))).orElseGet(() -> dropped(property, value));
 
-            case "gap" -> length(value, context).map(this::gap).orElseGet(() -> dropped(property, value));
+            case "gap" -> fixed(value, context).map(this::gap).orElseGet(() -> dropped(property, value));
 
             case "flex-grow" ->
                 number(value).filter(v -> v >= 0).map(this::flexGrow).orElseGet(() -> dropped(property, value));
@@ -422,10 +466,10 @@ public record ComputedStyle(
 
             // The same 1-4 shorthand `padding` takes, over the same [Insets] --
             // an inset is a padding measured from the outside.
-            case "inset" -> insets(value, context).map(this::inset).orElseGet(() -> dropped(property, value));
+            case "inset" -> insets(value, context, false).map(this::inset).orElseGet(() -> dropped(property, value));
 
             case "top", "right", "bottom", "left" ->
-                length(value, context)
+                fixed(value, context)
                         .map(v -> inset(edge(inset, edgeOf(property), v)))
                         .orElseGet(() -> dropped(property, value));
 
@@ -721,6 +765,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -751,6 +796,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -781,6 +827,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -811,6 +858,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -841,6 +889,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -871,6 +920,7 @@ public record ComputedStyle(
                 v,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -901,6 +951,38 @@ public record ComputedStyle(
                 width,
                 v,
                 limits,
+                margin,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    public ComputedStyle margin(Insets v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                v,
                 padding,
                 gap,
                 flexGrow,
@@ -931,6 +1013,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 v,
                 gap,
                 flexGrow,
@@ -963,6 +1046,7 @@ public record ComputedStyle(
                 width,
                 height,
                 v,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -993,6 +1077,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 v,
                 flexGrow,
@@ -1023,6 +1108,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 v,
@@ -1053,6 +1139,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1083,6 +1170,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1113,6 +1201,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1143,6 +1232,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1173,6 +1263,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1203,6 +1294,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1233,6 +1325,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1280,6 +1373,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1310,6 +1404,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1340,6 +1435,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1370,6 +1466,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1400,6 +1497,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1430,6 +1528,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1460,6 +1559,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1490,6 +1590,7 @@ public record ComputedStyle(
                 width,
                 height,
                 limits,
+                margin,
                 padding,
                 gap,
                 flexGrow,
@@ -1787,16 +1888,44 @@ public record ComputedStyle(
         return java.util.Optional.ofNullable(CssLength.parse(value, context));
     }
 
+    /// [#length] for a property the layout engine has **no `auto` function
+    /// for** — `padding`, `inset`, `gap` and the four bounds.
+    ///
+    /// Yoga's setters come in pairs, a value one and an `auto` one, and four of
+    /// them have no second half: there is no `YGNodeStyleSetPaddingAuto` and no
+    /// `YGNodeStyleSetMinWidthAuto`. `Yoga` binds those without their auto call
+    /// and refuses one **by name** rather than dropping it silently — which is
+    /// the right choice there and made `padding: auto` in a stylesheet an
+    /// exception thrown in the middle of a layout pass, which is a window
+    /// closing over one typo.
+    ///
+    /// So the refusal moves to where the declaration is read. §8's rule for a
+    /// value the engine cannot honour is to drop it and say so, and dropping it
+    /// here is the difference between a rule that does nothing and a frame that
+    /// does not happen (ADR-0311).
+    ///
+    /// `width`, `height` and `margin` do **not** go through this: Yoga binds all
+    /// three with their auto call, and `margin: 0 auto` is the reason margin was
+    /// wanted.
+    private static java.util.Optional<Length> fixed(List<Token> value, CssLength.Context context) {
+        return length(value, context).filter(v -> v != Length.AUTO);
+    }
+
     /// CSS's 1-4 value edge shorthand.
     ///
     /// Empty if any part fails to parse, so `padding: 8px nonsense` is dropped
     /// whole rather than applied to two edges out of four — a half-applied
-    /// shorthand is harder to see than one that did nothing.
-    private static java.util.Optional<Insets> insets(List<Token> value, CssLength.Context context) {
+    /// shorthand is harder to see than one that did nothing. That includes an
+    /// `auto` where `auto` is not allowed: `padding: 8px auto` is dropped whole,
+    /// for the same reason and by [#fixed]'s rule.
+    ///
+    /// @param auto whether `auto` is a value this property takes — true for
+    ///        `margin` alone, of the three that use this
+    private static java.util.Optional<Insets> insets(List<Token> value, CssLength.Context context, boolean auto) {
         var parts = new java.util.ArrayList<Length>();
         for (var token : split(value)) {
             var length = CssLength.parse(token, context);
-            if (length == null) {
+            if (length == null || (!auto && length == Length.AUTO)) {
                 return java.util.Optional.empty();
             }
             parts.add(length);

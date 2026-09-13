@@ -192,6 +192,25 @@ public final class RenderObject implements AutoCloseable {
             node.setMinHeight(Yoga.length(limits.minHeight()));
             node.setMaxHeight(Yoga.length(limits.maxHeight()));
         }
+        // Before padding, because that is the order the box model reads in and
+        // the order a reader looking for one of the two expects to find it.
+        // Per edge for padding's reason, and `Length.AUTO` on an edge reaches
+        // Yoga's own `YGNodeStyleSetMarginAuto` — which is what `margin: 0 auto`
+        // resolves to and what absorbs the free space beside the node
+        // (ADR-0311).
+        var margin = box.margin();
+        // `Insets.ZERO` on a first apply is skipped wholesale, which `limits`
+        // does for the same reason (ADR-0181): Yoga's own default margin is zero,
+        // so a box that never mentions one costs a single comparison rather than
+        // four foreign calls on the frame it first appears. Margin is rarer than
+        // padding in this catalog -- nothing in it wore one until today -- so
+        // that is nearly every node.
+        if (previous == null ? !margin.equals(Insets.ZERO) : !previous.margin().equals(margin)) {
+            node.setMargin(Edge.TOP, Yoga.length(margin.top()));
+            node.setMargin(Edge.RIGHT, Yoga.length(margin.right()));
+            node.setMargin(Edge.BOTTOM, Yoga.length(margin.bottom()));
+            node.setMargin(Edge.LEFT, Yoga.length(margin.left()));
+        }
         var padding = box.padding();
         if (previous == null || !previous.padding().equals(padding)) {
             // Per edge rather than Edge.ALL, because `padding: 0 12px` is what a
@@ -539,6 +558,7 @@ public final class RenderObject implements AutoCloseable {
                 && a.alignItems() == b.alignItems()
                 && a.width().equals(b.width())
                 && a.height().equals(b.height())
+                && a.margin().equals(b.margin())
                 && a.padding().equals(b.padding())
                 && a.gap().equals(b.gap())
                 && a.flexGrow() == b.flexGrow()

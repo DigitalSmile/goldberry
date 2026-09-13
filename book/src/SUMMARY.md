@@ -320,6 +320,7 @@
 - [ADR-0308 A tooltip follows the focus ring](adr/0308-a-tooltip-follows-the-focus-ring.md)
 - [ADR-0309 A sheet of icons reflows, and pays for it](adr/0309-a-sheet-of-icons-reflows-and-pays-for-it.md)
 - [ADR-0310 A shadow is a stack of rectangles](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+- [ADR-0311 Margin is room outside, and `auto` is the half that mattered](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
 
 ---
 

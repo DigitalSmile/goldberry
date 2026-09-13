@@ -74,6 +74,10 @@ class RecordWitherTest {
                 length(11),
                 length(22),
                 new io.github.digitalsmile.goldberry.layout.Limits(length(31), length(32), length(33), length(34)),
+                // `margin`, then `padding`. Three `Insets` on this record now,
+                // and no two of them may be equal -- a wither that wrote into
+                // the wrong one of the three would otherwise round-trip.
+                new io.github.digitalsmile.goldberry.layout.Insets(length(71), length(72), length(73), length(74)),
                 new io.github.digitalsmile.goldberry.layout.Insets(length(41), length(42), length(43), length(44)),
                 length(55),
                 6,
@@ -106,6 +110,8 @@ class RecordWitherTest {
                 .height(length(22))
                 .limits(new io.github.digitalsmile.goldberry.layout.Limits(
                         length(31), length(32), length(33), length(34)))
+                .margin(new io.github.digitalsmile.goldberry.layout.Insets(
+                        length(71), length(72), length(73), length(74)))
                 .padding(new io.github.digitalsmile.goldberry.layout.Insets(
                         length(41), length(42), length(43), length(44)))
                 .gap(length(55))

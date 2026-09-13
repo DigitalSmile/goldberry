@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.css.cascade;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -359,9 +358,28 @@ public final class StyleResolver {
         // Weakest first, so a later put() overwrites a weaker one.
         matches.sort(CASCADE);
 
-        var winners = new HashMap<String, List<Token>>();
+        // **Ordered**, and each winner moved to the end as it wins.
+        //
+        // A `HashMap` here was a silent bug for as long as the engine has had a
+        // shorthand and a longhand over the same value. Nothing between this and
+        // `ComputedStyle.apply` re-orders, so the order properties come out in is
+        // the order they are *applied* in -- and a `padding` applied after a
+        // `padding-left` overwrites the edge the longhand set. Under a hash that
+        // order is whatever the property names' buckets happen to give: `padding`
+        // and `padding-left` came out the right way round, `inset` and `left`
+        // came out the wrong way, and `inset: 8px; left: 20px` quietly lost its
+        // `left` (ADR-0311).
+        //
+        // `remove` before `put` because `LinkedHashMap` keeps a re-put key at its
+        // **first** position, and the position that matters is the winning
+        // declaration's. Three rules -- `padding-left`, then `padding`, then
+        // `padding-left` again -- must end with the longhand last, and without
+        // the remove it would sit where the first, losing one was.
+        var winners = new LinkedHashMap<String, List<Token>>();
         for (var match : matches) {
-            winners.put(match.declaration().property(), match.declaration().value());
+            var property = match.declaration().property();
+            winners.remove(property);
+            winners.put(property, match.declaration().value());
         }
         return winners;
     }

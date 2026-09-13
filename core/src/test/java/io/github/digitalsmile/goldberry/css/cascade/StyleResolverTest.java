@@ -110,6 +110,68 @@ class StyleResolverTest {
             assertEquals("4px", value(resolved, "padding"));
         }
 
+        /// Which order the winners come out in, which nothing had needed to be
+        /// true until a property arrived with four longhands over it.
+        ///
+        /// Nothing between the resolver and `ComputedStyle.apply` re-orders, so
+        /// the order properties come out in *is* the order they are applied in —
+        /// and a `padding` applied after a `padding-left` overwrites the edge the
+        /// longhand set. This was a `HashMap`, so the answer was whichever way
+        /// the two property names' buckets fell: `padding` and `padding-left`
+        /// came out the right way round and `inset` and `left` came out the wrong
+        /// way, so `inset: 8px; left: 20px` quietly lost its `left`
+        /// ([ADR-0311]).
+        @Nested
+        @DisplayName("the order the winners come out in")
+        class DeclarationOrder {
+
+            /// The property names in the order the resolver returns them.
+            private List<String> order(String css, String selector) {
+                return List.copyOf(resolver(sheet(CascadeLayer.APPLICATION, css))
+                        .resolve(element(selector))
+                        .keySet());
+            }
+
+            @Test
+            @DisplayName("is the order the declarations were written in")
+            void sourceOrder() {
+                assertEquals(
+                        List.of("inset", "left", "padding", "padding-left"),
+                        order("button { inset: 8px; left: 20px; padding: 4px; padding-left: 9px }", "button"));
+            }
+
+            @Test
+            @DisplayName("and the other way round, which is the case a hash could not tell apart")
+            void reversed() {
+                assertEquals(List.of("left", "inset"), order("button { left: 20px; inset: 8px }", "button"));
+            }
+
+            @Test
+            @DisplayName("across rules, weakest first")
+            void acrossRules() {
+                var css = """
+                        button { left: 20px }
+                        button.primary { inset: 8px }
+                        """;
+                assertEquals(List.of("left", "inset"), order(css, "button.primary"));
+            }
+
+            @Test
+            @DisplayName("a property that wins twice sits where its winning declaration is")
+            void rewonPropertyMovesToTheEnd() {
+                // `LinkedHashMap` keeps a re-put key at its **first** position,
+                // which would leave `padding-left` where the losing first
+                // declaration was — behind the `padding` that must not overwrite
+                // it. The resolver removes before it puts for exactly this.
+                var css = """
+                        button { padding-left: 1px }
+                        button { padding: 4px }
+                        button { padding-left: 9px }
+                        """;
+                assertEquals(List.of("padding", "padding-left"), order(css, "button"));
+            }
+        }
+
         @Test
         @DisplayName("a selector list uses its most specific matching selector")
         void selectorListSpecificity() {
