@@ -196,6 +196,32 @@ public final class Window implements AutoCloseable {
         return window.physicalSize();
     }
 
+    /// The smallest size the **user** may drag this window down to, in logical
+    /// pixels, or a zero size for "no minimum".
+    public LogicalSize minimumSize() {
+        return window.minimumSize();
+    }
+
+    /// Sets the floor the user may drag this window down to.
+    ///
+    /// The window manager enforces it: the pointer stops at the edge, so the
+    /// window is never a size the layout cannot take. That is the whole reason
+    /// this is not a check in a resize handler — by the time a handler sees the
+    /// size, the frame is already wrong (ADR-0304).
+    ///
+    /// **This does not grow a window that is already smaller.** A floor is about
+    /// what the user may do next, and resizing a window out from under whoever is
+    /// looking at it is not that; ask for [WindowSpec#withMinimumSize] at open
+    /// time, which refuses the contradiction rather than resolving it.
+    ///
+    /// A zero width or height removes the constraint on that axis.
+    ///
+    /// @param minimum the floor, in logical pixels
+    public Window minimumSize(LogicalSize minimum) {
+        window.setMinimumSize(Objects.requireNonNull(minimum, "minimum"));
+        return this;
+    }
+
     /// The scale of the display the window is on. Fractional in the ordinary
     /// case: 125% and 150% are what most laptops ship with.
     public DisplayScale scale() {

@@ -40,6 +40,9 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// Where this window pretends to be on the backend's desktop.
     private LogicalPoint position = LogicalPoint.ZERO;
 
+    /// The floor a "user" drag is stopped at — see [#resizeTo].
+    private LogicalSize minimumSize = WindowSpec.NO_MINIMUM;
+
     private @Nullable PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
     private int presentCount;
@@ -48,6 +51,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
 
     HeadlessWindow(HeadlessBackend backend, WindowSpec spec, DisplayScale scale) {
         this(backend, spec.size(), scale, spec.title());
+        this.minimumSize = spec.minimumSize();
     }
 
     HeadlessWindow(HeadlessBackend backend, LogicalSize size, DisplayScale scale, String title) {
@@ -168,6 +172,27 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         this.title = Objects.requireNonNull(title, "title");
     }
 
+    /// Stands in for the window manager, which is the only way this rule can be
+    /// tested at all.
+    ///
+    /// A real backend hands the floor to the platform and never sees it enforced;
+    /// here the enforcement is [#resizeTo]'s, so a test can drag the window too
+    /// small and assert on what the application is told. That is the same bargain
+    /// the rest of this class makes: "every rule the SPI states is checked here
+    /// rather than assumed".
+    @Override
+    public void setMinimumSize(LogicalSize minimum) {
+        backend.requireUiThread();
+        requireOpen();
+        this.minimumSize = Objects.requireNonNull(minimum, "minimum");
+    }
+
+    @Override
+    public LogicalSize minimumSize() {
+        backend.requireUiThread();
+        return minimumSize;
+    }
+
     /// Records whether text input was asked for, so a test can assert that a
     /// field turned it on.
     ///
@@ -283,11 +308,24 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// Resizes the window as the platform would, and queues the event.
     ///
     /// The logical size changes; the scale does not.
+    ///
+    /// **Clamped to [#minimumSize] first**, because that is what a window manager
+    /// does: the drag stops at the floor rather than being refused, so a test
+    /// that asks for 100x100 against a 400x300 minimum gets a `Resized` for
+    /// 400x300 and not a resize that did not happen. Per axis, so a zero on one
+    /// of them constrains only the other (ADR-0304).
     public void resizeTo(LogicalSize newSize) {
         backend.requireUiThread();
         requireOpen();
-        applySize(newSize);
+        applySize(atLeastMinimum(newSize));
         backend.post(new BackendEvent.Resized(this, size, physicalSize()));
+    }
+
+    /// `wanted`, raised to the floor on each axis independently.
+    private LogicalSize atLeastMinimum(LogicalSize wanted) {
+        Objects.requireNonNull(wanted, "wanted");
+        return new LogicalSize(
+                Math.max(wanted.width(), minimumSize.width()), Math.max(wanted.height(), minimumSize.height()));
     }
 
     /// Changes the size this window reports, without announcing it.

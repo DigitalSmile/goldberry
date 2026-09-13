@@ -167,6 +167,7 @@ public interface BackendWindow extends AutoCloseable {
     float scale();                            // per-monitor, fractional (125%, 150% must work)
     void setCursor(Cursor shape);             // standard set; custom image still to come (§7.3)
     void setTitle(String title); void setDecorated(boolean serverSide);
+    void setMinimumSize(LogicalSize minimum); // the floor a user may drag to (ADR-0304)
     void textInput(boolean active);           // off by default, follows focus (ADR-0167)
     void requestFrame();                      // vsync-aligned frame callback
 }
@@ -176,6 +177,7 @@ Rules baked into the SPI:
 
 - **macOS main thread.** `Goldberry.launch(app)` takes over the calling thread as the UI thread (AppKit requires the first thread). It does not spawn one.
 - **HiDPI:** layout in logical px, raster at physical px, per window. Fractional scales are day-1 correct, not retrofitted.
+- **Geometry is the user's, within a floor the application declares.** `WindowSpec.minimumSize` and `Window.minimumSize(...)` name the smallest a window may be dragged to and the *window manager* enforces it — the pointer stops at the edge, rather than a resize handler clamping a frame after it has been painted. No minimum by default: a toolkit does not know what a window holds (ADR-0304).
 - **Decorations:** native/server-side by default on every platform (SDL negotiates Wayland SSD). Client-side "frost" decorations are an opt-in `titlebar` widget (`core-widgets.md` §8) using the `frost` material (`design-system.md` §1.5), same widget code on every backend.
 - **Overlays, two places.** In-window overlays — a toast, a scrim, a `hud` — are a widget-tree facility and need nothing from here: they are children of the window's own root node, out of flow at a corner (ADR-0100). `createPopup` is for the ones that must escape the window's bounds — a `menu`, a `tooltip`, a `select`'s list — and **it is built**: a popup is a `BackendWindow` with an owner, a kind and a position in the owner's coordinates, on both backends. It returns an `Optional` because popup support belongs to the video driver, not to the request: all four desktop drivers have it and SDL's `dummy` does not, so the refusal is a branch CI runs (ADR-0102).
 - **Backends shipped:** `sdl3` (the desktop backend on all three OSes), `headless` (renders to `BLImage` for golden-image tests). That is the complete list — no hand-written Win32/Cocoa/Wayland backends and no AWT bridge, ever. SDL3 is a permanent dependency on desktop; the SPI exists to serve `headless` and to keep the platform boundary in one place, not as an invitation to grow new desktop backends.

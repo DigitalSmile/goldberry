@@ -23,6 +23,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// An SDL window behind the SPI.
 ///
@@ -69,6 +70,9 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// The position the last reported move carried. See [#movedTo].
     private @Nullable LogicalPoint reportedPosition;
+
+    /// The floor last asked for, so [#minimumSize] needs no second native call.
+    private LogicalSize minimumSize = WindowSpec.NO_MINIMUM;
 
     /// The handle, for a subclass that has to make its own SDL calls.
     final SdlWindowHandle handle() {
@@ -336,6 +340,29 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         requireOpen();
         this.title = Objects.requireNonNull(title, "title");
         video().setWindowTitle(handle, title);
+    }
+
+    /// Hands the floor to the window manager, which is what enforces it.
+    ///
+    /// Rounded **up**, not to nearest: a minimum of 320.4 that the manager
+    /// rounded down to 320 would be a floor the application asked for and did not
+    /// get, and half a logical pixel of extra window is invisible where a layout
+    /// that cannot fit is not.
+    ///
+    /// SDL takes logical pixels here exactly as it does for the size, so there is
+    /// no scale conversion — the same reason `Sdl3Backend.createWindow` does none.
+    @Override
+    public void setMinimumSize(LogicalSize minimum) {
+        backend.requireUiThread();
+        requireOpen();
+        this.minimumSize = Objects.requireNonNull(minimum, "minimum");
+        video().setWindowMinimumSize(handle, (int) Math.ceil(minimum.width()), (int) Math.ceil(minimum.height()));
+    }
+
+    @Override
+    public LogicalSize minimumSize() {
+        backend.requireUiThread();
+        return minimumSize;
     }
 
     /// Asks the window manager, and records nothing (ADR-0252).

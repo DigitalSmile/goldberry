@@ -159,6 +159,22 @@ public final class Showcase implements Application {
         return new LogicalSize(1280, 800);
     }
 
+    /// The smallest the window may be dragged to.
+    ///
+    /// 640×480, which is not a taste: the shell is a sidebar and a content pane,
+    /// and below roughly this the sidebar and the pane stop being two things.
+    /// Narrower still and the `split` in the Editor screen has two panes that are
+    /// each a few characters wide, which is a layout nobody can read and the
+    /// toolkit will happily draw.
+    ///
+    /// The window manager stops the drag at the edge rather than the application
+    /// noticing afterwards, which is the whole point of declaring it here
+    /// (ADR-0304).
+    @Override
+    public LogicalSize minimumSize() {
+        return LogicalSize.of(640, 480);
+    }
+
     /// **Yes**, and this is the one application in the repository that says so.
     ///
     /// A gallery is a layout whose whole subject is how much fits on a screen: a

@@ -219,6 +219,19 @@ public final class SdlVideo {
         }
     }
 
+    /// Sets the smallest size the user may drag a window down to, in logical
+    /// pixels.
+    ///
+    /// Zero on an axis is "no minimum", which is both SDL's reading and the one
+    /// a caller with nothing to declare wants: passing a size of `0x0` restores
+    /// the window manager's own behaviour rather than pinning the window at
+    /// nothing.
+    public void setWindowMinimumSize(SdlWindowHandle window, int width, int height) {
+        if (!sdlWindowCalls.setWindowMinimumSize().call(window.pointer(), width, height)) {
+            throw new SdlException("SDL_SetWindowMinimumSize", Sdl.get().lastError());
+        }
+    }
+
     public void destroyWindow(SdlWindowHandle window) {
         if (window.isDestroyed()) {
             return;

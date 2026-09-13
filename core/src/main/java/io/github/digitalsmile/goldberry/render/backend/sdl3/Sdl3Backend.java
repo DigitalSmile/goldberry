@@ -370,6 +370,13 @@ public final class Sdl3Backend implements Backend {
         }
 
         var window = new Sdl3Window(this, handle, spec.title());
+        // After creation rather than as a flag, because SDL has no creation-time
+        // minimum: the window exists for the span of this method at a size the
+        // user could not have dragged it to, and nothing can resize it in
+        // between -- it is not shown yet (ADR-0304).
+        if (spec.hasMinimumSize()) {
+            window.setMinimumSize(spec.minimumSize());
+        }
         windowsById.put(handle.id(), window);
         Startup.mark("SDL window " + handle.id() + " created");
         LOG.debug("created SDL window {} \"{}\" {} flags={}", handle.id(), spec.title(), spec.size(), flags);

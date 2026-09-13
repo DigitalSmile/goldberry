@@ -28,6 +28,7 @@ public record SdlWindowCalls(
         SetWindowPosition setWindowPosition,
         GetWindowPosition getWindowPosition,
         SetWindowSize setWindowSize,
+        SetWindowMinimumSize setWindowMinimumSize,
         GetWindowSize getWindowSize,
         GetWindowSizeInPixels getWindowSizeInPixels,
         GetWindowId getWindowId,
@@ -51,6 +52,7 @@ public record SdlWindowCalls(
                 new SetWindowPosition(lookup),
                 new GetWindowPosition(lookup),
                 new SetWindowSize(lookup),
+                new SetWindowMinimumSize(lookup),
                 new GetWindowSize(lookup),
                 new GetWindowSizeInPixels(lookup),
                 new GetWindowId(lookup),
@@ -366,6 +368,38 @@ public record SdlWindowCalls(
                 return (boolean) FD_SDL_SetWindowSize.invokeExact(address, window, width, height);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetWindowSize", t);
+            }
+        }
+    }
+
+    /// Sets the smallest the **user** may drag the window to.
+    ///
+    /// Enforced by the window manager rather than by the application, which is
+    /// the point: the pointer stops at the edge instead of the window shrinking
+    /// and springing back. Zero on either axis removes the constraint, which is
+    /// SDL’s own reading of it.
+    ///
+    /// `_Bool SDL_SetWindowMinimumSize(void*, int, int)`
+    ///
+    /// @param width in logical pixels, or 0 for no minimum
+    /// @param height in logical pixels, or 0 for no minimum
+    /// @return false if SDL refused
+    public static final class SetWindowMinimumSize {
+
+        private static final MethodHandle FD_SDL_SetWindowMinimumSize =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        SetWindowMinimumSize(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetWindowMinimumSize");
+        }
+
+        public boolean call(MemorySegment window, int width, int height) {
+            try {
+                return (boolean) FD_SDL_SetWindowMinimumSize.invokeExact(address, window, width, height);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetWindowMinimumSize", t);
             }
         }
     }

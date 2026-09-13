@@ -54,6 +54,12 @@ SDL_MaximizeWindow
 SDL_RestoreWindow
 SDL_GetWindowSize
 SDL_GetWindowSizeInPixels
+
+# The floor a user may drag a window down to (ADR-0304). The window manager
+# enforces it, which is the whole reason this is a platform call rather than a
+# clamp in the resize handler: clamping after the fact means the frame is
+# already the wrong size and the user is already fighting the pointer.
+SDL_SetWindowMinimumSize
 SDL_GetWindowDisplayScale
 SDL_GetDisplayForWindow
 SDL_GetCurrentDisplayMode

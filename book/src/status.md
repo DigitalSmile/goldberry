@@ -5595,6 +5595,17 @@ is the `scroll` box's.
   preference needs and which no amount of tracking one's own calls can produce.
   `HeadlessWindow.reportMaximized` is the route that does not start with the
   application, and the test for it is the one that matters most.
+- **And a window has a floor**, which is the other half of "the user decides the
+  geometry". `WindowSpec.minimumSize`, `Window.minimumSize(...)` and
+  `Application.minimumSize()` declare the smallest a window may be dragged to, and
+  the *window manager* enforces it through `SDL_SetWindowMinimumSize` — so the
+  pointer stops at the edge rather than the window shrinking and springing back a
+  frame later, which is what clamping in a resize handler looks like. Default is
+  no minimum, because a toolkit does not know what a window holds; the showcase
+  declares 640×480, below which its sidebar and its pane stop being two things.
+  A minimum larger than the opening size is refused, and `--size=` demotes it with
+  a warning rather than failing to start
+  ([ADR-0304](adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)).
 - **The export list and the C shim both had to learn the new names**, and that
   refusal earned its keep immediately. `SDL_EVENT_WINDOW_MAXIMIZED` is `0x20A`
   and `RESTORED` is `0x20B` — derived by counting an unnumbered C enum from the

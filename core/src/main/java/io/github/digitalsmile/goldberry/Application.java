@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// What a Goldberry application implements. Everything else is
@@ -68,6 +69,30 @@ public interface Application {
     /// window restores to when the user un-maximizes it.
     default LogicalSize size() {
         return new LogicalSize(960, 640);
+    }
+
+    /// The smallest the user may drag the window, in logical pixels.
+    ///
+    /// A zero size — the default — is "no minimum", and it is the only honest
+    /// default: the toolkit does not know what the window contains, and a floor
+    /// invented for it would be wrong for a palette and wrong again for an
+    /// editor. An application does know, which is why this is one line to
+    /// override (ADR-0304):
+    ///
+    /// ```java
+    /// @Override public LogicalSize minimumSize() {
+    ///     return LogicalSize.of(640, 480);
+    /// }
+    /// ```
+    ///
+    /// A zero on one axis constrains only the other, so a window that cares about
+    /// its width alone says `LogicalSize.of(480, 0)`.
+    ///
+    /// @throws IllegalArgumentException — from [Window#open] — if it is larger
+    ///         than [#size] on either axis, which is a window that could not open
+    ///         at the size it asked for
+    default LogicalSize minimumSize() {
+        return WindowSpec.NO_MINIMUM;
     }
 
     /// Whether the window opens filling the desktop's work area.

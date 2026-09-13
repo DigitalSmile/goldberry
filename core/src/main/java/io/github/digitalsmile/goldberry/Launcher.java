@@ -214,6 +214,30 @@ final class Launcher implements Host {
         this.options = options == null ? Options.NONE : options;
     }
 
+    /// [Application#minimumSize], unless the window is opening smaller than it.
+    ///
+    /// The contradiction is only reachable through `--size=`, and that flag is
+    /// the reason this is a demotion rather than a refusal: it exists so a
+    /// screenshot or a golden run can pin the window's geometry (ADR-0221), and
+    /// an application that declares a 1024-wide minimum must not be able to make
+    /// `--size=800x600` fail to start. The floor is a promise to a *user* about
+    /// what dragging an edge may do, and there is no user in a golden run.
+    ///
+    /// Said out loud rather than dropped quietly: the next person to wonder why
+    /// their window resizes past its minimum is running with a `--size=`.
+    private LogicalSize floorFitting(LogicalSize opening) {
+        var minimum = application.minimumSize();
+        if (minimum.width() <= opening.width() && minimum.height() <= opening.height()) {
+            return minimum;
+        }
+        LOG.warn(
+                "--size={} is smaller than the {} minimum {} asks for; opening without a minimum size",
+                opening,
+                minimum,
+                application.getClass().getSimpleName());
+        return WindowSpec.NO_MINIMUM;
+    }
+
     /// Opens the window, runs the loop, and takes everything down in the reverse
     /// order it was built.
     void run() {
@@ -228,6 +252,7 @@ final class Launcher implements Host {
         // nobody means: the flag exists so a screenshot or a golden run can pin
         // the window's geometry (ADR-0221).
         window = Window.open(WindowSpec.of(application.title(), size)
+                .withMinimumSize(floorFitting(size))
                 .withMaximized(application.maximized() && options.size() == null));
 
         // On the UI thread and staying there: the book owns native objects from

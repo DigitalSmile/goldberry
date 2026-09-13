@@ -228,6 +228,32 @@ public interface BackendWindow extends AutoCloseable {
     /// @param cursor the caret's x offset from `area`'s left edge
     default void textInputArea(@Nullable LogicalRect area, double cursor) {}
 
+    /// Sets the smallest size the **user** may drag this window down to.
+    ///
+    /// A constraint on the window manager, not a clamp the toolkit applies after
+    /// the fact: the platform stops the drag at the edge, so the window never
+    /// becomes a size the application cannot lay out (ADR-0304). A backend that
+    /// cannot ask its platform for this does nothing, which is the honest answer
+    /// — reporting a size it did not enforce would be worse than the constraint
+    /// being absent.
+    ///
+    /// A zero width or height removes the constraint on that axis, which is what
+    /// [WindowSpec#NO_MINIMUM] means and what SDL reads `0` as.
+    ///
+    /// Default: does nothing, for a backend with no window manager to ask.
+    ///
+    /// @param minimum the floor, in logical pixels
+    default void setMinimumSize(LogicalSize minimum) {}
+
+    /// The floor [#setMinimumSize] last set, or a zero size for "no minimum".
+    ///
+    /// Answered from what the backend was told rather than from the platform:
+    /// SDL has `SDL_GetWindowMinimumSize`, and a second native call to read back
+    /// a number this process just wrote is a round trip for nothing.
+    default LogicalSize minimumSize() {
+        return WindowSpec.NO_MINIMUM;
+    }
+
     /// Sets the window title.
     void setTitle(String title);
 
