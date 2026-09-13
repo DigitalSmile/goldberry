@@ -25,6 +25,7 @@
             <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/example" />
             <option value="$PROJECT_DIR$/gpu" />
+            <option value="$PROJECT_DIR$/html" />
             <option value="$PROJECT_DIR$/natives" />
             <option value="$PROJECT_DIR$/weaver" />
             <option value="$PROJECT_DIR$/widgets" />

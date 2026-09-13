@@ -1,0 +1,105 @@
+plugins {
+    id 'goldberry.java-conventions'
+    // `markdown-view` is a @Markup widget, so this module declares a catalog of
+    // its own and an application that puts one in a KDL document finds it through
+    // the module path rather than by naming it (ADR-0131).
+    id 'goldberry.weave'
+}
+
+description = 'Goldberry HTML: Markdown through md4c, and the content widgets that render it'
+
+// ============================================================================
+// The first content module (ADR-0190, ADR-0294)
+//
+// `docs/content-widgets.md` quarantines anything with a heavy native dependency
+// or an attribution obligation into its own artifact, so an application opts in.
+// This one is the first, and the quarantine is thinner than that rule assumed:
+// md4c is one C file under MIT, and ADR-0294 records the decision to compile it
+// into `libgoldberry` rather than to stand up a second native artifact for a
+// parser measured in kilobytes. There is therefore no `goldberry-natives-html`
+// jar, and this module ships Java only.
+//
+// What is still quarantined is the *dependency direction*: nothing in :core or
+// :widgets knows Markdown exists, and `:natives` exports md4c's wrapper to this
+// module by name and to nobody else.
+// ============================================================================
+dependencies {
+    // `markdown-view` builds `column`, `row` and `text` widgets, which are the
+    // catalog's. `api` because those types appear in this module's own surface --
+    // a `MarkdownView` is a `Widget`.
+    api project(':widgets')
+
+    // md4c's wrapper, exported to this module alone. Not `api`: a `MarkdownEvent`
+    // appears nowhere in what this module exports, which is the seam ADR-0294
+    // draws -- md4c's vocabulary stops at `MarkdownParser` and the model takes
+    // over.
+    implementation project(':natives')
+
+    // The golden comparator and the rasterizer guard, the same way :widgets takes
+    // them (ADR-0050).
+    testImplementation testFixtures(project(':core'))
+
+    // jqwik, for the round-trip properties in docs/testing.md §1.1: a document's
+    // words survive the trip through the model and out into HTML.
+    testImplementation libs.jqwik
+}
+
+// Every test here parses, and parsing is md4c inside libgoldberry -- so the same
+// wiring :core and :widgets have, for the same reason: the tests must run against
+// the library this build produced. Without it every parse test skips quietly,
+// which looks exactly like passing.
+evaluationDependsOn(':natives')
+
+def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    ['goldberry.golden.update', 'goldberry.golden.scales',
+     'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+
+    // An input, so a rebuilt library re-runs them rather than leaving them
+    // UP-TO-DATE and green against a library they never saw.
+    inputs.files(providers.provider {
+        var library = file(providers.systemProperty('goldberry.native.library')
+                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                .get())
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
+}
+
+def skipNative = providers.gradleProperty('goldberry.skipNative')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
+
+if (!skipNative && !externalLibrary) {
+    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
+}
+
+// ============================================================================
+// Coverage floor (docs/testing.md §3)
+//
+// :widgets' floor rather than :core's, because that is what this module is: a
+// parser that turns events into records, a serializer, and one widget. Every
+// line of it is reachable from a unit test with no frame under it -- the one
+// thing that needs a window is the golden image, and that is the showcase's.
+// ============================================================================
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; minimum = 0.87 }
+            limit { counter = 'BRANCH'; minimum = 0.71 }
+        }
+    }
+}

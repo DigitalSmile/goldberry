@@ -30,10 +30,22 @@ final class SplitPaneState extends State<SplitPane> {
     /// The pane's length along its axis, from the last frame that laid it out,
     /// or 0 before the first one.
     ///
-    /// **Not `setState`.** Nothing drawn depends on it directly — the fraction is
-    /// what positions the divider — and marking the element dirty from a
-    /// measurement is how a widget told its own size ends up rebuilding forever
-    /// (ADR-0119).
+    /// **Through `setState`, and the note that used to be here said the opposite.**
+    /// It said "nothing drawn depends on it directly — the fraction is what
+    /// positions the divider", and that stopped being true when the first pane
+    /// started being sized in *points* from this number ([SplitPaneView#sized]).
+    /// Without a rebuild the view kept the `-1` it was built with, so a pane that
+    /// nobody dragged stayed at its first-frame proportional guess **for ever**:
+    /// `position=0.5` put the divider wherever the two children's content widths
+    /// happened to land, and a drag was the only thing that ever corrected it.
+    ///
+    /// ADR-0119's warning about rebuilding for ever is still the rule this obeys
+    /// rather than an argument against reacting at all. What is measured here is
+    /// the **split pane's own** length, and what the rebuild changes is its
+    /// *children's* — so the value cannot feed itself, and the second frame is a
+    /// fixed point. The one arrangement where that is not true is a split pane
+    /// inside a parent that sizes to its content, which `controls.css` rules out
+    /// for the default case by giving every `split-pane` `flex-grow: 1`.
     private double length;
 
     /// What the divider was before it was collapsed, so `Enter` can put it back.
@@ -71,8 +83,17 @@ final class SplitPaneState extends State<SplitPane> {
     }
 
     /// The pane's own size, once a frame and only when it changes.
+    ///
+    /// The guard is not an optimisation: [io.github.digitalsmile.goldberry.input.handler.Measured]
+    /// already fires only on a change, and this is what keeps a sub-pixel
+    /// disagreement between two layout passes from asking for a rebuild on every
+    /// frame of a resize.
     private void measured(Extent bounds, Extent part) {
-        length = widget().axis().isVertical() ? bounds.height() : bounds.width();
+        var measured = widget().axis().isVertical() ? bounds.height() : bounds.width();
+        if (Math.abs(measured - length) < 0.5) {
+            return;
+        }
+        setState(() -> length = measured);
     }
 
     /// Where the divider currently is, in logical pixels from the near edge —

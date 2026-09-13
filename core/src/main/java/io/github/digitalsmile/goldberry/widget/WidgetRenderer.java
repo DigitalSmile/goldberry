@@ -352,6 +352,12 @@ public final class WidgetRenderer {
             tree.trace()
                     .text((int) (paragraphs.hits() - textHitsBefore), (int) (paragraphs.misses() - textMissesBefore));
         }
+        // The frame is over, so the cache knows what this one asked for and can
+        // size itself to hold it. A cache smaller than one frame's working set
+        // misses *every* lookup on the excess rather than merely missing more
+        // often, which is what a document made of one paragraph per word turned
+        // the default capacity into (ADR-0299).
+        paragraphs.frame();
         if (boxes.isEmpty()) {
             throw new IllegalStateException("nothing in this widget tree paints; the root described only composition");
         }
@@ -360,6 +366,19 @@ public final class WidgetRenderer {
         }
         // A root that described several siblings needs something to hold them.
         return Box.of().children(boxes.toArray(Box[]::new));
+    }
+
+    /// The shaped paragraphs this renderer is keeping, for a diagnostic or a test.
+    ///
+    /// **Read-only in intent**: the cache is the renderer's, sized by the frames it
+    /// has drawn (ADR-0299), and handing it out is how a test asserts the thing
+    /// that actually matters — that a settled frame shapes *nothing* — without a
+    /// stopwatch and without a system property. `ParagraphCache.misses()` before
+    /// and after two renders of an unchanged tree is the whole assertion.
+    ///
+    /// @return the cache, or null before the first render has created one
+    public @Nullable ParagraphCache paragraphs() {
+        return paragraphs;
     }
 
     /// The boxes one element contributes — one if it paints, otherwise its

@@ -13,6 +13,8 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.lint.Finding;
 import io.github.digitalsmile.goldberry.css.lint.StyleLint;
+import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
+import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
 
@@ -128,5 +130,24 @@ class SupportedPropertyTest {
         var dead = dead(List.copyOf(inForce), List.of(sheet));
 
         assertTrue(dead.isEmpty(), () -> "the showcase writes " + dead);
+    }
+
+    @Test
+    @DisplayName("nor do the two content modules' stylesheets, which this application also loads")
+    void theContentStylesheetsWriteOnlySupportedProperties() {
+        // `markdown.css` and `html.css` were outside this sweep until ADR-0301 added
+        // rules to both — and the sweep is exactly what says whether a rule in them
+        // does anything. A dropped declaration in a document's stylesheet is invisible
+        // in a way a control's is not: nobody has a second document to compare it
+        // against.
+        var markdown = MarkdownStyles.stylesheet();
+        var html = HtmlStyles.stylesheet();
+        var inForce = new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        inForce.add(markdown);
+        inForce.add(html);
+
+        var dead = dead(List.copyOf(inForce), List.of(markdown, html));
+
+        assertTrue(dead.isEmpty(), () -> "the content stylesheets write " + dead);
     }
 }

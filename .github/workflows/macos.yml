@@ -97,7 +97,7 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
-      # The whole `:core` and `:widgets` suites against the real library, not
+      # The whole `:core`, `:widgets` and `:html` suites against the real library, not
       # just the golden images. Everything that needs a rasterizer skips in the
       # `java` job by design -- it builds no native library -- so this is the
       # only place those tests run at all: the frame loop, pointer plumbing,
@@ -107,9 +107,9 @@ jobs:
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      - name: Core and widget tests, and the golden images
+      - name: Core, widget and Markdown tests, and the golden images
         run: |
-          ./gradlew :core:test :widgets:test --no-daemon \
+          ./gradlew :core:test :widgets:test :html:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 

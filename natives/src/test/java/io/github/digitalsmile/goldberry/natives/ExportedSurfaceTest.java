@@ -13,6 +13,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -213,9 +214,19 @@ class ExportedSurfaceTest {
                 "io.github.digitalsmile.goldberry.natives.harfbuzz",
                 "io.github.digitalsmile.goldberry.natives.harfbuzz.enums");
 
+        // md4c is sealed the same way and to a different module: Markdown is
+        // `goldberry-html`'s dependency rather than the toolkit's, so neither an
+        // application nor `:core` can name a `MarkdownEvent` (ADR-0294).
+        var sealedTo = new LinkedHashMap<String, String>();
+        for (var name : mustBeQualified) {
+            sealedTo.put(name, "io.github.digitalsmile.goldberry.core");
+        }
+        sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c", "io.github.digitalsmile.goldberry.html");
+        sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c.enums", "io.github.digitalsmile.goldberry.html");
+
         var descriptor = descriptor(classesRoot());
         var open = exportedPackages();
-        var leaked = mustBeQualified.stream().filter(open::contains).toList();
+        var leaked = sealedTo.keySet().stream().filter(open::contains).toList();
 
         assertTrue(
                 leaked.isEmpty(),
@@ -224,16 +235,13 @@ class ExportedSurfaceTest {
 
         // And that they are exported at all, to the one module that may read
         // them -- an export silently deleted would pass the check above.
-        for (var name : mustBeQualified) {
+        sealedTo.forEach((name, reader) -> {
             var targets = descriptor.exports().stream()
                     .filter(e -> e.source().equals(name))
                     .flatMap(e -> e.targets().stream())
                     .toList();
-            assertEquals(
-                    List.of("io.github.digitalsmile.goldberry.core"),
-                    targets,
-                    name + " should be exported to :core and to nobody else");
-        }
+            assertEquals(List.of(reader), targets, name + " should be exported to " + reader + " and to nobody else");
+        });
     }
 
     @Test

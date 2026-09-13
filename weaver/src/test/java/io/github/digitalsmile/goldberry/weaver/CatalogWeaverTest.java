@@ -12,6 +12,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ModuleDesc;
 import java.lang.constant.PackageDesc;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -122,6 +123,56 @@ class CatalogWeaverTest {
         void nothingShared() {
             assertEquals("", CatalogWeaver.rootPackage(List.of(
                     ClassDesc.of("com.example.A"), ClassDesc.of("org.other.B"))));
+        }
+
+        @Test
+        @DisplayName("never a package the module has no class in, because two modules"
+                + " sharing one package is a LayerInstantiationException")
+        void notAPackageSomebodyElseOwns() {
+            // `:html`'s own shape: two widget trees whose only shared prefix is the
+            // package `:core` keeps `Goldberry` and `Host` in. Writing the catalog
+            // there would have been a module path that does not start at all, and no
+            // class-path test could have seen it (ADR-0298).
+            var widgets = List.of(
+                    ClassDesc.of("io.github.digitalsmile.goldberry.html.view.HtmlView"),
+                    ClassDesc.of("io.github.digitalsmile.goldberry.markdown.view.MarkdownView"));
+            var owned = Set.of(
+                    "io.github.digitalsmile.goldberry.html",
+                    "io.github.digitalsmile.goldberry.html.view",
+                    "io.github.digitalsmile.goldberry.markdown",
+                    "io.github.digitalsmile.goldberry.markdown.view");
+
+            assertEquals("io.github.digitalsmile.goldberry.html", CatalogWeaver.rootPackage(widgets, owned));
+        }
+
+        @Test
+        @DisplayName("the shared package itself when the module does own it")
+        void theSharedOneWhenItIsOwned() {
+            var widgets = List.of(
+                    ClassDesc.of("com.example.widgets.controls.button.Button"),
+                    ClassDesc.of("com.example.widgets.menu.Menu"));
+
+            assertEquals("com.example.widgets",
+                    CatalogWeaver.rootPackage(widgets, Set.of("com.example.widgets", "com.example.widgets.menu")));
+        }
+
+        @Test
+        @DisplayName("and the first widget's own package when nothing between is owned")
+        void asFarDownAsItHasTo() {
+            var widgets = List.of(ClassDesc.of("com.example.deep.down.A"), ClassDesc.of("com.other.B"));
+
+            assertEquals("com.example.deep.down",
+                    CatalogWeaver.rootPackage(widgets, Set.of("com.example.deep.down", "com.other")));
+        }
+
+        @Test
+        @DisplayName("and the shared package when the module's own packages are unknown")
+        void nothingKnownIsTheOldAnswer() {
+            // The one-argument form is still what a caller with no inventory gets, so
+            // that this change cannot alter a build that has not been told about it.
+            var widgets = List.of(ClassDesc.of("com.example.a.A"), ClassDesc.of("com.example.b.B"));
+
+            assertEquals("com.example", CatalogWeaver.rootPackage(widgets, Set.of()));
         }
     }
 

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /// Collects a module's `@Markup` widgets into one generated [WidgetCatalog].
 ///
@@ -197,11 +198,48 @@ public final class CatalogWeaver {
                 .andThen(ClassTransform.endHandler(builder -> builder.with(patched))));
     }
 
-    /// The module's root package — the longest prefix every widget shares.
+    /// Where the catalog goes: the longest prefix every widget shares, **unless the
+    /// module has no classes there**.
     ///
-    /// Which is where the catalog goes, so a module that keeps its widgets in
-    /// `…widgets.controls.button` and `…widgets.menu` gets one catalog in
-    /// `…widgets` rather than a choice nobody made.
+    /// A module that keeps its widgets in `…widgets.controls.button` and
+    /// `…widgets.menu` gets one catalog in `…widgets`, which is a package it owns.
+    /// But a module with two widget *trees* — `:html`, whose `markdown-view` and
+    /// `html-view` share only `io.github.digitalsmile.goldberry` — would get a
+    /// catalog in a package that belongs to **`:core`**, and two named modules
+    /// containing one package is a `LayerInstantiationException` on the module path
+    /// rather than a warning. The first application to put both content widgets on
+    /// its path would not have started (ADR-0298).
+    ///
+    /// So a prefix the module has no class in is descended from, along the first
+    /// widget's own package, until a package the module *does* own turns up — for
+    /// `:html`, `io.github.digitalsmile.goldberry.html`. The widgets arrive sorted by
+    /// node name, so which package that is does not depend on the file system.
+    ///
+    /// @param widgets the widget classes, in registration order
+    /// @param owned every package this module has a class in
+    public static String rootPackage(List<ClassDesc> widgets, Set<String> owned) {
+        var shared = rootPackage(widgets);
+        if (widgets.isEmpty() || owned.isEmpty() || owned.contains(shared)) {
+            return shared;
+        }
+        var parts = widgets.getFirst().packageName().split("\\.", -1);
+        var descended = new StringBuilder(shared);
+        for (var i = shared.isEmpty() ? 0 : shared.split("\\.", -1).length; i < parts.length; i++) {
+            if (!descended.isEmpty()) {
+                descended.append('.');
+            }
+            descended.append(parts[i]);
+            if (owned.contains(descended.toString())) {
+                return descended.toString();
+            }
+        }
+        // A widget whose own package the module does not own cannot happen -- the
+        // widget was found by reading a class out of it -- so this is the answer
+        // rather than a failure.
+        return widgets.getFirst().packageName();
+    }
+
+    /// The longest prefix every widget shares, whether or not the module owns it.
     public static String rootPackage(List<ClassDesc> widgets) {
         if (widgets.isEmpty()) {
             return "";

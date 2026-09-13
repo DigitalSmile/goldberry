@@ -68,7 +68,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **JaCoCo** per module (toolVersion pinned latest for JDK 25 class files) + Gradle `jacoco-report-aggregation` for one project-wide XML/HTML.
 - **Merged across modes:** execution data from woven and fallback runs feed one report — a line is uncovered only if neither mode reaches it.
 - **Exclusions:** weaver *output* classes (no source mapping) excluded from reports; `natives` bindings module excluded from gates (its real test is layout agreement); the weaver *module itself* is covered normally.
-- **Gates:** per-module `jacocoTestCoverageVerification`, wired into `check`, and trivially passing in a module that declares no rules — so a floor exists only where a module has said what its own means. `:core` is at 80% line / 68% branch, `:widgets` at 87% / 71%, and the `css`, `kdl` and `bind` packages at 70%. Every number is a **ratchet set from a measured value**, not a target: it catches a change that drops coverage and never blocks one that merely fails to raise it.
+- **Gates:** per-module `jacocoTestCoverageVerification`, wired into `check`, and trivially passing in a module that declares no rules — so a floor exists only where a module has said what its own means. `:core` is at 80% line / 68% branch, `:widgets` and `:html` at 87% / 71%, and the `css`, `kdl` and `bind` packages at 70%. Every number is a **ratchet set from a measured value**, not a target: it catches a change that drops coverage and never blocks one that merely fails to raise it.
 - **Codecov** for PR diff coverage — wired, guarded, not yet connected (§7).
 - **PIT (pitest)** nightly over the logic packages, run through PIT's own command line rather than `gradle-pitest-plugin`, which reads `reporting.baseDir` and so cannot be applied on Gradle 9. It completes where the test runtime is plain and its coverage minion dies where the tests run on the module path (§6).
 
@@ -80,7 +80,7 @@ be aspirational is now §6's business.
 | Lane | Workflow | Trigger | Contents |
 |------|----------|---------|----------|
 | fast | `linux.yml` (`java` job) | every push + PR | `./gradlew build checkLicenses` — Spotless, Error Prone, NullAway, PMD, ArchUnit, the coverage gates, unit + widget tests. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
-| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | every push + PR | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
+| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | every push + PR | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
 | showcase | `example.yml`, `showcase.yml` | every push + PR | The example builds and runs; the self-contained image builds |
 | advisory | `codeql.yml`, `qodana.yml` | PR + schedule | CodeQL security queries; Qodana's inspection set once a token exists |
 | nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |

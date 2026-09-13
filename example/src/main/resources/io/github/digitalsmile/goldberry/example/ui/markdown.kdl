@@ -1,0 +1,45 @@
+// The **Markdown** screen's two panes, and the point of this file is that there
+// are only two nodes in it that matter.
+//
+// `text-area` writes `md.source` through an action; `markdown-view` reads the
+// same property with `bind=`. Nothing watches the editor, diffs the text or
+// schedules a re-render: the element holding the preview is subscribed to the
+// property, a keystroke marks it for rebuild, and the next frame is the parsed
+// document (ADR-0062, ADR-0296). A live preview is a binding.
+//
+// `markdown-view` is also not this application's widget and this document never
+// says where it comes from. `goldberry-html` is on the module path, its catalog
+// declares the node name, and the inflater finds it through a `uses` — ADR-0131's
+// promise about a second widget module, exercised rather than asserted.
+//
+// A `split-pane` at the root rather than a masonry: this screen is one thing
+// divided, not a wall of cards, and `Screen` puts it in a tab that is deliberately
+// **not** scrolled — the preview owns a viewport, and §2.4 bans nested same-axis
+// scrollers.
+split-pane id="markdown-split" position=0.5 first-min=240 second-min=240 {
+    column id="markdown-editor" class="markdown-pane" {
+        text class="caption" "Markdown — type here"
+        // `fill=#true` is the editor half of §4's `text-area`: the height comes
+        // from this pane rather than from the text, and the document scrolls
+        // inside it (ADR-0296). Without it the area is `max-rows` tall and the
+        // rest of the side is empty.
+        //
+        // `class="mono"` and nothing else besides. What this is *not* is a code
+        // editor with line numbers and highlighting -- that is `goldberry-code`,
+        // and it is a module that does not exist (book/src/TODO.md).
+        text-area id="markdown-source" class="mono" bind="md.source" change="md.set-source" fill=#true
+    }
+    column id="markdown-preview" class="markdown-pane" {
+        text class="caption" "Rendered — this side follows"
+        // What the last pressed link or ticked box reported. The preview is not a
+        // picture of a document: `link=` and `wikilink=` name valued actions that are
+        // handed a destination, and `task=` is handed the **ordinal** of the box --
+        // which `Markdown.toggleTask` turns into one changed character of the source
+        // on the left (ADR-0300).
+        text id="markdown-followed" class="caption" bind="md.followed"
+        scroll {
+            markdown-view id="markdown-rendered" bind="md.source" \
+                link="md.follow" wikilink="md.open-wiki" task="md.toggle-task" images="app.assets"
+        }
+    }
+}

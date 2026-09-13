@@ -303,6 +303,14 @@
 - [ADR-0291 A URL scheme is packaging, and packaging is the application's](adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md)
 - [ADR-0292 A field composes, and a password does not](adr/0292-a-field-composes-and-a-password-does-not.md)
 - [ADR-0293 A button that reads as a link](adr/0293-a-button-that-reads-as-a-link.md)
+- [ADR-0294 A parser crosses the boundary once](adr/0294-a-parser-crosses-the-boundary-once.md)
+- [ADR-0295 A document is a value, and a paragraph is a row of words](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)
+- [ADR-0296 A preview is a binding, not a callback](adr/0296-a-preview-is-a-binding-not-a-callback.md)
+- [ADR-0297 An editor fills its pane, and a split knows its own width](adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md)
+- [ADR-0298 HTML is a document, and not an engine](adr/0298-html-is-a-document-and-not-an-engine.md)
+- [ADR-0299 A cache smaller than one frame is worse than no cache](adr/0299-a-cache-smaller-than-one-frame-is-worse-than-no-cache.md)
+- [ADR-0300 A document is read, and the application answers](adr/0300-a-document-is-read-and-the-application-answers.md)
+- [ADR-0301 A selection is geometry the frame already had](adr/0301-a-selection-is-geometry-the-frame-already-had.md)
 
 ---
 

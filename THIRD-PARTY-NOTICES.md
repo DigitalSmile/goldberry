@@ -28,6 +28,7 @@ permission notices to travel with it.
 | [SDL3](licenses/sdl3.txt) | Zlib | <https://www.libsdl.org> | Windowing, input, DPI, GPU |
 | [Yoga](licenses/yoga.txt) | MIT | <https://www.yogalayout.dev> | Flexbox layout |
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
+| [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` (ADR-0294) |
 
 Zlib imposes no notice requirement on binary distribution — only that the origin
 is not misrepresented and altered *source* is marked. The notices are included
@@ -37,6 +38,15 @@ makes it harder to audit and saves nothing.
 HarfBuzz is a special case: it does **not** use the standard MIT text but its
 own "Old MIT" licence, with a long accumulated list of copyright holders. It has
 to be copied verbatim; substituting standard MIT would misstate it.
+
+md4c is here rather than in a notice file of its own, which is a departure from
+`docs/ARCHITECTURE.md` §11.1's rule that an optional content module carries its
+own `THIRD-PARTY-NOTICES`. It is compiled **into `libgoldberry`** rather than
+into a native of that module's own — one MIT C file of tens of kilobytes, against
+the four CI legs a second superbuild would cost — so it is redistributed in the
+same artifact as the four above and is disclosed beside them
+([ADR-0294](book/src/adr/0294-a-parser-crosses-the-boundary-once.md)). litehtml,
+when `html-view` is built, gets both a library and a notice file of its own.
 
 ## Embedded in the published jars
 

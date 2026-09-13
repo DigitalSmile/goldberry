@@ -107,10 +107,11 @@ goldberry_pin(asmjit GOLDBERRY_ASMJIT_REF)
 goldberry_pin(yoga GOLDBERRY_YOGA_REF)
 goldberry_pin(harfbuzz GOLDBERRY_HARFBUZZ_REF)
 goldberry_pin(sdl3 GOLDBERRY_SDL3_REF)
+goldberry_pin(md4c GOLDBERRY_MD4C_REF)
 
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
-    "sdl3 ${GOLDBERRY_SDL3_REF}")
+    "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -275,8 +276,38 @@ set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
+# ============================================================================
+# md4c -- the Markdown parser (ADR-0294)
+#
+# The smallest upstream here by three orders of magnitude: one C file and a
+# header, MIT, CommonMark plus tables, strikethrough, task lists and permissive
+# autolinks. It is `goldberry-html`'s markdown half, and it is compiled INTO this
+# library rather than into a native of its own -- ADR-0190 quarantines a content
+# module's natives, and ADR-0294 is where that rule was measured against a parser
+# this size and found to cost more than it isolates.
+#
+# SOURCE_SUBDIR names a directory that does not exist, which is the trick asmjit
+# uses above: FetchContent downloads md4c without calling add_subdirectory() on
+# it, so its own CMake project -- which builds md4c-html, the md2html executable
+# and a pkg-config file, and installs all three -- never runs. What this build
+# wants is two translation units, added to the shim's target below.
+FetchContent_Declare(md4c
+    GIT_REPOSITORY https://github.com/mity/md4c.git
+    GIT_TAG ${GOLDBERRY_MD4C_REF}
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+    SOURCE_SUBDIR do-not-add-this-subdirectory)
+
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
-FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3)
+FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c)
+
+if(NOT EXISTS "${md4c_SOURCE_DIR}/src/md4c.c")
+    message(FATAL_ERROR
+        "md4c was fetched but ${md4c_SOURCE_DIR}/src/md4c.c is not there.\n"
+        "The shim compiles md4c's sources directly rather than linking its CMake "
+        "targets, so a re-organised upstream tree is a build failure here rather "
+        "than a missing symbol at load time. See ADR-0294.")
+endif()
 
 # Some upstreams must be compiled with DEFAULT symbol visibility (ADR-0031).
 #
@@ -334,6 +365,20 @@ endforeach()
 # bindings. Everything else crosses the boundary through FFM downcalls.
 # ============================================================================
 add_library(goldberry SHARED goldberry_shim.c)
+
+# md4c's two translation units, compiled into the shim rather than linked as a
+# library (see its FetchContent block above). `entity.c` is the HTML5 named
+# entity table -- 2125 names -- which `goldberry_md_entity` hands to Java rather
+# than Java carrying a second copy of it.
+#
+# Hidden visibility and no export-list entry of their own: nothing in Java binds
+# `md_parse` directly. The four `goldberry_md_*` functions are the whole surface,
+# because a document's event stream crosses the boundary as one buffer rather
+# than as thousands of upcalls (ADR-0190's hot-path rule, ADR-0294).
+target_sources(goldberry PRIVATE
+    "${md4c_SOURCE_DIR}/src/md4c.c"
+    "${md4c_SOURCE_DIR}/src/entity.c")
+target_include_directories(goldberry PRIVATE "${md4c_SOURCE_DIR}/src")
 
 set_target_properties(goldberry PROPERTIES
     C_VISIBILITY_PRESET hidden

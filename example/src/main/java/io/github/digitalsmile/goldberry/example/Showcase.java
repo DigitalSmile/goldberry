@@ -20,11 +20,13 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
+import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -177,6 +179,16 @@ public final class Showcase implements Application {
     @Override
     public List<Stylesheet> stylesheets() {
         var sheets = new ArrayList<>(Controls.stylesheets(model.theme(), model.density()));
+        // An optional module brings its own rules, and adding them is the
+        // application's -- `:widgets` does not know Markdown exists, so
+        // `Controls.stylesheets` cannot include these (ADR-0190, ADR-0295). Before
+        // this window's own sheet, so the showcase can still override a document's
+        // appearance the way it overrides a control's.
+        sheets.add(MarkdownStyles.stylesheet());
+        // The module's other half brings its own rules as well, and they are two
+        // sheets rather than one on purpose: an application that renders notes and
+        // never a page adds one of them (ADR-0298).
+        sheets.add(HtmlStyles.stylesheet());
         sheets.add(styles);
         return sheets;
     }

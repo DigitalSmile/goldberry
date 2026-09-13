@@ -87,6 +87,23 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.sdl.event;
     exports io.github.digitalsmile.goldberry.natives.sdl.window;
     exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
+    /// md4c, exported to `:html` and to nobody else (ADR-0294).
+    ///
+    /// The second name on this seal, and the first that is not `:core`. Markdown is
+    /// not part of the toolkit's own surface — it is `goldberry-html`'s dependency,
+    /// quarantined by ADR-0190 into an optional module an application opts into — so
+    /// the wrapper reaches that module and stops there. `:core` cannot see it either,
+    /// which is the half worth saying: nothing in the widget catalog, the cascade or
+    /// the text stack knows what Markdown is.
+    ///
+    /// What crosses is values: a `String` in, and records out that carry no foreign
+    /// memory and no struct layout. The event stream is encoded in C and read once,
+    /// so the seven detail structs md4c hands its callbacks are never modelled in
+    /// Java at all.
+    exports io.github.digitalsmile.goldberry.natives.md4c to
+            io.github.digitalsmile.goldberry.html;
+    exports io.github.digitalsmile.goldberry.natives.md4c.enums to
+            io.github.digitalsmile.goldberry.html;
     exports io.github.digitalsmile.goldberry.natives.yoga to
             io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.yoga.style to

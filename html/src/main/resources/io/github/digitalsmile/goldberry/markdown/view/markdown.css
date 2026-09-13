@@ -1,0 +1,393 @@
+/* ==========================================================================
+ * markdown.css -- how a parsed document looks
+ *
+ * `MarkdownStyles.stylesheet()` loads this, and an application adds it beside
+ * `Controls.stylesheets(theme)`. It is in the TOOLKIT_BASE layer for the same
+ * reason `controls.css` is: it describes what a widget *is*, so an application's
+ * own sheet wins over it without needing `!important`.
+ *
+ * Every rule here is a class rather than a type selector, because the tree
+ * `MarkdownWidgets` builds is made of `column`, `row` and `text` -- a rendered
+ * document is ordinary widgets under the ordinary cascade, which is the whole
+ * argument of ADR-0295. `markdown-view` itself has no box: it is a
+ * `Widget.Stateless` and composes, so `.markdown` is the column it builds.
+ *
+ * Colours and sizes are tokens, so a document follows the theme and the density
+ * without this file knowing which theme is on.
+ * ========================================================================== */
+
+/* -------------------------------------------------------------- the page -- */
+
+.markdown {
+  flex-direction: column;
+  /* A paragraph's worth of air between blocks. The same 12px `card` uses, so a
+     document inside a card reads as part of it rather than as a panel within a
+     panel. */
+  gap: 12px;
+  /* **The reading face, set once at the root.** `color` and the typography bundle
+     are the inherited half of the cascade, so every word, marker and cell below
+     takes these unless something nearer overrides them -- which is exactly how a
+     heading works: `.md-h2` on the prose row wins for that row's words and
+     nothing else. Setting the size on the *words* instead was the first attempt
+     and it is the interesting mistake: a rule on the word is nearer than a rule
+     on its row, so every heading came out at body size. */
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-regular);
+}
+
+/* ----------------------------------------------------------------- prose --
+ *
+ * **A paragraph is a wrapping row of words, one `text` widget each.**
+ *
+ * That is the load-bearing decision in this file and it needs saying: the text
+ * stack shapes one font per `Paragraph`, so a line containing both regular and
+ * semibold glyphs cannot be one shaped run. The alternatives were a rich-text
+ * layout engine in `:core` (which is what litehtml would have brought, and is
+ * `html-view`'s job) or losing inline marks altogether. So an inline run is split
+ * into words, each word is a `text` with the marks' classes on it, and the row
+ * wraps -- which puts the line breaking back where CSS already had it.
+ *
+ * The cost is widget count: a 500-word note is 500 nodes. The benefit is that
+ * **bold**, `code` and a link are real, and every one of them is styled by a
+ * rule here rather than by a painter nobody can restyle. See ADR-0295.
+ */
+
+.md-prose {
+  flex-wrap: wrap;
+  /* Words of different sizes -- a code span sits in a smaller face -- sit on one
+     line. Without this the row would stretch every word box to its tallest
+     member and a code span would ride high. */
+  align-items: baseline;
+  /* A space, in the reading font's own units, so it grows with the text scale
+     rather than staying at a number somebody typed. It is also the gap *between
+     wrapped lines*, since `gap` is one value here -- which reads as leading, and
+     is why it is not larger. */
+  gap: 0.25em;
+}
+
+/* A word that spans two styles -- `*emphasis*,` is an emphasised piece and then a
+   comma -- is a row of pieces with no gap between them, so that the comma sits where
+   it was written. The row is inside the prose row, so the line still breaks between
+   tokens and never inside one. */
+.md-token {
+  align-items: baseline;
+}
+
+/* `.md-word` carries no declarations, and that is deliberate: a word's face comes
+   from whatever block it is in, so a rule here would override every heading. It
+   is on the widget as a hook -- an application that wants to restyle every word of
+   every document has a selector to do it with. */
+
+/* ------------------------------------------------------------- headings -- */
+
+.md-h1 {
+  font-size: var(--gb-font-display);
+  line-height: var(--gb-line-display);
+  font-weight: var(--gb-weight-strong);
+}
+
+.md-h2 {
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* h3 to h6 all land on `heading`, which is the whole of what §1.4's scale has
+   above body. A document that nests six deep is not going to be told apart by
+   size anyway, and inventing three sizes here would be inventing three tokens
+   the design system deliberately does not have. */
+.md-h3, .md-h4, .md-h5, .md-h6 {
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* --------------------------------------------------------- inline marks -- */
+
+/* **A faux oblique, and it is a compromise on purpose.** The toolkit bundles two
+   upright faces -- Inter Regular and SemiBold -- so there is no italic to set
+   emphasis in. Skewing the word is what every renderer without an italic face
+   does; `transform` does not affect layout, so the word stays where it was and
+   only the glyphs lean. An application that ships an italic face can replace this
+   rule with `font-family` and lose nothing. */
+.md-em {
+  transform: skewX(-10deg);
+}
+
+.md-strong {
+  font-weight: var(--gb-weight-strong);
+}
+
+/* No `text-decoration` in §10's subset, so strikethrough is a colour: the word is
+   muted, the way a completed task is. Not a lie about what the author wrote --
+   the model keeps `Struck` -- and honest about what the painter can draw. */
+.md-struck {
+  color: var(--gb-text-muted);
+}
+
+.md-underline {
+  color: var(--gb-text);
+  font-weight: var(--gb-weight-strong);
+}
+
+.md-code {
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  color: var(--gb-accent);
+}
+
+/* **A link is a `button.link`** when the view has an `onLink`, and a coloured word
+   when it does not (ADR-0293, ADR-0300). Both spellings are here because both
+   happen: a document whose links nobody wired still marks them, and one that is
+   wired gets the variant's ink, its hover and its focus ring.
+
+   The geometry is the one rule in this file that overrides a deliberate decision
+   of the toolkit's. ADR-0293 keeps `button`'s 32px height because §1.3 makes that
+   a floor for a *control*; a link inside a sentence is a **word**, its target is
+   the line it sits on, and a 32px-tall word would set every paragraph containing
+   a link on triple-spaced lines. Every browser does the same. */
+.md-link, .md-wikilink {
+  color: var(--gb-accent);
+}
+
+/* Written as a descendant of `.markdown` rather than as `button.md-link`, and the
+   reason is the cascade rather than taste: `button.link` in `controls.css` has the
+   same specificity, so which of the two wins would depend on the order an
+   application happened to add the sheets in -- and the symptom is four pixels of
+   padding round a word, which nobody would trace back to a list of stylesheets.
+   One class more, and the question does not arise. */
+.markdown button.md-link, .markdown button.md-wikilink {
+  height: auto;
+  padding: 0;
+  align-self: baseline;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* Markup the author typed, shown as the text it is. */
+.md-raw {
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-code);
+  color: var(--gb-text-muted);
+}
+
+/* ---------------------------------------------------------------- quotes -- */
+
+/* **The bar is a widget, because §10's subset has no per-side border.** `border` is
+   uniform here -- one width and one colour for the whole box -- so a quotation drawn
+   with `border-left` was a rule the cascade dropped and a picture with an unexplained
+   indent in it, which is exactly what the golden image showed. A 2px row beside the
+   content is the same shape and is a box the painter already knows how to fill; it is
+   also the move `popover` made for elevation (ADR-0104), for the same reason. */
+.md-quote {
+  align-items: stretch;
+  gap: 12px;
+  color: var(--gb-text-muted);
+}
+
+.md-quote-bar {
+  width: 2px;
+  background: var(--gb-border-strong);
+}
+
+.md-quote-body {
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* ----------------------------------------------------------------- lists -- */
+
+.md-list {
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* A loose list is the one the author put blank lines in, and gets them back. */
+.md-list.loose {
+  gap: 12px;
+}
+
+.md-item {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* The bullet or the number, in a gutter wide enough that every item's text starts
+   at the same place -- a ragged left edge is what a row with no width here looks
+   like as soon as a list reaches ten items. A `row` rather than the `text` itself,
+   because right-aligning the mark is `justify-content` and a text leaf has nothing
+   to justify. */
+.md-marker {
+  width: 20px;
+  justify-content: flex-end;
+  color: var(--gb-text-muted);
+}
+
+.md-item-body {
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* A task's box, drawn as a mark rather than typed as a character: U+2610 is not
+   in either bundled face, and a missing glyph is a box with a cross in it, which
+   looks exactly like the thing it failed to draw. */
+task-mark {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--gb-border-strong);
+  border-radius: 3px;
+  background: var(--gb-surface-sunken);
+  color: var(--gb-accent);
+  align-self: center;
+}
+
+task-mark.done {
+  background: var(--gb-accent-fill);
+  border-color: var(--gb-accent);
+  color: var(--gb-surface);
+}
+
+/* A box a reader can tick, which is a box the application said what to do with
+   (ADR-0300). The affordance is a cursor and a hover -- not a different colour,
+   because the colour already means "done" and a second meaning on one channel is
+   how a document stops being readable. */
+task-mark.interactive {
+  cursor: pointer;
+}
+
+task-mark.interactive:hover {
+  border-color: var(--gb-checkbox-border-hover);
+  background: var(--gb-checkbox-bg-hover);
+}
+
+task-mark.interactive:focus-visible {
+  border-color: var(--gb-focus);
+}
+
+/* ---------------------------------------------------------------- images -- */
+
+/* **An image is drawn at its natural size, capped in points.** The cap is in
+   points and not a percentage on purpose: `picture` sizes itself in Java so that
+   the height follows the width and the picture stays in proportion, and resolving
+   a percentage needs the container width, which only a measure callback has --
+   see `Picture`. A document whose images are wider than this gets them smaller,
+   not squashed. */
+picture {
+  max-width: 560px;
+  max-height: 400px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ code -- */
+
+.md-code-block {
+  flex-direction: column;
+  background: var(--gb-surface-sunken);
+  border: 1px solid var(--gb-border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.md-code-line {
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  color: var(--gb-text);
+  /* A long line is clipped rather than wrapped: a wrapped program is a program
+     with lines nobody wrote. Scrolling a fence sideways waits on a horizontal
+     `scroll`, which is noted in TODO.md. */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The fence's language, so a reader can see what they are looking at and an
+   application can see what `goldberry-code` would highlight. */
+.md-code-language {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+/* ----------------------------------------------------------------- rules -- */
+
+.md-rule {
+  height: 1px;
+  background: var(--gb-border);
+}
+
+/* ---------------------------------------------------------------- tables -- */
+
+.md-table {
+  flex-direction: column;
+  border: 1px solid var(--gb-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.md-row {
+  align-items: stretch;
+}
+
+.md-row.head {
+  background: var(--gb-surface-2);
+}
+
+/* **No rules between the cells.** Same reason as the quotation above: a border here
+   is a border on every side of every cell, and a grid drawn that way would put a line
+   round each one. What separates the columns is the space in them and what separates
+   the head is its fill -- which is how a modern table is drawn anyway. A real grid
+   waits on per-side borders in the cascade (`book/src/TODO.md`).
+
+   The columns share the row evenly by `flex-grow` alone: `flex-basis` is not in the
+   subset either, so a column's share follows its content rather than being exactly a
+   third. */
+.md-cell {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25em;
+  padding: 6px 8px;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.md-cell.head-cell {
+  font-weight: var(--gb-weight-strong);
+}
+
+.md-cell.center {
+  justify-content: center;
+}
+
+.md-cell.end {
+  justify-content: flex-end;
+}
+
+/* ------------------------------------------------------------- selection --
+ *
+ * A rendered document is **selectable** (ADR-0301): drag across it, double-click a
+ * word, triple-click a block, `Ctrl+C`.
+ *
+ * Three parts do it and each has exactly one job here. `selection-host` is the node
+ * that hears the pointer -- it draws nothing and owes a reader one thing, which is
+ * the cursor that says the text can be taken. `word` is what every word of the
+ * document is; it carries no declarations of its own for `.md-word`'s reason, because
+ * a word's face comes from the block it is in. `selection-layer` is the wash, and
+ * its `color` is what the highlight is painted in -- absolutely positioned over the
+ * document's padding box, drawn before the words and therefore behind them.
+ */
+
+selection-host {
+  flex-direction: column;
+  cursor: text;
+}
+
+selection-layer {
+  color: var(--gb-selection);
+}

@@ -29,6 +29,13 @@ rootProject.name = 'goldberry'
 // ordinary Java rather than build-script code because compiling 1544 SVGs into
 // path data is real logic that deserves real tests (ADR-0033).
 //
+// :html is the first of `docs/content-widgets.md`'s optional content modules
+// (ADR-0190). Markdown is what it ships today -- md4c, through the four
+// `goldberry_md_*` symbols on the export list -- and `html-view` is not built:
+// litehtml needs a paint surface the export list does not have yet, and
+// `book/src/TODO.md` says which symbols. An application opts in; nothing in
+// :core or :widgets depends on it (ADR-0294, ADR-0295).
+//
 // :example is the showcase. It is a subproject rather than a separate build so
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
 // It is not published either.
@@ -44,6 +51,7 @@ include ':common',
         ':natives',
         ':core',
         ':widgets',
+        ':html',
         ':gpu',
         ':assets',
         ':weaver',

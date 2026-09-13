@@ -129,6 +129,11 @@ public final class WeaverMain {
         }
         var rewired = new java.util.LinkedHashMap<String, ModelWeaver.Rewired>();
         var widgets = new java.util.LinkedHashMap<String, java.lang.constant.ClassDesc>();
+        // Every package this module has a class in, which is what decides where the
+        // catalog may be written: a package two modules share is a
+        // LayerInstantiationException rather than a warning (see
+        // `CatalogWeaver.rootPackage`).
+        var owned = new java.util.HashSet<String>();
         java.nio.file.Path descriptor = null;
         for (var file : classes) {
             var bytes = Files.readAllBytes(file);
@@ -140,6 +145,13 @@ public final class WeaverMain {
             if (model != null) {
                 rewired.put(model.owner().descriptorString()
                         .substring(1, model.owner().descriptorString().length() - 1), model);
+            }
+            if (catalog && !file.getFileName().toString().equals(CatalogWeaver.CATALOG_CLASS + ".class")) {
+                // Every package but the one a *previous* weave put a catalog in. The
+                // weaver rewrites in place, so counting its own output would keep the
+                // first answer alive for ever -- including the one this rule exists to
+                // stop, a catalog in a package `:core` owns (ADR-0298).
+                owned.add(java.lang.classfile.ClassFile.of().parse(bytes).thisClass().asSymbol().packageName());
             }
             var node = catalog ? CatalogWeaver.markupName(bytes) : null;
             if (node != null) {
@@ -172,7 +184,7 @@ public final class WeaverMain {
             }
         }
         if (catalog) {
-            writeCatalog(root, descriptor, widgets, woven);
+            writeCatalog(root, descriptor, widgets, owned, woven);
         }
     }
 
@@ -183,14 +195,15 @@ public final class WeaverMain {
     /// path, and a `META-INF/services` entry for the class path. A module with no
     /// `@Markup` widget gets none of them.
     private static void writeCatalog(Path root, Path descriptor,
-            java.util.Map<String, java.lang.constant.ClassDesc> widgets, List<String> woven)
+            java.util.Map<String, java.lang.constant.ClassDesc> widgets,
+            java.util.Set<String> owned, List<String> woven)
             throws IOException {
 
         if (widgets.isEmpty()) {
             return;
         }
         var ordered = CatalogWeaver.sorted(widgets);
-        var pkg = CatalogWeaver.rootPackage(List.copyOf(ordered.values()));
+        var pkg = CatalogWeaver.rootPackage(List.copyOf(ordered.values()), owned);
         var bytes = CatalogWeaver.catalog(pkg, ordered);
         var name = pkg.isEmpty() ? CatalogWeaver.CATALOG_CLASS : pkg + "." + CatalogWeaver.CATALOG_CLASS;
 

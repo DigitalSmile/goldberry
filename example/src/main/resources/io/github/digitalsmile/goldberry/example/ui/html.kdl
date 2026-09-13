@@ -1,0 +1,38 @@
+// The **HTML** screen's two panes, and the point of this file is that it is the
+// Markdown screen's file with one node name changed.
+//
+// `text-area` writes `html.source`; `html-view` reads the same property with
+// `bind=`. Nothing watches the editor, diffs the text or schedules a re-render:
+// the element holding the preview is subscribed to the property, a keystroke
+// marks it for rebuild, and the next frame is the parsed page (ADR-0062,
+// ADR-0296). A live preview is a binding, whatever the document is written in.
+//
+// `link=` is the half that has no Markdown equivalent. An anchor in the page
+// becomes a `button.link` (ADR-0293) and pressing one calls this valued action
+// with the `href` -- so a help pane navigates with no Java between the document
+// and the model, and *what* following a link means stays the application's
+// (ADR-0298).
+//
+// `html-view` is also not this application's widget and this document never says
+// where it comes from. `goldberry-html` is on the module path, its catalog
+// declares the node name, and the inflater finds it through a `uses` -- ADR-0131
+// again, for the second widget in the same module.
+split-pane id="html-split" position=0.5 first-min=240 second-min=240 {
+    column id="html-editor" class="markdown-pane" {
+        text class="caption" "HTML — type here"
+        // `fill=#true`, `class="mono"`: the editor half of §4's `text-area`, exactly
+        // as the Markdown screen has it. What this is *not* is an HTML editor with
+        // tag completion -- that is nobody's plan.
+        text-area id="html-source" class="mono" bind="html.source" change="html.set-source" fill=#true
+    }
+    column id="html-preview" class="markdown-pane" {
+        text class="caption" "Rendered — this side follows"
+        // What the last pressed link handed over. A `text` bound to a property the
+        // action writes, which is the whole of "the application decides what a link
+        // does": the toolkit hands over an href and stops.
+        text id="html-followed" class="caption" bind="html.followed"
+        scroll {
+            html-view id="html-rendered" bind="html.source" link="html.follow" images="app.assets"
+        }
+    }
+}

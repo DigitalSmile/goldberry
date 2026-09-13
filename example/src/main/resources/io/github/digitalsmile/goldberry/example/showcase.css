@@ -111,6 +111,32 @@
   flex-grow: 1;
 }
 
+/* And the Markdown screen, for the same reason and one more: its preview pane owns
+   a viewport, and a `split-pane` has to be *given* a height before it can divide
+   one. Inside the gallery's scroll it would have been content-sized, which is a
+   divider with nothing on either side of it to move. */
+#screen-markdown {
+  flex-grow: 1;
+}
+
+/* The two panes of it. Each is a caption over the thing it names, and each has to
+   fill its side of the split -- the editor so that its area is not floating in a
+   tall empty box, and the preview so that the `scroll` under it has a height to
+   scroll within. */
+.markdown-pane {
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  flex-grow: 1;
+}
+
+/* The editor. A `text-area`'s height is its `rows`, so what grows here is the box
+   round it; `flex-shrink` is what lets the pair fit a short window rather than
+   pushing the caption off the top. */
+#markdown-source {
+  flex-shrink: 1;
+}
+
 /* The wall itself. `masonry` carries the gap between its columns and
    `masonry-column` the gap between cards, both in `controls.css` -- there is
    nothing for this file to say, and the rule is here as a named place to say it

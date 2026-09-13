@@ -83,6 +83,136 @@ class TextAreaTest {
     }
 
     @Nested
+    @DisplayName("opening on a document")
+    class Opening {
+
+        /// Twenty lines into an area that shows three: enough that the top and the
+        /// caret's line cannot both be on screen.
+        private TextArea document() {
+            var text = new StringBuilder();
+            for (var line = 1; line <= 20; line++) {
+                text.append("line ").append(line).append('\n');
+            }
+            return new TextArea(text.toString(), null);
+        }
+
+        /// **The defect this pins.** `TextEdit.of` puts the caret at the end of the
+        /// value it is given — right for a field somebody is about to type into —
+        /// and the area kept the caret's line in view from its very first layout. So
+        /// an area opened on a note showed its *last* line, and a reader had to
+        /// scroll up to find the beginning of their own document.
+        @Test
+        @DisplayName("shows the top of its value, not the end of it")
+        void startsAtTheTop() {
+            var tree = mounted(document());
+
+            assertEquals(0, scrollOffset(tree), 0.01, "nobody has touched it, so the content starts where it starts");
+        }
+
+        @Test
+        @DisplayName("chases the caret once the keyboard arrives")
+        void focusMakesTheCaretMatter() {
+            var tree = mounted(document());
+
+            focus(tree, true);
+
+            assertTrue(
+                    scrollOffset(tree) > 0,
+                    "the caret is at the end of twenty lines, and a focused area shows where typing would go");
+        }
+
+        @Test
+        @DisplayName("chases it after an edit, too")
+        void typingMakesTheCaretMatter() {
+            var tree = mounted(document());
+
+            type(tree, "!");
+
+            assertTrue(scrollOffset(tree) > 0, "what was typed has to be visible");
+        }
+
+        private double scrollOffset(ElementTree tree) {
+            return ((TextAreaState) tree.root().state().orElseThrow()).scrolledBy();
+        }
+    }
+
+    @Nested
+    @DisplayName("filling its container")
+    class Filling {
+
+        private TextArea document() {
+            var text = new StringBuilder();
+            for (var line = 1; line <= 40; line++) {
+                text.append("line ").append(line).append('\n');
+            }
+            return new TextArea(text.toString(), null).fill(true);
+        }
+
+        /// The measured height decides how many lines are on screen, so this is the
+        /// number everything else in the control is derived from.
+        private int visibleRows(ElementTree tree) {
+            return ((TextAreaBox) tree.root().children().getFirst().widget()).maxRows();
+        }
+
+        @Test
+        @DisplayName("takes its line count from the height it was given, not from max-rows")
+        void linesComeFromTheHeight() {
+            var tree = mounted(document());
+
+            // 200 points tall, less the padding, at the test font's line height. The
+            // assertion is the *relationship* rather than a magic number: a filling
+            // area shows many more lines than `DEFAULT_MAX_ROWS`, because the
+            // container is what decides.
+            assertTrue(visibleRows(tree) > 5, "a 200-point pane holds more than five lines: " + visibleRows(tree));
+            assertNotEquals(
+                    TextArea.DEFAULT_MAX_ROWS, visibleRows(tree), "max-rows is what a filling area stops consulting");
+        }
+
+        @Test
+        @DisplayName("scrolls within that height rather than growing past it")
+        void scrollsInsideIt() {
+            var tree = mounted(document());
+            var rows = visibleRows(tree);
+
+            focus(tree, true);
+
+            // The caret is at the end of forty lines and only `rows` of them fit, so
+            // the content has scrolled by the difference -- which is the arithmetic
+            // `maximumScroll` does, checked through what it produces.
+            assertTrue(scrolledBy(tree) > 0, "forty lines in a pane that holds " + rows + " has somewhere to scroll");
+        }
+
+        @Test
+        @DisplayName("follows a pane that got taller")
+        void aTallerPaneShowsMore() {
+            var tree = mounted(document());
+            var before = visibleRows(tree);
+
+            box(tree).measured(new Extent(300, 400), new Extent(300, 400));
+            render(tree);
+
+            assertTrue(
+                    visibleRows(tree) > before,
+                    "twice the height is more lines: " + before + " then " + visibleRows(tree));
+        }
+
+        @Test
+        @DisplayName("leaves an ordinary area sized by its text")
+        void anOrdinaryAreaIsUnchanged() {
+            var tree = mounted(new TextArea("one\ntwo", null));
+
+            assertEquals(
+                    TextArea.DEFAULT_MAX_ROWS,
+                    visibleRows(tree),
+                    "§4's auto-grow is what a field in a form does, and this changes none of it");
+        }
+
+        private double scrolledBy(ElementTree tree) {
+            return ((TextAreaState) tree.root().state().orElseThrow()).scrolledBy();
+        }
+    }
+
+    @Nested
     @DisplayName("more than one line")
     class Lines {
 

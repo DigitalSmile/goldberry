@@ -54,6 +54,20 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// `setState`: it is computed during `render` and applied in the same frame.
     private double scrollOffset;
 
+    /// Whether the caret is worth chasing yet.
+    ///
+    /// **False until somebody touches this control**, and the reason is what a
+    /// `text-area` holding a *document* looks like without it. [TextEdit#of] puts
+    /// the caret at the end of the text it is given — right for a field somebody is
+    /// about to type into — and [#laidOut] keeps the caret's line in view, so an
+    /// area opened on a hundred-line note showed its **last** line and a reader had
+    /// to scroll up to find the beginning.
+    ///
+    /// A press, a key or the focus arriving sets it, which is exactly when the
+    /// caret becomes something the reader is looking for. Until then the content
+    /// starts where the content starts.
+    private boolean caretMatters;
+
     /// The x a run of `Up`/`Down` is trying to stay at, or `NaN` for "no run in
     /// progress" — which is the arithmetic saying it rather than a second flag,
     /// the same trick `dragX` uses for "this is not a drag".
@@ -124,8 +138,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
                 composing,
                 focused && !area.disabled(),
                 caretShown,
-                area.rows(),
-                area.maxRows(),
+                area.fill() ? visibleRows() : area.rows(),
+                visibleRows(),
+                area.fill(),
                 area.disabled(),
                 area.readOnly(),
                 area.attributes(),
@@ -356,6 +371,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public void focusChanged(boolean gained, boolean fromKeyboard) {
+        if (gained) {
+            // From here on the caret is what the reader is looking for, so the
+            // content follows it.
+            caretMatters = true;
+        }
         setState(() -> focused = gained);
         if (host != null) {
             host.textInput(gained && !widget().disabled() && !widget().readOnly());
@@ -388,7 +408,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// per resize, none after.
     @Override
     public void measured(Extent extent) {
-        var changed = Math.abs(extent.width() - bounds.width()) > 0.5f;
+        // The height counts too when the area fills: how many lines are on screen is
+        // then a fact about the container rather than about `max-rows`, and a pane
+        // that got taller has to rebuild before it will show the extra line.
+        var changed = Math.abs(extent.width() - bounds.width()) > 0.5f
+                || (widget().fill() && Math.abs(extent.height() - bounds.height()) > 0.5f);
         bounds = extent;
         if (changed && isMounted()) {
             setState(() -> { });
@@ -403,16 +427,56 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
         var lineHeight = shaped.font().lineHeight();
         var layout = lines();
-        var caretLine = lineIndex(layout, edit.caret());
-        var caretTop = caretLine * lineHeight;
-        var visible = widget().maxRows() * lineHeight;
+        var offset = scrollOffset;
 
-        // Move as little as possible to keep the caret's line in view.
-        var offset = Math.max(scrollOffset, caretTop + lineHeight - visible);
-        offset = Math.min(offset, caretTop);
+        // The caret is only chased once this control has been touched -- see
+        // [#caretMatters]. An untouched area shows the top of its value, which is
+        // what a reader handed a document expects and what every text box on the
+        // web does.
+        if (caretMatters) {
+            var caretLine = lineIndex(layout, edit.caret());
+            var caretTop = caretLine * lineHeight;
+            var visible = visibleRows() * lineHeight;
+
+            // Move as little as possible to keep the caret's line in view.
+            offset = Math.max(offset, caretTop + lineHeight - visible);
+            offset = Math.min(offset, caretTop);
+        }
         offset = Math.clamp(offset, 0, maximumScroll());
         scrollOffset = offset;
         return offset;
+    }
+
+    /// How many lines are on screen at once — [TextArea#maxRows] for an ordinary
+    /// area, and what the **measured** height holds for one that fills.
+    ///
+    /// One method, read by three: the box sizes its parts by it, `laidOut` keeps the
+    /// caret inside it and `maximumScroll` stops at it. They disagreeing is a
+    /// selection highlight that runs out half way down a pane.
+    ///
+    /// Before the first measurement a filling area reports [TextArea#maxRows] as
+    /// well, which is one frame of a guess and the same bargain every measured
+    /// control here makes.
+    private int visibleRows() {
+        var area = widget();
+        if (!area.fill() || paragraph == null || bounds.height() <= 0) {
+            return area.maxRows();
+        }
+        var lineHeight = paragraph.font().lineHeight();
+        if (lineHeight <= 0) {
+            return area.maxRows();
+        }
+        var content = bounds.height() - 2 * topPadding;
+        return Math.max(1, (int) Math.floor(content / lineHeight));
+    }
+
+    /// How far the content has been scrolled up, in logical pixels.
+    ///
+    /// For the tests, which is where "an area opened on a document shows its first
+    /// line" is a number rather than a picture. Package-private: what a control has
+    /// scrolled to is nobody else's business.
+    double scrolledBy() {
+        return scrollOffset;
     }
 
     @Override
@@ -516,7 +580,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             return 0;
         }
         var lineHeight = paragraph.font().lineHeight();
-        return Math.max(0, lines().size() * lineHeight - widget().maxRows() * lineHeight);
+        return Math.max(0, lines().size() * lineHeight - visibleRows() * lineHeight);
     }
 
     // --- the edit --------------------------------------------------------------
@@ -528,6 +592,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (filtered && !accepts(next.text())) {
             return false;
         }
+        // A press, a key or an edit: whichever it was, the caret is now where the
+        // reader is working and the content follows it (see [#caretMatters]).
+        caretMatters = true;
         var before = edit;
         setState(() -> edit = next);
         if (!before.text().equals(next.text())) {

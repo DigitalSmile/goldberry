@@ -23,8 +23,9 @@ public final class GoldberryShim {
     /// event surface, and the constant rows in the layout table (ADR-0020); 4
     /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026); 5 added
     /// Yoga's node API and its enumerators (ADR-0029); 6 added Blend2D's image
-    /// and context surface (ADR-0031); 7 added HarfBuzz shaping (ADR-0032).
-    public static final int SUPPORTED_ABI_VERSION = 8;
+    /// and context surface (ADR-0031); 7 added HarfBuzz shaping (ADR-0032); 9
+    /// added Markdown's encoded event stream and md4c's entity table (ADR-0294).
+    public static final int SUPPORTED_ABI_VERSION = 9;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

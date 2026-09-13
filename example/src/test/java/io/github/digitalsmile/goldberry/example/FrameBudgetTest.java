@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.example;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -98,8 +100,8 @@ class FrameBudgetTest {
     /// here at all means something high in the tree is dirtying itself per frame.
     private static final double BUILD_BUDGET_MS = 1.0;
 
-    /// The cascade and the box tree. Measured **0.03–0.06 ms** for the Controls
-    /// screen, flat across every resolution because it runs per element.
+    /// The cascade and the box tree. Measured **0.15 ms** for the Basic screen,
+    /// flat across every resolution because it runs per element.
     ///
     /// The defect this whole class exists for showed up here as **10 ms**
     /// (ADR-0142), so a budget of 1 ms is 20× the measurement and 160× under the
@@ -110,17 +112,58 @@ class FrameBudgetTest {
     /// frame where nothing changed re-lays out nothing (ADR-0069).
     private static final double LAYOUT_BUDGET_MS = 1.0;
 
-    /// Blend2D, whole frame, no damage, **one thread**. Measured 0.62 ms at
-    /// 800×600 (1.3 ms/Mpx) and 6.9 ms at 4K (0.83 ms/Mpx) — the small end costs
-    /// more per pixel, because a frame has a fixed cost that a small one cannot
-    /// spread.
+    /// Blend2D, whole frame, no damage, **one thread**. Measured 3.1 ms at 800×600
+    /// (6.5 ms/Mpx) and 12.6 ms at 4K@2× (1.5 ms/Mpx) — the small end costs more
+    /// per pixel, because a frame has a fixed cost that a small one cannot spread.
     ///
-    /// So the budget is per megapixel with a floor, and the floor is what makes
-    /// the 800×600 row six times its measurement rather than twice.
+    /// **These numbers are four times what this constant used to be written
+    /// against, and nothing regressed.** The old ones were measured on a screen
+    /// that did not exist: every `measure` call named `"controls"`, which stopped
+    /// being a gallery screen at ADR-0222, so `pickScreen` set a property no tab
+    /// matched and the budgets were compared against a window with **nothing
+    /// selected** (ADR-0299). Measuring the Basic screen instead is measuring a
+    /// window with cards, charts and text in it.
+    ///
+    /// So the budget is per megapixel with a floor, and the floor is what covers
+    /// the fixed cost a small frame cannot spread. Both are set roughly four times
+    /// the measurement rather than ten: this file's own doctrine is that the defect
+    /// worth catching is a **34×**, and a ceiling that trips when a CI runner is
+    /// busy is a ceiling somebody will delete.
     private static final double RASTER_BUDGET_MS_PER_MEGAPIXEL = 8.0;
 
     /// The smallest raster budget, whatever the pixel count. See above.
-    private static final double RASTER_BUDGET_FLOOR_MS = 3.0;
+    private static final double RASTER_BUDGET_FLOOR_MS = 12.0;
+
+    /// The screen the budgets are measured against: a wall of cards, which is what
+    /// most of this application is.
+    private static final String WALL = "basic";
+
+    /// And the one that is a **document** — one `text` widget per word, which is a
+    /// different shape of tree and the one that found ADR-0299.
+    private static final String DOCUMENT = "markdown";
+
+    /// And the **biggest tree in the application**: 1544 icon tiles, none of them
+    /// virtualized ([ADR-0309]).
+    private static final String SHEET = "icons";
+
+    /// What a settled frame of the *whole* sheet is allowed, which is not what
+    /// every other screen is allowed.
+    ///
+    /// The style pass is O(elements) whatever is cached, and the sheet has
+    /// twenty times the wall's. These are the measured numbers with room to move:
+    /// the guard is against the sheet getting worse, not a claim that it is
+    /// cheap. Searching is what makes it cheap — see [#aFilteredSheetIsMuchCheaper].
+    private static final double SHEET_STYLE_BUDGET_MS = 8.0;
+
+    private static final double SHEET_LAYOUT_BUDGET_MS = 4.0;
+
+    /// And what a *narrowed* sheet is allowed.
+    ///
+    /// Two rather than the wall's one, because 1085 elements is five times the
+    /// wall's and the measurement straddles 1.0 ms depending on the machine. The
+    /// claim this screen makes is that searching takes most of the cost back, and
+    /// that is asserted as a ratio beside this.
+    private static final double SHEET_FILTERED_STYLE_BUDGET_MS = 2.0;
 
     private Showcase showcase;
     private ShowcaseModel model;
@@ -162,7 +205,20 @@ class FrameBudgetTest {
     }
 
     /// One screen's tree, wired to the application's own models.
+    ///
+    /// **The name is checked against the gallery**, and that is not defensive
+    /// programming — it is this file's own lesson applied to itself. Every
+    /// measurement here named `"controls"`, which was a screen until the gallery
+    /// was reorganised into questions rather than widget families (ADR-0222); after
+    /// that `pickScreen` set a property no tab matched, so the budgets were
+    /// measured against a window with **no screen selected at all** and reported
+    /// numbers nobody could have used. A benchmark measuring the wrong tree is the
+    /// exact failure the class comment describes, and it had it (ADR-0299).
     private ElementTree treeFor(String screen) {
+        if (!Screen.GALLERY.contains(screen)) {
+            throw new IllegalArgumentException("no screen is called \"" + screen
+                    + "\"; measuring one would measure an empty gallery." + " The gallery is " + Screen.GALLERY);
+        }
         actions.pickScreen(screen);
         var inflater = Widgets.inflater(
                 Icons.strict().bind("palette", palette).bind("plus", plus),
@@ -240,8 +296,8 @@ class FrameBudgetTest {
     /// last one whatever order they are in, which makes every ratio in this class
     /// a measurement of C2 rather than of the toolkit.
     private void warmUp() {
-        measure("controls", RESOLUTIONS.getFirst());
-        measure("controls", RESOLUTIONS.getLast());
+        measure(WALL, RESOLUTIONS.getFirst());
+        measure(WALL, RESOLUTIONS.getLast());
     }
 
     @Test
@@ -251,7 +307,7 @@ class FrameBudgetTest {
         var failures = new ArrayList<String>();
         System.out.printf("%n  %-18s %8s %8s %8s %8s%n", "resolution", "build", "style", "layout", "raster");
         for (var resolution : RESOLUTIONS) {
-            var cost = measure("controls", resolution);
+            var cost = measure(WALL, resolution);
             System.out.printf(
                     "  %-18s %7.3f %7.3f %7.3f %7.3f  (ms, median)%n",
                     resolution.name(), cost.build(), cost.style(), cost.layout(), cost.raster());
@@ -290,8 +346,8 @@ class FrameBudgetTest {
     @DisplayName("style and build do not grow with the pixel count; raster does")
     void stagesDoNotScaleWithPixels() {
         warmUp();
-        var small = measure("controls", RESOLUTIONS.getFirst());
-        var large = measure("controls", RESOLUTIONS.getLast());
+        var small = measure(WALL, RESOLUTIONS.getFirst());
+        var large = measure(WALL, RESOLUTIONS.getLast());
         var pixelRatio =
                 (double) RESOLUTIONS.getLast().pixels() / RESOLUTIONS.getFirst().pixels();
 
@@ -325,7 +381,7 @@ class FrameBudgetTest {
     @DisplayName("a second render of an unchanged tree is far cheaper than the first")
     void settledFrameIsCheap() {
         var target = TestFrames.of(1280, 800, 1.0f);
-        var tree = treeFor("controls");
+        var tree = treeFor(WALL);
         var renderer = rendererFor();
         try (var render = RenderTree.create()) {
             tree.flush();

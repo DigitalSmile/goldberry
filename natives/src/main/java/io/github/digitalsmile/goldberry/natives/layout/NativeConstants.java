@@ -5,6 +5,7 @@ import java.util.List;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
+import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
@@ -59,6 +60,11 @@ public final class NativeConstants {
         // And HarfBuzz, whose direction values have gaps in them -- which is
         // exactly the sort of thing that is wrong until something checks.
         for (var value : HarfBuzzEnum.all()) {
+            constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
+        }
+        // And md4c, whose enums have gained values in the middle before now -- a
+        // block type off by one renders a heading as a block quote (ADR-0294).
+        for (var value : Md4cEnum.all()) {
             constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
         return List.copyOf(constants);

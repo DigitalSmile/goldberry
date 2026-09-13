@@ -81,6 +81,24 @@ public final class Panes {
         return wallOf(inflater, "forms.kdl");
     }
 
+    /// The **Markdown** screen's two panes: the editor, and the preview that follows
+    /// it.
+    ///
+    /// The one screen document whose root is not a masonry, and the one that is
+    /// interesting for what it *binds* rather than for what it contains — see
+    /// `markdown.kdl` itself.
+    public static Widget markdown(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "markdown.kdl");
+    }
+
+    /// The **HTML** screen's two panes: the editor, and the page that follows it.
+    ///
+    /// The Markdown document with one node name changed, which is the point of having
+    /// both — see `html.kdl` itself.
+    public static Widget html(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "html.kdl");
+    }
+
     /// A document whose root is a wall of cards.
     ///
     /// The cast is checked and the failure names the file, because the shape is
@@ -97,7 +115,7 @@ public final class Panes {
                 + " appends its own cards to it");
     }
 
-    private static Widget inflate(KdlInflater<Widget> inflater, String document) {
+    static Widget inflate(KdlInflater<Widget> inflater, String document) {
         return inflater.inflate(KdlParser.resource(Panes.class, document).getFirst());
     }
 }

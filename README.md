@@ -370,6 +370,140 @@ because a preview that is not reproducible cannot be cached.
 
 Goldberry's own golden images go through it, which is how the two stay honest.
 
+## Markdown
+
+Markdown is an **optional module** — `goldberry-html`, the first of the content
+modules `docs/content-widgets.md` specifies. An application adds the dependency
+and its stylesheet; nothing in the core or the widget catalog knows it exists
+([ADR-0294](book/src/adr/0294-a-parser-crosses-the-boundary-once.md),
+[ADR-0295](book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)).
+
+```java
+var document = Markdown.parse(note);                     // GitHub's dialect
+var plain    = Markdown.parse(note, MarkdownSyntax.commonMark());
+var wiki     = Markdown.parse(note, MarkdownSyntax.gitHub()
+                                        .with(MarkdownExtension.WIKI_LINKS));
+```
+
+A `Document` is a **value**: a sealed tree of records, walked with a `switch`.
+
+```java
+static Stream<String> headings(Document document) {
+    return document.blocks().stream()
+            .filter(Heading.class::isInstance)
+            .map(block -> ((Heading) block).text());     // marks dropped
+}
+```
+
+Two things render it, and both are folds over that tree — so a preview and the
+bytes a server hands out cannot drift apart:
+
+```java
+var html = MarkdownHtml.of(document);                    // an HTML fragment
+var view = MarkdownView.of(document);                    // a widget
+var live = MarkdownView.following(model.source());       // …that follows a property
+```
+
+**A live preview is a binding.** The editor writes one property and the view reads
+it; nothing in the application connects them
+([ADR-0296](book/src/adr/0296-a-preview-is-a-binding-not-a-callback.md)):
+
+```kdl
+split-pane {
+    text-area class="mono" bind="note.source" change="note.set-source" fill=#true
+    scroll { markdown-view bind="note.source" }
+}
+```
+
+That is the showcase's **Markdown** screen, and `./gradlew :example:run` opens it.
+
+`markdown-view` builds `column`, `row` and `text` from the catalog — a rendered
+document is ordinary widgets under the ordinary cascade, so it follows the theme,
+the density and the text scale, and `markdown.css` is a stylesheet an application
+can override rather than a renderer it cannot reach. Add it beside the toolkit's
+own:
+
+```java
+var sheets = new ArrayList<>(Controls.stylesheets(theme));
+sheets.add(MarkdownStyles.stylesheet());
+```
+
+**A rendered document is read, and the application answers**
+([ADR-0300](book/src/adr/0300-a-document-is-read-and-the-application-answers.md)).
+A link is a `button.link` that hands its `href` over — a Tab stop, a hover,
+`Space` and `Enter` — an `ImageSource` the application supplies is what turns a
+`src` into pixels, and a task box reports **which** task it is so that
+`Markdown.toggleTask` can flip that one character of the source. Nothing here
+opens a browser, reads a file or writes to your text.
+
+```java
+var preview = MarkdownView.following(model.source())
+        .onLink(app::navigate)
+        .images(assets)
+        .onTask(index -> notes.setSource(Markdown.toggleTask(notes.source(), index)));
+```
+
+**And a document is text you can take.** Drag across it, double-click a word,
+triple-click a paragraph, `Ctrl+A`, `Ctrl+C` — in both views, and what arrives on
+the clipboard has the spaces between words and the newlines between blocks that
+the document implies
+([ADR-0301](book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)).
+A drag repaints rather than rebuilds, so it stays smooth on a long note.
+
+What it does not do, and says so: **emphasis is a faux oblique**, because the
+system ships two upright faces and there is no italic to set it in; and a line of
+mixed faces is a row of words rather than one shaped run, so there is no
+justification and no hyphenation — which is now the whole of what an engine would
+buy.
+
+Underneath, the parser is **md4c inside `libgoldberry`**, and a document crosses
+the FFM boundary exactly once: md4c is a SAX parser, so its events are encoded
+into one buffer in C and read in a single downcall, rather than as several
+thousand upcalls per note. Nothing in the module owns native memory.
+
+### HTML, the same way
+
+`html-view` is the module's other half, and it is the same three parts: a parse
+into a sealed model, a fold into widgets, and a stylesheet
+([ADR-0298](book/src/adr/0298-html-is-a-document-and-not-an-engine.md)).
+
+```kdl
+scroll { html-view bind="doc.source" link="doc.open" }
+```
+
+```java
+var document = Html.parse(help.body());       // a fragment or a whole page
+var view     = HtmlView.of(document).onLink(app::navigate);
+var links    = document.find("a");            // one parse, several walks
+```
+
+**There is no litehtml behind it**, and that is a decision rather than a delay: an
+engine buys real inline layout — a line of mixed faces as one shaped run, and the
+text selection that follows — and costs a C++ library, a second native artifact
+and a widening of the exported paint surface. Everything else an `html-view` is
+for is a parser and a fold, so that is what shipped. The engine stays on
+`book/src/TODO.md` for the part only it can do.
+
+The one thing HTML has that Markdown does not is **a link you can press**: an
+anchor is an element with a label, so it becomes a `button.link` — a Tab stop,
+a hover, `Space` and `Enter` — that hands its `href` to the application and does
+nothing else with it. No browser opens, no relative path resolves, nothing is
+fetched. It is the showcase's **HTML** screen, one tab along from the Markdown
+one.
+
+An element contributes the class `html-<tag>`, so `html.css` reads like a
+browser's default sheet and a tag nobody anticipated is already styleable:
+
+```java
+var sheets = new ArrayList<>(Controls.stylesheets(theme));
+sheets.add(MarkdownStyles.stylesheet());
+sheets.add(HtmlStyles.stylesheet());
+```
+
+Not a browser: no scripting, no network, no navigation, and a `<style>` block is
+kept in the model and applied by nothing — the cascade a page is under is the
+application's stylesheets, which is what makes it follow the theme.
+
 ## Widgets
 
 Widgets are immutable records. The element tree behind them persists across

@@ -14,6 +14,18 @@ module io.github.digitalsmile.goldberry.example {
     /// against one has to read it (`docs/testing.md` §2).
     requires transitive static org.jspecify;
     requires io.github.digitalsmile.goldberry.widgets;
+
+    /// The first content module an application opts into (ADR-0190), and **both** of
+    /// its widgets. The Panels and Markdown screens name `markdown-view` in KDL and
+    /// the HTML screen names `html-view`; this line is what puts either node on the
+    /// path, and `Showcase.stylesheets()` adds the two stylesheets beside the
+    /// toolkit's own (ADR-0298).
+    ///
+    /// Worth noticing what is **not** here: nothing in this module names a
+    /// `MarkdownEvent` or an `MD_BLOCKTYPE`, because `:natives` exports md4c to
+    /// `:html` and to nobody else (ADR-0294). An application gets a document and a
+    /// widget, and the parser is somebody else's business.
+    requires io.github.digitalsmile.goldberry.html;
     requires org.slf4j;
 
     /// So the toolkit can read `showcase.css` and `badges.kdl`.

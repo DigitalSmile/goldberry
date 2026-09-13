@@ -16,12 +16,15 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.example.ui.Panes;
+import io.github.digitalsmile.goldberry.markdown.model.Heading;
+import io.github.digitalsmile.goldberry.markdown.view.MarkdownView;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.form.textarea.TextArea;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 
 /// That the five documents behind the window still say what the application
@@ -177,6 +180,55 @@ class ShowcaseDocumentsTest {
                 "spacer")) {
             assertTrue(types.contains(control), () -> "no document builds a " + control + " any more: " + types);
         }
+    }
+
+    @Test
+    @DisplayName("the Markdown screen binds one property to an editor and a preview")
+    void markdownIsLive() {
+        // `markdown.kdl` says `markdown-view` and nothing in this application tells
+        // the inflater where that node comes from: `goldberry-html` declares a
+        // `WidgetCatalog`, the module path carries it, and `Widgets.inflater` finds it
+        // through a `uses` (ADR-0131, ADR-0294). If that mechanism broke, the document
+        // would fail to inflate rather than render oddly -- so this is the assertion
+        // that a second widget module works at all.
+        var views = new ArrayList<MarkdownView>();
+        var editors = new ArrayList<TextArea>();
+        collectPanes(new ElementTree(Panes.markdown(inflater())).root(), views, editors);
+
+        assertEquals(1, views.size(), "markdown.kdl should build exactly one markdown-view");
+        assertEquals(1, editors.size(), "and exactly one editor beside it");
+
+        // **The live-ness, asserted rather than described.** The editor and the
+        // preview are bound to the same property, which is what makes a keystroke a
+        // new document: nothing in this application connects them (ADR-0296).
+        var preview = views.getFirst();
+        var editor = editors.getFirst();
+        assertNotNull(preview.binding(), "the preview follows a property or it is not live");
+        assertSame(
+                Models.observable(model, "md.source"),
+                preview.binding(),
+                "the preview should follow md.source, which is what the editor writes");
+        assertSame(editor.binding(), preview.binding(), "one property, read twice");
+
+        // And that the sample actually parses into a document rather than into one
+        // paragraph of literal Markdown.
+        var document = preview.resolved();
+        assertTrue(
+                document.blocks().getFirst() instanceof Heading heading && heading.level() == 1,
+                () -> "the sample starts with " + document.blocks().getFirst());
+        assertTrue(document.blocks().size() > 20, "the sample covers every construct, so it is not three blocks");
+    }
+
+    /// Every `markdown-view` and every `text-area` under `element`, at any depth — a
+    /// split pane wraps each child, so neither is a child of the root.
+    private static void collectPanes(Element element, List<MarkdownView> views, List<TextArea> editors) {
+        if (element.widget() instanceof MarkdownView view) {
+            views.add(view);
+        }
+        if (element.widget() instanceof TextArea editor) {
+            editors.add(editor);
+        }
+        element.children().forEach(child -> collectPanes(child, views, editors));
     }
 
     @Test

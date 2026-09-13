@@ -112,6 +112,7 @@ dependencies {
     jacocoAggregation project(':common')
     jacocoAggregation project(':core')
     jacocoAggregation project(':widgets')
+    jacocoAggregation project(':html')
     jacocoAggregation project(':gpu')
     jacocoAggregation project(':weaver')
     jacocoAggregation project(':example')

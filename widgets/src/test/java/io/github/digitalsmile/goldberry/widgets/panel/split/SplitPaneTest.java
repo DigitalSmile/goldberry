@@ -107,6 +107,77 @@ class SplitPaneTest {
     }
 
     @Nested
+    @DisplayName("being measured")
+    class Measuring {
+
+        /// **The defect this pins.** The state took the measurement and did not ask
+        /// for a rebuild, so the view kept the `-1` it had been built with and the
+        /// first pane stayed on its first-frame proportional guess. A `position` of
+        /// 0.5 put the divider wherever the two children's content happened to land,
+        /// for ever — and dragging it was the only thing that ever corrected it,
+        /// which is why every test here that *did* drag passed.
+        @Test
+        @DisplayName("moves the divider to where the position says, with nobody touching it")
+        void aMeasurementIsEnough() {
+            var tree = new ElementTree(split(0.5));
+            assertEquals(-1, view(tree).firstLength(), "nothing has been laid out yet, so there is no size to give");
+
+            view(tree).measured(new Extent(LENGTH, 120), null);
+            assertTrue(tree.needsBuild(), "a pane that has learnt its own length has something new to describe");
+            tree.flush();
+
+            assertEquals(
+                    (LENGTH - SplitPaneView.DIVIDER) / 2,
+                    view(tree).firstLength(),
+                    0.01,
+                    "half of what is left once the divider is out of it");
+        }
+
+        @Test
+        @DisplayName("asks for nothing when the measurement has not changed")
+        void anUnchangedMeasurementIsQuiet() {
+            var tree = measured(split(0.5));
+
+            view(tree).measured(new Extent(LENGTH, 120), null);
+
+            assertFalse(
+                    tree.needsBuild(),
+                    "a still window must rebuild nothing, or the idle frame loop wakes every frame (§1.7)");
+        }
+
+        @Test
+        @DisplayName("follows a resize")
+        void aNewLengthMovesIt() {
+            var tree = measured(split(0.5));
+
+            view(tree).measured(new Extent(LENGTH * 2, 120), null);
+            tree.flush();
+
+            assertEquals((LENGTH * 2 - SplitPaneView.DIVIDER) / 2, view(tree).firstLength(), 0.01);
+        }
+
+        @Test
+        @DisplayName("measures the other axis when it is stacked")
+        void verticalMeasuresHeight() {
+            var pane = new SplitPane(
+                    SplitAxis.VERTICAL,
+                    0.25,
+                    null,
+                    SplitPane.DEFAULT_MINIMUM,
+                    SplitPane.DEFAULT_MINIMUM,
+                    false,
+                    List.of(new Text("first"), new Text("second")),
+                    Attributes.NONE);
+            var tree = new ElementTree(pane);
+
+            view(tree).measured(new Extent(120, LENGTH), null);
+            tree.flush();
+
+            assertEquals((LENGTH - SplitPaneView.DIVIDER) / 4, view(tree).firstLength(), 0.01);
+        }
+    }
+
+    @Nested
     @DisplayName("what it describes")
     class Description {
 

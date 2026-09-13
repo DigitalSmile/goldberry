@@ -15,7 +15,9 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -119,6 +121,14 @@ class GalleryGoldenTest {
         // `font-weight`. Handing over a book would be a typography change wearing
         // an infrastructure change's clothes.
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
+        // The optional module's rules, exactly as `Showcase.stylesheets()` adds
+        // them: the Panels wall holds a `markdown-view`, and a golden taken without
+        // these would be a picture of a document the application never draws
+        // (ADR-0295).
+        sheets.add(MarkdownStyles.stylesheet());
+        // And the module's other half, which the HTML screen is entirely made of
+        // (ADR-0298).
+        sheets.add(HtmlStyles.stylesheet());
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         // The size and the scale are the harness's rather than captured here,
@@ -148,6 +158,32 @@ class GalleryGoldenTest {
     @DisplayName("the Panels screen")
     void panels() {
         paint("gallery-panels", "panels", Theme.NORD_DARK, 1200, 900);
+    }
+
+    /// The screen an **optional module** draws, and the only golden in the gallery
+    /// that needs a stylesheet the toolkit does not ship (ADR-0295).
+    ///
+    /// Taller than the walls: this screen is a `split-pane` rather than a masonry, so
+    /// what it shows is bounded by the window rather than by how many cards fit —
+    /// and the preview is worth more than the fold.
+    @Test
+    @DisplayName("the Markdown screen, with an editor and its live preview")
+    void markdown() {
+        paint("gallery-markdown", "markdown", Theme.NORD_DARK, 1200, 1000);
+    }
+
+    /// The other half of the same optional module, and the screen `docs/gaps.md` G17
+    /// asked for.
+    ///
+    /// Taller than the walls for the Markdown screen's reason — it is a `split-pane`
+    /// rather than a masonry, so what it shows is bounded by the window — and worth its
+    /// own image rather than being covered by that one: the two screens share an
+    /// arrangement and share no code below it, so a defect in either fold is a picture
+    /// that changed here and not there.
+    @Test
+    @DisplayName("the HTML screen, with an editor, a live preview and a link you can press")
+    void html() {
+        paint("gallery-html", "html", Theme.NORD_DARK, 1200, 1000);
     }
 
     @Test

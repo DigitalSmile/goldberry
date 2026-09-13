@@ -1,0 +1,38 @@
+md4c
+SPDX-License-Identifier: MIT
+Upstream:      https://github.com/mity/md4c
+Licence file:  LICENSE.md
+Bundled as:    compiled into libgoldberry (src/md4c.c and src/entity.c)
+
+Two translation units rather than a library: the superbuild compiles md4c's
+parser and its HTML5 named-entity table straight into the shim's target, and
+neither exports a symbol of its own -- the five `goldberry_md_*` entries on
+the export list are Goldberry's (ADR-0294). The compiled code is present in
+every binary artifact regardless, which is the redistribution this notice is
+about.
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- Reference text of MIT (informational until vendored; the upstream
+    copyright line governs and is not reproduced here) ---
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

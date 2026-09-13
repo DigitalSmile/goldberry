@@ -671,6 +671,61 @@ the rest of §4. The shape they share is
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
 on, which in four cases is the same thing.
 
+- **Both halves of `goldberry-html` are built, and neither has an engine under
+  it.** `:html` ships `Markdown.parse`, `MarkdownHtml`, `markdown-view`, `Html.parse`
+  and `html-view`
+  ([ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md),
+  [ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md),
+  [ADR-0298](adr/0298-html-is-a-document-and-not-an-engine.md)),
+  and what they do *not* do is a short list that mostly has one cause — there is no
+  inline layout engine under either, because that is what litehtml would be:
+  - **Neither can lay out a line of mixed faces as one shaped run**, so there is no
+    justification and no hyphenation. This is the item that *is* litehtml's, and it
+    is now **the whole** of what an engine would buy: links, images, task boxes
+    (ADR-0300) and text selection
+    ([ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md)) all
+    used to be on this list and none of them needed one.
+  - **Dragging a selection past the edge of a viewport does not scroll on.** Both
+    views select, copy and highlight
+    ([ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md)); what a
+    drag to the bottom of a pane does is stop selecting rather than carry the
+    viewport with it. The same want a `text-area` has, and neither has it — an
+    auto-scroll is a timer plus a clamp, and the interesting part is deciding what
+    it does on a touchpad's fractional deltas.
+  - **Emphasis is a faux oblique** — `transform: skewX(-10deg)` — because §6.1
+    ships two upright faces. A third face is an asset decision rather than a code
+    one, and `:assets` is where it would be made.
+  - **A hard break inside a paragraph does nothing.** A wrapping row has no widget
+    meaning "start a new line here", and a `spacer` with `flex-grow` — the obvious
+    trick — makes the line before it look justified.
+  - **A table's cells have no rules between them, and a fence does not scroll
+    sideways.** Both are the CSS subset: `border` is uniform, so there is no
+    `border-left`, and horizontal `scroll` is not in §10 either.
+  - **`src="…"` is not a thing on either view.** Reading a file from markup means
+    deciding what a relative path is relative to and what a missing one does —
+    three answers `Icons` and the stylesheets each needed a resolver for. An
+    application reads the file and passes the text.
+  - **`<style>` and `style=` are kept in the HTML model and applied by nothing**,
+    and neither is a `<script>` run. The cascade an `html-view` is under is the
+    application's stylesheets, which is what makes a page follow the theme; an
+    author's own colours would fight it (ADR-0298).
+  - **A keystroke re-parses and rebuilds the whole preview** (ADR-0296). Right for
+    a note in a pane, and the widget count is what bites first on anything longer —
+    ADR-0295 put it at roughly one per word. An incremental parse is md4c's to
+    offer and it does not; a rebuild bounded by what the viewport shows is the
+    `list` virtualization argument applied to a document, and nothing needs it yet.
+- **A `text-input` holding a long value shows its end, not its beginning.**
+  `TextEdit.of` puts the caret at the end and the field keeps the caret in view
+  from its first layout, which is what `text-area` did until
+  [ADR-0297](adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md).
+  The fix is the same flag and the same argument; it is not done here because a
+  field is not a document and changing two controls on one screen's evidence is how
+  a fix becomes a regression somewhere nobody looked.
+- **A code editor is `goldberry-code`, and that module does not exist.** The
+  Markdown screen's editor is a `text-area` in the code face: a caret, a selection,
+  undo, the clipboard and an input method, with no line numbers, no highlighting
+  and no Tab-inserts-a-tab. Tree-sitter is what the highlighting waits on, and the
+  fence's language already reaches the model for it to read (`CodeBlock.language()`).
 - **The export list has no paint surface wide enough for a native
   `document_container`.** `goldberry-html` puts litehtml's C++ container inside
   its own native library because FFM cannot implement a virtual class, and that
@@ -679,10 +734,13 @@ on, which in four cases is the same thing.
   no gradient, no rounded geometry, and no `bl_context_save` — the symbol file
   says why in its own comment, that there is only ever one clip depth here.
   `content-widgets.md` §1.5 promises linear and radial gradients and
-  `border-radius`, and CSS state nests. So the first commit of `goldberry-html`
-  is a widening of the toolkit's own native surface, reviewable on its own, and
-  it is *shared* work: `goldberry-vector` and `goldberry-terminal` want the same
-  surface. Statically linking a second Blend2D into the module is the way out
+  `border-radius`, and CSS state nests. So the first commit of an *engine-backed*
+  `goldberry-html` is a widening of the toolkit's own native surface, reviewable on
+  its own, and it is *shared* work: `goldberry-vector` and `goldberry-terminal`
+  want the same surface. **Nothing on screen is waiting on this any more**
+  (ADR-0298): `html-view` renders through the widget tree, and what an engine would
+  add is the inline layout and the text selection above. When it lands it is a
+  second renderer over the same model rather than a replacement for one. Statically linking a second Blend2D into the module is the way out
   that does not work — two runtimes in one process, and a `BLContext` handed
   across them is undefined behaviour. —
   [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md),
@@ -714,9 +772,13 @@ on, which in four cases is the same thing.
   posture from every other native in the toolkit, where the superbuild compiles
   from a pinned commit ([ADR-0030](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)).
   Worth an ADR of its own before the first jar.
-- **`goldberry-code` has a consumer before it has a widget.** md4c's code fences
-  want a highlighter, so `goldberry-html` either depends on it optionally or
-  renders fences plain. The optional-dependency mechanic — a module that improves
+- **`goldberry-code` has a consumer before it has a widget, and the consumer now
+  exists.** md4c's code fences want a highlighter; `markdown-view` renders a fence
+  as plain monospace lines with the language shown above them, which is the
+  "renders fences plain" branch — and the language is already in the model
+  (`CodeBlock.language()`), so the seam is a real one rather than a plan. So
+  `goldberry-html` either depends on `goldberry-code` optionally or keeps
+  rendering them plain. The optional-dependency mechanic — a module that improves
   when another is on the module path — does not exist in the toolkit yet, and
   `goldberry-vector` needs the same thing for `image/svg+xml`. One mechanism, two
   callers, and JPMS services are the obvious shape.

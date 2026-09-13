@@ -15,6 +15,14 @@ dependencies {
     implementation project(':core')
     implementation project(':widgets')
 
+    // The first content module, and the showcase is where an application opts
+    // into one (ADR-0190). It buys two things on the Panels screen: the
+    // `markdown-view` node, which `panels.kdl` names without this file being
+    // mentioned anywhere in it -- the catalog arrives through a `uses`, which is
+    // ADR-0131's promise about a second widget module -- and the stylesheet
+    // `Showcase.stylesheets()` adds beside the toolkit's own.
+    implementation project(':html')
+
     // The golden-image harness and the renderer requirement, so the gallery can
     // be checked as pictures the way the catalog is (§14, ADR-0110).
     testImplementation testFixtures(project(':core'))
@@ -218,8 +226,13 @@ tasks.named('test') {
     // to be rewritten is rewritten by a property, and one that stopped at the
     // Gradle daemon would look like a test that refuses to update. The scale
     // settings ride along for ADR-0162's second half, which is a property too.
+    // `goldberry.trace.frames` rides along for the same reason: it is read into a
+    // `static final` when the renderer's classes initialise, so a property that
+    // stopped at the Gradle daemon would silently trace nothing -- and the two
+    // defects that probe exists for (ADR-0142, ADR-0149) were both found from a
+    // test rather than from a window.
     ['goldberry.golden.update', 'goldberry.golden.scales',
-     'goldberry.golden.scales.report'].each { name ->
+     'goldberry.golden.scales.report', 'goldberry.trace.frames'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

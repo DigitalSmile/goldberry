@@ -80,7 +80,10 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// @param focused     whether it has the keyboard
 /// @param caretShown  whether this is the lit half of the blink
 /// @param rows        its minimum height in lines
-/// @param maxRows     the height it grows to before it scrolls
+/// @param maxRows     the height it grows to before it scrolls — for a filling area,
+///                    how many lines its measured height holds
+/// @param fill        whether the height comes from the container rather than from
+///                    the text ([TextArea#fill])
 /// @param disabled    whether it refuses everything
 /// @param readOnly    whether it takes a caret but no edits
 /// @param attributes  the `id` and classes the document wrote
@@ -94,6 +97,7 @@ record TextAreaBox(
         boolean caretShown,
         int rows,
         int maxRows,
+        boolean fill,
         boolean disabled,
         boolean readOnly,
         Attributes attributes,
@@ -384,12 +388,15 @@ record TextAreaBox(
             }
         }
 
-        return Box.of()
-                .style(style)
-                .children(boxes.toArray(Box[]::new))
-                .size(Length.UNDEFINED, Length.points((float) height(lines.size(), lineHeight, padding)))
-                .cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT)
-                .overflow(Overflow.HIDDEN);
+        var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
+        // **A filling area takes what its parent gives it.** `flex-grow` rather than
+        // a height, because the height is the layout's answer and not this widget's:
+        // what it then does with it -- how many lines are on screen, how far the text
+        // may scroll -- comes back through the measurement (ADR-0296).
+        box = fill
+                ? box.grow(1).shrink(1).size(Length.UNDEFINED, Length.UNDEFINED)
+                : box.size(Length.UNDEFINED, Length.points((float) height(lines.size(), lineHeight, padding)));
+        return box.cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT).overflow(Overflow.HIDDEN);
     }
 
     /// The control's height: as many lines as the text has, between [#rows] and

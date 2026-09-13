@@ -17,7 +17,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
-| [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
+| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. The other ten are unscheduled |
 
 ## Foundation
 
@@ -6703,12 +6703,99 @@ was measured rather than on what it would be nice to have measured.
 
 ## Content modules
 
-**None started, and none scheduled.** `docs/content-widgets.md` specifies eleven
-optional modules — HTML/markdown, PDF, plotting, code, terminal, vector, media,
-camera, microphone, emoji and the parked web engine — and the plan they now sit
+**One of eleven, and now all of it.** `docs/content-widgets.md` specifies
+eleven optional modules — HTML/markdown, PDF, plotting, code, terminal, vector,
+media, camera, microphone, emoji and the parked web engine — and the plan they sit
 in is `docs/ARCHITECTURE.md` §11.1 with
-[ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) under it. No
-Gradle subproject, no artifact and no line of code exists for any of them.
+[ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) under it. Nine of
+them have no Gradle subproject, no artifact and no line of code.
+
+### `:html` — both halves are built, and both are usable
+
+`docs/gaps.md` G8 and G17, closed by
+[ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md),
+[ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md) and
+[ADR-0298](adr/0298-html-is-a-document-and-not-an-engine.md).
+
+- **md4c is compiled into `libgoldberry`** and reaches Java through five
+  `goldberry_md_*` symbols, none of which is md4c's own. The parser is a SAX
+  interface — five callbacks, thousands of them per note — so the events are
+  encoded into one buffer in C and read once: no upcall stubs, and none of md4c's
+  seven detail structs in the layout table. That is ADR-0190's own "the hot path
+  never crosses FFM" applied to a parser, and it is the reason a `Document` owns
+  no native memory.
+- **A departure from ADR-0190, recorded rather than quiet.** That record
+  quarantines a content module's natives into a jar of its own; md4c is one MIT C
+  file whose object code is tens of kilobytes, and a second superbuild with four
+  CI legs would cost more than it isolates. The *dependency direction* is not
+  relaxed: `:natives` exports md4c's wrapper to `:html` and to nobody else, which
+  `ExportedSurfaceTest` checks, and neither `:core` nor `:widgets` knows Markdown
+  exists.
+- **A document is a sealed tree of records**, and the HTML writer and the widget
+  renderer are two folds over it — so a preview, an outline, a word count and the
+  bytes a server hands out are all one parse and cannot drift apart.
+- **`markdown-view` is the first widget outside `:widgets`**, which exercises
+  ADR-0131 end to end: the showcase's `markdown.kdl` names the node and nothing in
+  that application mentions the module that provides it.
+- **A preview follows a property** (ADR-0296). `markdown-view` takes §9's `bind=`,
+  so an editor and its preview are two nodes over one value — the gallery's ninth
+  screen is a `split-pane` holding a `text-area` that writes `md.source` and a view
+  that reads it, and there is nothing in the showcase between them. The sample it
+  opens with is every construct the parser reports, which is also what keeps the
+  golden image honest.
+- **Two defects in `:widgets` fell out of building that screen** (ADR-0297), both
+  older than Markdown: a `split-pane` took its measured length and never asked for
+  the rebuild that would use it, so `position` was a first-frame guess that only a
+  drag corrected; and a `text-area` chased its caret from the first layout, so an
+  area opened on a document showed its **last** line. `text-area` also gained
+  `fill=#true` — the editor's half of §4's control, sized by its container rather
+  than by its text.
+- **Both views are read, not only looked at** (ADR-0300). A link is a
+  `button.link` that hands its destination to the application; an `ImageSource` the
+  application supplies is what turns a `src` into a drawn picture, and a `src`
+  nothing answers for is still its alt text; a Markdown task box reports its
+  **ordinal**, and `Markdown.toggleTask` flips that one character of the source so
+  the binding brings the new document back. Every one of them is the toolkit
+  reporting and the application deciding — nothing here opens a browser or reads a
+  file.
+- **A document is selectable** (ADR-0301). Drag, double-click a word, triple-click
+  a block, `Ctrl+A`, `Ctrl+C`, with the separators the document implies. Three
+  facilities that already existed made it cheap: `Located` says where each word was
+  painted, a painter reading mutable state means a drag repaints rather than
+  rebuilds, and `Paragraph.offsetAt` puts the caret between the right two glyphs. A
+  word is a `word` part now rather than a `text` widget — same count, same box, same
+  cache.
+- **What they deliberately still do not do**: emphasis is a faux oblique because
+  the system ships two upright faces, a hard break inside a paragraph does nothing,
+  and a line of mixed faces is a row of words rather than one shaped run — so no
+  justification and no hyphenation, which is what an engine would still buy.
+- **`html-view` is built, and litehtml is not what it is built on** (ADR-0298).
+  `Html.parse` is a tokenizer and a tree builder in Java over a sealed model, and
+  the fold into widgets is the Markdown one with an open tag vocabulary: an element
+  contributes `html-<tag>`, so `html.css` reads like a browser's default sheet and
+  `<my-callout>` is styleable without a line of Java. It cost **no new native
+  symbol** — the one thing that crosses is md4c's entity table, which was already
+  there.
+- **An anchor is a `button.link`** (ADR-0293), handing its `href` to the
+  application and nothing else: a Tab stop, a hover, `Space` and `Enter`, and no
+  browser opened by the toolkit. That is the one capability G17 promised over G8
+  that an engine was not needed for, and the showcase's tenth screen presses one.
+- **Two widget trees in one module broke the weaver, and that is fixed.** The
+  generated catalog goes in "the longest package prefix every widget shares",
+  which for `markdown.view` and `html.view` is the package `:core` owns — and two
+  named modules holding one package is a `LayerInstantiationException` on the
+  module path that no class-path test can see. `CatalogWeaver` now bounds that
+  choice by the packages the module actually has classes in.
+- **What is still the engine's**: a line of mixed faces as one shaped run, and the
+  text selection that follows from it. Nothing on screen waits on it, which is the
+  difference between this line and the one it replaces.
+- **A document made the paragraph cache's size a bug** (ADR-0299). One `text`
+  widget per word asks for ~600 distinct paragraphs a frame against a cache of 256,
+  and least-recently-used eviction then guarantees a **zero** hit rate rather than a
+  lower one: 287 shapes per frame on a tree that had not changed, and 9.5 ms of
+  style pass. The cache sizes itself to the frame now — 0 shapes, 0.8 ms — and
+  `FrameBudgetTest` asserts the count rather than a time. The same test had been
+  measuring a screen that no longer existed, which is why nothing caught it.
 
 Two of the eleven are not modules at all in what ships, and both were decided
 before the document was written: the **chart** widgets belong to `:widgets`
@@ -6722,9 +6809,11 @@ What is built that they would stand on, stated so the estimate is honest:
 - **A borrowed pixel buffer wrapped as a `BLImage` costs nothing to hand over**
   ([ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)), which is exactly the
   handover PDFium, ThorVG and libVLC each want.
-- **A leaf render object measured by a callback** is what `html-view`,
-  `pdf-view` and `camera-view` all are — the same shape `text` already uses,
-  where Yoga asks and the widget answers.
+- **A leaf render object measured by a callback** is what an engine-backed
+  `html-view`, `pdf-view` and `camera-view` all are — the same shape `text`
+  already uses, where Yoga asks and the widget answers. The `html-view` that
+  shipped is not one: it is a tree of ordinary boxes, which is why it needed
+  nothing from this list.
 - **A repaint boundary is a subtree's own raster**
   ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)), so a page, a video
   frame or a camera preview updating off the UI cadence is a layer that
@@ -6735,9 +6824,10 @@ What is built that they would stand on, stated so the estimate is honest:
 
 And the two facts that make the first one cost more than it reads:
 
-- **The export list has no rounded geometry, and it has gradients now.** 211
-  symbols reach Java, and the twenty-five `bl_context_*` among them are the ones
-  the toolkit's own painter uses — `bl_context_save` arrived with `canvas`
+- **The export list has no rounded geometry, and it has gradients now.** 232
+  symbols reach Java — five of them added by Markdown, which needed none of this
+  surface at all (ADR-0294) — and the twenty-five `bl_context_*` among them are
+  the ones the toolkit's own painter uses — `bl_context_save` arrived with `canvas`
   ([ADR-0193](adr/0193-a-canvas-is-a-second-clip-depth.md)) and the three
   fill-style entries with a chart's gradient fill
   ([ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)), which is two of the three
@@ -6760,6 +6850,7 @@ And the two facts that make the first one cost more than it reads:
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
 | `:weaver` | *not published* | The weaver, in two halves. **Catalog**: collects a module's `@Markup` widgets into a `WidgetCatalog` and declares it — every build runs this, because nothing finds annotated classes at run time ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)). **Models**: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, with the JDK's class-file API — only a **GraalVM native image** runs this, since an ordinary jar binds the same annotations reflectively ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Build-time only, like `:assets`: it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |
+| `:html` | `goldberry-html` | The first **optional** module, and the first widget outside `:widgets`: Markdown parsed through md4c into a sealed tree of records, written out as HTML, and rendered as `markdown-view` — `column`, `row` and `text` under the ordinary cascade rather than an engine ([ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md), [ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)). An application opts in: it adds the dependency and `MarkdownStyles.stylesheet()`, and nothing in `:core` or `:widgets` depends on it. `html-view` and its litehtml engine are **not** here |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
 
 `:assets` is a fifth subproject and is not published: it is the build-time

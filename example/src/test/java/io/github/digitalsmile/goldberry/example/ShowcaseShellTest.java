@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's eight screens are named in one place
+/// gallery's nine screens are named in one place
 /// (ADR-0221,
 /// ADR-0222).
 ///

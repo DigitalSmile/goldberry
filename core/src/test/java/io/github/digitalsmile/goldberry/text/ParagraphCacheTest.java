@@ -104,11 +104,19 @@ class ParagraphCacheTest {
     void evictionIsByRecency() {
         var cache = ParagraphCache.withCapacity(2);
 
+        // A `frame()` between each, because eviction is what happens when a cache
+        // is too small for the *corpus* and big enough for the frame -- a cache too
+        // small for one frame grows instead of evicting what that frame is still
+        // using (ADR-0299), which is a different question and the test below it.
         cache.paragraph(font, "first");
+        cache.frame();
         cache.paragraph(font, "second");
+        cache.frame();
         // Touch "first" so "second" becomes the least recent.
         var first = cache.paragraph(font, "first");
+        cache.frame();
         cache.paragraph(font, "third");
+        cache.frame();
 
         assertEquals(2, cache.size());
         // "first" survived because it was used recently, even though it is the
@@ -119,6 +127,68 @@ class ParagraphCacheTest {
         var missesBefore = cache.misses();
         cache.paragraph(font, "second");
         assertEquals(missesBefore + 1, cache.misses());
+    }
+
+    @Test
+    @DisplayName("a frame that asks for more than it holds makes the cache bigger")
+    void aFrameSizesTheCache() {
+        // The defect this exists for, in five lines: a document of one paragraph
+        // per word asks for more distinct strings than the cache holds, LRU then
+        // evicts each entry just before the next frame reaches it, and the hit
+        // rate is not lower but **zero** — measured at 287 shapes per frame on a
+        // settled tree that had not changed at all (ADR-0299).
+        var cache = ParagraphCache.withCapacity(4);
+        for (var word = 0; word < 10; word++) {
+            cache.paragraph(font, "word " + word);
+        }
+        // Grown **during** the frame rather than after it, so the first frame of a
+        // long document is the cheap one rather than the one after it.
+        assertTrue(cache.capacity() >= 10, "a cache that cannot hold one frame is worse than no cache");
+        assertEquals(10, cache.size(), "and nothing this frame asked for was thrown away");
+
+        cache.frame();
+
+        assertEquals(10, cache.highWaterMark());
+
+        // The second frame, asking for exactly what the first one did: not one
+        // shape, which is the whole point.
+        var missesBefore = cache.misses();
+        for (var word = 0; word < 10; word++) {
+            cache.paragraph(font, "word " + word);
+        }
+        assertEquals(missesBefore, cache.misses(), "the same frame twice should shape nothing the second time");
+    }
+
+    @Test
+    @DisplayName("and never past the ceiling, because a cache is not a leak")
+    void growthIsBounded() {
+        var cache = ParagraphCache.withCapacity(4);
+        for (var word = 0; word < ParagraphCache.MAX_CAPACITY + 100; word++) {
+            cache.paragraph(font, "word " + word);
+        }
+
+        cache.frame();
+
+        assertEquals(ParagraphCache.MAX_CAPACITY, cache.capacity());
+        assertTrue(cache.size() <= ParagraphCache.MAX_CAPACITY, "the ceiling is what is actually held");
+    }
+
+    @Test
+    @DisplayName("a small frame does not shrink a cache a big one grew")
+    void itDoesNotShrink() {
+        // A window that showed a long document once can show it again, and giving
+        // the memory back would cost the next visit the shaping it just paid for.
+        var cache = ParagraphCache.withCapacity(4);
+        for (var word = 0; word < 20; word++) {
+            cache.paragraph(font, "word " + word);
+        }
+        cache.frame();
+        var grown = cache.capacity();
+
+        cache.paragraph(font, "one");
+        cache.frame();
+
+        assertEquals(grown, cache.capacity());
     }
 
     @Test

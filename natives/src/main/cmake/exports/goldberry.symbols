@@ -522,3 +522,19 @@ hb_language_from_string
 # The one call the rest of it exists for.
 hb_shape
 
+
+# --- Markdown (ADR-0294) -----------------------------------------------------
+#
+# Five symbols for a whole parser, and none of them is md4c's own. md_parse is a
+# SAX parser: bound directly it would want five upcall stubs and would hand Java
+# a detail struct per block, so what crosses instead is one encoded buffer per
+# document -- parse it, read it, free it. The hot path does not cross FFM, which
+# is the rule every content module shares (ADR-0190).
+goldberry_md_parse
+goldberry_md_data
+goldberry_md_size
+goldberry_md_free
+
+# The HTML5 named-entity table, which ships inside md4c and is 2125 names. A
+# second copy in Java would be a copy that drifts.
+goldberry_md_entity

@@ -6,7 +6,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 
 | Module              | Engine                  | Native size | License in                    | Status |
 |---------------------|-------------------------|-------------|-------------------------------|--------|
-| `goldberry-html`    | litehtml + md4c         | < 1 MB      | BSD-3-Clause, MIT             | planned (M3-adjacent) |
+| `goldberry-html`    | md4c (+ litehtml, open) | < 1 MB      | BSD-3-Clause, MIT             | **built**: `markdown-view` and `html-view`, neither through an engine |
 | `goldberry-pdf`     | PDFium                  | tens of MB  | BSD-3 + bundled permissive    | planned (M4-adjacent) |
 | `goldberry-charts`  | first-party (canvas)    | none        | Apache-2.0                    | planned (M3) |
 | `goldberry-plot`    | first-party (on charts) | none        | Apache-2.0                    | post-v1 |
@@ -22,6 +22,43 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 ---
 
 ## 1. `goldberry-html` — `html-view` and `markdown-view` (litehtml + md4c)
+
+> **Built, and not as specified below.** *Both* halves landed without litehtml
+> under them, and the second one is a decision rather than an accident
+> ([ADR-0298](../book/src/adr/0298-html-is-a-document-and-not-an-engine.md)):
+> `html-view` parses HTML in Java into a model of records and folds it into the
+> same widgets `markdown-view` uses, which is what §1.1 below is superseded by.
+> The engine is not deleted from the plan — it is the only way to get **real
+> inline layout** and the text selection that follows from it — but nothing on
+> screen is waiting on it any more. What §1.1 describes is therefore the
+> architecture of a *future* renderer over the same model, not of what ships.
+>
+> The Markdown half landed first and
+> without litehtml under it: md4c parses into a **model** — a sealed tree of
+> records — and `markdown-view` renders that into `column`, `row` and `text`
+> under the ordinary cascade, while `MarkdownHtml` writes the same tree out as an
+> HTML fragment. §1.2 below assumed markdown would reach the screen *through*
+> litehtml; it does not, and the reason is that litehtml is blocked on a wider
+> native paint surface while a note's preview was not
+> ([ADR-0295](../book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)).
+>
+> md4c is also **not** in a natives jar of its own: one MIT C file rides
+> `libgoldberry`, and the parse crosses the FFM boundary once as an encoded event
+> buffer rather than as thousands of upcalls
+> ([ADR-0294](../book/src/adr/0294-a-parser-crosses-the-boundary-once.md)).
+>
+> §1.3's widget API is bind-shaped rather than `src=`-shaped: `markdown-view` takes
+> §9's `bind=`, so an editor and its preview are two nodes over one property and a
+> live preview needs no Java at all
+> ([ADR-0296](../book/src/adr/0296-a-preview-is-a-binding-not-a-callback.md)).
+> `src=` is still not built, for the reason that record gives.
+>
+> §1.4's generated master stylesheet **is built**, and is a file rather than a
+> generator: `html.css` and `markdown.css` are written in `var(--gb-*)`, so the
+> cascade resolves them against whichever theme is on and there is nothing to
+> regenerate on a theme switch. §1.5's supported list is the *engine's* and is
+> not what ships; each view's own javadoc carries the honest one, and
+> `docs/gaps.md` G17 has the summary.
 
 **Scope.** Rendering *authored content*: documentation, help pages, changelogs, HTML email display, and markdown. Explicit non-goal: web browsing. The README promise is "renders your HTML content, beautifully and offline" — never "renders websites."
 
@@ -55,6 +92,15 @@ scroll {
 }
 ```
 
+> **What shipped is bind-shaped rather than `src=`-shaped**, for both views
+> (ADR-0296, ADR-0298). `src=` is still not built, because reading a file from
+> markup means deciding what a relative path is relative to and what a missing one
+> does. An application reads the file and passes the text:
+>
+> ```kdl
+> scroll { html-view bind="doc.source" link="doc.open" }
+> ```
+
 ```java
 var view = HtmlView.of(Path.of("help/getting-started.html"))
     .onLink(url -> app.navigate(url))
@@ -76,7 +122,9 @@ Not supported, by engine or by v1 decision:
 - JavaScript, network, navigation — engine has none; app owns all three. (Feature, not gap.)
 - CSS Grid, CSS animations/transitions, web components.
 - Interactive form widgets (`<input>` etc.) — out of scope for a content renderer.
-- Text selection/copy — deferred to v1.x (character-quad work, same bucket as text-editing depth).
+- ~~Text selection/copy — deferred to v1.x~~ **built**, and without an engine: a word reports where it
+  was painted, an overlay paints the wash behind it, and `Paragraph.offsetAt` gives the character
+  ([ADR-0301](../book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)).
 
 ### 1.6 Testing & license
 

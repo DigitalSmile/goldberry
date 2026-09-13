@@ -406,14 +406,15 @@ Of those, **`button` and `checkbox` are built**; the other eleven are not. `radi
 The catalog above is what `goldberry-core` and `goldberry-widgets` owe. Everything
 that renders *authored content* — a document, a page, a video, a camera frame —
 is an **optional module**, specified in `content-widgets.md` and adopted as a plan
-by ADR-0190. **None of them is built.** The rule is one sentence: core stays lean
+by ADR-0190. **One of them is half built**: `goldberry-html` renders Markdown
+(ADR-0294, ADR-0295) and does not yet render HTML. The rule is one sentence: core stays lean
 and licence-flat, so anything with a heavy native dependency or an
 attribution/copyleft obligation is quarantined in its own artifact with its own
 natives jars and its own `THIRD-PARTY-NOTICES`, and an application opts in.
 
 | Module | Widgets | Engine | Where it attaches |
 |---|---|---|---|
-| `goldberry-html` | `html-view`, `markdown-view` | litehtml + md4c (BSD-3, MIT) | M3-adjacent |
+| `goldberry-html` | **`markdown-view` and `html-view` built** | **md4c (MIT)** for Markdown, a Java parser for HTML; litehtml still open | both halves landed **without an engine** (ADR-0298); litehtml waits on the paint surface below, for inline layout and text selection |
 | `goldberry-pdf` | `pdf-view` | PDFium (BSD-3, prebuilt) | M4-adjacent |
 | `goldberry-code` | `code-view` | Tree-sitter (MIT) | candidate |
 | `goldberry-terminal` | `terminal-view` | libvterm (MIT) + a PTY in the backend SPI | candidate |
@@ -430,6 +431,20 @@ engine worth hosting and the algorithms are the importable part, stands
 unchanged. **Emoji** ships inside core's text stack (§6.2), which means core
 carries the CC BY-SA attribution the document wanted quarantined; recorded in
 §17.1.
+
+**What `goldberry-html` actually landed**, and where it departs from the plan
+above (ADR-0294, ADR-0295). md4c is compiled **into `libgoldberry`** rather than
+into a native of its own: the quarantine rule is for heavy or encumbered natives,
+and md4c is one MIT C file of tens of kilobytes, so a second superbuild with four
+CI legs would cost more than it isolates. What is not relaxed is the dependency
+direction — `:natives` exports md4c's wrapper to `:html` alone, and neither
+`:core` nor `:widgets` knows Markdown exists. The parse crosses the boundary
+**once**, as an encoded event buffer rather than as thousands of upcalls, which is
+the first rule below applied to a parser; and `markdown-view` renders into
+`column`, `row` and `text` under the ordinary cascade rather than into litehtml,
+so the Markdown half needed no widening of the paint surface at all. litehtml,
+when it comes, still gets its own library — every clause of ADR-0190's argument
+applies to it.
 
 Three rules the modules share, from ADR-0190:
 
@@ -477,9 +492,9 @@ Screen-reader bridging (UIA / NSAccessibility / AT-SPI) is planned via **AccessK
 
 ## 15. Distribution
 
-- Build: **Gradle** (Groovy DSL) multi-module — `:common` (what both halves need and neither owns), `:core`, `:widgets` (the widget catalog, charts included), `:gpu`, `:natives` (wraps the CMake superbuild) — with a version catalog and convention plugins; CI runs the same Gradle tasks on all three OSes. (The original design specified the Kotlin DSL, a separate `:charts`, and a `:gallery` module; see ADR-0013 and ADR-0014.)
-- **Optional content modules** (§11.1) are published beside these when they exist — `goldberry-html`, `-pdf`, `-code`, `-terminal`, `-vector`, `-media`, `-camera`, `-mic`, each with its own natives classifier jars and its own notice file, none of them a dependency of `-core` or `-widgets` (ADR-0190). None exists today.
-- Published to **Maven Central** under group `io.github.digitalsmile` (base package `io.github.digitalsmile.goldberry`): artifacts `goldberry-common`, `-core`, `-widgets`, `-gpu`, plus `-natives-{platform}-{arch}` classifier jars (consumable from Gradle and Maven alike).
+- Build: **Gradle** (Groovy DSL) multi-module — `:common` (what both halves need and neither owns), `:core`, `:widgets` (the widget catalog, charts included), `:html` (the first optional content module: Markdown, §11.1), `:gpu`, `:natives` (wraps the CMake superbuild) — with a version catalog and convention plugins; CI runs the same Gradle tasks on all three OSes. (The original design specified the Kotlin DSL, a separate `:charts`, and a `:gallery` module; see ADR-0013 and ADR-0014.)
+- **Optional content modules** (§11.1) are published beside these when they exist — `goldberry-html`, `-pdf`, `-code`, `-terminal`, `-vector`, `-media`, `-camera`, `-mic`, each with its own notice file and none of them a dependency of `-core` or `-widgets` (ADR-0190). **`goldberry-html` exists**, and it has no natives jar of its own: md4c rides `libgoldberry` (ADR-0294), which is the one clause of that record measured and departed from. The other seven do not exist.
+- Published to **Maven Central** under group `io.github.digitalsmile` (base package `io.github.digitalsmile.goldberry`): artifacts `goldberry-common`, `-core`, `-widgets`, `-html`, `-gpu`, plus `-natives-{platform}-{arch}` classifier jars (consumable from Gradle and Maven alike).
 - Single-jar quick start (fat natives) for tinkering; GraalVM native-image config shipped in the jars (`META-INF/native-image`).
 - License: toolkit Apache-2.0. Bundled assets — Inter (OFL), JetBrains Mono (OFL), Lucide (ISC), OpenMoji derivative (CC BY-SA, attribution in About/NOTICE). The statically linked native libraries also redistribute in object form: Blend2D, AsmJit, SDL3 (Zlib), Yoga, HarfBuzz. On Linux SDL loads the system libxkbcommon at run time; it is not redistributed. Full disclosure in `THIRD-PARTY-NOTICES.md` and `licenses/`, verified by `./gradlew checkLicenses`; see ADR-0015.
 
@@ -532,6 +547,14 @@ tracks them alongside the implementation's own gaps.
   that does not quantize) without the mechanism it named. What a line is worth in
   pixels is the toolkit's number rather than the compositor's, and it lives on
   the widget that scrolls. (§7.1)
+- **A `text-area` that fills.** `core-widgets.md` §4 describes a field that grows
+  to fit its text between `rows` and `max-rows`, which is what a form wants. An
+  **editor** wants the other thing — the height its container has, with the text
+  scrolling inside it — so `fill=#true` is an attribute §4 does not have
+  ([ADR-0297](../book/src/adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md)).
+  It is an addition rather than a disagreement: an area without it behaves exactly
+  as §4 says. The sentence to amend is the one that assumes a multi-line field is
+  always a form control. (§11)
 - **One module or two.** `core-widgets.md` says every built-in lives in a single
   `goldberry-core` module, separated by package. The build ships `:core` and
   `:widgets` as separate modules and artifacts (ADR-0014). The split is

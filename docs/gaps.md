@@ -7,7 +7,12 @@ belongs in Goldberry.** Drawing, input, text, windows and platform integration a
 boards, notes, CRDT sync and agents are brd's. When brd hits the line, the answer is an entry here —
 not a workaround that quietly becomes a second toolkit.
 
-Updated 2026-09-12.
+Updated 2026-09-13.
+
+**Every entry on this list is now closed or answered**, G17 included (ADR-0298) —
+so the queue is empty rather than short. That is not the end of the list's job:
+§3 says a new brd need gets an entry here *before* any code is written in brd,
+and an empty queue is what that rule looks like when it is working.
 
 ---
 
@@ -72,7 +77,7 @@ a rule.
 | ~~[G5](#g5)~~ | ~~Shipped offscreen render + PNG encode~~ | **closed** — ADR-0283, ADR-0284 | done |
 | ~~[G6](#g6)~~ | ~~In-canvas text editing: caret, selection, undo~~ | **closed** — ADR-0285; IME preedit is [G15](#g15) | done |
 | ~~[G7](#g7)~~ | ~~Clipboard beyond text: images and custom types~~ | **closed** — ADR-0286 | done |
-| [G8](#g8) | `goldberry-html`: Markdown through md4c | Note preview (E1), Note → HTML in the Viewer (D1) | medium |
+| ~~[G8](#g8)~~ | ~~`goldberry-html`: Markdown through md4c~~ | **closed** — ADR-0294, ADR-0295, ADR-0296; `html-view` is [G17](#g17) | done |
 | ~~[G9](#g9)~~ | ~~Native file dialogs~~ | **closed** — ADR-0287 | done |
 | ~~[G10](#g10)~~ | ~~Gradients as a `core.paint` value~~ | **closed** — ADR-0277 | done |
 | ~~[G11](#g11)~~ | ~~The computed font of a box, inside a painter~~ | **closed** — ADR-0288 | done |
@@ -81,6 +86,7 @@ a rule.
 | ~~[G14](#g14)~~ | ~~The last `natives` leak: **one method**, `Frame.drawGlyphs`~~ | **closed** — ADR-0290 | done |
 | ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; the fields are [G16](#g16) | done |
 | ~~[G16](#g16)~~ | ~~IME preedit in `text-input`~~ | **closed** — ADR-0292; `text-area` too | done |
+| ~~[G17](#g17)~~ | ~~`html-view`: HTML through litehtml~~ | **closed** — ADR-0298; litehtml is **answered**, not built | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -105,6 +111,26 @@ a rule.
 - **Shortcuts, overlays, popups, tray**: `Host.shortcut(...)`, `Host.overlay(...)`, `Popup`, tray SPI.
 - **Native file dialogs**: `Host.fileDialog(FileDialogSpec.saveFile()..., choice -> …)` — open, save and
   folder, asynchronous, with filters and a starting directory ([G9](#g9)).
+- **Markdown**: `Markdown.parse(source)` to a tree of records, `MarkdownHtml.of(document)` to serve it
+  and `markdown-view` to show it — **live**, through `bind=`, so an editor and its preview are one
+  property read twice. The optional `:html` module, which an application adds to its own dependencies
+  and its own stylesheet list ([G8](#g8)).
+- **HTML**: `Html.parse(source)` to a tree of records, `html-view` to show it, `document.find("a")` and
+  `document.text()` to walk it — the same module, the same `bind=`, the same stylesheet pattern, and an
+  anchor that is a `button.link` handing its `href` to the application ([G17](#g17)). No engine, no
+  network, no scripting; what an engine would still buy is real inline layout and text selection.
+- **A document a reader can use**, in both views: links that are pressed, images that are drawn from an
+  `ImageSource` the application supplies, and — in Markdown — task boxes that report their ordinal, which
+  `Markdown.toggleTask` turns into a one-character edit of the source (ADR-0300). Every one of them is
+  the toolkit reporting and the application deciding; none of them opens a browser or a file.
+- **Text a reader can select and copy**, in both views: drag, double-click for a word, triple-click for a
+  block, `Ctrl+A`, `Ctrl+C` — with a space between words and a newline between blocks, because the fold
+  is what knows where those went (ADR-0301). A drag costs a repaint rather than a rebuild, which is why
+  it is usable on a long note.
+- **A document that draws at speed.** A page is one `text` widget per word, and the paragraph cache sizes
+  itself to the frame rather than to a constant — 287 re-shapes per settled frame became **zero**, and
+  the style pass went from 9.5 ms to 0.8 (ADR-0299). Worth knowing when deciding how long a document
+  brd's preview may be.
 - **A painter that follows the theme**: a three-parameter `Canvas` painter is handed the node's own
   resolved font and colour, this frame's time and `reducedMotion` ([G11](#g11)).
 - **The clipboard, both halves**: text, and bytes under any MIME type, with `Image.fromClipboard` /
@@ -399,17 +425,91 @@ bytes advertised as a PNG that are not one raise `ImageDecodeException`, because
 the clipboard lied and a paste command should say so.
 
 <a id="g8"></a>
-### G8 — `goldberry-html`: Markdown through md4c
+### G8 — `goldberry-html`: Markdown through md4c — **closed**
 
-**Today.** It does not exist. Plan §1 already names it as the path: *"Markdown: md4c via goldberry-html —
-planned module."*
+Landed as [ADR-0294](../book/src/adr/0294-a-parser-crosses-the-boundary-once.md)
+and [ADR-0295](../book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md).
 
-**Needed for.** The Note editor's live preview (E1) and `GET /docs/{id}/body.html` for the Note Viewer
-(D1). brd serves raw Markdown today and says so.
+```java
+var document = Markdown.parse(note.source());                // GitHub's dialect
+var plain    = Markdown.parse(note.source(), MarkdownSyntax.commonMark());
 
-**Why it is Goldberry's.** It is a native dependency plus a renderer into the toolkit's own text and box
-model — the same shape as every other thing in `:natives`. A Markdown parser vendored into brd would be
-a second text stack.
+var html    = MarkdownHtml.of(document);                     // GET /docs/{id}/body.html
+var preview = MarkdownView.of(document);                     // the editor's other half
+```
+
+```kdl
+scroll {
+    markdown-view id="preview" "# Hello\n\nSome *words*."
+}
+```
+
+`:html` is the first of `content-widgets.md`'s optional modules, and an
+application opts into it: nothing in `:core` or `:widgets` knows Markdown exists,
+and `MarkdownStyles.stylesheet()` goes beside `Controls.stylesheets(theme)`.
+
+**A document is a value, and that is the departure worth knowing about.** This
+entry asked for a widget and a way to serve HTML; what landed is a **model** — a
+sealed tree of records in `…markdown.model` — with the widget and the HTML writer
+as two folds over it. A preview is not the only thing brd does with a note: an
+outline, a word count, a table of contents and the first paragraph as a summary
+are all walks of the same tree, and a widget that hid the parse would make each of
+them a second parse. It also makes the two halves agree by construction, which two
+renderers — one in C, one in Java — would not.
+
+**md4c is inside `libgoldberry` rather than in a native of its own**, which
+departs from ADR-0190's quarantine rule and says so: that rule is for heavy or
+encumbered natives, and md4c is one MIT C file whose object code is tens of
+kilobytes. A second superbuild, four classifier jars and four CI legs would cost
+more than the thing they isolate. litehtml, when it comes, still gets its own
+library.
+
+**A parse is one crossing.** md4c is a SAX parser, and binding it the obvious way
+would mean five upcall stubs, seven detail-struct layouts and several thousand
+crossings per note. The events are encoded into one buffer in C and read once —
+which is ADR-0190's own "the hot path never crosses FFM", applied to a parser — so
+nothing in `:html` owns native memory and a `Document` is an ordinary value.
+
+Four things the widget renderer does not do, each because there is no engine under
+it, and each written down rather than faked:
+
+- **Nothing is clickable.** A word does not hear a pointer, so a link is the
+  accent colour and not a destination.
+- **An image is its alt text.** There is no `img` widget, and fetching anything is
+  the application's.
+- **Emphasis is a faux oblique** — `skewX(-10deg)` — because the system ships two
+  upright faces and there is no italic to set it in.
+- **A hard break inside a paragraph does nothing**, because a wrapping row has no
+  widget that means "start a new line here". It does the right thing in the HTML.
+
+**A preview follows a property.** `markdown-view` takes §9's `bind=`, so an
+editor and its preview are two nodes over one value and nothing in between
+(ADR-0296):
+
+```kdl
+split-pane {
+    text-area class="mono" bind="note.source" change="note.set-source" fill=#true
+    scroll { markdown-view bind="note.source" }
+}
+```
+
+The editor writes through an action, the preview's element is subscribed to the
+property, and the frame after a keystroke is the parsed document. The showcase's
+**Markdown** screen is exactly that, and building it found two defects in
+`:widgets` that had nothing to do with Markdown — a `split-pane` that never re-read
+its own measured width, and a `text-area` that opened on the *end* of a long value
+and could not be sized by its container (ADR-0297).
+
+The dialect is a value — `MarkdownSyntax.gitHub()`, `.commonMark()`,
+`.with(MarkdownExtension.WIKI_LINKS)` — because a dialect belongs to a corpus
+rather than to a call, and the preview and the served HTML must not drift apart.
+`[[wiki links]]` are a node of their own rather than a `Link` with an odd href:
+a target names something in brd's own collection, which is the reason the
+extension exists at all.
+
+`html-view` **is** built now, and not the way this entry or that one assumed:
+[G17](#g17) landed as a parser in Java over a model of records, folded by the
+same code, with litehtml answered rather than embedded (ADR-0298).
 
 ---
 
@@ -778,3 +878,54 @@ at this and said no" is a result and an entry that quietly disappeared is not.
 | G16 | ADR-0292 | nothing brd had; it is the toolkit's own fields — the board title, the assistant prompt and the search bar take Japanese now, and a password deliberately does not |
 | G14 | ADR-0290 | nothing brd had; it is the toolkit's own boundary, and closing it is what makes "`natives.*` is not application API" a compiler error rather than a rule |
 | G12 | ADR-0291 | nothing — it is the entry that was **answered** rather than built: brd writes its own lock, socket and packaging line, and the toolkit stops carrying the question |
+| G17 | ADR-0298 | nothing brd had, and the entry it is: `html-view` renders a page today, and the *engine* half is what was answered — litehtml stays on `book/src/TODO.md` for the inline layout it alone buys |
+
+---
+
+<a id="g17"></a>
+### G17 — `html-view`: HTML on screen — **closed**, and litehtml **answered**
+
+Landed as [ADR-0298](../book/src/adr/0298-html-is-a-document-and-not-an-engine.md).
+
+```java
+var document = Html.parse(help.body());          // io.…goldberry.html
+
+var view  = HtmlView.of(document).onLink(app::navigate);
+var links = document.find("a");                  // a link check, same parse
+var words = document.text();                     // a summary, same parse
+```
+
+```kdl
+scroll { html-view bind="doc.source" link="doc.open" }
+```
+
+**The entry asked for an engine and got a document, and that is the decision.**
+Everything this entry listed as "what it would add over G8" is here except one
+item, and that one is the item litehtml alone can buy:
+
+| | | |
+|---|---|---|
+| Followable links | **built** | an anchor is a `button.link` (ADR-0293) handing its `href` to the application — a Tab stop, `:hover`, `Space` and `Enter`. `markdown-view` does it too now (ADR-0300) |
+| Tags, tables, definition lists, `pre` | **built** | every element contributes `html-<tag>`, so `html.css` reads like a browser's default sheet and an unknown tag is already styleable |
+| Images | **built** (ADR-0300), and never the engine's | an `ImageSource` is the application's answer about where a `src` is; a `src` nothing answers for is still its alt text |
+| Real inline layout | **not built**, and **is** the engine's | a line of mixed faces is a row of `text` widgets, so no justification and no hyphenation |
+| Text selection | **built** (ADR-0301) | drag, double-click a word, triple-click a block, `Ctrl+A`, `Ctrl+C` — in both views, with the newlines the document implies |
+
+**What it waits on has changed, because `html-view` is no longer waiting.** The
+paint-surface widening this entry named is still real and still shared with
+`goldberry-vector` and `goldberry-terminal`; what it no longer blocks is HTML on
+screen. `book/src/TODO.md` keeps it, for the inline layout above.
+
+Costs, since none of this was free: no new native symbol and no second native
+artifact — the one thing that crosses is md4c's entity table, which was already
+there. The `:html` module now has two widget trees, which turned out to break the
+**weaver**: it wrote the generated catalog into the longest package prefix its
+widgets share, which for two trees is the package `:core` owns, and two named
+modules holding one package is a `LayerInstantiationException` on the module path
+that no class-path test can see. Fixed in `CatalogWeaver`, with the module's own
+packages as the bound.
+
+The showcase has an **HTML** screen beside the Markdown one: the same split pane,
+the same `bind=`, one node name different — and a line under the preview that
+fills in with whatever link was last pressed, which is the whole of "following a
+link is the application's".

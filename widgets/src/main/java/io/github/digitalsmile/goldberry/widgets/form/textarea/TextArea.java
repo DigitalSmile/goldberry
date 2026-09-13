@@ -59,6 +59,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param rows        how many lines tall it is when empty — its minimum
 /// @param maxRows     how tall it may grow before it scrolls instead
 /// @param maxLength   the most characters it will hold, or -1
+/// @param fill        whether it takes the height its container gives it instead of
+///                    growing to fit its text — see [#fill(boolean)]
 /// @param readOnly    whether it takes a caret and a selection but no edits
 /// @param disabled    whether it refuses focus and matches `:disabled`
 /// @param attributes  the `id`, classes and key the document wrote
@@ -71,6 +73,7 @@ public record TextArea(
         int rows,
         int maxRows,
         int maxLength,
+        boolean fill,
         boolean readOnly,
         boolean disabled,
         Attributes attributes)
@@ -110,12 +113,23 @@ public record TextArea(
 
     /// An empty area of the default height.
     public TextArea() {
-        this("", null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, Attributes.NONE);
+        this("", null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, false, Attributes.NONE);
     }
 
     /// An area holding `value`, reporting every change.
     public TextArea(String value, Consumer<String> onChange) {
-        this(value, null, onChange, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, Attributes.NONE);
+        this(
+                value,
+                null,
+                onChange,
+                "",
+                DEFAULT_ROWS,
+                DEFAULT_MAX_ROWS,
+                UNLIMITED,
+                false,
+                false,
+                false,
+                Attributes.NONE);
     }
 
     /// An area following a property. The Java spelling of `bind=`.
@@ -130,18 +144,20 @@ public record TextArea(
                 UNLIMITED,
                 false,
                 false,
+                false,
                 Attributes.NONE);
     }
 
     /// This area with `text` shown when it is empty.
     public TextArea placeholder(String text) {
-        return new TextArea(value, source, onChange, text, rows, maxRows, maxLength, readOnly, disabled, attributes);
+        return new TextArea(
+                value, source, onChange, text, rows, maxRows, maxLength, fill, readOnly, disabled, attributes);
     }
 
     /// This area `lines` tall, growing to at most `most`.
     public TextArea rows(int lines, int most) {
         return new TextArea(
-                value, source, onChange, placeholder, lines, most, maxLength, readOnly, disabled, attributes);
+                value, source, onChange, placeholder, lines, most, maxLength, fill, readOnly, disabled, attributes);
     }
 
     /// This area `lines` tall, keeping its current maximum — raised to `lines` if
@@ -153,19 +169,51 @@ public record TextArea(
     /// This area holding at most `characters`, or [#UNLIMITED].
     public TextArea maxLength(int characters) {
         return new TextArea(
-                value, source, onChange, placeholder, rows, maxRows, characters, readOnly, disabled, attributes);
+                value, source, onChange, placeholder, rows, maxRows, characters, fill, readOnly, disabled, attributes);
     }
 
     /// This area taking a caret and a selection but no edits.
     public TextArea readOnly(boolean value) {
         return new TextArea(
-                this.value, source, onChange, placeholder, rows, maxRows, maxLength, value, disabled, attributes);
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, fill, value, disabled, attributes);
+    }
+
+    /// This area **sized by its container** rather than by its text.
+    ///
+    /// §4's `text-area` grows to fit what is typed into it, between [#rows] and
+    /// [#maxRows], which is right for a field in a form: a control that took the
+    /// height of a pane it happened to be in would leave a form full of holes.
+    ///
+    /// It is wrong for the other thing a multi-line field is — an **editor**. A pane
+    /// holding a document wants the document to have the pane: the height comes from
+    /// the layout, the text scrolls inside it, and how many lines fit is an answer
+    /// rather than a setting. Without this, an editor in a `split-pane` was as tall
+    /// as `max-rows` and left the rest of its side empty (ADR-0296).
+    ///
+    /// What changes: the box grows into whatever its parent gives it, and the
+    /// visible-line count that decides scrolling comes from the **measured** height
+    /// instead of from [#maxRows]. `rows` and `max-rows` are then ignored, and a
+    /// container that gives no height at all is a control one line tall — which is
+    /// flexbox being asked for something impossible rather than this being subtle.
+    public TextArea fill(boolean value) {
+        return new TextArea(
+                this.value,
+                source,
+                onChange,
+                placeholder,
+                rows,
+                maxRows,
+                maxLength,
+                value,
+                readOnly,
+                disabled,
+                attributes);
     }
 
     /// This area, disabled or not.
     public TextArea disabled(boolean value) {
         return new TextArea(
-                this.value, source, onChange, placeholder, rows, maxRows, maxLength, readOnly, value, attributes);
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, fill, readOnly, value, attributes);
     }
 
     /// What this area starts from — the bound value, or [#value()].
@@ -187,13 +235,23 @@ public record TextArea(
     @Override
     public TextArea bound(Observable<?> value) {
         return new TextArea(
-                this.value, value, onChange, placeholder, rows, maxRows, maxLength, readOnly, disabled, attributes);
+                this.value,
+                value,
+                onChange,
+                placeholder,
+                rows,
+                maxRows,
+                maxLength,
+                fill,
+                readOnly,
+                disabled,
+                attributes);
     }
 
     @Override
     public TextArea withAttributes(Attributes value) {
         return new TextArea(
-                this.value, source, onChange, placeholder, rows, maxRows, maxLength, readOnly, disabled, value);
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, fill, readOnly, disabled, value);
     }
 
     @Override
@@ -228,6 +286,9 @@ public record TextArea(
                 // ten, which would be a smaller area than the one written.
                 Math.max(maxRows <= 0 ? DEFAULT_MAX_ROWS : maxRows, Math.max(1, rows)),
                 declared <= 0 ? UNLIMITED : declared,
+                // `fill=#true` is an editor rather than a field: it takes the height
+                // its container gives it and scrolls inside that.
+                node.booleanProperty("fill"),
                 node.booleanProperty("read-only"),
                 Wiring.disabled(node),
                 Attributes.of(node));

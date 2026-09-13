@@ -3,7 +3,7 @@
  *
  * Deliberately tiny. Goldberry binds its native dependencies through
  * hand-written FFM downcalls (ADR-0010), not through C glue, so this file holds
- * only the three things that cannot live on the Java side:
+ * only the four things that cannot live on the Java side:
  *
  *   1. An ABI probe, so the Java layer can refuse a mismatched library instead
  *      of discovering the mismatch as a segfault.
@@ -18,6 +18,10 @@
  *      struct BY VALUE cannot be proven from Java alone -- something compiled by
  *      the target's own C compiler has to receive the struct and say what
  *      arrived (ADR-0017).
+ *
+ *   4. Markdown's event stream, encoded into one buffer. md4c is a SAX parser and
+ *      binding it the obvious way would cross the boundary thousands of times per
+ *      document; the hot path does not cross FFM (ADR-0190, ADR-0294).
  *
  * See docs/ARCHITECTURE.md §3.1 and §3.2.
  */
@@ -60,6 +64,19 @@
  */
 #include <hb.h>
 
+/*
+ * For md4c's parser, and for the HTML5 named-entity table beside it. Both are
+ * compiled into this translation unit's target rather than linked as a library
+ * (see the CMakeLists), because the only caller of either is the code at the
+ * bottom of this file. See ADR-0294.
+ */
+#include <md4c.h>
+#include <entity.h>
+
+/* malloc/realloc/free and memcpy/memset, for the Markdown event buffer. */
+#include <stdlib.h>
+#include <string.h>
+
 #if defined(_WIN32)
 #define GOLDBERRY_EXPORT __declspec(dllexport)
 #else
@@ -67,7 +84,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 8u
+#define GOLDBERRY_ABI_VERSION 9u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -686,6 +703,80 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     /* How HarfBuzz may treat a font's bytes. */
     GB_CONSTANT("HB_MEMORY_MODE_DUPLICATE", HB_MEMORY_MODE_DUPLICATE),
     GB_CONSTANT("HB_MEMORY_MODE_READONLY", HB_MEMORY_MODE_READONLY),
+
+    /*
+     * md4c (ADR-0294).
+     *
+     * The Java side switches on every one of these while decoding the event
+     * buffer, and md4c has already inserted a value into the middle of two of
+     * these enums between releases -- MD_TEXT_NULLCHAR and MD_SPAN_LATEXMATH were
+     * both additions. A stream decoded against a shifted ordinal is not a crash:
+     * it is a document whose headings render as block quotes.
+     *
+     * No struct rows. Every detail struct is read HERE, by the code the same
+     * compiler built, and reaches Java as three integers in a record that has no
+     * layout to get wrong -- which is the whole argument of ADR-0294 stated as a
+     * gap in this table.
+     */
+    GB_CONSTANT("MD_BLOCK_DOC", MD_BLOCK_DOC),
+    GB_CONSTANT("MD_BLOCK_QUOTE", MD_BLOCK_QUOTE),
+    GB_CONSTANT("MD_BLOCK_UL", MD_BLOCK_UL),
+    GB_CONSTANT("MD_BLOCK_OL", MD_BLOCK_OL),
+    GB_CONSTANT("MD_BLOCK_LI", MD_BLOCK_LI),
+    GB_CONSTANT("MD_BLOCK_HR", MD_BLOCK_HR),
+    GB_CONSTANT("MD_BLOCK_H", MD_BLOCK_H),
+    GB_CONSTANT("MD_BLOCK_CODE", MD_BLOCK_CODE),
+    GB_CONSTANT("MD_BLOCK_HTML", MD_BLOCK_HTML),
+    GB_CONSTANT("MD_BLOCK_P", MD_BLOCK_P),
+    GB_CONSTANT("MD_BLOCK_TABLE", MD_BLOCK_TABLE),
+    GB_CONSTANT("MD_BLOCK_THEAD", MD_BLOCK_THEAD),
+    GB_CONSTANT("MD_BLOCK_TBODY", MD_BLOCK_TBODY),
+    GB_CONSTANT("MD_BLOCK_TR", MD_BLOCK_TR),
+    GB_CONSTANT("MD_BLOCK_TH", MD_BLOCK_TH),
+    GB_CONSTANT("MD_BLOCK_TD", MD_BLOCK_TD),
+
+    GB_CONSTANT("MD_SPAN_EM", MD_SPAN_EM),
+    GB_CONSTANT("MD_SPAN_STRONG", MD_SPAN_STRONG),
+    GB_CONSTANT("MD_SPAN_A", MD_SPAN_A),
+    GB_CONSTANT("MD_SPAN_IMG", MD_SPAN_IMG),
+    GB_CONSTANT("MD_SPAN_CODE", MD_SPAN_CODE),
+    GB_CONSTANT("MD_SPAN_DEL", MD_SPAN_DEL),
+    GB_CONSTANT("MD_SPAN_LATEXMATH", MD_SPAN_LATEXMATH),
+    GB_CONSTANT("MD_SPAN_LATEXMATH_DISPLAY", MD_SPAN_LATEXMATH_DISPLAY),
+    GB_CONSTANT("MD_SPAN_WIKILINK", MD_SPAN_WIKILINK),
+    GB_CONSTANT("MD_SPAN_U", MD_SPAN_U),
+
+    GB_CONSTANT("MD_TEXT_NORMAL", MD_TEXT_NORMAL),
+    GB_CONSTANT("MD_TEXT_NULLCHAR", MD_TEXT_NULLCHAR),
+    GB_CONSTANT("MD_TEXT_BR", MD_TEXT_BR),
+    GB_CONSTANT("MD_TEXT_SOFTBR", MD_TEXT_SOFTBR),
+    GB_CONSTANT("MD_TEXT_ENTITY", MD_TEXT_ENTITY),
+    GB_CONSTANT("MD_TEXT_CODE", MD_TEXT_CODE),
+    GB_CONSTANT("MD_TEXT_HTML", MD_TEXT_HTML),
+    GB_CONSTANT("MD_TEXT_LATEXMATH", MD_TEXT_LATEXMATH),
+
+    GB_CONSTANT("MD_ALIGN_DEFAULT", MD_ALIGN_DEFAULT),
+    GB_CONSTANT("MD_ALIGN_LEFT", MD_ALIGN_LEFT),
+    GB_CONSTANT("MD_ALIGN_CENTER", MD_ALIGN_CENTER),
+    GB_CONSTANT("MD_ALIGN_RIGHT", MD_ALIGN_RIGHT),
+
+    /* The dialect bits. Flags rather than enumerators, so the wrong value is a
+     * silently disabled extension: a table that renders as a paragraph of pipes. */
+    GB_CONSTANT("MD_FLAG_COLLAPSEWHITESPACE", MD_FLAG_COLLAPSEWHITESPACE),
+    GB_CONSTANT("MD_FLAG_PERMISSIVEATXHEADERS", MD_FLAG_PERMISSIVEATXHEADERS),
+    GB_CONSTANT("MD_FLAG_PERMISSIVEURLAUTOLINKS", MD_FLAG_PERMISSIVEURLAUTOLINKS),
+    GB_CONSTANT("MD_FLAG_PERMISSIVEEMAILAUTOLINKS", MD_FLAG_PERMISSIVEEMAILAUTOLINKS),
+    GB_CONSTANT("MD_FLAG_PERMISSIVEWWWAUTOLINKS", MD_FLAG_PERMISSIVEWWWAUTOLINKS),
+    GB_CONSTANT("MD_FLAG_NOINDENTEDCODEBLOCKS", MD_FLAG_NOINDENTEDCODEBLOCKS),
+    GB_CONSTANT("MD_FLAG_NOHTMLBLOCKS", MD_FLAG_NOHTMLBLOCKS),
+    GB_CONSTANT("MD_FLAG_NOHTMLSPANS", MD_FLAG_NOHTMLSPANS),
+    GB_CONSTANT("MD_FLAG_TABLES", MD_FLAG_TABLES),
+    GB_CONSTANT("MD_FLAG_STRIKETHROUGH", MD_FLAG_STRIKETHROUGH),
+    GB_CONSTANT("MD_FLAG_TASKLISTS", MD_FLAG_TASKLISTS),
+    GB_CONSTANT("MD_FLAG_LATEXMATHSPANS", MD_FLAG_LATEXMATHSPANS),
+    GB_CONSTANT("MD_FLAG_WIKILINKS", MD_FLAG_WIKILINKS),
+    GB_CONSTANT("MD_FLAG_UNDERLINE", MD_FLAG_UNDERLINE),
+    GB_CONSTANT("MD_FLAG_HARD_SOFT_BREAKS", MD_FLAG_HARD_SOFT_BREAKS),
 };
 
 GOLDBERRY_EXPORT const goldberry_layout_entry_t *goldberry_layout_table(void) {
@@ -740,4 +831,382 @@ GOLDBERRY_EXPORT void goldberry_probe_measure(YGMeasureFunc measure,
     size = measure(NULL, width, (YGMeasureMode) width_mode, height, (YGMeasureMode) height_mode);
     *out_width = size.width;
     *out_height = size.height;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Markdown: one buffer instead of thousands of upcalls                     */
+/* ------------------------------------------------------------------------ */
+
+/*
+ * md4c is a SAX parser: it calls back for every block, span and run of text in
+ * the document. Bound the obvious way -- five upcall stubs written into an
+ * MD_PARSER -- a thousand-word note would cross the FFM boundary several
+ * thousand times, and each crossing would hand Java a detail struct whose layout
+ * the Java side would then have to model. That is the shape ADR-0190 rules out
+ * for every content module: the hot path does not cross FFM.
+ *
+ * So the event stream is *encoded here*, into one growable byte buffer, and Java
+ * reads it once. Zero upcalls, no detail struct in the layout table, and the
+ * parse is one downcall (ADR-0294).
+ *
+ * ## The wire format
+ *
+ * A sequence of records. Each is a 20-byte header, little-endian regardless of
+ * the host -- the parse and the read are in one process, but an explicitly
+ * spelled byte order is one fewer thing for a big-endian port to discover -- and
+ * then `text_length` bytes of payload:
+ *
+ *     0   u8   event        1 enter block, 2 leave block, 3 enter span,
+ *                           4 leave span, 5 text, 6 attribute
+ *     1   u8   type         MD_BLOCKTYPE, MD_SPANTYPE or MD_TEXTTYPE
+ *     2   u8   role         attribute records only: 1 primary, 2 secondary
+ *     3   u8   flags        bit 0 tight, bit 1 task, bit 2 autolink
+ *     4   u32  a            level / start / mark / align / column count
+ *     8   u32  b            mark delimiter / task mark offset / head rows
+ *     12  u32  c            body rows / fence character
+ *     16  u32  text_length  bytes of payload following this header
+ *
+ * An **attribute** is md4c's MD_ATTRIBUTE: a string broken into substrings, each
+ * with a text type of its own, because `[a](x?y&amp;z)` has an entity inside a
+ * URL and whoever writes the HTML has to know which part is which. Its records
+ * are emitted BEFORE the enter record they belong to, so the reader accumulates
+ * them and the enter event consumes them. `role` says which attribute of the two
+ * a part belongs to: href/src/info/target is 1, title/lang is 2.
+ *
+ * The three numeric columns carry whatever the block's own detail struct has;
+ * `MarkdownStream` on the Java side is the other half of this table and names
+ * each of them per block type.
+ */
+
+#define GB_MD_ENTER_BLOCK  1u
+#define GB_MD_LEAVE_BLOCK  2u
+#define GB_MD_ENTER_SPAN   3u
+#define GB_MD_LEAVE_SPAN   4u
+#define GB_MD_TEXT         5u
+#define GB_MD_ATTRIBUTE    6u
+
+#define GB_MD_ROLE_NONE      0u
+#define GB_MD_ROLE_PRIMARY   1u
+#define GB_MD_ROLE_SECONDARY 2u
+
+#define GB_MD_FLAG_TIGHT    0x01u
+#define GB_MD_FLAG_TASK     0x02u
+#define GB_MD_FLAG_AUTOLINK 0x04u
+
+#define GB_MD_HEADER_SIZE 20u
+
+typedef struct {
+    unsigned char *bytes;
+    size_t length;
+    size_t capacity;
+    /* Set once and never cleared: an allocation that failed part way through
+     * leaves a truncated stream, which must not be handed to Java as a document.
+     * Every callback checks it and aborts the parse. */
+    int failed;
+} goldberry_md_stream_t;
+
+static int goldberry_md_reserve(goldberry_md_stream_t *stream, size_t extra) {
+    size_t needed;
+    size_t capacity;
+    unsigned char *grown;
+
+    if (stream->failed) {
+        return 0;
+    }
+    needed = stream->length + extra;
+    if (needed < stream->length) { /* size_t overflow -- a document this big is not a document */
+        stream->failed = 1;
+        return 0;
+    }
+    if (needed <= stream->capacity) {
+        return 1;
+    }
+    capacity = stream->capacity == 0 ? 4096u : stream->capacity;
+    while (capacity < needed) {
+        if (capacity > (size_t) -1 / 2u) {
+            stream->failed = 1;
+            return 0;
+        }
+        capacity *= 2u;
+    }
+    grown = (unsigned char *) realloc(stream->bytes, capacity);
+    if (grown == NULL) {
+        stream->failed = 1;
+        return 0;
+    }
+    stream->bytes = grown;
+    stream->capacity = capacity;
+    return 1;
+}
+
+static void goldberry_md_u32(unsigned char *at, uint32_t value) {
+    at[0] = (unsigned char) (value & 0xffu);
+    at[1] = (unsigned char) ((value >> 8) & 0xffu);
+    at[2] = (unsigned char) ((value >> 16) & 0xffu);
+    at[3] = (unsigned char) ((value >> 24) & 0xffu);
+}
+
+/*
+ * One record. `text` may be NULL when `text_length` is zero.
+ *
+ * Returns zero when the buffer could not grow, which every caller passes
+ * straight back to md4c as "abort".
+ */
+static int goldberry_md_record(goldberry_md_stream_t *stream,
+                               unsigned event, unsigned type, unsigned role, unsigned flags,
+                               uint32_t a, uint32_t b, uint32_t c,
+                               const char *text, uint32_t text_length) {
+    unsigned char *at;
+
+    if (!goldberry_md_reserve(stream, GB_MD_HEADER_SIZE + (size_t) text_length)) {
+        return 0;
+    }
+    at = stream->bytes + stream->length;
+    at[0] = (unsigned char) event;
+    at[1] = (unsigned char) type;
+    at[2] = (unsigned char) role;
+    at[3] = (unsigned char) flags;
+    goldberry_md_u32(at + 4, a);
+    goldberry_md_u32(at + 8, b);
+    goldberry_md_u32(at + 12, c);
+    goldberry_md_u32(at + 16, text_length);
+    if (text_length > 0u && text != NULL) {
+        memcpy(at + GB_MD_HEADER_SIZE, text, (size_t) text_length);
+    }
+    stream->length += GB_MD_HEADER_SIZE + (size_t) text_length;
+    return 1;
+}
+
+/*
+ * An MD_ATTRIBUTE, as one record per substring.
+ *
+ * md4c terminates `substr_offsets` with an entry equal to the attribute's size,
+ * which is what bounds this loop -- the same walk md4c-html.c makes. An absent
+ * attribute has a NULL text and emits nothing, so a link with no title is a link
+ * whose secondary attribute never appears rather than one with an empty string.
+ */
+static int goldberry_md_attribute(goldberry_md_stream_t *stream, unsigned role, const MD_ATTRIBUTE *attribute) {
+    unsigned i;
+
+    if (attribute == NULL || attribute->text == NULL || attribute->substr_offsets == NULL) {
+        return 1;
+    }
+    for (i = 0; attribute->substr_offsets[i] < attribute->size; i++) {
+        MD_OFFSET offset = attribute->substr_offsets[i];
+        MD_SIZE size = attribute->substr_offsets[i + 1] - offset;
+        if (!goldberry_md_record(stream, GB_MD_ATTRIBUTE, (unsigned) attribute->substr_types[i], role, 0u,
+                                 0u, 0u, 0u, attribute->text + offset, (uint32_t) size)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int goldberry_md_enter_block(MD_BLOCKTYPE type, void *detail, void *userdata) {
+    goldberry_md_stream_t *stream = (goldberry_md_stream_t *) userdata;
+    unsigned flags = 0u;
+    uint32_t a = 0u;
+    uint32_t b = 0u;
+    uint32_t c = 0u;
+
+    switch (type) {
+        case MD_BLOCK_UL: {
+            const MD_BLOCK_UL_DETAIL *ul = (const MD_BLOCK_UL_DETAIL *) detail;
+            flags |= ul->is_tight ? GB_MD_FLAG_TIGHT : 0u;
+            a = (uint32_t) (unsigned char) ul->mark;
+            break;
+        }
+        case MD_BLOCK_OL: {
+            const MD_BLOCK_OL_DETAIL *ol = (const MD_BLOCK_OL_DETAIL *) detail;
+            flags |= ol->is_tight ? GB_MD_FLAG_TIGHT : 0u;
+            a = (uint32_t) ol->start;
+            b = (uint32_t) (unsigned char) ol->mark_delimiter;
+            break;
+        }
+        case MD_BLOCK_LI: {
+            const MD_BLOCK_LI_DETAIL *li = (const MD_BLOCK_LI_DETAIL *) detail;
+            flags |= li->is_task ? GB_MD_FLAG_TASK : 0u;
+            a = (uint32_t) (unsigned char) li->task_mark;
+            b = (uint32_t) li->task_mark_offset;
+            break;
+        }
+        case MD_BLOCK_H: {
+            const MD_BLOCK_H_DETAIL *h = (const MD_BLOCK_H_DETAIL *) detail;
+            a = (uint32_t) h->level;
+            break;
+        }
+        case MD_BLOCK_CODE: {
+            const MD_BLOCK_CODE_DETAIL *code = (const MD_BLOCK_CODE_DETAIL *) detail;
+            if (!goldberry_md_attribute(stream, GB_MD_ROLE_PRIMARY, &code->info)
+                    || !goldberry_md_attribute(stream, GB_MD_ROLE_SECONDARY, &code->lang)) {
+                return 1;
+            }
+            c = (uint32_t) (unsigned char) code->fence_char;
+            break;
+        }
+        case MD_BLOCK_TABLE: {
+            const MD_BLOCK_TABLE_DETAIL *table = (const MD_BLOCK_TABLE_DETAIL *) detail;
+            a = (uint32_t) table->col_count;
+            b = (uint32_t) table->head_row_count;
+            c = (uint32_t) table->body_row_count;
+            break;
+        }
+        case MD_BLOCK_TH:
+        case MD_BLOCK_TD: {
+            const MD_BLOCK_TD_DETAIL *cell = (const MD_BLOCK_TD_DETAIL *) detail;
+            a = (uint32_t) cell->align;
+            break;
+        }
+        default:
+            break;
+    }
+    return goldberry_md_record(stream, GB_MD_ENTER_BLOCK, (unsigned) type, GB_MD_ROLE_NONE, flags,
+                              a, b, c, NULL, 0u) ? 0 : 1;
+}
+
+static int goldberry_md_leave_block(MD_BLOCKTYPE type, void *detail, void *userdata) {
+    (void) detail;
+    return goldberry_md_record((goldberry_md_stream_t *) userdata, GB_MD_LEAVE_BLOCK, (unsigned) type,
+                              GB_MD_ROLE_NONE, 0u, 0u, 0u, 0u, NULL, 0u) ? 0 : 1;
+}
+
+static int goldberry_md_enter_span(MD_SPANTYPE type, void *detail, void *userdata) {
+    goldberry_md_stream_t *stream = (goldberry_md_stream_t *) userdata;
+    unsigned flags = 0u;
+
+    switch (type) {
+        case MD_SPAN_A: {
+            const MD_SPAN_A_DETAIL *link = (const MD_SPAN_A_DETAIL *) detail;
+            if (!goldberry_md_attribute(stream, GB_MD_ROLE_PRIMARY, &link->href)
+                    || !goldberry_md_attribute(stream, GB_MD_ROLE_SECONDARY, &link->title)) {
+                return 1;
+            }
+            flags |= link->is_autolink ? GB_MD_FLAG_AUTOLINK : 0u;
+            break;
+        }
+        case MD_SPAN_IMG: {
+            const MD_SPAN_IMG_DETAIL *image = (const MD_SPAN_IMG_DETAIL *) detail;
+            if (!goldberry_md_attribute(stream, GB_MD_ROLE_PRIMARY, &image->src)
+                    || !goldberry_md_attribute(stream, GB_MD_ROLE_SECONDARY, &image->title)) {
+                return 1;
+            }
+            break;
+        }
+        case MD_SPAN_WIKILINK: {
+            const MD_SPAN_WIKILINK_DETAIL *wiki = (const MD_SPAN_WIKILINK_DETAIL *) detail;
+            if (!goldberry_md_attribute(stream, GB_MD_ROLE_PRIMARY, &wiki->target)) {
+                return 1;
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    return goldberry_md_record(stream, GB_MD_ENTER_SPAN, (unsigned) type, GB_MD_ROLE_NONE, flags,
+                              0u, 0u, 0u, NULL, 0u) ? 0 : 1;
+}
+
+static int goldberry_md_leave_span(MD_SPANTYPE type, void *detail, void *userdata) {
+    (void) detail;
+    return goldberry_md_record((goldberry_md_stream_t *) userdata, GB_MD_LEAVE_SPAN, (unsigned) type,
+                              GB_MD_ROLE_NONE, 0u, 0u, 0u, 0u, NULL, 0u) ? 0 : 1;
+}
+
+static int goldberry_md_text(MD_TEXTTYPE type, const MD_CHAR *text, MD_SIZE size, void *userdata) {
+    return goldberry_md_record((goldberry_md_stream_t *) userdata, GB_MD_TEXT, (unsigned) type,
+                              GB_MD_ROLE_NONE, 0u, 0u, 0u, 0u, text, (uint32_t) size) ? 0 : 1;
+}
+
+/*
+ * Parses `text` and returns an opaque stream of encoded events, or NULL.
+ *
+ * NULL means the document could not be turned into a stream -- md4c reported a
+ * runtime error, or this side ran out of memory part way through. It does not
+ * mean "not Markdown": there is no such document, and an empty input is a stream
+ * holding an empty MD_BLOCK_DOC.
+ *
+ * The caller owns the result and must hand it to goldberry_md_free().
+ */
+GOLDBERRY_EXPORT void *goldberry_md_parse(const char *text, uint32_t size, uint32_t flags) {
+    MD_PARSER parser;
+    goldberry_md_stream_t *stream;
+    int result;
+
+    if (text == NULL && size > 0u) {
+        return NULL;
+    }
+    stream = (goldberry_md_stream_t *) calloc(1u, sizeof(goldberry_md_stream_t));
+    if (stream == NULL) {
+        return NULL;
+    }
+
+    memset(&parser, 0, sizeof(parser));
+    parser.abi_version = 0u;
+    parser.flags = flags;
+    parser.enter_block = goldberry_md_enter_block;
+    parser.leave_block = goldberry_md_leave_block;
+    parser.enter_span = goldberry_md_enter_span;
+    parser.leave_span = goldberry_md_leave_span;
+    parser.text = goldberry_md_text;
+    parser.debug_log = NULL;
+    parser.syntax = NULL;
+
+    result = md_parse(text == NULL ? "" : text, (MD_SIZE) size, &parser, stream);
+    if (result != 0 || stream->failed) {
+        free(stream->bytes);
+        free(stream);
+        return NULL;
+    }
+    return stream;
+}
+
+/*
+ * The encoded events. A zero-length segment on the Java side, resized against
+ * goldberry_md_size() -- a bare pointer carries no extent, the same contract
+ * goldberry_layout_table() has.
+ */
+GOLDBERRY_EXPORT const void *goldberry_md_data(void *handle) {
+    return handle == NULL ? NULL : ((goldberry_md_stream_t *) handle)->bytes;
+}
+
+GOLDBERRY_EXPORT uint32_t goldberry_md_size(void *handle) {
+    return handle == NULL ? 0u : (uint32_t) ((goldberry_md_stream_t *) handle)->length;
+}
+
+GOLDBERRY_EXPORT void goldberry_md_free(void *handle) {
+    goldberry_md_stream_t *stream = (goldberry_md_stream_t *) handle;
+
+    if (stream == NULL) {
+        return;
+    }
+    free(stream->bytes);
+    free(stream);
+}
+
+/*
+ * Resolves an HTML5 named entity -- `amp`, `nbsp`, `CounterClockwiseContourIntegral`
+ * -- into its one or two codepoints, writing them into `out[0]` and `out[1]`.
+ *
+ * `name` is the reference including its `&` and `;`, which is what md4c's own
+ * table is keyed on and what a MD_TEXT_ENTITY run carries.
+ *
+ * This is the one thing beyond the parse that has to come from C: the table is
+ * 2125 names, it ships inside md4c, and a second copy in Java would be a copy
+ * that drifts -- ADR-0010's argument about struct offsets, applied to data.
+ *
+ * @return 1 when the name is an entity, 0 when it is not
+ */
+GOLDBERRY_EXPORT int goldberry_md_entity(const char *name, uint32_t size, uint32_t *out) {
+    const ENTITY *entity;
+
+    if (name == NULL || out == NULL || size == 0u) {
+        return 0;
+    }
+    entity = entity_lookup(name, (size_t) size);
+    if (entity == NULL) {
+        return 0;
+    }
+    out[0] = (uint32_t) entity->codepoints[0];
+    out[1] = (uint32_t) entity->codepoints[1];
+    return 1;
 }

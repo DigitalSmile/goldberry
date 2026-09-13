@@ -29,22 +29,22 @@ import java.util.Map;
     /// ├──────────────────────────────────┤
     /// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
     /// ├──────────────────────────────────┤
-    /// │ Basic │ Panels │ … │ Canvas      │  #gallery — eight screens
+    /// │ Basic │ Panels │ … │ Canvas      │  #gallery — ten screens
     /// │ ┌────────┐ ┌────────┐            │
     /// │ │  card  │ │  card  │  a masonry │
     /// │ └────────┘ └────────┘            │
     /// └──────────────────────────────────┘
     /// ```
 ///
-/// ## Why eight screens and not twelve
+/// ## Why ten screens and not twelve
 ///
 /// Because twelve was one screen per *widget family* and nobody reads a gallery
 /// that way. `Controls`, `Values` and `Text` were three tabs you had to visit in
 /// order to see what one screen's worth of chrome looks like; `Overlays` and
 /// `Notifications` were the two halves of a comparison a reader could not make
 /// with a tab between them; `Tabs` and `Scrolling` were both "how do I get around
-/// a window". Seven screens are seven *questions*, and every one of them is a wall
-/// of cards
+/// a window". The screens are *questions* rather than widget families, and all but
+/// two of them are a wall of cards
 /// (ADR-0222,
 /// ADR-0110).
 ///
@@ -167,6 +167,15 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         private Masonry overlays;
         private Masonry forms;
 
+        /// The Markdown screen's two panes. **Not a `Masonry`**: that screen is one
+        /// thing divided rather than a wall of cards, so its document's root is a
+        /// `split-pane` and nothing is appended to it.
+        private Widget markdown;
+
+        /// And the HTML screen's, which is the same shape for the same reason — see
+        /// [HtmlScreen].
+        private Widget html;
+
         @Override
         protected void initState() {
             bar = Panes.bar(widget().inflater());
@@ -174,6 +183,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             panels = Panes.panels(widget().inflater());
             overlays = Panes.overlays(widget().inflater());
             forms = Panes.forms(widget().inflater());
+            markdown = Panes.markdown(widget().inflater());
+            html = Panes.html(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
@@ -216,7 +227,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             var model = widget().model();
             var actions = widget().actions();
 
-            // The gallery: one strip, eight screens, none of them closable. It is
+            // The gallery: one strip, nine screens, none of them closable. It is
             // bound like every other control -- `Ctrl+1`... , the Edit menu and
             // the strip itself are three ways to set one property rather than
             // three copies of a selection. Through `inGalleryOrder`, so the order
@@ -243,6 +254,17 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                             scrolled(new Wall("collections", "Collections", COLLECTIONS_NOTE,
                                     2, Collections.cards()))),
                     new Tab("charts", title("charts"), scrolled(new Charts())),
+                    // The screen about an **optional module**: `goldberry-html`'s
+                    // `markdown-view`, which this application opts into and never
+                    // registers (ADR-0294, ADR-0295). Not `scrolled`, for
+                    // [Navigation]'s reason and one more: the preview pane owns a
+                    // viewport, and a `split-pane` needs a height to divide.
+                    new Tab("markdown", title("markdown"), new MarkdownScreen(markdown)),
+                    // The same optional module's other half: `html-view`, which is
+                    // the entry `docs/gaps.md` G17 asked for and which landed
+                    // without the engine that entry assumed (ADR-0298). Not
+                    // `scrolled`, for the Markdown screen's two reasons.
+                    new Tab("html", title("html"), new HtmlScreen(html)),
                     // §1's `canvas`, which is the one screen about a *primitive*
                     // rather than about a family of widgets -- and the only one
                     // whose cards respond to the pointer by redrawing themselves

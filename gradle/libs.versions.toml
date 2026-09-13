@@ -63,6 +63,10 @@ asmjit = "0bd5787b54b575ed94bf32ac452153b34385c514"
 yoga = "v3.2.1"
 harfbuzz = "14.3.1"
 sdl3 = "release-3.4.14"
+# md4c is the Markdown parser behind `goldberry-html`'s markdown half (ADR-0294).
+# One C file, MIT, CommonMark plus the four extensions GitHub's dialect adds, and
+# it is compiled straight into libgoldberry rather than into a native of its own.
+md4c = "release-0.5.3"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

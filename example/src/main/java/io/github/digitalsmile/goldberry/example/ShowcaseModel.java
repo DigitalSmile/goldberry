@@ -12,6 +12,10 @@ import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.example.ui.DocumentAssets;
+import io.github.digitalsmile.goldberry.example.ui.HtmlSample;
+import io.github.digitalsmile.goldberry.example.ui.MarkdownSample;
+import io.github.digitalsmile.goldberry.markdown.Markdown;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 
@@ -180,6 +184,49 @@ public final class ShowcaseModel {
     @Bind("app.bio")
     private String bio = "We came down out of the pass at dusk and found the road still "
             + "under snow.\n\nPress Enter for a new line.";
+
+    /// The Markdown screen's document, which is **one property read twice**: the
+    /// editor on the left writes it through an action and the preview on the right
+    /// follows it with `bind=`.
+    ///
+    /// That is the whole of "live". Nothing in this application watches the editor,
+    /// diffs the text or schedules a re-render — the element holding the
+    /// `markdown-view` is subscribed to this property, a keystroke marks it for
+    /// rebuild, and the next frame is the parsed document (ADR-0296).
+    ///
+    /// Loaded from `markdown-sample.md` beside the screens' documents rather than
+    /// written as a text block here: it is prose with backslashes, backticks and
+    /// trailing spaces in it, and every one of those is something a Java string
+    /// literal would eat.
+    @Bind("md.source")
+    private String markdownSource = MarkdownSample.text();
+
+    /// The HTML screen's page, which is the same arrangement one tab along: the
+    /// editor writes it, `html-view` reads it, and nothing in this application
+    /// connects the two (ADR-0296, ADR-0298).
+    ///
+    /// Loaded from `html-sample.html` for the same reason the Markdown one is loaded
+    /// from a file, and one more: it is markup, so it is quotation marks all the way
+    /// down.
+    @Bind("html.source")
+    private String htmlSource = HtmlSample.text();
+
+    /// What the Markdown screen's last pressed link or ticked box reported.
+    ///
+    /// The same line the HTML screen has, and it is the honest demonstration of
+    /// ADR-0300: the toolkit hands over a destination or an ordinal and stops.
+    @Bind("md.followed")
+    private String markdownFollowed = "Press a link, or tick a box — both are edits this application makes.";
+
+    /// What the last link a reader pressed handed over.
+    ///
+    /// The showcase's whole answer to "what does following a link do", and it is
+    /// deliberately the smallest honest one: the toolkit hands over an `href` and
+    /// stops, because whether a link may be followed, what a relative path is relative
+    /// to and what opening one costs are the application's (ADR-0291's division,
+    /// ADR-0298's restatement). This application prints it.
+    @Bind("html.followed")
+    private String htmlFollowed = "Press a link in the page — nothing here opens a browser.";
 
     /// What the bar says about how this window came up. Written once, from a
     /// background job's continuation — see [io.github.digitalsmile.goldberry.example.Showcase].
@@ -387,6 +434,62 @@ public final class ShowcaseModel {
         @Action("app.set-bio")
         void setBio(String value) {
             values.bio = value;
+        }
+
+        /// Every keystroke in the Markdown editor.
+        ///
+        /// The preview is not mentioned here and does not need to be: it is bound to
+        /// the field this writes, so the assignment *is* the notification (ADR-0296).
+        @Action("md.set-source")
+        public void setMarkdownSource(String value) {
+            values.markdownSource = value;
+        }
+
+        /// A link in the rendered Markdown, pressed.
+        @Action("md.follow")
+        public void followMarkdownLink(String href) {
+            values.markdownFollowed = "Followed: " + href;
+        }
+
+        /// A `[[wiki link]]`, pressed — a **target** rather than an href, which is why
+        /// it is a second action: what `[[Meeting]]` names is this application's
+        /// business and not a URL (ADR-0295).
+        @Action("md.open-wiki")
+        public void openWikiLink(String target) {
+            values.markdownFollowed = "Wiki link: " + target;
+        }
+
+        /// A task box, ticked.
+        ///
+        /// **The round trip in three lines**, and it is the whole of ADR-0300: the
+        /// view reports *which* box — the nth task in the document — `toggleTask`
+        /// rewrites that one character of the source, and the preview re-parses
+        /// because it is bound to the property this assigns. The editor on the left
+        /// shows the edit too, for the same reason.
+        @Action("md.toggle-task")
+        public void toggleTask(String index) {
+            var task = Integer.parseInt(index.trim());
+            values.markdownSource = Markdown.toggleTask(values.markdownSource, task);
+            values.markdownFollowed = "Ticked task " + task + " — the source on the left changed with it.";
+        }
+
+        /// Every keystroke in the HTML editor. The preview is not mentioned here and
+        /// does not need to be, for the reason above it.
+        @Action("html.set-source")
+        public void setHtmlSource(String value) {
+            values.htmlSource = value;
+        }
+
+        /// What an anchor in the page hands over when it is pressed.
+        ///
+        /// A **valued** action, because §9's valued shape is how a control reports
+        /// *what* it should become and a link reports where it points. This is the
+        /// application deciding what following a link means; deciding to print it is a
+        /// showcase's answer, and a real one would navigate, open the desktop's browser
+        /// or refuse an `href` it does not trust.
+        @Action("html.follow")
+        public void followLink(String href) {
+            values.htmlFollowed = "Followed: " + href;
         }
 
         /// What the picker committed — either from the grid or from the field,
@@ -612,6 +715,14 @@ public final class ShowcaseModel {
     public io.github.digitalsmile.goldberry.widgets.markup.Named named() {
         return io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
                 .bind("app.signup-form", signup)
-                .bind("app.port-rule", portRule);
+                .bind("app.port-rule", portRule)
+                // Where both document screens' pictures come from. A **named object**
+                // rather than an action or a binding, because an image source is
+                // neither a method nor a value that changes -- which is the third
+                // registry's whole job (ADR-0130, ADR-0300).
+                .bind("app.assets", assets);
     }
+
+    /// The one picture this application ships, for whichever document names it.
+    private final DocumentAssets assets = new DocumentAssets();
 }

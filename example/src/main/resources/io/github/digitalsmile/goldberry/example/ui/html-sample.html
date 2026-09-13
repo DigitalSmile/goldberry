@@ -1,0 +1,145 @@
+<!-- The page the HTML screen opens with. Edit it on the left; this is the right. -->
+<h1>An HTML sample</h1>
+
+<p>Everything here is <strong>live</strong>. Type in the pane on the left and this
+side is the next frame: the editor writes one property and <code>html-view</code>
+follows it, which is all <code>bind=</code> means.</p>
+
+<p>There is <em>no engine</em> under this. The page is parsed into a tree of records
+and folded into <code>column</code>, <code>row</code>, <code>text</code> and
+<code>button</code> — the same widgets every control in this window is made of, under
+the same cascade. litehtml is what would buy real inline layout, and it is still
+waiting on a wider native paint surface.</p>
+
+<h2>Text, and what marks it</h2>
+
+<p>Prose with <em>emphasis</em>, <strong>strength</strong>, <del>a change of
+mind</del>, <ins>a second thought</ins>, <mark>a highlight</mark>, <small>an
+aside</small> and <code>inline code</code>. Emphasis leans because the toolkit ships
+two upright faces, so it is a faux oblique rather than an italic — <code>html.css</code>
+says so in a comment you can override.</p>
+
+<p>Entities are resolved on the way in — AT&amp;T, &copy; 2026, an em&#8212;dash and
+a non&nbsp;breaking space — so the model holds characters a reader can read. A bare
+ampersand is one too: Q&A, and 3 &lt; 4.</p>
+
+<h2>Links, images, and what the application decides</h2>
+
+<p>An <a href="https://example.com">anchor is a button</a> here: it takes a Tab stop,
+it hovers, and <kbd>Space</kbd> or <kbd>Enter</kbd> activates it. Press one and the
+line under this pane says what it was handed — because following a link is the
+<a href="https://goldberry.dev">application's decision</a> and never the toolkit's.
+Nothing here opens a browser, resolves a relative path or fetches anything.</p>
+
+<p>A Markdown link is now one widget too, for the same reason: a link's whole run
+becomes a single <code>button.link</code> rather than four hover targets.</p>
+
+<p>An image is <strong>drawn</strong> when the application says where it is —
+<code>images=</code> names an <code>ImageSource</code>, and what a <code>src</code>
+means is the application's:</p>
+
+<p><img src="sea.png" alt="[A picture of the Sea]"></p>
+
+<p>A <code>src</code> nothing answers for is its alt text, which is what
+<img src="missing.png" alt="[this one]"> is.</p>
+
+<h2>Lists</h2>
+
+<p>A list an author did not close, which is how most of them are written:</p>
+
+<ul>
+  <li>Bread
+  <li>Cheese
+  <li>Something to carry it in
+</ul>
+
+<p>Numbered, and starting where it says rather than at one:</p>
+
+<ol start="7">
+  <li>Seven</li>
+  <li>Eight</li>
+  <li>Nine</li>
+</ol>
+
+<p>Nested, because a list holds blocks and a block can be a list:</p>
+
+<ul>
+  <li>The Shire
+    <ul><li>Hobbiton</li><li>Bywater</li></ul>
+  </li>
+  <li>Bree
+    <ol><li>The Prancing Pony</li><li>The road east</li></ol>
+  </li>
+</ul>
+
+<p>And a definition list, which Markdown has no syntax for at all:</p>
+
+<dl>
+  <dt>html-view</dt>
+  <dd>A page, as widgets. This.</dd>
+  <dt>markdown-view</dt>
+  <dd>A note, as widgets. The other tab.</dd>
+</dl>
+
+<h2>Quotations</h2>
+
+<blockquote>
+  <p>A quotation holds <strong>blocks</strong>, not words, which is why this one can
+  hold a list:</p>
+  <ul><li>and does</li></ul>
+  <blockquote><p>A quotation inside a quotation is one more level of the same
+  thing.</p></blockquote>
+</blockquote>
+
+<h2>Code</h2>
+
+<pre><code>var document = Html.parse(source);          // no native call at all
+var links    = document.find("a");          // a walk of the same parse
+var view     = HtmlView.following(model.source()).onLink(app::navigate);</code></pre>
+
+<p>A long line in a <code>pre</code> is clipped rather than wrapped, because a wrapped
+program has lines nobody wrote. Drag across one and <kbd>Ctrl</kbd>+<kbd>C</kbd>
+takes a copy, line by line.</p>
+
+<h2>A table</h2>
+
+<table>
+  <caption>What the two content widgets do</caption>
+  <thead>
+    <tr><th>Feature</th><th>markdown-view</th><th align="right">html-view</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Parsed by</td><td>md4c, in C</td><td align="right">Java</td></tr>
+    <tr><td>Followable links</td><td>yes</td><td align="right">yes</td></tr>
+    <tr><td>Images</td><td>yes</td><td align="right">yes</td></tr>
+    <tr><td>Tickable tasks</td><td>yes</td><td align="right">—</td></tr>
+    <tr><td>Definition lists</td><td>no</td><td align="right">yes</td></tr>
+    <tr><td>Real inline layout</td><td>no</td><td align="right">no</td></tr>
+    <tr><td>Text selection</td><td>yes</td><td align="right">yes</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>What it does not do, drawn honestly</h2>
+
+<p>A <code>&lt;style&gt;</code> block is kept in the model and applied by nothing: the
+cascade here is the application's stylesheets, which is what makes this page follow
+the theme rather than fight it.</p>
+
+<style>h1 { color: hotpink }</style>
+
+<p>Nothing above turned pink, and no <code>&lt;script&gt;</code> ran:</p>
+
+<script>document.title = "nor this"</script>
+
+<p>A tag nobody has heard of is a block that stacks, styled by its own name — so a
+document can carry its own vocabulary and a stylesheet can meet it halfway:</p>
+
+<my-callout class="note">
+  <p>This is a <code>&lt;my-callout&gt;</code>. It renders, and
+  <code>.html-my-callout</code> is the selector for it.</p>
+</my-callout>
+
+<p>And a page that is malformed is still a page: <b>this bold run<i> overlaps this
+italic one</b> and neither word is lost</i>.
