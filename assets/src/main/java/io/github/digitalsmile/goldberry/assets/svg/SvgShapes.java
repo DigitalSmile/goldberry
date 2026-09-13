@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.assets;
+package io.github.digitalsmile.goldberry.assets.svg;
 
 import java.util.ArrayList;
 import java.util.List;

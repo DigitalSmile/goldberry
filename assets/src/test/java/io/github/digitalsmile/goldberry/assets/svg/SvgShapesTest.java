@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.assets;
+package io.github.digitalsmile.goldberry.assets.svg;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

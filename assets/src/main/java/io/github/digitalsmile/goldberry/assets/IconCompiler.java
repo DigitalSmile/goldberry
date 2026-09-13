@@ -12,6 +12,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import io.github.digitalsmile.goldberry.assets.svg.SvgPathData;
+import io.github.digitalsmile.goldberry.assets.svg.SvgShapes;
+
 /// Turns an SVG icon set into one table of path data.
 ///
 /// Shipping 1544 SVGs would put an XML parser on the path that draws a checkbox.
@@ -52,9 +55,17 @@ public final class IconCompiler {
     /// Compiles one icon's SVG into a single run of path data.
     ///
     /// Every shape in the document becomes a subpath and they are concatenated
-    /// in document order. That is safe because each one begins with a moveto —
-    /// concatenating path data is only ever wrong when a fragment continues from
-    /// wherever the previous one ended.
+    /// in document order. Concatenating path data is only ever wrong when a
+    /// fragment continues from wherever the previous one ended, so each one is
+    /// put through [SvgPathData#absoluteStart] first: an SVG `<path>` may open
+    /// with a *relative* moveto, which its own element reads as absolute and a
+    /// concatenation does not, and 481 of Lucide's 1544 icons do exactly that
+    /// (ADR-0302).
+    ///
+    /// The result is then checked rather than assumed. A subpath that still does
+    /// not open with an absolute moveto would silently drag the pen from the
+    /// previous shape, which is the class of bug this method exists to have
+    /// stopped having.
     ///
     /// @throws IllegalArgumentException if the icon uses an element this cannot
     ///         convert, which would otherwise produce an icon that is subtly
@@ -82,10 +93,17 @@ public final class IconCompiler {
                                 + " Emitting the rest would give an icon that is silently"
                                 + " incomplete.");
             }
-            var path = convert(element);
-            if (!path.isEmpty()) {
-                parts.add(path);
+            var path = SvgPathData.absoluteStart(convert(element));
+            if (path.isEmpty()) {
+                continue;
             }
+            if (!SvgPathData.startsAbsolutely(path)) {
+                throw new IllegalArgumentException(
+                        name + ": <" + tag + "> compiled to \"" + path + "\", which does not open a"
+                                + " subpath of its own. Joined behind the shape before it, it would"
+                                + " draw from that shape's last point.");
+            }
+            parts.add(path);
         }
 
         if (parts.isEmpty()) {

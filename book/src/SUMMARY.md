@@ -311,6 +311,7 @@
 - [ADR-0299 A cache smaller than one frame is worse than no cache](adr/0299-a-cache-smaller-than-one-frame-is-worse-than-no-cache.md)
 - [ADR-0300 A document is read, and the application answers](adr/0300-a-document-is-read-and-the-application-answers.md)
 - [ADR-0301 A selection is geometry the frame already had](adr/0301-a-selection-is-geometry-the-frame-already-had.md)
+- [ADR-0302 A subpath is anchored where it was written](adr/0302-a-subpath-is-anchored-where-it-was-written.md)
 
 ---
 

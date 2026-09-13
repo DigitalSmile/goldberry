@@ -120,7 +120,15 @@ evidence from one Linux VM.
   pixel-identical to a synchronous one at every worker count
   ([ADR-0042](adr/0042-blend2ds-workers-and-how-many.md)). Blend2D's path API is bound
   and Lucide's 1544 icons reach the screen as stroked paths, all of them asserted to
-  parse ([ADR-0043](adr/0043-icons-are-stroked-paths.md)). And a typeface is loaded once
+  parse ([ADR-0043](adr/0043-icons-are-stroked-paths.md)). **481 of them were drawing the
+  wrong shape until 2026-09-13**, and all 1544 parsed the whole time: Lucide writes an
+  icon as several `<path>` elements and lets each one open with a *relative* moveto,
+  which SVG reads as absolute inside its own element and as relative once the compiler
+  has joined them — so a third of the set traced its second subpath from wherever the
+  first one's pen stopped. `SvgPathData` anchors every subpath before the join and
+  `IconCompiler` refuses one that is still relative, so the property is checked rather
+  than asserted in a comment
+  ([ADR-0302](adr/0302-a-subpath-is-anchored-where-it-was-written.md)). And a typeface is loaded once
   rather than once per size: `FontFace` holds the shaper and Blend2D's face, so a second
   size costs 4.4 µs instead of 681 and no second copy of the file
   ([ADR-0044](adr/0044-one-face-many-sizes.md)).

@@ -48,6 +48,40 @@ class IconCompilerTest {
     }
 
     @Test
+    @DisplayName("a relative moveto opening a later <path> is anchored")
+    void relativeSubpathsAreAnchored() throws IOException {
+        // Lucide's `a-arrow-down`, which is three <path> elements and two of
+        // them open with `m`. Inside its own element that `m` is measured from
+        // the origin; joined behind the first subpath it would be measured from
+        // (9.5, 13), putting the A off the 24x24 viewBox entirely (ADR-0302).
+        var path = compile(icon(
+                "<path d=\"M3.5 13h6\"/><path d=\"m2 16 4.5-9 4.5 9\"/><path d=\"M18 7v9\"/>"));
+
+        assertEquals("M3.5 13h6 M2 16 l4.5-9 4.5 9 M18 7v9", path);
+    }
+
+    @Test
+    @DisplayName("a first <path> that opens relatively is anchored too")
+    void theFirstSubpathIsAnchoredAsWell() throws IOException {
+        // Already correct by accident -- the pen starts at the origin, so `m`
+        // and `M` agree -- and rewritten anyway, so that "every subpath opens
+        // absolutely" is a property of the table rather than of its first line.
+        assertEquals("M2 16 l4.5-9", compile(icon("<path d=\"m2 16 4.5-9\"/>")));
+    }
+
+    @Test
+    @DisplayName("every subpath of a compiled icon opens with an absolute moveto")
+    void everySubpathOpensAbsolutely() throws IOException {
+        var path = compile(icon(
+                "<path d=\"m1 1 2 2\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/>"
+                        + "<path d=\"m3 3h4\"/><rect x=\"0\" y=\"0\" width=\"4\" height=\"4\"/>"));
+
+        for (var subpath : path.split(" (?=[Mm])")) {
+            assertTrue(subpath.startsWith("M"), () -> "not anchored: " + subpath + " in " + path);
+        }
+    }
+
+    @Test
     @DisplayName("every shape Lucide uses is convertible")
     void allSevenShapesAreHandled() throws IOException {
         for (var body : Map.of(
