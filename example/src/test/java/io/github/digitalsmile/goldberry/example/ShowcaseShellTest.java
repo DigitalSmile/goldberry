@@ -73,17 +73,53 @@ class ShowcaseShellTest {
 
     // --- the gallery ---------------------------------------------------------
 
+    /// Eleven screens, ten of which have a digit — and **which** ten is the
+    /// decision this asserts ([ADR-0307]).
+    ///
+    /// This test used to say `GALLERY.size() <= 10` and call the eleventh screen
+    /// "a decision about which one loses its key". The decision is that **none of
+    /// them does**: `Ctrl+1`…`Ctrl+0` keep meaning exactly what they have always
+    /// meant, and `icons` is reached by the strip, by the arrows inside it, and by
+    /// Edit ▸ Go to.
+    ///
+    /// The reason is what the two kinds of screen are for. The first ten are
+    /// galleries a reader moves *between* — the digit is worth having because the
+    /// comparison is the point. The icon sheet is a reference opened once and
+    /// searched, and re-pointing a shortcut somebody already knows in order to
+    /// give it one would cost more than it bought.
+    ///
+    /// What is still load-bearing is that the digits and the strip agree about
+    /// the first ten, which is [GalleryOrderTest]'s.
     @Test
-    @DisplayName("eight screens, each with a title and a digit")
-    void eightScreens() {
+    @DisplayName("eleven screens; the first ten have a digit and the eleventh has the strip")
+    void theGallery() {
         assertEquals(
-                List.of("basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "canvas"),
+                List.of(
+                        "basic",
+                        "panels",
+                        "overlays",
+                        "forms",
+                        "navigation",
+                        "collections",
+                        "charts",
+                        "markdown",
+                        "html",
+                        "canvas",
+                        "icons"),
                 Screen.GALLERY);
 
-        // The point of eight rather than twelve, in one assertion: a keyboard has
-        // ten digits, and two of the twelve screens had no key at all.
+        // A keyboard has ten digits and `Screen.GALLERY` may be longer. What must
+        // not drift is the *prefix*: the screens that have keys are the first ten
+        // in strip order, so no digit ever points at a different screen than it
+        // did yesterday.
+        assertEquals(
+                "canvas",
+                Screen.GALLERY.get(9),
+                "Ctrl+0 is the tenth screen, and inserting one above it would move every digit");
         assertTrue(
-                Screen.GALLERY.size() <= 10, "there are more screens than digits, so some of them have no accelerator");
+                Screen.GALLERY.size() > 10,
+                "if the gallery is back to ten, this test and ADR-0307 are describing a window"
+                        + " that no longer exists");
     }
 
     @Test

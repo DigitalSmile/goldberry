@@ -631,6 +631,126 @@ sparkline {
   --gb-chart-1: var(--gb-warning);
 }
 
+/* --- Icons (ADR-0307) -------------------------------------------------------
+ *
+ * The sheet of every bundled icon. Not inside the gallery's viewport -- it is a
+ * virtualized `list` and owns one -- so, like the Navigation and Markdown
+ * screens, this box is what has to fill the tab panel.
+ */
+#icons-screen {
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  flex-grow: 1;
+}
+
+#icons-header {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.screen-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
+
+.screen-note {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+#icon-search-row {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* The field takes the room and the count takes what is left, which is the one
+   arrangement that keeps "42 of 1544" from moving as the number changes. */
+#icon-search {
+  flex-grow: 1;
+}
+
+#icon-count {
+  flex-shrink: 0;
+}
+
+/* The viewport fills whatever the header leaves. A `scroll` told no height is as
+   tall as its content and scrolls nothing, which on a sheet of 1544 tiles is a
+   screen that simply runs off the bottom of the window. */
+#icon-viewport {
+  flex-grow: 1;
+}
+
+/* The box that reports its width, and the reason the masonry can follow the
+   window (ADR-0309). It adds nothing of its own: what it is for is the
+   measurement, and anything drawn here would be drawn around the whole wall.
+
+   **No `flex-grow`**, which is the opposite of what it looks like it wants. This
+   is a vertical `scroll`'s *content*, and content told to grow is exactly as tall
+   as the viewport — so nothing overflows, and a sheet of 1544 tiles draws no
+   thumb and scrolls nowhere. That is what the first picture of this screen
+   showed. Its **width** still comes from the viewport, because a flex child
+   stretches across the cross axis without being asked. */
+icon-sheet {
+  flex-direction: column;
+}
+
+/* The wall's own gaps, which have to equal `IconsScreen.TILE_GAP` — the column
+   count is arithmetic over the tile width and this number, and a widget cannot
+   read what a stylesheet resolved for a node it is about to describe. `masonry`
+   and `masonry-column` carry 12 by default, which would make the arithmetic
+   wrong by four points per gap. */
+#icon-wall {
+  gap: 8px;
+}
+
+#icon-wall masonry-column {
+  gap: 8px;
+}
+
+/* 152 wide because the longest names in the set need two caption lines at that
+   width and three at anything narrower — and a third line does not fit, which is
+   how the first drawing of this screen came out with its rows overlapping. The
+   number is `IconsScreen.TILE_WIDTH`.
+
+   `flex-grow: 1` rather than a fixed width: a masonry's columns are equal and
+   share the row, so the tile fills the column it landed in and the sheet has no
+   ragged right edge when the division is not exact. */
+icon-tile {
+  width: 152px;
+  height: 68px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-grow: 1;
+  padding: 4px;
+  border-radius: 8px;
+  color: var(--gb-text);
+  transition: background var(--gb-motion-fast);
+}
+
+/* Nothing here is pressable, and the wash is still worth having: a sheet of a
+   thousand glyphs is read by moving the pointer across it, and the highlight is
+   what keeps a reader's place while they look from the glyph to its name. */
+icon-tile:hover {
+  background: var(--gb-overlay-hover);
+}
+
+icon-tile-name {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  flex-shrink: 1;
+}
+
 /* --- the chip rows (ADR-0305) ---------------------------------------------- */
 
 /* `flex-wrap`, which the chip row is the second consumer of: a filter row is as

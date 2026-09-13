@@ -406,4 +406,176 @@ class FrameBudgetTest {
                             warm, cold));
         }
     }
+
+    /// **A settled document shapes nothing**, which is a count rather than a
+    /// duration and therefore true on every machine.
+    ///
+    /// The defect (ADR-0299): `markdown-view` and `html-view` build one `text`
+    /// widget per word, so a page asks the paragraph cache for ~600 distinct
+    /// strings a frame against a cache that held 256 — and least-recently-used
+    /// eviction then guarantees a **zero** hit rate rather than a lower one, because
+    /// each lookup evicts the entry the walk is about to reach. It cost 287 shapes
+    /// and 4 ms on a frame where nothing had changed, and every timing test in this
+    /// file passed throughout, because they all measured a wall of cards.
+    ///
+    /// So this measures the document screen, and it asserts the invariant directly:
+    /// render an unchanged tree twice, and the second render shapes no text.
+    @Test
+    @DisplayName("a settled document re-shapes no text at all, however many words it has")
+    void aSettledDocumentShapesNothing() {
+        var target = TestFrames.of(1280, 900, 1.0f);
+        var tree = treeFor(DOCUMENT);
+        var renderer = rendererFor();
+        try (var render = RenderTree.create()) {
+            // Two frames to settle: the first builds the tree, the second is the one
+            // whose working set the cache has now been sized to hold.
+            for (var i = 0; i < 2; i++) {
+                tree.flush();
+                render.update(target.frame(), renderer.render(tree));
+            }
+            var cache = renderer.paragraphs();
+            assertNotNull(cache, "a render has happened, so there is a cache");
+            var before = cache.misses();
+
+            renderer.render(tree);
+
+            // The document's own frame cost, printed rather than asserted: the budgets
+            // above are the wall's, and what is worth watching here is that a document
+            // stays in the same order of magnitude as one. It is also where a
+            // regression in the selection geometry would show up — every word reports
+            // where it landed, once a frame (ADR-0301).
+            var style = medianMillis(50, () -> renderer.render(tree));
+            var layout = medianMillis(50, () -> render.update(target.frame(), renderer.render(tree)));
+            System.out.printf(
+                    "%n  document: %d paragraphs in a frame, cache holds %d, %d shaped by a settled frame"
+                            + "%n  document: style %.3f ms, layout %.3f ms%n",
+                    cache.highWaterMark(), cache.capacity(), cache.misses() - before, style, layout);
+            assertEquals(
+                    before,
+                    cache.misses(),
+                    () -> "a frame that changed nothing shaped " + (cache.misses() - before)
+                            + " paragraphs; the cache holds " + cache.capacity() + " and the frame asks for "
+                            + cache.highWaterMark() + " (ADR-0299)");
+            assertTrue(
+                    cache.capacity() >= cache.highWaterMark(),
+                    "a cache smaller than one frame's working set misses every lookup on the excess");
+        }
+    }
+
+    /// A settled frame of the **whole** icon sheet, which is 1544 tiles and no
+    /// virtualization at all ([ADR-0309]).
+    ///
+    /// The sheet replaced a virtualized `list` with a `masonry`, because a masonry
+    /// is what reflows and a masonry cannot virtualize — placing a card under the
+    /// shortest column is a decision about **every** card. This is the number that
+    /// trade costs, and it is asserted against a budget of its own rather than the
+    /// wall's, because it does not meet the wall's and pretending otherwise would
+    /// be a test that fails or a test that checks nothing.
+    ///
+    /// The budget below is the measurement plus room to move. What it catches is
+    /// the sheet getting **worse** — another element per tile, a style that stops
+    /// caching — which is the regression worth having a guard for. What it does
+    /// not do is claim the sheet is cheap.
+    @Test
+    @DisplayName("the whole icon sheet is dear, and stays as dear as it was measured")
+    void theWholeIconSheetCosts() {
+        warmUp();
+        var cost = measureSheet("");
+
+        System.out.printf(
+                "%n  icons (all 1544): %d elements, opened in %.0f ms"
+                        + "%n  icons (all 1544): build %.3f ms, style %.3f ms, layout %.3f ms  (settled, median)%n",
+                cost.elements(), cost.opened(), cost.build(), cost.style(), cost.layout());
+
+        assertTrue(
+                cost.style() < SHEET_STYLE_BUDGET_MS,
+                "a settled frame of the whole sheet styles in " + cost.style() + " ms, over the "
+                        + SHEET_STYLE_BUDGET_MS + " ms this screen is allowed. The style pass is O(elements)"
+                        + " and there are " + cost.elements() + " of them, so this is a count that grew.");
+        assertTrue(
+                cost.layout() < SHEET_LAYOUT_BUDGET_MS,
+                "a settled frame of the whole sheet lays out in " + cost.layout() + " ms, over "
+                        + SHEET_LAYOUT_BUDGET_MS);
+    }
+
+    /// **The search field is the performance story**, not a convenience.
+    ///
+    /// The sheet is dear because it draws every icon there is. Two letters take it
+    /// from 4709 elements to about 1085, and the style pass with it — which is
+    /// what makes the un-virtualized masonry defensible, since looking for an icon
+    /// is the only reason to be on this screen.
+    ///
+    /// **Asserted as a ratio and not against the wall's budget**, which is what
+    /// the first version of this test did and was an over-claim: 1085 elements is
+    /// still five times the wall's, and the measurement sits on either side of
+    /// 1.0 ms depending on what else the machine is doing. A budget that fails
+    /// once a run is worse than no budget. The ratio is the claim that is actually
+    /// being made and it is the one that holds.
+    @Test
+    @DisplayName("and typing two letters takes most of that back")
+    void aFilteredSheetIsMuchCheaper() {
+        warmUp();
+        var whole = measureSheet("");
+        var filtered = measureSheet("ar");
+
+        System.out.printf(
+                "%n  icons (\"ar\"): %d elements, build %.3f ms, style %.3f ms, layout %.3f ms%n",
+                filtered.elements(), filtered.build(), filtered.style(), filtered.layout());
+
+        assertTrue(
+                filtered.elements() * 3 < whole.elements(),
+                "filtering left " + filtered.elements() + " of " + whole.elements()
+                        + " elements, so the field is no longer narrowing much");
+        assertTrue(
+                filtered.style() * 2 < whole.style(),
+                "a filtered sheet styles in " + filtered.style() + " ms against the whole sheet's "
+                        + whole.style() + " ms. Searching is supposed to be what makes this screen"
+                        + " cheap, and it has stopped being.");
+        assertTrue(
+                filtered.style() < SHEET_FILTERED_STYLE_BUDGET_MS,
+                "a filtered sheet styles in " + filtered.style() + " ms, over the " + SHEET_FILTERED_STYLE_BUDGET_MS
+                        + " ms a narrowed sheet is allowed");
+    }
+
+    /// What a settled frame of the icon sheet costs, with `query` typed into it.
+    private SheetCost measureSheet(String query) {
+        var target = TestFrames.of(1280, 900, 1.0f, 0);
+        actions.setIconQuery(query);
+        var tree = treeFor(SHEET);
+        var renderer = rendererFor();
+        try (var render = RenderTree.create()) {
+            var opening = System.nanoTime();
+            tree.flush();
+            render.update(target.frame(), renderer.render(tree));
+            var opened = (System.nanoTime() - opening) / 1_000_000.0;
+
+            // The rest of the settle: `Measured` reports the sheet's width, the
+            // column count follows, and the second layout is what every later
+            // frame looks like.
+            for (var i = 0; i < 10; i++) {
+                tree.flush();
+                render.update(target.frame(), renderer.render(tree));
+            }
+
+            var boxes = renderer.render(tree);
+            return new SheetCost(
+                    count(tree.root()),
+                    opened,
+                    medianMillis(50, tree::flush),
+                    medianMillis(50, () -> renderer.render(tree)),
+                    medianMillis(50, () -> render.update(target.frame(), boxes)));
+        } finally {
+            actions.setIconQuery("");
+        }
+    }
+
+    private record SheetCost(int elements, double opened, double build, double style, double layout) {}
+
+    private static int count(io.github.digitalsmile.goldberry.widget.Element element) {
+        var total = 1;
+        for (var child : element.children()) {
+            total += count(child);
+        }
+        return total;
+    }
 }

@@ -82,10 +82,22 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// the one the eighth tab named. A gallery with two orders in it is a gallery
     /// that disagrees with itself (ADR-0110).
     ///
-    /// Eight of them, which is still inside the ten digits a keyboard has — where
-    /// twelve was two screens past the end of them.
+    /// **Eleven**, and the eleventh has no digit — `Ctrl+0` is the tenth and a
+    /// keyboard has no eleventh digit. That was written here as a *limit* while
+    /// the gallery had ten screens, and it is not one: `GalleryOrderTest` has
+    /// always asserted "ten digits, however many screens there are", and
+    /// `Showcase.screenShortcuts` has always bound what it can and stopped. So
+    /// `icons` is reached by the strip, by the arrow keys inside it, and by
+    /// Edit ▸ Go to — three ways, none of them a digit ([ADR-0307]).
+    ///
+    /// The rule that *is* load-bearing is the one below it: the strip and this
+    /// list must name the same screens, because a screen in one and not the other
+    /// is either a key bound to nothing or a tab no key can reach. That has been
+    /// checked since the gallery was twelve screens long and two of them were
+    /// unreachable.
     public static final List<String> GALLERY = List.of(
-            "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "canvas");
+            "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
+            "canvas", "icons");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -95,15 +107,22 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// not tabs. It is checked against the list below, so a screen added to one
     /// and not the other is a failure at build rather than a menu row reading
     /// `null`.
-    private static final Map<String, String> TITLES = Map.of(
-            "basic", "Basic",
-            "panels", "Panels",
-            "overlays", "Overlays",
-            "forms", "Forms",
-            "navigation", "Navigation",
-            "collections", "Collections",
-            "charts", "Charts",
-            "canvas", "Canvas");
+    ///
+    /// `Map.ofEntries` and not `Map.of`, which takes at most ten pairs — the
+    /// eleventh screen is what found that, at compile time, which is where a
+    /// limit like this should be found.
+    private static final Map<String, String> TITLES = Map.ofEntries(
+            Map.entry("basic", "Basic"),
+            Map.entry("panels", "Panels"),
+            Map.entry("overlays", "Overlays"),
+            Map.entry("forms", "Forms"),
+            Map.entry("navigation", "Navigation"),
+            Map.entry("collections", "Collections"),
+            Map.entry("charts", "Charts"),
+            Map.entry("markdown", "Markdown"),
+            Map.entry("html", "HTML"),
+            Map.entry("canvas", "Canvas"),
+            Map.entry("icons", "Icons"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -269,7 +288,13 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // rather than about a family of widgets -- and the only one
                     // whose cards respond to the pointer by redrawing themselves
                     // (ADR-0281).
-                    new Tab("canvas", title("canvas"), scrolled(new CanvasScreen()))))),
+                    new Tab("canvas", title("canvas"), scrolled(new CanvasScreen())),
+                    // The sheet of every bundled icon, and the one screen that is
+                    // about an *asset* rather than about a widget. Not `scrolled`:
+                    // it is a virtualized `list` and owns a viewport of its own,
+                    // which is [Navigation]'s reason and §2.4's ban on nested
+                    // same-axis scrollers (ADR-0307).
+                    new Tab("icons", title("icons"), new IconsScreen(model, actions))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

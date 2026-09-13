@@ -316,7 +316,9 @@
 - [ADR-0304 A window has a floor, and the desktop enforces it](adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)
 - [ADR-0305 A chip is a badge you can press](adr/0305-a-chip-is-a-badge-you-can-press.md)
 - [ADR-0306 The last crumb is where you are](adr/0306-the-last-crumb-is-where-you-are.md)
+- [ADR-0307 The eleventh screen has no digit](adr/0307-the-eleventh-screen-has-no-digit.md)
 - [ADR-0308 A tooltip follows the focus ring](adr/0308-a-tooltip-follows-the-focus-ring.md)
+- [ADR-0309 A sheet of icons reflows, and pays for it](adr/0309-a-sheet-of-icons-reflows-and-pays-for-it.md)
 
 ---
 

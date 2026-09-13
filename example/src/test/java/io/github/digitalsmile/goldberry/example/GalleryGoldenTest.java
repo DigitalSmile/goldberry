@@ -239,6 +239,39 @@ class GalleryGoldenTest {
         paint("gallery-basic-narrow", "basic", Theme.NORD_DARK, 720, 900);
     }
 
+    /// The eleventh screen, and the only golden in the gallery of a **virtualized**
+    /// tree: what is in the picture is the rows the viewport asked for, not the
+    /// 193 the sheet holds ([ADR-0307]).
+    ///
+    /// It is worth a picture for a reason the others are not — the row height in
+    /// `IconsScreen` and the tile height in `showcase.css` are two numbers that
+    /// have to agree, and nothing can check that but an image: told the wrong one,
+    /// a virtualized list scrolls past its own content and every value assertion
+    /// still passes.
+    @Test
+    @DisplayName("the Icons screen, and every tile in the first viewport")
+    void icons() {
+        paint("gallery-icons", "icons", Theme.NORD_DARK, 1200, 900);
+    }
+
+    /// The same sheet in a narrow window, which is the **only** thing that can
+    /// show the reflow ([ADR-0309]).
+    ///
+    /// The column count is `floor((width + gap) / (tile + gap))` over a width no
+    /// assertion can know, because it is what Yoga made of the viewport after the
+    /// shell, the padding and the scrollbar had taken their share. What this
+    /// picture proves is the two halves of that: **fewer columns**, and a last
+    /// column that is a whole tile rather than a clipped one.
+    ///
+    /// It also exercises `Measured`'s one-frame settle. The first frame is drawn
+    /// at the default seven; the width arrives; the second frame — which is the
+    /// one `Offscreen` photographs — is right.
+    @Test
+    @DisplayName("the Icons screen in a narrow window, with fewer columns")
+    void iconsNarrow() {
+        paint("gallery-icons-narrow", "icons", Theme.NORD_DARK, 720, 900);
+    }
+
     @Test
     @DisplayName("the Forms screen on the light theme")
     void formsLight() {

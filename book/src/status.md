@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **eleven** screens, the last of them a searchable sheet of all 1544 bundled icons, in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
@@ -6619,6 +6619,65 @@ is the `scroll` box's.
   containing links; `Role` has neither `LINK` nor a landmark, so the crumbs answer
   `BUTTON` and the row answers `GROUP`. Inventing the constants now would make a
   gap look closed — `docs/gaps.md` carries it until the AccessKit bridge.
+
+### An eleventh screen, and the limit that was only ever about keyboards
+
+- **The showcase has an Icons screen**: all 1544 of them, a search field, and the
+  name under each that a document writes in `icon="…"`
+  ([ADR-0307](adr/0307-the-eleventh-screen-has-no-digit.md)). Every other screen
+  answers "what does this widget do"; this one answers a question a reader has
+  while writing a document, and until now the only way to answer it was Lucide's
+  website.
+- **Nothing lost its accelerator.** `Ctrl+1`…`Ctrl+0` mean exactly what they
+  always meant and `icons` is reached by the strip, the arrows and Edit ▸ Go to.
+  The machinery already allowed it — `screenShortcuts` has always bound what it
+  can and stopped, and `GalleryOrderTest` has always said "ten digits, however
+  many screens there are". What had to change was a *comment* claiming a limit and
+  one assertion encoding it.
+- **The sheet virtualizes over rows**, seven names at a time, and the icons are
+  built lazily and cached: parsing 221 KiB of path data up front for a screen a
+  reader may never open is as wrong as parsing it per frame.
+- **Two numbers have to agree, and the first golden is what said so.** A
+  `list-row` is `--gb-list-row-height` — 32 — which is half a tile, so every row of
+  the sheet overlapped the one below it until `showcase.css` re-stated
+  `IconsScreen.ROW_HEIGHT` for `#icon-sheet list-row`.
+- **`BundledAssets.iconNames()` has no order**, which this found: it is the key
+  set of a `Map.copyOf`, so the sheet first opened on `book-lock, calendar-off,
+  badge, list-start`. The screen sorts; the method never promised an order and this
+  is its first caller that needed one.
+- **The application declares a widget**, which the gallery had not shown before:
+  `IconTile` is `Widget.Leaf` plus `Styled` plus `Paints`, three methods, and no
+  permission asked of the toolkit.
+- **And then the sheet was made to follow the window**
+  ([ADR-0309](adr/0309-a-sheet-of-icons-reflows-and-pays-for-it.md)). Rows of a
+  fixed seven left a band of empty space in a wide window and clipped the last
+  column in a narrow one, so the sheet is a `masonry` whose column count is as
+  many tiles as fit — measured through `Measured`, one settling frame, seven at
+  1200 and four at 720.
+- **A masonry of equal-height tiles reads across the row**, which that widget does
+  not promise: its warning about reading *down* a column is about cards of
+  differing heights, and "the shortest column, and the emptiest of the equally
+  short" places equal ones across. Asserted, because it is a consequence of a
+  tiebreak rather than a contract.
+- **The scroll's content must not grow.** `icon-sheet` had `flex-grow: 1`, which
+  is what a box that should fill its viewport looks like — and it is a vertical
+  `scroll`'s *content*, so it came out exactly as tall as the viewport, nothing
+  overflowed, and no thumb was drawn. No golden could tell: content running past
+  the bottom edge looks the same either way, and the thumb has faded by the time a
+  picture is taken. That is why the screen has a driven test as well as two
+  images.
+- **And the cost was measured, which contradicted the first thing written about
+  it.** The claim was "expensive to open and ordinary to scroll". The numbers say
+  4709 elements, **464 ms to open**, and **3.7 ms of style on a settled frame**
+  against every other screen's 1.0 — because the style pass is O(elements)
+  whatever is cached, and ADR-0299's cache stops the shaping rather than the walk.
+  `FrameBudgetTest` now measures the whole sheet against a budget of its own, and
+  the *filtered* sheet as a **ratio** — two letters take it to 1085 elements and
+  about a third of the style cost, so **the search field is the performance story
+  rather than a convenience**. The ratio is itself a correction: the first version
+  asserted the filtered sheet against the wall's 1.0 ms and failed under a full
+  build at 1.25, because 1085 elements is still five times a wall's and the number
+  straddles the line.
 
 ### Not started
 
