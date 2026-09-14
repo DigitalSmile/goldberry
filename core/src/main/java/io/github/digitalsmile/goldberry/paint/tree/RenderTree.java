@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Clip;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.cull.BoxInk;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -104,6 +105,10 @@ public final class RenderTree implements AutoCloseable {
         // this call is close to free — which is the whole return on the guards
         // in `RenderObject.apply`.
         root.node().calculateLayout(size.width(), size.height());
+        // Where Yoga put everything, and what each subtree draws -- read once,
+        // here, rather than in each of the walks that follow. A frame painted
+        // twice (a damage pass and a full one) settles once ([ADR-0313]).
+        root.settle();
     }
 
     /// Brings the retained tree in line with `box`, at `scale`. The half of
@@ -175,6 +180,7 @@ public final class RenderTree implements AutoCloseable {
 
         reconcile(box, scale.factor());
         root.node().calculateLayout(availableWidth, availableHeight);
+        root.settle();
         var layout = root.layout();
         return new LogicalSize(layout.width(), layout.height());
     }
@@ -207,6 +213,8 @@ public final class RenderTree implements AutoCloseable {
         if (damage.isEmpty()) {
             layersRepainted = 0;
             layersComposited = 0;
+            boxesPainted = 0;
+            boxesCulled = 0;
             return;
         }
         var bounds = damage.getFirst();
@@ -254,6 +262,8 @@ public final class RenderTree implements AutoCloseable {
         // lends one to every drawing call rather than each caller remembering to.
         layersRepainted = 0;
         layersComposited = 0;
+        boxesPainted = 0;
+        boxesCulled = 0;
         {
             var state = new Painting(frame, base);
             paint(root, 0, 0, 1.0, Affine.IDENTITY, base, state);
@@ -360,6 +370,18 @@ public final class RenderTree implements AutoCloseable {
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
+        // **Nothing under here can land inside the clip**, so none of it is
+        // drawn and none of it is walked ([ADR-0313]). The test is against the
+        // subtree's ink rather than this box's rectangle, because a child may be
+        // drawn outside its parent -- and it is skipped outright when nothing
+        // clips, which is every box in a window with no viewport in it and the
+        // case that must stay free.
+        if (!parentClip.isNone()
+                && !object.ink().shiftedBy(left, top).mappedBy(transform).overlaps(parentClip)) {
+            boxesCulled++;
+            return;
+        }
+
         // Before the promoted branch, not after it. A layer is rasterized whole
         // and composited with one blit, and that blit is the only thing an
         // enclosing scroll view can confine -- so a promoted node inside a
@@ -374,6 +396,7 @@ public final class RenderTree implements AutoCloseable {
 
         var alpha = parentAlpha * box.opacity();
         state.transform(transform);
+        boxesPainted++;
         BoxPainter.paintOne(
                 state.frame,
                 box.fade(alpha),
@@ -501,6 +524,7 @@ public final class RenderTree implements AutoCloseable {
         var layout = object.layout();
         state.transform(transform);
         var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
+        boxesPainted++;
         BoxPainter.paintOne(state.frame, box.fade(alpha), computed, transform);
 
         // The promoted node's own `overflow` still clips its children, inside
@@ -572,13 +596,15 @@ public final class RenderTree implements AutoCloseable {
         // the day a shadow is offset further than it is blurred, *miss* one --
         // which leaves a smear that survives until something else repaints over
         // it (ADR-0310).
-        var decoration = box.decoration();
-        var ring = decoration.hasOutline() ? decoration.outlineOffset() + decoration.outlineWidth() : 0;
-        var shadow = decoration.shadow();
-        var l = left - Math.max(ring, shadow.outsetLeft());
-        var t = top - Math.max(ring, shadow.outsetTop());
-        var r = left + layout.width() + Math.max(ring, shadow.outsetRight());
-        var b = top + layout.height() + Math.max(ring, shadow.outsetBottom());
+        // One rule about what a box draws outside itself, in [BoxInk], because
+        // the culler asks the same question for the opposite reason: too small a
+        // rectangle here clips a focus ring off a promoted node, and too small a
+        // one there drops a row that was on screen ([ADR-0313]).
+        var own = BoxInk.of(box, layout.width(), layout.height()).shiftedBy(left, top);
+        var l = own.left();
+        var t = own.top();
+        var r = own.right();
+        var b = own.bottom();
 
         // All four corners, because a rotation turns a rectangle into one that is
         // not axis-aligned and taking two corners would miss half of it.
@@ -897,8 +923,32 @@ public final class RenderTree implements AutoCloseable {
         return layersComposited;
     }
 
+    /// How many boxes the last [#paint] actually drew.
+    ///
+    /// Exposed for [#boxesCulled()]'s reason, and the pair is [#layersRepainted]'s
+    /// argument applied to a second optimization: a frame that culls correctly and
+    /// a frame that culls nothing produce **the same image**, so no assertion on
+    /// pixels can tell them apart — and a culler that quietly stopped working
+    /// would cost 4× on the screen it was written for and fail no test at all
+    /// ([ADR-0313]).
+    public int boxesPainted() {
+        return boxesPainted;
+    }
+
+    /// How many subtrees the last [#paint] skipped because nothing in them could
+    /// land inside the clip in force.
+    ///
+    /// **Subtrees, not boxes**: one count is one walk that stopped, and the boxes
+    /// under it were never reached to be counted. A viewport over a long list
+    /// reports a handful of these and draws the rows on screen.
+    public int boxesCulled() {
+        return boxesCulled;
+    }
+
     private int layersRepainted;
     private int layersComposited;
+    private int boxesPainted;
+    private int boxesCulled;
 
     /// How many render objects are alive — diagnostics, and what a test asserts
     /// when it wants to know a subtree was reused rather than rebuilt.

@@ -96,8 +96,20 @@ interface AreaEditor {
     /// The pointer went down or was dragged to a point in this control.
     void pointerAt(double x, double y, boolean extend, int clickCount);
 
-    /// The wheel turned over it.
-    boolean scrollBy(double dy);
+    /// The wheel turned over it, by `lines` — **positive is down the document**,
+    /// which is [io.github.digitalsmile.goldberry.input.event.PointerEvent#deltaY()]'s
+    /// own sign and convention.
+    ///
+    /// In lines rather than in logical pixels, because a wheel event is in lines
+    /// and only this side knows what a line of *this* control's text is tall.
+    /// Handing over a pixel distance meant the caller guessing, and what it
+    /// guessed was one pixel per notch — with the sign inverted, so the one
+    /// scrollable control in the toolkit that is not a `scroll` moved the wrong
+    /// way, a pixel at a time ([ADR-0314]).
+    ///
+    /// @return whether anything moved, which is what decides whether the wheel is
+    ///         consumed or left for the page behind this control
+    boolean scrollByLines(double lines);
 
     /// Focus arrived or left.
     void focusChanged(boolean focused, boolean fromKeyboard);

@@ -142,28 +142,31 @@ class FrameBudgetTest {
     /// different shape of tree and the one that found ADR-0299.
     private static final String DOCUMENT = "markdown";
 
-    /// And the **biggest tree in the application**: 1544 icon tiles, none of them
-    /// virtualized ([ADR-0309]).
+    /// And the sheet of **1544 icons**, which is the biggest *model* in the
+    /// application and — since [ADR-0316] — no longer the biggest tree.
     private static final String SHEET = "icons";
 
-    /// What a settled frame of the *whole* sheet is allowed, which is not what
-    /// every other screen is allowed.
+    /// What a settled frame of the whole sheet is allowed.
     ///
-    /// The style pass is O(elements) whatever is cached, and the sheet has
-    /// twenty times the wall's. These are the measured numbers with room to move:
-    /// the guard is against the sheet getting worse, not a claim that it is
-    /// cheap. Searching is what makes it cheap — see [#aFilteredSheetIsMuchCheaper].
-    private static final double SHEET_STYLE_BUDGET_MS = 8.0;
-
-    private static final double SHEET_LAYOUT_BUDGET_MS = 4.0;
-
-    /// And what a *narrowed* sheet is allowed.
+    /// **Two milliseconds, where it was eight.** The sheet was an un-virtualized
+    /// masonry of 4709 elements until [ADR-0316] and the style pass is
+    /// O(elements); it is a virtualized `list` now and builds the rows a reader
+    /// can see, which is 711 elements and **0.72 ms** measured.
     ///
-    /// Two rather than the wall's one, because 1085 elements is five times the
-    /// wall's and the measurement straddles 1.0 ms depending on the machine. The
-    /// claim this screen makes is that searching takes most of the cost back, and
-    /// that is asserted as a ratio beside this.
-    private static final double SHEET_FILTERED_STYLE_BUDGET_MS = 2.0;
+    /// Not the wall's 1 ms, and the difference is honest rather than a
+    /// concession: a viewport full of icon tiles is 711 elements where a wall of
+    /// cards is 267, the cascade runs per element, and a budget that sat 40%
+    /// over the measurement would fail whenever the machine was busy. Three times
+    /// the measurement, which is this file's own doctrine — the defect worth
+    /// catching is a 34×.
+    ///
+    /// The raster is on the wall's footing exactly, and has been since
+    /// [ADR-0313].
+    private static final double SHEET_STYLE_BUDGET_MS = 2.0;
+
+    /// And its layout, on the same argument: **0.20 ms** measured over 711
+    /// elements, against a wall's 0.03 over 267.
+    private static final double SHEET_LAYOUT_BUDGET_MS = 2.0;
 
     private Showcase showcase;
     private ShowcaseModel model;
@@ -462,31 +465,43 @@ class FrameBudgetTest {
         }
     }
 
-    /// A settled frame of the **whole** icon sheet, which is 1544 tiles and no
-    /// virtualization at all ([ADR-0309]).
+    /// A settled frame of the **whole** icon sheet: 1544 icons, and a tree the
+    /// size of any other screen's ([ADR-0316]).
     ///
-    /// The sheet replaced a virtualized `list` with a `masonry`, because a masonry
-    /// is what reflows and a masonry cannot virtualize — placing a card under the
-    /// shortest column is a decision about **every** card. This is the number that
-    /// trade costs, and it is asserted against a budget of its own rather than the
-    /// wall's, because it does not meet the wall's and pretending otherwise would
-    /// be a test that fails or a test that checks nothing.
+    /// This screen had a budget of its own for as long as it was an
+    /// un-virtualized `masonry` — 4709 elements, 8 ms of style and 18 ms of
+    /// raster, asserted against numbers nothing else in the gallery was allowed
+    /// because it did not meet the wall's and pretending otherwise would have
+    /// been a test that fails or a test that checks nothing.
     ///
-    /// The budget below is the measurement plus room to move. What it catches is
-    /// the sheet getting **worse** — another element per tile, a style that stops
-    /// caching — which is the regression worth having a guard for. What it does
-    /// not do is claim the sheet is cheap.
+    /// It is an ordinary screen's frame now, and that is the assertion — 711
+    /// elements against 4709, and a raster on the wall's own budget. A grid of
+    /// equal-height
+    /// tiles is a list of equal-height rows, a list builds the rows a reader can
+    /// see, and the painter skips what the viewport clips ([ADR-0313]) — so the
+    /// screen with the biggest *model* in the application has an ordinary
+    /// screen's *tree* and an ordinary screen's frame.
+    ///
+    /// **The element count is asserted too**, and it is the sharper half: the
+    /// budgets are wall-clock and this is a ratio that holds on any machine. A
+    /// sheet that stopped virtualizing would still pass a timing test on a fast
+    /// enough runner.
     @Test
-    @DisplayName("the whole icon sheet is dear, and stays as dear as it was measured")
+    @DisplayName("the whole icon sheet costs what any other screen costs")
     void theWholeIconSheetCosts() {
         warmUp();
         var cost = measureSheet("");
 
         System.out.printf(
                 "%n  icons (all 1544): %d elements, opened in %.0f ms"
-                        + "%n  icons (all 1544): build %.3f ms, style %.3f ms, layout %.3f ms  (settled, median)%n",
-                cost.elements(), cost.opened(), cost.build(), cost.style(), cost.layout());
+                        + "%n  icons (all 1544): build %.3f ms, style %.3f ms, layout %.3f ms,"
+                        + " raster %.3f ms  (settled, median)%n",
+                cost.elements(), cost.opened(), cost.build(), cost.style(), cost.layout(), cost.raster());
 
+        assertTrue(
+                cost.elements() < 1544,
+                "the sheet built " + cost.elements() + " elements for 1544 icons, which is not a window onto"
+                        + " the model — it has stopped virtualizing ([ADR-0316])");
         assertTrue(
                 cost.style() < SHEET_STYLE_BUDGET_MS,
                 "a settled frame of the whole sheet styles in " + cost.style() + " ms, over the "
@@ -496,45 +511,55 @@ class FrameBudgetTest {
                 cost.layout() < SHEET_LAYOUT_BUDGET_MS,
                 "a settled frame of the whole sheet lays out in " + cost.layout() + " ms, over "
                         + SHEET_LAYOUT_BUDGET_MS);
+
+        // The rasterizer on the ordinary budget as well, because a viewport costs
+        // what is *visible* ([ADR-0313]). This measured 18.0 ms before the culler.
+        var pixels = 1280L * 900;
+        var rasterBudget = Math.max(RASTER_BUDGET_FLOOR_MS, RASTER_BUDGET_MS_PER_MEGAPIXEL * pixels / 1_000_000.0);
+        assertTrue(
+                cost.raster() < rasterBudget,
+                "a settled frame of the whole sheet rasterizes in " + cost.raster() + " ms, over the "
+                        + rasterBudget + " ms any screen of this size is allowed. The painter is supposed"
+                        + " to skip the tiles that are off screen, and has stopped.");
     }
 
-    /// **The search field is the performance story**, not a convenience.
+    /// **And searching is a convenience again**, which is the sentence this
+    /// screen's documentation used to have to avoid.
     ///
-    /// The sheet is dear because it draws every icon there is. Two letters take it
-    /// from 4709 elements to about 1085, and the style pass with it — which is
-    /// what makes the un-virtualized masonry defensible, since looking for an icon
-    /// is the only reason to be on this screen.
+    /// While the sheet was a masonry, the search field was the performance story:
+    /// two letters took it from 4709 elements to 1085 and the style pass with
+    /// them, and that was the argument that made an un-virtualized wall
+    /// defensible. It is no longer true and must not be asserted — a virtualized
+    /// list builds its **window**, so a filtered sheet and a whole one are the
+    /// same tree and the same frame.
     ///
-    /// **Asserted as a ratio and not against the wall's budget**, which is what
-    /// the first version of this test did and was an over-claim: 1085 elements is
-    /// still five times the wall's, and the measurement sits on either side of
-    /// 1.0 ms depending on what else the machine is doing. A budget that fails
-    /// once a run is worse than no budget. The ratio is the claim that is actually
-    /// being made and it is the one that holds.
+    /// So what is asserted is the property that replaced it: filtering changes
+    /// the model by a factor of ten and changes the **cost by nothing**. A sheet
+    /// that had quietly stopped virtualizing would fail here rather than merely
+    /// get slower ([ADR-0316]).
     @Test
-    @DisplayName("and typing two letters takes most of that back")
-    void aFilteredSheetIsMuchCheaper() {
+    @DisplayName("and typing two letters changes the model, not the frame")
+    void aFilteredSheetCostsTheSame() {
         warmUp();
         var whole = measureSheet("");
         var filtered = measureSheet("ar");
 
         System.out.printf(
-                "%n  icons (\"ar\"): %d elements, build %.3f ms, style %.3f ms, layout %.3f ms%n",
-                filtered.elements(), filtered.build(), filtered.style(), filtered.layout());
+                "%n  icons (\"ar\"): %d elements, build %.3f ms, style %.3f ms, layout %.3f ms," + " raster %.3f ms%n",
+                filtered.elements(), filtered.build(), filtered.style(), filtered.layout(), filtered.raster());
 
+        // Within a quarter, not equal: the two sheets hold different *rows*, and
+        // a row of long names wraps to two caption lines where a row of short
+        // ones does not.
         assertTrue(
-                filtered.elements() * 3 < whole.elements(),
-                "filtering left " + filtered.elements() + " of " + whole.elements()
-                        + " elements, so the field is no longer narrowing much");
+                filtered.elements() * 4 > whole.elements() * 3,
+                "a filtered sheet built " + filtered.elements() + " elements against the whole sheet's "
+                        + whole.elements() + "; both are windows on the same viewport and should be"
+                        + " about the same size");
         assertTrue(
-                filtered.style() * 2 < whole.style(),
-                "a filtered sheet styles in " + filtered.style() + " ms against the whole sheet's "
-                        + whole.style() + " ms. Searching is supposed to be what makes this screen"
-                        + " cheap, and it has stopped being.");
-        assertTrue(
-                filtered.style() < SHEET_FILTERED_STYLE_BUDGET_MS,
-                "a filtered sheet styles in " + filtered.style() + " ms, over the " + SHEET_FILTERED_STYLE_BUDGET_MS
-                        + " ms a narrowed sheet is allowed");
+                filtered.style() < SHEET_STYLE_BUDGET_MS,
+                "a filtered sheet styles in " + filtered.style() + " ms, over the " + SHEET_STYLE_BUDGET_MS
+                        + " ms this screen is allowed");
     }
 
     /// What a settled frame of the icon sheet costs, with `query` typed into it.
@@ -563,13 +588,14 @@ class FrameBudgetTest {
                     opened,
                     medianMillis(50, tree::flush),
                     medianMillis(50, () -> renderer.render(tree)),
-                    medianMillis(50, () -> render.update(target.frame(), boxes)));
+                    medianMillis(50, () -> render.update(target.frame(), boxes)),
+                    medianMillis(30, () -> render.paint(target.frame())));
         } finally {
             actions.setIconQuery("");
         }
     }
 
-    private record SheetCost(int elements, double opened, double build, double style, double layout) {}
+    private record SheetCost(int elements, double opened, double build, double style, double layout, double raster) {}
 
     private static int count(io.github.digitalsmile.goldberry.widget.Element element) {
         var total = 1;

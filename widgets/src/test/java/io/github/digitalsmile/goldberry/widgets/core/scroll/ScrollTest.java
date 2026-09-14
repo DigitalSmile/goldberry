@@ -131,9 +131,15 @@ class ScrollTest {
             return found.getFirst();
         }
 
-        /// Turns the wheel over the middle of the viewport, then paints.
-        void wheel(float lines) {
-            router.pointerWheel(100, 50, 0, lines, Modifiers.NONE);
+        /// Turns the wheel over the middle of the viewport by `notches`, then
+        /// paints.
+        ///
+        /// **Notches and not lines.** A `deltaY` of 1 is one detent of a real
+        /// wheel, and a detent is [ScrollViewport#LINES_PER_NOTCH] lines — the
+        /// distinction the wheel handler used to collapse ([ADR-0314]). A
+        /// fraction is a trackpad, which is why this takes a float.
+        void wheel(float notches) {
+            router.pointerWheel(100, 50, 0, notches, Modifiers.NONE);
             frame();
         }
 
@@ -254,8 +260,8 @@ class ScrollTest {
         }
 
         @Test
-        @DisplayName("one line down moves the content up by one line's worth")
-        void oneLine() {
+        @DisplayName("one notch down moves the content up by three lines, which is what a desktop does")
+        void oneNotch() {
             var harness = new Harness(tallContent());
             var before = harness.contentTop();
 
@@ -263,7 +269,12 @@ class ScrollTest {
 
             // Up, not down: scrolling down the document moves the content the
             // other way, and a sign error here is the classic scroll bug.
-            assertEquals(before - ScrollViewport.LINE, harness.contentTop(), 0.5);
+            //
+            // Three lines, because that is a notch. This read `LINE` for as long
+            // as the handler multiplied by one, and the two agreeing is exactly
+            // what let a viewport a third of the desktop's speed pass its own
+            // test suite ([ADR-0314]).
+            assertEquals(before - ScrollViewport.LINE * ScrollViewport.LINES_PER_NOTCH, harness.contentTop(), 0.5);
         }
 
         @Test
@@ -276,7 +287,8 @@ class ScrollTest {
 
             // The whole point of ADR-0115's float reaching this far: rounding
             // here is what makes a trackpad scroll in jerks.
-            assertEquals(before - ScrollViewport.LINE * 0.25, harness.contentTop(), 0.5);
+            assertEquals(
+                    before - ScrollViewport.LINE * ScrollViewport.LINES_PER_NOTCH * 0.25, harness.contentTop(), 0.5);
         }
 
         @Test
@@ -346,16 +358,16 @@ class ScrollTest {
     class LineToken {
 
         /// A viewport that inherits the toolkit's own default behaves exactly as
-        /// it did: one line is 20px.
+        /// it did: one line is 20px, and a notch is three of them.
         @Test
-        @DisplayName("one wheel line is the default 20px when nothing says otherwise")
+        @DisplayName("one wheel notch is three of the default 20px lines when nothing says otherwise")
         void theDefault() {
             var harness = new Harness(tallContent());
             var before = harness.contentTop();
 
             harness.wheel(1);
 
-            assertEquals(20, before - harness.contentTop(), 0.5, "one line should be --gb-scroll-line's default");
+            assertEquals(60, before - harness.contentTop(), 0.5, "a notch should be three --gb-scroll-line defaults");
         }
 
         /// And an application that overrides it is honoured, which is the whole
@@ -375,7 +387,33 @@ class ScrollTest {
 
             harness.wheel(1);
 
-            assertEquals(50, before - harness.contentTop(), 0.5, "the override was not honoured");
+            assertEquals(150, before - harness.contentTop(), 0.5, "the override was not honoured");
+        }
+
+        /// **The token is a line and the wheel is a notch**, and the two moving by
+        /// different amounts is the whole of what [ScrollViewport#LINES_PER_NOTCH]
+        /// says. A viewport where an arrow key and a wheel notch went the same
+        /// distance is the one this had before ([ADR-0314]).
+        @Test
+        @DisplayName("a notch is three arrow presses, whatever a line is set to")
+        void aNotchIsThreeArrows() {
+            var wheeled = new Harness(tallContent(), "scroll { --gb-scroll-line: 50px }");
+            wheeled.frame();
+            var beforeWheel = wheeled.contentTop();
+            wheeled.wheel(1);
+
+            var keyed = new Harness(tallContent(), "scroll { --gb-scroll-line: 50px }");
+            keyed.frame();
+            var beforeKeys = keyed.contentTop();
+            for (var i = 0; i < ScrollViewport.LINES_PER_NOTCH; i++) {
+                keyed.press(Key.DOWN);
+            }
+
+            assertEquals(
+                    beforeKeys - keyed.contentTop(),
+                    beforeWheel - wheeled.contentTop(),
+                    0.5,
+                    "a notch and three arrows should cover the same ground");
         }
 
         /// The arrow keys move by the same number, because §2.4 gives them one

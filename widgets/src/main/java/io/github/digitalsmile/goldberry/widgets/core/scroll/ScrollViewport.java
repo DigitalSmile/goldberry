@@ -90,6 +90,31 @@ record ScrollViewport(
     /// always precedes an input.
     static final double LINE = 20;
 
+    /// How many lines one notch of the wheel moves. **Three**, which is what
+    /// every other application on the machine does.
+    ///
+    /// The paragraph above has said "three of these is the conventional notch"
+    /// since this widget was written, and the code multiplied by one: a
+    /// [PointerEvent#deltaY()] of ±1 is one detent and it moved twenty pixels
+    /// where the desktop moves sixty. A viewport three times slower than every
+    /// other window on the screen is not a number anybody reads off a stylesheet
+    /// — it is the report *"scrolling feels heavy"*, which is how this was
+    /// eventually found ([ADR-0314]).
+    ///
+    /// Applied to the **wheel** and not to the keys. An arrow key means a line
+    /// and [#ARROW] is one; `PageDown` means a viewport. The notch is the only
+    /// unit here that is a platform convention rather than a document's own
+    /// idea, which is why it is a separate number from the token an author can
+    /// set: `--gb-scroll-line` says how far a *line* is, and three of them is a
+    /// notch whatever that is.
+    ///
+    /// A trackpad is unaffected in the way that matters. Its deltas arrive as
+    /// fractions of a detent — an eighth at a time — so the same multiplier
+    /// turns the same gesture into the same distance, which is precisely why
+    /// [#onPointer] reads the fraction rather than the accumulated
+    /// [PointerEvent#ticksY()] (ADR-0115).
+    static final int LINES_PER_NOTCH = 3;
+
     /// How much of a viewport `PageUp` and `PageDown` leave behind.
     ///
     /// A page that moved a whole viewport would leave nothing on screen that was
@@ -246,8 +271,11 @@ record ScrollViewport(
             return;
         }
         // The fraction, not the detents: this is a distance, and a trackpad's
-        // eighths are what stop it moving in jerks (ADR-0115).
-        var moved = scrollBy(event.deltaX() * line, event.deltaY() * line, event.bounds(), event.part());
+        // eighths are what stop it moving in jerks (ADR-0115). Times three,
+        // because a detent is a notch and a notch is three lines --
+        // see [#LINES_PER_NOTCH].
+        var notch = line * LINES_PER_NOTCH;
+        var moved = scrollBy(event.deltaX() * notch, event.deltaY() * notch, event.bounds(), event.part());
         if (moved) {
             event.consume();
         }

@@ -20,7 +20,8 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
-import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
+import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Icons** screen: all 1544 of them, and a field to find one.
@@ -53,32 +54,30 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// to cards of differing heights, and alphabetical order here reads left to
 /// right. See [IconsState#scrolledSheet()].
 ///
-/// ## Everything is built, and it is not free
+/// ## The sheet is a window on the model
 ///
-/// The `list` this replaced virtualized; a masonry cannot, because placing a card
-/// under the shortest column is a decision about **every** card. So all 1544
-/// tiles are in the tree, and `FrameBudgetTest` measures what that costs rather
-/// than leaving it to a paragraph like this one:
+/// This screen was a `masonry` of all 1544 tiles between [ADR-0309] and
+/// [ADR-0316], and it is a **virtualized `list` of rows** now — a grid of
+/// equal-height tiles is a list of equal-height rows, and a list builds the rows
+/// a reader can see. `FrameBudgetTest` measures what that is worth rather than
+/// leaving it to a paragraph like this one:
 ///
-/// | | elements | opens in | style | layout |
-/// |---|---|---|---|---|
-/// | the whole sheet | 4709 | 464 ms | 3.7 ms | 0.6 ms |
-/// | after typing `ar` | 1085 | — | 0.9 ms | 0.2 ms |
+/// | | elements | opens in | style | layout | raster |
+/// |---|---|---|---|---|---|
+/// | the masonry | 4709 | 414 ms | 3.5 ms | 0.7 ms | 18.0 ms |
+/// | the grid | 711 | 106 ms | 0.7 ms | 0.2 ms | 4.2 ms |
 ///
-/// Two honest readings of that. **Opening it is slow** — switching to this tab
-/// builds 1544 tiles and shapes 1544 captions, and half a second is what that
-/// costs. **A settled frame is dear but workable**: 4.3 ms of build, style and
-/// layout is a quarter of a 60 Hz frame before anything is rasterized, where
-/// every other screen in the gallery is under one.
+/// The reflow is unchanged and was never the masonry's: [#columnsFor] is the
+/// whole layout rule and it reads a width this screen measures itself. What the
+/// masonry was doing is the chunking, which is [IconsState#rows()].
 ///
-/// Which makes the search field the performance story rather than a convenience:
-/// two letters take about three quarters of the cost back, and looking for an
-/// icon is the only reason to be here. Asserted as a **ratio** rather than
-/// against another screen's budget — 1085 elements is still five times a wall's,
-/// and the honest claim is that searching narrows it rather than that a narrowed
-/// sheet is cheap ([ADR-0309]).
+/// **Searching is a convenience again**, which is a sentence this comment used to
+/// have to avoid: while every tile was built, two letters took three quarters of
+/// the frame back and that was the argument that made an un-virtualized wall
+/// defensible. A virtualized list builds its window, so a filtered sheet and a
+/// whole one are the same tree and the same frame.
 ///
-/// The `scroll` is around the masonry and not around the screen, so the field and
+/// The `scroll` is around the grid and not around the screen, so the field and
 /// the count stay put while the icons move under them. [Screen] does not wrap this
 /// screen in a viewport, because §2.4 bans a scroller inside a scroller.
 ///
@@ -106,6 +105,25 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
     /// is about to describe.
     static final double TILE_GAP = 8;
 
+    /// A tile's height, and the sheet's row pitch with the gap added.
+    ///
+    /// Stated here for [#TILE_GAP]'s reason and one more: a **virtualized** list
+    /// is told how tall a row is, because that is the one number it cannot find
+    /// out — §8's subset resolves the height for the cascade and no widget can
+    /// read back what it resolved ([ADR-0213]). `showcase.css` pins
+    /// `#icon-wall list-row` to this number, and `ListRow` complains if the two
+    /// ever disagree.
+    static final double TILE_HEIGHT = 68;
+
+    /// How far apart two rows of tiles sit, top to top.
+    ///
+    /// Public for [#columnsFor]'s reason: it is half of the layout rule, and
+    /// `IconsScreenTest` is in the application's own package rather than in
+    /// `…example.ui` — a virtualized sheet that is as tall as its **model** is
+    /// the property the scrollbar rests on, and asserting it means multiplying
+    /// this number by a row count.
+    public static final double ROW_PITCH = TILE_HEIGHT + TILE_GAP;
+
     /// What to assume before the first frame has said how wide the sheet is.
     ///
     /// Seven, which is what the window opens at — so the first frame is right
@@ -119,6 +137,21 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
     /// read, and 24 makes the columns too wide to fit the shell's content pane at
     /// the window's opening width.
     static final double ICON_SIZE = 20;
+
+    /// A row of the sheet, which is what the `list` virtualizes over.
+    ///
+    /// Identified by its **first name**, which is unique because the names are
+    /// and because a row's first name is nobody else's: that is the key the
+    /// reconciler and the list's own focus run through, and an index would make
+    /// every row a different row the moment a letter is typed.
+    ///
+    /// @param names up to `columns` of them; the last row has fewer
+    record IconRow(List<String> names) {
+
+        String id() {
+            return names.getFirst();
+        }
+    }
 
     /// How many tiles fit across `width`.
     ///
@@ -244,32 +277,49 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     Attributes.NONE.id("icons-header"));
         }
 
-        /// The sheet: a **masonry that follows the window**, in a viewport.
+        /// The sheet: a **virtualized grid that follows the window**, in a
+        /// viewport.
         ///
-        /// ## Why a masonry and not a row of rows
+        /// ## A grid is a list of rows, and a list already virtualizes
         ///
-        /// A masonry is a count of equal-width columns and nothing else, which is
-        /// exactly a reflowing grid — and the count is the one thing that has to
-        /// change when the window does. The previous arrangement chunked the
-        /// names into rows of a **fixed** seven, so a wide window left a band of
-        /// empty space and a narrow one clipped the last column
-        /// ([ADR-0309]).
+        /// This was a `masonry` between [ADR-0309] and [ADR-0316], on an argument
+        /// that was right about reflow and wrong about what reflow costs. A
+        /// masonry is a count of equal-width columns, which is exactly a
+        /// reflowing grid — and it cannot virtualize, because placing a card
+        /// under the shortest column is a decision about **every** card. So all
+        /// 1544 tiles were in the tree, and every frame paid 4709 elements'
+        /// worth of box-building, layout and hit-test snapshot whether or not a
+        /// reader could see them.
         ///
-        /// Its reading order is the right one here, which is not obvious and is
-        /// worth stating: `Masonry` warns that it reads *down* each column rather
-        /// than across, and that warning is about cards of **differing** heights.
-        /// Every tile on this sheet is the same height, so "the shortest column,
-        /// and the emptiest of the equally short" places them across the row —
-        /// alphabetical order reads left to right, the way a reader scanning for
-        /// `chevron-right` expects.
+        /// The masonry was never needed. Its own record says so: *"a masonry of
+        /// equal-height tiles is a reflowing grid in reading order"* — and a grid
+        /// of equal-height rows is a **list**, which §10's `list` virtualizes on
+        /// exactly the argument this screen needed ([ADR-0213]). The reflow is
+        /// [#columns], which this screen has always computed itself from
+        /// [Measured]; the masonry was only ever doing the chunking.
+        ///
+        /// So the names are chunked into rows of [#columns] here and the `list`
+        /// builds the rows a reader can see. Reading order is left to right down
+        /// the page, which is what it always was and is now true by construction
+        /// rather than by an argument about which column is shortest.
+        ///
+        /// ## The last row is padded rather than stretched
+        ///
+        /// A tile is `flex-grow: 1` over a 152pt basis, so a full row divides the
+        /// width evenly and has no ragged right edge — which is what the masonry's
+        /// equal columns gave. A part-full last row would divide the *same* width
+        /// between fewer tiles and draw them half again as wide, so it is padded
+        /// out with empty cells that grow and draw nothing.
         ///
         /// ## The viewport is the sheet's, not the gallery's
         ///
         /// [Screen] does not wrap this screen in one, because §2.4 bans a scroller
-        /// inside a scroller. So the `scroll` is here, around the masonry and
-        /// **not** around the header — the search field and the count stay put
-        /// while the icons move under them, which is the whole point of a field
-        /// that filters a long list.
+        /// inside a scroller. So the `scroll` is here, around the grid and **not**
+        /// around the header — the search field and the count stay put while the
+        /// icons move under them, which is the whole point of a field that filters
+        /// a long list. It is also what the `list` reads its window from: a
+        /// virtualized list is told where it was painted and what clips it, and
+        /// the clip is this viewport ([ADR-0119]).
         private Widget scrolledSheet() {
             if (matching.isEmpty()) {
                 return new Text(
@@ -277,17 +327,43 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                 + " \"chevron-right\", \"square-pen\", \"file-text\".",
                         Attributes.NONE.id("icons-empty").classes("screen-note"));
             }
-            var tiles = new ArrayList<Widget>(matching.size());
-            for (var name : matching) {
-                // Keyed by name, so filtering reconciles the tiles that survived
-                // rather than rebuilding the sheet (ADR-0004).
-                tiles.add(new IconTile(name, iconFor(name), Attributes.NONE.key(name)));
-            }
-            var wall = new Masonry(tiles, columns, Attributes.NONE.id("icon-wall"));
+            var grid = new ListView<>(rows(), IconRow::id, this::rowOf)
+                    .selection(Selection.NONE)
+                    .virtualized(ROW_PITCH)
+                    .id("icon-wall");
             return new Scroll(
-                    List.of(new IconSheet(wall, this::measured)),
+                    List.of(new IconSheet(grid, this::measured)),
                     ScrollAxis.VERTICAL,
                     Attributes.NONE.id("icon-viewport"));
+        }
+
+        /// [#matching], chunked into rows of [#columns].
+        ///
+        /// Rebuilt on every build of this screen, which is a slice of a list per
+        /// row and 221 of them — against the 1544 widgets the chunking used to
+        /// produce, of which forty were ever drawn.
+        private List<IconRow> rows() {
+            var rows = new ArrayList<IconRow>(matching.size() / columns + 1);
+            for (var from = 0; from < matching.size(); from += columns) {
+                rows.add(new IconRow(matching.subList(from, Math.min(from + columns, matching.size()))));
+            }
+            return rows;
+        }
+
+        /// One row of tiles, padded to [#columns] so it divides the width the way
+        /// a full row does.
+        private Widget rowOf(IconRow row) {
+            var cells = new ArrayList<Widget>(columns);
+            for (var name : row.names()) {
+                // Keyed by name, so filtering and reflowing reconcile the tiles
+                // that survived rather than rebuilding the row (ADR-0004).
+                cells.add(new IconTile(name, iconFor(name), Attributes.NONE.key(name)));
+            }
+            for (var pad = row.names().size(); pad < columns; pad++) {
+                cells.add(new Row(
+                        List.of(), Attributes.NONE.classes("icon-cell-filler").key("pad-" + pad)));
+            }
+            return new Row(cells, Attributes.NONE.classes("icon-row"));
         }
 
         /// Told how wide the sheet came out, and asks for a rebuild only when

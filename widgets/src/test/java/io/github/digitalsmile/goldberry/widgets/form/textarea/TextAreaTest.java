@@ -538,6 +538,113 @@ class TextAreaTest {
         }
     }
 
+    /// The one scrollable thing in the toolkit that is **not** a `scroll`, and
+    /// therefore the one place the wheel's convention had to be written out a
+    /// second time — and was written out wrong ([ADR-0314]).
+    @Nested
+    @DisplayName("the wheel")
+    class Wheel {
+
+        private TextArea document() {
+            var text = new StringBuilder();
+            for (var line = 1; line <= 40; line++) {
+                text.append("line ").append(line).append('\n');
+            }
+            return new TextArea(text.toString(), null).fill(true);
+        }
+
+        private double scrolledBy(ElementTree tree) {
+            return ((TextAreaState) tree.root().state().orElseThrow()).scrolledBy();
+        }
+
+        /// Turns the wheel by `notches` over the middle of the control.
+        private boolean wheel(ElementTree tree, float notches) {
+            var event = PointerEvent.wheel(150, 100, 0, notches, null);
+            box(tree).onPointer(event);
+            render(tree);
+            return event.isConsumed();
+        }
+
+        /// **The direction**, which is the whole of the bug: the handler negated
+        /// the delta, so a `text-area` beside a `scroll` — which is precisely the
+        /// Markdown screen — scrolled the other way.
+        @Test
+        @DisplayName("turning the wheel down moves the document down, the way every other viewport does")
+        void downIsDown() {
+            var tree = mounted(document());
+
+            assertTrue(wheel(tree, 1), "there are forty lines in a pane that holds a handful");
+
+            assertTrue(
+                    scrolledBy(tree) > 0,
+                    "a notch down left the offset at " + scrolledBy(tree) + ", which is up the document");
+        }
+
+        /// **Three lines, in the control's own terms.** Asserted by asking what
+        /// is now at the top of the pane rather than by multiplying a line height
+        /// out here: the distance is in points and what it has to be worth is a
+        /// number of *lines*, which is the conversion the bug got wrong in both
+        /// directions at once — one pixel, upwards ([ADR-0314]).
+        @Test
+        @DisplayName("and one notch brings the fourth line to the top, because a notch is three lines")
+        void aNotchIsThreeLines() {
+            var tree = mounted(document());
+
+            wheel(tree, 1);
+            // A triple-click on the first line still on screen, which is the
+            // line `WHEEL_LINES` of them down from where it opened.
+            tripleClickAtTheTop(tree);
+
+            assertEquals(
+                    "line " + (TextAreaBox.WHEEL_LINES + 1), box(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("two notches go twice as far, which is what a trackpad's fractions rest on")
+        void notchesAreADistance() {
+            var one = mounted(document());
+            var two = mounted(document());
+
+            wheel(one, 1);
+            wheel(two, 2);
+
+            assertEquals(2 * scrolledBy(one), scrolledBy(two), 0.5);
+        }
+
+        private void tripleClickAtTheTop(ElementTree tree) {
+            var event = new PointerEvent(
+                    PointerEvent.Kind.PRESSED,
+                    8,
+                    8,
+                    PointerEvent.Button.PRIMARY,
+                    3,
+                    Float.NaN,
+                    Float.NaN,
+                    Modifiers.NONE,
+                    null);
+            event.localTo(new PointerEvent.Local(8, 8, 300, 200));
+            box(tree).onPointer(event);
+            render(tree);
+        }
+
+        @Test
+        @DisplayName("at the top, turning up moves nothing and the page behind keeps the wheel")
+        void theTopChains() {
+            var tree = mounted(document());
+
+            assertFalse(wheel(tree, -1), "an area already at the top consumed a wheel it could not use");
+            assertEquals(0, scrolledBy(tree), 1e-9);
+        }
+
+        @Test
+        @DisplayName("an area with nothing to scroll never takes the wheel at all")
+        void aShortAreaChains() {
+            var tree = mounted(new TextArea("one\ntwo", null));
+
+            assertFalse(wheel(tree, 1), "two lines in a pane that holds five has nowhere to go");
+        }
+    }
+
     @Nested
     @DisplayName("the pointer")
     class Pointer {

@@ -157,6 +157,135 @@ class StyleCacheTest {
         }
     }
 
+    /// **A rebuild is not a restyle**, which is the other half of "the cache is
+    /// used" and the half that was missing until [ADR-0315].
+    ///
+    /// `Element.update` threw a node's whole subtree away on every
+    /// re-description, on the grounds that "a rebuild is already the expensive
+    /// path". It is not, once anything cascades down it: a `scroll` moving by one
+    /// notch re-describes two nodes and used to invalidate every node under them,
+    /// which on the showcase's icon sheet was 4709 elements and **66 ms** of
+    /// cascade for a transform none of them can see.
+    @Nested
+    @DisplayName("and kept across a rebuild that cannot have changed it")
+    class Rebuilds {
+
+        @Test
+        @DisplayName("re-describing a node with the same classes keeps the subtree's styles")
+        void sameClassesKeepTheCache() {
+            var renderer = renderer("group.outer { background: red } group.inner { background: blue }");
+            var tree = new ElementTree(nested());
+            renderer.render(tree);
+
+            var parent = tree.root().cachedStyle(renderer.resolver(), null);
+            var child = inner(tree).cachedStyle(renderer.resolver(), parent);
+            assertNotNull(child);
+
+            // A different instance saying exactly the same thing, which is what
+            // every rebuild in a real tree hands down.
+            tree.root().update(new Group(List.of(new Group(List.of(), classed("inner"))), classed("outer")));
+
+            assertSame(
+                    parent,
+                    tree.root().cachedStyle(renderer.resolver(), null),
+                    "the re-described node threw its own style away");
+            assertSame(
+                    child,
+                    inner(tree).cachedStyle(renderer.resolver(), parent),
+                    "the re-described node threw its whole subtree's styles away");
+        }
+
+        /// The exception, and the reason the check is about `restyle` rather than
+        /// only about classes: a widget that computes a style of its own reads
+        /// the *widget*, so a new one may say something different.
+        @Test
+        @DisplayName("a widget that computes its own style is re-resolved")
+        void aRestylingWidgetIsInvalidated() {
+            var renderer = renderer("tinted { background: red }");
+            var tree = new ElementTree(new Tinted(RED));
+            assertEquals(RED, renderer.render(tree).background());
+
+            tree.root().update(new Tinted(BLUE));
+
+            assertEquals(
+                    BLUE,
+                    renderer.render(tree).background(),
+                    "a widget's own `restyle` did not survive a rebuild, so nothing it computes ever changes");
+        }
+
+        /// And the guard above it: an **identical** description is not a
+        /// description at all, so nothing under it is even walked.
+        @Test
+        @DisplayName("re-describing a node with the very same widget rebuilds nothing under it")
+        void anIdenticalWidgetIsNotARebuild() {
+            var counted = new Counting();
+            var tree = new ElementTree(new Group(List.of(counted), classed("outer")));
+            var built = Counting.BUILDS.get();
+
+            // The same instance, which is what a parent that rebuilt for its own
+            // reason hands its children.
+            tree.root().update(new Group(List.of(counted), classed("outer")));
+
+            assertEquals(built, Counting.BUILDS.get(), "an unchanged child was described again");
+        }
+    }
+
+    /// A widget whose style is its own rather than the stylesheet's — §8's
+    /// `restyle` seam, and the one thing a rebuild can change while matching the
+    /// same rules (ADR-0099).
+    private record Tinted(int argb) implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "tinted";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public ComputedStyle restyle(ComputedStyle resolved) {
+            return resolved.background(argb);
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+            return Box.of().style(style);
+        }
+    }
+
+    /// A leaf that counts how often it was asked to describe itself.
+    ///
+    /// Static, because the widget is a value and the count is about the tree.
+    private record Counting() implements Widget.Leaf, Styled, Paints {
+
+        private static final java.util.concurrent.atomic.AtomicInteger BUILDS =
+                new java.util.concurrent.atomic.AtomicInteger();
+
+        @Override
+        public String cssType() {
+            return "counting";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public List<Widget> children() {
+            BUILDS.incrementAndGet();
+            return List.of();
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+            return Box.of().style(style);
+        }
+    }
+
     @Nested
     @DisplayName("and dropped when it must be")
     class Invalidation {

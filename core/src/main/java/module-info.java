@@ -213,6 +213,12 @@ module io.github.digitalsmile.goldberry.core {
     // arithmetic over values, neither needs a `Frame`, and both are wrong in
     // ways only a unit test notices.
     exports io.github.digitalsmile.goldberry.paint.shadow;
+    // What a subtree actually draws, and therefore what the painter may skip
+    // (ADR-0313). Its own package for `paint.geom`'s reason once more: it is
+    // arithmetic over rectangles, it needs no `Frame`, and a culler that is
+    // wrong by a pixel drops a row off the bottom of a list -- which is exactly
+    // the kind of defect a unit test catches and a golden image does not.
+    exports io.github.digitalsmile.goldberry.paint.cull;
     exports io.github.digitalsmile.goldberry.paint.tree;
     exports io.github.digitalsmile.goldberry.paint;
 }

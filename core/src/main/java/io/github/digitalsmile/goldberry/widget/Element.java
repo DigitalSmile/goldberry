@@ -321,21 +321,138 @@ public final class Element implements BuildContext, StyleElement {
     }
 
     /// Replaces this element's widget, if it can, and rebuilds.
+    ///
+    /// ## The three guards, and why a scrolling viewport needed them
+    ///
+    /// This is the path every rebuild cascades down, so what it does *per node*
+    /// is multiplied by the size of the subtree. A `scroll` moving by one notch
+    /// re-describes exactly two nodes — the viewport and the content box, whose
+    /// offset changed — and on the showcase's icon sheet that cost **66 ms of
+    /// cascade**, because the guards below were missing and 4709 elements were
+    /// invalidated and re-resolved for a transform none of them can see
+    /// ([ADR-0315]).
     void update(Widget next) {
         var previous = widget;
+        if (next == previous) {
+            // **The same description, not merely an equal one.** A parent that
+            // rebuilt for its own reason hands its children back the very objects
+            // it was holding, and a widget is a value: the same instance
+            // describes the same node with the same children, so there is nothing
+            // to invalidate, nothing to re-describe, and nothing below this to
+            // walk. That is what makes a viewport cost the nodes that moved
+            // rather than the nodes it contains.
+            //
+            // A rebuild this element's own state asked for is still owed —
+            // `markNeedsBuild` put it in the tree's dirty set and this is not the
+            // reason it is there.
+            if (needsBuild) {
+                rebuild();
+            }
+            return;
+        }
         widget = next;
         // A new widget can carry different classes or a different id, so what
         // selectors match this node -- and, through descendant combinators, what
-        // matches anything under it -- may have changed. Invalidated wholesale
-        // rather than by comparing attributes: a rebuild is already the expensive
-        // path, and a comparison that missed a case would produce a node styled
-        // by a rule that no longer applies to it.
-        invalidateStyle();
+        // matches anything under it -- may have changed.
+        //
+        // **Which is a question about three fields, and only three.** A selector
+        // reaches a descendant through `type`, `id` and `classes` and through
+        // nothing else -- `hasState` lives on the element and survives a rebuild,
+        // and `parent` cannot change here. So a re-description that leaves all
+        // three alone cannot change what matches anything below, and the subtree
+        // keeps its styles; what it *can* change is this node's own resolved
+        // style, because `Styled.restyle` reads the widget. This is exactly the
+        // seam ADR-0149 opened for "the caller that has asked whether the subtree
+        // can be affected and been told no", arriving at the caller that needed
+        // it most ([ADR-0315]).
+        //
+        // The inherited half needs nothing here: a child's cache is keyed on what
+        // its parent handed down, so a node whose own style really did change
+        // hands down a different instance and its children re-resolve because of
+        // it -- see [#stableStyle].
+        if (matchesDiffer(previous, next)) {
+            invalidateStyle();
+        } else if (RESTYLES.get(next.getClass())) {
+            // Selectors match the same, so the *cascade* produced the same thing;
+            // what is left is `Styled.restyle`, which reads the widget and is the
+            // one way a re-description can change a style it still matches the
+            // same rules for.
+            invalidateOwnStyle();
+        }
+        // ...and otherwise nothing about this node's style can have changed, so
+        // it keeps it. **The common case, and the one that costs.** A virtualized
+        // list re-describes its whole window every time that window moves by a
+        // row, and two of the three widgets in a row are a plain `Styled` that
+        // computes nothing: a cascade at ~35 µs a node, over 295 nodes, is 10 ms
+        // of frame spent re-deriving styles that could not have moved
+        // ([ADR-0316]).
+
         subscribeToBinding(previous);
         if (state != null) {
             state.update(next);
         }
         rebuild();
+    }
+
+    /// Whether a widget of this class computes a style of its own — that is,
+    /// whether it overrides [Styled#restyle].
+    ///
+    /// A [ClassValue] because the answer is a fact about the *class* and the
+    /// question is asked once per re-described node per frame: reflection once
+    /// per class, then a field read. Two widgets in the whole catalog override
+    /// it, both to write a number no selector can express (ADR-0099) — so for
+    /// almost every node the answer is `false` and the style survives the
+    /// rebuild.
+    ///
+    /// A widget that is not [Styled] has no style of its own at all; the renderer
+    /// passes its ancestor's straight through.
+    private static final ClassValue<Boolean> RESTYLES = new ClassValue<>() {
+
+        @Override
+        protected Boolean computeValue(Class<?> type) {
+            if (!Styled.class.isAssignableFrom(type)) {
+                return Boolean.FALSE;
+            }
+            try {
+                // The *declaring* class of the method this type would dispatch
+                // to. `Styled` itself means nobody overrode it.
+                return Styled.class
+                        != type.getMethod("restyle", io.github.digitalsmile.goldberry.css.ComputedStyle.class)
+                                .getDeclaringClass();
+            } catch (NoSuchMethodException e) {
+                // Cannot happen -- `restyle` is a public method on an interface
+                // this type implements. Answered conservatively rather than
+                // thrown, because the cost of being wrong this way is a style
+                // re-resolved and the cost of the other way is a stale one.
+                return Boolean.TRUE;
+            }
+        }
+    };
+
+    /// Whether re-describing a node as `next` instead of `previous` could change
+    /// what a selector matches — here or anywhere under it.
+    ///
+    /// The three questions [StyleElement] lets a selector ask about a node, taken
+    /// from the widget. [Element#classes()] merges [#frameClasses] on top of
+    /// these, and those are the element's rather than the widget's: they change
+    /// through [#frameClasses(Set)], which invalidates on its own and
+    /// deliberately does not recurse (ADR-0150).
+    ///
+    /// Conservative in the safe direction — a widget whose `cssType` varied by
+    /// instance, or whose `classes` returned an equal-but-unordered set, is
+    /// reported as different and pays the walk it used to pay unconditionally.
+    private static boolean matchesDiffer(Widget previous, Widget next) {
+        var before = previous instanceof Styled styled ? styled : null;
+        var after = next instanceof Styled styled ? styled : null;
+        if (before == null || after == null) {
+            // A widget that is not `Styled` has no type, no id and no classes,
+            // and `canUpdateTo` has already established that these two are the
+            // same class -- so this is both of them or neither.
+            return before != after;
+        }
+        return !Objects.equals(before.cssType(), after.cssType())
+                || !Objects.equals(before.id(), after.id())
+                || !before.classes().equals(after.classes());
     }
 
     /// Follows the widget's [Widget#binding] — §9's `bind`.

@@ -322,6 +322,10 @@
 - [ADR-0310 A shadow is a stack of rectangles](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
 - [ADR-0311 Margin is room outside, and `auto` is the half that mattered](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
 - [ADR-0312 The catalog puts the two new properties on](adr/0312-the-catalog-puts-the-two-new-properties-on.md)
+- [ADR-0313 A frame pays for what is on screen](adr/0313-a-frame-pays-for-what-is-on-screen.md)
+- [ADR-0314 A notch is three lines, and down is down](adr/0314-a-notch-is-three-lines-and-down-is-down.md)
+- [ADR-0315 A rebuild is not a restyle](adr/0315-a-rebuild-is-not-a-restyle.md)
+- [ADR-0316 A grid is a list of rows](adr/0316-a-grid-is-a-list-of-rows.md)
 
 ---
 

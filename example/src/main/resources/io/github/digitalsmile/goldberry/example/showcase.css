@@ -714,17 +714,55 @@ icon-sheet {
   flex-direction: column;
 }
 
-/* The wall's own gaps, which have to equal `IconsScreen.TILE_GAP` — the column
-   count is arithmetic over the tile width and this number, and a widget cannot
-   read what a stylesheet resolved for a node it is about to describe. `masonry`
-   and `masonry-column` carry 12 by default, which would make the arithmetic
-   wrong by four points per gap. */
+/* The sheet is a **virtualized `list` of rows** since ADR-0316, not a masonry:
+   a grid of equal-height tiles is a list of equal-height rows, and a list is
+   the thing in this toolkit that builds only the rows a reader can see.
+
+   No `gap`, because the pitch is the row's own height. A virtualized list
+   stands the rows it did not build off with two spacers measured in that pitch,
+   and a gap between them would be space the spacers do not know about — the
+   rows would drift further from the scrollbar with every screen. */
 #icon-wall {
-  gap: 8px;
+  gap: 0;
 }
 
-#icon-wall masonry-column {
+/* The row: `IconsScreen.ROW_PITCH`, and the two numbers must agree or `ListRow`
+   says so in the log. 76 is a 68pt tile plus `TILE_GAP`, and the slack is at the
+   bottom — `align-items: flex-start` — which is what draws the gap between two
+   rows of tiles.
+
+   Everything else here is `list-row`'s furniture being taken back off. This row
+   is not a row of a list a reader picks from: nothing is selectable, nothing is
+   pressable, and the hover wash belongs to the tile under the pointer rather
+   than to the whole row of seven. */
+#icon-wall list-row {
+  height: 76px;
+  padding: 0;
   gap: 8px;
+  align-items: flex-start;
+  cursor: default;
+  background: transparent;
+}
+
+#icon-wall list-row:hover {
+  background: transparent;
+}
+
+.icon-row {
+  flex-direction: row;
+  gap: 8px;
+  flex-grow: 1;
+  align-items: flex-start;
+}
+
+/* The empty cells that pad a part-full last row. A tile grows over a 152pt
+   basis so a full row divides the width evenly; a last row with three tiles in
+   a seven-column sheet would divide the same width between three and draw them
+   half again as wide. These take the missing shares and draw nothing. */
+.icon-cell-filler {
+  width: 152px;
+  flex-grow: 1;
+  flex-shrink: 0;
 }
 
 /* 152 wide because the longest names in the set need two caption lines at that

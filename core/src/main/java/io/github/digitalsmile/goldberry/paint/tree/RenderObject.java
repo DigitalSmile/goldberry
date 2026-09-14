@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.layout.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
@@ -13,6 +14,8 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.Gutter;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Layer;
+import io.github.digitalsmile.goldberry.paint.cull.BoxInk;
+import io.github.digitalsmile.goldberry.paint.cull.Ink;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -69,6 +72,13 @@ public final class RenderObject implements AutoCloseable {
     /// The comparison target for every guard below. Null until the first
     /// [#apply], which is what makes the first frame set everything.
     private @Nullable Box applied;
+
+    /// What this subtree draws, in this node's own coordinates — see [#ink()].
+    ///
+    /// [Ink#NONE] until the first [#settle], and [Ink#NONE] overlaps nothing —
+    /// which is the safe way round only because a tree is always settled before
+    /// it is painted, and [RenderTree#paint] refuses a tree that never was.
+    private Ink ink = Ink.NONE;
 
     /// The inset currently *on* the node, which is not the one the box declared.
     ///
@@ -152,8 +162,94 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// The conversion lives here rather than at each caller because this class is
     /// already the one place a `YogaNode` is touched — see [Yoga].
+    ///
+    /// **Read from Yoga once per frame**, by [#settle], and handed back from
+    /// there afterwards. Four native downcalls and two allocations is nothing for
+    /// one node and is not nothing four thousand times over — and a frame asks
+    /// four separate walks where every node is: the paint pass, the damage pass,
+    /// the hit-test snapshot and the ink pass below. Reading Yoga in each of them
+    /// was four times the cost for four identical answers, since nothing between
+    /// [RenderTree#update] and the next one can move a node ([ADR-0313]).
     LogicalRect layout() {
-        return Yoga.rect(node.layout());
+        return placed;
+    }
+
+    /// Where Yoga put this node, as of the last [#settle].
+    ///
+    /// Zero until the first one, which is what an unlaid-out node has always
+    /// reported — [io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout]
+    /// says so in as many words.
+    private LogicalRect placed = LogicalRect.of(0, 0, 0, 0);
+
+    /// What this subtree draws, in **this node's own coordinates** — its border
+    /// box's top-left corner is the origin, and its own transform is not applied.
+    ///
+    /// Read by the painter to skip a subtree that cannot put a pixel inside the
+    /// clip in force ([ADR-0313]). Recomputed once per layout pass by [#settle],
+    /// because it is a function of where Yoga put everything and of nothing
+    /// else.
+    Ink ink() {
+        return ink;
+    }
+
+    /// Reads where Yoga put this subtree and recomputes its [#ink], reporting
+    /// the answer in the **parent's** coordinates.
+    ///
+    /// Bottom-up in one pass, because a parent's answer is its children's — and
+    /// once per frame rather than once per paint, so a tree painted twice (a
+    /// damage pass and a full one) measures nothing twice.
+    ///
+    /// The return value is what it is so that `layout()` is read **once per
+    /// node**. That is four native downcalls and two allocations a time, and a
+    /// parent asking its children where they are would double every one of them
+    /// across a tree that can be five thousand nodes deep in this application —
+    /// which is the whole measurable cost of this pass ([ADR-0313]).
+    ///
+    /// **The child's transform is applied here and its parent's is not.** A
+    /// transform is written in the box's own coordinates, so `compose` anchors it
+    /// at the child's position *within its parent* rather than at its absolute
+    /// one — which differs from the painter's anchor by exactly the translation
+    /// the painter applies afterwards, and therefore composes to the same matrix.
+    Ink settle() {
+        var before = placed;
+        placed = Yoga.rect(node.layout());
+        var layout = placed;
+        // **Nothing in this subtree can have moved**, so the ink measured for it
+        // last frame is still the ink, and the `placed` rectangles under it are
+        // still where Yoga put them -- they are relative to *this* node, and this
+        // node has not changed shape.
+        //
+        // The two halves are both needed and neither implies the other.
+        // `changed` is the box diff over the whole subtree, so it catches a
+        // decoration that grew a ring, a text node rebound to a longer paragraph,
+        // a child added. `placed` catches everything Yoga decided: a flex sibling
+        // that grew and squeezed this node is a layout this node's own boxes know
+        // nothing about. With the same styles throughout and the same rectangle
+        // to lay them out in, Yoga is a function and its answer is the one
+        // already read ([ADR-0313]).
+        //
+        // This is what makes **scrolling** cost nothing here: a viewport moves by
+        // a `transform` on one box, so exactly one node is `changed` and the
+        // thousand under it are skipped at the first one whose rectangle held.
+        if (!changed && layout.equals(before)) {
+            return inParentSpace(ink, layout);
+        }
+        var union = applied == null ? Ink.NONE : BoxInk.of(applied, layout.width(), layout.height());
+        for (var child : children) {
+            union = union.union(child.settle());
+        }
+        ink = union;
+        return inParentSpace(union, layout);
+    }
+
+    /// `union`, measured in this node's coordinates, expressed in its parent's.
+    private Ink inParentSpace(Ink union, LogicalRect layout) {
+        var shifted = union.shiftedBy(layout.left(), layout.top());
+        if (applied == null) {
+            return shifted;
+        }
+        return shifted.mappedBy(RenderTree.compose(
+                Affine.IDENTITY, applied.transform(), layout.left(), layout.top(), layout.width(), layout.height()));
     }
 
     void apply(Box box, Insets inset) {
@@ -197,7 +293,7 @@ public final class RenderObject implements AutoCloseable {
         // Per edge for padding's reason, and `Length.AUTO` on an edge reaches
         // Yoga's own `YGNodeStyleSetMarginAuto` — which is what `margin: 0 auto`
         // resolves to and what absorbs the free space beside the node
-        // (ADR-0311).
+        // (ADR-0313).
         var margin = box.margin();
         // `Insets.ZERO` on a first apply is skipped wholesale, which `limits`
         // does for the same reason (ADR-0181): Yoga's own default margin is zero,
@@ -556,6 +652,19 @@ public final class RenderObject implements AutoCloseable {
                 && a.direction() == b.direction()
                 && a.justifyContent() == b.justifyContent()
                 && a.alignItems() == b.alignItems()
+                // The four Yoga reads and the one paint order that were missing,
+                // and each of them moves ink. `flex-wrap` is the one that found
+                // it: a row that starts wrapping puts its third child on a second
+                // line without changing a single field of that child's box, so a
+                // subtree "unchanged" by this comparison had every rectangle in
+                // it move ([ADR-0313]). `overflow` and `elevated` change what is
+                // drawn rather than where -- a box that starts clipping, and one
+                // that starts painting over its siblings.
+                && a.alignSelf() == b.alignSelf()
+                && a.wrap() == b.wrap()
+                && a.limits().equals(b.limits())
+                && a.overflow() == b.overflow()
+                && a.elevated() == b.elevated()
                 && a.width().equals(b.width())
                 && a.height().equals(b.height())
                 && a.margin().equals(b.margin())

@@ -65,11 +65,18 @@ class KnobChainingTest {
     /// from "the list is already at the end".
     private static final int ROWS = 20;
 
-    /// How far the list is taken off its top first, in wheel lines. Two, because
-    /// the knob has to survive it and one line is `ScrollViewport.LINE` = 20px.
-    private static final float PRE_SCROLL = 2;
+    /// How far the list is taken off its top first, in wheel **notches**.
+    ///
+    /// One, because the knob has to survive it: a notch is
+    /// `ScrollViewport.LINES_PER_NOTCH` lines of `ScrollViewport.LINE`, which is
+    /// 60px, and the knob sits about 120 down a list in a 120-tall viewport. This
+    /// was two while a notch was one line and 40px ([ADR-0314]) — the assertion
+    /// in [Harness#wheelOverTheKnob] is what caught the change, which is what it
+    /// was written for.
+    private static final float PRE_SCROLL = 1;
 
-    /// A grid coarse enough that one wheel line is unmistakable in an assertion.
+    /// A grid coarse enough that one turn of the wheel is unmistakable in an
+    /// assertion.
     private static final double STEP = 5;
 
     private TestFrames.Target target;
@@ -237,12 +244,12 @@ class KnobChainingTest {
         /// wrong reason. The bounds check is the same worry stated once — the
         /// knob is inside the content, so a pre-scroll that grew would carry it
         /// off the top and the router would hand every event to the rows.
-        void wheelOverTheKnob(float lines) {
+        void wheelOverTheKnob(float notches) {
             var knob = centreOf("knob");
             assertTrue(
                     knob[1] > 0 && knob[1] < VIEWPORT_HEIGHT,
                     "the knob was scrolled out of the viewport before the wheel, to y=" + knob[1]);
-            router.pointerWheel(knob[0], knob[1], 0, lines, Modifiers.NONE);
+            router.pointerWheel(knob[0], knob[1], 0, notches, Modifiers.NONE);
             frame();
         }
 

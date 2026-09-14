@@ -353,7 +353,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public boolean scrollBy(double dy) {
+    public boolean scrollByLines(double lines) {
         var maximum = maximumScroll();
         if (maximum <= 0) {
             // Nothing to scroll. Reported so the wheel is *not* consumed and the
@@ -361,7 +361,15 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             // would trap the scroll the moment the pointer crossed it.
             return false;
         }
-        var next = Math.clamp(scrollOffset + dy, 0, maximum);
+        // A line of *this* control's text, which is why the conversion is here
+        // and not at the caller: a `mono` area at 13px and a body one at 15px
+        // move different distances for the same turn of the wheel, and both of
+        // them move a line at a time ([ADR-0314]).
+        var lineHeight = paragraph == null ? 0 : paragraph.font().lineHeight();
+        if (lineHeight <= 0) {
+            return false;
+        }
+        var next = Math.clamp(scrollOffset + lines * lineHeight, 0, maximum);
         if (next == scrollOffset) {
             return false;
         }

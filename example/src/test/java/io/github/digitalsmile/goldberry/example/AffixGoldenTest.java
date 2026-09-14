@@ -32,6 +32,11 @@ import io.github.digitalsmile.goldberry.widgets.Density;
 /// (ADR-0123).
 class AffixGoldenTest {
 
+    /// What one turn of the wheel is worth, mirroring
+    /// `ScrollViewport.LINES_PER_NOTCH` — which is package-private in `:widgets`
+    /// and is a platform convention rather than an API.
+    private static final float LINES_PER_NOTCH = 3;
+
     @Test
     @DisplayName("a pinned header is not scrolled over by the rows below it")
     void pinned() {
@@ -55,7 +60,12 @@ class AffixGoldenTest {
                     render.update(warm.frame(), renderer.render(tree));
                     router.updateRegions(HitTest.capture(render));
                 }
-                router.pointerWheel(200, 350, 0, 7, Modifiers.NONE);
+                // **Seven lines**, which is the distance this picture is of.
+                // A wheel event counts *notches* and a notch is three lines
+                // ([ADR-0314]), so seven lines is seven thirds of one — a
+                // fraction, which is exactly what a trackpad sends and the only
+                // way an event that counts detents can say "this far".
+                router.pointerWheel(200, 350, 0, 7f / LINES_PER_NOTCH, Modifiers.NONE);
                 for (var i = 0; i < 4; i++) {
                     tree.flush();
                     render.update(warm.frame(), renderer.render(tree));

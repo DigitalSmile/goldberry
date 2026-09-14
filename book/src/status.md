@@ -132,6 +132,49 @@ evidence from one Linux VM.
   rather than once per size: `FontFace` holds the shaper and Blend2D's face, so a second
   size costs 4.4 µs instead of 681 and no second copy of the file
   ([ADR-0044](adr/0044-one-face-many-sizes.md)).
+- **A rebuild is not a restyle, and a wheel notch cost 78 ms before it was.** The
+  culling below was measured on a *settled* frame and that was the wrong frame: an
+  icon view is slow while somebody is scrolling it, and a wheel notch on the icon
+  sheet spent **66 of its 78 ms in the cascade**. `Element.update` threw a node's
+  whole subtree's cached styles away on every re-description — so a `scroll`
+  moving by one notch, which re-describes **two** nodes, invalidated 4709 for a
+  transform none of them can see. Three guards now: an **identical** widget is not
+  a description at all, so the walk stops where a parent handed its children back
+  the objects it was holding; a re-description that leaves `type`, `id` and
+  `classes` alone cannot change what a selector matches anywhere below it, because
+  those are three of the five questions `StyleElement` lets one ask and the other
+  two live on the element; and what is left is `Styled.restyle`, which the whole
+  catalog overrides **twice**, asked once per widget class through a `ClassValue`.
+  **1556 elements re-resolved a frame became 4**, and the cascade 66.6 ms became
+  4.2. It was never only this screen: every viewport in the gallery re-cascaded
+  everything under it on every wheel event, and the sheet is where it was big
+  enough to see. `StyleCacheTest` asserts each guard against `Element.cachedStyle`
+  rather than against a colour, and each case fails without its guard. —
+  [ADR-0315](adr/0315-a-rebuild-is-not-a-restyle.md),
+  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
+- **A frame pays for what is on screen.** The clip stopped rasterization and not the
+  walk: a viewport with a thousand rows in it handed all thousand to Blend2D to be
+  clipped away, which is fine for a `fillRect` and expensive for a stroked icon path and
+  a shaped glyph run. Each render object now carries the `Ink` its **subtree** draws —
+  its border box grown by the focus ring, the drop shadow's four asymmetric outsets and
+  an icon larger than the slot it is centred in, unioned over its children and through
+  their transforms — and a subtree that cannot overlap the clip in force is not drawn
+  and not walked. The subtree's ink and not the box's own, because flexbox lets a child
+  overflow its parent and a `transform` moves one out from under it. The showcase's icon
+  sheet is 1544 tiles of which forty are visible: **raster 18.0 ms → 4.4, a settled frame
+  22.2 → 9.0**, and the wall of cards most of the application is pays 0.03 ms for the
+  measurement. Scrolling re-measures nothing — a viewport moves by a `transform` on one
+  box, so the thousand under it are skipped at the first rectangle that held — and the
+  same pass reads Yoga once per node per frame where four separate walks each read it.
+  `boxesPainted`/`boxesCulled` are counted for `layersRepainted`'s reason: a culler that
+  stopped working draws the same frame four times as slowly, so no assertion on pixels
+  could tell. **The cache predicate had a hole and an existing test found it** — the box
+  comparison behind it did not look at `flex-wrap`, `align-self`, `limits`, `overflow` or
+  `elevated`, so a row that starts wrapping moved every child without being called
+  changed; all five are compared now, which also gives `overflow` and `elevated` the
+  self-damage they never had. —
+  [ADR-0313](adr/0313-a-frame-pays-for-what-is-on-screen.md),
+  [ADR-0114](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
 - **Four symbols were added to the export list**, the first since it caught its third
   local-symbol bug: `bl_context_blit_image_d` and `bl_context_set_global_alpha` for
   layers, then `bl_context_clip_to_rect_d` and `bl_context_restore_clipping` for the
@@ -1997,6 +2040,59 @@ lands. The two tests worth having are the two that could not be written before:
 a detent whose sign disagreed with the fraction beside it would send a stepping
 control one way and a scroll view the other, and a detent arriving under a
 0.125 fraction is the case no function of one event's floats can produce.
+
+**And then a notch turned out to be one line rather than three.** Two reports, a
+sentence apart — *"scrolling is slower than the system one"* and *"two scrolls on
+the page work opposite to the wheel"* — and both are the same mistake made twice:
+a wheel event counts detents, a viewport moves in lines, and the conversion was
+written in prose and never in code. `ScrollViewport.LINE` has said "three of these
+is the conventional notch" since it shipped and the handler multiplied by one, so
+the toolkit moved 20px where the desktop moves 60; its own test agreed with it,
+because the test asserted `LINE` and the code multiplied by `LINE`, and two copies
+of one misreading are not two witnesses. `LINES_PER_NOTCH` is the number now, on
+the wheel and not on the keys — an arrow still means a line, which is what makes
+`--gb-scroll-line` a token about lines rather than about detents.
+
+The second report is `text-area`, the one scrollable thing in the toolkit that is
+**not** a `scroll`: the text in it is a paragraph rather than a subtree, so it
+holds its own offset and takes the wheel itself. It negated the delta and passed
+it as **pixels**, so one notch moved the document one pixel *up* — and beside the
+`scroll` in the showcase's Markdown screen, that is an editor and a preview
+scrolling opposite ways at wildly different speeds. `AreaEditor.scrollBy(dy)` is
+`scrollByLines(lines)` now, because the unit belongs to the event and the
+conversion belongs to the side that knows how tall a line of *this* control's text
+is. Four lines above the bug sat `WHEEL_LINES = 3`, declared and never referenced.
+`TextAreaTest` had no wheel test at all, which is how a control that scrolled
+backwards a pixel at a time survived; it has four. —
+[ADR-0314](adr/0314-a-notch-is-three-lines-and-down-is-down.md)
+
+### The icon sheet, virtualized
+
+- **A grid is a list of rows, and a list already virtualizes.** [ADR-0309] traded
+  the sheet's virtualized `list` for a `masonry` because a masonry reflows and the
+  list chunked names into rows of a fixed seven — and priced the trade honestly at
+  4709 elements. Two records of toolkit work later, what was left was the part
+  that is genuinely about having 4709 elements: box-building, layout and the
+  hit-test snapshot, on every frame, whatever is on screen. ADR-0309 had already
+  written the sentence that undoes it — *"a masonry of equal-height tiles is a
+  reflowing grid in reading order"* — and a grid of equal-height rows is a **list**
+  of equal-height rows. The masonry was never doing the reflowing; `columnsFor` is,
+  from a width the screen measures itself. It was doing the *chunking*, which is
+  four lines. The sheet is a `ListView` over 221 rows now, virtualized at a 76pt
+  pitch the stylesheet agrees with, rows padded out with empty cells so a
+  part-full last row divides the width the way a full one does. **4709 elements
+  became 711, opening 414 ms became 106, a settled frame 22.2 ms became 5.1, and a
+  wheel notch 78.6 became 16.8.** The screen has no budget of its own any more —
+  it had 8 ms of style where every other screen had 1, because it did not meet the
+  wall's. What is *not* fixed is written down with its measurement: the render
+  tree matches children by position, so a virtualized window that shifts by a row
+  mismatches every row after it and rebuilds a `YGNode` and a measure callback for
+  each; matching by the element instead was measured at 9.9 ms → 3.7 and moved a
+  card's bottom border by a pixel on another screen, which is not a thing to ship
+  on a performance argument. —
+  [ADR-0316](adr/0316-a-grid-is-a-list-of-rows.md),
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md),
+  [ADR-0309](adr/0309-a-sheet-of-icons-reflows-and-pays-for-it.md)
 
 ### `scroll`, and the geometry it needed
 

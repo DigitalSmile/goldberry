@@ -105,7 +105,17 @@ record TextAreaBox(
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
     /// How many lines a wheel notch moves. Three, which is what every scroll view
-    /// on every desktop does and what `scroll` itself uses.
+    /// on every desktop does and what `scroll` itself uses —
+    /// [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollViewport#LINES_PER_NOTCH],
+    /// stated again here because the two are the same convention and not the
+    /// same number: a viewport's line is a stylesheet token and this one is a
+    /// line of the text being edited.
+    ///
+    /// **It was declared and never used.** The wheel handler below multiplied by
+    /// nothing and negated, so a notch over a `text-area` moved the document one
+    /// pixel backwards — which in the Markdown screen puts an editor and a
+    /// preview side by side scrolling opposite ways at wildly different speeds
+    /// ([ADR-0314]).
     static final int WHEEL_LINES = 3;
 
     @Override
@@ -179,7 +189,11 @@ record TextAreaBox(
                 // every wheel would trap the page's scroll the moment the pointer
                 // crossed it, which is §2.4's complaint about nested scrollers
                 // arriving through the back door.
-                if (editor.scrollBy(-event.deltaY())) {
+                //
+                // **Not negated.** `deltaY` is positive down the document and so
+                // is the editor's offset, which is `scroll`'s convention and the
+                // one every scrollable thing in the toolkit shares.
+                if (editor.scrollByLines(event.deltaY() * WHEEL_LINES)) {
                     event.consume();
                 }
             }
