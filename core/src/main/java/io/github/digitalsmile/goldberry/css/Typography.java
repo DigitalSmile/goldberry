@@ -28,22 +28,34 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 /// `em` — a size relative to the *parent's* size — is resolved by
 /// [CssLength.Context] before it reaches here. What survives is logical pixels.
 ///
+/// ## Why the style is here and not a decoration
+///
+/// An italic is a **face**, like a weight (ADR-0066, ADR-0323): it is a different
+/// drawing rather than a slant applied to this one, so it belongs beside the
+/// family and the weight, which together name a file. `font-style` therefore
+/// resolves here and `text-decoration` — which *is* a mark added to the glyphs —
+/// resolves on [ComputedStyle] beside the other text-flow properties.
+///
 /// @param family     the family name, matched against [BundledFont#of] — Inter,
 ///                   JetBrains Mono, OpenMoji
 /// @param size       the em size in logical pixels
 /// @param weight     which of the two shipped weights
+/// @param style      upright or italic
 /// @param lineHeight the line box height in logical pixels, or a **negative**
 ///                   value meaning "a multiple of the size", stored negated —
 ///                   see [#resolvedLineHeight()]
-public record Typography(String family, double size, BundledFont.Weight weight, double lineHeight) {
+public record Typography(
+        String family, double size, BundledFont.Weight weight, BundledFont.Style style, double lineHeight) {
 
-    /// Inter 400 at 13/18 — `body`, the design system's default UI text (§1.4).
+    /// Inter 400 upright at 13/18 — `body`, the design system's default UI text
+    /// (§1.4).
     ///
     /// Deliberately the *specified* default rather than something neutral: a
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
-    public static final Typography INITIAL = new Typography("Inter", 13, BundledFont.Weight.REGULAR, 18);
+    public static final Typography INITIAL =
+            new Typography("Inter", 13, BundledFont.Weight.REGULAR, BundledFont.Style.UPRIGHT, 18);
 
     public Typography {
         if (family == null || family.isBlank()) {
@@ -55,9 +67,18 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
         if (weight == null) {
             weight = BundledFont.Weight.REGULAR;
         }
+        if (style == null) {
+            style = BundledFont.Style.UPRIGHT;
+        }
         if (!Double.isFinite(lineHeight) || lineHeight == 0) {
             throw new IllegalArgumentException("line-height must be non-zero, not " + lineHeight);
         }
+    }
+
+    /// The four-argument form, which is every caller written before `font-style`
+    /// was in the subset: upright.
+    public Typography(String family, double size, BundledFont.Weight weight, double lineHeight) {
+        this(family, size, weight, BundledFont.Style.UPRIGHT, lineHeight);
     }
 
     /// The line box height in logical pixels.
@@ -74,15 +95,15 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
 
     /// The bundled face this asks for, or null if no family matches.
     public @Nullable BundledFont face() {
-        return BundledFont.of(family, weight);
+        return BundledFont.of(family, weight, style);
     }
 
     public Typography family(String value) {
-        return new Typography(value, size, weight, lineHeight);
+        return new Typography(value, size, weight, style, lineHeight);
     }
 
     public Typography size(double value) {
-        return new Typography(family, value, weight, lineHeight);
+        return new Typography(family, value, weight, style, lineHeight);
     }
 
     /// This, with every length multiplied by `factor` — §1.4's **text-scale
@@ -105,16 +126,21 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
         if (factor == 1) {
             return this;
         }
-        return new Typography(family, size * factor, weight, lineHeight < 0 ? lineHeight : lineHeight * factor);
+        return new Typography(family, size * factor, weight, style, lineHeight < 0 ? lineHeight : lineHeight * factor);
     }
 
     public Typography weight(BundledFont.Weight value) {
-        return new Typography(family, size, value, lineHeight);
+        return new Typography(family, size, value, style, lineHeight);
+    }
+
+    /// This, upright or italic — `font-style`.
+    public Typography style(BundledFont.Style value) {
+        return new Typography(family, size, weight, value, lineHeight);
     }
 
     /// An absolute line height, in logical pixels.
     public Typography lineHeight(double value) {
-        return new Typography(family, size, weight, value);
+        return new Typography(family, size, weight, style, value);
     }
 
     /// A line height as a multiple of the font size — CSS's bare-number form.
@@ -122,11 +148,13 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
         if (!Double.isFinite(ratio) || ratio <= 0) {
             throw new IllegalArgumentException("a line-height ratio must be positive, not " + ratio);
         }
-        return new Typography(family, size, weight, -ratio);
+        return new Typography(family, size, weight, style, -ratio);
     }
 
     @Override
     public String toString() {
-        return family + " " + weight.value() + " " + size + "/" + resolvedLineHeight();
+        return family + " " + weight.value()
+                + (style == BundledFont.Style.ITALIC ? " italic " : " ")
+                + size + "/" + resolvedLineHeight();
     }
 }

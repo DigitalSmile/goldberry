@@ -109,11 +109,13 @@
 
 /* --------------------------------------------------------- inline marks -- */
 
-/* **A faux oblique, and a compromise on purpose.** The toolkit bundles two upright
-   faces -- Inter Regular and SemiBold -- so there is no italic to set `em` in.
+/* **A faux oblique, and a compromise nothing forces any more.** It was written when
+   the toolkit bundled two upright faces and there was no italic to set `em` in;
+   there is one since ADR-0323, and `text-decoration` arrived with ADR-0321. The
+   declaration stays until the picture change is taken on purpose -- it moves every
+   HTML golden -- and `font-style: italic` is the one line that replaces it.
    Skewing the word is what every renderer without an italic face does; `transform`
-   does not affect layout, so the word stays where it was and only the glyphs lean.
-   An application that ships an italic face replaces this rule with `font-family`. */
+   does not affect layout, so the word stays where it was and only the glyphs lean. */
 .html-em, .html-i, .html-cite, .html-dfn, .html-var, .html-address {
   transform: skewX(-10deg);
 }

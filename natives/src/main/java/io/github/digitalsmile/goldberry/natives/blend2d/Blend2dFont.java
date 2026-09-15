@@ -29,6 +29,16 @@ final class Blend2dFont {
 
     private static final long METRICS_CAP_HEIGHT = Layouts.BL_FONT_METRICS.offsetOf("cap_height");
 
+    private static final long METRICS_UNDERLINE_POSITION = Layouts.BL_FONT_METRICS.offsetOf("underline_position");
+
+    private static final long METRICS_UNDERLINE_THICKNESS = Layouts.BL_FONT_METRICS.offsetOf("underline_thickness");
+
+    private static final long METRICS_STRIKETHROUGH_POSITION =
+            Layouts.BL_FONT_METRICS.offsetOf("strikethrough_position");
+
+    private static final long METRICS_STRIKETHROUGH_THICKNESS =
+            Layouts.BL_FONT_METRICS.offsetOf("strikethrough_thickness");
+
     private static final class Holder {
         private static final Blend2dFont INSTANCE =
                 new Blend2dFont(NativeLibrary.get().lookup());
@@ -122,7 +132,14 @@ final class Blend2dFont {
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_DESCENT),
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_LINE_GAP),
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_X_HEIGHT),
-                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_CAP_HEIGHT));
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_CAP_HEIGHT),
+                    // Straight across, with Blend2D's own sign: both positions are
+                    // y-down offsets from the baseline to the top of the rule, which
+                    // is the form a painter adds to a baseline ([ADR-0321]).
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_UNDERLINE_POSITION),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_UNDERLINE_THICKNESS),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_STRIKETHROUGH_POSITION),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_STRIKETHROUGH_THICKNESS));
         }
     }
 

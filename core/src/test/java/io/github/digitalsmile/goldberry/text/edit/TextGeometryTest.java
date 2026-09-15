@@ -10,11 +10,13 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Where a caret is — ADR-0285.
@@ -227,5 +229,174 @@ class TextGeometryTest {
         assertEquals(2, caret.rect(2).width(), 0.001);
         assertEquals(caret.height(), caret.rect(1).height(), 0.001);
         assertNotEquals(0, caret.rect(1).left(), "and it is where the caret is");
+    }
+
+    /// `text-align`, which every one of the four questions above had to be told
+    /// about — `docs/gaps.md` G30, ADR-0318.
+    ///
+    /// The paint indents each line by its share of the box's slack, so a caret
+    /// measured from the paragraph's origin drifted away from the glyphs by half
+    /// that slack under `center` and by all of it under `end`, growing as the line
+    /// shortened. The assertions here are the two that catch it: the indent is the
+    /// **same rule the painter uses** ([TextAlign#indentOf]), and a click on a
+    /// drawn caret comes back to the offset it was drawn for.
+    @Nested
+    @DisplayName("aligned text")
+    class Aligned {
+
+        /// Wide enough that "hello" leaves real slack in it.
+        private static final double BOX = 200;
+
+        @Test
+        @DisplayName("the three-argument forms still mean start")
+        void theShortFormsAreStart() {
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(Paragraph.UNCONSTRAINED);
+
+            assertEquals(
+                    TextGeometry.caretAt(paragraph, layout, 3).x(),
+                    TextGeometry.caretAt(paragraph, layout, 3, BOX, TextAlign.START)
+                            .x(),
+                    0.001);
+            assertEquals(
+                    TextGeometry.selectionRects(paragraph, layout, 0, 3),
+                    TextGeometry.selectionRects(paragraph, layout, 0, 3, BOX, TextAlign.START));
+        }
+
+        @Test
+        @DisplayName("the caret moves in by the painter's own indent")
+        void theCaretIsIndentedLikeTheGlyphs() {
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(BOX);
+            var line = layout.lines().getFirst();
+
+            var start = TextGeometry.caretAt(paragraph, layout, 2, BOX, TextAlign.START);
+            var centred = TextGeometry.caretAt(paragraph, layout, 2, BOX, TextAlign.CENTER);
+            var end = TextGeometry.caretAt(paragraph, layout, 2, BOX, TextAlign.END);
+
+            assertEquals(
+                    start.x() + TextAlign.CENTER.indentOf(line.width(), BOX),
+                    centred.x(),
+                    0.001,
+                    "the caret and the paint have to use one rule, and this is that rule");
+            assertEquals(start.x() + TextAlign.END.indentOf(line.width(), BOX), end.x(), 0.001);
+            assertTrue(centred.x() > start.x(), "a centred line starts further in than a left-aligned one");
+            assertTrue(end.x() > centred.x());
+        }
+
+        /// The round trip the entry names: draw the caret at an offset, press
+        /// exactly there, get the offset back — on a **wrapped, centred**
+        /// paragraph, where every line has a different indent.
+        @Test
+        @DisplayName("a click on the caret comes back to its offset, on every line")
+        void hitTestRoundTripsWhenCentred() {
+            var paragraph = paragraph(WRAPPED);
+            var layout = paragraph.layout(BOX);
+            assertTrue(layout.lineCount() > 1, "the text has to wrap for the indents to differ");
+
+            for (var offset = 0; offset <= WRAPPED.length(); offset++) {
+                var caret = TextGeometry.caretAt(paragraph, layout, offset, BOX, TextAlign.CENTER);
+                assertEquals(
+                        offset,
+                        TextGeometry.offsetAt(paragraph, layout, caret.x(), caret.top() + 1, BOX, TextAlign.CENTER),
+                        "clicking the centred caret at " + offset + " moved it");
+            }
+        }
+
+        /// And the proof that it is not a no-op: the *unaligned* hit test, given a
+        /// centred caret's x, answers something else.
+        @Test
+        @DisplayName("measuring a centred caret with the unaligned form does drift")
+        void theUnalignedFormDrifts() {
+            // A short line in a wide box, so the slack is most of the box and the
+            // drift is most of a word rather than a fraction of a glyph.
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(BOX);
+
+            var offset = 2;
+            var caret = TextGeometry.caretAt(paragraph, layout, offset, BOX, TextAlign.CENTER);
+
+            assertNotEquals(
+                    offset,
+                    TextGeometry.offsetAt(paragraph, layout, caret.x(), caret.top() + 1),
+                    "if these agreed there would be nothing for the alignment to carry");
+        }
+
+        @Test
+        @DisplayName("Down keeps the visual column, not the paragraph's one")
+        void verticalMovementKeepsTheVisualColumn() {
+            // Lines of very different lengths, so their indents differ by a lot:
+            // a `desiredX` read off one line is meaningless on another unless both
+            // ends of the round trip know the alignment.
+            var paragraph = paragraph("aaaaaaaaaaaaaaaaaaaa\nbb\naaaaaaaaaaaaaaaaaaaa");
+            var layout = paragraph.layout(BOX);
+
+            var from = 10;
+            var column = TextGeometry.caretAt(paragraph, layout, from, BOX, TextAlign.CENTER)
+                    .x();
+
+            var middle = TextGeometry.moveLine(paragraph, layout, from, 1, column, BOX, TextAlign.CENTER);
+            var bottom = TextGeometry.moveLine(paragraph, layout, middle, 1, column, BOX, TextAlign.CENTER);
+
+            var landed = TextGeometry.caretAt(paragraph, layout, bottom, BOX, TextAlign.CENTER)
+                    .x();
+            assertTrue(
+                    Math.abs(landed - column) < font.size(),
+                    "two lines down, the caret is " + Math.abs(landed - column) + " from the column it started in");
+        }
+
+        @Test
+        @DisplayName("a selection is shifted with the glyphs it covers")
+        void selectionFollowsTheAlignment() {
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(BOX);
+            var indent = TextAlign.CENTER.indentOf(layout.lines().getFirst().width(), BOX);
+
+            var plain = TextGeometry.selectionRects(paragraph, layout, 1, 4).getFirst();
+            var centred = TextGeometry.selectionRects(paragraph, layout, 1, 4, BOX, TextAlign.CENTER)
+                    .getFirst();
+
+            assertEquals(plain.left() + indent, centred.left(), 0.001);
+            assertEquals(plain.width(), centred.width(), 0.001, "a highlight moves; it does not stretch");
+        }
+
+        /// The two cases [TextAlign#indentOf] clamps, from the geometry's side: a
+        /// measurement has no box to align in, and a line wider than its box is
+        /// not dragged off the front of it.
+        @Test
+        @DisplayName("an unconstrained width and an overlong line align to nothing")
+        void nothingToAlignIn() {
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(Paragraph.UNCONSTRAINED);
+            var width = layout.lines().getFirst().width();
+
+            assertEquals(
+                    TextGeometry.caretAt(paragraph, layout, 3).x(),
+                    TextGeometry.caretAt(paragraph, layout, 3, Paragraph.UNCONSTRAINED, TextAlign.CENTER)
+                            .x(),
+                    0.001,
+                    "an infinite box would give an infinite indent");
+            assertEquals(
+                    TextGeometry.caretAt(paragraph, layout, 3).x(),
+                    TextGeometry.caretAt(paragraph, layout, 3, width / 2, TextAlign.END)
+                            .x(),
+                    0.001,
+                    "a line wider than its box starts at the leading edge");
+        }
+
+        @Test
+        @DisplayName("an alignment is required rather than defaulted")
+        void alignmentMayNotBeNull() {
+            var paragraph = paragraph("hello");
+            var layout = paragraph.layout(BOX);
+
+            assertThrows(NullPointerException.class, () -> TextGeometry.caretAt(paragraph, layout, 0, BOX, null));
+            assertThrows(NullPointerException.class, () -> TextGeometry.offsetAt(paragraph, layout, 0, 0, BOX, null));
+            assertThrows(
+                    NullPointerException.class,
+                    () -> TextGeometry.moveLine(paragraph, layout, 0, 1, Double.NaN, BOX, null));
+            assertThrows(
+                    NullPointerException.class, () -> TextGeometry.selectionRects(paragraph, layout, 0, 1, BOX, null));
+        }
     }
 }

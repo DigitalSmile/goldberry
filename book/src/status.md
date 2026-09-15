@@ -6962,6 +6962,121 @@ before it.
   `dialog`, `dialog-actions`, `affix` and `tour-card` each described a property
   that did not exist, and a reader had no way to tell which were still true.
 
+### Six entries off an application's list, and all six closed
+
+`docs/gaps.md` is what an application on Goldberry files instead of growing its own
+toolkit, and six entries arrived on it together. All six are closed.
+
+- **The desktop's light-or-dark setting**
+  ([ADR-0322](adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md), G26).
+  `Host.systemTheme()` answers `Optional<SystemTheme>` and
+  `Host.onSystemThemeChanged(…)` is told when it changes — which on any desktop
+  with a sunset schedule is once a day, while the application is running, and is
+  the half that could not be faked. `SDL_GetSystemTheme` joined the export list as
+  an **optional** symbol and `SDL_EVENT_SYSTEM_THEME_CHANGED` became one event per
+  open window, the way `QUIT` already becomes one `CloseRequested` per window —
+  because a `Host` is per window and that is where an application listens. Both
+  numbers are in the layout probe's registry, so the C preprocessor checks them: a
+  wrong event number does nothing at all and a wrong ordinal starts the application
+  in the wrong theme, and neither reports an error. **The `Optional` is the design**
+  — SDL says `UNKNOWN` on a desktop with no such setting, and "the desktop says
+  light" and "the desktop does not say" are a theme and a default.
+- **`text-decoration`, from the face's own metrics**
+  ([ADR-0321](adr/0321-a-rule-under-text-belongs-to-the-face.md), G27). `underline`
+  and `line-through` resolve in the cascade, inherit (CSS *propagates* them, which
+  reads as inheritance here for `text-align`'s reason), and are drawn by
+  `Paragraph.paint` as a rectangle per line at the position and thickness the
+  **font file** gives. Four more of `BLFontMetrics`' sixteen floats crossed the
+  boundary to do it — **no new native symbol and no relink**, because
+  `bl_font_get_metrics` was already filling all sixteen and this side was reading
+  six. The rule is as long as the line, indented with it under `text-align`, absent
+  from a blank line, and drawn across an ellipsis because the mark is part of the
+  line. A face that carries no `post` entry gets conventional substitutes rather
+  than nothing, which is the one case where "draw nothing" would have been wrong.
+- **And the italic faces**
+  ([ADR-0323](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md), G27's other
+  half). `BundledFont.UI_ITALIC` and `UI_STRONG_ITALIC`, out of the release the
+  manifest already pins, and `font-style: normal | italic` in the cascade.
+  **Two files rather than one, so the matrix closes**: a single italic would leave
+  `font-weight: 600; font-style: italic` resolving to "the nearest of the three we
+  shipped", which is how a design system acquires a weight nobody chose. Matching is
+  CSS's order — family, then style, then weight — so italic code stays upright code,
+  `JetBrains Mono` having one face. `oblique` is dropped with a warning rather than
+  read as italic: it asks for a *slant*, and Inter's italic is a different drawing,
+  so answering it either way would be a type-design decision taken by a stylesheet.
+  830 KB, nothing opened until a stylesheet asks, and no pixel different until one
+  does.
+- **A picker's popover inside a popup**
+  ([ADR-0320](adr/0320-a-popup-reports-where-it-is-in-the-window-that-owns-it.md),
+  G28). `Located` now reports in the **owner window's** coordinates: a popup sets
+  its router's origin from its own offset every frame, and both rectangles a widget
+  is handed — the painted one and its clip — move together. Four controls with
+  popovers became correct inside a popup without being touched, and so does the
+  fifth. It is the correction `Popup.anchor` already made for a submenu, moved a
+  layer down and applied to everyone.
+- **A panel that takes no keys**
+  ([ADR-0319](adr/0319-a-panel-is-not-a-menu.md), G29). `Popup.keyboard(false)` is
+  one flag with three effects, because "does this thing want keys at all" is one
+  question: nothing is focused on opening, **a press inside it focuses nothing**,
+  and the owner does not forward keys to it. ADR-0104's forwarding rule is right for
+  a menu and wrong for a bar that floats over a canvas somebody is typing into,
+  where `Enter` pressed a swatch instead of breaking a line. `takesFocus(false)`
+  settled the opening and nothing else; this settles the lifetime. `Escape` stays
+  `lightDismiss`'s business, because declining keys and refusing to close are
+  different promises.
+- **A caret that knows about `text-align`**
+  ([ADR-0318](adr/0318-a-line-starts-where-the-paint-says-it-does.md), G30). The
+  indent rule moved out of `Paragraph.paint`'s private half and onto
+  `TextAlign.indentOf`, and all four of `TextGeometry`'s questions gained a form
+  that takes the width the text was drawn in and its alignment — `caretAt`,
+  `offsetAt`, `moveLine` and `selectionRects`, the last of which nobody asked for
+  and which drifts exactly as a caret does. There is now **one** implementation of
+  "where does this line start", which is the point: the painter drew each line
+  indented and the caret measured from the paragraph's origin, so the two parted
+  company by half a line's slack and the gap grew as the line shortened. `Editor`
+  carries the alignment, so a canvas editor's paint, caret, hit test, `Up`/`Down`
+  and selection all move together.
+- **And §4's two fields honour both properties now**
+  ([ADR-0324](adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)), which is
+  the caveat ADR-0318 and ADR-0321 both recorded. `Value` passes
+  `style.textFlow()`, and each control places its own geometry from the same
+  alignment — by the **box** in `text-input`, whose value hugs its text so the
+  paragraph has no slack to indent, and **per line** in `text-area`, whose value box
+  has a definite width and whose lines therefore start in different places. The
+  scroll and the indent share one number in the single-line case, which is sound
+  because they can never both be non-zero: an overflowing line has no slack and a
+  fitting one does not scroll. A field can line up on its units column like
+  `slider-value` has since ADR-0256, and a `text-area` can be centred; the round
+  trip — draw the caret, press exactly there, get the offset back — is what the tests
+  assert, on the second line as well as the first.
+- **A router that does not talk to the dead**
+  ([ADR-0317](adr/0317-a-router-does-not-talk-to-the-dead.md), G31). `refocus`
+  established that the focused element had left the tree and then handed it to
+  `focus`, which told it so, and `State.setState` threw — every party correct and
+  the window dead on the next frame. The fix is `lost.isMounted()` in two places,
+  per element rather than per notification, so an ancestor that survived its child
+  is still told it lost `:focus-within`. `mark` had the same guard from the
+  beginning; the notification half agrees with it now.
+
+**And the showcase has a card for it.** The Forms screen's fourth Java card is one
+`text-area` with every text property §8 has over it — `text-align` and the type
+rank as segmented bars, `font-weight`, `font-style`, `text-decoration`'s two rules
+and `font-family` as checkboxes — and a line under the field printing the
+declarations the choices amount to. It is Java for `Choosers`' reason arriving from
+the other side: a class set computed from seven toggles is a *value*, and `bind=` is
+a read-only channel for text rather than a way to hand a widget its own attributes.
+Three things it shows that a still picture cannot — the caret staying on the glyphs
+when the alignment moves, the field being **restyled rather than replaced** so what
+a reader typed survives every toggle, and the slant disappearing when the family
+goes monospace, because matching is family, then style, then weight. Seven
+assertions and one golden (`forms-text-properties.png`) cover it.
+
+**What it cost in surface**: one new package (`render.desktop`), two new values
+(`TextDecoration`, `BundledFont.Style`), one new `ComputedStyle` component and one
+new `Typography` component, two new `Popup`/`Router` flags, four `TextGeometry`
+overloads and two more bundled font files. No new native artifact, and exactly one
+new native symbol — the theme query.
+
 ### Not started
 
 **Client-side decorations**, and — since `breadcrumbs` opened the `nav` package

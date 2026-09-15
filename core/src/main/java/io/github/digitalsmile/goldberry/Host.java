@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
@@ -215,6 +216,46 @@ public interface Host {
     /// rectangle for something invisible would be a lie a menu would then point
     /// at.
     java.util.Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region> anchor(String id);
+
+    /// What the desktop's appearance is set to, or empty where it does not say —
+    /// `docs/gaps.md` G26.
+    ///
+    /// **`Optional`, and that is the whole design.** SDL answers
+    /// `SDL_SYSTEM_THEME_UNKNOWN` on a desktop that has no such setting, and an
+    /// application needs to tell "the desktop says light" from "the desktop does
+    /// not say": the first is a theme and the second is a default
+    /// ([ADR-0322]).
+    ///
+    /// The toolkit does **not** act on the answer. Goldberry ships `nord-light` and
+    /// `nord-dark`, and which one an application uses — and whether it follows the
+    /// desktop at all, or offers a three-way choice of its own — is the
+    /// application's. This is the one input to that decision an application cannot
+    /// get for itself: every way of asking is a platform call, and
+    /// [ADR-0004](../../../../book/src/adr/0004-ffm-lives-in-one-module.md) says
+    /// which module may make one.
+    java.util.Optional<SystemTheme> systemTheme();
+
+    /// Told when that setting changes, on the UI thread, for as long as the window
+    /// is open.
+    ///
+    /// Once a day on any desktop with a sunset schedule, and at any moment on one
+    /// where the user flips the switch. Asking at start-up and never again is the
+    /// bug this exists to prevent: an application that started in the light theme
+    /// at noon should not still be in it at dusk.
+    ///
+    /// The listener is handed the **new** setting, never empty: a desktop that has
+    /// gone from saying nothing to saying nothing does not report a change, and
+    /// [#systemTheme()] is still the way to ask what it is now.
+    ///
+    /// **No handle comes back**, unlike the router's subscriptions: this is
+    /// application API, the caller is the application, and its listener lives as
+    /// long as the window it registered against — which is the lifetime of the
+    /// application itself. A widget that wants to follow the desktop should let the
+    /// application tell it, in whatever it already rebuilds from.
+    ///
+    /// @param listener told the new setting, on the UI thread
+    void onSystemThemeChanged(java.util.function.Consumer<
+            SystemTheme> listener);
 
     /// Opens a widget tree in a platform window of its own — a menu, a dropdown,
     /// a tooltip.

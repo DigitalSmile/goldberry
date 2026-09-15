@@ -332,7 +332,10 @@ record TextField(
         var caretWidth = context.length(
                 io.github.digitalsmile.goldberry.widgets.form.Carets.WIDTH_TOKEN,
                 io.github.digitalsmile.goldberry.widgets.form.Carets.WIDTH);
-        var offset = editor.laidOut(paragraph, padding, caretWidth);
+        // The alignment goes down with the paragraph, because the editor places the
+        // caret and the highlight from it and the `Value` beside them draws from the
+        // same resolved style ([ADR-0324]).
+        var offset = editor.laidOut(paragraph, padding, caretWidth, style.textAlign());
 
         // No child's `left` carries the padding any more. It used to: an
         // absolutely positioned box was placed against the **border** box while

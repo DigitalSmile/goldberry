@@ -12,6 +12,8 @@ import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLayout;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// A text editor an application drives itself — on a `canvas`, at any transform,
@@ -75,6 +77,15 @@ public final class Editor {
 
     private double wrapWidth = Paragraph.UNCONSTRAINED;
 
+    /// Where a line narrower than [#wrapWidth] sits in it.
+    ///
+    /// Held here rather than passed to [#paint] because it is not only a painting
+    /// question: the caret, the hit test and the selection are measured from the
+    /// same edge the glyphs were drawn from, and an editor told one thing by its
+    /// paint and another by its geometry is the drift `docs/gaps.md` G30
+    /// describes (ADR-0318).
+    private TextAlign textAlign = TextAlign.START;
+
     private boolean multiline;
 
     private boolean readOnly;
@@ -135,6 +146,26 @@ public final class Editor {
             this.layout = null;
         }
         return this;
+    }
+
+    /// Where each line sits in [#wrapWidth(double)] — `text-align`.
+    ///
+    /// [TextAlign#START] by default, which is what every editor did before this
+    /// existed. Set it and the paint, the caret, the hit test, `Up`/`Down` and the
+    /// selection all move together: a board's sticky is centred, and pressing
+    /// exactly where the caret is drawn gives back the offset it was drawn for.
+    ///
+    /// **No layout is invalidated.** Alignment does not change where the lines
+    /// break, only where each of them starts — which is the whole reason it can be
+    /// a late decision.
+    public Editor textAlign(TextAlign value) {
+        this.textAlign = Objects.requireNonNull(value, "value");
+        return this;
+    }
+
+    /// See [#textAlign(TextAlign)].
+    public TextAlign textAlign() {
+        return textAlign;
     }
 
     /// Whether `Enter` inserts a newline. False by default.
@@ -394,7 +425,7 @@ public final class Editor {
         // Mapped back out of the displayed text: a click during a composition
         // lands somewhere in a string that is not in the document, and the
         // document's answer for every point inside it is the caret.
-        var offset = toDocument(TextGeometry.offsetAt(paragraph(), layout(), x, y));
+        var offset = toDocument(TextGeometry.offsetAt(paragraph(), layout(), x, y, wrapWidth, textAlign));
         edit = switch (Math.min(clickCount, 3)) {
             case 2 -> edit.wordAt(offset);
             case 3 -> edit.selectAll();
@@ -480,7 +511,7 @@ public final class Editor {
     /// assembling, and a caret pinned to the document's own offset would sit
     /// before the characters being typed.
     public TextGeometry.Caret caret() {
-        return TextGeometry.caretAt(paragraph(), layout(), displayCaret());
+        return TextGeometry.caretAt(paragraph(), layout(), displayCaret(), wrapWidth, textAlign);
     }
 
     /// The visual line the caret is on, in the text's own space — what
@@ -510,7 +541,7 @@ public final class Editor {
         if (!preedit.isEmpty()) {
             return List.of();
         }
-        return TextGeometry.selectionRects(paragraph(), layout(), edit.start(), edit.end());
+        return TextGeometry.selectionRects(paragraph(), layout(), edit.start(), edit.end(), wrapWidth, textAlign);
     }
 
     /// The composition's rectangles, one per visual line — what an underline is
@@ -520,7 +551,8 @@ public final class Editor {
             return List.of();
         }
         var start = edit.caret();
-        return TextGeometry.selectionRects(paragraph(), layout(), start, start + preedit.length());
+        return TextGeometry.selectionRects(
+                paragraph(), layout(), start, start + preedit.length(), wrapWidth, textAlign);
     }
 
     /// The clause the input method is currently converting, one rectangle per
@@ -535,7 +567,8 @@ public final class Editor {
             return List.of();
         }
         var start = edit.caret();
-        return TextGeometry.selectionRects(paragraph(), layout(), start + preeditClauseStart, start + preeditClauseEnd);
+        return TextGeometry.selectionRects(
+                paragraph(), layout(), start + preeditClauseStart, start + preeditClauseEnd, wrapWidth, textAlign);
     }
 
     /// What a caller draws with: the three colours an edited string is made of.
@@ -596,7 +629,7 @@ public final class Editor {
                     rect.height(),
                     ink.selection());
         }
-        paragraph().paint(frame, x, top, wrapWidth, ink.text());
+        paragraph().paint(frame, x, top, wrapWidth, ink.text(), TextFlow.NORMAL.textAlign(textAlign));
         // And the underline, in front of them, which is the mark every platform
         // uses for "this is not text yet". One logical unit, like the caret.
         for (var rect : composingRects()) {
@@ -630,7 +663,7 @@ public final class Editor {
 
     private boolean verticalBy(int lines, boolean extend) {
         var keep = Double.isNaN(desiredX) ? caret().x() : desiredX;
-        var offset = TextGeometry.moveLine(paragraph(), layout(), edit.caret(), lines, keep);
+        var offset = TextGeometry.moveLine(paragraph(), layout(), edit.caret(), lines, keep, wrapWidth, textAlign);
         var before = edit;
         edit = edit.caretTo(offset, extend);
         // Set *after* the move and not before it, so that a run of Up/Down keeps

@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 
 /// What [TextField] tells its state, and the only thing the two share.
 ///
@@ -144,8 +145,15 @@ interface TextEditor {
     /// that can measure text — so it is also the only place the scroll offset can
     /// be worked out and the only place the pointer's mapping can be prepared.
     ///
-    /// @return how far the content is scrolled left, in logical pixels
-    double laidOut(Paragraph paragraph, double leftPadding, double caretWidth);
+    /// @param align what the cascade said about `text-align`, which decides where
+    ///              a line **narrower** than the field sits in it — and therefore
+    ///              where the caret, the highlight and the composition's rule go
+    ///              ([ADR-0324])
+    /// @return how far the content is shifted left of the content box's leading
+    ///         edge: the scroll, **less** the alignment's indent. One number
+    ///         because the two can never both be non-zero — a line that overflows
+    ///         has no slack to be aligned in, and one that fits does not scroll
+    double laidOut(Paragraph paragraph, double leftPadding, double caretWidth, TextAlign align);
 
     /// `Ctrl+C`. @return whether there was a selection this field would let out
     boolean copy();

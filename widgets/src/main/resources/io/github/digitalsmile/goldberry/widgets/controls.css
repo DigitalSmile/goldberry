@@ -1026,10 +1026,7 @@ slider-tick {
    The **width is fixed and that is the point**: a label that sized itself to its
    content would take three pixels off the track between 9 and 10, which moves
    the value under the finger that is setting it. 40 is `caption` wide enough for
-   four digits and a sign, which is what the formats a slider is given produce.
-
-   It is left-aligned because §8's subset has no `text-align` (ARCHITECTURE
-   §8.1), which is the one thing here that is a gap rather than a decision. */
+   four digits and a sign, which is what the formats a slider is given produce. */
 /* The readout, at a fixed width so the track does not move as the digits change
    (ADR-0080) — and **aligned to the trailing edge**, which is what a fixed width
    is for. A column of numbers beside a row of faders lines up on its units

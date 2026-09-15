@@ -823,3 +823,86 @@ icon-tile-name {
   align-items: center;
   flex-shrink: 0;
 }
+
+/* --- the text-property card (ADR-0321, ADR-0323, ADR-0324) ----------------- */
+
+/* A row of options that is as wide as its card. `flex-wrap` for the chip row's
+   reason: a card is as wide as the column the masonry put it in, and the row that
+   cannot shrink is the row that wraps. */
+.option-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* The property's name, at a width the two bars line up under. Fixed because that
+   is the whole job: `text-align` and `font-size` are different lengths, and a
+   label sized to its own text would step the segmented bars sideways. */
+.option-label {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+/* Everything below is one field wearing whatever the card's seven options add up
+   to. Each rule is a **single declaration**, on purpose: the card chooses which
+   of them apply and the stylesheet says what each one means, which is the line
+   between an application's state and a stylesheet's job.
+
+   The `#styled-area` prefix is what beats `text-area`'s own type rule on the two
+   properties that collide — `font-size` and `line-height` — and it also keeps
+   these class names from meaning anything anywhere else on the screen. */
+#styled-area.align-center {
+  text-align: center;
+}
+
+#styled-area.align-end {
+  text-align: end;
+}
+
+/* §1.4's ranks, as the pairs a stylesheet writes: a size without its line height
+   is a paragraph whose lines overlap at the top of the scale and swim at the
+   bottom. The control's own height follows, because a `text-area` is as tall as
+   `rows` lines of the face it is set in. */
+#styled-area.size-caption {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+#styled-area.size-heading {
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+}
+
+#styled-area.bold {
+  font-weight: var(--gb-weight-strong);
+}
+
+/* A face rather than a slant (ADR-0323): Inter's italic is drawn, so this is a
+   different file and not a transform of this one. */
+#styled-area.italic {
+  font-style: italic;
+}
+
+/* And the face-matching rule, visible: JetBrains Mono ships one face, so this
+   with `.italic` still on draws upright — matching is family, then style, then
+   weight. */
+#styled-area.mono {
+  font-family: "JetBrains Mono";
+}
+
+/* `text-decoration` is **one** property holding a set, so the pair is one class
+   and not two: two rules each writing the property would leave the later one
+   winning and the reader wondering which rule they had lost (ADR-0321). */
+#styled-area.rule-underline {
+  text-decoration: underline;
+}
+
+#styled-area.rule-struck {
+  text-decoration: line-through;
+}
+
+#styled-area.rule-both {
+  text-decoration: underline line-through;
+}

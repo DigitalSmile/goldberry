@@ -326,6 +326,14 @@
 - [ADR-0314 A notch is three lines, and down is down](adr/0314-a-notch-is-three-lines-and-down-is-down.md)
 - [ADR-0315 A rebuild is not a restyle](adr/0315-a-rebuild-is-not-a-restyle.md)
 - [ADR-0316 A grid is a list of rows](adr/0316-a-grid-is-a-list-of-rows.md)
+- [ADR-0317 A router does not talk to the dead](adr/0317-a-router-does-not-talk-to-the-dead.md)
+- [ADR-0318 A line starts where the paint says it does](adr/0318-a-line-starts-where-the-paint-says-it-does.md)
+- [ADR-0319 A panel is not a menu](adr/0319-a-panel-is-not-a-menu.md)
+- [ADR-0320 A popup reports where it is in the window that owns it](adr/0320-a-popup-reports-where-it-is-in-the-window-that-owns-it.md)
+- [ADR-0321 A rule under text belongs to the face](adr/0321-a-rule-under-text-belongs-to-the-face.md)
+- [ADR-0322 The desktop says light or dark, or says nothing](adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)
+- [ADR-0323 An italic is a face, and the matrix closes](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
+- [ADR-0324 A field draws the text its stylesheet resolved](adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)
 
 ---
 

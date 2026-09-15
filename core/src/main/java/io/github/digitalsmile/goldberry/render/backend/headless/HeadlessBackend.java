@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -19,6 +20,7 @@ import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
@@ -370,6 +372,43 @@ public final class HeadlessBackend implements Backend {
         requireUiThread();
         requireOpen();
         pending.add(Objects.requireNonNull(event, "event"));
+    }
+
+    /// What this backend reports as the desktop's appearance. Null — "the desktop
+    /// does not say" — until a test says otherwise, which is the right default for
+    /// a backend with no desktop under it.
+    private @Nullable SystemTheme systemTheme;
+
+    @Override
+    public Optional<SystemTheme> systemTheme() {
+        return Optional.ofNullable(systemTheme);
+    }
+
+    /// Sets the setting and posts the change **to every open window**, which is
+    /// what a real desktop does: the appearance is the session's, and a
+    /// [io.github.digitalsmile.goldberry.Host] is per window
+    /// (`docs/gaps.md` G26, [ADR-0322]).
+    ///
+    /// Nothing is posted when the value has not changed, for the reason
+    /// `WINDOW_MOVED` is deduplicated: a notification that reports no news is a
+    /// rebuild nobody asked for.
+    ///
+    /// @param theme what the desktop now says, or null for "it does not say"
+    public void systemTheme(@Nullable SystemTheme theme) {
+        requireUiThread();
+        if (theme == systemTheme) {
+            return;
+        }
+        systemTheme = theme;
+        if (theme == null) {
+            // A desktop that has stopped saying anything reports no change: there
+            // is no theme to hand a listener, and `systemTheme()` is how a caller
+            // asks what it is now.
+            return;
+        }
+        for (var window : windows) {
+            post(new BackendEvent.SystemThemeChanged(window, theme));
+        }
     }
 
     /// How many events are waiting.

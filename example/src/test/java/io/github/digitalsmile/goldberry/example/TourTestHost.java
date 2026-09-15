@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.example;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
@@ -10,6 +11,7 @@ import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -33,6 +35,18 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileD
 
     TourTestHost(List<HitTest.Region> regions, Clipboard board) {
         this(regions, board, new HeadlessFileDialogs());
+    }
+
+    /// No desktop under a test, so no setting — which is a real answer and the one
+    /// an application must have a default for ([ADR-0322]).
+    @Override
+    public Optional<SystemTheme> systemTheme() {
+        return Optional.empty();
+    }
+
+    @Override
+    public void onSystemThemeChanged(Consumer<SystemTheme> listener) {
+        // Nothing ever changes it here.
     }
 
     @Override

@@ -98,6 +98,16 @@ public enum SdlEventType {
     /// an empty string means the composition has ended.
     TEXT_EDITING(0x302),
 
+    /// The desktop's light-or-dark setting changed — SDL's
+    /// `SDL_EVENT_SYSTEM_THEME_CHANGED`.
+    ///
+    /// **Not a window event**, though SDL delivers it through the same queue: it
+    /// concerns the session, so it carries no window id and whoever translates it
+    /// tells every window there is. It arrives while the application is running,
+    /// which on every desktop with a sunset schedule is once a day
+    /// (`docs/gaps.md` G26, [ADR-0322]).
+    SYSTEM_THEME_CHANGED(0x108),
+
     USER(0x8000);
 
     private final int value;

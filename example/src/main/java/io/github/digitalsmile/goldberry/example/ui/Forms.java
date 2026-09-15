@@ -18,11 +18,17 @@ public record Forms(Masonry cards) implements Widget.Stateless {
 
     private static final String NOTE = "§4's fields and §3's choosers. Nine of these cards are forms.kdl — a field"
             + " holds its own text, caret and undo stack, so a wall of them needs no"
-            + " wiring. The last three cannot be: a set is toggled, a filter is applied"
-            + " and a branch is fetched, and all three are the application's.";
+            + " wiring. The last four cannot be: a set is toggled, a filter is applied,"
+            + " a branch is fetched and a class set is computed, and all four are the"
+            + " application's.";
 
     @Override
     public Widget build(BuildContext context) {
-        return Wall.of("forms", "Forms", NOTE, cards, Choosers.cards().toArray(Widget[]::new));
+        // The choosers, then the text-property card. Last because it is the tallest
+        // and a masonry places by column height: a tall card at the front leaves a
+        // long tail of empty column behind it.
+        var java = new java.util.ArrayList<>(Choosers.cards());
+        java.add(new TextStylingCard());
+        return Wall.of("forms", "Forms", NOTE, cards, java.toArray(Widget[]::new));
     }
 }

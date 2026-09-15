@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -460,7 +461,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         }
         return shaped.widthBetween(
                         0, Math.clamp(displayCaret(), 0, shaped.text().length()))
-                - scrollOffset;
+                - shift();
     }
 
     /// The caret's offset into what is **drawn** — inside the composition while
@@ -476,8 +477,9 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             return;
         }
         // Into the content's own coordinates: past the padding, and back by
-        // however far the field has scrolled.
-        var contentX = x - leftPadding + scrollOffset;
+        // however far the field has been shifted — the scroll, less the indent an
+        // alignment gave a line that fits ([ADR-0324]).
+        var contentX = x - leftPadding + shift();
         var displayOffset = paragraph.offsetAt(0, mask.display().length(), contentX);
         var offset = mask.real(displayOffset);
 
@@ -551,8 +553,23 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         bounds = extent;
     }
 
+    /// How far in a line narrower than the field starts — `text-align`, resolved
+    /// for the frame that is being described.
+    ///
+    /// Zero whenever the text overflows, because [TextAlign#indentOf] clamps the
+    /// slack at zero, and that is the invariant this control rests on: the indent
+    /// and the scroll can never both be non-zero, so one number carries both
+    /// ([ADR-0324]).
+    private double indent;
+
+    /// Where the content is drawn relative to the content box's leading edge —
+    /// negative of it is what every absolutely placed child is inset by.
+    private double shift() {
+        return scrollOffset - indent;
+    }
+
     @Override
-    public double laidOut(Paragraph shaped, double padding, double caretWidth) {
+    public double laidOut(Paragraph shaped, double padding, double caretWidth, TextAlign align) {
         paragraph = shaped;
         leftPadding = padding;
 
@@ -564,8 +581,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // offset alone rather than snapping it to the caret.
         var room = bounds.width() - 2 * padding;
         if (room <= 0) {
-            return scrollOffset;
+            return shift();
         }
+        // **The box hugs its text**, so the alignment cannot come from the paint
+        // here as it does in a `text-area`: the value box is absolutely positioned
+        // and sized by its content, and a paragraph with no slack indents by
+        // nothing. What moves is the box, and the caret and the highlight with it.
+        indent = align.indentOf(textWidth, room);
 
         // Move as little as possible: only when the caret has left the window.
         // A caret at the very end needs **its own width** of room, or the field
@@ -577,7 +599,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // then had its text deleted should come back rather than show a blank.
         offset = Math.clamp(offset, 0, Math.max(0, textWidth - room));
         scrollOffset = offset;
-        return offset;
+        return shift();
     }
 
     @Override

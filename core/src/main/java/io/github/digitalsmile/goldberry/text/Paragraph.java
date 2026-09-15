@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.layout.MeasureMode;
 import io.github.digitalsmile.goldberry.layout.MeasuredSize;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -311,47 +312,69 @@ public final class Paragraph {
         var lineHeight = font.lineHeight();
         var ascent = font.ascent();
         var ellipsis = flow.ellipsises();
-        var slack = flow.textAlign().fractionOfSlack();
+        var align = flow.textAlign();
+        // Read once per paint rather than once per line: it is a downcall into the
+        // rasterizer, and it is the same answer for every line of one font. Null
+        // when nothing is decorated, which is nearly every paragraph ([ADR-0321]).
+        var rules = flow.isDecorated() ? font.decorations().orElse(font.size(), ascent) : null;
 
         for (var i = 0; i < layout.lines().size(); i++) {
             var line = layout.lines().get(i);
             if (line.isEmpty()) {
+                // And therefore undecorated: a blank line between two paragraphs is
+                // not a rule a reader can explain.
                 continue;
             }
             var baseline = top + ascent + i * lineHeight;
             if (!ellipsis || line.width() <= maxWidth) {
-                font.draw(
-                        frame,
-                        x + indentOf(line.width(), maxWidth, slack),
-                        baseline,
-                        run,
-                        line.glyphStart(),
-                        line.glyphEnd(),
-                        argb);
+                var indent = align.indentOf(line.width(), maxWidth);
+                font.draw(frame, x + indent, baseline, run, line.glyphStart(), line.glyphEnd(), argb);
+                decorate(frame, x + indent, baseline, line.width(), argb, flow, rules);
                 continue;
             }
             // A truncated line fills the box by construction, so there is no
             // slack to share and `text-align` has nothing to say about it.
             paintTruncated(frame, x, baseline, maxWidth, argb, line);
+            // The rule runs under the ellipsis too, because the mark is part of the
+            // line — a decorated label whose rule stopped short of its own `…`
+            // would read as two words, one of them underlined.
+            decorate(frame, x, baseline, maxWidth, argb, flow, rules);
         }
     }
 
-    /// How far in from the box's leading edge a line of `width` starts.
+    /// Draws the rules `flow` asks for along one line, `width` wide from `x`.
     ///
-    /// **Per line**, which is what `text-align` means: a centred paragraph
-    /// centres each of its lines in the same box rather than centring the block
-    /// they make up.
+    /// **In the text's own colour and at the face's own thickness.** A decoration
+    /// is part of the glyphs rather than a box behind them, which is why it takes
+    /// `argb` and not a second colour, and why the position and the thickness come
+    /// from [io.github.digitalsmile.goldberry.text.font.Font#decorations()] rather
+    /// than from any arithmetic here (`docs/gaps.md` G27, [ADR-0321]).
     ///
-    /// Clamped at zero, and both reasons are real. A line **wider** than its box
-    /// — every `nowrap` line that overflows — would otherwise be pulled *left* by
-    /// `text-align: end`, hiding its beginning instead of its end; and `maxWidth`
-    /// is [#UNCONSTRAINED] wherever a caller is measuring rather than placing,
-    /// which would make the offset infinite.
-    private static double indentOf(double width, double maxWidth, double fraction) {
-        if (fraction == 0 || !Double.isFinite(maxWidth)) {
-            return 0;
+    /// @param rules the face's metrics, already substituted for by
+    ///              [io.github.digitalsmile.goldberry.text.font.Font.Decorations#orElse],
+    ///              or null when there is nothing to draw
+    private static void decorate(
+            Frame frame,
+            double x,
+            double baseline,
+            double width,
+            int argb,
+            TextFlow flow,
+            Font.@Nullable Decorations rules) {
+
+        if (rules == null || !(width > 0)) {
+            return;
         }
-        return Math.max(0, maxWidth - width) * fraction;
+        if (flow.has(TextDecoration.UNDERLINE)) {
+            fillRule(frame, x, baseline + rules.underlinePosition(), width, rules.underlineThickness(), argb);
+        }
+        if (flow.has(TextDecoration.LINE_THROUGH)) {
+            fillRule(frame, x, baseline + rules.strikethroughPosition(), width, rules.strikethroughThickness(), argb);
+        }
+    }
+
+    private static void fillRule(Frame frame, double x, double top, double width, double thickness, int argb) {
+        frame.fillRect((float) x, (float) top, (float) width, (float) thickness, argb);
     }
 
     /// Draws one over-long line as much of itself as fits, then the ellipsis.

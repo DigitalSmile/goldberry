@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
@@ -320,6 +321,12 @@ final class Launcher implements Host {
         // ([ADR-0270]).
         window.onMove(position -> replacePopups());
 
+        // The desktop's light-or-dark setting, forwarded to whoever asked for it.
+        // Installed unconditionally rather than on the first listener: there is one
+        // handler slot per window, and taking it here means nothing else can be
+        // wired into it later and quietly win (`docs/gaps.md` G26, [ADR-0322]).
+        window.onSystemThemeChanged(this::notifySystemTheme);
+
         // A press on nothing, or an Escape, closes whatever is open over this
         // window. Neither reaches a widget, which is why it is watched here
         // rather than handled by one (ADR-0103).
@@ -360,8 +367,21 @@ final class Launcher implements Host {
                     io.github.digitalsmile.goldberry.input.key.Key key,
                     io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
                     boolean repeat) {
-                var top = topmostPopup();
+                // The topmost popup that wants keys at all, which is not always
+                // the topmost popup: a *panel* is open over the window the whole
+                // time something is selected and must take nothing from it
+                // (`docs/gaps.md` G29, [ADR-0319]).
+                var top = topmostKeyboardPopup();
                 if (top == null) {
+                    // `Escape` is still a dismissal, because declining keys and
+                    // refusing to close are different promises — a panel that must
+                    // survive one says so with `lightDismiss(false)`, and then
+                    // this returns false and the key reaches the window.
+                    if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE
+                            && topmostPopup() != null
+                            && dismissTopmostPopup()) {
+                        return true;
+                    }
                     // **The keyboard's right-click**, and only while nothing is
                     // open over the window: with a menu already showing, the
                     // menu key belongs to the menu (ADR-0208).
@@ -886,6 +906,25 @@ final class Launcher implements Host {
         return java.util.Optional.empty();
     }
 
+    /// The popup on top that **wants the keyboard** — the last one opened that is
+    /// still open and has not declined keys ([Popup#keyboard(boolean)]).
+    ///
+    /// Separate from [#topmostPopup()] because the two questions are different and
+    /// only one of them is about keys: a press outside dismisses whatever is
+    /// topmost, panel or not, while a key belongs to the topmost thing that asked
+    /// for one. A panel over a menu therefore leaves the menu operable by arrows,
+    /// which is what "a panel is not in the keyboard's way" has to mean if it
+    /// means anything ([ADR-0319]).
+    private Popup topmostKeyboardPopup() {
+        for (var i = popups.size() - 1; i >= 0; i--) {
+            var popup = popups.get(i);
+            if (popup.isOpen() && popup.wantsKeyboard()) {
+                return popup;
+            }
+        }
+        return null;
+    }
+
     /// The popup on top: the last one opened that is still open.
     private Popup topmostPopup() {
         for (var i = popups.size() - 1; i >= 0; i--) {
@@ -1153,6 +1192,33 @@ final class Launcher implements Host {
         });
         window.repaint();
         return entry;
+    }
+
+    /// The application's system-theme listeners, in the order they were added.
+    ///
+    /// A list rather than one slot, because an application may reasonably have two
+    /// — the shell that swaps the stylesheet, and a settings screen showing what
+    /// the desktop currently says. Nothing removes one: a listener lives as long as
+    /// the window, which is what [Host#onSystemThemeChanged] promises.
+    private final List<java.util.function.Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
+
+    @Override
+    public java.util.Optional<SystemTheme> systemTheme() {
+        return window.systemTheme();
+    }
+
+    @Override
+    public void onSystemThemeChanged(java.util.function.Consumer<SystemTheme> listener) {
+        systemThemeListeners.add(Objects.requireNonNull(listener, "listener"));
+    }
+
+    /// Tells every listener, over a copy: a listener that reacts by adding another
+    /// one — a screen that appears because the theme changed — must not be a
+    /// `ConcurrentModificationException`.
+    private void notifySystemTheme(SystemTheme theme) {
+        for (var listener : List.copyOf(systemThemeListeners)) {
+            listener.accept(theme);
+        }
     }
 
     @Override

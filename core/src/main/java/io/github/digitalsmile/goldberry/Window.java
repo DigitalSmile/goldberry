@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -166,6 +167,30 @@ public final class Window implements AutoCloseable {
     /// logical size is unchanged — only the resolution it is drawn at.
     public Window onScaleChange(Consumer<DisplayScale> handler) {
         this.scaleHandler = Objects.requireNonNull(handler, "handler");
+        return this;
+    }
+
+    /// What the desktop's appearance is set to, or empty where it does not say.
+    ///
+    /// The session's answer rather than this window's — there is one desktop — and
+    /// it is here because a window is what an application without a [Host] holds.
+    /// See [Host#systemTheme()], which is the same answer through the ordinary
+    /// route (`docs/gaps.md` G26, [ADR-0322]).
+    public java.util.Optional<SystemTheme> systemTheme() {
+        return runtime.backend().systemTheme();
+    }
+
+    /// Called after the desktop's light-or-dark setting changes, on the UI thread.
+    ///
+    /// Once a day on any desktop with a sunset schedule, and at any time on one
+    /// where the user flips the switch — which is why this exists at all: asking
+    /// once at start-up answers the first question and none of the later ones.
+    ///
+    /// **No repaint is scheduled**, for [#onMove]'s reason: nothing in the window
+    /// changed. What to *do* about a new setting is the application's decision, and
+    /// the frame comes from whatever it changes.
+    public Window onSystemThemeChanged(Consumer<SystemTheme> handler) {
+        this.systemThemeHandler = Objects.requireNonNull(handler, "handler");
         return this;
     }
 
@@ -767,6 +792,16 @@ public final class Window implements AutoCloseable {
 
     void handleMaximizedChanged(boolean value) {
         maximized = value;
+    }
+
+    /// Told by the runtime that the desktop's setting changed. One per window,
+    /// because the backend sends one per window ([ADR-0322]).
+    private java.util.function.@Nullable Consumer<SystemTheme> systemThemeHandler;
+
+    void handleSystemThemeChanged(SystemTheme theme) {
+        if (systemThemeHandler != null) {
+            systemThemeHandler.accept(theme);
+        }
     }
 
     void handleFocusChanged(boolean value) {

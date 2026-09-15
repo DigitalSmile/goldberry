@@ -26,6 +26,7 @@ import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -433,17 +434,59 @@ public final class PointerRouter {
     /// forwards means inverting it back, which is exact for the translations this
     /// is ever asked about and is only done for the handful of nodes that asked
     /// to be told where they are.
-    private static LogicalRect paintedRect(HitTest.Region region) {
-        return region.painted();
+    private LogicalRect paintedRect(HitTest.Region region) {
+        return reported(region.painted());
     }
 
     /// What confines `region`, or the window when nothing does.
     private LogicalRect clipRect(HitTest.Region region) {
         var clip = region.clip();
         if (clip == null || clip.isNone()) {
-            return windowBounds;
+            return reported(windowBounds);
         }
-        return LogicalRect.of((float) clip.left(), (float) clip.top(), (float) clip.width(), (float) clip.height());
+        return reported(
+                LogicalRect.of((float) clip.left(), (float) clip.top(), (float) clip.width(), (float) clip.height()));
+    }
+
+    /// Where this router's window sits in the coordinates [Located] reports in.
+    ///
+    /// [LogicalPoint#ZERO] for a window, which is every router but one: a window's
+    /// own space *is* the space its popups are placed in.
+    private LogicalPoint locationOrigin = LogicalPoint.ZERO;
+
+    /// Where this router's window sits inside the window that owns it.
+    ///
+    /// **Set by a [io.github.digitalsmile.goldberry.Popup] and by nobody else.** A
+    /// popup has a router of its own, so a swatch eight points from the bar's left
+    /// edge was told it was at x=8 — while
+    /// [io.github.digitalsmile.goldberry.Host#attachedPopup] places in the *owner*
+    /// window's coordinates, so the popover it anchored opened in the corner of the
+    /// window instead of beside the swatch. The two were different spaces and
+    /// nothing in between could tell (`docs/gaps.md` G28, ADR-0320).
+    ///
+    /// The correction is the one [io.github.digitalsmile.goldberry.Popup#anchor]
+    /// already applied for a submenu, moved a layer down and applied to everyone:
+    /// every [Located] widget is correct inside a popup at once, rather than the
+    /// four that happen to have popovers today.
+    ///
+    /// It moves nothing else. Hit testing, hovering, capture and the cursor are all
+    /// answered against the window the pointer is actually in, and translating
+    /// those would be translating them twice.
+    public void locationOrigin(LogicalPoint origin) {
+        Objects.requireNonNull(origin, "origin");
+        this.locationOrigin = origin;
+    }
+
+    /// See [#locationOrigin(LogicalPoint)].
+    public LogicalPoint locationOrigin() {
+        return locationOrigin;
+    }
+
+    private LogicalRect reported(LogicalRect rect) {
+        if (locationOrigin.x() == 0 && locationOrigin.y() == 0) {
+            return rect;
+        }
+        return rect.offsetBy(locationOrigin.x(), locationOrigin.y());
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].
@@ -928,7 +971,12 @@ public final class PointerRouter {
         // them -- and after `focused` is reassigned, because a handler that
         // raises a change will have this router asked about focus again before
         // it returns.
-        if (lost != null && lost != focused) {
+        // `isMounted`, because the caller may be reporting a **death** rather
+        // than a move: [#refocus] establishes that `focused` has left the tree
+        // and then hands it here to be let go of, and an unmounted element has
+        // already been disposed -- its `State.setState` throws, by design, and
+        // there is nobody left to tell anyway (`docs/gaps.md` G31, ADR-0317).
+        if (lost != null && lost != focused && lost.isMounted()) {
             notifyFocus(lost, false, fromKeyboard);
         }
         if (focused != null) {
@@ -979,7 +1027,11 @@ public final class PointerRouter {
         // the order the pointer's bubble phase uses -- a container that reacts by
         // rebuilding should see its children settle before it does.
         for (var element : left) {
-            if (!shared.contains(element) && element.widget() instanceof Handles handles) {
+            // The same guard the direct notification above makes, for the same
+            // reason: a subtree that went away takes its containers with it, and
+            // the chain from a dead element is a chain of dead elements
+            // ([ADR-0317]).
+            if (!shared.contains(element) && element.isMounted() && element.widget() instanceof Handles handles) {
                 handles.onFocusWithin(false, fromKeyboard);
             }
         }
@@ -1799,7 +1851,39 @@ public final class PointerRouter {
     /// here focus" should be able to ask that rather than paint a frame and
     /// synthesize a press to find out.
     public void focusFromPress(Element target) {
+        if (!pressFocuses) {
+            // A router that is not in the keyboard's way at all: a *panel*
+            // floating over a canvas somebody is typing into, whose press must
+            // press the swatch and leave the caret where it was
+            // (`docs/gaps.md` G29, ADR-0319).
+            return;
+        }
         focus(nearestFocusable(target), false);
+    }
+
+    private boolean pressFocuses = true;
+
+    /// Whether a press moves the keyboard onto what it landed on. On by default,
+    /// which is §7.2's "focus travels by pointer press".
+    ///
+    /// Off for the router of a surface that wants **no** keys: the one thing
+    /// [io.github.digitalsmile.goldberry.Popup#takesFocus(boolean)] could not
+    /// settle is what happens *after* the panel is open, because a press inside it
+    /// focused what it landed on and the next `Enter` went there instead of to the
+    /// canvas underneath ([ADR-0319]).
+    ///
+    /// It is the press and nothing else. Traversal, [#focus] and
+    /// [#focusById] still do what they are told — a caller that
+    /// asked for focus by name has said what it wants, and a router that quietly
+    /// refused would be a second rule to discover.
+    public PointerRouter pressFocuses(boolean value) {
+        this.pressFocuses = value;
+        return this;
+    }
+
+    /// See [#pressFocuses(boolean)].
+    public boolean pressFocuses() {
+        return pressFocuses;
     }
 
     /// Who a press at `element` should focus.

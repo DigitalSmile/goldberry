@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ import io.github.digitalsmile.goldberry.motion.Easing;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 import io.github.digitalsmile.goldberry.text.flow.WhiteSpace;
@@ -133,6 +135,14 @@ public record ComputedStyle(
         // `text-overflow`, which is CSS's split and the reason these are three
         // components (ADR-0256).
         TextAlign textAlign,
+        // The fourth property on the same value, and the first that is a mark on
+        // the glyphs rather than a placement of them: `text-decoration-line`, as a
+        // set because CSS allows both rules at once. It inherits here, which is an
+        // approximation of CSS's *propagation* to in-flow descendants and is chosen
+        // for `text-align`'s reason -- a control's text is very often an anonymous
+        // child box, and a property that stopped at the node it was written on
+        // would decorate nothing (ADR-0321).
+        Set<TextDecoration> textDecoration,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -203,6 +213,7 @@ public record ComputedStyle(
             // The leading edge, which is CSS's initial value and where every
             // line in the toolkit sat before the property existed.
             TextAlign.START,
+            TextDecoration.NONE,
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -227,6 +238,9 @@ public record ComputedStyle(
         Objects.requireNonNull(whiteSpace, "whiteSpace");
         Objects.requireNonNull(textOverflow, "textOverflow");
         Objects.requireNonNull(textAlign, "textAlign");
+        // Copied rather than merely checked, because a style is a value that is
+        // cached and compared, and a set the caller can still add to is neither.
+        textDecoration = Set.copyOf(Objects.requireNonNull(textDecoration, "textDecoration"));
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -335,7 +349,8 @@ public record ComputedStyle(
                 && color == other.color
                 && typography.equals(other.typography)
                 && whiteSpace == other.whiteSpace
-                && textAlign == other.textAlign;
+                && textAlign == other.textAlign
+                && textDecoration.equals(other.textDecoration);
     }
 
     private ComputedStyle inheritingFrom(ComputedStyle parent) {
@@ -356,7 +371,15 @@ public record ComputedStyle(
                 // is a rule about a node whose text is its own, and
                 // `column.numeric { text-align: end }` is one about nodes whose
                 // text is not (ADR-0256).
-                .textAlign(parent.textAlign());
+                .textAlign(parent.textAlign())
+                // And `text-decoration`, which CSS does not inherit but *propagates*
+                // to in-flow descendants -- a rule drawn across the whole of an
+                // element's text, children included. Inheritance is how that reads
+                // here, because the child is usually an anonymous box holding the
+                // paragraph: `button.link { text-decoration: underline }` has to
+                // reach the label inside it or it decorates nothing at all
+                // ([ADR-0321]).
+                .textDecoration(parent.textDecoration());
     }
 
     /// One declaration applied, or this style unchanged if it does not apply.
@@ -498,6 +521,13 @@ public record ComputedStyle(
             // they are not the same as `start`/`end` under RTL.
             case "text-align" ->
                 keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
+            // The shorthand and the one longhand of it that exists here. CSS's
+            // shorthand also carries a colour and a style, and a declaration that
+            // names either is dropped whole rather than half-applied: a rule that
+            // asked for `underline wavy red` and got a straight rule in the text's
+            // own colour would be a property that lies (ADR-0321).
+            case "text-decoration", "text-decoration-line" ->
+                decorations(value).map(this::textDecoration).orElseGet(() -> dropped(property, value));
 
             // `background` is CSS's shorthand and `background-color` its longhand,
             // and the toolkit implements the one layer of it that exists: a
@@ -600,6 +630,13 @@ public record ComputedStyle(
 
             case "font-weight" ->
                 weight(value).map(v -> typography(typography.weight(v))).orElseGet(() -> dropped(property, value));
+
+            // `normal` and `italic`, and **not** `oblique`: an italic here is a
+            // drawn face rather than a slant, so answering `oblique` with it would
+            // answer a different question and answering it with a shear would be a
+            // type-design decision taken by a stylesheet (ADR-0323).
+            case "font-style" ->
+                fontStyle(value).map(v -> typography(typography.style(v))).orElseGet(() -> dropped(property, value));
 
             // A bare number is a multiple of the font size -- `line-height: 1.4`
             // -- which is the form that survives a font-size change on a
@@ -776,6 +813,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -807,6 +845,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -838,6 +877,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -869,6 +909,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -900,6 +941,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -931,6 +973,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -962,6 +1005,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -993,6 +1037,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1024,6 +1069,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1057,6 +1103,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1088,6 +1135,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1119,6 +1167,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1150,6 +1199,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1181,6 +1231,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1212,6 +1263,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1243,6 +1295,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1274,6 +1327,7 @@ public record ComputedStyle(
                 v,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1305,6 +1359,7 @@ public record ComputedStyle(
                 whiteSpace,
                 v,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1336,6 +1391,41 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 v,
+                textDecoration,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    /// This style with a different `text-decoration` — see the component's note on
+    /// why it inherits.
+    public ComputedStyle textDecoration(Set<TextDecoration> v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                v,
                 background,
                 color,
                 opacity,
@@ -1360,7 +1450,7 @@ public record ComputedStyle(
     /// [Box#text(io.github.digitalsmile.goldberry.text.Paragraph, int,
     /// TextFlow)] ([ADR-0255]).
     public TextFlow textFlow() {
-        return new TextFlow(whiteSpace, textOverflow, textAlign);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration);
     }
 
     public ComputedStyle background(int v) {
@@ -1384,6 +1474,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 v,
                 color,
                 opacity,
@@ -1415,6 +1506,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 v,
                 opacity,
@@ -1446,6 +1538,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 v,
@@ -1477,6 +1570,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1508,6 +1602,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1539,6 +1634,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1570,6 +1666,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1601,6 +1698,7 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                textDecoration,
                 background,
                 color,
                 opacity,
@@ -1669,6 +1767,24 @@ public record ComputedStyle(
         return java.util.Optional.ofNullable(CssLength.parseNumber(value))
                 .filter(v -> v >= 1 && v <= 1000)
                 .map(BundledFont.Weight::nearest);
+    }
+
+    /// A CSS `font-style`, in the two values a shipped face can honour.
+    ///
+    /// `oblique` is refused for the reason the parse site gives, and refusing it is
+    /// visible: the declaration is dropped with a warning rather than silently read
+    /// as `italic`, so a stylesheet that asked for a slant learns that this toolkit
+    /// does not synthesize one.
+    private static java.util.Optional<BundledFont.Style> fontStyle(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() != 1 || !tokens.getFirst().is(TokenType.IDENT)) {
+            return java.util.Optional.empty();
+        }
+        return switch (tokens.getFirst().text().toLowerCase(Locale.ROOT)) {
+            case "normal" -> java.util.Optional.of(BundledFont.Style.UPRIGHT);
+            case "italic" -> java.util.Optional.of(BundledFont.Style.ITALIC);
+            default -> java.util.Optional.empty();
+        };
     }
 
     /// A `line-height`: a length, or a bare number meaning a multiple of the size.
@@ -2111,6 +2227,36 @@ public record ComputedStyle(
         } catch (IllegalArgumentException e) {
             return java.util.Optional.empty();
         }
+    }
+
+    /// CSS's `text-decoration-line`: `none`, or one or both of the rules.
+    ///
+    /// Empty — a dropped declaration — for anything else, which deliberately
+    /// includes the rest of the shorthand: `underline red` names a colour this
+    /// toolkit cannot draw, and dropping it with a warning is how every other
+    /// property here reports a value outside the subset (ADR-0321).
+    ///
+    /// `none` beside another keyword is also refused rather than resolved. CSS says
+    /// the same, and the alternative is guessing which half of a contradiction the
+    /// author meant.
+    private static java.util.Optional<Set<TextDecoration>> decorations(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.isEmpty() || tokens.stream().anyMatch(t -> !t.is(TokenType.IDENT))) {
+            return java.util.Optional.empty();
+        }
+        if (tokens.size() == 1 && tokens.getFirst().text().equalsIgnoreCase("none")) {
+            return java.util.Optional.of(TextDecoration.NONE);
+        }
+        var lines = java.util.EnumSet.noneOf(TextDecoration.class);
+        for (var token : tokens) {
+            var line = TextDecoration.parse(token.text());
+            if (line == null || !lines.add(line)) {
+                // Unknown, or named twice -- both are a declaration nobody can read
+                // back, and neither is worth half-applying.
+                return java.util.Optional.empty();
+            }
+        }
+        return java.util.Optional.of(Set.copyOf(lines));
     }
 
     /// CSS's `flex-wrap`, whose default keyword is spelled without the hyphen

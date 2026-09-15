@@ -193,6 +193,11 @@ public final class Popup implements AutoCloseable {
     public void move(LogicalPoint position) {
         requireOpen();
         backend.move(position);
+        // The tree did not change and the pixels did not either, but every
+        // rectangle a [io.github.digitalsmile.goldberry.input.handler.Located]
+        // widget in here was told is now in the wrong place. A frame is the thing
+        // that re-reports them ([ADR-0320]).
+        window.repaint();
     }
 
     /// Asks for the popup to be resized.
@@ -344,6 +349,13 @@ public final class Popup implements AutoCloseable {
         regions = HitTest.capture(render);
         router.windowBounds(
                 LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
+        // Before the regions, because that call is what notifies every [Located]
+        // widget in this popup, and what they are owed is a rectangle in the
+        // *owner* window's space — the space a popover would be placed in
+        // (`docs/gaps.md` G28, [ADR-0320]). Set every frame rather than once,
+        // because a popup moves: a popover following a scrolling anchor is moved
+        // rather than closed and reopened.
+        router.locationOrigin(backend.offset());
         router.updateRegions(regions);
         if (!focused) {
             focused = true;
@@ -366,7 +378,11 @@ public final class Popup implements AutoCloseable {
             io.github.digitalsmile.goldberry.input.key.Key key,
             io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
             boolean repeat) {
-        if (!isOpen()) {
+        if (!isOpen() || !keyboard) {
+            // A panel is skipped by the forwarding rule, which is the half of
+            // [#keyboard(boolean)] the owner cannot enforce for it: the launcher
+            // asks each popup, and one that wants no keys declines every one of
+            // them so the window underneath still hears it ([ADR-0319]).
             return false;
         }
         var handled = router.keyPressed(key, modifiers, repeat);
@@ -419,6 +435,50 @@ public final class Popup implements AutoCloseable {
 
     private boolean takesFocus = true;
 
+    /// Whether this popup wants the keyboard **at all** — a *panel* rather than a
+    /// menu. On by default.
+    ///
+    /// [#takesFocus(boolean)] settles only the opening: it stops [#focusFirst],
+    /// and nothing else. This is the whole question, and it is one question
+    /// (`docs/gaps.md` G29, ADR-0319):
+    ///
+    /// - nothing is focused when it opens, as with `takesFocus(false)`;
+    /// - a **press inside it focuses nothing**, so clicking a swatch and then
+    ///   pressing `Enter` does not press the swatch again
+    ///   ([io.github.digitalsmile.goldberry.input.PointerRouter#pressFocuses(boolean)]);
+    ///   and
+    /// - the owner **does not forward keys to it**, so every key still belongs to
+    ///   the window underneath.
+    ///
+    /// **What it is for.** A bar of buttons floating over a canvas somebody is
+    /// typing into — a selection's options, a formatting bar, a HUD. That is open
+    /// the whole time something is selected, which is not what ADR-0104's
+    /// forwarding rule was written for: "while a menu is open the keyboard belongs
+    /// to it" is right for a menu and wrong for a panel, and a focused `button`
+    /// consuming `Enter` is a line the user could not break in the text
+    /// underneath.
+    ///
+    /// **`Escape` is not this flag's business.** A panel that may be dismissed by
+    /// input still is — that is [#lightDismiss(boolean)], and a panel that must
+    /// not be closed by a key says so there. Taking no keys and being unclosable
+    /// are different promises.
+    public Popup keyboard(boolean value) {
+        this.keyboard = value;
+        // The router is told rather than asked, because the press it has to
+        // decline arrives at this popup's own window and never passes through
+        // here.
+        router.pressFocuses(value);
+        return this;
+    }
+
+    /// See [#keyboard(boolean)]. Read by the owner's watcher, which is what
+    /// forwards keys.
+    public boolean wantsKeyboard() {
+        return keyboard;
+    }
+
+    private boolean keyboard = true;
+
     /// Puts the keyboard on this popup's first focusable node.
     ///
     /// Called after its first frame, because focus traversal walks the element
@@ -436,7 +496,7 @@ public final class Popup implements AutoCloseable {
         // `select` row focused *from the keyboard* would be selected on the spot
         // by the option's own follow-the-focus rule, so opening the list would
         // report a change nobody asked for.
-        if (!takesFocus) {
+        if (!takesFocus || !keyboard) {
             return;
         }
         var chosen = focusId == null ? null : elementWithId(tree.root(), focusId);

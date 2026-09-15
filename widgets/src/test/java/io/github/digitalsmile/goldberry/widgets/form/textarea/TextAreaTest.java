@@ -51,8 +51,20 @@ class TextAreaTest {
     }
 
     private void render(ElementTree tree) {
+        render(tree, null);
+    }
+
+    /// The same, with one application rule on top — how a test says `text-align`
+    /// without inventing a stylesheet of its own ([ADR-0324]).
+    private void render(ElementTree tree, String css) {
         tree.flush();
-        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
+        var sheets = new java.util.ArrayList<io.github.digitalsmile.goldberry.css.Stylesheet>(
+                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()));
+        if (css != null) {
+            sheets.add(io.github.digitalsmile.goldberry.css.Stylesheet.parse(
+                    io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION, css));
+        }
+        new WidgetRenderer(sheets, TestFont.get()).render(tree);
     }
 
     private TextAreaBox box(ElementTree tree) {
@@ -688,6 +700,147 @@ class TextAreaTest {
             // "Select the line" means something here, unlike in a one-line field
             // where it is select-all by another name.
             assertEquals("two", box(tree).edit().selectedText());
+        }
+    }
+
+    /// `text-align` in a multi-line field — `docs/gaps.md` G30, ADR-0324.
+    ///
+    /// The area's value box is given a **definite width**, unlike a `text-input`'s,
+    /// so the paint indents each line by its own share of the slack and what this
+    /// control has to do is agree with it — per line, because two lines of different
+    /// lengths do not start in the same place.
+    ///
+    /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInputTest]'s
+    /// aligned tests assert the same invariant from the other shape.
+    @Nested
+    @DisplayName("text-align")
+    class Aligned {
+
+        private static final String LINES = "a much longer first line\nshort";
+
+        private String rule;
+
+        private ElementTree centred(String text, String alignment) {
+            rule = "text-area { text-align: " + alignment + " }";
+            var tree = new ElementTree(new TextArea(text, null), host);
+            render(tree, rule);
+            box(tree).measured(new Extent(300, 200), new Extent(300, 200));
+            render(tree, rule);
+            box(tree).onFocusChanged(true, false);
+            render(tree, rule);
+            return tree;
+        }
+
+        private void key(ElementTree tree, Key which) {
+            key(tree, which, Modifiers.NONE);
+        }
+
+        private void key(ElementTree tree, Key which, Modifiers modifiers) {
+            box(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, which, modifiers, false, null));
+            render(tree, rule);
+            render(tree, rule);
+        }
+
+        /// The **document's** start, which is `Ctrl+Home`: plain `Home` is the start
+        /// of the *visual line*, and an area mounts with its caret at the end.
+        private void toStart(ElementTree tree) {
+            key(tree, Key.HOME, Modifiers.of(Mod.CTRL));
+        }
+
+        /// Where the caret is drawn, in the content box's coordinates: the line's
+        /// own indent, plus how far along the line the caret is.
+        private double caretX(ElementTree tree) {
+            var area = box(tree).caretArea().orElseThrow();
+            return area.left() + box(tree).caretOffsetIn(area);
+        }
+
+        private void pressAtCaret(ElementTree tree) {
+            var area = box(tree).caretArea().orElseThrow();
+            // 8 and 6 are `text-area`'s own padding in `controls.css`, which the
+            // press is measured past and the caret's rectangle is not.
+            var x = (float) (8 + caretX(tree));
+            var y = 6 + area.top() + area.size().height() / 2;
+            var event = new PointerEvent(
+                    PointerEvent.Kind.PRESSED,
+                    x,
+                    y,
+                    PointerEvent.Button.PRIMARY,
+                    1,
+                    Float.NaN,
+                    Float.NaN,
+                    Modifiers.NONE,
+                    null);
+            event.localTo(new PointerEvent.Local(x, y, 300, 200));
+            box(tree).onPointer(event);
+            render(tree, rule);
+        }
+
+        @Test
+        @DisplayName("nothing is indented at the leading edge")
+        void startIsUnchanged() {
+            var tree = centred(LINES, "start");
+
+            assertEquals(0, box(tree).caretArea().orElseThrow().left(), 0.01);
+        }
+
+        /// The case a single "where does the text start" number cannot describe: two
+        /// lines of different lengths are indented by different amounts.
+        @Test
+        @DisplayName("every line is indented by its own share of the slack")
+        void indentIsPerLine() {
+            var tree = centred(LINES, "center");
+            toStart(tree);
+
+            var onFirst = box(tree).caretArea().orElseThrow().left();
+            key(tree, Key.DOWN);
+            var onSecond = box(tree).caretArea().orElseThrow().left();
+
+            assertTrue(onFirst > 0, () -> "the long line starts at " + onFirst);
+            assertTrue(
+                    onSecond > onFirst + 10,
+                    () -> "the short line starts at " + onSecond + " and the long one at " + onFirst);
+        }
+
+        @Test
+        @DisplayName("pressing on the caret does not move it, on either line")
+        void pressRoundTrips() {
+            var tree = centred(LINES, "center");
+            toStart(tree);
+            for (var i = 0; i < 4; i++) {
+                key(tree, Key.RIGHT);
+            }
+
+            for (var line = 0; line < 2; line++) {
+                var before = box(tree).edit().caret();
+
+                pressAtCaret(tree);
+
+                assertEquals(before, box(tree).edit().caret(), "the press landed somewhere else on line " + line);
+                key(tree, Key.DOWN);
+            }
+        }
+
+        /// `Down` and back keeps the **visual** column, which under `center` is not
+        /// the paragraph's: a column carried between two differently indented lines
+        /// without their indents is a caret that walks sideways.
+        @Test
+        @DisplayName("Down then Up comes back to the column it started in")
+        void verticalMovementKeepsTheVisualColumn() {
+            var tree = centred("a much longer first line\nshort\nanother long line here", "center");
+            toStart(tree);
+            for (var i = 0; i < 12; i++) {
+                key(tree, Key.RIGHT);
+            }
+            var offset = box(tree).edit().caret();
+            var column = caretX(tree);
+
+            key(tree, Key.DOWN);
+            key(tree, Key.DOWN);
+            key(tree, Key.UP);
+            key(tree, Key.UP);
+
+            assertEquals(offset, box(tree).edit().caret(), "the caret did not come back to where the run started");
+            assertEquals(column, caretX(tree), 0.5, "and it is in the same column on the screen");
         }
     }
 }

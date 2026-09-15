@@ -43,6 +43,13 @@ SDL_ClearError
 SDL_GetVersion
 SDL_GetRevision
 SDL_GetCurrentVideoDriver
+
+# The desktop's light-or-dark setting, and the one call that answers it on all
+# three platforms -- the alternatives are AppleInterfaceStyle, the
+# AppsUseLightTheme registry value and the XDG settings portal (sec. G26,
+# ADR-0322). The change arrives as SDL_EVENT_SYSTEM_THEME_CHANGED, which needs no
+# symbol of its own: it comes through the event queue that is already pumped.
+SDL_GetSystemTheme
 SDL_SetHint
 
 # Windowing and the CPU present path (sec. 4, sec. 5).

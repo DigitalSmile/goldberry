@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
@@ -102,6 +103,25 @@ public interface Backend extends AutoCloseable {
     /// @param spec the icon, the tooltip and the menu
     /// @return the tray, or empty if this desktop has none
     default Optional<BackendTray> createTray(TraySpec spec) {
+        return Optional.empty();
+    }
+
+    /// What the desktop's appearance is set to, or empty where it does not say.
+    ///
+    /// Process-global rather than per window, like the clipboard and the tray: a
+    /// session has an appearance and a window does not.
+    ///
+    /// **Empty is a real answer and not a failure.** A desktop with no such
+    /// setting, a driver that cannot ask and a `libgoldberry` built before the
+    /// export all give it, and what a caller needs from the three is the same
+    /// thing: use your own default rather than the desktop's, because the desktop
+    /// has not got one (`docs/gaps.md` G26, [ADR-0322]).
+    ///
+    /// A change arrives as [io.github.digitalsmile.goldberry.render.event.BackendEvent.SystemThemeChanged],
+    /// through the pump like everything else.
+    ///
+    /// @return `LIGHT`, `DARK`, or empty
+    default Optional<SystemTheme> systemTheme() {
         return Optional.empty();
     }
 

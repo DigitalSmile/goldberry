@@ -89,13 +89,29 @@ public record Asset(
     /// than improvising one. Two static instances therefore cover the whole
     /// shipped scale for 400 KB and no native change, and the axis stays a real
     /// optimisation for the day an intermediate weight is actually specified.
+    ///
+    /// ## And the italics, which are two more files for the same reason
+    ///
+    /// An italic is a **face** and not a transform: Inter's italic is drawn, with
+    /// different letterforms — a single-storey `a`, a cursive `f` — and the
+    /// alternative available without a file is shearing the upright glyphs, which
+    /// is a *synthetic oblique* and a decision about type design rather than a
+    /// workaround (`docs/gaps.md` G27, ADR-0323).
+    ///
+    /// Two of them rather than one, because the matrix has to close: a stylesheet
+    /// that writes `font-weight: 600; font-style: italic` on a heading must get
+    /// something that is both, and "the nearest of the three we shipped" is how a
+    /// design system acquires a weight nobody chose. Two weights × two styles is
+    /// four files and 830 KB more, which is the same trade ADR-0066 took.
     public static final Asset INTER = new Asset(
             "inter",
             "4.1",
             "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
             "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
             Map.of("InterVariable.ttf", "fonts/InterVariable.ttf",
-                    "extras/ttf/Inter-SemiBold.ttf", "fonts/Inter-SemiBold.ttf"),
+                    "extras/ttf/Inter-SemiBold.ttf", "fonts/Inter-SemiBold.ttf",
+                    "extras/ttf/Inter-Italic.ttf", "fonts/Inter-Italic.ttf",
+                    "extras/ttf/Inter-SemiBoldItalic.ttf", "fonts/Inter-SemiBoldItalic.ttf"),
             Map.of("LICENSE.txt", "inter.txt"),
             null,
             null);

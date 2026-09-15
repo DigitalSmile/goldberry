@@ -81,6 +81,35 @@ public final class GlyphPen implements AutoCloseable {
         return metrics().lineHeight();
     }
 
+    /// Where the top of an underline goes, as a **y-down offset from the
+    /// baseline** — positive, an underline being under the text.
+    ///
+    /// The face's own number, scaled to this pen's size. A painter that guessed
+    /// instead would be wrong at every size and at every family, which is why this
+    /// is here rather than in whoever draws the rectangle (`docs/gaps.md` G27,
+    /// [ADR-0321]).
+    public double underlinePosition() {
+        return metrics().underlinePosition();
+    }
+
+    /// How thick that rule is, and **zero from a face that does not say** — a
+    /// `post` table too short to carry the pair is legal, so the caller needs a
+    /// fallback and cannot be handed a guess dressed as a measurement.
+    public double underlineThickness() {
+        return metrics().underlineThickness();
+    }
+
+    /// The same for a rule **through** the text, and therefore negative: it is
+    /// above the baseline.
+    public double strikethroughPosition() {
+        return metrics().strikethroughPosition();
+    }
+
+    /// How thick that one is, zero when the face is silent.
+    public double strikethroughThickness() {
+        return metrics().strikethroughThickness();
+    }
+
     /// Draws glyphs `[from, to)` of `run` with `(x, baseline)` on the baseline.
     ///
     /// A range rather than a whole run, because a wrapped paragraph is one

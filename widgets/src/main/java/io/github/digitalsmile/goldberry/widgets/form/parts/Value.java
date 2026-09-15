@@ -46,6 +46,18 @@ public record Value(String text, boolean placeholder) implements Widget.Leaf, St
             // a line taller than it needs to.
             return Box.of().style(style);
         }
-        return Box.text(context.paragraph(style, text), style.color()).style(style);
+        // The flow and not only the colour, so a field honours the text properties
+        // its stylesheet resolved: `text-align` places each line in the box and
+        // `text-decoration` marks it. Both are the *cascade's* answer for this node
+        // — `text-align` and `text-decoration` inherit, so a rule on the field
+        // reaches this label — and the controls place their carets from the same
+        // alignment, which is what keeps the caret on the glyphs (`docs/gaps.md`
+        // G30, [ADR-0324]).
+        //
+        // `white-space` and `text-overflow` ride along and mean what they say. No
+        // shipped rule sets either on a field: a wrapped `text-area` is the
+        // `text-area`'s own business, and it passes a definite width down.
+        return Box.text(context.paragraph(style, text), style.color(), style.textFlow())
+                .style(style);
     }
 }

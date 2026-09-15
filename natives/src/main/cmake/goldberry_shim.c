@@ -291,7 +291,15 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_WINDOW_RESTORED", SDL_EVENT_WINDOW_RESTORED),
     GB_CONSTANT("SDL_EVENT_WINDOW_FOCUS_LOST", SDL_EVENT_WINDOW_FOCUS_LOST),
     GB_CONSTANT("SDL_EVENT_WINDOW_CLOSE_REQUESTED", SDL_EVENT_WINDOW_CLOSE_REQUESTED),
+    GB_CONSTANT("SDL_EVENT_SYSTEM_THEME_CHANGED", SDL_EVENT_SYSTEM_THEME_CHANGED),
     GB_CONSTANT("SDL_EVENT_USER", SDL_EVENT_USER),
+
+    /* The desktop's light-or-dark setting (sec. G26, ADR-0322). Ordinals in a C
+     * enum, and a wrong one starts the application in the wrong theme with no
+     * error anywhere -- which is exactly the failure this table exists for. */
+    GB_CONSTANT("SDL_SYSTEM_THEME_UNKNOWN", SDL_SYSTEM_THEME_UNKNOWN),
+    GB_CONSTANT("SDL_SYSTEM_THEME_LIGHT", SDL_SYSTEM_THEME_LIGHT),
+    GB_CONSTANT("SDL_SYSTEM_THEME_DARK", SDL_SYSTEM_THEME_DARK),
 
     /* Window creation flags. */
     GB_CONSTANT("SDL_WINDOW_RESIZABLE", SDL_WINDOW_RESIZABLE),

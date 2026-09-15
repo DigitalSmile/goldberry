@@ -5,6 +5,7 @@ import java.util.Optional;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 
 /// What [TextAreaBox] tells its state — `text-input`'s seam, with a second
 /// dimension in it.
@@ -117,11 +118,18 @@ interface AreaEditor {
     /// How big the last frame made this control.
     void measured(Extent bounds);
 
-    /// A frame is being described: the wrapped paragraph, and the padding the
-    /// text starts at.
+    /// A frame is being described: the wrapped paragraph, the padding the text
+    /// starts at, and where each line sits in the width it wrapped at.
+    ///
+    /// The alignment comes down here rather than being asked for later because it
+    /// is the **cascade's** answer for the frame being described, and because the
+    /// caret, the hit test and `Up`/`Down` all have to use the same one the paint
+    /// did — a caret measured from the paragraph's origin drifts from centred
+    /// glyphs by half the line's slack, and by a different amount on every line
+    /// (`docs/gaps.md` G30, [ADR-0324]).
     ///
     /// @return how far the content is scrolled **up**, in logical pixels
-    double laidOut(Paragraph paragraph, double leftPadding, double topPadding);
+    double laidOut(Paragraph paragraph, double leftPadding, double topPadding, TextAlign align);
 
     /// The width the text wraps at — this control's width less its padding, from
     /// the last frame.

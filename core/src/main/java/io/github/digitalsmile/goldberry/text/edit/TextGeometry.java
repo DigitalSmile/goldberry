@@ -7,6 +7,8 @@ import java.util.Objects;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLayout;
+import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 
 /// Where a caret **is** on a paragraph that has been laid out.
 ///
@@ -41,9 +43,32 @@ import io.github.digitalsmile.goldberry.text.TextLayout;
 /// together. They must be the *same* layout the text was painted with: a caret
 /// measured against one wrap width and drawn against another is the bug this
 /// class exists to make visible rather than possible.
+///
+/// ## Alignment
+///
+/// Each of the four questions has a second form that takes the width the text was
+/// drawn in and its [TextAlign], and those are the ones to reach for in anything
+/// that is not left-aligned. `Paragraph.paint` indents every line by its own share
+/// of the box's slack; the three-argument forms measure from the paragraph's
+/// origin, so under `text-align: center` the caret drifted away from the glyphs by
+/// half the line's slack and grew as the line shortened (`docs/gaps.md` G30,
+/// ADR-0318).
+///
+/// The short forms are kept and mean [TextAlign#START], which is what every caller
+/// written before this assumed. The indent itself is
+/// [TextAlign#indentOf(double, double)] — one implementation, shared with the
+/// paint, because two copies of "where does this line start" is the bug rather
+/// than the fix.
 public final class TextGeometry {
 
     private TextGeometry() {}
+
+    /// How far in `line` was drawn — the one place this class turns an alignment
+    /// into a distance, and it does not compute it: [TextAlign#indentOf] is the
+    /// rule, shared with the paint.
+    private static double indentOf(TextLine line, double wrapWidth, TextAlign align) {
+        return align.indentOf(line.width(), wrapWidth);
+    }
 
     /// Where a caret goes, in the paragraph's own coordinates.
     ///
@@ -85,12 +110,24 @@ public final class TextGeometry {
         return 0;
     }
 
-    /// Where the caret at `offset` is drawn.
+    /// Where the caret at `offset` is drawn, in text that starts at the leading
+    /// edge of its box.
     ///
     /// @throws IndexOutOfBoundsException if the offset is outside the text
     public static Caret caretAt(Paragraph paragraph, TextLayout layout, int offset) {
+        return caretAt(paragraph, layout, offset, Paragraph.UNCONSTRAINED, TextAlign.START);
+    }
+
+    /// Where the caret at `offset` is drawn, in text the painter aligned.
+    ///
+    /// @param wrapWidth the width the text was drawn in — what layout gave the
+    ///                  box, and the same number `Paragraph.paint` was passed
+    /// @param align     what the cascade said about `text-align`
+    /// @throws IndexOutOfBoundsException if the offset is outside the text
+    public static Caret caretAt(Paragraph paragraph, TextLayout layout, int offset, double wrapWidth, TextAlign align) {
         Objects.requireNonNull(paragraph, "paragraph");
         Objects.requireNonNull(layout, "layout");
+        Objects.requireNonNull(align, "align");
         Objects.checkIndex(offset, paragraph.text().length() + 1);
 
         var index = lineOf(layout, offset);
@@ -101,7 +138,7 @@ public final class TextGeometry {
         // re-measuring a substring, so a caret in the middle of a ligature or a
         // kerned pair lands where the glyphs actually are.
         var x = paragraph.widthBetween(line.start(), Math.max(line.start(), offset));
-        return new Caret(x, index * lineHeight, lineHeight, index);
+        return new Caret(indentOf(line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
     }
 
     /// The offset a point lands on — a click, or a drag.
@@ -111,8 +148,22 @@ public final class TextGeometry {
     /// do. Within a line it is [Paragraph#offsetAt] and so lands on a grapheme
     /// boundary rather than between the halves of one.
     public static int offsetAt(Paragraph paragraph, TextLayout layout, double x, double y) {
+        return offsetAt(paragraph, layout, x, y, Paragraph.UNCONSTRAINED, TextAlign.START);
+    }
+
+    /// The offset a point lands on, in text the painter aligned.
+    ///
+    /// The `x` is where the user pressed, so the line's own indent comes **off**
+    /// it before the line is asked — the mirror of what [#caretAt] adds, which is
+    /// what makes the two round-trip.
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static int offsetAt(
+            Paragraph paragraph, TextLayout layout, double x, double y, double wrapWidth, TextAlign align) {
         Objects.requireNonNull(paragraph, "paragraph");
         Objects.requireNonNull(layout, "layout");
+        Objects.requireNonNull(align, "align");
         var lines = layout.lines();
         if (lines.isEmpty()) {
             return 0;
@@ -121,7 +172,7 @@ public final class TextGeometry {
         var index = (int) Math.floor(y / lineHeight);
         index = Math.clamp(index, 0, lines.size() - 1);
         var line = lines.get(index);
-        return paragraph.offsetAt(line.start(), line.end(), x);
+        return paragraph.offsetAt(line.start(), line.end(), x - indentOf(line, wrapWidth, align));
     }
 
     /// `Up`, `Down`, `PageUp`, `PageDown` — `lines` visual lines from `offset`,
@@ -137,8 +188,31 @@ public final class TextGeometry {
     /// end, rather than doing nothing — the caret ends up somewhere the user
     /// asked for in both cases.
     public static int moveLine(Paragraph paragraph, TextLayout layout, int offset, int lines, double desiredX) {
+        return moveLine(paragraph, layout, offset, lines, desiredX, Paragraph.UNCONSTRAINED, TextAlign.START);
+    }
+
+    /// `Up`, `Down`, `PageUp`, `PageDown` in text the painter aligned.
+    ///
+    /// **`desiredX` is in the painted space**, because it is the x a caller read
+    /// off a [Caret] — so it is the target line's indent that comes off it, and
+    /// not the one the caret started on. That is what makes a run of `Down`
+    /// through lines of different lengths keep the column it looks like it is
+    /// keeping.
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static int moveLine(
+            Paragraph paragraph,
+            TextLayout layout,
+            int offset,
+            int lines,
+            double desiredX,
+            double wrapWidth,
+            TextAlign align) {
+
         Objects.requireNonNull(paragraph, "paragraph");
         Objects.requireNonNull(layout, "layout");
+        Objects.requireNonNull(align, "align");
         var all = layout.lines();
         if (all.isEmpty()) {
             return 0;
@@ -151,9 +225,11 @@ public final class TextGeometry {
         if (target >= all.size()) {
             return paragraph.text().length();
         }
-        var column = Double.isNaN(desiredX) ? caretAt(paragraph, layout, offset).x() : desiredX;
+        var column = Double.isNaN(desiredX)
+                ? caretAt(paragraph, layout, offset, wrapWidth, align).x()
+                : desiredX;
         var line = all.get(target);
-        return paragraph.offsetAt(line.start(), line.end(), column);
+        return paragraph.offsetAt(line.start(), line.end(), column - indentOf(line, wrapWidth, align));
     }
 
     /// The rectangles covering `start`..`end`, one per visual line.
@@ -167,8 +243,22 @@ public final class TextGeometry {
     /// rather than as nothing at all — which is what every editor draws and what
     /// nobody can name until it is missing.
     public static List<LogicalRect> selectionRects(Paragraph paragraph, TextLayout layout, int start, int end) {
+        return selectionRects(paragraph, layout, start, end, Paragraph.UNCONSTRAINED, TextAlign.START);
+    }
+
+    /// The rectangles covering `start`..`end` in text the painter aligned.
+    ///
+    /// A highlight drifts exactly as a caret does, and for the same reason — a
+    /// selection is geometry the frame already had ([ADR-0301]), and this is that
+    /// geometry told where the glyphs went.
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static List<LogicalRect> selectionRects(
+            Paragraph paragraph, TextLayout layout, int start, int end, double wrapWidth, TextAlign align) {
         Objects.requireNonNull(paragraph, "paragraph");
         Objects.requireNonNull(layout, "layout");
+        Objects.requireNonNull(align, "align");
         var from = Math.min(start, end);
         var to = Math.max(start, end);
         Objects.checkIndex(from, paragraph.text().length() + 1);
@@ -190,8 +280,9 @@ public final class TextGeometry {
             lineFrom = Math.clamp(lineFrom, line.start(), line.end());
             lineTo = Math.clamp(lineTo, line.start(), line.end());
 
-            var left = paragraph.widthBetween(line.start(), lineFrom);
-            var right = paragraph.widthBetween(line.start(), lineTo);
+            var indent = indentOf(line, wrapWidth, align);
+            var left = indent + paragraph.widthBetween(line.start(), lineFrom);
+            var right = indent + paragraph.widthBetween(line.start(), lineTo);
             if (to > line.end()) {
                 // The selection continues past this line, so the break itself is
                 // inside it.

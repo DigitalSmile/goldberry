@@ -363,10 +363,15 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   it is out of date in the good direction.** What is left of the list is four
   widgets and four options:
 
-  - **`link`** — §2's *text* widget, and the one still blocked rather than merely
-    unwritten: it needs `text-decoration` in §8's subset, because "never by colour
-    alone" makes the underline non-optional. Not the same thing as `button.link`,
-    which is built ([ADR-0293](adr/0293-a-button-that-reads-as-a-link.md)).
+  - **`link`** — §2's *text* widget, and **no longer blocked**: it needed
+    `text-decoration` in §8's subset, because "never by colour alone" makes the
+    underline non-optional, and the subset has it
+    ([ADR-0321](adr/0321-a-rule-under-text-belongs-to-the-face.md)) — the property
+    resolves, inherits and is drawn at the face's own position and thickness. What
+    is left is the widget: a word inside a sentence rather than a control, which is
+    the part `button.link` cannot stand in for. Not the same thing as
+    `button.link`, which is built
+    ([ADR-0293](adr/0293-a-button-that-reads-as-a-link.md)).
   - **`steps` and `wizard`** — the other two of §6's `nav` group. The package
     exists now, because `breadcrumbs` opened it
     ([ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)), so they have
@@ -2739,6 +2744,19 @@ out of it is usually worth more than the fact that it is fixed.
   run across four targets — while §1.4 ships exactly two weights. The axis stays a real
   optimisation for the day an intermediate weight is specified. —
   [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+- ~~**There is no italic face, and an application has asked for one.**~~ **Built, as two
+  files rather than one.** `docs/gaps.md` G27 wanted italic beside underline and
+  strikethrough; the other two came with
+  [ADR-0321](adr/0321-a-rule-under-text-belongs-to-the-face.md) and the faces with
+  [ADR-0323](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md). It was ADR-0066's
+  question one step on — an italic is a *face*, because Inter's italic is drawn rather
+  than slanted, and shearing the upright glyphs is a type-design decision rather than a
+  workaround. **Two faces, so the matrix closes**: one would have left semibold italic
+  resolving to the nearest of three, which is how a design system acquires a weight
+  nobody chose. Matching is CSS's order (family, style, weight), so italic code stays
+  upright code; `oblique` is dropped with a warning. The variable-axis answer ADR-0066
+  deferred stays deferred, and stays the right change the day an *intermediate weight* is
+  specified — which is still nothing. — [ADR-0323](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
 - ~~**Seven shipped `button` colour pairs are below §1.2's 4.5:1 floor.**~~ **Fixed, and
   the worst of them was a rule applied where it does not hold.** §1.2 had always said
   "every text/surface pair meets **WCAG 4.5:1** […] validated in CI against both

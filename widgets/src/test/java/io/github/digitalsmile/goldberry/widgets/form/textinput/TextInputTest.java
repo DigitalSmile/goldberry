@@ -58,8 +58,21 @@ class TextInputTest {
     /// the order the real loop uses, and the reason a test that only rendered
     /// would keep reading the node built before the keystroke.
     private void render(ElementTree tree) {
+        render(tree, null);
+    }
+
+    /// The same, with one application rule on top — how a test says `text-align`
+    /// without inventing a stylesheet of its own ([ADR-0324]).
+    private void render(ElementTree tree, String css) {
         tree.flush();
-        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
+        var sheets = css == null
+                ? List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load())
+                : List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
+                        io.github.digitalsmile.goldberry.css.Stylesheet.parse(
+                                io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION, css));
+        new WidgetRenderer(sheets, TestFont.get()).render(tree);
     }
 
     /// The `text-input` node the widget describes — what a stylesheet and the
@@ -110,6 +123,49 @@ class TextInputTest {
     /// bullets, because it is what the caret and the highlight are drawn against.
     private String text(ElementTree tree) {
         return ((TextInputState) tree.root().state().orElseThrow()).heldText();
+    }
+
+    /// The **real** resolved style, so the padding these assert against is the
+    /// one `controls.css` actually gives a field rather than a number
+    /// repeated here.
+    private io.github.digitalsmile.goldberry.css.ComputedStyle style(ElementTree tree) {
+        return style(tree, null);
+    }
+
+    /// The same, with one application rule on top — how a test says `text-align`
+    /// without inventing a stylesheet of its own ([ADR-0324]).
+    private io.github.digitalsmile.goldberry.css.ComputedStyle style(ElementTree tree, String css) {
+        var element = tree.root().children().getFirst();
+        var sheets = new java.util.ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
+        if (css != null) {
+            sheets.add(io.github.digitalsmile.goldberry.css.Stylesheet.parse(
+                    io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION, css));
+        }
+        return io.github.digitalsmile.goldberry.css.ComputedStyle.of(
+                new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(sheets).resolve(element),
+                io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
+    }
+
+    /// The boxes the field describes, rendered by hand — the only way to see where
+    /// a caret actually goes, since its position is a measurement rather than
+    /// anything a stylesheet or a layout decides.
+    private List<Box> parts(ElementTree tree) {
+        return parts(tree, null);
+    }
+
+    private List<Box> parts(ElementTree tree, String css) {
+        var context = TestFont.context();
+        var style = style(tree, css);
+        var field = field(tree);
+        var children = field.children().stream()
+                .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Paints) child)
+                        .render(style, List.of(), context))
+                .toList();
+        return field.render(style, children, context).children();
+    }
+
+    private static float points(io.github.digitalsmile.goldberry.layout.Length length) {
+        return length instanceof io.github.digitalsmile.goldberry.layout.Length.Points p ? p.value() : Float.NaN;
     }
 
     @Nested
@@ -861,32 +917,6 @@ class TextInputTest {
         /// The boxes the field describes, rendered by hand — the only way to see
         /// where a caret actually goes, since its position is a measurement
         /// rather than anything a stylesheet or a layout decides.
-        /// The **real** resolved style, so the padding these assert against is the
-        /// one `controls.css` actually gives a field rather than a number
-        /// repeated here.
-        private io.github.digitalsmile.goldberry.css.ComputedStyle style(ElementTree tree) {
-            var element = tree.root().children().getFirst();
-            return io.github.digitalsmile.goldberry.css.ComputedStyle.of(
-                    new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
-                                    Controls.stylesheets(Theme.NORD_DARK))
-                            .resolve(element),
-                    io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
-        }
-
-        private List<Box> parts(ElementTree tree) {
-            var context = TestFont.context();
-            var style = style(tree);
-            var field = field(tree);
-            var children = field.children().stream()
-                    .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Paints) child)
-                            .render(style, List.of(), context))
-                    .toList();
-            return field.render(style, children, context).children();
-        }
-
-        private static float points(io.github.digitalsmile.goldberry.layout.Length length) {
-            return length instanceof io.github.digitalsmile.goldberry.layout.Length.Points p ? p.value() : Float.NaN;
-        }
 
         @Test
         @DisplayName("the caret is a line tall, not a control tall")
@@ -1127,6 +1157,139 @@ class TextInputTest {
 
         private TextInput widget(ElementTree tree) {
             return (TextInput) tree.root().widget();
+        }
+    }
+
+    /// `text-align` in a single-line field — `docs/gaps.md` G30, ADR-0324.
+    ///
+    /// The field ignored the property in the paint *and* in the caret, which was
+    /// consistent and useless: a numeric column could not line up on its units.
+    /// Wiring only the paint would have been worse than either, because the caret
+    /// and the highlight are placed by this control while the glyphs are drawn by
+    /// `Paragraph.paint` — and the two would then disagree by half the line's slack.
+    ///
+    /// **The box hugs its text here**, unlike a `text-area`'s: the value is an
+    /// absolutely positioned child sized by its content, so a paragraph with no
+    /// slack indents by nothing and what moves is the box. Which makes the
+    /// structural assertion an exact one: the caret's `left` is the value's `left`
+    /// plus the width of the text before it.
+    @Nested
+    @DisplayName("text-align")
+    class Aligned {
+
+        private static final int VALUE = 1;
+        private static final int CARET = 2;
+        private static final int SELECTION = 0;
+
+        private String rule(String alignment) {
+            return "text-input { text-align: " + alignment + " }";
+        }
+
+        private ElementTree focused(String text) {
+            var tree = mounted(new TextInput(text, null));
+            focus(tree, true, false);
+            return tree;
+        }
+
+        private double valueLeft(ElementTree tree, String alignment) {
+            return points(parts(tree, rule(alignment)).get(VALUE).inset().left());
+        }
+
+        private double caretLeft(ElementTree tree, String alignment) {
+            return points(parts(tree, rule(alignment)).get(CARET).inset().left());
+        }
+
+        @Test
+        @DisplayName("a value narrower than the field is moved by the alignment")
+        void theValueMoves() {
+            var tree = focused("9.5");
+            key(tree, Key.END);
+
+            assertEquals(0, valueLeft(tree, "start"), 0.01, "nothing is indented at the leading edge");
+            var centre = valueLeft(tree, "center");
+            var end = valueLeft(tree, "end");
+
+            assertTrue(centre > 10, () -> "a centred value starts at " + centre);
+            assertTrue(end > centre + 10, () -> "the trailing edge is at " + end + " and the centre at " + centre);
+        }
+
+        /// The invariant that was broken and is the whole point of the change: the
+        /// caret is placed from the same indent the glyphs were.
+        @Test
+        @DisplayName("the caret moves with the glyphs, exactly")
+        void theCaretFollowsTheText() {
+            var tree = focused("9.5");
+            key(tree, Key.END);
+            key(tree, Key.LEFT);
+
+            var paragraph = TestFont.context().paragraph(style(tree), "9.5");
+            var before = paragraph.widthBetween(0, field(tree).edit().caret());
+
+            for (var alignment : List.of("start", "center", "end")) {
+                assertEquals(
+                        valueLeft(tree, alignment) + before,
+                        caretLeft(tree, alignment),
+                        0.01,
+                        alignment + ": the caret and the text it is in disagree about where the line starts");
+            }
+        }
+
+        @Test
+        @DisplayName("the highlight moves with them too")
+        void theHighlightFollowsTheText() {
+            var tree = focused("9.5");
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            for (var alignment : List.of("start", "center", "end")) {
+                assertEquals(
+                        valueLeft(tree, alignment),
+                        points(parts(tree, rule(alignment))
+                                .get(SELECTION)
+                                .inset()
+                                .left()),
+                        0.01,
+                        alignment + ": a selection of everything starts where the text does");
+            }
+        }
+
+        /// The round trip through the *other* direction: a press is measured past
+        /// the padding and back by the same shift, so pressing where the caret is
+        /// drawn does not move it.
+        @Test
+        @DisplayName("pressing on the caret does not move it, whatever the alignment")
+        void pressRoundTrips() {
+            for (var alignment : List.of("start", "center", "end")) {
+                var tree = focused("9.5");
+                // Focus from the pointer leaves the caret where it was; `End` then
+                // `Left` puts it inside the value, where a wrong indent shows.
+                key(tree, Key.END);
+                key(tree, Key.LEFT);
+                var before = field(tree).edit().caret();
+                assertEquals(2, before, alignment + ": the fixture wanted the caret inside the value");
+
+                var padding = points(style(tree, rule(alignment)).padding().left());
+                press(tree, (float) (padding + caretLeft(tree, alignment)), 1, Modifiers.NONE);
+
+                assertEquals(before, field(tree).edit().caret(), alignment + ": the press landed somewhere else");
+            }
+        }
+
+        /// The invariant the implementation rests on: a line too long to fit has no
+        /// slack to be aligned in, so it scrolls and is never indented — which is
+        /// why one number carries the scroll and the indent together.
+        @Test
+        @DisplayName("a value too long for the field scrolls rather than aligning")
+        void overflowScrollsInstead() {
+            var tree = focused("a value far too long to fit inside two hundred points of field");
+            key(tree, Key.END);
+
+            var scrolled = valueLeft(tree, "start");
+            assertTrue(scrolled < 0, () -> "a value that overflows is scrolled, and this is at " + scrolled);
+            assertEquals(
+                    scrolled,
+                    valueLeft(tree, "center"),
+                    0.01,
+                    "there is no slack in an overflowing line, so the alignment has nothing to do");
         }
     }
 }

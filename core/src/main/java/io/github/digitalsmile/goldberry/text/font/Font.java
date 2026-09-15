@@ -365,6 +365,70 @@ public final class Font implements AutoCloseable {
         return painter.lineHeight();
     }
 
+    /// Where an underline goes under this font's text, and how thick it is — the
+    /// face's answer, at this size.
+    ///
+    /// **The face's and not a painter's.** A rule half a pixel thick under 11pt
+    /// text and two pixels under 32pt is what the designer drew; a painter that
+    /// divided the size by twelve would be wrong at every family, and one that
+    /// picked a constant would be wrong at every size (`docs/gaps.md` G27,
+    /// ADR-0321).
+    ///
+    /// The one thing a caller must handle is a face that says **nothing**: a
+    /// thickness of zero is a real answer, and [Decorations#orElse] is the sentence
+    /// that turns it into a drawable one.
+    public Decorations decorations() {
+        requireUsable();
+        return new Decorations(
+                painter.underlinePosition(),
+                painter.underlineThickness(),
+                painter.strikethroughPosition(),
+                painter.strikethroughThickness());
+    }
+
+    /// Where this font's rules go, relative to a baseline.
+    ///
+    /// A record rather than four methods on [Font], because the four are only ever
+    /// read together — by the one method that draws a decorated line — and because
+    /// [#orElse] is a rule about the set of them rather than about any one.
+    ///
+    /// Both positions are **y-down offsets from the baseline to the top of the
+    /// rule**, which is the form something drawing on a baseline adds: an underline
+    /// is positive (below the text) and a strikethrough is negative (through it).
+    ///
+    /// @param underlinePosition      where an underline's top sits
+    /// @param underlineThickness     how thick it is, or `0` from a silent face
+    /// @param strikethroughPosition  where a strikethrough's top sits
+    /// @param strikethroughThickness how thick it is, or `0`
+    public record Decorations(
+            double underlinePosition,
+            double underlineThickness,
+            double strikethroughPosition,
+            double strikethroughThickness) {
+
+        /// These metrics, with anything the face left unsaid filled in from the
+        /// font's own size.
+        ///
+        /// A thickness of zero means the face carried no `post` or `OS/2` entry for
+        /// it, and "do not draw the underline the stylesheet asked for" is the one
+        /// answer that is certainly wrong. The substitutes are the conventional
+        /// ones: a rule a fourteenth of the em, an underline one tenth of the em
+        /// below the baseline, and a strikethrough at a third of the ascent above
+        /// it — which is where a struck-out line of Inter sits, and close enough in
+        /// any face to read as deliberate.
+        ///
+        /// @param size   the em size the font was made at
+        /// @param ascent the font's ascent, for the strikethrough's fallback
+        public Decorations orElse(double size, double ascent) {
+            var thickness = Math.max(1, size / 14);
+            return new Decorations(
+                    underlineThickness > 0 ? underlinePosition : size / 10,
+                    underlineThickness > 0 ? underlineThickness : thickness,
+                    strikethroughThickness > 0 ? strikethroughPosition : -ascent / 3,
+                    strikethroughThickness > 0 ? strikethroughThickness : thickness);
+        }
+    }
+
     /// Converts a measurement in design units to logical units.
     ///
     /// The same `size / units-per-em` Blend2D applies to the glyphs themselves.

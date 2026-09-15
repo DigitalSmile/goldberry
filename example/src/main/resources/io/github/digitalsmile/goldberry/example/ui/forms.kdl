@@ -8,11 +8,14 @@
 // form is — `bind=` down and `change=` back up — which is what makes this screen
 // the demonstration that a field does not adopt the echo of its own keystroke.
 //
-// The three cards this file cannot write are
-// [io.github.digitalsmile.goldberry.example.ui.Choosers]': a `multiple` holds a
-// *set* the application edits, an `autocomplete` renders whatever options it is
-// handed *back*, and a `tree`'s model is nodes with suppliers under them. All
-// three are channels a document does not have (ADR-0182, ADR-0183, ADR-0184).
+// The four cards this file cannot write are
+// [io.github.digitalsmile.goldberry.example.ui.Choosers]' three and
+// [io.github.digitalsmile.goldberry.example.ui.TextStylingCard]: a `multiple`
+// holds a *set* the application edits, an `autocomplete` renders whatever options
+// it is handed *back*, a `tree`'s model is nodes with suppliers under them, and a
+// class set computed from seven toggles is a value rather than an attribute a
+// document can write. All four are channels a document does not have (ADR-0182,
+// ADR-0183, ADR-0184, ADR-0324).
 masonry id="forms-wall" columns=3 {
 
   card id="named-card" class="wall-card" {

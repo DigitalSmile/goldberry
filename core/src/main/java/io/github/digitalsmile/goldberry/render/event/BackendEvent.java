@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.render.event;
 
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -85,6 +86,23 @@ public sealed interface BackendEvent {
     record Exposed(BackendWindow window) implements BackendEvent {
         public Exposed {
             Objects.requireNonNull(window, "window");
+        }
+    }
+
+    /// The desktop's light-or-dark setting changed — `docs/gaps.md` G26,
+    /// [ADR-0322].
+    ///
+    /// **It carries a window, and the setting does not.** The change is the
+    /// session's: on every platform with a sunset schedule it happens once a day,
+    /// while the application is running, and it concerns every window at once. It
+    /// is delivered per window for the reason `QUIT` is delivered as one
+    /// `CloseRequested` per window — a [io.github.digitalsmile.goldberry.Host] is
+    /// per window, so that is where an application is listening — and a backend
+    /// that has two windows open sends two of these with the same theme in them.
+    record SystemThemeChanged(BackendWindow window, SystemTheme theme) implements BackendEvent {
+        public SystemThemeChanged {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(theme, "theme");
         }
     }
 

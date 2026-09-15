@@ -48,4 +48,47 @@ public enum TextAlign {
             case END -> 1;
         };
     }
+
+    /// How far in from the box's leading edge a line `lineWidth` wide starts, in
+    /// a box `available` wide.
+    ///
+    /// **Per line**, which is what `text-align` means: a centred paragraph
+    /// centres each of its lines in the same box rather than centring the block
+    /// they make up.
+    ///
+    /// ## Why the rule is here rather than in the paint
+    ///
+    /// It was in
+    /// [io.github.digitalsmile.goldberry.text.Paragraph#paint(io.github.digitalsmile.goldberry.paint.Frame,
+    /// double, double, double, int, TextFlow)], privately, and the caret could not
+    /// see it — so
+    /// [io.github.digitalsmile.goldberry.text.edit.TextGeometry] measured every x
+    /// from the paragraph's origin and the painter drew each line indented, and
+    /// the two parted company by half a line's slack the moment the text was not
+    /// left-aligned. An application hit it first and wrote the rule out a second
+    /// time, which is `docs/gaps.md` G30 and exactly the duplication that entry
+    /// exists to stop (ADR-0318).
+    ///
+    /// One implementation, on the property it belongs to: the painter, the caret,
+    /// the hit test and the selection all ask *this*, so a fourth reader — a
+    /// justified alignment, an RTL line — cannot disagree with the other three.
+    ///
+    /// Clamped at zero, and both reasons are real. A line **wider** than its box
+    /// — every `nowrap` line that overflows — would otherwise be pulled *left* by
+    /// [#END], hiding its beginning instead of its end; and `available` is
+    /// [io.github.digitalsmile.goldberry.text.Paragraph#UNCONSTRAINED] wherever a
+    /// caller is measuring rather than placing, which would make the offset
+    /// infinite.
+    ///
+    /// @param lineWidth what the line measured
+    /// @param available the width it was laid out in — what layout gave the box
+    /// @return a non-negative distance in the same units, and exactly `0` for
+    ///         [#START]
+    public double indentOf(double lineWidth, double available) {
+        var fraction = fractionOfSlack();
+        if (fraction == 0 || !Double.isFinite(available)) {
+            return 0;
+        }
+        return Math.max(0, available - lineWidth) * fraction;
+    }
 }

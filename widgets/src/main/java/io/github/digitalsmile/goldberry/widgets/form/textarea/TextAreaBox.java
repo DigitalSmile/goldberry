@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -333,7 +334,7 @@ record TextAreaBox(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var padding = padding(style);
         var paragraph = context.paragraph(style, display);
-        var offset = editor.laidOut(paragraph, padding.left(), padding.top());
+        var offset = editor.laidOut(paragraph, padding.left(), padding.top(), style.textAlign());
 
         var lineHeight = paragraph.font().lineHeight();
         var width = editor.contentWidth();
@@ -350,7 +351,10 @@ record TextAreaBox(
         var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
         var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
         var drawWash = composing.hasClause() || (!composing.isActive() && edit.hasSelection());
-        var rects = drawWash ? spanRects(paragraph, lines, washStart, washEnd, offset, lineHeight) : List.<Rect>of();
+        var align = style.textAlign();
+        var rects = drawWash
+                ? spanRects(paragraph, lines, washStart, washEnd, offset, lineHeight, align, width)
+                : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < rects.size()) {
                 var rect = rects.get(i);
@@ -378,7 +382,7 @@ record TextAreaBox(
                 .size(Double.isFinite(width) ? Length.points((float) width) : Length.UNDEFINED, Length.UNDEFINED));
 
         var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
-        var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth);
+        var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth, align, width);
         boxes.add(children.get(maxRows + 1)
                 .position(Position.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
@@ -388,7 +392,7 @@ record TextAreaBox(
         // glyphs -- a mark on them rather than a wash behind them. Each sits on
         // the foot of its own line.
         var composed = composing.isActive()
-                ? spanRects(paragraph, lines, composing.start(), composing.end(), offset, lineHeight)
+                ? spanRects(paragraph, lines, composing.start(), composing.end(), offset, lineHeight, align, width)
                 : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < composed.size()) {
@@ -433,7 +437,15 @@ record TextAreaBox(
     /// second dimension costs the selection — and the reason `Paragraph`'s two
     /// measurements take a **line's** range rather than an offset.
     private List<Rect> spanRects(
-            Paragraph paragraph, List<TextLine> lines, int start, int end, double offset, double lineHeight) {
+            Paragraph paragraph,
+            List<TextLine> lines,
+            int start,
+            int end,
+            double offset,
+            double lineHeight,
+            TextAlign align,
+            double width) {
+
         var rects = new ArrayList<Rect>();
         if (!focused || end <= start) {
             return rects;
@@ -448,7 +460,7 @@ record TextAreaBox(
                 continue;
             }
             rects.add(new Rect(
-                    paragraph.widthBetween(line.start(), left),
+                    align.indentOf(line.width(), width) + paragraph.widthBetween(line.start(), left),
                     i * lineHeight - offset,
                     Math.max(1, paragraph.widthBetween(left, right))));
         }
@@ -462,7 +474,14 @@ record TextAreaBox(
     /// the start of the next, and somebody who has just pressed `Right` means the
     /// next.
     private Rect caretRect(
-            Paragraph paragraph, List<TextLine> lines, double offset, double lineHeight, double caretWidth) {
+            Paragraph paragraph,
+            List<TextLine> lines,
+            double offset,
+            double lineHeight,
+            double caretWidth,
+            TextAlign align,
+            double width) {
+
         var at = Math.clamp(edit.caret(), 0, display.length());
         var index = 0;
         for (var i = 0; i < lines.size(); i++) {
@@ -471,7 +490,13 @@ record TextAreaBox(
             }
         }
         var line = lines.isEmpty() ? null : lines.get(index);
-        var x = line == null ? 0 : paragraph.widthBetween(line.start(), Math.max(at, line.start()));
+        // The line's own indent, because the paint gave each line its own share of
+        // the slack — a caret measured from the paragraph's origin drifts by half of
+        // it under `center` and by all of it under `end` ([ADR-0324]).
+        var x = line == null
+                ? align.indentOf(0, width)
+                : align.indentOf(line.width(), width)
+                        + paragraph.widthBetween(line.start(), Math.max(at, line.start()));
         return new Rect(x, index * lineHeight - offset, caretWidth);
     }
 

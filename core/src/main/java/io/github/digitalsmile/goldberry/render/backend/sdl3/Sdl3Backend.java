@@ -28,6 +28,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
@@ -672,6 +673,23 @@ public final class Sdl3Backend implements Backend {
     }
 
     private void translate(int type, int windowId, List<BackendEvent> out) {
+        if (type == SdlEventType.SYSTEM_THEME_CHANGED.value()) {
+            // No window of its own either: the desktop changed, so every window
+            // this application has open is being told -- a `Host` is per window,
+            // and that is where an application listens (`docs/gaps.md` G26,
+            // [ADR-0322]).
+            //
+            // The theme is read back from SDL rather than taken out of the event,
+            // which carries none: one place asks the platform, and it is the same
+            // call `systemTheme()` answers with.
+            var theme = systemTheme();
+            if (theme.isPresent()) {
+                for (var window : windowsById.values()) {
+                    out.add(new BackendEvent.SystemThemeChanged(window, theme.get()));
+                }
+            }
+            return;
+        }
         if (type == SdlEventType.QUIT.value()) {
             // No window of its own: the session is ending, so every window is
             // being asked to close.
@@ -954,6 +972,21 @@ public final class Sdl3Backend implements Backend {
             return 2;
         }
         return codePoint < 0x10000 ? 3 : 4;
+    }
+
+    @Override
+    public Optional<SystemTheme> systemTheme() {
+        // Not cached. SDL keeps the answer itself and updates it from the same
+        // platform notification that produces the event, so a copy here would be a
+        // second thing to keep right ([ADR-0322]).
+        return switch (video.systemTheme()) {
+            case LIGHT -> Optional.of(SystemTheme.LIGHT);
+            case DARK -> Optional.of(SystemTheme.DARK);
+            // A desktop with no such setting, a driver that cannot ask, or a
+            // library built before the export — one answer for the three, because
+            // what a caller does about them is the same.
+            case UNKNOWN -> Optional.empty();
+        };
     }
 
     @Override

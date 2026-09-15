@@ -113,6 +113,68 @@ class FontTest {
         }
     }
 
+    /// The four numbers a rule under a line of text is made of — `docs/gaps.md`
+    /// G27, ADR-0321.
+    ///
+    /// Relational rather than absolute, like everything else here: the exact
+    /// position is Inter's and is not a fact about this class. What *is* a fact is
+    /// the sign convention, because the whole point of these is that a painter adds
+    /// them to a baseline.
+    @Test
+    @DisplayName("the face says where its rules go, and they scale with the size")
+    void decorationMetrics() {
+        try (var small = Font.bundled(BundledFont.UI, 16);
+                var large = Font.bundled(BundledFont.UI, 32)) {
+
+            var rules = small.decorations();
+            assertTrue(rules.underlineThickness() > 0, "Inter carries a post table, so it says how thick a rule is");
+            assertTrue(
+                    rules.underlinePosition() > 0,
+                    () -> "an underline is below the baseline, and this is at " + rules.underlinePosition());
+            assertTrue(
+                    rules.underlinePosition() < small.descent() + 2,
+                    () -> "an underline of " + rules.underlinePosition() + " is below the descender at "
+                            + small.descent());
+            assertTrue(
+                    rules.strikethroughPosition() < 0,
+                    () -> "a strikethrough is above the baseline, and this is at " + rules.strikethroughPosition());
+            assertTrue(
+                    -rules.strikethroughPosition() < small.ascent(),
+                    "and inside the text rather than over the top of it");
+
+            assertEquals(
+                    2.0,
+                    large.decorations().underlinePosition() / rules.underlinePosition(),
+                    1e-5,
+                    "twice the size, like every other metric here");
+            assertEquals(2.0, large.decorations().underlineThickness() / rules.underlineThickness(), 1e-5);
+        }
+    }
+
+    @Test
+    @DisplayName("a face that says nothing about its rules gets conventional ones")
+    void decorationFallbacks() {
+        // A `post` table too short to carry the pair is legal, so zero is a real
+        // answer — and "do not draw the underline the stylesheet asked for" is the
+        // one response that is certainly wrong.
+        var silent = new Font.Decorations(0, 0, 0, 0);
+
+        var filled = silent.orElse(16, 13);
+
+        assertTrue(filled.underlineThickness() >= 1, "a rule has to be at least a pixel or it is invisible");
+        assertTrue(filled.underlinePosition() > 0, "and below the baseline");
+        assertTrue(filled.strikethroughPosition() < 0, "and the other one above it");
+        assertEquals(filled.underlineThickness(), filled.strikethroughThickness(), 1e-9, "one thickness for both");
+    }
+
+    @Test
+    @DisplayName("a face that does say is left alone")
+    void decorationFallbacksDoNotOverrule() {
+        var stated = new Font.Decorations(2, 1.5, -5, 1.25);
+
+        assertEquals(stated, stated.orElse(16, 13));
+    }
+
     @Test
     @DisplayName("shaping empty text is an empty run, not a failure")
     void emptyTextShapesToNothing() {

@@ -7,12 +7,16 @@ belongs in Goldberry.** Drawing, input, text, windows and platform integration a
 boards, notes, CRDT sync and agents are brd's. When brd hits the line, the answer is an entry here —
 not a workaround that quietly becomes a second toolkit.
 
-Updated 2026-09-13.
+Updated 2026-09-15.
 
-**Every entry on this list is now closed or answered**, G17 included (ADR-0298) —
-so the queue is empty rather than short. That is not the end of the list's job:
-§3 says a new brd need gets an entry here *before* any code is written in brd,
-and an empty queue is what that rule looks like when it is working.
+**Every entry on this list is closed or answered again.** Six arrived together —
+the desktop's theme, an italic face and text decorations, a picker inside a popup, a
+panel that takes no keys, a caret under `text-align`, and a router talking to an
+element it had let go of — and all six are closed, in ADR-0317 to ADR-0324.
+
+That six could arrive at once is the list's job working rather than failing: §3 says
+a new brd need gets an entry here *before* any code is written in brd, and every one
+of these was written down, with its stopgap named, before it was built.
 
 ---
 
@@ -87,6 +91,12 @@ a rule.
 | ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; the fields are [G16](#g16) | done |
 | ~~[G16](#g16)~~ | ~~IME preedit in `text-input`~~ | **closed** — ADR-0292; `text-area` too | done |
 | ~~[G17](#g17)~~ | ~~`html-view`: HTML through litehtml~~ | **closed** — ADR-0298; litehtml is **answered**, not built | done |
+| ~~[G26](#g26)~~ | ~~The desktop's light-or-dark setting~~ | **closed** — ADR-0322 | done |
+| ~~[G27](#g27)~~ | ~~An italic face, and text decorations~~ | **closed** — ADR-0321 for the decorations, ADR-0323 for the faces | done |
+| ~~[G28](#g28)~~ | ~~A picker whose popover opens inside a popup~~ | **closed** — ADR-0320 | done |
+| ~~[G29](#g29)~~ | ~~A panel that never claims the keyboard~~ | **closed** — ADR-0319 | done |
+| ~~[G30](#g30)~~ | ~~A caret that knows about `text-align`~~ | **closed** — ADR-0318, and ADR-0324 for the toolkit's own fields | done |
+| ~~[G31](#g31)~~ | ~~A router that does not talk to elements it has let go of~~ | **closed** — ADR-0317 | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -477,8 +487,13 @@ it, and each written down rather than faked:
   accent colour and not a destination.
 - **An image is its alt text.** There is no `img` widget, and fetching anything is
   the application's.
-- **Emphasis is a faux oblique** — `skewX(-10deg)` — because the system ships two
-  upright faces and there is no italic to set it in.
+- **Emphasis is a faux oblique** — `skewX(-10deg)` — which was written because the
+  system shipped two upright faces. It ships four since [G27](#g27) (ADR-0323), so
+  the skew is now a *picture* decision rather than a constraint: one declaration —
+  `font-style: italic` — replaces it, and it moves every Markdown and HTML golden,
+  which is why it is a change to take on purpose rather than a consequence of the
+  faces existing. The same is true of the muted strikethrough, which
+  `text-decoration: line-through` now expresses honestly.
 - **A hard break inside a paragraph does nothing**, because a wrapping row has no
   widget that means "start a new line here". It does the right thing in the HTML.
 
@@ -929,3 +944,418 @@ The showcase has an **HTML** screen beside the Markdown one: the same split pane
 the same `bind=`, one node name different — and a line under the preview that
 fills in with whatever link was last pressed, which is the whole of "following a
 link is the application's".
+
+<a id="g26"></a>
+
+### G26 — the desktop's light-or-dark setting — **closed**
+
+**What brd needs.** To start in the theme the user's desktop is set to, and to follow it when it
+changes — which on every platform with a sunset schedule is once a day, while the application is
+running.
+
+**Why it is not brd's.** Every way of asking is a platform call: `SDL_GetSystemTheme` and
+`SDL_EVENT_SYSTEM_THEME_CHANGED` cover all three platforms in one, and the alternatives are
+`AppleInterfaceStyle`, the `AppsUseLightTheme` registry value and the XDG settings portal. Goldberry
+already owns the window, the event loop and the SDL layer; brd calling SDL is precisely what
+[ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) exists to prevent, and
+[ADR-0004](adr/0004-ffm-lives-in-one-module.md) says which module may hold a `MemorySegment` — neither
+of them is brd's client.
+
+**Proposed API.**
+
+```java
+/// What the desktop is set to, or empty where the platform does not say.
+Optional<SystemTheme> Host.systemTheme();          // LIGHT | DARK
+
+/// Told when it changes, on the UI thread, for as long as the window is open.
+void Host.onSystemThemeChanged(Consumer<SystemTheme> listener);
+```
+
+`Optional`, because SDL answers `SDL_SYSTEM_THEME_UNKNOWN` on a desktop that has no such setting, and
+an application needs to tell "the desktop says light" from "the desktop does not say" — the first is a
+theme and the second is a default.
+
+**What brd does meanwhile.** `ThemeChoice.SYSTEM` is the default and resolves to light, `--theme=` and
+the `brd.theme` property pin it, and the light switch works as it always did. `SystemThemeTest` asserts
+that `Host` has **no** `systemTheme` method, so the day this lands the test fails and the stopgap is
+deleted in the commit that takes the change — the arrangement `LucideRepairs` used.
+
+**What landed** (ADR-0322). The two methods the entry asked for, with the signatures it asked for:
+
+```java
+Optional<SystemTheme> Host.systemTheme();                        // LIGHT | DARK, or empty
+void Host.onSystemThemeChanged(Consumer<SystemTheme> listener);
+```
+
+`SystemTheme` is `render.desktop`'s, so no SDL type crosses. The path under it: `SDL_GetSystemTheme` on
+the export list bound as an **optional** symbol, `SDL_EVENT_SYSTEM_THEME_CHANGED` translated into one
+event per open window — the way `QUIT` already becomes one `CloseRequested` per window, because a `Host`
+is per window — and both numbers in the layout probe's registry, so the C preprocessor checks them.
+`Backend.systemTheme()` is a `default` returning empty, so every test double stayed correct; the
+headless backend overrides it with a setter that also posts the change, which is what `SystemThemeTest`
+drives.
+
+`Window.systemTheme()` and `Window.onSystemThemeChanged(…)` exist too, for an application that holds a
+window and no `Host`. **The toolkit still chooses nothing**: which theme to use, whether to follow the
+desktop, and what "the desktop does not say" should mean are all the application's.
+
+brd's stopgap goes: `ThemeChoice.SYSTEM` can resolve for real, and `SystemThemeTest`'s assertion that
+`Host` has no `systemTheme` method now fails — which is the arrangement working as designed.
+
+<a id="g27"></a>
+
+### G27 — an italic face, and text decorations — **closed**
+
+**What brd needs.** To set a shape's words in italic, and to underline or strike through them — the
+three controls every board and document tool puts beside **bold**, and the three
+[ADR-0024](adr/0024-objects-carry-a-text-style.md) left out of the board's text options bar.
+
+**Why it is not brd's.**
+
+*Italic is a face.* `BundledFont` ships four: Inter Regular, Inter SemiBold, JetBrains Mono and
+OpenMoji. Its own note explains why a weight is a face here rather than a variable axis — instancing
+`wght` at runtime needs symbols bound in both HarfBuzz and Blend2D, and `docs/design-system.md` §1.4
+ships two weights, so the second is a second file (ADR-0066). Italic is the same decision one step
+further on, and it is the toolkit's to make: brd cannot add a face to a bundle it does not own, and the
+alternative available to an application — shearing the glyphs in the painter — is a *synthetic oblique*,
+which is a decision about type design rather than a workaround.
+
+*Underline and strikethrough are a text-layer feature.* `TextFlow` carries wrapping, ellipsis and
+alignment; a decoration needs the line's extents and the font's `underlinePosition` and
+`underlineThickness`, which are in the face and not reachable from `Paragraph`. Drawing a rectangle
+under the text in `TextPainter` would get the thickness wrong at every size and the position wrong at
+every family.
+
+**What it would look like.** Either would be enough on its own:
+
+- `BundledFont.UI_ITALIC` (and a `Style` beside `Weight`, since `of(family, weight)` cannot express it),
+  or the variable-axis answer ADR-0066 deferred.
+- `TextFlow.decoration(Decoration.UNDERLINE | Decoration.LINE_THROUGH)`, drawn by `Paragraph.paint`
+  from the face's own metrics.
+
+**What brd does meanwhile.** Nothing, on purpose. `TextStyle` has no `italic` field and the options bar
+has no button, because a control that changes the document and nothing on screen is worse than one that
+is not there. There is no stopgap to delete when this lands — only a field, a codec line and a button to
+add.
+
+**What landed: the decorations** (ADR-0321). The entry said either half would be enough on its own, and
+this is the second one:
+
+```java
+paragraph.paint(frame, x, top, maxWidth, argb, flow.decorations(TextDecoration.UNDERLINE));
+```
+
+`text-decoration` and `text-decoration-line` resolve in the cascade — `none | underline | line-through`,
+either or both — and inherit, which is how CSS's *propagation* to in-flow descendants reads here for
+`text-align`'s reason: a control's text is usually an anonymous child box. A declaration that names a
+colour or a style (`wavy`, `dotted`) is dropped whole rather than half-applied.
+
+The position and thickness are the **face's own**, which is the whole reason it could not be brd's:
+`bl_font_get_metrics` was already filling all sixteen `BLFontMetrics` floats and this side was reading
+six of them, so four more crossed with **no new native symbol and no relink**. A face that carries none
+gets conventional substitutes rather than nothing. The rule is as long as the line, indented with it
+under `text-align`, absent from a blank line, and drawn across an ellipsis because the mark is part of
+the line.
+
+**And the italic faces landed too** (ADR-0323), which is the half this entry asked for first. Two files
+rather than one — `Inter-Italic` and `Inter-SemiBoldItalic`, out of the release the manifest already pins
+— so the matrix closes and `font-weight: 600; font-style: italic` is a **face** rather than the nearest
+of three. `BundledFont.Style` is the third thing that names a file beside the family and the weight,
+`font-style: normal | italic` resolves in the cascade, and `oblique` is dropped with a warning: it asks
+for a *slant*, and this toolkit ships a drawn italic rather than a shear — which is the distinction this
+entry made when it said a synthetic oblique is a decision about type design.
+
+brd's "nothing, on purpose" can go for all three controls: `TextStyle` gains a field, the codec a line
+and the options bar three buttons.
+
+<a id="g28"></a>
+
+### G28 — a picker that can open its popover from inside a popup — **closed**
+
+**What brd needs.** To put a `color-picker` in the board's selection options bar, which is a `Popup`,
+and have its plane open **beside the swatch** rather than in the corner of the window
+([ADR-0025](adr/0025-a-text-shape-grows-and-a-line-stays-visible.md)).
+
+**What happens today.** The picker opens its board with
+`Host.attachedPopup(content, bounds, Placement.BELOW, …)`, where `bounds` is the rectangle
+`PickerField` was handed by `Located.located(self, clip)`. Those two are in **different coordinate
+spaces** whenever the control is inside a popup:
+
+- `Located` is notified by the `PointerRouter` that painted the node, and a `Popup` has **its own**
+  router — so a swatch 8 points from the bar's left edge is told it is at x=8.
+- `Host.attachedPopup` places in the **owner window's** logical coordinates.
+
+So the plane opens at (8, 30) of the main window. With the bar floating over the middle of a board, the
+picker's plane appears in the top-left corner, which is what was reported.
+
+**Why it is not brd's.** The application cannot translate the rectangle, because it never sees it: it
+passes between two pieces of toolkit inside a widget it does not own. Goldberry already knows this class
+of problem exists and has solved it once — `Popup.anchor(String)` says so in as many words, *"`Host.anchor`
+answers from the main window's geometry and knows nothing about what is in a popup … the answer is
+translated by this popup's own offset"* — but that route is for a menu opening a submenu, and a picker
+has no way to reach it.
+
+`date-picker`, `time-picker` and `select` are the same shape and presumably the same: anything with a
+popover is unusable inside a popup.
+
+**What it would look like.** The translation belongs where the mismatch is, not at every call site:
+
+- `Located` could report in the owner window's coordinates, by having a popup's router offset what it
+  notifies — which is the same correction `Popup.anchor` already applies, moved one layer down and
+  applied to everyone.
+- Or `BuildContext` could carry the popup a build is happening inside, so `PickerField` asks *it* for
+  the anchor rather than the `Host`.
+
+The first is the one brd would bet on: it makes every `Located` widget correct inside a popup at once,
+rather than fixing the four that happen to have popovers today.
+
+**What brd does meanwhile.** `FillOptions` offers the thirteen `Palette` presets as glyph swatches and a
+`text-input` for a hex — two controls that need no popover at all. **There is no stopgap picker**: no
+plane, no ramp, nothing that would have to be deleted, because a saturation/value plane written in brd
+is exactly what [ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) exists to prevent. When this
+lands the class becomes a `ColorPicker` again and the preset row becomes its `presets(…)` argument,
+which is the shape `FillOptions.PRESETS` is already in.
+
+**What landed** (ADR-0320), and it is the answer the entry said it would bet on: **`Located` now reports
+in the owner window's coordinates.** A popup sets its router's `locationOrigin` from its own offset every
+frame, and both rectangles a `Located` widget is handed — the painted one and the clip — are translated
+by it. So the rectangle a control hands to `Host.attachedPopup` is already in the space that call places
+in, and the four controls with popovers became correct inside a popup without being touched:
+`color-picker`, `date-picker`, `time-picker` and `select`. So does the fifth, whatever it is.
+
+`Popup.move` now asks for a repaint as well, because a popover that follows a scrolling anchor moves
+without anything else changing, and a frame is what re-reports where its widgets are. Nothing else is
+translated: hit testing, hovering, capture and the cursor are answered against the window the pointer is
+actually in, and `Popup.anchor` reads the captured regions directly, so it does not double-count.
+
+<a id="g29"></a>
+
+### G29 — a panel that never claims the keyboard — **closed**
+
+**What brd needs.** To float a bar of buttons over a board — positioned by number, because it points at
+a selection — **without it taking a single key from the canvas underneath**.
+
+**What happens today.** `Window.handleKeyPressed` consults an input watcher before its own router, and
+`Launcher` installs one whose rule is explicit: *"while a menu is open the keyboard belongs to it,
+whether or not the platform moved focus there — otherwise an arrow would move the selection in the
+window underneath the menu (ADR-0104)"*. Every key goes to the topmost open popup first, and only what
+that popup's router **declines** reaches the window.
+
+That rule is right for a menu. The board's selection bar is not a menu: it is a panel that is open the
+whole time something is selected, over a canvas somebody is typing into. `Popup.takesFocus` defaults to
+true, so it focused its own first control on opening, and a focused `Button` consumes `Enter` — so
+`Enter` pressed a swatch instead of breaking a line in the sticky underneath
+([ADR-0025](adr/0025-a-text-shape-grows-and-a-line-stays-visible.md)).
+
+**What brd does meanwhile.** `takesFocus(false)` and `attachedPopup`, which between them leave nothing
+focused inside the bar, so its router dispatches nothing and declines every key. That works and it is
+not quite enough: **a press inside the popup still focuses what it landed on**, through the popup's own
+`focusFromPress`, so clicking a swatch and then pressing `Enter` presses that swatch again.
+
+**What it would look like.** A popup that can be told it is a *panel* rather than a menu, and is then
+skipped by the forwarding rule and by `focusFromPress` alike — one flag rather than two, since "does
+this thing want keys at all" is one question:
+
+```java
+host.attachedPopup(content, anchor, placement, minimumWidth, fit).keyboard(false)
+```
+
+`takesFocus(false)` is close and settles only the opening: it stops `focusFirst`, and nothing else.
+
+**Why it is not brd's.** The forwarding happens in `Launcher`'s watcher, above anything an application
+can install — `Window.inputWatcher` is package-private, and there is one per window. An application
+cannot decline a key on a popup's behalf because it never sees the key.
+
+**What landed** (ADR-0319), with the signature the entry wrote:
+
+```java
+host.attachedPopup(content, anchor, placement, minimumWidth, fit).keyboard(false)
+```
+
+One flag, three effects, because "does this thing want keys at all" is one question: nothing is focused
+when it opens, **a press inside it focuses nothing** (`PointerRouter.pressFocuses(false)` — the half
+`takesFocus` could not reach, since the press arrives at the popup's own window), and the owner does not
+forward keys to it. The launcher now looks for the topmost popup that *wants* the keyboard rather than
+the topmost popup, so a panel floating over a menu leaves the menu operable by arrows.
+
+`Escape` is deliberately not this flag's business: a panel that may be dismissed by input still is,
+which is `lightDismiss`, and one that must survive a keystroke says so there — the key then reaches the
+window. brd's `takesFocus(false)` stopgap becomes `keyboard(false)` and the "press then Enter presses it
+again" behaviour goes with it.
+
+<a id="g30"></a>
+
+### G30 — a caret that knows about text alignment — **closed**
+
+**What brd needs.** To place a caret, hit-test a click and move by a visual line in text that is
+**centred or right-aligned** — which is most of a board, because a sticky is centred by default.
+
+**What happens today.** `text.edit.TextGeometry` is the toolkit's answer to the three questions an
+editor asks, and it is very nearly what brd needs: `caretAt`, `offsetAt` and `moveLine`, measured through
+the same `Paragraph` the glyphs were painted from, which is the half that has to know about ligatures and
+grapheme clusters. What it does **not** take is the alignment. Every measurement is from the paragraph's
+origin:
+
+```java
+var x = paragraph.widthBetween(line.start(), Math.max(line.start(), offset));
+```
+
+`Paragraph.paint` does take one — `TextFlow.textAlign` — and indents each line by its own share of the
+slack. So the painter and the caret use two different origins the moment the text is not left-aligned,
+and the caret drifts away from the glyphs by half the line's slack, growing as the line shortens.
+
+This is not only brd's problem: a Goldberry `text-area` with `text-align: center` would drift the same
+way. brd hit it first because a board's default shape is a centred one.
+
+**What brd does meanwhile.** `TextPlacement` restates `Paragraph.paint`'s indent rule — clamp the slack
+at zero, then nothing, half or all of it — and adds it to every x it computes and subtracts it from every
+x it is given. It works, and a round-trip test (draw the caret at an offset, press exactly there, get the
+offset back, on a wrapped centred paragraph) is what proves it.
+
+It is still a **second copy of a rule that belongs upstream**, which is the thing this file exists to
+stop. If `Paragraph.paint`'s indent ever changes — a justified alignment, an RTL line — brd's copy is
+silently wrong and only that round-trip test says so.
+
+**What it would look like.** The alignment and the width the text was drawn in, passed with the layout —
+they are already what `paint` was given:
+
+```java
+TextGeometry.caretAt(paragraph, layout, offset, wrapWidth, TextAlign.CENTER)
+TextGeometry.offsetAt(paragraph, layout, x, y, wrapWidth, TextAlign.CENTER)
+TextGeometry.moveLine(paragraph, layout, offset, lines, desiredX, wrapWidth, TextAlign.CENTER)
+```
+
+The existing three-argument forms stay and mean `START`, which is what every caller of them assumes
+today.
+
+**Why it is not brd's.** The rule being restated is `Paragraph.paint`'s own, and brd cannot see it — it
+is inside the method that draws. Two implementations of "where does this line start" is exactly the shape
+of bug [io.github.digitalsmile.brd.core.scene.ConnectorPath] exists to prevent for connectors, and the
+answer there was the same one: put it in the place that already knows.
+
+**What brd keeps either way.** The *vertical* alignment and the shape's own inset — a sticky's twelve
+units, a label's eight — stay brd's. Those are the board's idea of a shape, not the toolkit's idea of a
+paragraph. `TextPlacement` does not go away when this lands; it gets shorter by one rule and stops
+being able to drift.
+
+**What landed** (ADR-0318). The indent rule moved to the property that owns it —
+`TextAlign.indentOf(lineWidth, available)`, which `Paragraph.paint` now calls too, so there is exactly
+one implementation — and all four questions gained a form that takes the width the text was drawn in and
+its alignment:
+
+```java
+TextGeometry.caretAt(paragraph, layout, offset, wrapWidth, TextAlign.CENTER)
+TextGeometry.offsetAt(paragraph, layout, x, y, wrapWidth, TextAlign.CENTER)
+TextGeometry.moveLine(paragraph, layout, offset, lines, desiredX, wrapWidth, TextAlign.CENTER)
+TextGeometry.selectionRects(paragraph, layout, start, end, wrapWidth, TextAlign.CENTER)
+```
+
+`selectionRects` is in the list although the entry did not ask for it: a highlight drifts exactly as a
+caret does. The three-argument forms stay and mean `START`. `Editor` carries a `textAlign` of its own and
+hands it to all four, so the canvas editor's paint, caret, hit test, `Up`/`Down` and selection move
+together; setting it invalidates no layout, because alignment decides where a line starts and not where
+it breaks.
+
+`TextPlacement` gets shorter by one rule and stops being able to drift, which is what the entry asked
+for.
+
+**And the entry's aside landed as well** (ADR-0324). It said *"a Goldberry `text-area` with
+`text-align: center` would drift the same way"*, and the reason it did not was that both fields ignored
+the property outright. They do not now: `Value` passes `style.textFlow()`, so the glyphs are aligned and
+decorated, and each control places its caret, its highlight, its composition rule and its hit test from
+the same indent — by the **box** in `text-input`, whose value hugs its text, and **per line** in
+`text-area`, whose value box has a definite width and whose lines therefore start in different places.
+The round trip is the test in both.
+
+**And the showcase demonstrates it**, on the Forms screen: one `text-area` with
+every text property over it — the alignment and the type rank as segmented bars, the
+weight, the style, the two rules and the family as checkboxes, and the declarations
+printed under the field. Change anything and click into the middle of a word: the
+caret is where the glyphs are, which is the half of this that no picture shows.
+
+<a id="g31"></a>
+
+### G31 — a router that does not talk to elements it has let go of — **closed**
+
+**What brd needs.** To close a surface that has the keyboard — a Palette, a Sheet, a panel with a field
+in it — without the window falling over on the next frame.
+
+**What happens today.** It falls over:
+
+```
+java.lang.IllegalStateException: setState() on a state that is not mounted.
+  at ...widget.State.setState(State.java:77)
+  at ...form.textinput.TextInputState.focusChanged(TextInputState.java:504)
+  at ...form.textinput.TextField.onFocusChanged(TextField.java:151)
+  at ...input.PointerRouter.notifyFocus(PointerRouter.java:953)
+  at ...input.PointerRouter.focus(PointerRouter.java:932)
+  at ...input.PointerRouter.refocus(PointerRouter.java:299)
+  at ...input.PointerRouter.updateRegions(PointerRouter.java:151)
+  at ...Launcher.paint(Launcher.java:502)
+```
+
+`PointerRouter.refocus` is doing exactly what its own javadoc promises — *"the router never holds an
+element that is not in the tree"* — and the check it makes is the right one:
+
+```java
+if (focused == null || focused.isMounted()) {
+    return;
+}
+...
+focus(null, false);            // or focus(restoreTo, …)
+```
+
+Two lines later it hands that same element, which it has just established is **not mounted**, to
+`focus(...)`, which tells it so:
+
+```java
+if (lost != null && lost != focused) {
+    notifyFocus(lost, false, fromKeyboard);
+}
+```
+
+`focus` is right to notify `lost` — that is its contract for every ordinary focus change. What it cannot
+know is that this particular caller is reporting a *death* rather than a move. And `State.setState`
+is right to throw: its javadoc says an unmounted `setState` means *"a callback outlived the widget that
+registered it, which is a leak worth hearing about"*. Every party is behaving correctly and the window
+still dies.
+
+It is not brd-specific and not overlay-specific. Any tree where a focused control disappears reaches it:
+a tab that switched, a list that shortened, a `dialog` with a field in it that closes on its own button —
+`refocus`'s own javadoc names all three.
+
+**What brd does meanwhile.** Never lets the router be holding a node that is about to vanish: before an
+overlay closes, the client moves the keyboard back to the content
+([io.github.digitalsmile.brd.app.shell.ShellModel#onReleaseFocus]), so `refocus` finds a mounted element
+and returns at the first check. That is also the behaviour brd wants — an overlay that closes hands the
+keyboard back to what it was covering — so the stopgap is one that would be written anyway.
+
+It also stopped rebuilding the whole window when an overlay opens, which was making the same fault far
+easier to hit: the root's child changed type between `Row` and `Stack`, so *everything* under it was
+unmounted and rebuilt, keyboard included ([ADR-0027](adr/0027-the-shell-grows-a-sheet-and-a-palette.md)).
+
+**What it would look like.** One clause, in the place that already knows:
+
+```java
+// PointerRouter.focus(Element, boolean)
+if (lost != null && lost != focused && lost.isMounted()) {
+    notifyFocus(lost, false, fromKeyboard);
+}
+```
+
+`notifyFocusWithin` walks the same two chains and wants the same guard. An unmounted element has already
+been disposed; there is nobody left to tell.
+
+**What landed** (ADR-0317): that clause, and the same guard in `notifyFocusWithin`, which walks the same
+two chains. It is **per element** rather than per notification — an ancestor that survived its child
+really has lost `:focus-within` and is still told, and only the elements that went away are skipped.
+`mark`, the pseudo-class half of the same method, has had `element.isMounted()` in it from the
+beginning; the notification half now agrees with it.
+
+brd's stopgap is one it wanted anyway — an overlay that closes hands the keyboard back to what it was
+covering — so nothing has to be deleted, and `refocus` no longer depends on it.
+
+**Why it is not brd's.** `PointerRouter` is `:core` and is installed by `Launcher`; an application never
+sees the focus change, cannot intercept it, and has no way to make a `State` tolerate being told
+something after it is gone. The only lever outside is "do not be in that position", which is what the
+stopgap is — and it is a lever every application would have to pull, separately, for ever.

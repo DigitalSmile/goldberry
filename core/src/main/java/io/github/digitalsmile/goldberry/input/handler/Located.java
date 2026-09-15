@@ -45,7 +45,14 @@ public interface Located extends Widget {
     /// Where the last frame put this widget, and what it was clipped to.
     ///
     /// Both in the window's logical coordinates, so they can be compared
-    /// directly. `self` is this widget's border box as it was painted, which for
+    /// directly — and for a widget inside a
+    /// [io.github.digitalsmile.goldberry.Popup], in the coordinates of the window
+    /// that **owns** the popup, which is the space
+    /// [io.github.digitalsmile.goldberry.Host#attachedPopup] and
+    /// [io.github.digitalsmile.goldberry.Host#popup] place in. A control that hangs
+    /// a popover off the rectangle it is handed therefore opens it beside itself
+    /// wherever it is, rather than in the corner of the window (`docs/gaps.md` G28,
+    /// ADR-0320). `self` is this widget's border box as it was painted, which for
     /// a node inside a scroll view is where it has been *scrolled to* rather than
     /// where it was laid out — the whole point, since "has it scrolled past the
     /// top" is a question about the painted position.

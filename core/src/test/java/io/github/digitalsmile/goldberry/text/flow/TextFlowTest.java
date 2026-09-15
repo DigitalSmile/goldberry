@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.text.flow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +42,79 @@ class TextFlowTest {
         assertEquals(0.0, TextAlign.START.fractionOfSlack());
         assertEquals(0.5, TextAlign.CENTER.fractionOfSlack());
         assertEquals(1.0, TextAlign.END.fractionOfSlack());
+    }
+
+    @Test
+    @DisplayName("a flow says nothing about decoration unless it is asked to")
+    void decorationsAreEmptyByDefault() {
+        assertEquals(TextDecoration.NONE, TextFlow.NORMAL.decorations());
+        assertEquals(TextDecoration.NONE, TextFlow.ELLIPSIS.decorations());
+        assertFalse(TextFlow.NORMAL.isDecorated());
+        // Every caller written before `text-decoration` was in the subset, which
+        // must keep drawing exactly what it drew.
+        assertEquals(TextFlow.NORMAL, new TextFlow(WhiteSpace.NORMAL, TextOverflow.CLIP, TextAlign.START));
+    }
+
+    @Test
+    @DisplayName("both rules can be asked for at once")
+    void decorationsAreASet() {
+        var both = TextFlow.NORMAL.decorations(TextDecoration.UNDERLINE, TextDecoration.LINE_THROUGH);
+
+        assertTrue(both.isDecorated());
+        assertTrue(both.has(TextDecoration.UNDERLINE));
+        assertTrue(both.has(TextDecoration.LINE_THROUGH));
+        assertEquals(TextFlow.NORMAL, both.decorations(TextDecoration.NONE), "clearing them gets the plain flow back");
+    }
+
+    @Test
+    @DisplayName("a flow is a value, so the set it was handed cannot be changed underneath it")
+    void theSetIsCopied() {
+        var mutable = new java.util.LinkedHashSet<TextDecoration>();
+        mutable.add(TextDecoration.UNDERLINE);
+        var flow = TextFlow.NORMAL.decorations(mutable);
+
+        mutable.add(TextDecoration.LINE_THROUGH);
+
+        assertEquals(java.util.Set.of(TextDecoration.UNDERLINE), flow.decorations());
+    }
+
+    @Test
+    @DisplayName("the CSS names are what a stylesheet writes")
+    void decorationNames() {
+        assertEquals("line-through", TextDecoration.LINE_THROUGH.cssName());
+        assertEquals(TextDecoration.UNDERLINE, TextDecoration.parse("underline"));
+        assertEquals(TextDecoration.LINE_THROUGH, TextDecoration.parse("LINE-THROUGH"));
+        assertNull(TextDecoration.parse("wavy"), "an unknown value is a dropped declaration, not an exception");
+    }
+
+    @Test
+    @DisplayName("the indent is the fraction of the room actually left over")
+    void indentOfTheSlack() {
+        // The rule the painter, the caret, the hit test and the selection all
+        // share, so that none of them can hold a second copy of it
+        // (`docs/gaps.md` G30, ADR-0318).
+        assertEquals(0.0, TextAlign.START.indentOf(40, 100), "start never indents");
+        assertEquals(30.0, TextAlign.CENTER.indentOf(40, 100));
+        assertEquals(60.0, TextAlign.END.indentOf(40, 100));
+    }
+
+    @Test
+    @DisplayName("a line with no room to move does not move")
+    void indentIsClampedAtZero() {
+        // A `nowrap` line wider than its box: `end` would otherwise pull it left
+        // and hide its beginning instead of its end.
+        assertEquals(0.0, TextAlign.END.indentOf(140, 100));
+        assertEquals(0.0, TextAlign.CENTER.indentOf(140, 100));
+        assertEquals(0.0, TextAlign.CENTER.indentOf(40, 40), "a line that fills its box has no slack");
+    }
+
+    @Test
+    @DisplayName("an unconstrained box is measured in, not placed in")
+    void indentNeedsAFiniteBox() {
+        // Every caller that is measuring rather than drawing passes
+        // `Paragraph.UNCONSTRAINED`, and half of infinity is not an indent.
+        assertEquals(0.0, TextAlign.CENTER.indentOf(40, Double.POSITIVE_INFINITY));
+        assertEquals(0.0, TextAlign.END.indentOf(40, Double.NaN));
     }
 
     @Test
@@ -105,12 +179,19 @@ class TextFlowTest {
     }
 
     @Test
-    @DisplayName("toString says all three, because a dropped one is invisible otherwise")
+    @DisplayName("toString says all four, because a dropped one is invisible otherwise")
     void toStringSaysAllThree() {
-        assertEquals("TextFlow[nowrap, ellipsis, start]", TextFlow.ELLIPSIS.toString());
-        assertEquals("TextFlow[normal, clip, start]", TextFlow.NORMAL.toString());
+        assertEquals("TextFlow[nowrap, ellipsis, start, none]", TextFlow.ELLIPSIS.toString());
+        assertEquals("TextFlow[normal, clip, start, none]", TextFlow.NORMAL.toString());
         assertEquals(
-                "TextFlow[normal, clip, end]",
+                "TextFlow[normal, clip, end, none]",
                 TextFlow.NORMAL.textAlign(TextAlign.END).toString());
+        // In the enum's order rather than the set's, so two equal flows print the
+        // same however each was built.
+        assertEquals(
+                "TextFlow[normal, clip, start, underline line-through]",
+                TextFlow.NORMAL
+                        .decorations(TextDecoration.LINE_THROUGH, TextDecoration.UNDERLINE)
+                        .toString());
     }
 }

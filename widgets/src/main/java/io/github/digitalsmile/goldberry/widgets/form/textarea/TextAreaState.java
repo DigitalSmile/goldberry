@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -213,11 +214,15 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             return moved;
         }
 
+        // The column is in the **painted** space, so it carries the source line's
+        // indent — and the target line's comes off it again, because the two lines
+        // are not indented by the same amount unless they are the same length
+        // ([ADR-0324]).
         var column = Double.isNaN(preferredColumn)
-                ? paragraph.widthBetween(layout.get(index).start(), edit.caret())
+                ? indentOf(layout.get(index)) + paragraph.widthBetween(layout.get(index).start(), edit.caret())
                 : preferredColumn;
         var line = layout.get(target);
-        var offset = paragraph.offsetAt(line.start(), line.end(), column);
+        var offset = paragraph.offsetAt(line.start(), line.end(), column - indentOf(line));
 
         var moved = apply(edit.caretTo(offset, extend), EditHistory.Kind.OTHER, false);
         // Set *after* the apply, which clears it: a run of Up/Down keeps the
@@ -308,7 +313,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         var index = lineIndex(layout, displayCaret());
         var line = layout.get(index);
         return Optional.of(LogicalRect.of(
-                0,
+                // Where the line was *drawn*, not where the paragraph starts: a
+                // candidate window under a centred line belongs under the glyphs.
+                (float) indentOf(line),
                 (float) (index * lineHeight - scrollOffset),
                 (float) Math.max(1, shaped.widthBetween(line.start(), line.end())),
                 (float) lineHeight));
@@ -323,6 +330,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         }
         var at = displayCaret();
         var line = layout.get(lineIndex(layout, at));
+        // Relative to [#caretArea]'s left edge, which is the line's own start —
+        // so the indent is in the area's origin rather than in this offset, and
+        // adding it here would count it twice.
         return shaped.widthBetween(line.start(), Math.clamp(at, line.start(), line.end()));
     }
 
@@ -341,7 +351,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         var lineHeight = paragraph.font().lineHeight();
         var row = (int) Math.floor((y - topPadding + scrollOffset) / lineHeight);
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
-        var offset = paragraph.offsetAt(line.start(), line.end(), x - leftPadding);
+        // The press is where the user pressed, so the line's own indent comes off
+        // it — the mirror of what the caret adds ([ADR-0324]).
+        var offset = paragraph.offsetAt(line.start(), line.end(), x - leftPadding - indentOf(line));
 
         var next = switch (Math.min(clickCount, 3)) {
             // A triple-click is "select the line", and here there really is one.
@@ -428,10 +440,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, double left, double top) {
+    public double laidOut(Paragraph shaped, double left, double top, TextAlign align) {
         paragraph = shaped;
         leftPadding = left;
         topPadding = top;
+        textAlign = align;
 
         var lineHeight = shaped.font().lineHeight();
         var layout = lines();
@@ -485,6 +498,23 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// scrolled to is nobody else's business.
     double scrolledBy() {
         return scrollOffset;
+    }
+
+    /// Where each line sits in [#contentWidth()] — `text-align`, from the last
+    /// frame's resolved style ([#laidOut]).
+    ///
+    /// The last frame's, like the width beside it and for the same reason: `render`
+    /// runs before Yoga, and both are read by the hit test and the caret between
+    /// frames rather than during one.
+    private TextAlign textAlign = TextAlign.START;
+
+    /// How far in `line` was drawn, which is what every x here is measured from.
+    ///
+    /// [TextAlign#indentOf] and not a rule of its own: the paint indents each line
+    /// by that method, so a second implementation here is the drift `docs/gaps.md`
+    /// G30 is about ([ADR-0318], [ADR-0324]).
+    private double indentOf(TextLine line) {
+        return textAlign.indentOf(line.width(), contentWidth());
     }
 
     @Override

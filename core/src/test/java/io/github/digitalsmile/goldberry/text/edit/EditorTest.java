@@ -18,6 +18,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// A text editor with no widget around it — ADR-0285.
@@ -364,6 +365,49 @@ class EditorTest {
             assertEquals(0, caret.top(), 0.001);
             assertTrue(caret.height() > 0, "a caret in an empty box is a line tall, or there is nothing to see");
             assertTrue(editor.selectionRects().isEmpty());
+        }
+
+        /// `text-align`, end to end through one editor: the paint, the caret and
+        /// the hit test are the three that have to agree, and an editor is where
+        /// they meet (`docs/gaps.md` G30, ADR-0318).
+        @Test
+        @DisplayName("a centred editor puts its caret where it draws the glyphs")
+        void alignmentMovesTheCaretWithTheText() {
+            var editor = editor("hello").wrapWidth(200);
+            var left = editor.caret().x();
+
+            editor.textAlign(TextAlign.CENTER);
+
+            assertEquals(TextAlign.CENTER, editor.textAlign());
+            assertTrue(editor.caret().x() > left, "a centred line starts further in, and so does its caret");
+            assertEquals(
+                    TextAlign.CENTER.indentOf(editor.layout().lines().getFirst().width(), 200) + left,
+                    editor.caret().x(),
+                    0.001,
+                    "and it is the painter's own indent rather than a second guess at it");
+        }
+
+        @Test
+        @DisplayName("pressing on a centred caret does not move it")
+        void alignmentRoundTripsThroughAPress() {
+            var editor = editor("hello there").wrapWidth(200).textAlign(TextAlign.CENTER);
+            editor.caretTo(7, false);
+            var caret = editor.caret();
+
+            editor.pointerAt(caret.x(), caret.top() + 1, false, 1);
+
+            assertEquals(7, editor.edit().caret(), "the press landed half the line's slack away from the caret");
+        }
+
+        @Test
+        @DisplayName("the alignment is a late decision and re-wraps nothing")
+        void alignmentKeepsTheLayout() {
+            var editor = editor("the quick brown fox jumps over the lazy dog").wrapWidth(80);
+            var layout = editor.layout();
+
+            editor.textAlign(TextAlign.END);
+
+            assertSame(layout, editor.layout(), "alignment does not decide where lines break");
         }
 
         @Test

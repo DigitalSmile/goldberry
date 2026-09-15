@@ -17,7 +17,9 @@ import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlDisplayCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlThemeCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
@@ -59,12 +61,14 @@ public final class SdlVideo {
     private final SdlSurfaceCalls sdlSurfaceCalls;
     private final SdlDisplayCalls sdlDisplayCalls;
     private final SdlEventCalls sdlEventCalls;
+    private final SdlThemeCalls sdlThemeCalls;
 
     private SdlVideo(SymbolLookup lookup) {
         this.sdlWindowCalls = SdlWindowCalls.bind(lookup);
         this.sdlSurfaceCalls = SdlSurfaceCalls.bind(lookup);
         this.sdlDisplayCalls = SdlDisplayCalls.bind(lookup);
         this.sdlEventCalls = SdlEventCalls.bind(lookup);
+        this.sdlThemeCalls = SdlThemeCalls.bind(lookup);
         // Everything else is bound with `Downcalls.symbol`, which fails loudly,
         // because a missing symbol there means a window cannot open and the export
         // list is simply wrong. The display-mode pair is different: it feeds the
@@ -82,6 +86,20 @@ public final class SdlVideo {
 
     public static SdlVideo get() {
         return Holder.INSTANCE;
+    }
+
+    /// What the desktop is set to, light or dark.
+    ///
+    /// [SdlSystemTheme#UNKNOWN] where the platform has no such setting, where the
+    /// driver cannot ask, **and** where this build of `libgoldberry` predates the
+    /// export — all three are the same answer to everyone above this line, and the
+    /// distinction an application needs is between "unknown" and a theme rather
+    /// than between the reasons for the first (`docs/gaps.md` G26, [ADR-0322]).
+    public SdlSystemTheme systemTheme() {
+        if (!sdlThemeCalls.getSystemTheme().isAvailable()) {
+            return SdlSystemTheme.UNKNOWN;
+        }
+        return SdlSystemTheme.of(sdlThemeCalls.getSystemTheme().call());
     }
 
     /// Creates a window.

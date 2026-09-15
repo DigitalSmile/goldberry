@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
@@ -41,6 +42,12 @@ public final class NativeConstants {
         // Ordinals in an enum SDL has already inserted into the middle of once.
         for (var cursor : SdlSystemCursor.values()) {
             constants.add(new NativeConstant(cursor.nativeName(), cursor.value()));
+        }
+        // The desktop's light-or-dark setting, whose three values are ordinals in
+        // a C enum and whose wrong reading starts an application in the wrong
+        // theme with no error anywhere (ADR-0322).
+        for (var theme : SdlSystemTheme.values()) {
+            constants.add(new NativeConstant(theme.nativeName(), theme.value()));
         }
         // Tray entry kinds and their two optional bits, one of which is
         // 0x80000000 and is therefore the one a hand-copied `int` gets wrong.

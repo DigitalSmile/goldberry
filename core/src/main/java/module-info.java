@@ -190,6 +190,7 @@ module io.github.digitalsmile.goldberry.core {
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of
     // everything above the SPI need no native library at all (ADR-0019).
+    exports io.github.digitalsmile.goldberry.render.desktop;
     exports io.github.digitalsmile.goldberry.render.dialog;
     exports io.github.digitalsmile.goldberry.render.backend.headless;
     exports io.github.digitalsmile.goldberry.render.backend.sdl3;

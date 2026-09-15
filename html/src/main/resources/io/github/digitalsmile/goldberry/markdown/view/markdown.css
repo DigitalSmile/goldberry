@@ -106,12 +106,17 @@
 
 /* --------------------------------------------------------- inline marks -- */
 
-/* **A faux oblique, and it is a compromise on purpose.** The toolkit bundles two
-   upright faces -- Inter Regular and SemiBold -- so there is no italic to set
-   emphasis in. Skewing the word is what every renderer without an italic face
-   does; `transform` does not affect layout, so the word stays where it was and
-   only the glyphs lean. An application that ships an italic face can replace this
-   rule with `font-family` and lose nothing. */
+/* **A faux oblique, and it is now a compromise nothing forces.** It was written
+   when the toolkit bundled two upright faces and there was no italic to set
+   emphasis in; there is one since ADR-0323 -- `font-style: italic`, a drawn face
+   rather than a lean -- and `text-decoration` arrived with ADR-0321.
+
+   The declaration is left as it is deliberately: swapping it changes every
+   Markdown golden, so it is a *picture* decision to take on purpose rather than a
+   side effect of the faces existing. One line replaces it when that is taken:
+   `font-style: italic` for the skew. Skewing the word is what every renderer
+   without an italic face does; `transform` does not affect layout, so the word
+   stays where it was and only the glyphs lean. */
 .md-em {
   transform: skewX(-10deg);
 }

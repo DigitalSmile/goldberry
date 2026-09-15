@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,6 +26,7 @@ import io.github.digitalsmile.goldberry.layout.Justify;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.motion.Easing;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 import io.github.digitalsmile.goldberry.text.flow.WhiteSpace;
@@ -638,6 +640,55 @@ class ComputedStyleTest {
                     compute("button { font-weight: normal }").typography().weight());
         }
 
+        /// `font-style`, which is a **face** rather than a decoration: the italic
+        /// is drawn, so the cascade's job is to name a file — `docs/gaps.md` G27,
+        /// ADR-0323.
+        @Test
+        @DisplayName("font-style resolves, and picks the face out of the matrix")
+        void fontStyle() {
+            assertEquals(
+                    BundledFont.Style.ITALIC,
+                    compute("button { font-style: italic }").typography().style());
+            assertEquals(
+                    BundledFont.UI_ITALIC,
+                    compute("button { font-style: italic }").typography().face());
+            assertEquals(
+                    BundledFont.UI_STRONG_ITALIC,
+                    compute("button { font-weight: 600; font-style: italic }")
+                            .typography()
+                            .face(),
+                    "a semibold italic is a face, not the nearest of three");
+            assertEquals(
+                    BundledFont.Style.UPRIGHT,
+                    compute("button { font-style: italic; font-style: normal }")
+                            .typography()
+                            .style());
+        }
+
+        @Test
+        @DisplayName("oblique is refused, because nothing here shears a glyph")
+        void obliqueIsRefused() {
+            // CSS's `oblique` asks for a *slant*. Inter's italic is a different
+            // drawing rather than a sheared upright, so answering with it would
+            // answer a different question — and shearing would be a type-design
+            // decision taken by a stylesheet. Dropped with a warning, like every
+            // value outside the subset.
+            assertEquals(
+                    BundledFont.Style.UPRIGHT,
+                    compute("button { font-style: oblique }").typography().style());
+            assertEquals(
+                    BundledFont.Style.UPRIGHT,
+                    compute("button { font-style: oblique 14deg }").typography().style());
+        }
+
+        @Test
+        @DisplayName("it inherits, because every typography component does")
+        void fontStyleInherits() {
+            assertEquals(
+                    BundledFont.Style.ITALIC,
+                    computeChild("window { font-style: italic }").typography().style());
+        }
+
         @Test
         @DisplayName("only the first family of a list is taken")
         void noFallbackChain() {
@@ -1143,6 +1194,112 @@ class ComputedStyleTest {
             assertFalse(wrapping.inheritsSameAs(nowrap));
             assertFalse(wrapping.inheritsSameAs(ComputedStyle.INITIAL.textAlign(TextAlign.END)));
             assertTrue(wrapping.inheritsSameAs(ComputedStyle.INITIAL.textOverflow(TextOverflow.ELLIPSIS)));
+        }
+    }
+
+    /// `text-decoration`, the fourth property on the same value — `docs/gaps.md`
+    /// G27, ADR-0321.
+    @Nested
+    @DisplayName("text-decoration")
+    class Decorations {
+
+        @Test
+        @DisplayName("nothing is decorated unless something says so")
+        void initial() {
+            var style = compute("input { color: red }");
+
+            assertEquals(TextDecoration.NONE, style.textDecoration());
+            assertFalse(style.textFlow().isDecorated(), "an undecorated flow must not make the painter read metrics");
+        }
+
+        @Test
+        @DisplayName("both lines are read, together and separately, under either spelling")
+        void keywordsAreRead() {
+            assertEquals(
+                    Set.of(TextDecoration.UNDERLINE),
+                    compute("button { text-decoration: underline }").textDecoration());
+            assertEquals(
+                    Set.of(TextDecoration.LINE_THROUGH),
+                    compute("button { text-decoration-line: line-through }").textDecoration());
+            assertEquals(
+                    Set.of(TextDecoration.UNDERLINE, TextDecoration.LINE_THROUGH),
+                    compute("button { text-decoration: underline line-through }")
+                            .textDecoration());
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: underline; text-decoration: none }")
+                            .textDecoration());
+        }
+
+        /// The shorthand's other two parts. Dropping the declaration whole is the
+        /// point: a rule that asked for a wavy red underline and got a straight one
+        /// in the text's colour would be a property that lies.
+        @Test
+        @DisplayName("a colour or a style in the shorthand drops the whole declaration")
+        void therestOfTheShorthandIsRefused() {
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: underline wavy }").textDecoration());
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: underline red }").textDecoration());
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: overline }").textDecoration(),
+                    "`overline` is CSS's and is not in the subset");
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: underline underline }").textDecoration(),
+                    "named twice is a declaration nobody can read back");
+            assertEquals(
+                    TextDecoration.NONE,
+                    compute("button { text-decoration: none underline }").textDecoration(),
+                    "a contradiction is refused rather than guessed at");
+        }
+
+        /// It inherits, which is how CSS's *propagation* to in-flow descendants
+        /// reads here: a control's text is very often an anonymous child box.
+        @Test
+        @DisplayName("it reaches the label inside the node that asked for it")
+        void itInherits() {
+            var child = computeChild("window { text-decoration: underline }");
+
+            assertEquals(Set.of(TextDecoration.UNDERLINE), child.textDecoration());
+            assertTrue(child.textFlow().has(TextDecoration.UNDERLINE));
+        }
+
+        @Test
+        @DisplayName("and a child may say otherwise")
+        void aChildMayOverride() {
+            var child = computeChild("window { text-decoration: underline } button { text-decoration: none }");
+
+            assertEquals(TextDecoration.NONE, child.textDecoration());
+        }
+
+        /// The other half of inheriting: the style cache's key has to know about it,
+        /// or a child under a newly underlined parent keeps the style it resolved
+        /// before.
+        @Test
+        @DisplayName("two parents that differ only in it are not the same to a child")
+        void itIsPartOfTheInheritedKey() {
+            var plain = ComputedStyle.INITIAL;
+            var underlined = ComputedStyle.INITIAL.textDecoration(Set.of(TextDecoration.UNDERLINE));
+
+            assertFalse(plain.inheritsSameAs(underlined));
+            assertTrue(
+                    underlined.inheritsSameAs(ComputedStyle.INITIAL.textDecoration(Set.of(TextDecoration.UNDERLINE))));
+        }
+
+        @Test
+        @DisplayName("a style is a value, so the set it carries cannot be changed underneath it")
+        void theSetIsCopied() {
+            var mutable = new java.util.LinkedHashSet<TextDecoration>();
+            mutable.add(TextDecoration.UNDERLINE);
+            var style = ComputedStyle.INITIAL.textDecoration(mutable);
+
+            mutable.add(TextDecoration.LINE_THROUGH);
+
+            assertEquals(Set.of(TextDecoration.UNDERLINE), style.textDecoration());
         }
     }
 }

@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import io.github.digitalsmile.goldberry.ContextMenuHandler;
 import io.github.digitalsmile.goldberry.Host;
@@ -18,6 +19,7 @@ import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -129,6 +131,31 @@ public class TestHost implements Host {
 
     public int repaints() {
         return repaints;
+    }
+
+    /// What this host says the desktop is set to — nothing, until a test says
+    /// otherwise ([ADR-0322]).
+    private SystemTheme systemTheme;
+
+    private final List<Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
+
+    @Override
+    public Optional<SystemTheme> systemTheme() {
+        return Optional.ofNullable(systemTheme);
+    }
+
+    @Override
+    public void onSystemThemeChanged(Consumer<SystemTheme> listener) {
+        systemThemeListeners.add(listener);
+    }
+
+    /// Changes the setting and tells every listener, the way a desktop does at
+    /// dusk.
+    public void systemTheme(SystemTheme theme) {
+        systemTheme = theme;
+        for (var listener : List.copyOf(systemThemeListeners)) {
+            listener.accept(theme);
+        }
     }
 
     @Override
@@ -290,7 +317,7 @@ public class TestHost implements Host {
         contextMenus = handler;
     }
 
-    private final java.util.List<String> focused = new java.util.ArrayList<>();
+    private final java.util.List<String> focused = new ArrayList<>();
 
     /// Records the request and reports that it worked.
     ///
@@ -321,9 +348,9 @@ public class TestHost implements Host {
         focused.clear();
     }
 
-    private final java.util.List<Runnable> scheduled = new java.util.ArrayList<>();
-    private final java.util.List<Duration> delays = new java.util.ArrayList<>();
-    private final java.util.List<EventLoop.Timer> timers = new java.util.ArrayList<>();
+    private final java.util.List<Runnable> scheduled = new ArrayList<>();
+    private final java.util.List<Duration> delays = new ArrayList<>();
+    private final java.util.List<EventLoop.Timer> timers = new ArrayList<>();
 
     /// Records the timer and hands back one that is never due.
     ///
