@@ -190,6 +190,12 @@ module io.github.digitalsmile.goldberry.core {
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of
     // everything above the SPI need no native library at all (ADR-0019).
+    // What this build of the platform layer can actually do (ADR-0325). Exported
+    // because an application that follows the desktop has to be able to tell "the
+    // desktop says nothing" from "this build cannot ask" -- the first is a
+    // default and the second is a bug report (`docs/gaps.md` G32).
+    exports io.github.digitalsmile.goldberry.platform;
+
     exports io.github.digitalsmile.goldberry.render.desktop;
     exports io.github.digitalsmile.goldberry.render.dialog;
     exports io.github.digitalsmile.goldberry.render.backend.headless;

@@ -35,6 +35,18 @@ import java.util.stream.Collectors;
  * the local check never learned it. ADR-0082 records that, and
  * {@code LinuxDependenciesTest} now asserts the two cannot drift apart again.
  *
+ * <h2>A row can also cost a capability</h2>
+ *
+ * The X11 rows above are absolute: without them there is no library at all. The
+ * desktop-integration rows are the opposite and are worse for it. {@code dbus-1},
+ * {@code ibus-1.0} and {@code libudev} each gate a feature SDL compiles out
+ * <em>silently</em> when the headers are absent, leaving a call that succeeds and
+ * answers nothing — the system theme, the portal file dialog, the input method on
+ * X11, device hotplug. A row therefore also names the {@code Capability} constants
+ * a library loses without it, which is the same fact the superbuild compiles into
+ * the binary and {@code Goldberry.capabilities()} reads back. See
+ * {@code docs/gaps.md} G32 and ADR-0325.
+ *
  * <h2>What a row means</h2>
  *
  * A module here is a <em>pkg-config</em> module name, because that is what
@@ -96,17 +108,23 @@ public final class LinuxDependencies {
     /**
      * One dependency: what to probe for, what to install, and what breaks without it.
      *
-     * @param module      the pkg-config module name, as {@code pkg-config --exists} takes it
-     * @param aptPackage  the Debian/Ubuntu package providing it
-     * @param dnfPackage  the RHEL/Fedora package providing it
-     * @param necessity   how much the superbuild minds if it is absent
-     * @param purpose     what it is for, in the words the failure message uses
+     * @param module       the pkg-config module name, as {@code pkg-config --exists} takes it
+     * @param aptPackage   the Debian/Ubuntu package providing it
+     * @param dnfPackage   the RHEL/Fedora package providing it
+     * @param necessity    how much the superbuild minds if it is absent
+     * @param purpose      what it is for, in the words the failure message uses
+     * @param capabilities the names of the {@code Capability} constants a built
+     *                     library loses without it, empty when it costs none --
+     *                     the link between this table and what an application can
+     *                     read back from {@code Goldberry.capabilities()}
+     *                     (ADR-0325, {@code docs/gaps.md} G32)
      */
     public record Dependency(String module,
                              String aptPackage,
                              String dnfPackage,
                              Necessity necessity,
-                             String purpose) {
+                             String purpose,
+                             List<String> capabilities) {
 
         public Dependency {
             requireText(module, "module");
@@ -114,6 +132,32 @@ public final class LinuxDependencies {
             requireText(dnfPackage, "dnfPackage");
             requireText(purpose, "purpose");
             Objects.requireNonNull(necessity, "necessity");
+            capabilities = List.copyOf(Objects.requireNonNull(capabilities, "capabilities"));
+        }
+
+        /**
+         * A dependency that backs no run-time capability -- which is most of them:
+         * an X11 extension SDL will not configure without is not something an
+         * application can be told about later, because there is no library to tell
+         * it with.
+         *
+         * @param module     the pkg-config module name
+         * @param aptPackage the Debian/Ubuntu package providing it
+         * @param dnfPackage the RHEL/Fedora package providing it
+         * @param necessity  how much the superbuild minds if it is absent
+         * @param purpose    what it is for
+         */
+        public Dependency(String module,
+                          String aptPackage,
+                          String dnfPackage,
+                          Necessity necessity,
+                          String purpose) {
+            this(module, aptPackage, dnfPackage, necessity, purpose, List.of());
+        }
+
+        /** @return whether a built library loses a reportable capability without this */
+        public boolean backsACapability() {
+            return !capabilities.isEmpty();
         }
 
         private static void requireText(String value, String field) {
@@ -220,9 +264,55 @@ public final class LinuxDependencies {
             new Dependency("gbm", "libgbm-dev", "mesa-libgbm-devel",
                     Necessity.OPTIONAL, "SDL3 KMS/DRM"),
             new Dependency("libudev", "libudev-dev", "systemd-devel",
-                    Necessity.OPTIONAL, "SDL3 device hotplug"),
+                    Necessity.OPTIONAL, "SDL3 input-device hotplug",
+                    List.of("DEVICE_HOTPLUG")),
+
+            // NEEDED, and it used to be OPTIONAL under the vague purpose "SDL3
+            // desktop integration". That is how a client shipped a settings screen
+            // telling its user their dark desktop had no light-or-dark setting.
+            //
+            // src/core/linux/SDL_system_theme.c IS SDL's theme detection on Linux --
+            // the XDG settings portal over D-Bus, with no second path -- and every
+            // line of it is behind SDL_USE_LIBDBUS, which is #defined from
+            // HAVE_DBUS_DBUS_H, which SDL's CMake sets from a build-time probe for
+            // these headers. SDL dlopen()s libdbus-1.so at RUN time, so the shipped
+            // library needs no D-Bus installed to use it; it needed the headers to
+            // be able to. Built without them, SDL_GetSystemTheme() is a compile-time
+            // constant UNKNOWN, on every Linux desktop, however it is set -- and
+            // Host.systemTheme() is a shipped API answering empty for ever.
+            //
+            // Optional was the honest word while nothing bound SDL_GetSystemTheme.
+            // ADR-0322 bound it. See docs/gaps.md G32.
             new Dependency("dbus-1", "libdbus-1-dev", "dbus-devel",
-                    Necessity.OPTIONAL, "SDL3 desktop integration"));
+                    Necessity.NEEDED,
+                    "SDL3 system theme, portal file dialogs and screensaver inhibition",
+                    List.of("SYSTEM_THEME", "FILE_DIALOG", "SCREENSAVER_INHIBIT")),
+
+            // The X11 input method, and only X11: SDL drives zwp_text_input_v3 from
+            // the compositor on Wayland and needs neither IBus nor Fcitx there. So
+            // this is OPTIONAL in the strict sense -- a Wayland session composes
+            // fine without it -- and it is exactly the kind of absence that hides,
+            // because whoever builds the library and whoever cannot type Japanese
+            // into it are rarely on the same display server.
+            new Dependency("ibus-1.0", "libibus-1.0-dev", "ibus-devel",
+                    Necessity.OPTIONAL, "SDL3 input method on X11",
+                    List.of("INPUT_METHOD")));
+
+    /**
+     * The dependencies a built library loses a reportable capability without.
+     *
+     * <p>These are the rows the published artifact's own workflow has to install
+     * whatever their necessity says, because their absence is invisible: the
+     * library builds, links, paints and takes input, and one call answers "the
+     * desktop does not say" for ever. {@code Goldberry.capabilities()} is what
+     * finally reports it at run time; installing the package is what keeps there
+     * being nothing to report. See {@code docs/gaps.md} G32 and ADR-0325.
+     *
+     * @return the rows naming at least one capability
+     */
+    public static List<Dependency> capabilityBacked() {
+        return ALL.stream().filter(Dependency::backsACapability).toList();
+    }
 
     /** @return the dependencies whose absence should fail the build */
     public static List<Dependency> required() {

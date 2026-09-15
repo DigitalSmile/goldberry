@@ -334,6 +334,7 @@
 - [ADR-0322 The desktop says light or dark, or says nothing](adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)
 - [ADR-0323 An italic is a face, and the matrix closes](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
 - [ADR-0324 A field draws the text its stylesheet resolved](adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)
+- [ADR-0325 A build says what it can ask the desktop](adr/0325-a-build-says-what-it-can-ask-the-desktop.md)
 
 ---
 

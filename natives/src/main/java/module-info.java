@@ -87,6 +87,16 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.sdl.event;
     exports io.github.digitalsmile.goldberry.natives.sdl.window;
     exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
+
+    /// What this build of the platform layer can actually do (ADR-0325).
+    ///
+    /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same
+    /// reason: an application asks `Goldberry.capabilities()` and reads the
+    /// toolkit's own `Capability`, so no type of this module appears in a
+    /// signature it can name. What crosses here is an enum of five constants and
+    /// an `int` behind it.
+    exports io.github.digitalsmile.goldberry.natives.platform to
+            io.github.digitalsmile.goldberry.core;
     /// md4c, exported to `:html` and to nobody else (ADR-0294).
     ///
     /// The second name on this seal, and the first that is not `:core`. Markdown is

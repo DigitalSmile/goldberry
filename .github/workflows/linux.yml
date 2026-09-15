@@ -131,7 +131,26 @@ jobs:
             libX11-devel libxcb-devel libXext-devel libXrandr-devel \
             libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
             libXScrnSaver-devel libxkbcommon-devel libxkbfile-devel \
-            alsa-lib-devel pulseaudio-libs-devel
+            alsa-lib-devel pulseaudio-libs-devel \
+            dbus-devel systemd-devel ibus-devel
+          # dbus-devel, systemd-devel and ibus-devel are the three this list was
+          # missing, and the reason the published libgoldberry could not ask the
+          # desktop whether it was set to dark (docs/gaps.md G32, ADR-0325).
+          #
+          # None of them is a build failure in SDL's own terms: SDL treats all
+          # three as "use it if the headers are here", compiles the feature out
+          # when they are not, and says nothing. What is affected is not niche --
+          # SDL_GetSystemTheme, the XDG portal file dialog, the screensaver
+          # inhibit, the input method on X11, device hotplug -- and none of it can
+          # be fixed after the fact, because the library is distributed inside the
+          # application.
+          #
+          # systemd-devel is where RHEL keeps libudev's headers; on the Ubuntu
+          # runners in example.yml and showcase.yml the same thing is libudev-dev.
+          # The superbuild now stops rather than building a library without D-Bus
+          # (-DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION), so a future container that
+          # drops one of these fails here loudly instead of publishing quietly.
+          #
           # libXtst-devel and libXScrnSaver-devel are hard dependencies of SDL's
           # X11 driver, not optional ones: CheckX11 stops the configure with
           # "Couldn't find dependency package for XTEST" / "... for XSCRNSAVER"

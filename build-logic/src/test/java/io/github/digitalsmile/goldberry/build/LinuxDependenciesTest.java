@@ -63,6 +63,24 @@ class LinuxDependenciesTest {
                         + "; set -Dgoldberry.repoRoot=<repo>");
     }
 
+    /**
+     * The public {@code Capability} enum, read as text.
+     *
+     * <p>build-logic cannot depend on {@code :core} -- it is what builds it -- so
+     * the only way to check a name against that enum is to read the file, which is
+     * the same trick the CI checks below use on the workflows.
+     */
+    private static String readCapabilityEnum() {
+        var file = repositoryRoot()
+                .resolve("core/src/main/java/io/github/digitalsmile/goldberry/platform/Capability.java");
+        assertTrue(Files.isRegularFile(file), file + " does not exist");
+        try {
+            return Files.readString(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private static String workflow(String name) {
         var file = repositoryRoot().resolve(".github/workflows").resolve(name);
         assertTrue(Files.isRegularFile(file), file + " does not exist");
@@ -154,10 +172,72 @@ class LinuxDependenciesTest {
         @Test
         @DisplayName("keeps the features the toolkit does not use optional")
         void keepsUnusedFeaturesOptional() {
-            for (var module : List.of("alsa", "libpulse", "libdrm", "gbm", "libudev", "dbus-1")) {
+            // dbus-1 used to be on this list and is not any more; see below.
+            for (var module : List.of("alsa", "libpulse", "libdrm", "gbm", "libudev", "ibus-1.0")) {
                 assertFalse(LinuxDependencies.byModule(module).required(),
                         module + " is not something Goldberry uses; it must not fail a build");
             }
+        }
+
+        @Test
+        @DisplayName("requires D-Bus, without which a shipped API answers nothing for ever")
+        void requiresDbus() {
+            // The G32 row. src/core/linux/SDL_system_theme.c IS SDL's theme
+            // detection on Linux -- the XDG settings portal, with no second path --
+            // and all of it is behind a #define set from a build-time probe for
+            // these headers. Without them SDL_GetSystemTheme() is a compile-time
+            // constant UNKNOWN and Host.systemTheme() answers empty on a desktop
+            // set to dark. It was OPTIONAL here, under the purpose "SDL3 desktop
+            // integration", which is how that shipped.
+            var dbus = LinuxDependencies.byModule("dbus-1");
+
+            assertEquals(Necessity.NEEDED, dbus.necessity());
+            assertEquals("libdbus-1-dev", dbus.aptPackage());
+            assertEquals("dbus-devel", dbus.dnfPackage());
+            // Not a HARD_STOP: SDL configures perfectly happily without it. That is
+            // the problem, not a reason to relax the row.
+            assertFalse(dbus.describedPurpose().contains("stops the configure"));
+        }
+
+        @Test
+        @DisplayName("names the capability each desktop integration backs")
+        void namesTheCapabilitiesEachIntegrationBacks() {
+            assertEquals(List.of("SYSTEM_THEME", "FILE_DIALOG", "SCREENSAVER_INHIBIT"),
+                    LinuxDependencies.byModule("dbus-1").capabilities());
+            assertEquals(List.of("INPUT_METHOD"), LinuxDependencies.byModule("ibus-1.0").capabilities());
+            assertEquals(List.of("DEVICE_HOTPLUG"), LinuxDependencies.byModule("libudev").capabilities());
+            // And nothing else claims one: an X11 extension SDL will not configure
+            // without cannot be reported at run time, because there is no library
+            // to report it with.
+            assertEquals(3, LinuxDependencies.capabilityBacked().size(),
+                    "only the desktop integrations back a run-time capability: "
+                            + LinuxDependencies.capabilityBacked());
+        }
+
+        @Test
+        @DisplayName("every capability it names is one the toolkit can actually report")
+        void namesOnlyRealCapabilities() {
+            // The table and `Capability` are two statements of one fact, and this is
+            // the same drift the CI checks below guard against: a row naming
+            // SYSTEM_THEMES or SCREENSAVER would read perfectly well and mean
+            // nothing.
+            var source = readCapabilityEnum();
+            var unknown = LinuxDependencies.capabilityBacked().stream()
+                    .flatMap(dependency -> dependency.capabilities().stream())
+                    .distinct()
+                    .filter(capability -> !Pattern.compile("(?m)^\\s+" + capability + "\\b")
+                            .matcher(source)
+                            .find())
+                    .toList();
+            assertTrue(unknown.isEmpty(),
+                    "no such constant in Capability: " + unknown);
+        }
+
+        @Test
+        @DisplayName("a row may name no capability at all")
+        void allowsARowWithNoCapability() {
+            assertFalse(LinuxDependencies.byModule("x11").backsACapability());
+            assertEquals(List.of(), LinuxDependencies.byModule("x11").capabilities());
         }
 
         @Test
@@ -334,6 +414,39 @@ class LinuxDependenciesTest {
             assertTrue(absent.isEmpty(),
                     DNF_WORKFLOW + " does not install: " + absent
                             + " -- SDL's CheckX11 stops the configure without them");
+        }
+
+        @Test
+        @DisplayName("the manylinux workflow installs every package a shipped capability needs")
+        void theContainerWorkflowInstallsEveryCapability() {
+            // The check that was missing. The sweep above covers only the hard
+            // stops, because those are what CI had been burned by -- and this is
+            // the workflow that builds the artifact users actually get. Its list
+            // named none of the three desktop integrations, so the published
+            // library could not read the desktop's theme, could not open a portal
+            // file dialog and had no input method under X11. Nothing failed; the
+            // build was green every time (docs/gaps.md G32, ADR-0325).
+            var text = workflow(DNF_WORKFLOW);
+            var absent = LinuxDependencies.capabilityBacked().stream()
+                    .filter(dependency -> !installs(text, dependency.dnfPackage()))
+                    .map(dependency -> dependency.module() + " (" + dependency.dnfPackage() + ") -> "
+                            + dependency.capabilities())
+                    .toList();
+            assertTrue(absent.isEmpty(),
+                    DNF_WORKFLOW + " does not install: " + absent
+                            + " -- the published library would report those capabilities as absent");
+        }
+
+        @ParameterizedTest(name = "{0} installs every capability's package")
+        @ValueSource(strings = {"example.yml", "showcase.yml"})
+        @DisplayName("the Gradle-driven workflows install them too")
+        void gradleWorkflowsInstallEveryCapabilityPackage(String name) {
+            var text = workflow(name);
+            var absent = LinuxDependencies.capabilityBacked().stream()
+                    .filter(dependency -> !installs(text, dependency.aptPackage()))
+                    .map(dependency -> dependency.module() + " (" + dependency.aptPackage() + ")")
+                    .toList();
+            assertTrue(absent.isEmpty(), name + " does not install: " + absent);
         }
 
         @Test

@@ -60,6 +60,7 @@ jobs:
             libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libibus-1.0-dev \
             xvfb
 
           # libxtst-dev is not optional. SDL's CheckX11 treats XTest as a hard

@@ -26,6 +26,14 @@ goldberry_abi_version
 goldberry_layout_table
 goldberry_layout_count
 
+# What this build of the platform layer can actually do, whatever its API says
+# (sec. G32, ADR-0325). On Linux three of SDL's desktop integrations -- the system
+# theme, the portal file dialog and the input method on X11 -- are compiled out
+# when a -dev package was absent on the build machine, and the calls then answer
+# "the desktop does not say" rather than failing. One word, read back at start-up,
+# is what tells those two apart.
+goldberry_platform_capabilities
+
 # Calls a YGMeasureFunc upcall stub and reports what the struct-by-value return
 # delivered. See sec. 3.1 and ADR-0017.
 goldberry_probe_measure

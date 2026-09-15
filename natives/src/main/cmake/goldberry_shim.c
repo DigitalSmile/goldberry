@@ -84,10 +84,105 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 9u
+#define GOLDBERRY_ABI_VERSION 10u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Platform capabilities -- what THIS build can ask the desktop             */
+/* ------------------------------------------------------------------------ */
+
+/*
+ * The fifth thing that cannot live on the Java side, and the newest: what the
+ * platform layer in this particular libgoldberry can actually do.
+ *
+ * An API is not a capability. SDL_GetSystemTheme() is declared on every
+ * platform and compiled into every build of SDL, and on Linux its whole
+ * implementation is behind SDL_USE_LIBDBUS -- which SDL's CMake #defines only
+ * when the D-Bus *headers* were present on the machine that compiled it. A build
+ * made without libdbus-1-dev therefore returns SDL_SYSTEM_THEME_UNKNOWN on a
+ * desktop that is set to dark, forever, with no error anywhere: not on the
+ * desktop, not in the build log, not at run time. The same probe gates the XDG
+ * portal file dialog and the screensaver inhibit; a second one gates the input
+ * method on X11, and a third input-device hotplug.
+ *
+ * Three shipped capabilities silently downgraded by an absent -dev package is
+ * what docs/gaps.md G32 is, and half its answer is that the build now refuses to
+ * produce such a library by accident (CMakeLists.txt). This is the other half:
+ * whatever a build ends up being, it says so, in one word an application can
+ * read back through Goldberry.capabilities() (ADR-0325).
+ *
+ * Build-time, deliberately. These bits describe the LIBRARY, not the session it
+ * is loaded into: a build with D-Bus support running on a desktop that has no
+ * colour-scheme setting still reports SYSTEM_THEME, because it can ask and the
+ * desktop is what declined to answer. "Could not ask" and "asked and was told
+ * nothing" are different facts and only the first one is fixable.
+ */
+#define GOLDBERRY_CAP_SYSTEM_THEME 0x1u
+#define GOLDBERRY_CAP_INPUT_METHOD 0x2u
+#define GOLDBERRY_CAP_DEVICE_HOTPLUG 0x4u
+#define GOLDBERRY_CAP_FILE_DIALOG 0x8u
+#define GOLDBERRY_CAP_SCREENSAVER_INHIBIT 0x10u
+
+/*
+ * GOLDBERRY_PLATFORM_DBUS, _IBUS and _UDEV are passed by the superbuild, which
+ * probes for exactly the pkg-config modules SDL's own CMake probes for and
+ * cross-checks its answer against the SDL_build_config.h SDL generated. They are
+ * absent rather than 0 when the probe failed, hence #ifdef.
+ */
+#if defined(__linux__)
+
+#if defined(GOLDBERRY_PLATFORM_DBUS)
+/* SDL_system_theme.c, SDL_portaldialog.c and SDL_dbus.c's screensaver inhibit
+ * are one file set behind one #define. */
+#define GOLDBERRY_CAPS_DBUS \
+    (GOLDBERRY_CAP_SYSTEM_THEME | GOLDBERRY_CAP_FILE_DIALOG | GOLDBERRY_CAP_SCREENSAVER_INHIBIT)
+#else
+#define GOLDBERRY_CAPS_DBUS 0u
+#endif
+
+/*
+ * The X11 input method only. SDL drives zwp_text_input_v3 from the compositor on
+ * Wayland and needs neither IBus nor Fcitx there, so a build without these
+ * headers composes perfectly well on a Wayland session and not at all on an X11
+ * one. A build-time bit cannot express "depends on the session", so it reports
+ * what it is: whether an X11 session would have an input method.
+ */
+#if defined(GOLDBERRY_PLATFORM_IBUS)
+#define GOLDBERRY_CAPS_IBUS GOLDBERRY_CAP_INPUT_METHOD
+#else
+#define GOLDBERRY_CAPS_IBUS 0u
+#endif
+
+#if defined(GOLDBERRY_PLATFORM_UDEV)
+#define GOLDBERRY_CAPS_UDEV GOLDBERRY_CAP_DEVICE_HOTPLUG
+#else
+#define GOLDBERRY_CAPS_UDEV 0u
+#endif
+
+#define GOLDBERRY_CAPABILITIES (GOLDBERRY_CAPS_DBUS | GOLDBERRY_CAPS_IBUS | GOLDBERRY_CAPS_UDEV)
+
+#else
+
+/*
+ * macOS and Windows have no such probe and no such failure mode: every one of
+ * these is implemented against a system framework that is part of the SDK SDL is
+ * compiled with, not against an optional third-party header that may or may not
+ * be installed. NSUserDefaults and the AppsUseLightTheme registry value answer
+ * the theme, NSTextInputClient and TSF are the input methods, IOKit and
+ * WM_DEVICECHANGE are hotplug, NSOpenPanel and IFileDialog are the file dialogs,
+ * IOPMAssertion and SetThreadExecutionState are the screensaver.
+ */
+#define GOLDBERRY_CAPABILITIES \
+    (GOLDBERRY_CAP_SYSTEM_THEME | GOLDBERRY_CAP_INPUT_METHOD | GOLDBERRY_CAP_DEVICE_HOTPLUG \
+     | GOLDBERRY_CAP_FILE_DIALOG | GOLDBERRY_CAP_SCREENSAVER_INHIBIT)
+
+#endif
+
+GOLDBERRY_EXPORT uint32_t goldberry_platform_capabilities(void) {
+    return GOLDBERRY_CAPABILITIES;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -785,6 +880,16 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("MD_FLAG_WIKILINKS", MD_FLAG_WIKILINKS),
     GB_CONSTANT("MD_FLAG_UNDERLINE", MD_FLAG_UNDERLINE),
     GB_CONSTANT("MD_FLAG_HARD_SOFT_BREAKS", MD_FLAG_HARD_SOFT_BREAKS),
+
+    /* The capability bits above. Not an upstream's constants but this library's
+     * own, and on the table for the same reason every other row is: the Java
+     * enum hard-codes each value, and a bit that disagrees reports the wrong
+     * capability rather than failing. See ADR-0325. */
+    GB_CONSTANT("GOLDBERRY_CAP_SYSTEM_THEME", GOLDBERRY_CAP_SYSTEM_THEME),
+    GB_CONSTANT("GOLDBERRY_CAP_INPUT_METHOD", GOLDBERRY_CAP_INPUT_METHOD),
+    GB_CONSTANT("GOLDBERRY_CAP_DEVICE_HOTPLUG", GOLDBERRY_CAP_DEVICE_HOTPLUG),
+    GB_CONSTANT("GOLDBERRY_CAP_FILE_DIALOG", GOLDBERRY_CAP_FILE_DIALOG),
+    GB_CONSTANT("GOLDBERRY_CAP_SCREENSAVER_INHIBIT", GOLDBERRY_CAP_SCREENSAVER_INHIBIT),
 };
 
 GOLDBERRY_EXPORT const goldberry_layout_entry_t *goldberry_layout_table(void) {

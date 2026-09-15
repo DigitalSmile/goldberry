@@ -24,8 +24,11 @@ public final class GoldberryShim {
     /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026); 5 added
     /// Yoga's node API and its enumerators (ADR-0029); 6 added Blend2D's image
     /// and context surface (ADR-0031); 7 added HarfBuzz shaping (ADR-0032); 9
-    /// added Markdown's encoded event stream and md4c's entity table (ADR-0294).
-    public static final int SUPPORTED_ABI_VERSION = 9;
+    /// added Markdown's encoded event stream and md4c's entity table (ADR-0294);
+    /// 10 added `goldberry_platform_capabilities`, which is what a build that
+    /// cannot ask the desktop anything says about itself (ADR-0325,
+    /// `docs/gaps.md` G32).
+    public static final int SUPPORTED_ABI_VERSION = 10;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

@@ -7594,3 +7594,48 @@ published artifact** — it links against the developer's own glibc.
 Building on native runners produces artifacts, not test coverage, so CI also runs
 the Java tests against the real library on each platform.
 
+
+## What a build can ask the desktop
+
+A native library is not only a set of functions; on Linux it is also a record of
+which development headers were installed on the machine that compiled it. SDL
+compiles its D-Bus, IBus and udev integrations in when it finds the headers and
+**out**, silently, when it does not — and the calls that back them then succeed
+and answer nothing. `Host.systemTheme()` returning empty on a desktop set to dark
+is what that looks like from above, and it looked exactly like a desktop with no
+such setting (`docs/gaps.md` G32,
+[ADR-0325](adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
+
+Three things changed, and they are three layers of the same answer.
+
+**The headers are declared.** `LinuxDependencies` — the table `checkToolchain`
+reads a second before a build starts — lists `dbus-1` as `NEEDED` rather than
+`OPTIONAL`, and has a row for `ibus-1.0`. Each of the three desktop-integration
+rows names the capabilities a library loses without it:
+
+| pkg-config | Debian/Ubuntu | RHEL/Fedora | What a library loses |
+|---|---|---|---|
+| `dbus-1` | `libdbus-1-dev` | `dbus-devel` | `SYSTEM_THEME`, `FILE_DIALOG`, `SCREENSAVER_INHIBIT` |
+| `ibus-1.0` | `libibus-1.0-dev` | `ibus-devel` | `INPUT_METHOD` (X11 only; Wayland needs none) |
+| `libudev` | `libudev-dev` | `systemd-devel` | `DEVICE_HOTPLUG` |
+
+**The superbuild stops.** It probes for the same modules SDL probes for, names
+the package on both package managers when one is missing, and cross-checks its
+own prediction against the `SDL_build_config.h` SDL generated — so "the headers
+are here but SDL compiled it out anyway" is a build failure rather than a library
+that claims what it cannot do. `-Pgoldberry.allowDegradedPlatform=true` (CMake:
+`-DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION=OFF`) builds one on purpose.
+
+**The library says what it is.**
+
+```java
+Set<Capability> capabilities = Goldberry.capabilities();
+```
+
+The bits are compiled into `libgoldberry`, read back through one downcall, and
+checked against C by the same layout probe every other constant goes through.
+They describe the **library**, not the session it runs in: a build that can ask
+reports `SYSTEM_THEME` even where the desktop has no such setting, because "could
+not ask" and "asked and was told nothing" are different facts and only the first
+one is fixable. The `sdl3` backend warns once at start-up when a capability it
+ships an API for is absent, naming the package to install.

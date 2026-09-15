@@ -25,6 +25,8 @@ import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlCursors;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.platform.Capability;
+import io.github.digitalsmile.goldberry.platform.PlatformCapabilities;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Clipboard;
@@ -157,6 +159,7 @@ public final class Sdl3Backend implements Backend {
             // Wayland, and answered here rather than at window creation so the
             // filesystem is read once per process rather than once per window.
             undecoratedWarning = WaylandDecorations.diagnose(Sdl.get().videoDriver());
+            reportAbsentIntegrations(Sdl.get().videoDriver());
             installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
@@ -257,6 +260,40 @@ public final class Sdl3Backend implements Backend {
             // Not fatal: an unpaced loop draws the same pixels, just more of them
             // than anyone will look at.
             LOG.warn("SDL refused {}; the frame loop will not be paced to the display", Sdl.RENDER_VSYNC_HINT);
+        }
+    }
+
+    /// Says, once, when this build of the native library cannot ask the desktop
+    /// something the toolkit ships an API for.
+    ///
+    /// The absences this reports are invisible from above: `Host.systemTheme()`
+    /// answers empty and an input method simply never opens, which is exactly what
+    /// a desktop with no such setting and a user who is not composing look like.
+    /// An application cannot tell those apart and neither can its user, so the one
+    /// thing that can is the layer that knows how it was built (`docs/gaps.md`
+    /// G32, ADR-0325).
+    ///
+    /// A warning rather than a failure: a build without these paints, lays out and
+    /// takes input perfectly well, and refusing to start would be a far larger
+    /// harm than the one being reported.
+    ///
+    /// @param videoDriver what SDL chose, which decides whether the input method
+    ///                    is a question at all
+    private static void reportAbsentIntegrations(String videoDriver) {
+        if (!PlatformCapabilities.has(Capability.SYSTEM_THEME)) {
+            LOG.warn("this libgoldberry was built without the desktop's theme setting:"
+                    + " Host.systemTheme() will answer empty on every desktop, including one set to dark."
+                    + " Its native build needs the D-Bus headers (libdbus-1-dev / dbus-devel)."
+                    + " See docs/gaps.md G32.");
+        }
+        // Only under X11. SDL drives zwp_text_input_v3 from the compositor on
+        // Wayland and needs neither IBus nor Fcitx there, so warning about it on a
+        // Wayland session would be a warning about nothing -- and a warning that
+        // fires when nothing is wrong is how the ones that matter get ignored.
+        if ("x11".equals(videoDriver) && !PlatformCapabilities.has(Capability.INPUT_METHOD)) {
+            LOG.warn("this libgoldberry was built without an input method for X11,"
+                    + " so composing text with IBus or Fcitx will not work in this session."
+                    + " Its native build needs the IBus headers (libibus-1.0-dev / ibus-devel).");
         }
     }
 

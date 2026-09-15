@@ -1269,14 +1269,28 @@ on, which in four cases is the same thing.
   specs in SDL's single `CheckWayland` `pkg_check_modules` — lose any one and the entire
   Wayland driver is dropped *silently*, and the container has no `mesa-libEGL-devel`.
   `libdecor-0` decides whether a Wayland window that does get built has a titlebar and a
-  resize edge, and whether `libdecor-devel` even exists in AlmaLinux 8's repositories is
-  unverified. The manylinux leg runs CMake directly with no JDK, so `checkToolchain`
-  never gets to ask either question, and the drift guard deliberately holds that
-  workflow only to the packages SDL refuses to configure without. Answering it means
-  reading `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` out of a container build's
+  resize edge. The manylinux leg runs CMake directly with no JDK, so `checkToolchain`
+  never gets to ask either question, and the drift guard deliberately held that workflow
+  only to the packages SDL refuses to configure without. Answering it means reading
+  `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` out of a container build's
   `SDL_build_config.h` — not another look at the table. —
   [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md),
   [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+
+  **Half of this moved while G32 was being closed**
+  ([ADR-0325](adr/0325-a-build-says-what-it-can-ask-the-desktop.md)), and what is left is
+  now a packaging problem rather than an unknown. Measured in
+  `quay.io/pypa/manylinux_2_28_x86_64`: `dbus-devel`, `systemd-devel`, `ibus-devel` and
+  `mesa-libEGL-devel` all install and all provide their `.pc` files; `libdecor-devel` and
+  `xkeyboard-config` are **in no repository the container has**, so those two cannot be
+  fixed by adding a line to the workflow. The superbuild does now read SDL's generated
+  `SDL_build_config.h` and cross-checks it against its own probe — for
+  `HAVE_DBUS_DBUS_H`, `HAVE_IBUS_IBUS_H` and `HAVE_LIBUDEV_H`, which is the same
+  machinery this question asks for pointed at three other defines — and the drift guard
+  now also holds `linux.yml` to every package a *capability* depends on. Extending both
+  to `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` is the remaining work, and the
+  honest form of it is probably a `Capability.WINDOW_DECORATIONS`, since the answer for
+  the container may be "it cannot" rather than "install this".
 - **No CI leg exercises Wayland.** `example.yml` and `showcase.yml` both run under
   `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
   is never reached — which is why two consecutive decoration bugs shipped without a

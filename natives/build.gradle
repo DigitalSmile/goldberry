@@ -160,6 +160,21 @@ def resolveTool = { String name ->
 // Resolved at configuration time because `Exec.commandLine` needs a value then.
 // A tool that is absent resolves to null rather than failing here -- checkToolchain
 // owns that error, and it says considerably more than a NullPointerException.
+// Builds a library without the desktop integrations whose headers are missing,
+// instead of stopping (`-Pgoldberry.allowDegradedPlatform=true`).
+//
+// The stop is the default because the alternative is what docs/gaps.md G32 is: a
+// configure that quietly produced a libgoldberry which could not ask the desktop
+// whether it was set to dark, on any Linux machine, for as long as it was
+// shipped. The escape hatch exists because "cannot install a -dev package right
+// now" is a real situation and a toolkit that cannot be built at all in it is
+// worse -- and because a library built this way is no longer silent about it:
+// `Goldberry.capabilities()` reports what it has and the backend warns at
+// start-up (ADR-0325).
+def allowDegradedPlatform = providers.gradleProperty('goldberry.allowDegradedPlatform')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+
 def cmakeExecutable = resolveTool('cmake')
 def ninjaExecutable = resolveTool('ninja')
 
@@ -301,13 +316,23 @@ def checkToolchain = tasks.register('checkToolchain') {
             }
             def manager = LinuxDependencies.managerFor(succeeds('sh', '-c', 'command -v dnf'))
 
-            def absentRequired = absent.findAll { it.required() }
+            // A build made WITHOUT a desktop integration, on purpose. There is one
+            // legitimate reason to want it -- a machine that cannot install the
+            // headers -- and the library it produces is not broken, it is lesser:
+            // it reports the capability as absent and says so at start-up
+            // (docs/gaps.md G32, ADR-0325). The same flag reaches CMake below, so
+            // the two halves of the build cannot disagree about what was asked for.
+            def absentRequired = absent.findAll {
+                it.required() && !(allowDegradedPlatform && it.backsACapability())
+            }
             if (!absentRequired.isEmpty()) {
                 throw new GradleException(
                         LinuxDependencies.missingRequiredMessage(absentRequired, manager))
             }
 
-            def absentOptional = absent.findAll { !it.required() }
+            def absentOptional = absent.findAll {
+                !it.required() || (allowDegradedPlatform && it.backsACapability())
+            }
             if (!absentOptional.isEmpty()) {
                 logger.warn(LinuxDependencies.missingOptionalMessage(absentOptional, manager))
             }
@@ -436,6 +461,9 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // input file, so without them a retarget would not re-configure.
     inputs.property 'targetId', hostTarget.id
     inputs.property 'depsDir', depsDir.map { it.absolutePath }
+    // Toggling this changes what the library can do without changing an input
+    // file, exactly like the two above.
+    inputs.property 'allowDegradedPlatform', allowDegradedPlatform
 
     // Not `outputs.dir cmakeWorkDir`. That directory used to hold `_deps` as
     // well -- 7,500-odd files and 350 MB -- and Gradle fingerprinted the lot on
@@ -459,6 +487,12 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             // No -DGOLDBERRY_*_REF: the superbuild reads gradle/libs.versions.toml
             // itself, which is the whole of ADR-0035.
     ]
+    if (allowDegradedPlatform) {
+        // The other half of the property above. Without this the toolchain check
+        // would wave the missing headers through and CMake would stop on them a
+        // minute later, which is a worse version of the same error.
+        configureArguments << '-DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION=OFF'
+    }
     if (ninjaExecutable != null) {
         configureArguments << "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable.absolutePath}".toString()
     }

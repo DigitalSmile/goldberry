@@ -14,6 +14,10 @@ the desktop's theme, an italic face and text decorations, a picker inside a popu
 panel that takes no keys, a caret under `text-align`, and a router talking to an
 element it had let go of — and all six are closed, in ADR-0317 to ADR-0324.
 
+G32 arrived after them and is closed in ADR-0325. It is the odd one on this list: not a
+capability the toolkit lacked, but one it had and could not use, because the machine that
+built its native library was missing a `-dev` package and nothing anywhere said so.
+
 That six could arrive at once is the list's job working rather than failing: §3 says
 a new brd need gets an entry here *before* any code is written in brd, and every one
 of these was written down, with its stopgap named, before it was built.
@@ -1359,3 +1363,140 @@ covering — so nothing has to be deleted, and `refocus` no longer depends on it
 sees the focus change, cannot intercept it, and has no way to make a `State` tolerate being told
 something after it is gone. The only lever outside is "do not be in that position", which is what the
 stopgap is — and it is a lever every application would have to pull, separately, for ever.
+
+### G32 — the SDL the toolkit ships cannot ask the desktop on Linux — **closed**
+
+**What brd needs.** For [G26](#g26)'s answer to be a real one on Linux. `Host.systemTheme()` is the
+right API and brd is using it as designed; on this desktop it answers empty, so `ThemeChoice.SYSTEM`
+falls back to light on a machine that is set to dark.
+
+**What happens today**, measured rather than guessed, on Ubuntu 26.04 / GNOME / Wayland:
+
+```
+$ gsettings get org.gnome.desktop.interface color-scheme
+'prefer-dark'
+
+$ gdbus call --session --dest org.freedesktop.portal.Desktop \
+      --object-path /org/freedesktop/portal/desktop \
+      --method org.freedesktop.portal.Settings.Read org.freedesktop.appearance color-scheme
+(<<uint32 1>>,)                       # 1 = prefer dark
+
+# and, calling the toolkit's own library directly:
+before SDL_Init: SDL_GetSystemTheme() = 0
+SDL_Init(VIDEO) = true
+video driver = wayland
+after  SDL_Init: SDL_GetSystemTheme() = 0        # 0 = UNKNOWN
+```
+
+The desktop answers. The portal answers. SDL does not.
+
+**Why.** On Linux, SDL's theme detection is **entirely** the D-Bus portal —
+`src/core/linux/SDL_system_theme.c` reads `org.freedesktop.appearance color-scheme` from
+`org.freedesktop.portal.Settings` and subscribes to its `SettingChanged` signal, and there is no second
+path. That whole file is behind `SDL_USE_LIBDBUS`, which is `#define`d only when `HAVE_DBUS_DBUS_H` is,
+which SDL's CMake sets from a **build-time** probe:
+
+```cmake
+dep_option(SDL_DBUS "Enable D-Bus support" ON "${UNIX_SYS}" OFF)
+...
+if(SDL_DBUS)
+  pkg_search_module(DBUS dbus-1 dbus)          # headers, not the library
+```
+
+SDL loads `libdbus-1.so` at *run* time by `dlopen`, but only if the *headers* were present when it was
+compiled. On the machine that built Goldberry's vendored SDL they were not, so:
+
+```
+$ grep DBUS natives/.deps/linux-x64/sdl3-build/include-config-release/build_config/SDL_build_config.h
+/* #undef HAVE_DBUS_DBUS_H */
+```
+
+and `SDL_GetSystemTheme()` is a compile-time constant `UNKNOWN` in every copy of `libgoldberry.so` built
+that way — on every Linux desktop, however it is set.
+
+**It is not only the theme.** The same probe gates more of the same file set, and all of it is off in
+this build:
+
+| `#undef` | what it turns off |
+|---|---|
+| `HAVE_DBUS_DBUS_H` | the system theme **and** its change signal, screensaver inhibit, the portal file dialog |
+| `HAVE_IBUS_IBUS_H`, `HAVE_FCITX` | the **input method on X11** — [G15](#closed) and [G16](#closed), both recorded as closed. Not on Wayland: SDL drives `zwp_text_input_v3` from the compositor there and needs neither, which is why brd's IME work looked fine |
+| `HAVE_LIBUDEV_H` | input-device hotplug |
+
+That is the part worth the entry. A missing `-dev` package silently downgrades three shipped
+capabilities — one of them completely, one on a display server this machine does not happen to be
+using — and nothing in the build or at run time says so. The theme is simply the one that got noticed,
+because it is visible the moment the window opens.
+
+**Why it is not brd's.** Three reasons, and any one is enough. The superbuild is Goldberry's
+([ADR-0003](adr/0003-one-native-library-one-superbuild.md) is brd's record of *its* superbuild; the
+toolkit's is its own). Reading the portal from brd would be brd talking D-Bus to the desktop, which is
+platform integration and exactly what [ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) exists to
+prevent — and it would be a second answer to a question `Host.systemTheme()` already answers, which is
+worse than none. And brd cannot fix the shipped binary for anybody else: the client is distributed with
+`libgoldberry.so` inside it.
+
+**What it would look like.** Two parts, and the second matters more than the first:
+
+1. **Ask for D-Bus on purpose.** `set(SDL_DBUS ON CACHE BOOL "" FORCE)` is already the default; what is
+   missing is that the headers are a declared build dependency of the superbuild, named in the toolkit's
+   build documentation and installed in CI (`libdbus-1-dev` / `dbus-devel`) — as `libibus-1.0-dev` and
+   `libudev-dev` are for the two rows below it.
+2. **Fail, or say so, rather than degrading in silence.** A configure that finds no `dbus-1` should
+   either stop, or print one line that survives into the build log and a capability an application can
+   read back:
+
+   ```java
+   /// What this build of the platform layer can actually do, whatever its API says.
+   Set<Capability> Goldberry.capabilities();   // SYSTEM_THEME, INPUT_METHOD, DEVICE_HOTPLUG, …
+   ```
+
+   An application that could ask would have caught this at start-up instead of shipping a theme control
+   that silently means "light" on one of the three platforms. That second half is the general fix: it is
+   [G23](#closed)'s shape — the toolkit knowing something the application cannot see and being asked for
+   it — rather than a one-off.
+
+**What landed** (ADR-0325). Both halves the entry asked for, and a third it did not.
+
+*The headers are a declared dependency.* `dbus-1` is `NEEDED` in the toolkit's `LinuxDependencies`
+table rather than `OPTIONAL` — the necessity that already means "SDL drops this silently, so fail here
+because SDL will not" — and `ibus-1.0` is a row that did not exist. `linux.yml`, which builds the
+**published** artifact, installs `dbus-devel`, `systemd-devel` and `ibus-devel`; the two Ubuntu
+workflows gain `libibus-1.0-dev`. The CI drift guard used to check that workflow for hard stops only,
+which is why it never noticed; it now checks the package behind every capability.
+
+*The build stops rather than degrading.* The superbuild probes for the same pkg-config modules SDL
+probes for, names the package on both package managers when one is missing, and then cross-checks its
+own prediction against the `SDL_build_config.h` SDL generated — headers present and `HAVE_DBUS_DBUS_H`
+still `#undef` is now a build failure rather than a library that would claim a capability it does not
+have. `-Pgoldberry.allowDegradedPlatform=true` builds one on purpose, for a machine that cannot install
+the package.
+
+*And the library says what it is.*
+
+```java
+Set<Capability> Goldberry.capabilities();   // SYSTEM_THEME, INPUT_METHOD, DEVICE_HOTPLUG,
+                                            // FILE_DIALOG, SCREENSAVER_INHIBIT
+```
+
+The bits are compiled into `libgoldberry` by the superbuild, read back through one downcall, and
+checked against C by the same layout probe every other constant goes through. They describe the
+**library**, not the session: a build that can ask reports `SYSTEM_THEME` even on a desktop that has no
+such setting, because *"could not ask"* and *"asked and was told nothing"* are different facts and only
+the first is fixable — the second is what an empty `Host.systemTheme()` still means. The `sdl3` backend
+also warns once at start-up when a capability it ships an API for is absent, naming the package.
+
+Two things the entry expected are deliberately not true. `INPUT_METHOD` is about **X11** on Linux and
+says so in its javadoc: a Wayland session needs neither IBus nor Fcitx, so a build-time bit cannot mean
+more than "whether an X11 session would have one". And `FILE_DIALOG` reports the **portal**: SDL also
+shells out to `zenity`, so a library without the bit may still open a dialog where that binary happens
+to exist.
+
+**What brd does meanwhile.** Nothing to the platform, and two things to itself. The Settings note under
+the theme control says *"Nothing has told brd what this desktop is set to"* and names the way out,
+rather than the sentence it had before — *"this desktop has no light-or-dark setting"* — which was a
+client confidently blaming the user's machine for its own toolkit's build. And `BrdApp` logs one line at
+start-up when `SYSTEM` is the choice and the answer is empty, because a client that follows the desktop
+and cannot see it is indistinguishable from a client that ignores it. There is **no stopgap to delete**
+when this lands: both are things brd should say regardless, and `DesktopTheme` already reads the real
+answer the moment there is one.

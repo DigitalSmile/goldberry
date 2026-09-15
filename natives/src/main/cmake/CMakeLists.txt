@@ -117,6 +117,158 @@ set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-
 
 message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR})")
 
+# ============================================================================
+# The desktop integrations, asked for on purpose (docs/gaps.md G32, ADR-0325)
+#
+# On Linux, three of the things this toolkit ships an API for are compiled into
+# SDL only if a development package happened to be installed on the machine that
+# built it, and are compiled OUT -- silently, into a call that succeeds and
+# answers nothing -- if it was not:
+#
+#   dbus-1    SDL_GetSystemTheme() and its change event, the XDG portal file
+#             dialog, and the screensaver inhibit. `src/core/linux/
+#             SDL_system_theme.c` is the whole of SDL's theme detection on Linux
+#             and every line of it is behind SDL_USE_LIBDBUS, which SDL #defines
+#             from HAVE_DBUS_DBUS_H -- a BUILD-time probe for the headers. SDL
+#             dlopen()s libdbus-1.so at run time, so the shipped binary needs no
+#             D-Bus installed to USE it; it needed the headers to be able to.
+#   ibus-1.0  the input method on X11. Not on Wayland, where SDL drives
+#             zwp_text_input_v3 from the compositor and needs neither IBus nor
+#             Fcitx -- which is why this one hides: the machine that built it and
+#             the machine that found the bug can both be composing text fine.
+#   libudev   input-device hotplug.
+#
+# All three defaulted to ON already and all three were off in the published
+# library, because "ON" in SDL's CMake means "use it if the headers are there".
+# Nothing said so: not the configure, not the build log, not the run. G32 is that
+# entry, and it was found by an application asking why the toolkit thought a
+# dark desktop had no colour-scheme setting.
+#
+# So the headers are a declared dependency of this superbuild. It probes for the
+# same pkg-config modules SDL probes for, stops rather than shipping a library
+# that cannot ask the desktop anything, and records what it found in the binary
+# itself -- `goldberry_platform_capabilities`, which is what
+# `Goldberry.capabilities()` reads back. A build may still be made without them,
+# on purpose, with -DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION=OFF; what it may no
+# longer do is claim to be the other kind.
+# ============================================================================
+# Probed here, before a single byte is downloaded, so "install this package" is
+# the first thing a configure says rather than the thing it says after cloning
+# 330 MB. The SDL_* options below are set here for the same reason they are set
+# at all -- they have to be in the cache before SDL configures, which is further
+# down.
+option(GOLDBERRY_REQUIRE_PLATFORM_INTEGRATION
+    "Stop the configure when a desktop integration's headers are absent" ON)
+
+# Explicit rather than inherited. Each of these is ON by default in SDL, and
+# writing them down is what makes the intent reviewable: the toolkit wants all
+# three, and a future SDL that flips a default cannot take one away quietly.
+set(SDL_DBUS ON CACHE BOOL "" FORCE)
+set(SDL_IBUS ON CACHE BOOL "" FORCE)
+set(SDL_LIBUDEV ON CACHE BOOL "" FORCE)
+
+set(GOLDBERRY_PLATFORM_DEFINITIONS "")
+
+# Probes for one integration's headers and records the answer.
+#
+# MODULES is a list because SDL's own probe is `pkg_search_module(DBUS dbus-1
+# dbus)`: distributions disagree about the .pc file's name, and a probe that
+# asks for fewer names than SDL does would report absent on a machine SDL builds
+# fine on -- a false alarm is as bad as a silent downgrade, because the next
+# person turns the check off.
+#
+# DEFINE is what the shim compiles against; REQUIRED says whether its absence
+# stops the build. SDL_BUILD_CONFIG is the #define in SDL's generated
+# SDL_build_config.h that this probe is a prediction of -- cross-checked below,
+# once SDL has actually configured.
+function(goldberry_desktop_integration)
+    cmake_parse_arguments(GDI "REQUIRED" "NAME;DEFINE;SDL_BUILD_CONFIG;PURPOSE;APT;DNF" "MODULES" ${ARGN})
+
+    set(_found OFF)
+    if(PKG_CONFIG_FOUND)
+        # Finds the first of MODULES that exists, like SDL's own search.
+        pkg_search_module(GOLDBERRY_PKG_${GDI_NAME} QUIET ${GDI_MODULES})
+        if(GOLDBERRY_PKG_${GDI_NAME}_FOUND)
+            set(_found ON)
+        endif()
+    endif()
+
+    if(_found)
+        message(STATUS "Goldberry desktop integration: ${GDI_NAME} -- ${GDI_PURPOSE}")
+        # list(APPEND) rather than a ";" join: the list starts empty, and joining
+        # onto an empty string leaves a leading separator -- an empty element that
+        # reaches the compiler as `-D`.
+        set(_definitions ${GOLDBERRY_PLATFORM_DEFINITIONS})
+        list(APPEND _definitions ${GDI_DEFINE})
+        set(GOLDBERRY_PLATFORM_DEFINITIONS "${_definitions}" PARENT_SCOPE)
+        set(GOLDBERRY_EXPECT_${GDI_SDL_BUILD_CONFIG} ON PARENT_SCOPE)
+        return()
+    endif()
+
+    set(_how_to_install
+        "  Debian/Ubuntu:       sudo apt install ${GDI_APT}\n"
+        "  RHEL/Fedora/Alma:    sudo dnf install -y ${GDI_DNF}\n")
+
+    if(GDI_REQUIRED AND GOLDBERRY_REQUIRE_PLATFORM_INTEGRATION)
+        message(FATAL_ERROR
+            "No development headers for ${GDI_NAME} (pkg-config: ${GDI_MODULES}).\n"
+            "Without them SDL compiles out ${GDI_PURPOSE}, and the calls that back it "
+            "answer 'the desktop does not say' on a desktop that does -- on every Linux "
+            "session, forever, with no error anywhere. That is docs/gaps.md G32, and this "
+            "is the stop it asked for.\n"
+            ${_how_to_install}
+            "Or configure with -DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION=OFF to build "
+            "without it on purpose: the library then reports the capability as absent "
+            "through Goldberry.capabilities() rather than pretending to have it.")
+    endif()
+
+    # Not required, or required and waived. Either way it is said out loud, in
+    # the build log, naming the package -- which is the whole complaint in G32.
+    message(WARNING
+        "Goldberry: no headers for ${GDI_NAME} (pkg-config: ${GDI_MODULES}).\n"
+        "This libgoldberry will be built WITHOUT ${GDI_PURPOSE}, and will report it as "
+        "absent through Goldberry.capabilities().\n"
+        ${_how_to_install})
+endfunction()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(PkgConfig QUIET)
+    if(NOT PKG_CONFIG_FOUND)
+        message(WARNING
+            "Goldberry: pkg-config is not installed, so the desktop integrations below "
+            "cannot be probed for. SDL will make the same decision from the same absent "
+            "tool and compile all of them out.")
+    endif()
+
+    goldberry_desktop_integration(
+        NAME "D-Bus"
+        MODULES dbus-1 dbus
+        DEFINE GOLDBERRY_PLATFORM_DBUS
+        SDL_BUILD_CONFIG HAVE_DBUS_DBUS_H
+        PURPOSE "the desktop's light-or-dark setting, the portal file dialog and screensaver inhibition"
+        APT libdbus-1-dev
+        DNF dbus-devel
+        REQUIRED)
+
+    goldberry_desktop_integration(
+        NAME "IBus"
+        MODULES ibus-1.0
+        DEFINE GOLDBERRY_PLATFORM_IBUS
+        SDL_BUILD_CONFIG HAVE_IBUS_IBUS_H
+        PURPOSE "the input method on X11 (Wayland needs none)"
+        APT libibus-1.0-dev
+        DNF ibus-devel)
+
+    goldberry_desktop_integration(
+        NAME "udev"
+        MODULES libudev
+        DEFINE GOLDBERRY_PLATFORM_UDEV
+        SDL_BUILD_CONFIG HAVE_LIBUDEV_H
+        PURPOSE "input-device hotplug"
+        APT libudev-dev
+        DNF systemd-devel)
+endif()
+
 # --- The download phase must be audible (ADR-0029) ---------------------------
 #
 # FetchContent clones five repositories totalling roughly 330 MB. Left to its
@@ -276,6 +428,7 @@ set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
+
 # ============================================================================
 # md4c -- the Markdown parser (ADR-0294)
 #
@@ -300,6 +453,57 @@ FetchContent_Declare(md4c
 
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
 FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c)
+
+# --- What SDL actually decided (docs/gaps.md G32) ----------------------------
+#
+# The probe above is a *prediction* of what SDL's own CMake would find. This is
+# the answer, read out of the header SDL just generated -- the same file the gap
+# was diagnosed from:
+#
+#     $ grep DBUS .../build_config/SDL_build_config.h
+#     /* #undef HAVE_DBUS_DBUS_H */
+#
+# Worth reading rather than trusting the prediction, because the two can differ
+# and the difference is exactly the failure being fixed: a machine can have the
+# headers while SDL still compiles the feature out -- a second pkg-config on the
+# PATH, an SDL option flipped in a cache from an earlier configure, or an
+# upstream that renamed the probe. The prediction is what produces a good error
+# message; this is what makes it true.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    file(GLOB _sdl_build_configs
+        "${sdl3_BINARY_DIR}/include-config-*/build_config/SDL_build_config.h"
+        "${sdl3_BINARY_DIR}/include/build_config/SDL_build_config.h")
+
+    if(_sdl_build_configs)
+        list(GET _sdl_build_configs 0 _sdl_build_config)
+        file(READ "${_sdl_build_config}" _sdl_build_config_text)
+
+        foreach(_define IN ITEMS HAVE_DBUS_DBUS_H HAVE_IBUS_IBUS_H HAVE_LIBUDEV_H)
+            set(_sdl_has OFF)
+            if(_sdl_build_config_text MATCHES "\n#define ${_define}")
+                set(_sdl_has ON)
+            endif()
+            if(GOLDBERRY_EXPECT_${_define} AND NOT _sdl_has)
+                message(FATAL_ERROR
+                    "The headers for ${_define} are installed, but SDL configured itself "
+                    "without it:\n"
+                    "  ${_sdl_build_config}\n"
+                    "So this libgoldberry would report a capability it does not have, which "
+                    "is the one outcome docs/gaps.md G32 rules out. Delete the build "
+                    "directory and configure again; if it persists, SDL's probe and this "
+                    "one have diverged and the superbuild is what needs fixing.")
+            endif()
+        endforeach()
+    else()
+        # Not fatal: an upstream that moves its generated header is a broken
+        # cross-check, not a broken library, and the capability bits still say
+        # what the probe found.
+        message(WARNING
+            "Goldberry: SDL's generated SDL_build_config.h was not found under "
+            "${sdl3_BINARY_DIR}, so what SDL compiled in could not be cross-checked "
+            "against this build's own probe (docs/gaps.md G32).")
+    endif()
+endif()
 
 if(NOT EXISTS "${md4c_SOURCE_DIR}/src/md4c.c")
     message(FATAL_ERROR
@@ -379,6 +583,12 @@ target_sources(goldberry PRIVATE
     "${md4c_SOURCE_DIR}/src/md4c.c"
     "${md4c_SOURCE_DIR}/src/entity.c")
 target_include_directories(goldberry PRIVATE "${md4c_SOURCE_DIR}/src")
+
+# What the probe above found, compiled into the library so it can be asked
+# (docs/gaps.md G32, ADR-0325). Empty on macOS and Windows, where the shim needs
+# no flag: every one of these is a system framework there rather than an optional
+# third-party header, and `goldberry_platform_capabilities` says so itself.
+target_compile_definitions(goldberry PRIVATE ${GOLDBERRY_PLATFORM_DEFINITIONS})
 
 set_target_properties(goldberry PROPERTIES
     C_VISIBILITY_PRESET hidden

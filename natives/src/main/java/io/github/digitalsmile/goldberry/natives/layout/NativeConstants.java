@@ -6,6 +6,7 @@ import java.util.List;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
+import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -48,6 +49,14 @@ public final class NativeConstants {
         // theme with no error anywhere (ADR-0322).
         for (var theme : SdlSystemTheme.values()) {
             constants.add(new NativeConstant(theme.nativeName(), theme.value()));
+        }
+        // What this build of the platform layer can actually do. Bits of
+        // libgoldberry's own, not an upstream's, and here for the same reason as
+        // everything else: the Java enum hard-codes each one, and a bit that
+        // disagrees reports the wrong capability rather than failing (ADR-0325,
+        // `docs/gaps.md` G32).
+        for (var capability : NativeCapability.values()) {
+            constants.add(new NativeConstant(capability.nativeName(), capability.bit()));
         }
         // Tray entry kinds and their two optional bits, one of which is
         // 0x80000000 and is therefore the one a hand-copied `int` gets wrong.
