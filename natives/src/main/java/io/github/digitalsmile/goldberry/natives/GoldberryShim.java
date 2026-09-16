@@ -27,8 +27,10 @@ public final class GoldberryShim {
     /// added Markdown's encoded event stream and md4c's entity table (ADR-0294);
     /// 10 added `goldberry_platform_capabilities`, which is what a build that
     /// cannot ask the desktop anything says about itself (ADR-0325,
-    /// `docs/gaps.md` G32).
-    public static final int SUPPORTED_ABI_VERSION = 10;
+    /// `docs/gaps.md` G32); 11 added libwebp's three decoder entry points and the
+    /// `SDL_DropEvent` layout, which are the two halves of `docs/gaps.md` G35
+    /// (ADR-0329, ADR-0330).
+    public static final int SUPPORTED_ABI_VERSION = 11;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

@@ -60,6 +60,9 @@ public final class SdlEventBuffer implements AutoCloseable {
     private static final long EDIT_START_OFFSET = Layouts.SDL_TEXT_EDITING_EVENT.offsetOf("start");
     private static final long EDIT_LENGTH_OFFSET = Layouts.SDL_TEXT_EDITING_EVENT.offsetOf("length");
     private static final long DATA2_OFFSET = Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
+    private static final long DROP_DATA_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("data");
+    private static final long DROP_X_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("x");
+    private static final long DROP_Y_OFFSET = Layouts.SDL_DROP_EVENT.offsetOf("y");
 
     /// Null for a borrowed view — see [#borrowing].
     private final Arena arena;
@@ -222,6 +225,33 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// **Copied immediately.** SDL owns the string and it is valid only until
     /// the next pump, so holding the pointer would be a use-after-free that
     /// shows up as mojibake rather than a crash.
+    /// The dropped file's name, or `""` — `SDL_DropEvent.data`.
+    ///
+    /// Copied out here rather than handed on as a pointer, for
+    /// [#committedText]'s reason: SDL owns the string and frees it at the next
+    /// pump (`docs/gaps.md` G35b, [ADR-0330]).
+    ///
+    /// Empty for `DROP_BEGIN`, `DROP_POSITION` and `DROP_COMPLETE`, which carry
+    /// a NULL there and say so in SDL's own header.
+    public String droppedPath() {
+        var pointer = event.get(ValueLayout.ADDRESS, DROP_DATA_OFFSET);
+        if (MemorySegment.NULL.equals(pointer)) {
+            return "";
+        }
+        return readCString(pointer);
+    }
+
+    /// Where in the window the drop event happened, in SDL's window coordinates.
+    ///
+    /// Zero on `DROP_BEGIN`, which SDL's header says carries no position.
+    public float dropX() {
+        return event.get(ValueLayout.JAVA_FLOAT, DROP_X_OFFSET);
+    }
+
+    public float dropY() {
+        return event.get(ValueLayout.JAVA_FLOAT, DROP_Y_OFFSET);
+    }
+
     public String committedText() {
         var pointer = event.get(ValueLayout.ADDRESS, TEXT_POINTER_OFFSET);
         if (MemorySegment.NULL.equals(pointer)) {

@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
@@ -8,6 +11,8 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.input.drop.FileDrop;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.tap.ModifierTaps;
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -58,6 +63,23 @@ public final class Window implements AutoCloseable {
     private Consumer<LogicalSize> resizeHandler = size -> {};
     private Consumer<LogicalPoint> moveHandler = position -> {};
     private Consumer<DisplayScale> scaleHandler = scale -> {};
+
+    /// Everything listening for a file drop — a list rather than a single
+    /// handler, because a window is one place and a drop concerns whatever is
+    /// under the pointer: a board and a settings panel in the same window both
+    /// have a use for one, and neither should overwrite the other's
+    /// ([ADR-0330]).
+    private final List<Consumer<FileDrop>> dropListeners = new ArrayList<>();
+
+    /// The paths of the gesture currently in progress, in the order they
+    /// arrived. Cleared at the end of every gesture, whether or not anything was
+    /// dropped.
+    private final List<Path> dropping = new ArrayList<>();
+
+    /// Where the last event of the gesture said the pointer was.
+    private float dropX;
+
+    private float dropY;
     private BooleanSupplier closeHandler = () -> true;
 
     /// [BackendWindow#lateFrames()] as of the last frame, so the difference is
@@ -192,6 +214,36 @@ public final class Window implements AutoCloseable {
     public Window onSystemThemeChanged(Consumer<SystemTheme> handler) {
         this.systemThemeHandler = Objects.requireNonNull(handler, "handler");
         return this;
+    }
+
+    /// Called when files are dropped on this window — `docs/gaps.md` G35b.
+    ///
+    /// **Once per gesture**, with every file that was dropped and the point in
+    /// the window they landed on. A desktop reports a drop as a beginning, a
+    /// moving position, one event per file and an end; reassembling that is done
+    /// here so that every application does not do it slightly differently
+    /// ([ADR-0330]).
+    ///
+    /// A [Subscription] rather than a setter, unlike the handlers above it, and
+    /// the difference is real: the others answer a question about the *window* —
+    /// how big it is, where it is, whether it may close — and there is one answer
+    /// to each. A drop is aimed at whatever is under the pointer, which in one
+    /// window is any number of things, so a second listener must not silently
+    /// replace the first. Close the subscription to stop listening.
+    ///
+    /// **Nothing is read and nothing is checked.** The paths are names the
+    /// platform handed over; whether they exist, can be opened or are what they
+    /// claim to be are questions for whoever accepted the drop. A name Java's
+    /// file system will not accept at all is dropped with a log rather than
+    /// taking the gesture down.
+    ///
+    /// ```java
+    /// window.onFileDrop(drop -> board.place(drop.first(), drop.at()));
+    /// ```
+    public Subscription onFileDrop(Consumer<FileDrop> listener) {
+        Objects.requireNonNull(listener, "listener");
+        dropListeners.add(listener);
+        return () -> dropListeners.remove(listener);
     }
 
     /// Decides what happens when the user asks to close the window.
@@ -797,6 +849,44 @@ public final class Window implements AutoCloseable {
     /// Told by the runtime that the desktop's setting changed. One per window,
     /// because the backend sends one per window ([ADR-0322]).
     private java.util.function.@Nullable Consumer<SystemTheme> systemThemeHandler;
+
+    /// One file of a drop landed. Collected; nothing is raised until the gesture
+    /// ends — see [#onFileDrop].
+    void handleFileDropped(String path, float x, float y) {
+        dropX = x;
+        dropY = y;
+        try {
+            dropping.add(Path.of(path));
+        } catch (InvalidPathException e) {
+            // A name this file system will not accept -- a NUL byte, a Windows
+            // reserved character on a path that came from elsewhere. Skipped
+            // rather than thrown: the rest of the drop is still usable, and a
+            // gesture taken down by one bad name is worse than a short list.
+            LOG.warn("a dropped file's name is not a path on this system and was skipped: {}", path, e);
+        }
+    }
+
+    /// The gesture ended. Raises one [FileDrop] if anything arrived, and clears
+    /// the gesture either way.
+    void handleFileDropCompleted(float x, float y) {
+        if (dropping.isEmpty()) {
+            // A drag that crossed the window and left, or a drop of something
+            // that is not a file. There is nothing to tell anyone about.
+            return;
+        }
+        // The position from the end of the gesture when the platform gave one:
+        // some report coordinates on every event of a drop and some only on the
+        // position events, so the last non-zero answer wins.
+        var at = new LogicalPoint(x == 0 && y == 0 ? dropX : x, y == 0 && x == 0 ? dropY : y);
+        var drop = new FileDrop(List.copyOf(dropping), at);
+        dropping.clear();
+        LOG.debug("{} file(s) dropped at {}", drop.count(), at);
+        // Copied, so a listener that unsubscribes itself from inside its own
+        // handler does not disturb the walk.
+        for (var listener : List.copyOf(dropListeners)) {
+            listener.accept(drop);
+        }
+    }
 
     void handleSystemThemeChanged(SystemTheme theme) {
         if (systemThemeHandler != null) {

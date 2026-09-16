@@ -251,4 +251,41 @@ public sealed interface BackendEvent {
     ///               into `text`, or `-1` when the platform reports none
     /// @param length how many chars of it are selected, or `-1` for none
     record TextEditing(BackendWindow window, String text, int start, int length) implements BackendEvent {}
+
+    /// One file of a drag-and-drop gesture landed on the window —
+    /// `docs/gaps.md` G35b, [ADR-0330].
+    ///
+    /// **One event per file, not per gesture**, because that is what every
+    /// platform reports: dropping three files raises three of these and then one
+    /// [FileDropCompleted]. Assembling them into a single
+    /// [io.github.digitalsmile.goldberry.input.drop.FileDrop] is the toolkit's
+    /// job rather than the backend's, so it is written once and can be tested
+    /// without a desktop.
+    ///
+    /// The path is a **string** here and a `Path` above it, for the reason a
+    /// keycode is an int at this seam: what the platform handed over is a name in
+    /// its own encoding, and turning it into something Java's file system agrees
+    /// with is a conversion with a failure mode — a backend should not be the
+    /// place it is decided.
+    ///
+    /// @param x the drop's window-relative x in logical pixels
+    /// @param y the same, vertically
+    record FileDropped(BackendWindow window, String path, float x, float y) implements BackendEvent {
+        public FileDropped {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(path, "path");
+        }
+    }
+
+    /// The drag-and-drop gesture ended — every file that was coming has arrived.
+    ///
+    /// Raised whether or not any [FileDropped] preceded it: a drag that crossed
+    /// the window and left drops nothing, and something still has to clear the
+    /// half-built gesture. It carries the last position the platform reported, so
+    /// a drop whose files arrived without coordinates still knows where it was.
+    record FileDropCompleted(BackendWindow window, float x, float y) implements BackendEvent {
+        public FileDropCompleted {
+            Objects.requireNonNull(window, "window");
+        }
+    }
 }

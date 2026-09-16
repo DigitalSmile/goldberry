@@ -26,6 +26,10 @@ import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
+import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
+import io.github.digitalsmile.goldberry.text.flow.WhiteSpace;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -48,11 +52,32 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// ## What it is made of
 ///
 /// ```
-/// text-area           this node. Clips, focuses, takes the keys and the pointer
-/// ├── text-selection  × n — one per **visual** line the selection covers
-/// ├── text-value      the text, wrapped at the control's width
-/// └── text-caret      the insertion point
+/// text-area            this node. Clips, focuses, takes the keys and the pointer
+/// ├── text-selection   × n — one per **visual** line the selection covers
+/// ├── text-value       the text, wrapped at the control's width
+/// ├── text-caret       the insertion point
+/// └── text-area-gutter the number column's fill and rule, when there is one
 /// ```
+///
+/// ## The line numbers are drawn here, and that is deliberate
+///
+/// [TextAreaGutter] is the strip; the numbers **on** it are a text box this node
+/// builds, because they cannot be child widgets. A widget's children are
+/// described before anything is laid out, and where a hard line ended up is a
+/// fact about the wrap — so a column of number nodes would be a frame behind the
+/// text on every keystroke that changed the line structure, which is exactly the
+/// "looks like it works" failure `docs/gaps.md` G37 is about.
+///
+/// Drawn as **one** paragraph, with a blank line for every line a hard line
+/// wrapped into: `"1\n2\n\n\n3"` is lines one, two — which wrapped into three —
+/// and three. One paragraph in the control's own font at the control's own line
+/// height, scrolled by the control's own offset, so the numbers cannot drift from
+/// the text by construction rather than by agreement ([ADR-0331]).
+///
+/// Their ink is `--gb-gutter-color`, which is [Context#color]'s job: a widget
+/// that draws something the cascade has no property for reads a custom property
+/// for it (ADR-0195). The strip behind them is an ordinary node with ordinary
+/// rules.
 ///
 /// The same three parts `text-input` has, and it reuses their stylesheet rules
 /// unchanged — the two controls should not look like they were designed by
@@ -85,6 +110,8 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 ///                    how many lines its measured height holds
 /// @param fill        whether the height comes from the container rather than from
 ///                    the text ([TextArea#fill])
+/// @param gutter      whether the hard lines are numbered down the left edge —
+///                    [TextArea#gutter(boolean)]
 /// @param disabled    whether it refuses everything
 /// @param readOnly    whether it takes a caret but no edits
 /// @param attributes  the `id` and classes the document wrote
@@ -99,6 +126,7 @@ record TextAreaBox(
         int rows,
         int maxRows,
         boolean fill,
+        boolean gutter,
         boolean disabled,
         boolean readOnly,
         Attributes attributes,
@@ -118,6 +146,34 @@ record TextAreaBox(
     /// preview side by side scrolling opposite ways at wildly different speeds
     /// ([ADR-0314]).
     static final int WHEEL_LINES = 3;
+
+    /// How much room there is on each side of a line number, in logical pixels.
+    ///
+    /// Eight, which is `text-area`'s own horizontal padding — the number column
+    /// reads as a second gutter of the same rhythm rather than as a strip that was
+    /// measured by a different hand. One on each side, so the numbers end a gap
+    /// before the text starts and begin a gap in from the border.
+    ///
+    /// A **token** first, like every other metric a widget has to know in Java:
+    /// `--gb-gutter-gap` moves it, and this is what it falls back to
+    /// (`docs/gaps.md` G37, [ADR-0331]).
+    static final String GUTTER_GAP_TOKEN = "--gb-gutter-gap";
+
+    static final double GUTTER_GAP = 8;
+
+    /// The fewest digits the column is made wide enough for.
+    ///
+    /// Two, so a note of nine lines and a note of ninety have the same margin and
+    /// a document does not visibly shift left the first time it passes line nine.
+    static final int MINIMUM_DIGITS = 2;
+
+    /// The colour the numbers are drawn in — `--gb-gutter-color`, falling back to
+    /// `--gb-text-muted` and then to the control's own ink.
+    ///
+    /// A custom property because the cascade has no declaration for "the ink of
+    /// something this widget draws itself", which is precisely what
+    /// [Context#color] exists for (ADR-0195).
+    static final String GUTTER_COLOR_TOKEN = "--gb-gutter-color";
 
     @Override
     public String cssType() {
@@ -327,14 +383,112 @@ record TextAreaBox(
         for (var i = 0; i < maxRows; i++) {
             parts.add(new Underline(focused && composing.isActive()));
         }
+        // The gutter **last**, so it paints over anything that reached its
+        // column, and appended rather than prepended so the indices every
+        // existing part is placed by do not move. As many numbers as there are
+        // visible lines, for the highlights' reason: a fixed count keeps the
+        // reconciler matching them by position, and one with no line renders
+        // nothing ([ADR-0331]).
+        if (gutter) {
+            parts.add(new TextAreaGutter());
+        }
         return parts;
+    }
+
+    /// The index of [TextAreaGutter] in [#children()].
+    private int gutterIndex() {
+        return 2 * maxRows + 2;
+    }
+
+    /// How wide the number column is, or 0 when there is none.
+    ///
+    /// Wide enough for the **document's** last line number rather than for the
+    /// one on screen, so the text does not slide left and right as a long note is
+    /// scrolled. Measured in this node's own font — a `mono` editor and a body one
+    /// have different digits — which is why it is computed here and handed down
+    /// rather than guessed at either end.
+    private double gutterWidth(ComputedStyle style, Context context, int hardLines) {
+        if (!gutter) {
+            return 0;
+        }
+        var digits = Math.max(
+                MINIMUM_DIGITS, Integer.toString(Math.max(1, hardLines)).length());
+        // Zeros rather than the real digits: every digit in every font this
+        // toolkit ships is the same width as every other, and a column measured
+        // from "18" would be a column that changed width at "11".
+        var sample = context.paragraph(style, "0".repeat(digits));
+        return sample.widthBetween(0, digits) + 2 * context.length(GUTTER_GAP_TOKEN, GUTTER_GAP);
+    }
+
+    /// How many lines somebody typed — the count the numbers run to.
+    ///
+    /// One while the placeholder is showing: a line number belongs to the
+    /// document, and the placeholder is not one.
+    private int hardLines() {
+        if (placeholder) {
+            return 1;
+        }
+        var count = 1;
+        for (var i = 0; i < display.length(); i++) {
+            if (display.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /// The gutter's whole contents, as one paragraph with one line per **visual**
+    /// line the text occupies.
+    ///
+    /// A hard line contributes its number; every line it wrapped into contributes
+    /// an empty one. So `"1\n2\n\n\n3"` is a three-line document whose second
+    /// line wrapped into three, and drawing it at the text's own line height puts
+    /// every number beside the line it belongs to — by construction, rather than
+    /// by two pieces of arithmetic that have to be kept agreeing.
+    ///
+    /// This is the whole of `docs/gaps.md` G37: a column of numbers built outside
+    /// the control is right until the first line that wraps and wrong for every
+    /// line below it, because nothing outside knows where the wrap fell.
+    ///
+    /// **Every** line, not only the visible ones, so the paragraph can be
+    /// scrolled by exactly the offset the text is — the control clips, and the
+    /// lines above and below cost a string each.
+    private String gutterText(List<TextLine> lines) {
+        if (!gutter || lines.isEmpty()) {
+            return "";
+        }
+        var out = new StringBuilder();
+        var number = 0;
+        for (var i = 0; i < lines.size(); i++) {
+            if (i > 0) {
+                out.append('\n');
+            }
+            // The first visual line is line one; every other one starts a **hard**
+            // line only when the character before it is a newline. A wrap starts
+            // inside the text, so this is the whole of the distinction.
+            if (i == 0 || isHardBreak(lines.get(i).start())) {
+                out.append(++number);
+            }
+        }
+        return out.toString();
+    }
+
+    /// Whether the character before `offset` is a newline — which is what makes
+    /// the line starting there a **hard** one rather than a wrap.
+    private boolean isHardBreak(int offset) {
+        return offset > 0 && offset <= display.length() && display.charAt(offset - 1) == '\n';
     }
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var padding = padding(style);
         var paragraph = context.paragraph(style, display);
-        var offset = editor.laidOut(paragraph, padding.left(), padding.top(), style.textAlign());
+        // The gutter's width is decided before the text is laid out, because the
+        // text wraps at what is left over — which is why it is computed from the
+        // document's line count rather than from the layout it is about to cause
+        // ([ADR-0331]).
+        var gutterWidth = gutterWidth(style, context, hardLines());
+        var offset = editor.laidOut(paragraph, padding.left(), padding.top(), gutterWidth, style.textAlign());
 
         var lineHeight = paragraph.font().lineHeight();
         var width = editor.contentWidth();
@@ -360,7 +514,7 @@ record TextAreaBox(
                 var rect = rects.get(i);
                 boxes.add(children.get(i)
                         .position(Position.ABSOLUTE)
-                        .inset(leftTop(rect.x(), rect.y()))
+                        .inset(leftTop(gutterWidth + rect.x(), rect.y()))
                         .size(Length.points((float) rect.width()), Length.points((float) lineHeight)));
             } else {
                 boxes.add(Box.of());
@@ -369,7 +523,7 @@ record TextAreaBox(
 
         boxes.add(children.get(maxRows)
                 .position(Position.ABSOLUTE)
-                .inset(leftTop(0, -offset))
+                .inset(leftTop(gutterWidth, -offset))
                 // A definite width, because an absolutely positioned box has no
                 // parent width to wrap against -- and it is the same number the
                 // caret was measured against, which is what keeps the two from
@@ -385,7 +539,7 @@ record TextAreaBox(
         var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth, align, width);
         boxes.add(children.get(maxRows + 1)
                 .position(Position.ABSOLUTE)
-                .inset(leftTop(caret.x(), caret.y()))
+                .inset(leftTop(gutterWidth + caret.x(), caret.y()))
                 .size(Length.points((float) caretWidth), Length.points((float) lineHeight)));
 
         // The rules under the composition, last so they are drawn over the
@@ -399,10 +553,42 @@ record TextAreaBox(
                 var rect = composed.get(i);
                 boxes.add(children.get(maxRows + 2 + i)
                         .position(Position.ABSOLUTE)
-                        .inset(leftTop(rect.x(), rect.y() + lineHeight - Underline.THICKNESS))
+                        .inset(leftTop(gutterWidth + rect.x(), rect.y() + lineHeight - Underline.THICKNESS))
                         .size(Length.points((float) rect.width()), Length.points((float) Underline.THICKNESS)));
             } else {
                 boxes.add(Box.of());
+            }
+        }
+
+        if (gutter) {
+            // The strip: pinned top **and** bottom so it runs the height of the
+            // control rather than stopping where the text does, and pulled out to
+            // the border on the left so the control's own padding is inside it.
+            boxes.add(children.get(gutterIndex())
+                    .position(Position.ABSOLUTE)
+                    .inset(new Insets(
+                            Length.points((float) -padding.top()),
+                            Length.UNDEFINED,
+                            Length.points((float) -padding.bottom()),
+                            Length.points((float) -padding.left())))
+                    .size(Length.points((float) (gutterWidth + padding.left())), Length.UNDEFINED));
+
+            var numbers = gutterText(lines);
+            if (!numbers.isEmpty()) {
+                var gap = context.length(GUTTER_GAP_TOKEN, GUTTER_GAP);
+                var ink = context.color(GUTTER_COLOR_TOKEN, context.color("--gb-text-muted", style.color()));
+                // Right-aligned against a box one gap narrower than the column, so
+                // every number ends the same distance from the text — and never
+                // wrapped, whatever `white-space` the cascade resolved for the
+                // control, because a line number that wrapped would be nonsense.
+                var flow = new TextFlow(WhiteSpace.NOWRAP, TextOverflow.CLIP, TextAlign.END, TextDecoration.NONE);
+                var column = Math.max(1, gutterWidth - gap);
+                boxes.add(Box.text(context.paragraph(style, numbers), ink, flow)
+                        .position(Position.ABSOLUTE)
+                        // The **same** offset the text is drawn at, which is what
+                        // makes the two scroll together rather than nearly.
+                        .inset(leftTop(0, -offset))
+                        .size(Length.points((float) column), Length.UNDEFINED));
             }
         }
 

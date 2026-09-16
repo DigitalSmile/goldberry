@@ -2235,6 +2235,36 @@ text-area:disabled {
   cursor: not-allowed;
 }
 
+/* The line-number column (docs/gaps.md G37). The strip only -- the numbers on it
+   are drawn by the widget, because where a hard line ended up is a fact about the
+   wrap and a column of number *nodes* would be a frame behind the text on every
+   keystroke that changed the line structure.
+   
+   So this rule owns the fill, and `--gb-gutter-color` below owns the ink.
+   
+   A **fill** and not a rule down its edge: §8's border is a shorthand over four
+   edges at once and has no per-edge longhands, so `border-right` is not a
+   declaration that exists (ADR-0107). One step of surface is what tells the
+   column from the text, which is the same way `table`'s header strip is told from
+   its body. */
+text-area-gutter {
+  background: var(--gb-surface);
+}
+
+/* The numbers' ink, and the room on each side of them. Both are read by the
+   widget rather than applied by the cascade (`TextAreaBox.GUTTER_COLOR_TOKEN`
+   and `GUTTER_GAP_TOKEN`), which is what `Paints.Context.color` and `.length`
+   exist for: a widget drawing something the property set has no declaration for
+   still has to be themeable (ADR-0195, ADR-0251).
+
+   Muted, and deliberately not `--gb-text`: a line number is a landmark you
+   count from rather than something you read, and one in the text's own colour
+   competes with the text for every glance. */
+text-area {
+  --gb-gutter-color: var(--gb-text-muted);
+  --gb-gutter-gap: 8px;
+}
+
 /* ---------------------------------------------------------- color-picker --
  *
  * §4's colour field, and §2's row for it: swatch 24, radius 4; plane 200x160;

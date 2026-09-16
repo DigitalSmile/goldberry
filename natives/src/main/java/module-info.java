@@ -114,6 +114,16 @@ module io.github.digitalsmile.goldberry.natives {
             io.github.digitalsmile.goldberry.html;
     exports io.github.digitalsmile.goldberry.natives.md4c.enums to
             io.github.digitalsmile.goldberry.html;
+    /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,
+    /// ADR-0329).
+    ///
+    /// Blend2D's and Yoga's seal exactly, and for their reason: what an
+    /// application calls is `Image.decode`, which names no type of this module.
+    /// What crosses here is a `ByteBuffer` in and an `int[]` out — the decoded
+    /// buffer is libwebp's for the length of one call and is freed before it
+    /// returns, so there is no lifetime to hand over.
+    exports io.github.digitalsmile.goldberry.natives.webp to
+            io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.yoga to
             io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.yoga.style to

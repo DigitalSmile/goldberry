@@ -108,10 +108,12 @@ goldberry_pin(yoga GOLDBERRY_YOGA_REF)
 goldberry_pin(harfbuzz GOLDBERRY_HARFBUZZ_REF)
 goldberry_pin(sdl3 GOLDBERRY_SDL3_REF)
 goldberry_pin(md4c GOLDBERRY_MD4C_REF)
+goldberry_pin(libwebp GOLDBERRY_LIBWEBP_REF)
 
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
-    "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}")
+    "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}, "
+    "libwebp ${GOLDBERRY_LIBWEBP_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -451,8 +453,53 @@ FetchContent_Declare(md4c
     GIT_PROGRESS TRUE
     SOURCE_SUBDIR do-not-add-this-subdirectory)
 
+# ============================================================================
+# libwebp -- the WebP decoder (docs/gaps.md G35a, ADR-0329)
+#
+# Blend2D is compiled with the PNG, JPEG and QOI codecs and no others, so a WebP
+# -- which is what most screenshot tools now write -- does not decode at all. The
+# format is VP8, which is a video codec; there is no pure-Java answer worth
+# writing, and the reference decoder is BSD and small.
+#
+# **Only `webpdecoder`.** Upstream builds a decoder library out of three object
+# libraries and nothing else, which is what this links; the encoder, the muxer,
+# the demuxer (animation), the near-lossless path and all nine command-line tools
+# are switched off below. Goldberry reads one still frame and writes PNG, so the
+# encoder would be several hundred kilobytes of code nothing can reach.
+#
+# Its headers mark the API `visibility("default")` on GCC and Clang -- unlike
+# Blend2D's and HarfBuzz's, which do not when built statically -- so it needs no
+# entry in the visibility fix-up below. The export list is still what decides
+# what reaches Java.
+FetchContent_Declare(libwebp
+    GIT_REPOSITORY https://github.com/webmproject/libwebp.git
+    GIT_TAG ${GOLDBERRY_LIBWEBP_REF}
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE)
+
+set(WEBP_BUILD_ANIM_UTILS OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_CWEBP OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_DWEBP OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_GIF2WEBP OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_IMG2WEBP OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_VWEBP OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_WEBPINFO OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_LIBWEBPMUX OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_WEBPMUX OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_FUZZTEST OFF CACHE BOOL "" FORCE)
+set(WEBP_BUILD_WEBP_JS OFF CACHE BOOL "" FORCE)
+
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
-FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c)
+FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c libwebp)
+
+if(NOT TARGET webpdecoder)
+    message(FATAL_ERROR
+        "libwebp was fetched but defines no `webpdecoder` target.\n"
+        "That target is the decoder-only library this build links -- see the "
+        "FetchContent block above and ADR-0329. An upstream that renamed it is a "
+        "build failure here rather than a missing symbol at load time.")
+endif()
 
 # --- What SDL actually decided (docs/gaps.md G32) ----------------------------
 #
@@ -604,7 +651,8 @@ target_link_libraries(goldberry PRIVATE
     blend2d::blend2d
     yogacore
     harfbuzz
-    SDL3::SDL3-static)
+    SDL3::SDL3-static
+    webpdecoder)
 
 # ============================================================================
 # Exported surface

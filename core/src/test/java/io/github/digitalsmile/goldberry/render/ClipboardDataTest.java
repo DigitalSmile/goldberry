@@ -168,13 +168,33 @@ class ClipboardDataTest {
         @Test
         @DisplayName("a type this toolkit cannot decode is not offered as an image")
         void unreadableTypesAreNotImages() {
-            // A browser offering only WebP is a paste Goldberry cannot do, and
-            // finding nothing is better than handing bytes to a decoder that will
-            // refuse them.
-            clipboard.write("image/webp", new byte[] {'R', 'I', 'F', 'F'});
+            // An application offering only TIFF is a paste Goldberry cannot do,
+            // and finding nothing is better than handing bytes to a decoder that
+            // will refuse them.
+            //
+            // **This used to be WebP**, and it is not any more: `docs/gaps.md`
+            // G35a closed in ADR-0329 and the offered set grew by two the same
+            // day. That is the set working rather than failing — it is a
+            // statement about what can be decoded, so it moves when that does.
+            clipboard.write("image/tiff", new byte[] {'I', 'I', 42, 0});
 
             assertFalse(Image.onClipboard(clipboard));
             assertTrue(Image.fromClipboard(clipboard).isEmpty());
+        }
+
+        @Test
+        @DisplayName("WebP and GIF are offered now that there are codecs for them")
+        void theTwoNewTypesAreOffered() {
+            // The half of the rule above that is easy to forget: a type the
+            // toolkit *can* read has to be picked up, or the codec is linked in
+            // and unreachable from the one place a picture usually arrives
+            // (`docs/gaps.md` G35a, [ADR-0329]).
+            clipboard.write("image/webp", new byte[] {'R', 'I', 'F', 'F'});
+            assertTrue(Image.onClipboard(clipboard));
+
+            clipboard.clear();
+            clipboard.write("image/gif", new byte[] {'G', 'I', 'F', '8', '9', 'a'});
+            assertTrue(Image.onClipboard(clipboard));
         }
 
         @Test

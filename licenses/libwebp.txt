@@ -1,0 +1,51 @@
+libwebp
+SPDX-License-Identifier: BSD-3-Clause
+Upstream:      https://github.com/webmproject/libwebp
+Licence file:  COPYING
+Bundled as:    statically linked into libgoldberry (the `webpdecoder` target)
+
+The decoder half only. The superbuild switches off the encoder, the muxer, the
+animation demuxer, the near-lossless path and all nine command-line tools, so
+what is linked is `webpdecode`, `webpdspdecode` and `webputilsdecode` and
+nothing else. Three symbols reach Java -- WebPGetInfo, WebPDecodeRGBA and
+WebPFree -- bound directly with no C glue, which is the same arrangement every
+other upstream here has (ADR-0329).
+
+BSD-3-Clause requires the copyright notice, the conditions and the disclaimer to
+travel with a binary redistribution, which is what this file is for.
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- Reference text of BSD-3-Clause (informational until vendored; the upstream
+    copyright line governs and is not reproduced here) ---
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+  * Neither the name of Google nor the names of its contributors may
+    be used to endorse or promote products derived from this software
+    without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

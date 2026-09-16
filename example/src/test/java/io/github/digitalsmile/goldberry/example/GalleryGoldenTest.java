@@ -195,7 +195,14 @@ class GalleryGoldenTest {
     @Test
     @DisplayName("the Forms screen")
     void forms() {
-        paint("gallery-forms", "forms", Theme.NORD_DARK, 1200, 900);
+        // **Taller than the window**, which is what the four-argument form is for.
+        // The gutter card (`docs/gaps.md` G37, ADR-0331) sits in the second half of
+        // the wall, and its whole claim is visible only in the picture: the long
+        // paragraph takes **one** number and three lines' height, so the numbers
+        // below it are where the wrap put them rather than where a column beside
+        // the control would have guessed. A golden that stopped at 900 would not
+        // photograph the one thing that card exists to show.
+        paint("gallery-forms", "forms", Theme.NORD_DARK, 1200, 1500);
     }
 
     @Test

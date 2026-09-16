@@ -633,12 +633,18 @@ description had no effect.
 - **No image cache.** Decoding the same file twice decodes it twice. A cache
   wants an eviction policy and a key that is not a `byte[]`, and an application
   holding its own `Map<Id, Image>` is what a value type makes easy.
-- **PNG is the only format written.** The decoder reads PNG, JPEG and QOI;
+- **PNG is the only format written.** The decoder reads PNG, JPEG, QOI, WebP and
+  GIF ([ADR-0329](adr/0329-two-more-codecs-one-fetched-and-one-written.md));
   `encodePng` writes the first. JPEG encoding would be seven more exported
-  symbols and a codec object family, and is a decision with its own reasons
-  rather than a side effect of this one.
-- **One frame only.** `bl_image_read_from_data` decodes a single image; an APNG
-  or an animated GIF is a sequence and a clock, and would be its own record.
+  symbols and a codec object family, and WebP encoding is the half of libwebp
+  this build deliberately does not compile; both are decisions with their own
+  reasons rather than a side effect of this one.
+- **One frame only.** A GIF decodes to its **first** frame and an animated WebP
+  does not decode at all — that one needs `webpdemux`, a second library the
+  superbuild does not build. An APNG, an animated GIF or an animated WebP is a
+  sequence and a clock, and would be its own record: a disposal model, a delay
+  per frame and something to drive it. `docs/gaps.md` G35a stopped deliberately
+  short of all three.
 - **No `Image.scaled(...)`.** Scaling happens at the blit, which is where the
   destination size is known. A resampled *copy* — for a thumbnail written to disk
   — is a different operation and would need a filter argument that
@@ -700,8 +706,12 @@ description had no effect.
   deliver ownership changes and Windows has a viewer chain; what is missing is a
   consumer worth the plumbing.
 - **No file lists.** `text/uri-list` is bytes like anything else and works today,
-  but nothing turns those bytes into paths, and a drag-and-drop of files is a
-  different platform mechanism again (`SDL_EVENT_DROP_FILE`), unbound.
+  but nothing turns those bytes into paths. **Drag-and-drop is a different
+  platform mechanism and is built now**: `Window.onFileDrop` delivers one
+  `FileDrop` per gesture, with the paths and the point they landed on
+  ([ADR-0330](adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
+  unbound there is `SDL_EVENT_DROP_TEXT` — the same shape, and nothing has asked
+  for it.
 - **No primary selection.** X11's middle-click buffer has its own SDL calls
   (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
   the widgets that would fill it — a text field on X11 — would have to know they
@@ -774,9 +784,15 @@ on, which in four cases is the same thing.
   a fix becomes a regression somewhere nobody looked.
 - **A code editor is `goldberry-code`, and that module does not exist.** The
   Markdown screen's editor is a `text-area` in the code face: a caret, a selection,
-  undo, the clipboard and an input method, with no line numbers, no highlighting
-  and no Tab-inserts-a-tab. Tree-sitter is what the highlighting waits on, and the
-  fence's language already reaches the model for it to read (`CodeBlock.language()`).
+  undo, the clipboard and an input method. It has **line numbers** now
+  (`gutter=#true`,
+  [ADR-0331](adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)) and a
+  seam an application can write shortcuts against (`onEdit`/`edit`,
+  [ADR-0332](adr/0332-an-editor-is-handed-the-caret.md)), so `Ctrl+B`,
+  list continuation and `Tab`-indent are an application's to write rather than
+  impossible. What is still missing here is **highlighting** — Tree-sitter is what
+  that waits on, and the fence's language already reaches the model for it to read
+  (`CodeBlock.language()`).
 - **The export list has no paint surface wide enough for a native
   `document_container`.** `goldberry-html` puts litehtml's C++ container inside
   its own native library because FFM cannot implement a virtual class, and that

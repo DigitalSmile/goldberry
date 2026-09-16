@@ -709,6 +709,18 @@ public final class Sdl3Backend implements Backend {
         return false;
     }
 
+    /// Where the drag currently in progress last was, in the window's own
+    /// logical coordinates.
+    ///
+    /// SDL reports a drop as a run of events and only some of them carry a
+    /// position — `DROP_BEGIN` carries none at all, and which of the others do is
+    /// a platform's business. So the last answer is kept here and handed to
+    /// whatever lands, which is what makes "these files, **there**" answerable
+    /// (`docs/gaps.md` G35b, [ADR-0330]).
+    private float dropX;
+
+    private float dropY;
+
     private void translate(int type, int windowId, List<BackendEvent> out) {
         if (type == SdlEventType.SYSTEM_THEME_CHANGED.value()) {
             // No window of its own either: the desktop changed, so every window
@@ -857,6 +869,33 @@ public final class Sdl3Backend implements Backend {
                     eventBuffer.wheelTicksX(),
                     -eventBuffer.wheelTicksY(),
                     Sdl.get().modifierState()));
+        } else if (type == SdlEventType.DROP_BEGIN.value()) {
+            // No position on this one, per SDL's header, and nothing to report:
+            // it is read only so a gesture starts from a known place
+            // (`docs/gaps.md` G35b, [ADR-0330]).
+            dropX = 0;
+            dropY = 0;
+        } else if (type == SdlEventType.DROP_POSITION.value()) {
+            // Kept rather than forwarded. What it carries is *where*, which the
+            // drop that follows may or may not repeat depending on the platform —
+            // so the last answer is held and handed to whatever lands.
+            var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+            dropX = at[0];
+            dropY = at[1];
+        } else if (type == SdlEventType.DROP_FILE.value()) {
+            // Copied out of SDL's memory here for TEXT_INPUT's reason: the
+            // pointer dies at the next pump.
+            var path = eventBuffer.droppedPath();
+            if (!path.isEmpty()) {
+                var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+                if (at[0] != 0 || at[1] != 0) {
+                    dropX = at[0];
+                    dropY = at[1];
+                }
+                out.add(new BackendEvent.FileDropped(window, path, dropX, dropY));
+            }
+        } else if (type == SdlEventType.DROP_COMPLETE.value()) {
+            out.add(new BackendEvent.FileDropCompleted(window, dropX, dropY));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
             // Usually the window moving to another monitor, which is also the one
             // case where the cached refresh rate can be wrong -- and wrong for the

@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.example.Showcase;
 import io.github.digitalsmile.goldberry.image.Image;
+import io.github.digitalsmile.goldberry.image.ImageFormat;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
@@ -69,6 +70,11 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///    the same image is drawn twice in the same frame (ADR-0283). Its natural
 ///    size is one image pixel per *device* pixel, so it is crisp at 200% rather
 ///    than twice as big.
+/// 5. **The format comes from the bytes.** The codecs card draws the same 96×64
+///    picture decoded from PNG, QOI, WebP, GIF and JPEG, labelled with what
+///    `ImageFormat` read out of each file's first twelve bytes — never its name.
+///    Two of the five did not decode at all before ADR-0329, and which decoder
+///    each goes to is invisible from here, which is the point.
 ///
 /// ## The data is a constant, and the pointer starts nowhere
 ///
@@ -80,7 +86,8 @@ public record CanvasScreen() implements Widget.Stateful {
 
     private static final String NOTE =
             "§1's `canvas` — the one widget an application writes its own drawing into. Everything"
-                    + " here is `paint.Path`, `Stroke`, `Gradient` and `image.Image`: no drawing on"
+                    + " here is `paint.Path`, `Stroke`, `Gradient` and `image.Image` — five formats"
+                    + " of it: no drawing on"
                     + " this screen names a type from the native layer, and none of it could have"
                     + " been written that way before. Move the pointer over the lower two cards.";
 
@@ -135,6 +142,72 @@ public record CanvasScreen() implements Widget.Stateful {
             }
         }
     }
+
+    /// The same 96x64 picture, written five ways — `docs/gaps.md` G35a,
+    /// [ADR-0329].
+    ///
+    /// One entry per format [Image#decode(byte[])] reads. The point of the card
+    /// they feed is that **the format comes from the bytes**: the name under each
+    /// tile is [ImageFormat#of] reading the file's first twelve bytes, never its
+    /// extension, and the picture above it is what the codec that name chose
+    /// produced.
+    ///
+    /// Two of the five did not decode at all before ADR-0329, and they are
+    /// answered differently: WebP is VP8 and goes to libwebp, GIF is nine pages
+    /// and goes to a decoder this toolkit wrote. Neither is visible from here,
+    /// which is the whole idea.
+    ///
+    /// A holder class for [Sample]'s reason — decoded on first paint rather than
+    /// when a screen is built, so the shape tests can inflate this document with
+    /// no rasterizer under them.
+    private static final class Codecs {
+
+        /// In the order they are drawn: the lossless three first, then the two
+        /// that lose something, so the differences below read left to right.
+        private static final List<Coded> ALL = load();
+
+        private Codecs() {}
+
+        private static List<Coded> load() {
+            var files = List.of(
+                    "canvas-sample.png",
+                    "canvas-sample.qoi",
+                    "canvas-sample.webp",
+                    "canvas-sample.gif",
+                    "canvas-sample.jpg");
+            var out = new ArrayList<Coded>(files.size());
+            for (var file : files) {
+                var bytes = read(file);
+                // The **bytes** decide, which is what this card exists to show:
+                // `canvas-sample.jpg` would decode identically if it were called
+                // `canvas-sample.txt`, and a PNG with a `.gif` name still decodes.
+                var format = ImageFormat.of(java.nio.ByteBuffer.wrap(bytes));
+                out.add(new Coded(format, bytes.length, Image.decode(bytes)));
+            }
+            return List.copyOf(out);
+        }
+
+        private static byte[] read(String file) {
+            try (var bytes = CanvasScreen.class.getResourceAsStream(file)) {
+                if (bytes == null) {
+                    throw new IllegalStateException(file + " is not on the classpath beside CanvasScreen");
+                }
+                return bytes.readAllBytes();
+            } catch (IOException e) {
+                throw new UncheckedIOException("cannot read " + file, e);
+            }
+        }
+    }
+
+    /// One tile of the codecs card: what the bytes turned out to be, how many of
+    /// them there were, and the picture they decoded to.
+    ///
+    /// @param format what [ImageFormat#of] made of the first twelve bytes
+    /// @param bytes  the file's size, which is the only thing that differs
+    ///               visibly between the three lossless entries
+    /// @param image  the decoded picture — a value, so it is a field here with
+    ///               nothing to close (ADR-0283)
+    private record Coded(ImageFormat format, int bytes, Image image) {}
 
     /// A widget tree rendered with no window, decoded back from the PNG it was
     /// encoded to.
@@ -412,6 +485,49 @@ public record CanvasScreen() implements Widget.Stateful {
                     Path.circle(8 + strip * 0.5f, 124, 18), Stroke.round(1.5).dash(Dash.of(0.5, 6)), ACCENT);
         }
 
+        /// The same picture, decoded from five different formats.
+        ///
+        /// `docs/gaps.md` G35a's card, and it is deliberately boring to look at:
+        /// five tiles that are meant to be **identical**, with the name the
+        /// toolkit read out of each file's first twelve bytes under them.
+        /// PNG, QOI and WebP are lossless and are pixel-for-pixel the same
+        /// picture; GIF quantized 958 colours to 255 and JPEG is JPEG, so those
+        /// two are near enough that a reader has to look, which is the honest
+        /// thing for a card about codecs to show.
+        ///
+        /// Static like the two cards above it — this is a golden image, so every
+        /// number in it is written down.
+        private static void paintCodecs(Frame frame, LogicalSize size, CanvasStyle style) {
+            var all = Codecs.ALL;
+            var gap = 8f;
+            // As wide as the card turned out to be, shared out. The aspect ratio
+            // is the picture's own 96x64, so the tiles stay square-ish at any
+            // column width rather than stretching.
+            var tile = Math.max(40, (size.width() - 16 - gap * (all.size() - 1)) / all.size());
+            var tall = tile * 64 / 96;
+            var top = 26f;
+
+            Paragraph.of(style.font(), "One picture, five codecs — and the name comes from the bytes")
+                    .paint(frame, 8, 6, size.width() - 16, MUTED);
+
+            for (var i = 0; i < all.size(); i++) {
+                var coded = all.get(i);
+                var x = 8 + i * (tile + gap);
+                frame.drawImage(coded.image(), x, top, tile, tall);
+                frame.strokePath(Path.roundRect(x, top, tile, tall, 3), Stroke.of(1), MUTED);
+
+                // What `ImageFormat.of` made of the file, not what it was called.
+                Paragraph.of(style.font(), coded.format().name()).paint(frame, x, top + tall + 6, tile, INK);
+                Paragraph.of(style.font(), coded.bytes() / 1000 + "." + coded.bytes() / 100 % 10 + " kB")
+                        .paint(frame, x, top + tall + 22, tile, MUTED);
+            }
+
+            // The two that are not exact, said out loud rather than left for a
+            // reader to wonder about.
+            Paragraph.of(style.font(), "GIF quantizes to 255 colours and JPEG is lossy; the other three are exact")
+                    .paint(frame, 8, top + tall + 46, size.width() - 16, MUTED);
+        }
+
         /// Why a paste found nothing, in the words of what is actually there.
         ///
         /// "There is no image" and "there is an image in a format this toolkit
@@ -648,6 +764,15 @@ public record CanvasScreen() implements Widget.Stateful {
                                             + " rectangle, cropped to a source region, and faded. Click it,"
                                             + " then Ctrl+V drops a screenshot under the pointer and Ctrl+C"
                                             + " copies this picture out.")),
+                            captioned(
+                                    "Five formats, one picture",
+                                    id("codecs-card"),
+                                    new Canvas(CanvasState::paintCodecs, id("codecs")),
+                                    caption("PNG, QOI, WebP, GIF and JPEG — the same 96×64 picture, decoded"
+                                            + " by `Image.decode` and drawn side by side. Nothing here names"
+                                            + " a format: the label under each tile is what `ImageFormat`"
+                                            + " read out of the file's first twelve bytes, so a `.png` full"
+                                            + " of JPEG would still decode and still say JPEG.")),
                             captioned(
                                     "Rendered with no window",
                                     id("rendered-card"),

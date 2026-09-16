@@ -131,8 +131,22 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     ///
     /// @return the colour as `0xAARRGGBB`, or 0 for "the stylesheet decides"
     public static int colour(KdlNode node) {
-        var british = node.stringProperty("colour");
-        var parsed = CssColor.parse(british != null ? british : node.stringProperty("color"));
+        return colour(node, "colour", "color");
+    }
+
+    /// A colour under a name of the caller's choosing, spelled either way.
+    ///
+    /// `dot-colour="#bf616a"` and `dot-color="#bf616a"` both answer, for
+    /// [#colour(KdlNode)]'s reason — a widget that carries more than one colour
+    /// needs more than one name, and each of them still has two spellings
+    /// (`docs/gaps.md` G36, [ADR-0328]).
+    ///
+    /// @param british the property as this repository's prose spells it
+    /// @param american the same property as CSS spells it
+    /// @return the colour as `0xAARRGGBB`, or 0 for "the stylesheet decides"
+    public static int colour(KdlNode node, String british, String american) {
+        var written = node.stringProperty(british);
+        var parsed = CssColor.parse(written != null ? written : node.stringProperty(american));
         return parsed == null ? 0 : parsed;
     }
 

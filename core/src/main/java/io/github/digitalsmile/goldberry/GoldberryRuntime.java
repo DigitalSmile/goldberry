@@ -191,6 +191,8 @@ final class GoldberryRuntime {
             case BackendEvent.TextInput text -> window.handleTextInput(text.text());
             case BackendEvent.TextEditing preedit ->
                 window.handlePreedit(preedit.text(), preedit.start(), preedit.length());
+            case BackendEvent.FileDropped dropped -> window.handleFileDropped(dropped.path(), dropped.x(), dropped.y());
+            case BackendEvent.FileDropCompleted done -> window.handleFileDropCompleted(done.x(), done.y());
         }
     }
 

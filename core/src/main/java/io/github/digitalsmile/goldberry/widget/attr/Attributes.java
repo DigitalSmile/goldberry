@@ -31,14 +31,28 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
 public record Attributes(
-        @Nullable String id, Set<String> classes, Object key, String tooltip, String contextMenu, String name) {
+        @Nullable String id,
+        Set<String> classes,
+        Object key,
+        String tooltip,
+        String contextMenu,
+        String name,
+        @Nullable Runnable onPointerEnter,
+        @Nullable Runnable onPointerExit) {
 
     /// No id, no classes, no key, no tooltip, no name — what a widget built in
     /// Java gets unless it says otherwise.
-    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null, null);
+    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null, null, null, null);
 
     public Attributes {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
+    }
+
+    /// The six that every widget had before a hover hook was one of them, kept
+    /// for the reason the three-argument form is (`docs/gaps.md` G33,
+    /// [ADR-0327]).
+    public Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu, String name) {
+        this(id, classes, key, tooltip, contextMenu, name, null, null);
     }
 
     /// The three that every widget had before a tooltip was one of them.
@@ -64,7 +78,15 @@ public record Attributes(
     /// a tooltip is not a property of being a button, and a catalog where each
     /// control had to remember to carry one would have thirty chances to forget.
     public Attributes tooltip(String text) {
-        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text, contextMenu, name);
+        return new Attributes(
+                id,
+                classes,
+                key,
+                text == null || text.isBlank() ? null : text,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit);
     }
 
     /// This, with the name of the menu a right-click should open —
@@ -76,7 +98,15 @@ public record Attributes(
     /// a thing that has to be opened, and opening needs a window
     /// (ADR-0108).
     public Attributes contextMenu(String menuId) {
-        return new Attributes(id, classes, key, tooltip, menuId == null || menuId.isBlank() ? null : menuId, name);
+        return new Attributes(
+                id,
+                classes,
+                key,
+                tooltip,
+                menuId == null || menuId.isBlank() ? null : menuId,
+                name,
+                onPointerEnter,
+                onPointerExit);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -87,18 +117,18 @@ public record Attributes(
     /// did not double as a key would be an id that looks like it identifies the
     /// node and does not, which is [#of(KdlNode)]'s rule too.
     public Attributes id(String id) {
-        return new Attributes(id, classes, id, tooltip, contextMenu, name);
+        return new Attributes(id, classes, id, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
     }
 
     /// This, with a different set of classes.
     public Attributes classes(String... names) {
-        return new Attributes(id, Set.of(names), key, tooltip, contextMenu, name);
+        return new Attributes(id, Set.of(names), key, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
-        return new Attributes(id, classes, key, tooltip, contextMenu, name);
+        return new Attributes(id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
     }
 
     /// This, with the text a reader should announce it as — `docs/core-widgets.md`
@@ -115,7 +145,68 @@ public record Attributes(
     /// wins when it is set, because an author writing one has said something the
     /// widget could not work out.
     public Attributes name(String text) {
-        return new Attributes(id, classes, key, tooltip, contextMenu, text == null || text.isBlank() ? null : text);
+        return new Attributes(
+                id,
+                classes,
+                key,
+                tooltip,
+                contextMenu,
+                text == null || text.isBlank() ? null : text,
+                onPointerEnter,
+                onPointerExit);
+    }
+
+    /// This, with something to run when the pointer **enters** this node's
+    /// subtree.
+    ///
+    /// `docs/gaps.md` G33. The toolkit has derived
+    /// [io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind#ENTERED]
+    /// and `EXITED` since the router was written, and until now only a menu could
+    /// hear them: `menu-title` and `item` each take an `onHovered` because a menu
+    /// bar opens on hover, and nothing else could ask. A hover-hold preview on a
+    /// search result is the same fact about the pointer and is not a menu item,
+    /// and choosing a widget for its event hook is the tail wagging the dog.
+    ///
+    /// Here rather than as a `HoverRegion` widget for the reason a tooltip is
+    /// here: this is a cross-cutting node property, it composes with **any**
+    /// widget rather than wrapping one, and a container that existed only to
+    /// report an event would be a second way to spell something the node already
+    /// has ([ADR-0327]).
+    ///
+    /// ## It is the subtree, not the node
+    ///
+    /// `:hover` applies to a node and every ancestor of it — `.card:hover .title`
+    /// has to work — and this is the same walk. So a hook on a `row` fires once
+    /// when the pointer arrives anywhere inside it and once when it leaves
+    /// altogether, and moving between the row's own children raises nothing.
+    ///
+    /// ## It consumes nothing
+    ///
+    /// A press that lands inside still belongs to whatever is inside. The event
+    /// these are derived from is synthetic and is delivered to the node rather
+    /// than down a chain, so there is nothing here that could swallow a click —
+    /// which is the difference between this and the widget the stopgap was.
+    ///
+    /// @param action what to run, or null to carry none
+    public Attributes onPointerEnter(Runnable action) {
+        return new Attributes(id, classes, key, tooltip, contextMenu, name, action, onPointerExit);
+    }
+
+    /// This, with something to run when the pointer **leaves** this node's
+    /// subtree — [#onPointerEnter]'s other half, and its rules exactly.
+    ///
+    /// **A node unmounted under the pointer still hears its exit**, which is the
+    /// case a hover-hold has to survive. The router lets go of an element that
+    /// leaves the tree and re-hit-tests against the frame just painted
+    /// ([ADR-0303]), and that is the same walk these are raised from — so the exit
+    /// arrives on the frame the router notices rather than never.
+    ///
+    /// What is still not guaranteed is a teardown with no frame after it: a window
+    /// closing takes its tree with it and nobody is told. A caller holding a timer
+    /// cancels it on dispose as well, which is what a `tooltip` already does
+    /// ([ADR-0327]).
+    public Attributes onPointerExit(Runnable action) {
+        return new Attributes(id, classes, key, tooltip, contextMenu, name, onPointerEnter, action);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as
@@ -139,6 +230,9 @@ public record Attributes(
                 }
             }
         }
+        // No hover hooks: a `Runnable` is not a KDL value, and the registry that
+        // turns `press="app.save"` into one is the inflater's `Wiring` rather
+        // than this method's — see [#onPointerEnter] and ADR-0327 §"markup".
         return new Attributes(
                 id,
                 classes,

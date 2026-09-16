@@ -84,7 +84,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 10u
+#define GOLDBERRY_ABI_VERSION 11u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -339,6 +339,20 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_TextEditingEvent, start),
     GB_FIELD(SDL_TextEditingEvent, length),
 
+    /* Files dropped on a window (sec. G35b, ADR-0330). The two floats between
+     * `windowID` and the two pointers are what make this worth probing: the
+     * compiler pads four bytes before `source` to align it, and a layout that
+     * counted by hand would read the dropped path out of the middle of a
+     * pointer. */
+    GB_STRUCT(SDL_DropEvent),
+    GB_FIELD(SDL_DropEvent, type),
+    GB_FIELD(SDL_DropEvent, timestamp),
+    GB_FIELD(SDL_DropEvent, windowID),
+    GB_FIELD(SDL_DropEvent, x),
+    GB_FIELD(SDL_DropEvent, y),
+    GB_FIELD(SDL_DropEvent, source),
+    GB_FIELD(SDL_DropEvent, data),
+
     GB_STRUCT(SDL_Surface),
     GB_FIELD(SDL_Surface, flags),
     GB_FIELD(SDL_Surface, format),
@@ -387,6 +401,10 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_WINDOW_FOCUS_LOST", SDL_EVENT_WINDOW_FOCUS_LOST),
     GB_CONSTANT("SDL_EVENT_WINDOW_CLOSE_REQUESTED", SDL_EVENT_WINDOW_CLOSE_REQUESTED),
     GB_CONSTANT("SDL_EVENT_SYSTEM_THEME_CHANGED", SDL_EVENT_SYSTEM_THEME_CHANGED),
+    GB_CONSTANT("SDL_EVENT_DROP_FILE", SDL_EVENT_DROP_FILE),
+    GB_CONSTANT("SDL_EVENT_DROP_POSITION", SDL_EVENT_DROP_POSITION),
+    GB_CONSTANT("SDL_EVENT_DROP_COMPLETE", SDL_EVENT_DROP_COMPLETE),
+    GB_CONSTANT("SDL_EVENT_DROP_BEGIN", SDL_EVENT_DROP_BEGIN),
     GB_CONSTANT("SDL_EVENT_USER", SDL_EVENT_USER),
 
     /* The desktop's light-or-dark setting (sec. G26, ADR-0322). Ordinals in a C

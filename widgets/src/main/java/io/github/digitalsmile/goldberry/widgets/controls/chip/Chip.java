@@ -60,6 +60,20 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// icon is a status they do. Asking for both is asking a question that has no
 /// answer, so it is a refusal at construction rather than a drawing decision.
 ///
+/// ## The dot's colour is data, not a class
+///
+/// The dot draws in the toolkit's colour until somebody says otherwise, and for
+/// a status that a stylesheet can name — `chip.danger chip-dot` — that is the
+/// whole story. It is not the whole story for a *Project*: a hue that lives in a
+/// row of a database has no class a rule could be written for, and thirty
+/// projects would be thirty rules an author cannot write in advance.
+///
+/// So [#withDot(int)] takes the colour itself, as `0xAARRGGBB` — the toolkit's
+/// own currency at the paint boundary, which is what keeps a colour *type* out of
+/// the widget API. `0` means "the stylesheet decides", exactly as it does for
+/// every other colour a document may write (`docs/gaps.md` G36,
+/// [ADR-0328]).
+///
 /// ## Selection is the document's, and that is not a `tab`'s answer
 ///
 /// A [io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab]'s `selected` is
@@ -93,6 +107,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                  in it is a coloured dot that nothing can announce (§13)
 /// @param icon      an optional leading icon, mutually exclusive with [#dot]
 /// @param dot       whether to draw the 6-point status dot before the label
+/// @param dotColor  the dot's colour as `0xAARRGGBB`, or 0 for the stylesheet's
+///                  — see [#withDot(int)]
 /// @param selected  mirrored to `:checked` when nothing is bound — see
 ///                  [#resolved()]
 /// @param source    §9's `bind=`, read-only
@@ -109,6 +125,7 @@ public record Chip(
         String label,
         Icon icon,
         boolean dot,
+        int dotColor,
         boolean selected,
         Observable<?> source,
         Runnable onPress,
@@ -124,6 +141,10 @@ public record Chip(
                     "a chip needs a label: a chip is a word you can choose, and one with no word"
                             + " is a coloured dot with nothing to read out (§13)");
         }
+        if (dotColor != 0 && !dot) {
+            throw new IllegalArgumentException("a chip that draws no dot has no dot to colour, and \"" + label
+                    + "\" asked for one; withDot(argb) turns it on as well as colours it");
+        }
         if (dot && icon != null) {
             throw new IllegalArgumentException("a chip takes a leading dot or a leading icon, not both --"
                     + " they are the same status at two resolutions, and \"" + label + "\" asked for each");
@@ -134,12 +155,12 @@ public record Chip(
     /// A chip that only reads — the `badge`-shaped case, with a label and nothing
     /// else.
     public Chip(String label) {
-        this(label, null, false, false, null, null, null, false, Attributes.NONE);
+        this(label, null, false, 0, false, null, null, null, false, Attributes.NONE);
     }
 
     /// A chip you can choose, which is the one this widget exists for.
     public Chip(String label, boolean selected, Runnable onPress) {
-        this(label, null, false, selected, null, onPress, null, false, Attributes.NONE);
+        this(label, null, false, 0, selected, null, onPress, null, false, Attributes.NONE);
     }
 
     /// This chip with a leading icon.
@@ -153,6 +174,7 @@ public record Chip(
                 label,
                 Objects.requireNonNull(value, "icon"),
                 dot,
+                dotColor,
                 selected,
                 source,
                 onPress,
@@ -165,17 +187,35 @@ public record Chip(
     ///
     /// @throws IllegalArgumentException if this chip already has an icon
     public Chip withDot(boolean value) {
-        return new Chip(label, icon, value, selected, source, onPress, onDismiss, disabled, attributes);
+        return new Chip(
+                label, icon, value, value ? dotColor : 0, selected, source, onPress, onDismiss, disabled, attributes);
+    }
+
+    /// This chip with the status dot before its label, **in this colour** —
+    /// `0xAARRGGBB`, or 0 for whatever the stylesheet resolved.
+    ///
+    /// It turns the dot on as well as colouring it, because there is no other
+    /// thing a colour for the dot could mean: a chip with `withDot(0xFFBF616A)`
+    /// and no dot would be a value that says two contradictory things, and the
+    /// constructor refuses that pair rather than picking one.
+    ///
+    /// A colour and not a class name, because the value is **data**: a Project's
+    /// hue is a row in a database, and a stylesheet cannot have a rule per
+    /// Project (`docs/gaps.md` G36, [ADR-0328]).
+    ///
+    /// @throws IllegalArgumentException if this chip already has an icon
+    public Chip withDot(int argb) {
+        return new Chip(label, icon, true, argb, selected, source, onPress, onDismiss, disabled, attributes);
     }
 
     /// This chip chosen, or not. Mirrored to `:checked`.
     public Chip selected(boolean value) {
-        return new Chip(label, icon, dot, value, source, onPress, onDismiss, disabled, attributes);
+        return new Chip(label, icon, dot, dotColor, value, source, onPress, onDismiss, disabled, attributes);
     }
 
     /// This chip reporting that the user chose it.
     public Chip onPress(Runnable handler) {
-        return new Chip(label, icon, dot, selected, source, handler, onDismiss, disabled, attributes);
+        return new Chip(label, icon, dot, dotColor, selected, source, handler, onDismiss, disabled, attributes);
     }
 
     /// This chip with a × that asks for it to be taken away.
@@ -184,12 +224,12 @@ public record Chip(
     /// shows is the application's list, and only the application may shorten it
     /// — `tab`'s `close` exactly (ADR-0063).
     public Chip onDismiss(Runnable handler) {
-        return new Chip(label, icon, dot, selected, source, onPress, handler, disabled, attributes);
+        return new Chip(label, icon, dot, dotColor, selected, source, onPress, handler, disabled, attributes);
     }
 
     /// This chip, disabled or not.
     public Chip disabled(boolean value) {
-        return new Chip(label, icon, dot, selected, source, onPress, onDismiss, value, attributes);
+        return new Chip(label, icon, dot, dotColor, selected, source, onPress, onDismiss, value, attributes);
     }
 
     /// Whether this chip is chosen **right now**: the bound value, or the
@@ -209,7 +249,7 @@ public record Chip(
 
     @Override
     public Chip bound(Observable<?> value) {
-        return new Chip(label, icon, dot, selected, value, onPress, onDismiss, disabled, attributes);
+        return new Chip(label, icon, dot, dotColor, selected, value, onPress, onDismiss, disabled, attributes);
     }
 
     @Override
@@ -219,7 +259,7 @@ public record Chip(
 
     @Override
     public Chip withAttributes(Attributes value) {
-        return new Chip(label, icon, dot, selected, source, onPress, onDismiss, disabled, value);
+        return new Chip(label, icon, dot, dotColor, selected, source, onPress, onDismiss, disabled, value);
     }
 
     @Override
@@ -275,7 +315,7 @@ public record Chip(
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(3);
         if (dot) {
-            parts.add(new ChipDot());
+            parts.add(new ChipDot(dotColor));
         }
         parts.add(new ChipLabel(label));
         if (onDismiss != null) {
@@ -369,14 +409,20 @@ public record Chip(
 
     /// Builds a `chip` from markup.
     ///
-    /// `press=` and `dismiss=` name actions, `icon=` names an icon and `dot`,
+    /// `press=` and `dismiss=` name actions, `icon=` names an icon,
+    /// `dot-colour=`/`dot-color=` names the dot's colour, and `dot`,
     /// `selected` and `disabled` are flags — so every one of §11's three forms
     /// builds the same value, which is what the parity invariant asks for.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var colour = Wiring.colour(node, "dot-colour", "dot-color");
         return new Chip(
                 Wiring.label(node),
                 wiring.icon(node),
-                node.booleanProperty("dot"),
+                // A colour is a dot: `dot-colour=` alone turns it on, which is the
+                // one place markup would otherwise have to write two attributes to
+                // say what `withDot(argb)` says in one ([ADR-0328]).
+                node.booleanProperty("dot") || colour != 0,
+                colour,
                 node.booleanProperty("selected"),
                 wiring.bound(node),
                 wiring.action(node, "press"),

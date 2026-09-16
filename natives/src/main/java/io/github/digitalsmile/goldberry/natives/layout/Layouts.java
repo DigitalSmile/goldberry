@@ -286,6 +286,38 @@ public final class Layouts {
                     MemoryLayout.paddingLayout(4),
                     ValueLayout.ADDRESS.withName("text")));
 
+    /// A file or text dropped on a window — `docs/gaps.md` G35b, [ADR-0330].
+    ///
+    /// ```c
+    /// typedef struct SDL_DropEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; float x; float y;
+    ///     const char *source; const char *data;
+    /// } SDL_DropEvent;
+    /// ```
+    ///
+    /// `data` is the file name for `SDL_EVENT_DROP_FILE` and NULL for the begin,
+    /// position and complete events. It points into SDL's own memory and is valid
+    /// only until the next pump, exactly as `SDL_TextInputEvent.text` is.
+    ///
+    /// The two floats before the pointers are what make the offsets worth
+    /// checking rather than counting by hand: `windowID`, `x` and `y` are three
+    /// four-byte fields, so the compiler pads four bytes before `source` to
+    /// align it — and a hand-written layout that forgot would read the drop's
+    /// path out of the middle of a pointer.
+    public static final NativeStructLayout SDL_DROP_EVENT = new NativeStructLayout(
+            "SDL_DropEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_FLOAT.withName("x"),
+                    ValueLayout.JAVA_FLOAT.withName("y"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("source"),
+                    ValueLayout.ADDRESS.withName("data")));
+
     /// The composition string an input method is assembling, before it is
     /// committed.
     ///
@@ -776,6 +808,7 @@ public final class Layouts {
                 SDL_KEYBOARD_EVENT,
                 SDL_TEXT_INPUT_EVENT,
                 SDL_TEXT_EDITING_EVENT,
+                SDL_DROP_EVENT,
                 SDL_SURFACE,
                 SDL_DISPLAY_MODE,
                 SDL_RECT,

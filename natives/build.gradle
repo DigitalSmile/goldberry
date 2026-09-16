@@ -368,7 +368,7 @@ def checkToolchain = tasks.register('checkToolchain') {
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 def workflowsDir = rootProject.layout.projectDirectory.dir('.github/workflows')
 
-def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'MD4C']
+def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'MD4C', 'LIBWEBP']
 
 tasks.register('checkPinnedRefs') {
     group = 'verification'

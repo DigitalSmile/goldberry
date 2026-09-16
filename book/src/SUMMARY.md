@@ -335,6 +335,13 @@
 - [ADR-0323 An italic is a face, and the matrix closes](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
 - [ADR-0324 A field draws the text its stylesheet resolved](adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)
 - [ADR-0325 A build says what it can ask the desktop](adr/0325-a-build-says-what-it-can-ask-the-desktop.md)
+- [ADR-0326 A value you cannot type into opens at its beginning](adr/0326-a-value-you-cannot-type-into-opens-at-its-beginning.md)
+- [ADR-0327 A hover is a node property, not a menu's](adr/0327-a-hover-is-a-node-property-not-a-menus.md)
+- [ADR-0328 A dot's colour is data](adr/0328-a-dots-colour-is-data.md)
+- [ADR-0329 Two more codecs: one fetched, one written](adr/0329-two-more-codecs-one-fetched-and-one-written.md)
+- [ADR-0330 A dropped file arrives somewhere](adr/0330-a-dropped-file-arrives-somewhere.md)
+- [ADR-0331 A gutter numbers hard lines at soft positions](adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)
+- [ADR-0332 An editor is handed the caret](adr/0332-an-editor-is-handed-the-caret.md)
 
 ---
 

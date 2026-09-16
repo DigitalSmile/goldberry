@@ -108,6 +108,34 @@ public enum SdlEventType {
     /// (`docs/gaps.md` G26, [ADR-0322]).
     SYSTEM_THEME_CHANGED(0x108),
 
+    /// One file of a drag-and-drop gesture was dropped on a window —
+    /// `SDL_EVENT_DROP_FILE` (`docs/gaps.md` G35b, [ADR-0330]).
+    ///
+    /// `SDL_DropEvent.data` is the file's name and dies at the next pump, like
+    /// every other string SDL hands over in an event.
+    DROP_FILE(0x1000),
+
+    /// The pointer moved over the window while a drag was in progress —
+    /// `SDL_EVENT_DROP_POSITION`.
+    ///
+    /// Not surfaced as an event of its own: what it is read for is the
+    /// **position**, which the drop that follows it may or may not carry
+    /// depending on the platform. The backend keeps the last one so a drop always
+    /// knows where it landed.
+    DROP_POSITION(0x1004),
+
+    /// The gesture ended — `SDL_EVENT_DROP_COMPLETE`, which arrives once after
+    /// however many [#DROP_FILE]s there were, and also after a drag that dropped
+    /// nothing.
+    DROP_COMPLETE(0x1003),
+
+    /// A new gesture is starting — `SDL_EVENT_DROP_BEGIN`.
+    ///
+    /// Carries no file and, per SDL's own header, no position. It is read only to
+    /// throw away whatever a previous gesture left behind, which on a platform
+    /// that sent no `DROP_COMPLETE` would otherwise be dropped twice.
+    DROP_BEGIN(0x1002),
+
     USER(0x8000);
 
     private final int value;

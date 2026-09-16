@@ -185,6 +185,23 @@ public final class ShowcaseModel {
     private String bio = "We came down out of the pass at dusk and found the road still "
             + "under snow.\n\nPress Enter for a new line.";
 
+    /// The gutter card's document — `docs/gaps.md` G37's control, with something
+    /// in it worth numbering.
+    ///
+    /// Written so that **one hard line wraps**, which is the whole of what the
+    /// gutter is about: the numbers count lines somebody typed and sit at the y
+    /// the wrap put them at, so the second paragraph takes one number and more
+    /// than one line's height. A document of short lines would show a column of
+    /// numbers and prove nothing ([ADR-0331]).
+    @Bind("app.notes")
+    private String notes = "# Fellowship\n"
+            + "\n"
+            + "The road goes ever on and on, down from the door where it began, and now far "
+            + "ahead the road has gone, and I must follow if I can.\n"
+            + "\n"
+            + "- [ ] Pack the rope\n"
+            + "- [x] Return the ring";
+
     /// The Markdown screen's document, which is **one property read twice**: the
     /// editor on the left writes it through an action and the preview on the right
     /// follows it with `bind=`.
@@ -597,6 +614,11 @@ public final class ShowcaseModel {
         @Action("app.set-bio")
         void setBio(String value) {
             values.bio = value;
+        }
+
+        @Action("app.set-notes")
+        void setNotes(String value) {
+            values.notes = value;
         }
 
         /// Every keystroke in the Markdown editor.

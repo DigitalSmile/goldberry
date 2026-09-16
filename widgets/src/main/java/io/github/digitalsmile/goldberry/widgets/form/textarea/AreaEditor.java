@@ -128,11 +128,17 @@ interface AreaEditor {
     /// glyphs by half the line's slack, and by a different amount on every line
     /// (`docs/gaps.md` G30, [ADR-0324]).
     ///
+    /// The **gutter** comes down here for the same reason: it is a width the
+    /// paint computed from this frame's line count and this node's font, and the
+    /// hit test, the caret and the wrap all measure from the far side of it
+    /// (`docs/gaps.md` G37, [ADR-0331]).
+    ///
+    /// @param gutter how wide the line-number column is, or 0 when there is none
     /// @return how far the content is scrolled **up**, in logical pixels
-    double laidOut(Paragraph paragraph, double leftPadding, double topPadding, TextAlign align);
+    double laidOut(Paragraph paragraph, double leftPadding, double topPadding, double gutter, TextAlign align);
 
-    /// The width the text wraps at — this control's width less its padding, from
-    /// the last frame.
+    /// The width the text wraps at — this control's width less its padding **and
+    /// less its gutter**, from the last frame.
     ///
     /// The last frame's, because `render` runs before Yoga and a box does not
     /// know its width there. It is wrong on the first frame and on the frame a

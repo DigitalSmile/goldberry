@@ -79,6 +79,15 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private double leftPadding;
     private double topPadding;
 
+    /// How wide the line-number column was on the last frame, or 0 when there is
+    /// none — [TextArea#gutter(boolean)].
+    ///
+    /// Beside [#leftPadding] rather than folded into it, because the two are not
+    /// the same number in the two places they are used: the padding is on *both*
+    /// sides and comes off the wrap twice, and the gutter is on one and comes off
+    /// once (`docs/gaps.md` G37, [ADR-0331]).
+    private double gutterWidth;
+
     /// What an input method is composing, or `""` when it is not —
     /// `docs/gaps.md` G16. Beside [#edit] and never in it; see
     /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEditor#compose].
@@ -95,17 +104,33 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput].
     private String lastOffered;
 
+    /// The [TextEdit] the widget last offered through [TextArea#edit(TextEdit)],
+    /// so an edit the application *pushed* can be told from the same one being
+    /// carried by every rebuild since.
+    ///
+    /// [#lastOffered]'s rule exactly, and for its reason: a constant `edit=` that
+    /// were adopted on every build would put the caret back at the application's
+    /// last answer after every keystroke ([ADR-0332]).
+    private @Nullable TextEdit lastPushed;
+
     @Override
     protected void initState() {
         super.initState();
         lastOffered = widget().resolved();
         edit = TextEdit.of(lastOffered);
+        // An area built with an edit already on it opens at that caret rather
+        // than at the end of its value -- the application has said where.
+        lastPushed = widget().edit();
+        if (lastPushed != null) {
+            edit = lastPushed;
+        }
     }
 
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
         follow();
+        adoptPushed();
         var area = widget();
         // A composition ends when the control stops being typed into, and nothing
         // else would clear it: the empty TEXT_EDITING goes to whatever has focus.
@@ -142,6 +167,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
                 area.fill() ? visibleRows() : area.rows(),
                 visibleRows(),
                 area.fill(),
+                area.gutter(),
                 area.disabled(),
                 area.readOnly(),
                 area.attributes(),
@@ -170,6 +196,45 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         }
         edit = edit.withText(offered);
         history.clear();
+    }
+
+    /// Takes an edit the **application** computed, and ignores the one it has
+    /// already taken.
+    ///
+    /// After [#follow], so an area that is both bound and pushed to in one frame
+    /// ends at the caret the application asked for rather than at the clamp a new
+    /// value left behind — which is what every Markdown shortcut is
+    /// (`docs/gaps.md` G38, [ADR-0332]).
+    ///
+    /// Not announced back through [TextArea#reportEdit]: the caller already knows
+    /// what it pushed, and an application mirroring the report into its own state
+    /// would loop.
+    private void adoptPushed() {
+        var pushed = widget().edit();
+        if (pushed == null || pushed.equals(lastPushed)) {
+            return;
+        }
+        lastPushed = pushed;
+        if (pushed.equals(edit)) {
+            return;
+        }
+        var before = edit;
+        edit = pushed;
+        // The application moved the caret, so the content follows it -- the same
+        // rule a keystroke gets (see [#caretMatters]).
+        caretMatters = true;
+        if (!before.text().equals(pushed.text())) {
+            // Recorded, so `Ctrl+Z` undoes a shortcut as it undoes a keystroke --
+            // an application's `**` is an edit and belongs in the same history.
+            history.record(before, pushed, EditHistory.Kind.OTHER);
+        }
+        // `onChange` is **not** raised, and [#lastOffered] is left alone. The
+        // application computed this text, so telling it back would be an echo --
+        // raised from inside `build`, where a `setState` in reply is a rebuild
+        // during a rebuild. What a bound model holds stays the application's, and
+        // [#follow] keeps comparing against what it last offered.
+        preferredColumn = Double.NaN;
+        solid();
     }
 
     /// What it holds, for a test.
@@ -314,8 +379,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         var line = layout.get(index);
         return Optional.of(LogicalRect.of(
                 // Where the line was *drawn*, not where the paragraph starts: a
-                // candidate window under a centred line belongs under the glyphs.
-                (float) indentOf(line),
+                // candidate window under a centred line belongs under the glyphs
+                // — and past the gutter, which the glyphs also are.
+                (float) (gutterWidth + indentOf(line)),
                 (float) (index * lineHeight - scrollOffset),
                 (float) Math.max(1, shaped.widthBetween(line.start(), line.end())),
                 (float) lineHeight));
@@ -353,7 +419,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
         // The press is where the user pressed, so the line's own indent comes off
         // it — the mirror of what the caret adds ([ADR-0324]).
-        var offset = paragraph.offsetAt(line.start(), line.end(), x - leftPadding - indentOf(line));
+        // The gutter comes off as well as the padding: a click at the left edge of
+        // the *text* is a click one gutter's width in from the left edge of the
+        // control ([ADR-0331]).
+        var offset = paragraph.offsetAt(line.start(), line.end(), x - leftPadding - gutterWidth - indentOf(line));
 
         var next = switch (Math.min(clickCount, 3)) {
             // A triple-click is "select the line", and here there really is one.
@@ -440,10 +509,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, double left, double top, TextAlign align) {
+    public double laidOut(Paragraph shaped, double left, double top, double gutter, TextAlign align) {
         paragraph = shaped;
         leftPadding = left;
         topPadding = top;
+        gutterWidth = gutter;
         textAlign = align;
 
         var lineHeight = shaped.font().lineHeight();
@@ -491,6 +561,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         return Math.max(1, (int) Math.floor(content / lineHeight));
     }
 
+    /// How wide the gutter was made on the last frame — what the box insets the
+    /// text by, and 0 when there is no gutter.
+    double gutter() {
+        return gutterWidth;
+    }
+
     /// How far the content has been scrolled up, in logical pixels.
     ///
     /// For the tests, which is where "an area opened on a document shows its first
@@ -519,7 +595,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public double contentWidth() {
-        var measured = bounds.width() - 2 * leftPadding;
+        var measured = bounds.width() - 2 * leftPadding - gutterWidth;
         if (measured > 1) {
             return measured;
         }
@@ -639,6 +715,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             history.record(before, next, kind);
             widget().report(next.text());
         }
+        // **Every** change, including one that moved only the caret: three of the
+        // four things a shortcut needs to know about change no text at all
+        // (`docs/gaps.md` G38, [ADR-0332]).
+        widget().reportEdit(next);
         // Every operation but a vertical move abandons the column, which is why
         // it is cleared here rather than in each of them — and why `moveLine`
         // sets it back *after* calling this.
@@ -656,6 +736,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (changed) {
             widget().report(restored.text());
         }
+        widget().reportEdit(restored);
         solid();
         return true;
     }

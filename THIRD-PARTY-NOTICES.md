@@ -29,6 +29,14 @@ permission notices to travel with it.
 | [Yoga](licenses/yoga.txt) | MIT | <https://www.yogalayout.dev> | Flexbox layout |
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
 | [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` (ADR-0294) |
+| [libwebp](licenses/libwebp.txt) | BSD-3-Clause | <https://github.com/webmproject/libwebp> | WebP decoding — the `webpdecoder` target only, no encoder and no animation demuxer (ADR-0329) |
+
+libwebp is the only BSD-3-Clause component here, and it is the strictest of the
+three licences in this table: the copyright notice, the conditions **and** the
+disclaimer have to travel with a binary redistribution, and the name of the
+copyright holder may not be used to endorse anything derived from it. Its notice
+file therefore has to be vendored verbatim like HarfBuzz's rather than
+paraphrased.
 
 Zlib imposes no notice requirement on binary distribution — only that the origin
 is not misrepresented and altered *source* is marked. The notices are included

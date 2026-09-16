@@ -125,7 +125,24 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     protected void initState() {
         super.initState();
         lastOffered = text(widget());
-        edit = TextEdit.of(lastOffered);
+        edit = opening(lastOffered);
+    }
+
+    /// Where the caret starts in a value the field has just been handed.
+    ///
+    /// [TextEdit#of] for a field somebody is going to type into, and
+    /// [TextEdit#atStart] for a **read-only** one. A field scrolls to keep its
+    /// caret in view, so a value wider than the box shows whichever end the caret
+    /// is at — and for a read-only field that is backwards. There is no "where I
+    /// left off" to preserve in a field that refuses every edit, and the first
+    /// thing a reader wants is the beginning of the value (`docs/gaps.md` G34,
+    /// [ADR-0326]).
+    ///
+    /// Read-only rather than a `caret(int)` a caller has to remember: the
+    /// proposal offered both, and a call site that has to say where the caret
+    /// goes is a call site that can forget to.
+    private TextEdit opening(String value) {
+        return widget().readOnly() ? TextEdit.atStart(value) : TextEdit.of(value);
     }
 
     /// The value the widget last offered, so a *change* to it can be told from a
@@ -159,7 +176,10 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (offered.equals(edit.text())) {
             return;
         }
-        edit = edit.withText(offered);
+        // A read-only field is re-pointed at the start of the new value rather
+        // than keeping an offset from the old one: it is a value that arrived to
+        // be read, exactly as the first one was ([#opening]).
+        edit = widget().readOnly() ? TextEdit.atStart(offered) : edit.withText(offered);
         // Not an undo step: undoing your way back into a value the application
         // set is not an undo.
         history.clear();
@@ -566,6 +586,16 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// negative of it is what every absolutely placed child is inset by.
     private double shift() {
         return scrollOffset - indent;
+    }
+
+    /// How far the content has been scrolled along, in logical pixels.
+    ///
+    /// For the tests, as [io.github.digitalsmile.goldberry.widgets.form.textarea.TextAreaState]'s
+    /// `scrolledBy` is: "a read-only field opens showing the head of its value" is
+    /// a number rather than a picture (`docs/gaps.md` G34). Package-private — how
+    /// far a control has scrolled is nobody else's business.
+    double scrolledBy() {
+        return scrollOffset;
     }
 
     @Override

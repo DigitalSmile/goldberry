@@ -272,6 +272,29 @@ the caret is, what a click landed on, what `Up` means when lines differ in lengt
 and what shape a selection is across a break. The IME's inline composition is the
 one piece not there yet.
 
+### A `text-area` is also an editor
+
+Two things make it one. **`gutter=#true`** numbers the lines you typed, drawn at
+the positions the wrap put them in — so a paragraph that soft-wraps into three
+takes one number and three lines' height, which is the whole reason a column of
+numbers built beside the control does not work
+([ADR-0331](book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)).
+
+**`onEdit` and `edit`** are the seam a shortcut needs
+([ADR-0332](book/src/adr/0332-an-editor-is-handed-the-caret.md)):
+
+```java
+new TextArea(note, model::setNote)
+    .gutter(true)
+    .onEdit(this::remember)              // text, anchor and caret, after every change
+    .edit(pending)                       // an edit the application computed, caret and all
+```
+
+`change=` says what the text is now and nothing about *where*. `Ctrl+B` around a
+selection needs both — and three of the four things a shortcut fires on (a click,
+a selection, a bare caret move) change no text at all, so the caret cannot be
+inferred by diffing two versions of a string.
+
 ## Icons
 
 Lucide's 1544 icons ship in `goldberry-core` as path data in a 24×24 box. They
@@ -296,9 +319,9 @@ the widget model does
 
 ## Images
 
-Encoded bytes become an `Image` — PNG, JPEG and QOI, decoded by the codecs
-already inside `libgoldberry`
-([ADR-0283](book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)):
+Encoded bytes become an `Image` — **PNG, JPEG, QOI, WebP and GIF**
+([ADR-0283](book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md),
+[ADR-0329](book/src/adr/0329-two-more-codecs-one-fetched-and-one-written.md)):
 
 ```java
 var logo = Image.decode(Files.readAllBytes(file));      // or Image.decode(file)
@@ -321,8 +344,18 @@ logical points wide at 100% and 48 at 200% — crisp on both, rather than twice 
 large on the second. `Image.encodePng()` writes one back out, in `java.base`,
 with no native call in the encode.
 
+**The format comes from the bytes**, never from a file name or a `Content-Type`
+nobody set. Three of the five are the rasterizer's own codecs; the other two were
+missing until `docs/gaps.md` G35a and are answered differently, because they are
+not the same size of problem. WebP is VP8 — a video codec — so the build links
+**libwebp**, decoder half only. GIF is a palette, a few block headers and LZW, so
+the toolkit **writes** one, in Java, beside the PNG encoder it already owned. An
+animated GIF decodes to its first frame; an animated WebP does not decode.
+
 There is no `img` widget yet: a `canvas` is how an application draws an image
-today, and the showcase's Canvas screen does exactly that.
+today, and the showcase's Canvas screen does exactly that — its codecs card draws
+the same picture five times, one per format, labelled with what the sniff read out
+of each file.
 
 ### Off the clipboard, and onto it
 

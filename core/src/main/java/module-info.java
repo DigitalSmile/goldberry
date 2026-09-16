@@ -134,6 +134,12 @@ module io.github.digitalsmile.goldberry.core {
     // vocabulary beside it is a value.
     exports io.github.digitalsmile.goldberry.input.tap;
 
+    // Files dropped on a window (`docs/gaps.md` G35b, ADR-0330). Its own package
+    // rather than a type in `input.event`, for `input.tap`'s reason: a drop is a
+    // *gesture* the toolkit assembles out of a run of platform events, and what
+    // an application is handed is the assembled value rather than any of them.
+    exports io.github.digitalsmile.goldberry.input.drop;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through (design-system.md §1.7, ADR-0067).
     // Exported because an application supplies the clock -- a test drives a
@@ -149,6 +155,13 @@ module io.github.digitalsmile.goldberry.core {
     // ways.
     exports io.github.digitalsmile.goldberry.image;
     exports io.github.digitalsmile.goldberry.image.png;
+
+    // The GIF decoder (`docs/gaps.md` G35a, ADR-0329). Exported beside the PNG
+    // encoder and for its reason: both are formats this toolkit owns outright
+    // rather than links, and an application that has a reason to reach one
+    // directly -- a thumbnail pipeline, a test fixture -- should not have to go
+    // through `Image` to do it.
+    exports io.github.digitalsmile.goldberry.image.gif;
 
     // Rendering a scene without a window (ADR-0284): a painter or a whole widget
     // tree into an `image.Image`. Its own package rather than part of `render`,

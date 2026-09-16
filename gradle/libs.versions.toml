@@ -67,6 +67,13 @@ sdl3 = "release-3.4.14"
 # One C file, MIT, CommonMark plus the four extensions GitHub's dialect adds, and
 # it is compiled straight into libgoldberry rather than into a native of its own.
 md4c = "release-0.5.3"
+# libwebp is the reference WebP decoder, and it is here because the toolkit's
+# rasterizer ships PNG, JPEG and QOI and nothing else -- so a screenshot, which in
+# 2026 is what most tools write, does not decode (`docs/gaps.md` G35a, ADR-0329).
+# Only `webpdecoder` is built and linked: the encoder, the muxer, the demuxer, the
+# animation support and every command-line tool are off, because Goldberry reads
+# one still frame and writes PNG.
+libwebp = "v1.6.0"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

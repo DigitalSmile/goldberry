@@ -70,6 +70,20 @@ public record TextEdit(String text, int anchor, int caret) {
         return new TextEdit(text, text.length(), text.length());
     }
 
+    /// `text` with the caret at its **start** and nothing selected — a field that
+    /// has just been given a value nobody is going to type into.
+    ///
+    /// [#of]'s mirror, and the whole difference is which end a viewport narrower
+    /// than the value ends up showing. The caret is what a field scrolls to keep
+    /// in view, so a hundred-character value with the caret at its end opens
+    /// showing its tail; for a value somebody has to *read* — a key, an invite, an
+    /// identifier — the first thing they want is the beginning (`docs/gaps.md`
+    /// G34, [ADR-0326]).
+    public static TextEdit atStart(String text) {
+        Objects.requireNonNull(text, "text");
+        return new TextEdit(text, 0, 0);
+    }
+
     // --- what is selected -----------------------------------------------------
 
     /// The lower of the two offsets.

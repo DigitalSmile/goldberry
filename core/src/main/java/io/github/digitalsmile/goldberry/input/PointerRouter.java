@@ -30,6 +30,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Turns pointer positions into events, pseudo-classes and focus.
@@ -1926,6 +1927,40 @@ public final class PointerRouter {
     private static void emit(Element element, PointerEvent.Kind kind, float x, float y) {
         if (element.widget() instanceof Handles handles) {
             handles.onPointer(new PointerEvent(kind, x, y, null, 0, element));
+        }
+        hook(element, kind);
+    }
+
+    /// Runs the `onPointerEnter`/`onPointerExit` an [Attributes] carries.
+    ///
+    /// `docs/gaps.md` G33. Beside the widget's own handler rather than through
+    /// it, because the whole point is that a widget need not be a [Handles] to
+    /// hear this: a `row` of ordinary boxes is what a hover-hold preview hangs
+    /// off, and making it implement an input interface to be told the pointer
+    /// arrived is choosing a widget for its event hook ([ADR-0327]).
+    ///
+    /// **Nothing is consumed and nothing can be.** The event these two derive
+    /// from is synthetic and goes to one element rather than down a chain — see
+    /// [#updateHover] — so there is no gesture here for a hook to swallow. That
+    /// is the difference between this and a container widget that would have had
+    /// to sit in the tree and pass events through.
+    ///
+    /// After the widget's own handler, so a control that already consumes hover
+    /// — a `menu-title` opening its menu — has done its work before an
+    /// application's hook sees the same arrival.
+    private static void hook(Element element, PointerEvent.Kind kind) {
+        if (!(element.widget() instanceof Attributed<?> attributed)) {
+            return;
+        }
+        var attributes = attributed.attributes();
+        var action =
+                switch (kind) {
+                    case ENTERED -> attributes.onPointerEnter();
+                    case EXITED -> attributes.onPointerExit();
+                    default -> null;
+                };
+        if (action != null) {
+            action.run();
         }
     }
 

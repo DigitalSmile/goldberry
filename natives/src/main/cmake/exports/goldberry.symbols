@@ -559,3 +559,23 @@ goldberry_md_free
 # The HTML5 named-entity table, which ships inside md4c and is 2125 names. A
 # second copy in Java would be a copy that drifts.
 goldberry_md_entity
+
+
+# --- WebP (sec. G35a, ADR-0329) ----------------------------------------------
+#
+# Three symbols, and no C glue: the rasterizer this toolkit ships is compiled
+# with the PNG, JPEG and QOI codecs and no others, so a WebP -- which is what
+# most screenshot tools now write -- did not decode at all. The format is VP8,
+# which is a video codec, so there is no pure-Java answer worth writing.
+#
+# Bound directly rather than through a shim, which is sec. 3.1's rule: WebPGetInfo
+# reads the size out of the header without decoding, WebPDecodeRGBA allocates and
+# decodes one still frame, and WebPFree gives its buffer back. Only the decoder
+# half of libwebp is linked -- the encoder, the muxer and the animation demuxer
+# are switched off in the superbuild.
+#
+# WebPFree and not free(): libwebp may be built against a different allocator
+# than the one this process's free() uses, and upstream says so in as many words.
+WebPGetInfo
+WebPDecodeRGBA
+WebPFree

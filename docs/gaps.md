@@ -7,7 +7,7 @@ belongs in Goldberry.** Drawing, input, text, windows and platform integration a
 boards, notes, CRDT sync and agents are brd's. When brd hits the line, the answer is an entry here —
 not a workaround that quietly becomes a second toolkit.
 
-Updated 2026-09-15.
+Updated 2026-09-16.
 
 **Every entry on this list is closed or answered again.** Six arrived together —
 the desktop's theme, an italic face and text decorations, a picker inside a popup, a
@@ -17,6 +17,19 @@ element it had let go of — and all six are closed, in ADR-0317 to ADR-0324.
 G32 arrived after them and is closed in ADR-0325. It is the odd one on this list: not a
 capability the toolkit lacked, but one it had and could not use, because the machine that
 built its native library was missing a `-dev` package and nothing anywhere said so.
+
+**Six more arrived on 2026-09-15 and 2026-09-16 and are closed in ADR-0326 to ADR-0332** —
+a hover hook for something that is not a menu item, a read-only field that opened at the
+wrong end of its value, two missing codecs and a missing drop event, a `chip` dot that
+took no colour, a line-number gutter, and an editing seam an application can talk to.
+Working notes for that batch are in [gaps-g33-g38.md](gaps-g33-g38.md).
+
+Two of them are worth naming because of *how* they were answered rather than that they
+were. G35a is one gap and two decisions: WebP is VP8, so the toolkit links the reference
+decoder, and GIF is nine pages, so the toolkit writes one. G37 could not be a column of
+number widgets at all — a widget's children are described before anything is laid out, so
+the numbers would have been a frame behind the text on every keystroke that changed the
+line structure.
 
 That six could arrive at once is the list's job working rather than failing: §3 says
 a new brd need gets an entry here *before* any code is written in brd, and every one
@@ -101,6 +114,14 @@ a rule.
 | ~~[G29](#g29)~~ | ~~A panel that never claims the keyboard~~ | **closed** — ADR-0319 | done |
 | ~~[G30](#g30)~~ | ~~A caret that knows about `text-align`~~ | **closed** — ADR-0318, and ADR-0324 for the toolkit's own fields | done |
 | ~~[G31](#g31)~~ | ~~A router that does not talk to elements it has let go of~~ | **closed** — ADR-0317 | done |
+| ~~[G32](#g32)~~ | ~~The SDL the toolkit ships cannot ask the desktop on Linux~~ | **closed** — ADR-0325 | done |
+| ~~[G33](#g33)~~ | ~~Hovering, for something that is not a menu item~~ | **closed** — ADR-0327 | done |
+| ~~[G34](#g34)~~ | ~~A long value in a read-only field opens scrolled to its end~~ | **closed** — ADR-0326 | done |
+| ~~[G35a](#g35)~~ | ~~No codec for GIF or WebP~~ | **closed** — ADR-0329 | done |
+| ~~[G35b](#g35)~~ | ~~A file dropped on a window raises nothing~~ | **closed** — ADR-0330 | done |
+| ~~[G36](#g36)~~ | ~~A `chip`'s dot takes no colour~~ | **closed** — ADR-0328 | done |
+| ~~[G37](#g37)~~ | ~~A line-number gutter on `text-area`~~ | **closed** — ADR-0331 | done |
+| ~~[G38](#g38)~~ | ~~An editing seam an application can talk to~~ | **closed** — ADR-0332 | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -898,6 +919,15 @@ at this and said no" is a result and an entry that quietly disappeared is not.
 | G14 | ADR-0290 | nothing brd had; it is the toolkit's own boundary, and closing it is what makes "`natives.*` is not application API" a compiler error rather than a rule |
 | G12 | ADR-0291 | nothing — it is the entry that was **answered** rather than built: brd writes its own lock, socket and packaging line, and the toolkit stops carrying the question |
 | G17 | ADR-0298 | nothing brd had, and the entry it is: `html-view` renders a page today, and the *engine* half is what was answered — litehtml stays on `book/src/TODO.md` for the inline layout it alone buys |
+| G26–G31 | ADR-0317 to ADR-0324 | the six that arrived together: the theme note's hedge, the italic stopgap, the picker-in-a-popup workaround, the panel's key-swallowing, the caret's own alignment arithmetic, and the router guard |
+| G32 | ADR-0325 | nothing to delete: both the Settings note and the start-up log are things a client should say regardless, and `DesktopTheme` reads the real answer the moment there is one |
+| G33 | ADR-0327 | `HoverRegion` — the `Widget.Leaf` a client owned for an input concern, which is exactly what §5.3 says to delete when the upstream change lands |
+| G34 | ADR-0326 | nothing; there was no stopgap on purpose, and the field opens at the head of its value now |
+| G35a | ADR-0329 | the narrowed intake set: a client's decodable formats become `{PNG, JPEG, GIF, WEBP}`, and `ImageCacheTest.decodableFormats` is the assertion that changes |
+| G35b | ADR-0330 | nothing; the gesture was simply absent, and wiring `AssetService.fromFile` to `window.onFileDrop` is one call |
+| G36 | ADR-0328 | nothing; the pill and the rows were labelled by name, which was complete rather than degraded — `withDot(project.color())` is the line that was waiting |
+| G37 | ADR-0331 | nothing; the pane shipped without line numbers, visibly absent rather than faked |
+| G38 | ADR-0332 | nothing; there was no stopgap on purpose — a caret inferred from a diff is right for typing and wrong for the three cases a shortcut fires on |
 
 ---
 
@@ -1500,3 +1530,379 @@ start-up when `SYSTEM` is the choice and the answer is empty, because a client t
 and cannot see it is indistinguishable from a client that ignores it. There is **no stopgap to delete**
 when this lands: both are things brd should say regardless, and `DesktopTheme` already reads the real
 answer the moment there is one.
+
+### G33 — hovering, for something that is not a menu item — **closed**
+<a id="g33"></a>
+
+**Raised 2026-09-15**, by building the Palette's hover-hold Peek
+([ADR-0033](adr/0033-a-label-on-the-line-a-grip-that-turns-and-four-surfaces-the-shell-owed.md)),
+which is §3.4's *"Peek on hover-hold, push on Enter"*.
+
+**What is missing.** There is no way to be told that the pointer has entered or left an arbitrary
+subtree. The router derives `PointerEvent.Kind.ENTERED` and `EXITED` already — they are documented as
+synthetic, computed from pointer flow — and two widgets consume them: `menu.MenuTitle` and `menu.Item`
+each take an `onHovered`, because a menu bar opens on hover. Nothing else can ask.
+
+**Why that is not enough here.** A Palette row is not a menu item. It is a `row` holding a button, a
+stretch and a label, because §11 wants the *name* to be what a screen reader is told is pressable rather
+than the whole strip. Making it a `menu.Item` to get the hover would be choosing a widget for its event
+hook, which is the tail wagging the dog — and `Item` brings a tick column, an accelerator and a chevron
+that a search result has no use for.
+
+**Proposed.**
+
+```java
+// io.github.digitalsmile.goldberry.widget.attr.Attributes
+public Attributes onPointerEnter(Runnable action);
+public Attributes onPointerExit(Runnable action);
+```
+
+On `Attributes` rather than as a widget, because that is where every other cross-cutting node property
+already lives (`tooltip`, `name`, `contextMenu`) and because it then composes with any widget rather than
+wrapping one. It must **not** consume: a press that lands inside still belongs to whatever is inside, and
+a hover hook that swallowed events would be a row you cannot click.
+
+If that is the wrong shape, the alternative that would also answer is a `HoverRegion` in
+`widgets.core` — a container that reports and consumes nothing.
+
+**What Tessera does meanwhile.** `io.github.digitalsmile.tessera.widgets.hover.HoverRegion`: a `Widget.Leaf`
+implementing `Handles`, whose entire body is a three-arm switch over `event.kind()`. It reimplements
+nothing — the enter and exit events are the toolkit's own — but it is a *widget Tessera owns for an input
+concern*, which is the kind of thing §5.3 says to delete when the upstream change lands. **It is a
+stopgap and is marked as one.**
+
+**Not a defect.** Nothing is broken; the hook has simply only ever been needed by menus, which is why it
+is only on menus.
+
+**Closed — [ADR-0327](../book/src/adr/0327-a-hover-is-a-node-property-not-a-menus.md).** The
+`Attributes` shape, as proposed: `onPointerEnter(Runnable)` and `onPointerExit(Runnable)`, with the
+chainable pair on `Attributed` so they compose with any widget. The router runs them from the same
+walk that moves `:hover`, so a hook is about the **subtree** — one arrival when the pointer enters
+anywhere inside, one departure when it leaves altogether, and nothing in between. They consume
+nothing and cannot: the event is synthetic and is delivered to one element rather than down a chain.
+There is deliberately no markup form; a `Runnable` is not a KDL value and `Attributes.of(KdlNode)`
+has no `Wiring`. **The `HoverRegion` stopgap can go.**
+
+One thing to know: a node unmounted **under** the pointer does still hear its exit — the router lets
+go of a dead element and re-hit-tests against the frame just painted (ADR-0303), which is the same
+walk these are raised from. What is not covered is a teardown with no frame after it, so a caller
+holding a hover-hold timer cancels it on dispose as well.
+
+---
+
+### G34 — a long value in a read-only field opens scrolled to its end — **closed**
+<a id="g34"></a>
+
+**Raised 2026-09-15**, by putting the peer runtime's invite on the Settings page
+([ADR-0037](adr/0037-the-board-in-the-window-is-the-board-on-the-wire.md)). The invite is ~120
+characters of z-base-32 that exists to be selected and copied onto another machine.
+
+**What works.** `TextInput.readOnly(true)` is exactly right and was the fix: it takes focus, selects
+with the pointer and with `Ctrl+A`, copies with `Ctrl+C` through the host's own clipboard, and refuses
+every edit. That is the whole of what a value somebody has to take off the screen needs, and it was
+already there.
+
+**What is missing.** The field opens **scrolled to the end**. `TextEdit.of(text)` puts the caret at
+`text.length()` and the viewport follows the caret, so a value wider than the box shows its tail: a
+person looking at the invite sees `…fiahiyvvqd` rather than `endpointabrq…`. For an *editable* field
+that is right — you type at the end of what is there. For a read-only one it is backwards, because
+nobody is going to type and everybody is going to read from the left.
+
+**Proposed.**
+
+```java
+// io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput
+public TextInput caret(int offset);   // where the caret starts; the view follows it
+```
+
+Or, without new API and probably better: **a read-only field starts its caret at 0**. It cannot be
+typed into, so there is no "where I left off" to preserve, and the first thing a reader wants is the
+beginning of the value. Both would answer this; the second needs no call site to remember anything.
+
+**What Tessera does meanwhile.** Nothing. There is no stopgap, on purpose: the field is *usable* --
+`Ctrl+A`, `Ctrl+C`, and a drag-select all work, and a selection that runs past the edge still copies
+whole -- so what is left is cosmetic, and a Tessera-side hack that re-implemented a caret to fix a
+scroll offset would be exactly what [ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) forbids.
+The entry records it instead.
+
+**Not a defect.** The behaviour is right for the case the widget was built for; read-only is the case
+that had not been looked at.
+
+**Closed — [ADR-0326](../book/src/adr/0326-a-value-you-cannot-type-into-opens-at-its-beginning.md).**
+The second option, which the entry itself called the better one: a read-only field starts its caret
+at 0, on mount and on a value the application sets later. No new widget API and nothing for a call
+site to remember. `TextEdit.atStart(String)` joins `TextEdit.of(String)` as its mirror. An editable
+field still opens at the end, because that is where you type.
+
+### G35 — no codec for GIF or WebP, and no file-drop event — **closed**
+<a id="g35"></a>
+
+**Raised 2026-09-16**, by building the asset pipeline and the image tool
+([ADR-0042](adr/0042-a-picture-has-an-address.md)). Two things, in one entry, because they are the two
+halves of "put a picture on a board" that Tessera cannot do for itself.
+
+#### 35a — GIF and WebP do not decode — **closed**
+
+**What works.** `Image.decode` handles PNG, JPEG and QOI, and handles them well: format from the
+bytes rather than from a name, premultiplied BGRA out, and the decoder's handle destroyed before it
+returns so an `Image` is a value that can go in a cache. All of that is exactly what the board needed.
+
+**What is missing.** Blend2D is built with those three codecs and no others
+([Blend2dImage](../../goldberry/natives/src/main/java/io/github/digitalsmile/goldberry/natives/blend2d/Blend2dImage.java)
+says so in as many words), so a WebP screenshot — which is what most screenshot tools now write — and
+a GIF both throw `ImageDecodeException`.
+
+**Why it matters more than it looks.** The *node* accepts all four, because a browser decodes all
+four, so this is the one place the desktop client and the org node have to disagree about what a valid
+asset is. Tessera handles that honestly — the client narrows its intake set and refuses a WebP with a
+sentence naming the format — but the correct outcome is that it does not have to.
+
+**Proposed.** No new Java API at all; this is a build flag and two dependencies.
+
+```text
+# natives/, alongside the PNG/JPEG/QOI codecs already compiled in
+libwebp   for image/webp  (BSD, ~300 KB, the reference decoder)
++ a GIF decoder, or LodePNG-style single-file if a dependency is unwelcome
+```
+
+If the size is the objection, **WebP alone would close the case that actually occurs**: GIF on a
+whiteboard is rare and WebP is what a 2026 screenshot tool produces.
+
+**What Tessera does meanwhile.** `ImageCache.DECODABLE` is `{PNG, JPEG}`, the client's `AssetLimits`
+are narrowed to it, and intake refuses anything else with `FORMAT_NOT_ACCEPTED` and a message that
+names the format. **This is not a stopgap to delete** — an accepted-format set is a legitimate
+configuration axis and the node uses the wide one — but the client's set becomes `{PNG, JPEG, GIF,
+WEBP}` the day this lands, and `ImageCacheTest.decodableFormats` is the assertion that will need
+changing.
+
+**Closed — [ADR-0329](../book/src/adr/0329-two-more-codecs-one-fetched-and-one-written.md), and it is
+one gap with two answers.** `Image.decode` now sniffs the bytes and routes: PNG, JPEG and QOI to the
+rasterizer as before, WebP to **libwebp** — fetched by the superbuild, decoder target only, three
+symbols bound with no C glue — and GIF to a decoder this toolkit **wrote**, in `:core` beside the PNG
+encoder. The split is the point: VP8 is a video codec and there is no Java answer worth writing; GIF
+is a palette, a few block headers and LZW, and taking a second native dependency for that costs more
+than owning it.
+
+An animated GIF decodes to its **first frame**, composited onto the logical screen the file declares.
+An animated WebP does not decode at all — that needs `webpdemux`, which is not built.
+
+`Image.CLIPBOARD_MIMES` grew by `image/webp` and `image/gif` the same day, because that set is a
+statement about what can be decoded. **The client's set becomes `{PNG, JPEG, GIF, WEBP}` now**, and
+`ImageCacheTest.decodableFormats` is the assertion to change.
+
+#### 35b — a file dropped on a window raises nothing — **closed**
+
+**What is missing.** There is no drop event anywhere in the toolkit. SDL3 has
+`SDL_EVENT_DROP_FILE`, `SDL_EVENT_DROP_TEXT`, `SDL_EVENT_DROP_BEGIN`, `SDL_EVENT_DROP_POSITION` and
+`SDL_EVENT_DROP_COMPLETE`; none is surfaced, so dragging a PNG from a file manager onto a board does
+nothing at all.
+
+**Proposed.**
+
+```java
+// io.github.digitalsmile.goldberry.Window
+public Subscription onFileDrop(Consumer<FileDrop> listener);
+
+/// Paths dropped on this window, and where.
+public record FileDrop(List<Path> paths, LogicalPoint at) {}
+```
+
+The position is the part worth insisting on: a board needs to know **where** something was dropped,
+not merely that it was. `SDL_EVENT_DROP_POSITION` already carries it. A `Subscription` rather than a
+setter, for `onResize`'s reason.
+
+`onTextDrop` would be the same shape and is not asked for here: nothing in Tessera wants it yet.
+
+**What Tessera does meanwhile.** Nothing, and the gesture is simply absent. The two routes that do
+exist — `I` or the tool button for a file dialog, and `Ctrl+V` for a clipboard picture — cover the
+common cases, and
+[AssetService.fromFile](../tessera-app/src/main/java/io/github/digitalsmile/tessera/app/asset/AssetService.java)
+is already the shape a drop needs: it takes a `Path` and is public for exactly that reason. When this
+lands, wiring it is one call.
+
+**Closed — [ADR-0330](../book/src/adr/0330-a-dropped-file-arrives-somewhere.md).** As proposed,
+including the position:
+
+```java
+window.onFileDrop(drop -> board.place(drop.first(), drop.at()));
+```
+
+`Subscription` rather than a setter, and for a reason of its own rather than `onResize`'s: a drop is
+aimed at whatever is under the pointer, so a second listener must not replace the first. One event
+per **gesture** — the platform's beginning, moving position, one event per file and end are
+reassembled in `Window`, where it is testable without a desktop. `onTextDrop` is still not built;
+nothing has asked for it.
+
+**Not a defect either.** Neither half is broken behaviour; both are surface that has not been built,
+and both were found by needing them rather than by reading the API.
+
+---
+
+### G36 — a `chip`'s dot takes no colour — **closed**
+<a id="g36"></a>
+
+**Raised 2026-09-16**, by giving the Header's Project pill something real to show
+([ADR-0044](adr/0044-a-project-is-a-row-and-a-menu-that-measures-the-pill.md)).
+
+**What works.** `chip` draws the pill [ux-design.md](ux-design.md) §10 described before there was one:
+a rounded label with a pressed state and, with `withDot(true)`, a leading dot. That is the control the
+Project filter has used since the shell was built, and the shape is right.
+
+**What is missing.** The dot's colour. It is the toolkit's -- one colour for every chip -- and a
+Project's colour is the Project's: [plan §0](plan.md) gives a Project *"a goal, colour, due date,
+members and status"*, and the colour exists because six labels in a menu are told apart by hue long
+before they are read.
+
+So Tessera now stores a colour per Project and cannot draw it. The pill says *which* Project by name,
+the menu's rows are distinguished by name, and the hue is a column with no pixel.
+
+**Proposed.** One optional colour beside the flag that is already there.
+
+```java
+// io.github.digitalsmile.goldberry.widgets.controls.chip.Chip
+public Chip withDot(boolean value);              // as today
+public Chip withDot(int argb);                   // a dot in this colour, and shown
+```
+
+A colour rather than a class name, because the value is *data*: a Project's hue is a row in a database,
+not a variant somebody wrote a rule for, and a stylesheet cannot have a class per Project. `int argb`
+is the toolkit's own colour currency at the paint boundary (`Box.background`, `frame.fillRect`), which
+keeps this from needing `Rgba` in the widget API.
+
+The same argument will apply to a `chip` used for a Ticket's status dot (plan K2's live chips), which
+is the second caller and is why this is worth a parameter rather than a Tessera widget.
+
+**What Tessera does meanwhile.** Nothing, and there is **no stopgap**: the pill and the rows are
+labelled by name, which is complete rather than degraded --
+[ProjectColors](../tessera-app/src/main/java/io/github/digitalsmile/tessera/app/projects/ProjectColors.java)
+hands out a hue per Project so the data is right when the control can take it, and the two lines that
+draw it are `withDot(project.color())` in
+[ProjectPill](../tessera-app/src/main/java/io/github/digitalsmile/tessera/app/shell/header/ProjectPill.java)
+and the menu's rows.
+
+**Not a defect.** The control does what it says; it says one colour.
+
+**Closed — [ADR-0328](../book/src/adr/0328-a-dots-colour-is-data.md).** `withDot(int argb)` beside
+`withDot(boolean)`, taking `0xAARRGGBB` — the toolkit's own currency at the paint boundary, so no
+colour type enters the widget API — with `0` meaning "the stylesheet decides". A colour turns the dot
+**on** as well as colouring it, and a chip carrying a colour with no dot is refused at construction,
+which is the same refusal the dot-and-icon pair already gets. Markup says it too:
+`chip dot-colour="#bf616a"`, or `dot-color=` for whoever spells it that way. So
+`withDot(project.color())` is the line, as written.
+
+---
+
+### G37 — a line-number gutter on `text-area` — **closed**
+<a id="g37"></a>
+
+**Raised 2026-09-16**, by building the note editor
+([docs/notes.md](notes.md) N3, [ADR-0047](adr/0047-a-note-is-a-module-and-a-splice-counts-the-way-the-document-does.md)).
+
+**What works.** `text-area` is the editor pane, and almost all of it: soft wrap at the control's width,
+`fill(true)` so it takes the height a content band gives it rather than growing to fit, the bundled
+JetBrains Mono behind `class="mono"`, and an editing model — selection, clipboard, undo, word
+operations, `Up`/`Down` by visual line — that is `text-input`'s and needed no second copy.
+
+**What is missing.** The line numbers [plan §10 E1](plan.md) asks for.
+
+They cannot be composed from outside the widget, and that is the whole entry: the numbers have to line
+up with **hard** lines drawn at **soft**-wrapped positions, and only the thing that laid the text out
+knows where those fell. A `Column` of numbers beside the pane is correct until the first line that
+wraps, and then every number below it is wrong — which is worse than having none, because it looks
+like it works.
+
+**Proposed.** One flag, on the widget that has the layout.
+
+```java
+// io.github.digitalsmile.goldberry.widgets.form.textarea.TextArea
+public TextArea gutter(boolean on);          // numbers hard lines, at the y each was laid out at
+```
+
+```kdl
+text-area class="mono" gutter=#true fill=#true bind="note.body" change="note.type"
+```
+
+A boolean and not a renderer: what a line number looks like is the stylesheet's (`text-area > .gutter`),
+and an application that wanted to draw something else in that column would be asking for a different
+widget rather than a parameter.
+
+**What Tessera does meanwhile.** Nothing, and there is **no stopgap**. The pane ships without line
+numbers — one of E1's five clauses, visibly absent rather than faked. Everything else about the editor
+works, which is why this is a gap and not a blocker.
+
+**Not a defect.** The control does what it says; it says nothing about lines.
+
+**Closed — [ADR-0331](../book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md).** One
+flag, as proposed: `TextArea.gutter(boolean)` and `text-area gutter=#true`. What is worth knowing is
+*how*, because the obvious design does not work. The numbers are **not** a column of nodes: a
+widget's children are described before anything is laid out, so they would have been a frame behind
+the text on every keystroke that changed the line structure — and nothing would have asked for the
+correcting frame. They are one text box the control draws itself, with a number per hard line and an
+empty line per wrap, at the control's own line height and the control's own scroll offset, so they
+cannot drift from the text by construction.
+
+The stylesheet owns the strip (`text-area-gutter`), the ink (`--gb-gutter-color`) and the room
+(`--gb-gutter-gap`). There is no `text-area-line-number` node, and both classes say why.
+
+---
+
+### G38 — an editing seam an application can talk to — **closed**
+<a id="g38"></a>
+
+**Raised 2026-09-16**, from the same build, and it is the other half of E1's line.
+
+**What works.** `text-area` reports **the new whole value** through `change=`, which is exactly right
+for a form field and is what every other control in the toolkit does.
+
+**What is missing.** The caret and the selection. `Ctrl+B` around a selection, `-` + `Enter`
+continuing a list, `Tab` indenting one — every Markdown shortcut in E1 needs to know *where the caret
+is* and *what is selected*, and an application can see neither.
+
+The value that holds exactly that already exists and is already what the widget uses internally:
+`io.github.digitalsmile.goldberry.text.edit.TextEdit`, a record of `(text, anchor, caret)` with every
+motion and every deletion as a pure function. This is a request to let it out, not to invent it.
+
+**Proposed.** The change event, in the richer currency, and a way to apply one back.
+
+```java
+// io.github.digitalsmile.goldberry.widgets.form.textarea.TextArea
+public TextArea onEdit(Consumer<TextEdit> listener);   // text, anchor and caret, after every change
+public TextArea edit(TextEdit next);                   // an edit the application computed, caret and all
+```
+
+`change=` stays as it is — a form does not want a caret — and this is beside it, for the callers that
+are editors rather than fields. The second method is half the request rather than a convenience:
+wrapping a selection in `**` is an edit *and* a caret move, and an application that could compute one
+but only push back a `String` would leave the caret wherever the widget decided.
+
+**Why the caret cannot simply be inferred.** It can, for typing, and that is the trap. Tessera already
+computes where a change happened — `TextSplice.between(before, after)`
+([ADR-0047](adr/0047-a-note-is-a-module-and-a-splice-counts-the-way-the-document-does.md)) — so after a
+keystroke the caret is at the splice's end. That inference is correct for typing and wrong for a
+selection, a click, and every caret move that changes no text at all: three of the four things a
+shortcut needs to know about. Writing it would be a stopgap that is right often enough to be trusted
+and wrong exactly when a shortcut fires.
+
+**What Tessera does meanwhile.** Nothing, and there is **no stopgap** — see the paragraph above for
+why that is a decision rather than laziness. The editor ships with no `Ctrl+B`, no list continuation
+and no `Tab` indent; typing, selecting, the clipboard, undo and the live preview all work.
+
+**Not a defect.** The event reports what it promises to report.
+
+**Closed — [ADR-0332](../book/src/adr/0332-an-editor-is-handed-the-caret.md).** Both halves, as
+proposed: `onEdit(Consumer<TextEdit>)` reports text, anchor and caret after **every** change — a
+caret move and a selection included, which is the three-of-four the entry is about — and
+`edit(TextEdit)` pushes one back. `change=` is untouched and still fires only when the text differs.
+
+Two rules to build against. A pushed edit is **offered, not imposed**: the control adopts it when it
+*changes* and ignores it on every rebuild in between, exactly as `value=` works, so a constant edit
+does not fight the keyboard. And it is applied **after** `bind=` in the same build, so a shortcut that
+changes the model *and* moves the caret in one action ends at the caret it asked for. It goes into
+the undo history — `Ctrl+Z` undoes a `**` the way it undoes a keystroke — and is **not** echoed back
+through `onEdit`.
+
+---
+
+**Nothing else, and nothing open.** All six were raised by building something rather than by reading
+the API surface — which is what all thirty-eight have in common — and all six are closed, in ADR-0326
+to ADR-0332. The next entry goes below this line, before any code is written for it (§3).

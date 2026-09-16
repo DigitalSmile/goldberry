@@ -26,7 +26,22 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// is the rule that moves it — and a chip's dot **does not** inherit the label's
 /// ink. That is what lets a muted chip carry a live red dot, which is the only
 /// arrangement the widget is really for.
-record ChipDot() implements Widget.Leaf, Styled, Paints {
+///
+/// ## And a colour the document supplied wins
+///
+/// A rule can name a *status*; it cannot name a Project, because a Project's hue
+/// is a row in a database rather than a variant somebody wrote CSS for. So
+/// [Chip#withDot(int)] hands one down and it is painted over the resolved
+/// background — `0` meaning "there was none", which is the same sentinel every
+/// other document-supplied colour in the catalog uses (`docs/gaps.md` G36,
+/// [ADR-0328]).
+///
+/// The **background** and not a foreground, so the two answers are the same
+/// property and a stylesheet keeps every other thing it decides about the dot —
+/// its size, its radius, its margin, its border.
+///
+/// @param argb the colour the chip was given, or 0 for the stylesheet's
+record ChipDot(int argb) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -40,6 +55,7 @@ record ChipDot() implements Widget.Leaf, Styled, Paints {
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style);
+        var box = Box.of().style(style);
+        return argb == 0 ? box : box.background(argb);
     }
 }

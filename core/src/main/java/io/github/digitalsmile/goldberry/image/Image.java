@@ -9,9 +9,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.image.gif.GifDecoder;
+import io.github.digitalsmile.goldberry.image.gif.GifFormatException;
 import io.github.digitalsmile.goldberry.image.png.PngEncoder;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendDecodedImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.webp.Webp;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
@@ -83,11 +86,21 @@ public final class Image {
         this.readable = pixels.asReadOnly();
     }
 
-    /// Decodes PNG, JPEG or QOI bytes.
+    /// Decodes PNG, JPEG, QOI, GIF or WebP bytes.
     ///
     /// The format comes from the bytes, not from a name or an argument, so a file
     /// with the wrong extension decodes anyway and a `Content-Type` nobody set
     /// does not matter.
+    ///
+    /// **Five formats, three codecs.** PNG, JPEG and QOI are the rasterizer's
+    /// own. GIF and WebP are not — the rasterizer is compiled without them — so
+    /// the bytes are sniffed first and routed: a WebP goes to libwebp, which is
+    /// linked into the same native library, and a GIF to
+    /// [GifDecoder], which is Java. Why the two differ is
+    /// [ADR-0329]'s subject: VP8 is a video codec and GIF is nine pages
+    /// (`docs/gaps.md` G35a).
+    ///
+    /// An **animated** GIF decodes to its first frame. See [GifDecoder].
     ///
     /// @throws ImageDecodeException if no codec recognises the bytes, or the image
     ///         is malformed
@@ -102,6 +115,17 @@ public final class Image {
         Objects.requireNonNull(bytes, "bytes");
         if (!bytes.hasRemaining()) {
             throw new IllegalArgumentException("there is nothing to decode: no bytes were given");
+        }
+        // Sniffed before anything else, because two of the five formats are not
+        // the rasterizer's and it would refuse them (`docs/gaps.md` G35a,
+        // [ADR-0329]). The magic bytes, never a file name: that is what
+        // "the format comes from the bytes" means.
+        var format = ImageFormat.of(bytes);
+        if (format == ImageFormat.GIF) {
+            return decodeGif(bytes);
+        }
+        if (format == ImageFormat.WEBP) {
+            return decodeWebp(bytes);
         }
         // The decoder's allocation lives exactly as long as this try block. That
         // is the whole of the exception to "Goldberry never asks Blend2D to
@@ -118,10 +142,39 @@ public final class Image {
             // failed paste must not have to name a type from `:natives` to do it
             // — that is the leak this whole family of changes is about.
             throw new ImageDecodeException(
-                    "these " + bytes.remaining() + " bytes are not an image any built-in codec (PNG, JPEG, QOI)"
-                            + " recognises",
+                    "these " + bytes.remaining() + " bytes are not an image any codec here (PNG, JPEG, QOI,"
+                            + " GIF, WebP) recognises",
                     e);
         }
+    }
+
+    /// A GIF, through the toolkit's own decoder.
+    ///
+    /// The exception is translated here for [BlendException]'s reason: an
+    /// application catching a failed paste must not have to name which codec
+    /// refused it.
+    private static Image decodeGif(ByteBuffer bytes) {
+        try {
+            var decoded = GifDecoder.decode(bytes);
+            return ofArgb(decoded.width(), decoded.height(), decoded.argb());
+        } catch (GifFormatException e) {
+            throw new ImageDecodeException("these " + bytes.remaining() + " bytes begin like a GIF and are not one", e);
+        }
+    }
+
+    /// A WebP, through libwebp.
+    ///
+    /// Null back from the decoder is "these bytes are not a WebP I can read",
+    /// which for a lossless-or-lossy container with an animation form it does not
+    /// decode is a normal answer rather than a fault.
+    private static Image decodeWebp(ByteBuffer bytes) {
+        var decoded = Webp.get().decode(bytes);
+        if (decoded == null) {
+            throw new ImageDecodeException("these " + bytes.remaining()
+                    + " bytes begin like a WebP and are not one this decoder reads — an animated WebP is the"
+                    + " usual reason, since only a still frame is decoded");
+        }
+        return ofArgb(decoded.width(), decoded.height(), decoded.pixels());
     }
 
     /// Reads a file and decodes it.
@@ -185,10 +238,15 @@ public final class Image {
     /// The types [#fromClipboard] will try, in order.
     ///
     /// Only the ones the decoder can actually read (ADR-0283): a clipboard
-    /// advertising `image/webp` and nothing else is a paste this toolkit cannot
-    /// do, and saying so by finding nothing is better than throwing from inside a
+    /// advertising a type this toolkit has no codec for is a paste it cannot do,
+    /// and saying so by finding nothing is better than throwing from inside a
     /// decoder that was handed bytes it does not know.
-    private static final List<String> CLIPBOARD_MIMES = List.of(PNG_MIME, "image/jpeg", "image/jpg", "image/qoi");
+    ///
+    /// `image/webp` and `image/gif` joined the list the day the two codecs did
+    /// ([ADR-0329]) — which is the whole of what a set like this is for: it is a
+    /// statement about what can be decoded, so it moves when that does.
+    private static final List<String> CLIPBOARD_MIMES =
+            List.of(PNG_MIME, "image/jpeg", "image/jpg", "image/qoi", "image/webp", "image/gif");
 
     /// Whether `clipboard` holds an image this toolkit can decode.
     ///

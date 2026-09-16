@@ -76,4 +76,21 @@ public interface Attributed<W extends Widget> extends Widget {
     default W keyed(Object key) {
         return withAttributes(attributes().key(key));
     }
+
+    /// This widget told when the pointer arrives anywhere in its subtree —
+    /// `docs/gaps.md` G33.
+    ///
+    /// It consumes nothing: a press that lands inside still belongs to whatever
+    /// is inside. See [Attributes#onPointerEnter] for why this is an attribute
+    /// rather than a widget ([ADR-0327]).
+    default W onPointerEnter(Runnable action) {
+        return withAttributes(attributes().onPointerEnter(action));
+    }
+
+    /// This widget told when the pointer leaves its subtree altogether — see
+    /// [Attributes#onPointerExit], including what happens when the node is
+    /// unmounted under the pointer.
+    default W onPointerExit(Runnable action) {
+        return withAttributes(attributes().onPointerExit(action));
+    }
 }

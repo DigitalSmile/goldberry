@@ -140,4 +140,24 @@ midpoint only exists when there is one"
       field label="Click this label" { text-input placeholder="…the caret lands here" }
     }
   }
+
+  // The gutter (docs/gaps.md G37, ADR-0331). The document is written so that one
+  // hard line wraps, which is the whole of what this flag is about: a number
+  // counts a line somebody typed and sits at the y the wrap put it at, so the
+  // long paragraph takes one number and three lines' height. A column of numbers
+  // built beside the control would be right until that line and wrong for
+  // everything under it.
+  //
+  // `class="mono"` because a gutter is an editor's and an editor is monospaced;
+  // the column is measured in whatever font the node resolved, so this is a
+  // demonstration of that too.
+  card id="gutter-card" class="wall-card" {
+    text class="card-title" "Numbered lines"
+    text class="caption" "`gutter=#true` numbers the lines you typed, at the \
+positions the wrap put them in — the long paragraph is one number and three lines"
+    text-area id="notes" class="mono" gutter=#true rows=8 max-rows=8 \
+              bind="app.notes" change="app.set-notes"
+    text class="caption" "Type into it: press Enter and the numbers follow, \
+because they are drawn from the same layout the text is"
+  }
 }
