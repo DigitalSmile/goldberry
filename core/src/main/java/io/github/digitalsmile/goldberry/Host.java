@@ -235,6 +235,17 @@ public interface Host {
     /// which module may make one.
     java.util.Optional<SystemTheme> systemTheme();
 
+    /// Whether the desktop asks for less movement, or empty where it does not
+    /// say — §13's reduce-motion switch ([ADR-0383]).
+    ///
+    /// The toolkit already obeys it: a renderer built by the launcher starts
+    /// with it applied. This is here for an application that wants to say so on
+    /// screen — a settings page showing what it inherited — or that draws
+    /// motion of its own on a `canvas` and has to decide about it itself.
+    default java.util.Optional<Boolean> reducedMotion() {
+        return java.util.Optional.empty();
+    }
+
     /// Hands a URL to the desktop — the browser for `https:`, the mail client
     /// for `mailto:` — through the platform, which is the one place a process
     /// may ask for one to be opened.

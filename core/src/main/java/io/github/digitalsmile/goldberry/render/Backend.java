@@ -125,6 +125,25 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// Whether the desktop asks for less movement — §13's reduce-motion switch.
+    ///
+    /// Process-global like the theme, and **empty is a real answer** for the same
+    /// three reasons: a desktop with no such setting, a platform this cannot ask,
+    /// and a machine with nothing to ask through. What a caller does about all
+    /// three is the same — animate normally, because a default is not an
+    /// instruction ([ADR-0383]).
+    ///
+    /// Unlike the theme, **no event follows**: nothing listens for a change, so an
+    /// answer is what the desktop said when the application started. Listening
+    /// means a D-Bus main loop on Linux and a notification observer on the other
+    /// two, which is a much larger thing than one read.
+    ///
+    /// @return `true` for reduce, `false` for animate, or empty for "the desktop
+    ///         does not say"
+    default Optional<Boolean> reducedMotion() {
+        return Optional.empty();
+    }
+
     /// Hands a URL to the desktop's own handler for its scheme — the browser
     /// for `https:`, the mail client for `mailto:`.
     ///

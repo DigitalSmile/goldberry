@@ -230,6 +230,22 @@ public final class Window implements AutoCloseable {
         return runtime.backend().systemTheme();
     }
 
+    /// Whether the desktop asks for less movement — §13's reduce-motion switch,
+    /// read rather than set.
+    ///
+    /// **The toolkit acts on this one**, unlike the theme: a renderer built by
+    /// [Goldberry#launch] starts with `reducedMotion` set from it, because
+    /// obeying an accessibility preference is not a matter of taste the way a
+    /// colour scheme is. An application that disagrees says so on its own
+    /// renderer.
+    ///
+    /// Empty where the desktop does not say, and no event follows a change — see
+    /// [io.github.digitalsmile.goldberry.render.Backend#reducedMotion()]
+    /// ([ADR-0383]).
+    public java.util.Optional<Boolean> reducedMotion() {
+        return runtime.backend().reducedMotion();
+    }
+
     /// Called after the desktop's light-or-dark setting changes, on the UI thread.
     ///
     /// Once a day on any desktop with a sunset schedule, and at any time on one

@@ -402,6 +402,20 @@ public final class HeadlessBackend implements Backend {
         return Optional.ofNullable(systemTheme);
     }
 
+    /// What this backend says about motion, or empty for "the desktop does not
+    /// say" — which is what it says until a test sets one ([ADR-0383]).
+    @Override
+    public Optional<Boolean> reducedMotion() {
+        return Optional.ofNullable(reducedMotion);
+    }
+
+    /// Sets it. No event follows, because none follows on a real desktop either.
+    public void reducedMotion(@Nullable Boolean value) {
+        this.reducedMotion = value;
+    }
+
+    private @Nullable Boolean reducedMotion;
+
     /// Sets the setting and posts the change **to every open window**, which is
     /// what a real desktop does: the appearance is the session's, and a
     /// [io.github.digitalsmile.goldberry.Host] is per window

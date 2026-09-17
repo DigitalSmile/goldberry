@@ -517,7 +517,13 @@ final class Launcher implements Host {
         if (stylesDirty || renderer == null) {
             renderer = new WidgetRenderer(application.stylesheets(), fonts)
                     .frames(window.frames())
-                    .clock(clock);
+                    .clock(clock)
+                    // §13's switch, obeyed rather than merely offered: the
+                    // desktop is asked once and a renderer starts where it said
+                    // (ADR-0383). Empty is "animate", because a default is not
+                    // an instruction — and an application that disagrees calls
+                    // `reducedMotion` on its own renderer afterwards.
+                    .reducedMotion(window.reducedMotion().orElse(false));
             stylesDirty = false;
         }
         return renderer;
@@ -1292,6 +1298,11 @@ final class Launcher implements Host {
     @Override
     public java.util.Optional<SystemTheme> systemTheme() {
         return window.systemTheme();
+    }
+
+    @Override
+    public java.util.Optional<Boolean> reducedMotion() {
+        return window.reducedMotion();
     }
 
     @Override

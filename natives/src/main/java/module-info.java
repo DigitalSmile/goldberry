@@ -88,6 +88,14 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.sdl.window;
     exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
+    // What the desktop says that SDL does not ask it — reduce-motion, through
+    // the settings portal, `user32` and `NSWorkspace` (ADR-0383). Its own
+    // package beside `sdl.desktop` rather than inside it, because nothing here
+    // is SDL's: these are read-only queries against libraries the process
+    // already has, and each one answers "the desktop does not say" when it
+    // cannot ask.
+    exports io.github.digitalsmile.goldberry.natives.desktop;
+
     /// What this build of the platform layer can actually do (ADR-0325).
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same

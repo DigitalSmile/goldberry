@@ -393,6 +393,7 @@
 - [ADR-0380 The tooltip row is what ships](adr/0380-the-tooltip-row-is-what-ships.md)
 - [ADR-0381 A rank has two spellings and one meaning](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
 - [ADR-0382 A GIF has the frames after the first](adr/0382-a-gif-has-the-frames-after-the-first.md)
+- [ADR-0383 The desktop is asked whether to move less](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
 - [ADR-0385 WebP is written, and animated](adr/0385-webp-is-written-and-animated.md)
 
 ---

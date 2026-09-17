@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.natives.desktop.DesktopMotion;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
@@ -1054,6 +1055,19 @@ public final class Sdl3Backend implements Backend {
     public boolean openUrl(String url) {
         Objects.requireNonNull(url, "url");
         return Sdl.get().openUrl(url);
+    }
+
+    @Override
+    public Optional<Boolean> reducedMotion() {
+        // Not SDL's: there is no `SDL_GetReducedMotion`, so this is the settings
+        // portal on Linux, `user32` on Windows and `NSWorkspace` on macOS — each
+        // a read-only query against a library the process already has
+        // ([ADR-0383]). Asked once per process and cached there.
+        return switch (DesktopMotion.preference()) {
+            case REDUCED -> Optional.of(true);
+            case FULL -> Optional.of(false);
+            case UNKNOWN -> Optional.empty();
+        };
     }
 
     @Override
