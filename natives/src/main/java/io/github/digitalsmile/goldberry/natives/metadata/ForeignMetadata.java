@@ -32,18 +32,16 @@ public final class ForeignMetadata {
 
     private ForeignMetadata() {}
 
-    /// Writes the file named by the one argument.
+    /// Writes the file named by the one argument. Silently: the toolkit logs
+    /// through its facade and never through stdout, an ArchUnit rule holds every
+    /// module to that, and the Gradle task that runs this says what was written.
     public static void main(String[] args) throws IOException {
         if (args.length != 1) {
             throw new IllegalArgumentException("usage: ForeignMetadata <reachability-metadata.json>");
         }
-        var downcalls = ForeignSurface.downcalls();
-        var upcalls = ForeignSurface.upcalls();
         var target = Path.of(args[0]);
         Files.createDirectories(target.toAbsolutePath().getParent());
-        Files.writeString(target, render(downcalls, upcalls));
-        System.out.println("foreign metadata: " + downcalls.size() + " downcall and " + upcalls.size()
-                + " upcall descriptors -> " + target);
+        Files.writeString(target, render(ForeignSurface.downcalls(), ForeignSurface.upcalls()));
     }
 
     /// The whole file: one `foreign` object with its two arrays.

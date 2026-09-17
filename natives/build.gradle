@@ -402,6 +402,11 @@ def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
     inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.dir(foreignMetadataDir)
     argumentProviders.add({ [foreignMetadataFile.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+    doLast {
+        def file = foreignMetadataFile.get().asFile
+        def shapes = file.readLines().count { it.contains('"returnType"') }
+        logger.lifecycle("Foreign metadata: ${shapes} descriptors -> ${file}")
+    }
 }
 
 tasks.named('jar') {
