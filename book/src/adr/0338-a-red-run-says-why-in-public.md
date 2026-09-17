@@ -158,7 +158,9 @@ the first this record produced — named the layer the first four had hidden:
 - **Diagnosed from the logs, fixed blind, and then confirmed by the run:** 6–9
   passed on their platforms at `fd36169a` — the MSVC + Ninja configure of the whole
   superbuild included, which `windows.yml` had only ever done through the Visual
-  Studio generator. 10–14 are fixed the same way and wait on the run after.
+  Studio generator. 10–14 passed the same way at `d478ecfe`: the Snapshot green on
+  all twelve jobs, the Showcase green on three legs and two uploads — the first
+  green push since 2026-08-16, and the first time `publish.yml` reached its upload.
 - The Showcase's two publish jobs failed only for want of the macOS and Windows
   artifacts, and need nothing of their own.
 - Every test in this record that reached a path did so through a string. The

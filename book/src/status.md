@@ -7282,8 +7282,9 @@ status-bar tray aborted under the headless driver. All four passed at `fd36169a`
 which made the Showcase green on every leg for the first time and left three red jobs
 in the Snapshot. Their annotations named a real bug — `EventLoop` fired two overdue
 timers in creation order when a slow pump handed it both at once — and four more
-Windows separator assumptions in tests, all fixed with unit tests and waiting on the
-next run.
+Windows separator assumptions in tests, all fixed with unit tests. At `d478ecfe` the
+Snapshot passed on all twelve jobs, Maven Central rehearsal included, and the Showcase
+on three legs and both uploads: **the first green push since 2026-08-16.**
 
 ### Releasing — built, never run
 

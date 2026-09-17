@@ -1338,12 +1338,12 @@ on, which in four cases is the same thing.
   decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
   standing question behind both records.
 
-- **Five CI fixes are unverified on the platforms they are for.** The first four
-  blind fixes (Windows paths, CRLF, MSVC, the macOS tray) passed at `fd36169a`, and
-  the Showcase is green on all three legs. Their annotations named five more — a
-  timer-ordering bug in `EventLoop`, and four Windows separator assumptions in tests
-  — fixed the same way on a Linux machine. The next Snapshot run is their test. —
-  [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+- **CI is green, and the fixes that made it so were written blind.** Nine causes on
+  Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
+  passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
+  Windows or macOS test before a push, so a platform-specific regression is caught by
+  the Snapshot rather than locally. The annotations make that cheap to read, not free.
+  — [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
 
 ## The native build and its bindings
 
