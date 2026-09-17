@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
@@ -83,6 +84,7 @@ public record Tabs(
         Consumer<String> onClose,
         Runnable onNew,
         boolean keepAlive,
+        BiConsumer<String, Integer> onReorder,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
@@ -93,7 +95,7 @@ public record Tabs(
     }
 
     public Tabs(@Nullable String value, Widget... children) {
-        this(value, List.of(children), null, null, null, null, false, Attributes.NONE);
+        this(value, List.of(children), null, null, null, null, false, null, Attributes.NONE);
     }
 
     /// The shape a strip had before it could keep its tabs alive.
@@ -105,7 +107,24 @@ public record Tabs(
             Consumer<String> onClose,
             Runnable onNew,
             Attributes attributes) {
-        this(value, children, source, onChange, onClose, onNew, false, attributes);
+        this(value, children, source, onChange, onClose, onNew, false, null, attributes);
+    }
+
+    /// This strip letting a tab be dragged along the row to a new place, and
+    /// asking `handler` to move it — the tab's value and the index it was dropped
+    /// at among the others (ADR-0372).
+    ///
+    /// It asks and does not reorder, for `change`'s reason: the list is the
+    /// application's, and the strip draws the order it is given.
+    public Tabs onReorder(BiConsumer<String, Integer> handler) {
+        return new Tabs(value, children, source, onChange, onClose, onNew, keepAlive, handler, attributes);
+    }
+
+    /// Asks for a tab to move. Same rule as [#select].
+    void reorder(String picked, int index) {
+        if (onReorder != null) {
+            onReorder.accept(picked, index);
+        }
     }
 
     /// This strip keeping every tab it has shown mounted, hidden while another is
@@ -117,18 +136,18 @@ public record Tabs(
     /// A tab that has never been selected is still not built, and a closed one is
     /// let go.
     public Tabs keepAlive(boolean value) {
-        return new Tabs(this.value, children, source, onChange, onClose, onNew, value, attributes);
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, value, onReorder, attributes);
     }
 
     /// This strip reporting what the user picked.
     public Tabs onChange(Consumer<String> handler) {
-        return new Tabs(value, children, source, handler, onClose, onNew, keepAlive, attributes);
+        return new Tabs(value, children, source, handler, onClose, onNew, keepAlive, onReorder, attributes);
     }
 
     /// This strip with closable tabs' × wired up. A tab is closable when *it*
     /// says so; this is who hears about it.
     public Tabs onClose(Consumer<String> handler) {
-        return new Tabs(value, children, source, onChange, handler, onNew, keepAlive, attributes);
+        return new Tabs(value, children, source, onChange, handler, onNew, keepAlive, onReorder, attributes);
     }
 
     /// This strip with an add affordance at the end of the row.
@@ -138,12 +157,12 @@ public record Tabs(
     /// is half a control, and the alternative is every application drawing its own
     /// `+` and lining it up with the row by hand.
     public Tabs onNew(Runnable handler) {
-        return new Tabs(value, children, source, onChange, onClose, handler, keepAlive, attributes);
+        return new Tabs(value, children, source, onChange, onClose, handler, keepAlive, onReorder, attributes);
     }
 
     @Override
     public Tabs bound(Observable<?> value) {
-        return new Tabs(this.value, children, value, onChange, onClose, onNew, keepAlive, attributes);
+        return new Tabs(this.value, children, value, onChange, onClose, onNew, keepAlive, onReorder, attributes);
     }
 
     @Override
@@ -153,7 +172,7 @@ public record Tabs(
 
     @Override
     public Tabs withAttributes(Attributes value) {
-        return new Tabs(this.value, children, source, onChange, onClose, onNew, keepAlive, value);
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, keepAlive, onReorder, value);
     }
 
     /// The tabs as written, before the strip rebuilt them with what only it knows
@@ -213,6 +232,7 @@ public record Tabs(
                 wiring.valued(node, "close"),
                 wiring.action(node, "new"),
                 node.booleanProperty("keep-alive"),
+                null,
                 Attributes.of(node));
     }
 }

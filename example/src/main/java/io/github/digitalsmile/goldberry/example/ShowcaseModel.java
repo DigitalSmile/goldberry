@@ -868,6 +868,18 @@ public final class ShowcaseModel {
             }
         }
 
+        /// Moves a chapter to a new place in the strip — what a drag asks for
+        /// (ADR-0372). The index is among the other chapters, so it is where the
+        /// moved one lands once it has been taken out.
+        public void moveTab(String value, int index) {
+            var current = new ArrayList<>(values.tabs);
+            if (!current.remove(value)) {
+                return;
+            }
+            current.add(Math.clamp(index, 0, current.size()), value);
+            values.tabs = List.copyOf(current);
+        }
+
         /// Opens one, and shows it — which is what every editor does with a new
         /// tab. The name is the next place on the road, so a strip of chapters
         /// reads as a journey rather than as `Untitled 3`.

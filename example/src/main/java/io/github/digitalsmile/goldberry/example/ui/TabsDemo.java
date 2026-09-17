@@ -42,7 +42,8 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
             frame, and a departing one has already been dropped from the list above — so the \
             strip keeps it for the length of its departure and animates both from the frame \
             clock (ADR-0109). The strip keeps every chapter it has shown alive, so a note typed \
-            under one is still there when you come back to it (ADR-0366).""";
+            under one is still there when you come back to it (ADR-0366). Drag a chapter along the \
+            row to move it (ADR-0372).""";
 
     /// What each chapter's panel says. A sentence per stage rather than one
     /// sentence with the name substituted into it, because a strip of identical
@@ -85,6 +86,7 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
                                         actions::newTab,
                                         Attributes.NONE)
                                 .keepAlive(true)
+                                .onReorder(actions::moveTab)
                                 .id("demo-tabs"),
                         new Text(NOTE, Attributes.NONE.classes("caption")).id("tabs-note")));
     }

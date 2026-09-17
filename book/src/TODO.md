@@ -253,13 +253,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   input or to draw something that cannot affect layout, never to decide a size —
   and the scroll view obeys it by construction rather than by check. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **Nothing reorders tabs**, and a reorder would need a different animation from
-  an arrival: a tab that moves has two positions and nothing to interpolate between
-  them, which is ADR-0097's missing geometry again. §5 does not ask for
-  drag-to-reorder; the model shape would take it without a change, since the strip
-  draws the list it is given. —
-  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`.~~ **It is now**
   ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
@@ -1294,6 +1287,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing reorders tabs.**~~ **A strip with `onReorder` does, 2026-09-17.** The
+  dragged tab follows the pointer 1:1, which needs no interpolation, and the drop
+  asks the application for the new index; the others still jump into place,
+  which is ADR-0097's geometry and nothing asked for more. —
+  [ADR-0372](adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)
 - ~~**An `affix` pins on one axis.**~~ **On one per axis, 2026-09-17**:
   `edge="top left"`. There was no rule to write about which wins, because each
   axis is its own subtraction. —

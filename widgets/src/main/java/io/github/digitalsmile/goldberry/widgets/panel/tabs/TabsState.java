@@ -75,6 +75,18 @@ final class TabsState extends State<Tabs> {
     /// were first shown (ADR-0366).
     private final Set<String> kept = new LinkedHashSet<>();
 
+    /// The tab being dragged to a new place, how far it has travelled, and where
+    /// the pointer is — or null while nothing is (ADR-0372).
+    private String dragging;
+
+    private double dragOffset;
+
+    private double dragPointer;
+
+    /// Where each header was last painted, for working out where a dragged tab
+    /// was dropped.
+    private final Map<String, LogicalRect> headerRects = new LinkedHashMap<>();
+
     /// Where the header viewport was when it last told us, for the page buttons.
     private ScrollController.Position headerPosition = ScrollController.Position.NONE;
 
@@ -94,6 +106,63 @@ final class TabsState extends State<Tabs> {
     @Override
     protected void dispose() {
         headerScroll.onChange(null);
+    }
+
+    /// A header of a reorderable strip was painted: remember where, and act on a
+    /// pending reveal if it is this one.
+    private void located(String value, LogicalRect self, LogicalRect clip) {
+        headerRects.put(value, self);
+        if (value.equals(pendingReveal)) {
+            revealed(self, clip);
+        }
+    }
+
+    /// What a [TabDrag] reports to.
+    private final TabDrag.Listener dragListener = new TabDrag.Listener() {
+
+        @Override
+        public void moved(String value, double dx, double pointerX) {
+            setState(() -> {
+                dragging = value;
+                dragOffset = dx;
+                dragPointer = pointerX;
+            });
+        }
+
+        @Override
+        public void dropped(String value) {
+            var index = dropIndex(value, dragPointer);
+            var from = List.copyOf(headerRects.keySet()).indexOf(value);
+            setState(() -> {
+                dragging = null;
+                dragOffset = 0;
+            });
+            if (index != from) {
+                widget().reorder(value, index);
+            }
+        }
+
+        @Override
+        public boolean isDragging(String value) {
+            return value.equals(dragging);
+        }
+    };
+
+    /// Where among the other tabs a drop at `pointerX` puts `value`: after every
+    /// one whose centre is before the pointer. The rectangles are the last
+    /// painted, in strip order, which is the order the application gave.
+    int dropIndex(String value, double pointerX) {
+        var index = 0;
+        for (var entry : headerRects.entrySet()) {
+            if (entry.getKey().equals(value)) {
+                continue;
+            }
+            var rect = entry.getValue();
+            if (rect.left() + rect.size().width() / 2 < pointerX) {
+                index++;
+            }
+        }
+        return index;
     }
 
     /// Acts on a pending reveal, then forgets it.
@@ -127,6 +196,21 @@ final class TabsState extends State<Tabs> {
         arrivals(current);
         departures(current);
         lastBuilt.putAll(current);
+        // The rectangles are keyed in strip order; one for a tab that has gone,
+        // or kept in an order the application has since changed, would put a drop
+        // in the wrong place.
+        if (!List.copyOf(headerRects.keySet()).equals(List.copyOf(current.keySet()))) {
+            headerRects.keySet().retainAll(current.keySet());
+            var ordered = new LinkedHashMap<String, LogicalRect>();
+            for (var value : current.keySet()) {
+                var rect = headerRects.get(value);
+                if (rect != null) {
+                    ordered.put(value, rect);
+                }
+            }
+            headerRects.clear();
+            headerRects.putAll(ordered);
+        }
         lastBuilt.keySet().removeIf(value -> !phases.containsKey(value));
 
         var selected = strip.selected();
@@ -147,7 +231,8 @@ final class TabsState extends State<Tabs> {
             // A tab on its way out answers nothing: it is not in the
             // application's list any more, so picking it would report a value
             // that does not exist and closing it twice is not a thing.
-            headers.add(tab.wired(
+            var reorderable = strip.onReorder() != null && !leaving;
+            var wired = tab.wired(
                     isSelected,
                     leaving ? null : () -> strip.select(value),
                     leaving ? null : () -> strip.close(value),
@@ -156,7 +241,16 @@ final class TabsState extends State<Tabs> {
                     // Non-null only for the tab that has just been selected, so
                     // exactly one header per build is asked where it is —
                     // and only until it has been brought into view (ADR-0120).
-                    value.equals(pendingReveal) ? this::revealed : null));
+                    // A reorderable strip asks every header, because a drop is
+                    // placed against all of them (ADR-0372).
+                    reorderable
+                            ? (self, clip) -> located(value, self, clip)
+                            : value.equals(pendingReveal) ? this::revealed : null);
+            headers.add(
+                    reorderable
+                            ? new TabDrag(
+                                    value.equals(dragging) ? wired.dragged(dragOffset) : wired, value, dragListener)
+                            : wired);
             if (isSelected) {
                 content = tab.content();
             }

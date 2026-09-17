@@ -381,6 +381,7 @@
 - [ADR-0369 A knob turns round its dial from its own value](adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
 - [ADR-0370 A reveal can keep to one axis](adr/0370-a-reveal-can-keep-to-one-axis.md)
 - [ADR-0371 An affix pins to one edge per axis](adr/0371-an-affix-pins-to-one-edge-per-axis.md)
+- [ADR-0372 A tab is dragged, and the strip asks where](adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)
 
 ---
 

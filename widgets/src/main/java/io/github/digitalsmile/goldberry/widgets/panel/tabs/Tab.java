@@ -90,6 +90,7 @@ public record Tab(
         java.util.function.BooleanSupplier animating,
         java.util.function.DoubleUnaryOperator visibility,
         java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
+        double dragOffset,
         Attributes attributes)
         implements Widget.Leaf,
                 Styled,
@@ -98,6 +99,38 @@ public record Tab(
                 io.github.digitalsmile.goldberry.input.handler.Located,
                 Attributed<Tab>,
                 Semantics {
+
+    /// The shape a tab had before a strip could drag it.
+    public Tab(
+            String value,
+            String label,
+            Icon icon,
+            int colour,
+            boolean closable,
+            List<Widget> content,
+            boolean selected,
+            Runnable onSelect,
+            Runnable onClose,
+            java.util.function.BooleanSupplier animating,
+            java.util.function.DoubleUnaryOperator visibility,
+            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
+            Attributes attributes) {
+        this(
+                value,
+                label,
+                icon,
+                colour,
+                closable,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                0,
+                attributes);
+    }
 
     public Tab {
         Objects.requireNonNull(value, "value");
@@ -130,6 +163,7 @@ public record Tab(
                 animating,
                 visibility,
                 reveal,
+                dragOffset,
                 attributes);
     }
 
@@ -148,6 +182,7 @@ public record Tab(
                 animating,
                 visibility,
                 reveal,
+                dragOffset,
                 attributes);
     }
 
@@ -168,6 +203,7 @@ public record Tab(
                 animating,
                 visibility,
                 reveal,
+                dragOffset,
                 attributes);
     }
 
@@ -198,6 +234,7 @@ public record Tab(
                 isAnimating,
                 howVisible,
                 reveal,
+                dragOffset,
                 attributes);
     }
 
@@ -238,6 +275,7 @@ public record Tab(
                 animating,
                 visibility,
                 reveal,
+                dragOffset,
                 value);
     }
 
@@ -273,7 +311,34 @@ public record Tab(
     /// stylesheet rather than by a value that happens to equal the default.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        return colour == 0 ? resolved : resolved.color(colour);
+        var style = colour == 0 ? resolved : resolved.color(colour);
+        if (dragOffset == 0) {
+            return style;
+        }
+        // Being dragged to a new place: drawn where the pointer has taken it, 1:1,
+        // while its slot in the row stays where it was (ADR-0372).
+        return style.transform(
+                Transform.of(new Transform.Function.Translate(Transform.Length.px(dragOffset), Transform.Length.ZERO)));
+    }
+
+    /// This tab drawn `offset` points along the row from its place — the one being
+    /// dragged to a new position.
+    Tab dragged(double offset) {
+        return new Tab(
+                value,
+                label,
+                icon,
+                colour,
+                closable,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                offset,
+                attributes);
     }
 
     @Override

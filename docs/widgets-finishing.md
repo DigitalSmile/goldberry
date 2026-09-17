@@ -4,6 +4,8 @@ Working notes for the `image` widget and for the parts of built widgets that
 `book/src/TODO.md` still listed as missing on 2026-09-17. One ADR per decision,
 in `book/src/adr/`.
 
+**Every item below is done or answered** (ADR-0358 to ADR-0372).
+
 Status legend: **done** means code, tests and ADR have landed. **in progress**
 means it is being built now. **open** means not started. **answered** means
 decided not to build, with the reason in the ADR.
@@ -37,7 +39,7 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | Overflow chevrons | a strip wider than its tabs scrolls by buttons | 0365 | done |
-| Reordering | drag a tab to a new place | — | open |
+| Reordering | drag a tab to a new place, opt-in `onReorder` | 0372 | done |
 | Content kept | a tab selected again is not rebuilt (opt-in `keep-alive`) | 0366 | done |
 
 ## `select` and `menubar`
@@ -201,3 +203,11 @@ can be reversed:
 - `widgets` `core/affix/Affix#cross`, `alsoPinnedTo`; `Edge.parseCross`;
   `AffixState.shiftFor` per axis; `AffixSlot` and `AffixContent` carry both shifts.
 - Tests: `AffixTwoAxesTest`.
+
+### Tab reordering
+
+- `widgets` `panel/tabs/Tabs#onReorder`, `TabDrag`, `Tab#dragOffset` and
+  `dragged`; `TabsState` keeps header rectangles and works out the drop index.
+- Tests: `TabReorderTest`.
+- `example` `ShowcaseModel.Actions#moveTab`; `TabsDemo` is reorderable;
+  `gallery-navigation` re-blessed.
