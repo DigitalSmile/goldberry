@@ -21,7 +21,7 @@ decided not to build, with the reason in the ADR.
 | `text-area` scrollbar | §4's "scrollbar beyond" the maximum rows | 0362 | done |
 | Reserved gutter | §2.4's "always show scroll bars", and something to switch it | 0364 | done |
 | A reveal glides | §3.1's `scroll` motion when a row is scrolled into view | 0363 | done |
-| A reveal moves one axis at a time | a wide table revealing a cell | — | open |
+| A reveal moves one axis at a time | a wide table revealing a cell, opt-in `reveal(self, clip, axes)` | 0370 | done |
 
 ## `table`
 
@@ -190,3 +190,8 @@ can be reversed:
 - `widgets` `controls/knob/Knob#circular`, `circularTo`, `circularFraction`;
   `drag="circular"` in markup.
 - Tests: `KnobCircularTest`.
+
+### One-axis reveal
+
+- `widgets` `core/scroll/ScrollController#reveal(LogicalRect, LogicalRect, ScrollAxis)`.
+- Tests: `ScrollControllerTest` "revealing along one axis".

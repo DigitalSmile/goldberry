@@ -137,6 +137,17 @@ public final class ScrollController {
     /// Does nothing when the rectangle is already inside, so calling it on a
     /// frame where nothing has changed is free.
     public void reveal(LogicalRect self, LogicalRect clip) {
+        reveal(self, clip, ScrollAxis.BOTH);
+    }
+
+    /// The same, moving only along `axes`.
+    ///
+    /// The least on each axis is right, and occasionally moves a view further than
+    /// a person would: a wide table asked to show a cell slides sideways as well
+    /// as down. A caller that only means "bring this row into view" says
+    /// [ScrollAxis#VERTICAL] and the horizontal position is left where the user
+    /// put it (ADR-0370).
+    public void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
         if (attached == null) {
             return;
         }
@@ -160,6 +171,12 @@ public final class ScrollController {
                 self.left() + self.size().width(),
                 clip.left(),
                 clip.left() + clip.size().width());
+        if (!axes.isHorizontal()) {
+            dx = 0;
+        }
+        if (!axes.isVertical()) {
+            dy = 0;
+        }
         if (dx != 0 || dy != 0) {
             attached.scrollBy(dx, dy);
         }

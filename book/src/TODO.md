@@ -253,11 +253,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   input or to draw something that cannot affect layout, never to decide a size —
   and the scroll view obeys it by construction rather than by check. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **A reveal moves both axes at once.** A wide table asked to show a cell scrolls
-  the minimum on each axis independently, which is right and occasionally moves a
-  view further than a person would have. Nobody has asked for one axis to take
-  priority. —
-  [ADR-0120](adr/0120-a-widget-scrolls-itself-into-view.md)
 - **An `affix` pins on one axis.** All four `edge=` values work and no affix can
   be pinned to two at once — a header that is both sticky at the top and held
   against the left of a horizontally scrolling table is the case, and it needs
@@ -1305,6 +1300,9 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A reveal moves both axes at once.**~~ **By default, still, 2026-09-17**, and
+  a caller that means one axis says so with `reveal(self, clip, axes)`. —
+  [ADR-0370](adr/0370-a-reveal-can-keep-to-one-axis.md)
 - ~~**The circular drag is not built, and §3 offers it.**~~ **It is, opt-in,
   2026-09-17**, with no accumulated angle: a jump across the gap is recognised
   from the knob's current value, and held at the nearer end. —

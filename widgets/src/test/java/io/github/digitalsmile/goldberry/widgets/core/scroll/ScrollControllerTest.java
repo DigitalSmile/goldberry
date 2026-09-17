@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
@@ -30,6 +32,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// §1's `scrollIntoView`, shipped as the API §1 words it as
@@ -65,8 +68,17 @@ class ScrollControllerTest {
         private final PointerRouter router = new PointerRouter();
 
         Harness(Widget root) {
+            this(root, "");
+        }
+
+        Harness(Widget root, String css) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+            renderer = new WidgetRenderer(
+                            List.of(
+                                    Controls.baseStylesheet(),
+                                    Theme.NORD_DARK.load(),
+                                    Stylesheet.parse(CascadeLayer.APPLICATION, css)),
+                            TestFont.get())
                     .clock(clock);
             tree = new ElementTree(root);
             render = RenderTree.create();
@@ -308,6 +320,53 @@ class ScrollControllerTest {
             harness.frame();
 
             assertEquals(before - 100, harness.rowRect("row0").top(), 0.5);
+        }
+    }
+
+    /// Cells that keep their width, so the grid is wider than the viewport.
+    private static final String CELLS = "text { width: 60px; flex-shrink: 0 } scroll-content { width: 720px }";
+
+    /// A grid wider and taller than the viewport, so a reveal has both axes to
+    /// move on.
+    private static Widget grid(ScrollController controller) {
+        var rows = new ArrayList<Widget>();
+        for (var r = 0; r < 30; r++) {
+            var cells = new ArrayList<Widget>();
+            for (var c = 0; c < 12; c++) {
+                cells.add(new Text("cell " + r + "." + c + "   ", Attributes.NONE.id("cell" + r + "-" + c)));
+            }
+            rows.add(new Row(cells, Attributes.NONE));
+        }
+        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.BOTH, Attributes.NONE)
+                .controlledBy(controller);
+    }
+
+    /// A reveal limited to one axis ([ADR-0370]).
+    @Nested
+    @DisplayName("revealing along one axis")
+    class OneAxis {
+
+        @Test
+        @DisplayName("both axes move by default, and a vertical reveal leaves the horizontal position alone")
+        void vertical() {
+            var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
+
+            var both = new ScrollController();
+            var free = new Harness(grid(both), CELLS);
+            both.reveal(free.rowRect("cell20-10"), viewport);
+            free.settle();
+            assertTrue(free.rowRect("cell0-0").left() < -1, "an unlimited reveal slid sideways too");
+
+            var rows = new ScrollController();
+            var limited = new Harness(grid(rows), CELLS);
+            var leftBefore = limited.rowRect("cell0-0").left();
+            rows.reveal(limited.rowRect("cell20-10"), viewport, ScrollAxis.VERTICAL);
+            limited.settle();
+
+            assertEquals(leftBefore, limited.rowRect("cell0-0").left(), 0.01, "the vertical reveal did not");
+            var cell = limited.rowRect("cell20-10");
+            assertTrue(
+                    cell.top() >= -1 && cell.top() + cell.size().height() <= VIEWPORT_HEIGHT + 1, "the row is in view");
         }
     }
 }
