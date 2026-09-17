@@ -1,0 +1,31 @@
+import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+import io.github.digitalsmile.goldberry.build.version.BuildVersion
+
+// ============================================================================
+// Group and version (ADR-0333)
+//
+// `gradle.properties` declares the release line -- `goldberryVersion=2026.1` --
+// and every build is a `-SNAPSHOT` of it. Only the release workflow passes
+// `-Pgoldberry.release=true`, together with the tag it was pushed as, and a tag
+// naming any other version fails here before anything is built.
+//
+// Its own plugin rather than part of `goldberry.java-conventions`, because
+// `:bom` needs a version too and is a `java-platform`, which cannot share a
+// project with `java-library` (ADR-0336).
+// ============================================================================
+
+group = PublishedModules.GROUP
+
+def buildVersion = BuildVersion.resolve(
+        providers.gradleProperty('goldberryVersion').get(),
+        providers.gradleProperty('goldberry.release').map { Boolean.parseBoolean(it) }.getOrElse(false),
+        providers.gradleProperty('goldberry.releaseTag').orNull)
+version = buildVersion.toString()
+
+// `./gradlew -q :core:printVersion` -- what CI writes into a run's summary.
+tasks.register('printVersion') {
+    group = 'help'
+    description = 'Prints the version this build stamps on its artifacts.'
+    def text = buildVersion.toString()
+    doLast { println text }
+}

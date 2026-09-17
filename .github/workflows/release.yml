@@ -1,9 +1,20 @@
-# Release: all four artifacts, packaged into the §15 classifier jars.
+# Release (ADR-0333, ADR-0334)
 #
-# The per-OS workflows are reused via `workflow_call` rather than duplicated, so
-# there is exactly one definition of how each platform builds. Because a called
-# workflow shares the caller's run, the artifacts it uploads are visible to the
-# package job below.
+# Push a `v<version>` tag on the commit whose gradle.properties declares that
+# version -- `v2026.1` on `goldberryVersion=2026.1` -- and this builds every
+# platform, packages the §15 classifier jars, signs everything and uploads it to
+# a Central Portal deployment. A tag naming any other version fails before a
+# single jar is built.
+#
+# The deployment then waits in the Portal for somebody to press Publish, unless
+# the repository variable CENTRAL_AUTO_RELEASE is `true`. A release on Central is
+# permanent; the first few get looked at.
+#
+# `workflow_dispatch` is a rehearsal: the same chain, as a snapshot, into
+# mavenLocal, uploading nothing. It is the way to find out that javadoc, signing
+# configuration or a POM is broken on a day that is not release day.
+#
+# docs/releasing.md is the checklist, including what to bump afterwards.
 #
 # STATUS: never run.
 
@@ -14,53 +25,17 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
-  linux:
-    uses: ./.github/workflows/linux.yml
-
-  windows:
-    uses: ./.github/workflows/windows.yml
-
-  macos:
-    uses: ./.github/workflows/macos.yml
-
-  package:
-    name: Classifier jars
-    needs: [linux, windows, macos]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: native-*
-          path: native-artifacts
-
-      - name: Flatten into the layout :natives expects
-        run: |
-          mkdir -p artifacts
-          for dir in native-artifacts/native-*; do
-            target="${dir#native-artifacts/native-}"
-            mkdir -p "artifacts/$target"
-            cp "$dir"/* "artifacts/$target/"
-          done
-          find artifacts -type f | sort
-
-      # Every licence file must carry its verbatim upstream text before anything
-      # is published. This is the check that makes forgetting that impossible.
-      - name: Verify licence disclosure
-        run: ./gradlew checkLicenses -Pgoldberry.releaseCheck=true --no-daemon
-
-      - name: Build classifier jars
-        run: ./gradlew :natives:nativeJars --no-daemon -Pgoldberry.artifactsDir=$PWD/artifacts
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: goldberry-natives-jars
-          path: natives/build/libs/goldberry-natives-*.jar
-          if-no-files-found: error
+  publish:
+    uses: ./.github/workflows/publish.yml
+    with:
+      release: ${{ github.event_name == 'push' }}
+      publish: ${{ github.event_name == 'push' }}
+    secrets: inherit

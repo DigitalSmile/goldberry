@@ -1,0 +1,25 @@
+import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+
+plugins {
+    // A platform, not a library -- which is why the version comes from
+    // `goldberry.versioning` rather than the java conventions (ADR-0336).
+    id 'java-platform'
+    // Published to Maven Central as goldberry-bom (ADR-0336).
+    id 'goldberry.publish'
+}
+
+description = 'Goldberry BOM: one version for every Goldberry artifact'
+
+// Every library, required and optional, from the one list -- so a content module
+// added to `PublishedModules` is pinned here without anybody editing this file.
+// Constraints only: importing the BOM adds nothing to an application's graph, it
+// decides the version of what the application does add. The natives' classifier
+// jars share `goldberry-natives`' version and need no entry of their own.
+dependencies {
+    constraints {
+        PublishedModules.libraries().each { library ->
+            api project(":${library.project()}")
+        }
+        api project(':toolkit')
+    }
+}

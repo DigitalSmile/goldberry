@@ -4,7 +4,11 @@
 # (ADR-0041); MSVC would cross-target it with `-A ARM64` from this same runner if
 # it ever comes back.
 #
-# `workflow_call` is what lets release.yml reuse this without duplicating it.
+# `workflow_call` is what lets publish.yml reuse this without duplicating it --
+# and on a push to master that is the only way this runs. There is no `push`
+# trigger: snapshot.yml calls this workflow on every push and publishes the
+# library it built, so a trigger here would build every native library twice per
+# commit and publish neither (ADR-0334). Pull requests still run it directly.
 #
 # Every `run` here is bash, set once below rather than per step. The default on a
 # Windows runner is PowerShell, which parses native command arguments itself:
@@ -16,8 +20,6 @@
 name: Windows
 
 on:
-  push:
-    branches: [main, master]
   pull_request:
   workflow_call:
   workflow_dispatch:

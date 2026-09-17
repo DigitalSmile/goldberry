@@ -1,5 +1,7 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-gpu (ADR-0334).
+    id 'goldberry.publish'
 }
 
 description = 'Goldberry GPU: the canvas3d widget and the GPU composition path'

@@ -3,10 +3,9 @@
        alt="Goldberry — Modern Java UI toolkit" width="100%">
 </p>
 
-[![Linux](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml)
-[![Windows](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml)
-[![macOS](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml)
-[![Example](https://github.com/digitalsmile/goldberry/actions/workflows/example.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/example.yml)
+[![Snapshot](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml)
+[![Showcase](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml)
+[![Release](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **A fast and modern UI toolkit for Java.**
@@ -43,6 +42,14 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 ## Quick start
 
 Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
+
+Versions are calendar versions — `2026.1`, `2026.2`, `2026.2.1` — and every push
+to master publishes a `-SNAPSHOT` of the next one to the Central Portal's snapshot
+repository — `goldberry-bom` for the version, `goldberry` for the toolkit, and
+`goldberry-html` / `goldberry-gpu` when you want them — with the runnable
+showcase, as jlink images and as GraalVM native binaries, on GitHub Packages. Nothing has been
+released yet. [`docs/releasing.md`](docs/releasing.md) has the coordinates and the
+release checklist.
 
 ```sh
 ./gradlew build

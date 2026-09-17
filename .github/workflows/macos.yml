@@ -9,7 +9,11 @@
 # headers ship only in Apple's SDK, and that SDK's licence restricts it to Apple
 # hardware. On a real macOS runner the question does not arise.
 #
-# `workflow_call` is what lets release.yml reuse this without duplicating it.
+# `workflow_call` is what lets publish.yml reuse this without duplicating it --
+# and on a push to master that is the only way this runs. There is no `push`
+# trigger: snapshot.yml calls this workflow on every push and publishes the
+# library it built, so a trigger here would build every native library twice per
+# commit and publish neither (ADR-0334). Pull requests still run it directly.
 #
 # STATUS: green. The library builds and the layout check passes against the
 # downloaded dylib, so the Mach-O branch of the export machinery
@@ -18,8 +22,6 @@
 name: macOS
 
 on:
-  push:
-    branches: [main, master]
   pull_request:
   workflow_call:
   workflow_dispatch:

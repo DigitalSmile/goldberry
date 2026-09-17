@@ -1,5 +1,7 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-core (ADR-0334).
+    id 'goldberry.publish'
     // docs/testing.md §1.5. On :core only for now: this is where the hot seams
     // are -- shaping, the paragraph cache, the cascade -- and a benchmark source
     // set in every module would be five empty ones.

@@ -1,3 +1,7 @@
+import io.github.digitalsmile.goldberry.build.nativeimage.GraalVmRelease
+import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+import io.github.digitalsmile.goldberry.build.publish.ShowcasePackage
+
 plugins {
     id 'goldberry.java-conventions'
     // Does nothing to an ordinary build of this module -- the showcase ships no
@@ -7,6 +11,8 @@ plugins {
     // (ADR-0155).
     id 'goldberry.weave'
     id 'application'
+    // The runnable images go to GitHub Packages, not Maven Central (ADR-0335).
+    id 'maven-publish'
 }
 
 description = 'Goldberry showcase: what the toolkit looks like from an application'
@@ -75,8 +81,12 @@ application {
     }
 }
 
-// Not published: it is a demonstration, not an artifact (§15).
-tasks.withType(PublishToMavenRepository).configureEach { enabled = false }
+// The jar is not published: it is a demonstration, not an artifact (§15). The
+// runnable images are, to GitHub Packages rather than Central -- see the end of
+// this file (ADR-0335). No blanket `PublishToMavenRepository` switch-off any
+// more: the one publication declared here is the images, and a disabled task
+// reports SKIPPED in a green run, which is how that upload would have gone
+// missing.
 
 // --- Runnable image (ADR-0048) -------------------------------------------
 //
@@ -325,9 +335,9 @@ tasks.named('run') {
 //   nativeImage          runs `native-image` over the woven jar and that
 //                        metadata.
 //
-// Both need a GraalVM. There is none in this repository's toolchain and none in
-// CI, so neither task is wired into `build` and neither has been run here --
-// what is checked in is the invocation, not a binary. See book/src/native.md.
+// Both need a GraalVM. There is none in this repository's toolchain, so neither
+// task is wired into `build`; `showcase.yml`'s `native` job installs one and runs
+// both on every platform (ADR-0337). See book/src/native.md.
 
 def graalvmHome = providers.gradleProperty('graalvm.home')
         .orElse(providers.environmentVariable('GRAALVM_HOME'))
@@ -358,11 +368,23 @@ def graalTool = { String tool ->
             GraalVM for JDK ${java.toolchain.languageVersion.get().asInt()} or newer: https://www.graalvm.org/downloads/
             """.stripIndent())
     }
-    def executable = new File(graalvmHome.get(), "bin/${tool}" + (windows ? '.cmd' : ''))
+    // On Windows `java` is an `.exe` and `native-image` a `.cmd` launcher, so
+    // both are tried; asking for `java.cmd` alone found nothing there.
+    def executable = (windows ? ['.exe', '.cmd'] : [''])
+            .collect { new File(graalvmHome.get(), "bin/${tool}${it}") }
+            .find { it.isFile() } ?: new File(graalvmHome.get(), "bin/${tool}")
     if (!executable.isFile()) {
         throw new GradleException(
                 "${graalvmHome.get()} has no bin/${tool}. That is a JDK but not a GraalVM"
                         + " -- native-image and the tracing agent ship only with the latter.")
+    }
+    // CI builds with one GraalVM line (GraalVmRelease.CI_LINE, ADR-0337). Another
+    // one here is allowed and worth a line in the log: since 25.1 GraalVM versions
+    // apart from its JDK, and two lines can disagree about what an image needs.
+    def releaseFile = new File(graalvmHome.get(), 'release')
+    if (releaseFile.isFile()) {
+        GraalVmRelease.fromReleaseFile(releaseFile.text).flatMap { it.mismatchWarning() }
+                .ifPresent { logger.warn("WARNING: ${it}") }
     }
     executable.absolutePath
 }
@@ -508,10 +530,11 @@ tasks.register('nativeImage', Exec) {
                 '-o', new File(target.get().asFile, imageName).absolutePath,
                 // JEP 472, the same module the jar names (ADR-0007).
                 '--enable-native-access=io.github.digitalsmile.goldberry.natives',
-                // A fallback image is a JVM in a trench coat: it starts, it
-                // works, and it is not what this task claims to have produced.
-                // Failing is the useful answer.
-                '--no-fallback',
+                // No `--no-fallback`. It was here because a fallback image is a
+                // JVM in a trench coat, and GraalVM 25.3 -- the line CI pins --
+                // has no fallback images left to refuse: the flag reports
+                // "deprecated ... No effect, no replacement" and was both of the
+                // build's two warnings. Failing is still what happens (ADR-0337).
                 // Names the class and the trace that reached it rather than a
                 // stack in the builder.
                 '-H:+ReportExceptionStackTraces'
@@ -536,5 +559,63 @@ tasks.register('nativeImage', Exec) {
         // (ADR-0159). One file is the whole point.
         logger.lifecycle("native image: {}",
                 new File(target.get().asFile, imageName).absolutePath)
+    }
+}
+
+// ============================================================================
+// The images, published (ADR-0335, ADR-0337)
+//
+// Two artifacts in GitHub Packages, one classifier per platform:
+//
+//   goldberry-showcase          the jlink runtime images   -Pgoldberry.showcaseDir
+//   goldberry-showcase-native   the GraalVM native images  -Pgoldberry.showcaseNativeDir
+//
+// `showcase.yml` builds each on its own runner, then one job per kind downloads
+// all three and runs
+//
+//   ./gradlew :example:publishShowcasePublicationToGithubPackagesRepository \
+//       -Pgoldberry.showcaseDir=<dir holding the three archives>
+//
+// (or `publishShowcaseNativePublication...` with the native directory).
+//
+// Declared only when its directory is given: the archives exist nowhere else,
+// and a publication that named missing files would fail every other build that
+// merely configured this project.
+//
+// Once, with all three, for the reason the natives go to Central that way: a
+// snapshot's classifiers live in the metadata its upload writes, so three uploads
+// would leave it naming one platform (ADR-0334).
+// ============================================================================
+publishing {
+    // One publication per kind whose archives were handed over. The runtime
+    // images and the native images are separate artifacts, published by separate
+    // jobs, so a native build that fails on one platform does not hold back the
+    // runtime images (ADR-0337).
+    ShowcasePackage.Kind.values().each { kind ->
+        def directory = providers.gradleProperty(kind.directoryProperty())
+        if (directory.isPresent()) {
+            publications.register(kind.publicationName(), MavenPublication) {
+                groupId = PublishedModules.GROUP
+                artifactId = kind.artifactId()
+                version = project.version.toString()
+                ShowcasePackage.all(kind).each { image ->
+                    artifact(file("${directory.get()}/${image.fileName()}")) {
+                        classifier = image.target()
+                        extension = image.archive().extension()
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        // `githubPackagesUsername` / `githubPackagesPassword`, which the workflow
+        // sets from `github.actor` and `GITHUB_TOKEN`.
+        maven {
+            name = 'githubPackages'
+            url = providers.environmentVariable('GITHUB_REPOSITORY')
+                    .map { "https://maven.pkg.github.com/${it}" }
+                    .orElse('https://maven.pkg.github.com/DigitalSmile/goldberry')
+            credentials(PasswordCredentials)
+        }
     }
 }

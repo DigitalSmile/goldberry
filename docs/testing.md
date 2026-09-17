@@ -79,12 +79,13 @@ be aspirational is now §6's business.
 
 | Lane | Workflow | Trigger | Contents |
 |------|----------|---------|----------|
-| fast | `linux.yml` (`java` job) | every push + PR | `./gradlew build checkLicenses` — Spotless, Error Prone, NullAway, PMD, ArchUnit, the coverage gates, unit + widget tests. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
-| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | every push + PR | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
-| showcase | `example.yml`, `showcase.yml` | every push + PR | The example builds and runs; the self-contained image builds |
+| fast | `linux.yml` (`java` job) | PR, and every push through `snapshot.yml` | `./gradlew build checkLicenses` — Spotless, Error Prone, NullAway, PMD, ArchUnit, the coverage gates, unit + widget tests. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
+| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | PR, and every push through `snapshot.yml` | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
+| showcase | `showcase.yml` | every push + PR + tag | The example's tests against a built library (Linux), then the jlink image and the GraalVM native image on three platforms, each run until it presents three frames; on a push, both kinds to GitHub Packages (ADR-0335, ADR-0337) |
 | advisory | `codeql.yml`, `qodana.yml` | PR + schedule | CodeQL security queries; Qodana's inspection set once a token exists |
 | nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |
-| release | `release.yml` | tag | Every OS, the native-image artifacts, and the reachability-metadata drift check |
+| snapshot | `snapshot.yml` → `publish.yml` | push to master | Every OS, then one upload of every module and all four classifier jars as `-SNAPSHOT` to Central (ADR-0334) |
+| release | `release.yml` → `publish.yml` | `v*` tag; dispatch rehearses | The same chain as a signed release to a Central Portal deployment, after the licence check (ADR-0333, ADR-0334) |
 
 **Goldens are on every PR, not on a `full` label.** They are the assertion for
 painters (§0.2), so gating them behind a label would mean the check that matters

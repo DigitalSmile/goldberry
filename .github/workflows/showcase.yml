@@ -8,12 +8,27 @@
 # cross-target given the other platform's jmods, but the libgoldberry inside each
 # image has to be built on that platform anyway (ADR-0041), so the runner is
 # already committed.
+#
+# On a push -- to master, or a `v*` tag -- the three images are then published to
+# GitHub Packages as `io.github.digitalsmile:goldberry-showcase`, one classifier
+# per platform: a snapshot from master, the release from a tag (ADR-0335).
+#
+# Each leg then builds the same showcase a second way, as a GraalVM native image:
+# one executable with libgoldberry inside it (ADR-0159). Published beside the
+# runtime images as `goldberry-showcase-native` (ADR-0337).
+#
+# This is also where example.yml went. That workflow ran the example from the
+# build tree under Xvfb; the Linux leg here runs the example's own tests against
+# the library it just built, and then runs the *image*, which is a module-path
+# launch with nothing on it but what jlink kept -- the claim example.yml made,
+# made harder (ADR-0335).
 
-name: Showcase image
+name: Showcase
 
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -66,7 +81,10 @@ jobs:
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             libibus-1.0-dev \
-            xvfb
+            xvfb zlib1g-dev
+          # zlib1g-dev for native-image, which links `-lz` through the `libz.so`
+          # symlink only the dev package installs; without it the image build
+          # spends minutes on analysis and fails at the link (book/src/native.md).
 
       - name: Install build tools (macos)
         if: runner.os == 'macOS'
@@ -77,6 +95,13 @@ jobs:
 
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon
+
+      # The example's goldens, gallery order and screen tests need a rasterizer,
+      # and the `java` job in linux.yml builds none -- so this is the only place
+      # they run against a real library. Linux only, as they were in example.yml.
+      - name: The example's tests (linux)
+        if: runner.os == 'Linux'
+        run: ./gradlew :example:build --no-daemon
 
       # `--stacktrace`, because this step has failed twice on Windows and job
       # logs are not readable without admin rights on the repository -- so the
@@ -156,9 +181,166 @@ jobs:
           path: goldberry-showcase-${{ matrix.target }}.*
           if-no-files-found: error
 
+      # --- The native image (ADR-0337) -----------------------------------------
+      #
+      # On the same runner, after the runtime image is uploaded: libgoldberry is
+      # already built here, and the superbuild is the slowest step in the job. A
+      # native build that fails turns this leg red but cannot take the runtime
+      # image with it -- that artifact is already uploaded, and the two are
+      # published by separate jobs below.
+      # GraalVM CE 25.3, pinned by *GraalVM* version rather than Java version.
+      # Since 25.1 the community builds are tagged `graal-25.x`; `java-version:
+      # '25'` alone still resolves through the old `jdk-25.*` tags and lands on
+      # jdk-25.0.2 from January -- two feature releases behind the 25.3.4.1 the
+      # image was built and run with locally (ADR-0337). `version: '25.3'`
+      # takes the newest 25.3 patch.
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: '25.3'
+          java-version: '25'
+          distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Also puts GRAALVM_HOME in the environment, which is where
+          # `:example:nativeImage` looks, and on Windows sets up the MSVC
+          # environment native-image links with.
+
+      # The checked-in trace was recorded on linux-x64 and is reviewed as source
+      # (ADR-0156). macOS and Windows get a fresh one: a call or a resource only
+      # that platform's code path reaches is something a Linux run never
+      # recorded, and a foreign descriptor registered nowhere fails at its first
+      # call. Whether the sets actually differ is unmeasured; tracing is cheaper
+      # than finding out on a user's machine.
+      # Headless (`videoDriver=dummy`), so no display is needed.
+      - name: Trace the showcase for native-image (macos, windows)
+        if: runner.os != 'Linux'
+        run: ./gradlew :example:nativeImageMetadata --no-daemon --stacktrace
+
+      - name: Build the native image
+        run: ./gradlew :example:nativeImage --no-daemon --stacktrace
+
+      - name: What was built (native)
+        if: always()
+        run: ls -l example/build/native || echo "::warning::no native image was produced"
+
+      # The binary is what ships, so the binary is what runs.
+      - name: Run the native image (linux)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+            ./example/build/native/goldberry-showcase-${{ matrix.target }} --frames=3 | tee native-run.log
+          grep -q "painted 3 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+
+      - name: Run the native image (macos)
+        if: runner.os == 'macOS'
+        run: |
+          ./example/build/native/goldberry-showcase-${{ matrix.target }} --frames=3 | tee native-run.log
+          grep -q "painted 3 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+
+      - name: Run the native image (windows)
+        if: runner.os == 'Windows'
+        run: |
+          ./example/build/native/goldberry-showcase-${{ matrix.target }}.exe --frames=3 | tee native-run.log
+          grep -q "painted 3 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+
+      # Tarred on unix for the executable bit, as the runtime image is. On Windows
+      # the one `.exe` travels as itself.
+      - name: Package the native image (unix)
+        if: runner.os != 'Windows'
+        run: |
+          tar -czf "$GITHUB_WORKSPACE/goldberry-showcase-native-${{ matrix.target }}.tar.gz" \
+            -C example/build/native "goldberry-showcase-${{ matrix.target }}"
+
+      - name: Package the native image (windows)
+        if: runner.os == 'Windows'
+        run: |
+          cp "example/build/native/goldberry-showcase-${{ matrix.target }}.exe" \
+            "$GITHUB_WORKSPACE/goldberry-showcase-native-${{ matrix.target }}.exe"
+
+      # Named `showcase-native-*` and not `goldberry-showcase-native-*`, so the
+      # runtime publish job's `goldberry-showcase-*` pattern cannot pick it up.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-native-${{ matrix.target }}
+          path: goldberry-showcase-native-${{ matrix.target }}.*
+          if-no-files-found: error
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: showcase-run-log-${{ matrix.target }}
-          path: run.log
+          path: |
+            run.log
+            native-run.log
           if-no-files-found: warn
+
+  # GitHub Packages, once per kind, with all three packages (ADR-0335, ADR-0337).
+  # One job rather than a step on each leg for the reason publish.yml publishes
+  # the natives once: a snapshot's classifiers are listed in the metadata its
+  # upload writes, and three uploads would leave it naming one platform.
+  #
+  # `!cancelled()` rather than the default `success()`: the two kinds are
+  # independent, so a leg whose native image failed must not stop the runtime
+  # images publishing. What stops a *partial* publication is Gradle -- each
+  # publication names all three files, and a missing one fails the upload.
+  #
+  # Pushes only. A pull request's images are for looking at, and a fork's token
+  # cannot write packages anyway.
+  publish:
+    name: GitHub Packages (${{ matrix.kind.artifact }})
+    needs: image
+    if: ${{ !cancelled() && github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      # One package at a time: both upload through the same Gradle project.
+      max-parallel: 1
+      matrix:
+        kind:
+          - artifact: goldberry-showcase
+            download: goldberry-showcase-*
+            task: publishShowcasePublicationToGithubPackagesRepository
+            property: goldberry.showcaseDir
+          - artifact: goldberry-showcase-native
+            download: showcase-native-*
+            task: publishShowcaseNativePublicationToGithubPackagesRepository
+            property: goldberry.showcaseNativeDir
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ matrix.kind.download }}
+          path: packages
+          merge-multiple: true
+
+      # A tag publishes the release, and Gradle refuses a tag that does not match
+      # gradle.properties (ADR-0333); master publishes a snapshot.
+      - name: Publish ${{ matrix.kind.artifact }}
+        env:
+          ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
+          ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -l packages || true
+          args=""
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            args="-Pgoldberry.release=true -Pgoldberry.releaseTag=$GITHUB_REF_NAME"
+          fi
+          ./gradlew :example:${{ matrix.kind.task }} --no-daemon \
+            -Pgoldberry.skipNative=true \
+            -P${{ matrix.kind.property }}="$PWD/packages" \
+            $args
+          echo "Published ${{ matrix.kind.artifact }} **$(./gradlew -q :example:printVersion $args -Pgoldberry.skipNative=true --no-daemon)** to GitHub Packages" \
+            >> "$GITHUB_STEP_SUMMARY"

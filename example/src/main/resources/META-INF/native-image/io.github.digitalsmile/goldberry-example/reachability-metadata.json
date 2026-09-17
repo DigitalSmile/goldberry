@@ -79,11 +79,59 @@
       ]
     },
     {
+      "type": "io.github.digitalsmile.goldberry.html.GoldberryCatalog"
+    },
+    {
       "type": "io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch",
       "methods": [
         {
           "name": "invoke",
           "parameterTypes": [
+            "java.lang.foreign.MemorySegment",
+            "java.lang.foreign.MemorySegment"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.natives.sdl.SdlFileDialogs",
+      "methods": [
+        {
+          "name": "answer",
+          "parameterTypes": [
+            "java.lang.foreign.MemorySegment",
+            "java.lang.foreign.MemorySegment",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard",
+      "methods": [
+        {
+          "name": "forget",
+          "parameterTypes": [
+            "java.lang.foreign.MemorySegment"
+          ]
+        },
+        {
+          "name": "provide",
+          "parameterTypes": [
+            "java.lang.foreign.MemorySegment",
+            "java.lang.foreign.MemorySegment",
+            "java.lang.foreign.MemorySegment"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTray",
+      "methods": [
+        {
+          "name": "invoke",
+          "parameterTypes": [
+            "int",
             "java.lang.foreign.MemorySegment",
             "java.lang.foreign.MemorySegment"
           ]
@@ -107,6 +155,27 @@
     },
     {
       "type": "io.github.digitalsmile.goldberry.widgets.GoldberryCatalog"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollContent"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollThumb"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollViewport"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.panel.masonry.MasonryBox"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.panel.masonry.MasonryCell"
+    },
+    {
+      "type": "io.github.digitalsmile.goldberry.widgets.panel.masonry.MasonryColumn"
     },
     {
       "type": "java.lang.Thread",
@@ -153,7 +222,7 @@
       "glob": "META-INF/services/ch.qos.logback.classic.spi.Configurator"
     },
     {
-      "glob": "META-INF/services/io.github.digitalsmile.goldberry.widgets.WidgetCatalog"
+      "glob": "META-INF/services/io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog"
     },
     {
       "glob": "META-INF/services/java.time.zone.ZoneRulesProvider"
@@ -212,6 +281,22 @@
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/html-sample.html"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/html.kdl"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/markdown-sample.md"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/markdown.kdl"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
       "glob": "io/github/digitalsmile/goldberry/example/ui/overlays.kdl"
     },
     {
@@ -221,6 +306,14 @@
     {
       "module": "io.github.digitalsmile.goldberry.example",
       "glob": "io/github/digitalsmile/goldberry/example/ui/statusbar.kdl"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.html",
+      "glob": "io/github/digitalsmile/goldberry/html/view/html.css"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.html",
+      "glob": "io/github/digitalsmile/goldberry/markdown/view/markdown.css"
     },
     {
       "module": "io.github.digitalsmile.goldberry.widgets",
@@ -236,6 +329,15 @@
     }
   ],
   "foreign": {
+    "upcalls": [
+      {
+        "returnType": "void",
+        "parameterTypes": [
+          "void*",
+          "void*"
+        ]
+      }
+    ],
     "downcalls": [
       {
         "returnType": "jint",
@@ -282,6 +384,16 @@
         "returnType": "void",
         "parameterTypes": [
           "void*",
+          "void*",
+          "void*",
+          "void*",
+          "jboolean"
+        ]
+      },
+      {
+        "returnType": "void",
+        "parameterTypes": [
+          "void*",
           "jint"
         ]
       },
@@ -300,13 +412,6 @@
       {
         "returnType": "jint",
         "parameterTypes": [
-          "jint",
-          "void*"
-        ]
-      },
-      {
-        "returnType": "jint",
-        "parameterTypes": [
           "void*",
           "void*",
           "void*",
@@ -330,18 +435,27 @@
       },
       {
         "returnType": "jboolean",
-        "parameterTypes": [
-          "void*"
-        ]
-      },
-      {
-        "returnType": "jlong",
         "parameterTypes": [
           "void*"
         ]
       },
       {
         "returnType": "void*",
+        "parameterTypes": [
+          "void*"
+        ]
+      },
+      {
+        "returnType": "void*",
+        "parameterTypes": [
+          "void*",
+          "jint",
+          "void*",
+          "jint"
+        ]
+      },
+      {
+        "returnType": "jlong",
         "parameterTypes": [
           "void*"
         ]
@@ -455,6 +569,18 @@
           "void*",
           "void*",
           "void*"
+        ]
+      },
+      {
+        "returnType": "void",
+        "parameterTypes": [
+          "void*",
+          "void*",
+          "void*",
+          "void*",
+          "jint",
+          "void*",
+          "jboolean"
         ]
       },
       {
@@ -491,15 +617,15 @@
         ]
       },
       {
-        "returnType": "jint",
+        "returnType": "jboolean",
         "parameterTypes": [
-          "void*",
           "jint"
         ]
       },
       {
-        "returnType": "jboolean",
+        "returnType": "jint",
         "parameterTypes": [
+          "void*",
           "jint"
         ]
       },
@@ -539,12 +665,23 @@
         "returnType": "jint",
         "parameterTypes": [
           "void*",
-          "jdouble"
+          "jint",
+          "void*"
         ]
       },
       {
         "returnType": "jint",
         "parameterTypes": [
+          "void*",
+          "jdouble"
+        ]
+      },
+      {
+        "returnType": "void",
+        "parameterTypes": [
+          "void*",
+          "void*",
+          "void*",
           "void*",
           "jint",
           "void*"
@@ -605,6 +742,15 @@
         "returnType": "jint",
         "parameterTypes": [
           "void*",
+          "void*",
+          "jlong",
+          "void*"
+        ]
+      },
+      {
+        "returnType": "jint",
+        "parameterTypes": [
+          "void*",
           "jdouble",
           "jdouble",
           "jdouble",
@@ -650,15 +796,13 @@
         "parameterTypes": []
       },
       {
-        "returnType": "void",
+        "returnType": "jboolean",
         "parameterTypes": [
           "void*",
-          "jfloat",
-          "jint",
-          "jfloat",
-          "jint",
           "void*",
-          "void*"
+          "void*",
+          "void*",
+          "jlong"
         ]
       },
       {
@@ -667,9 +811,29 @@
           "void*",
           "void*"
         ]
+      },
+      {
+        "returnType": "void*",
+        "parameterTypes": [
+          "jint",
+          "jint",
+          "jint",
+          "void*",
+          "jint"
+        ]
       }
     ],
     "directUpcalls": [
+      {
+        "class": "io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard",
+        "method": "provide",
+        "returnType": "void*",
+        "parameterTypes": [
+          "void*",
+          "void*",
+          "void*"
+        ]
+      },
       {
         "class": "io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback",
         "method": "invoke",
@@ -688,6 +852,24 @@
         "returnType": "jboolean",
         "parameterTypes": [
           "void*",
+          "void*"
+        ]
+      },
+      {
+        "class": "io.github.digitalsmile.goldberry.natives.sdl.SdlFileDialogs",
+        "method": "answer",
+        "returnType": "void",
+        "parameterTypes": [
+          "void*",
+          "void*",
+          "jint"
+        ]
+      },
+      {
+        "class": "io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard",
+        "method": "forget",
+        "returnType": "void",
+        "parameterTypes": [
           "void*"
         ]
       }

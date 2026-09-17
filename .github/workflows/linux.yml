@@ -10,7 +10,11 @@
 # for local development. ADR-0012 records that this means the CMake arguments
 # live in two places.
 #
-# `workflow_call` is what lets release.yml reuse this without duplicating it.
+# `workflow_call` is what lets publish.yml reuse this without duplicating it --
+# and on a push to master that is the only way this runs. There is no `push`
+# trigger: snapshot.yml calls this workflow on every push and publishes the
+# library it built, so a trigger here would build every native library twice per
+# commit and publish neither (ADR-0334). Pull requests still run it directly.
 #
 # STATUS: the natives jobs pass on x64 and aarch64. The dependency list below is
 # where this workflow keeps breaking: SDL treats several X11 extensions as hard
@@ -28,8 +32,6 @@
 name: Linux
 
 on:
-  push:
-    branches: [main, master]
   pull_request:
   workflow_call:
   workflow_dispatch:
@@ -146,7 +148,7 @@ jobs:
           # application.
           #
           # systemd-devel is where RHEL keeps libudev's headers; on the Ubuntu
-          # runners in example.yml and showcase.yml the same thing is libudev-dev.
+          # runner in showcase.yml the same thing is libudev-dev.
           # The superbuild now stops rather than building a library without D-Bus
           # (-DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION), so a future container that
           # drops one of these fails here loudly instead of publishing quietly.
@@ -158,7 +160,7 @@ jobs:
           # first only moved the failure one line down -- which is what happened.
           #
           # RHEL names them differently from Debian: `libXScrnSaver-devel` is
-          # `libxss-dev` on the Ubuntu runners in example.yml and showcase.yml,
+          # `libxss-dev` on the Ubuntu runner in showcase.yml,
           # and grepping this file for the name that failed there finds nothing.
           #
           # Kept on rather than -DSDL_X11_XTEST=OFF / -DSDL_X11_XSCRNSAVER=OFF:

@@ -91,7 +91,7 @@ public final class LinuxDependencies {
 
     /** A package manager, as far as naming a package is concerned. */
     public enum PackageManager {
-        /** Debian, Ubuntu, and the runners in {@code example.yml} / {@code showcase.yml}. */
+        /** Debian, Ubuntu, and the runner in {@code showcase.yml}. */
         APT,
         /** RHEL, AlmaLinux, and the manylinux container in {@code linux.yml}. */
         DNF;

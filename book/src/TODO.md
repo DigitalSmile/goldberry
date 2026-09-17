@@ -1307,7 +1307,7 @@ on, which in four cases is the same thing.
   to `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` is the remaining work, and the
   honest form of it is probably a `Capability.WINDOW_DECORATIONS`, since the answer for
   the container may be "it cannot" rather than "install this".
-- **No CI leg exercises Wayland.** `example.yml` and `showcase.yml` both run under
+- **No CI leg exercises Wayland.** `showcase.yml` runs under
   `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
   is never reached — which is why two consecutive decoration bugs shipped without a
   single red tick. A Wayland leg needs a headless compositor in CI (`weston
@@ -1380,18 +1380,50 @@ on, which in four cases is the same thing.
   `./gradlew checkLicenses -Pgoldberry.releaseCheck=true` fails until they are copied
   verbatim from the pinned upstream revisions. —
   [ADR-0015](adr/0015-licensing-and-third-party-disclosure.md)
-- **Nothing is publishable yet: there are no publications.** §15 says the four
-  classifier jars and `goldberry-common`, `-core`, `-widgets`, `-gpu` go to Maven Central under
-  `io.github.digitalsmile`. The half that exists is the artifact half — `release.yml`
-  reuses the three per-OS workflows in one run, so all four libraries are built and
-  downloaded into one job, and `:natives:nativeJars` packages them into classifier jars
-  from `-Pgoldberry.artifactsDir`. The half that does not exist is publishing: **no
-  subproject applies `maven-publish`**, so there is no publication, no POM, no javadoc
-  or sources jar, no signing, no Central credentials and no `publish` task. The two
-  `PublishToMavenRepository` lines in `assets` and `example` disable something that was
-  never configured. `release.yml` therefore ends at `upload-artifact`, and it has still
-  never run. — `docs/ARCHITECTURE.md` §15,
-  [ADR-0009](adr/0009-publish-under-io-github-digitalsmile.md)
+- **The publishing chain has never run against Central.** Everything up to the upload
+  is built and was rehearsed locally with stand-in libraries; what cannot be done from
+  the repository is Central's side — the `io.github.digitalsmile` namespace, **snapshots
+  enabled for it** (off by default), a user token, a GPG key on a keyserver, and the
+  four secrets. Until then every snapshot run rehearses into `mavenLocal` and says so.
+  `docs/releasing.md` is the list. —
+  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
+- **The published javadoc is built with doclint off.** 120 errors across `:natives`,
+  `:core` and `:widgets` — `{@link}`s to types the module cannot see and `@param` /
+  `@return` on comments javadoc does not treat as method docs — would fail the javadoc
+  jar Central requires. None of them stops a page rendering, so `goldberry.publish`
+  passes `-Xdoclint:none`; fixing them and turning the lint back on is the work. —
+  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
+- **Nothing bumps `goldberryVersion` after a release.** Forgetting leaves master
+  publishing `2026.1-SNAPSHOT` after `2026.1` is out, which Maven orders below the
+  release. A step in `release.yml` that opens the bump as a pull request would close
+  it. — [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md)
+- **The macOS and Windows native showcases are built from unreviewed traces.** The
+  checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
+  CI traces the other two headlessly before building, for 120 frames, and uses what it
+  saw. A screen that run never reaches can lack a registration and fail when opened.
+  Diffing the first CI traces against the checked-in file says whether per-platform
+  traces are needed at all; if they are, they belong in the repository beside the
+  Linux one. The `macos-14` runner's 3 cores are the likeliest place for the build to
+  be slow (2.27 GiB peak and 1 min 23 s on 8 Linux threads). —
+  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
+- **A stale Linux trace is found by the showcase run, not before it.** The checked-in
+  reachability metadata went three weeks without an image built from it, and the first
+  one died on the clipboard upcall added in between (refreshed with ADR-0337). The
+  native leg now catches that on the next push, but only as a red run after a full
+  native build; a cheap check that every `Linker.upcallStub` target in `:natives` has a
+  registration would catch it at review time. —
+  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
+- **An application still adds its platform's natives jar by hand.** The `goldberry`
+  umbrella cannot pick `goldberry-natives:<v>:linux-x64` for the consumer's platform —
+  a POM has no way to — so the BOM lines up its version and the classifier is the
+  application's. A Gradle plugin, or module-metadata variants keyed on OS and
+  architecture, would close it. —
+  [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
+- **Showcase snapshots are never pruned.** Every push to master adds three images to
+  GitHub Packages — six, counting the native binaries — and nothing deletes the old ones; a scheduled
+  `actions/delete-package-versions` is the obvious shape. The images also need a token
+  to download, so they are not yet a public link — a GitHub Release for tagged versions
+  would be. — [ADR-0335](adr/0335-the-showcase-is-a-package-and-example-yml-is-folded-in.md)
 
 ## Answered
 

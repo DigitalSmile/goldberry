@@ -1,0 +1,162 @@
+# Publishing to Maven Central (ADR-0334)
+#
+# The one workflow that uploads to Central. snapshot.yml calls it on every push to
+# master and release.yml on every `v*` tag; nothing else may, and
+# `PublishWorkflowsTest` holds every other workflow to that.
+#
+# Every platform first, then one upload. The per-OS workflows are called rather
+# than copied, so there is one definition of how each library is built, and each
+# uploads its library as a run artifact. The `maven` job below then has all four
+# and publishes them together with the Java modules, in a single Gradle
+# invocation. It has to be one: a snapshot's classifier jars are listed in the
+# `maven-metadata.xml` its upload writes, so a runner publishing its own platform
+# would leave Central's metadata naming whichever platform finished last, and a
+# consumer asking for `goldberry-natives:<v>:linux-x64` would resolve nothing.
+#
+# The version is Gradle's decision, not this file's (ADR-0333): a snapshot of
+# `goldberryVersion`, or -- with `release: true` -- the version itself, checked
+# against the tag the run was triggered by.
+#
+# STATUS: never run against Central. Needs the secrets in docs/releasing.md.
+
+name: Publish
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: Publish a release from the triggering tag, rather than a snapshot.
+        type: boolean
+        required: true
+      publish:
+        description: Upload to Central. False rehearses the chain into mavenLocal.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    uses: ./.github/workflows/linux.yml
+    secrets: inherit
+
+  windows:
+    uses: ./.github/workflows/windows.yml
+
+  macos:
+    uses: ./.github/workflows/macos.yml
+
+  maven:
+    name: Maven Central (${{ inputs.release && 'release' || 'snapshot' }})
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Guarded on the secret, the way qodana.yml guards on its token: until
+      # somebody connects Central, a snapshot run rehearses into mavenLocal and
+      # says so rather than turning every push red. A *release* without
+      # credentials is a mistake, and fails.
+      - name: Is Maven Central connected?
+        id: gate
+        env:
+          USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          RELEASE: ${{ inputs.release }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          if [ "$PUBLISH" != "true" ]; then
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "Rehearsal: the chain runs into mavenLocal and nothing is uploaded." >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$USERNAME" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          elif [ "$RELEASE" = "true" ]; then
+            echo "::error::MAVEN_CENTRAL_USERNAME is not set; a release cannot be published (docs/releasing.md)"
+            exit 1
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "MAVEN_CENTRAL_USERNAME is not set -- see docs/releasing.md. Rehearsing into mavenLocal instead." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The version flags, written once for every Gradle call below. A release
+      # hands over the tag, and Gradle refuses one that does not match
+      # gradle.properties before anything is built.
+      - name: Version
+        env:
+          RELEASE: ${{ inputs.release }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$RELEASE" = "true" ]; then
+            echo "VERSION_ARGS=-Pgoldberry.release=true -Pgoldberry.releaseTag=$TAG" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_ARGS=" >> "$GITHUB_ENV"
+          fi
+
+      - name: Report the version
+        run: |
+          version=$(./gradlew -q :core:printVersion $VERSION_ARGS -Pgoldberry.skipNative=true --no-daemon)
+          echo "Publishing **$version**" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: native-artifacts
+
+      - name: Flatten into the layout :natives expects
+        run: |
+          mkdir -p artifacts
+          for dir in native-artifacts/native-*; do
+            target="${dir#native-artifacts/native-}"
+            mkdir -p "artifacts/$target"
+            cp "$dir"/* "artifacts/$target/"
+          done
+          find artifacts -type f | sort
+
+      # Every licence file must carry its verbatim upstream text before a release
+      # is published. A snapshot warns instead: it is a build of work in progress,
+      # and the check exists to stop the permanent thing (ADR-0015).
+      - name: Verify licence disclosure
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: ./gradlew checkLicenses -Pgoldberry.releaseCheck=$RELEASE --no-daemon
+
+      # `-Pgoldberry.skipNative=true`: the libraries were built and verified by the
+      # per-OS jobs, and are handed over with -Pgoldberry.artifactsDir. This runner
+      # has no toolchain and must not grow a rival library (ADR-0016).
+      - name: Publish to Maven Central
+        if: steps.gate.outputs.upload == 'true'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          AUTO_RELEASE: ${{ vars.CENTRAL_AUTO_RELEASE || 'false' }}
+        run: |
+          ./gradlew publishToMavenCentral --no-daemon \
+            -Pgoldberry.skipNative=true \
+            -Pgoldberry.artifactsDir="$PWD/artifacts" \
+            -Pgoldberry.centralAutoRelease=$AUTO_RELEASE \
+            $VERSION_ARGS
+
+      # Everything but the upload: javadoc, sources, POMs and the four classifier
+      # jars, into this runner's ~/.m2. What a rehearsal is for.
+      - name: Rehearse into mavenLocal
+        if: steps.gate.outputs.upload != 'true'
+        run: |
+          ./gradlew publishToMavenLocal --no-daemon \
+            -Pgoldberry.skipNative=true \
+            -Pgoldberry.artifactsDir="$PWD/artifacts" \
+            $VERSION_ARGS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goldberry-maven
+          path: |
+            */build/libs/goldberry-*.jar
+            */build/publications/maven/pom-default.xml
+          if-no-files-found: error

@@ -1,0 +1,67 @@
+import io.github.digitalsmile.goldberry.build.publish.PublishedModule.Inclusion
+import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+
+plugins {
+    id 'goldberry.java-conventions'
+    // Published to Maven Central as `goldberry`, the umbrella (ADR-0336).
+    id 'goldberry.publish'
+}
+
+description = 'Goldberry: the toolkit in one dependency, with the optional modules listed'
+
+// ============================================================================
+// The umbrella (ADR-0336)
+//
+// No code. What it carries is a POM:
+//
+//   required   goldberry-common, -natives, -core, -widgets    compile scope
+//   optional   goldberry-html, -gpu                           <optional>true</optional>
+//
+// both generated from `PublishedModules`, so a new content module is one line
+// there. An optional dependency is not resolved transitively -- an application
+// that wants Markdown still adds `goldberry-html` -- but it is listed, Maven
+// shows it, and Gradle reads it as a version constraint, so the module an
+// application adds lines up with the umbrella it already has.
+//
+// Gradle Module Metadata is not published for this artifact. Its only way to say
+// "optional" is a feature variant, and a feature variant needs a source set and
+// publishes an empty jar per feature; without the .module file Gradle reads the
+// POM, where `<optional>` already means the right thing.
+// ============================================================================
+
+dependencies {
+    PublishedModules.libraries(Inclusion.REQUIRED).each { library ->
+        api project(":${library.project()}")
+    }
+}
+
+def optional = PublishedModules.libraries(Inclusion.OPTIONAL).collect { it.artifactId() }
+
+mavenPublishing {
+    pom {
+        withXml { xml ->
+            def dependencies = xml.asNode().dependencies[0] ?: xml.asNode().appendNode('dependencies')
+            optional.each { artifactId ->
+                def dependency = dependencies.appendNode('dependency')
+                dependency.appendNode('groupId', PublishedModules.GROUP)
+                dependency.appendNode('artifactId', artifactId)
+                dependency.appendNode('version', project.version.toString())
+                dependency.appendNode('scope', 'compile')
+                dependency.appendNode('optional', 'true')
+            }
+        }
+    }
+}
+
+tasks.withType(GenerateModuleMetadata).configureEach {
+    enabled = false
+}
+
+// An empty jar on the module path is an automatic module named from its file,
+// `goldberry`, which is not a package-shaped name. It requires nothing and
+// exports nothing either way; this only gives it a name that cannot collide.
+tasks.named('jar', Jar) {
+    manifest {
+        attributes('Automatic-Module-Name': 'io.github.digitalsmile.goldberry.toolkit')
+    }
+}

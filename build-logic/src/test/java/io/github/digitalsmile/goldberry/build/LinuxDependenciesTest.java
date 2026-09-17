@@ -3,16 +3,13 @@ package io.github.digitalsmile.goldberry.build;
 import io.github.digitalsmile.goldberry.build.LinuxDependencies.Dependency;
 import io.github.digitalsmile.goldberry.build.LinuxDependencies.Necessity;
 import io.github.digitalsmile.goldberry.build.LinuxDependencies.PackageManager;
+import io.github.digitalsmile.goldberry.build.repository.Repository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -39,31 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LinuxDependenciesTest {
 
     /**
-     * The repository root. Handed over by {@code build-logic/build.gradle} so the
-     * test does not have to guess; found by walking up when it is absent, which is
-     * what happens when the test is run straight from an IDE.
-     */
-    private static Path repositoryRoot() {
-        var declared = System.getProperty("goldberry.repoRoot");
-        if (declared != null && !declared.isBlank()) {
-            return Path.of(declared);
-        }
-        var directory = Path.of("").toAbsolutePath();
-        while (directory != null) {
-            if (Files.isDirectory(directory.resolve(".github/workflows"))) {
-                return directory;
-            }
-            directory = directory.getParent();
-        }
-        // Deliberately not `assumeTrue`. A drift guard that skips when it cannot
-        // find what it guards is a green tick over an unchecked invariant, which
-        // is the one outcome worse than a red one.
-        throw new IllegalStateException(
-                "cannot find .github/workflows above " + Path.of("").toAbsolutePath()
-                        + "; set -Dgoldberry.repoRoot=<repo>");
-    }
-
-    /**
      * The public {@code Capability} enum, read as text.
      *
      * <p>build-logic cannot depend on {@code :core} -- it is what builds it -- so
@@ -71,24 +43,11 @@ class LinuxDependenciesTest {
      * the same trick the CI checks below use on the workflows.
      */
     private static String readCapabilityEnum() {
-        var file = repositoryRoot()
-                .resolve("core/src/main/java/io/github/digitalsmile/goldberry/platform/Capability.java");
-        assertTrue(Files.isRegularFile(file), file + " does not exist");
-        try {
-            return Files.readString(file);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return Repository.read("core/src/main/java/io/github/digitalsmile/goldberry/platform/Capability.java");
     }
 
     private static String workflow(String name) {
-        var file = repositoryRoot().resolve(".github/workflows").resolve(name);
-        assertTrue(Files.isRegularFile(file), file + " does not exist");
-        try {
-            return Files.readString(file);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return Repository.workflow(name);
     }
 
     /**
@@ -379,7 +338,7 @@ class LinuxDependenciesTest {
          * {@code checkToolchain}. A required dependency the check would reject has
          * to be installed here, or CI fails on its own preflight.
          */
-        private static final List<String> APT_WORKFLOWS = List.of("example.yml", "showcase.yml");
+        private static final List<String> APT_WORKFLOWS = List.of("showcase.yml");
 
         /**
          * The release leg. It runs CMake directly inside a manylinux container with
@@ -390,7 +349,7 @@ class LinuxDependenciesTest {
         private static final String DNF_WORKFLOW = "linux.yml";
 
         @ParameterizedTest(name = "{0} installs every required package")
-        @ValueSource(strings = {"example.yml", "showcase.yml"})
+        @ValueSource(strings = {"showcase.yml"})
         @DisplayName("the Gradle-driven workflows install what checkToolchain requires")
         void gradleWorkflowsInstallEveryRequiredPackage(String name) {
             var text = workflow(name);
@@ -438,7 +397,7 @@ class LinuxDependenciesTest {
         }
 
         @ParameterizedTest(name = "{0} installs every capability's package")
-        @ValueSource(strings = {"example.yml", "showcase.yml"})
+        @ValueSource(strings = {"showcase.yml"})
         @DisplayName("the Gradle-driven workflows install them too")
         void gradleWorkflowsInstallEveryCapabilityPackage(String name) {
             var text = workflow(name);

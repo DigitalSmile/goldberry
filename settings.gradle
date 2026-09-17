@@ -24,6 +24,11 @@ rootProject.name = 'goldberry'
 //   :widgets  the widget catalog, charts included (ADR-0014)
 //   :gpu      canvas3d and the GPU composition path
 //
+//   :bom      goldberry-bom, a java-platform pinning every published artifact
+//   :toolkit  `goldberry`, the umbrella: no code, the required modules as
+//             dependencies and the optional ones (:html, :gpu) listed as
+//             <optional> (ADR-0336)
+//
 // :assets is a build-time tool, not a published module: it fetches the pinned
 // fonts and icon set and prepares them into resources :core packages. It is
 // ordinary Java rather than build-script code because compiling 1544 SVGs into
@@ -53,6 +58,8 @@ include ':common',
         ':widgets',
         ':html',
         ':gpu',
+        ':bom',
+        ':toolkit',
         ':assets',
         ':weaver',
         ':example'

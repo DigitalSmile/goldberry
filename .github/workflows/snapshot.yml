@@ -1,0 +1,36 @@
+# Snapshots (ADR-0334)
+#
+# Every push to master builds Linux, macOS and Windows -- the per-OS workflows,
+# called through publish.yml -- and publishes `goldberryVersion-SNAPSHOT` to the
+# Central Portal's snapshot repository:
+#
+#   https://central.sonatype.com/repository/maven-snapshots/
+#
+# This is where the per-OS workflows' push runs went. They have no `push`
+# trigger of their own any more, so a commit builds each library once and the
+# library that passed verification is the one published.
+#
+# Queued rather than cancelled: a newer push waits for the older one to finish
+# publishing, since an upload stopped halfway leaves a snapshot whose modules
+# disagree about which build they are.
+
+name: Snapshot
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: snapshot-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    uses: ./.github/workflows/publish.yml
+    with:
+      release: false
+    secrets: inherit

@@ -25,6 +25,8 @@ dependencies {
     implementation "net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorprone.get()}"
     implementation "com.github.spotbugs.snom:spotbugs-gradle-plugin:${libs.versions.spotbugsPlugin.get()}"
     implementation "me.champeau.jmh:jmh-gradle-plugin:${libs.versions.jmhPlugin.get()}"
+    // Applied by `goldberry.publish`, which only the shipped modules apply (ADR-0334).
+    implementation "com.vanniktech:gradle-maven-publish-plugin:${libs.versions.mavenPublishPlugin.get()}"
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter

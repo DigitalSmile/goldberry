@@ -3,6 +3,8 @@ import io.github.digitalsmile.goldberry.build.ToolResolver
 
 plugins {
     id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-natives (ADR-0334).
+    id 'goldberry.publish'
 }
 
 description = 'Goldberry native layer: hand-written FFM bindings and the libgoldberry superbuild'
@@ -578,6 +580,23 @@ tasks.register('nativeJars') {
     group = nativeGroup
     description = 'Packages all four classifier jars from -Pgoldberry.artifactsDir.'
     dependsOn nativeTargets.collect { "nativeJar${taskSuffix(it.id)}" }
+}
+
+// The classifier jars ride the `goldberry-natives` publication, but only when a
+// run hands over all four libraries with -Pgoldberry.artifactsDir -- which is
+// `publish.yml`, after every platform's job has uploaded one. Anywhere else there
+// is at most the host's library, and a publication missing three platforms is
+// not a smaller release but a broken one: every jar's `doFirst` above refuses it.
+//
+// All four in one upload, never one per runner. A snapshot's classifiers are
+// listed in the `maven-metadata.xml` its upload writes, so four uploads would
+// leave the metadata naming whichever platform finished last (ADR-0334).
+if (providers.gradleProperty('goldberry.artifactsDir').isPresent()) {
+    publishing.publications.withType(MavenPublication).configureEach { publication ->
+        nativeTargets.each { target ->
+            publication.artifact(tasks.named("nativeJar${taskSuffix(target.id)}"))
+        }
+    }
 }
 
 // Staging step so a local `cmakeBuild` feeds the host's classifier jar without

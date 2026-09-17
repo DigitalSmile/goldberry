@@ -145,7 +145,8 @@ tasks.register('coverage') {
 tasks.register('blessGoldens') {
     group = 'verification'
     description = 'Rewrites every golden image in the project from what the code draws.'
-    dependsOn subprojects.collect { ":${it.name}:blessGoldens" }
+    // `:bom` is a java-platform with no tests to bless (ADR-0336).
+    dependsOn subprojects.findAll { it.name != 'bom' }.collect { ":${it.name}:blessGoldens" }
     doLast {
         logger.lifecycle('Goldens rewritten. `git diff --stat` is the review: ' +
                 'an image that changed and should not have is the only thing this cannot tell you.')

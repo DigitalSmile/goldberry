@@ -16,7 +16,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **eleven** screens, the last of them a searchable sheet of all 1544 bundled icons, in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
-| [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
+| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, AccessKit bridge, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. The other ten are unscheduled |
 
 ## Foundation
@@ -7233,8 +7233,8 @@ signature** — was never written down and was broken in two families.
 
 ## M5 — Hardening
 
-**Not started.** Text editing depth, the AccessKit bridge, IME preedit, docs, and the
-0.1 release — **and the three-platform frame evidence M1 is waiting on**, which is
+**Started, with the release half.** Text editing depth, the AccessKit bridge, IME
+preedit, docs, and the first release — **and the three-platform frame evidence M1 is waiting on**, which is
 here rather than in M1 because it is a CI job and because the hardening milestone
 is where every other "prove it on hardware nobody has run it on" item already
 lives.
@@ -7262,6 +7262,55 @@ are GPU-less virtual machines. Measuring there is real evidence about three
 platforms' *drivers* — Cocoa/Metal, D3D, X11 — and far better than one VirtualBox
 VM, but it is not a claim about hardware, and the milestone should close on what
 was measured rather than on what it would be nice to have measured.
+
+### Releasing — built, never run
+
+[ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md),
+[ADR-0334](adr/0334-central-is-fed-once-per-run.md),
+[ADR-0335](adr/0335-the-showcase-is-a-package-and-example-yml-is-folded-in.md),
+[ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md),
+[ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md);
+`docs/releasing.md` is the checklist.
+
+- **Calendar versions.** `goldberryVersion=2026.1` is the line being worked
+  towards and never carries `-SNAPSHOT`; the build adds it, and drops it only for
+  `-Pgoldberry.release=true` with a `v2026.1` tag that matches. A mismatched tag
+  fails configuration. `CalendarVersion` and `BuildVersion` in build-logic, tested.
+- **Maven Central.** `goldberry.publish` on the six shipped libraries — POMs,
+  sources, javadoc, signing for releases, `:core`'s test fixtures kept out, and
+  `goldberry-natives` carrying all four classifier jars when a run hands them over.
+  Rehearsed locally with stand-in libraries into a throwaway repository: every
+  artifact and POM came out, and no POM names a build-time module.
+- **A BOM and an umbrella.** `goldberry-bom` pins every artifact; `goldberry`
+  depends on `-common`, `-natives`, `-core` and `-widgets` and lists `-html` and
+  `-gpu` as `<optional>`, both generated from `PublishedModules` so a content
+  module is one line. A consumer build against a local repository resolved the
+  four without `goldberry-html`, and `goldberry-html` at the BOM's version once
+  asked for.
+- **One uploader.** `publish.yml` calls the three per-OS workflows and publishes
+  once; `snapshot.yml` (every push to master) and `release.yml` (every `v*` tag,
+  dispatch rehearses) call it. The per-OS workflows lost their `push` trigger,
+  because four publishers would leave a snapshot's metadata naming one platform.
+- **The showcase on GitHub Packages.** `showcase.yml` publishes its three images
+  once per push as `goldberry-showcase`, and absorbed `example.yml`'s one unique
+  step, the example's tests against a built library.
+- **The native showcase.** Every leg also builds the GraalVM native image, runs it
+  for three frames and uploads it; a second job publishes the three as
+  `goldberry-showcase-native`. macOS and Windows trace headlessly first. CI pins
+  **GraalVM CE 25.3** by GraalVM version (`java-version: '25'` alone resolved
+  January's jdk-25.0.2). **Run locally on linux-x64 with 25.3.4.1**: built in under two minutes to a 49 MiB binary — and then died on
+  its first frame, because the checked-in trace predated the clipboard upcall
+  (`SdlClipboard.provide`, no registered method). Re-traced, the same build opened
+  its window, painted and exited 0. The refreshed trace adds the clipboard, file
+  dialog and tray upcalls, the `:html` catalog and the scroll and masonry widgets —
+  eleven reflective types and five downcalls, everything built since 30 August.
+  A clean rebuild on 25.3 also found `--no-fallback` deprecated with no effect —
+  both of the build's warnings — and it is gone: 1 min 23 s, peak RSS 2.27 GiB.
+- **Not done:** Central's side (namespace, snapshots enabled, token, signing key,
+  secrets); vendored licence texts, which block the first release; the javadoc's
+  120 doclint errors, published with the lint off; pruning old showcase snapshots;
+  any CI run of the native images on macOS and Windows, whose traces nobody has
+  reviewed.
 
 ## Content modules
 

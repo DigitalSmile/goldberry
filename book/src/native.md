@@ -6,7 +6,7 @@ rather than against a JVM. That is what
 [ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md) designed the
 binding schema for.
 
-> **Built and run on linux-x64; not in CI.** One 41 MiB file with nothing beside
+> **Built and run in CI on linux-x64, macOS and Windows** ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)) — *wired, not yet run there*. One 41 MiB file with nothing beside
 > it, starting in well under a second and painting at about 1 ms a frame
 > headless — faster than the JVM build over a short run, because there is nothing
 > to warm up ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)).
@@ -111,7 +111,7 @@ building the modules by hand; `nativeImage` arranges it for you.
 |---|---|
 | `--module-path` / `--module` | The showcase runs modular, as it does everywhere else ([ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md)) |
 | `--enable-native-access=…natives` | JEP 472, naming the one module that touches native code |
-| `--no-fallback` | A fallback image is a JVM in a trench coat. Failing is the useful answer |
+| ~~`--no-fallback`~~ | Removed. A fallback image was a JVM in a trench coat; GraalVM 25.3 no longer builds them, and the flag only warned that it had no effect ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)) |
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
 
 Nothing about **class initialization** is passed here. `:natives` ships its own
@@ -220,9 +220,12 @@ its export list.
 
 ## What is not built
 
-**No CI job.** Neither task is wired into `build`, because a task that needs a
-tool the build machines do not have would be a red build for a missing download.
-Adding a GraalVM to the matrix is the natural next step and is not done.
+~~**No CI job.**~~ **Built** ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)):
+every `showcase.yml` leg installs GraalVM Community, builds the image, runs it for
+three frames and uploads it; a push publishes the three to GitHub Packages as
+`goldberry-showcase-native`. Linux builds from the checked-in trace; macOS and
+Windows trace headlessly first, and those traces are not reviewed. Neither task is
+wired into `build`, still, because a local build has no GraalVM to count on.
 
 **No image of the toolkit on its own.** `:core` and `:widgets` are libraries; an
 image is a property of an application, and `:example` is the application here.

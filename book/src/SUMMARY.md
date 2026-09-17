@@ -342,6 +342,11 @@
 - [ADR-0330 A dropped file arrives somewhere](adr/0330-a-dropped-file-arrives-somewhere.md)
 - [ADR-0331 A gutter numbers hard lines at soft positions](adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)
 - [ADR-0332 An editor is handed the caret](adr/0332-an-editor-is-handed-the-caret.md)
+- [ADR-0333 A version is a year and a count](adr/0333-a-version-is-a-year-and-a-count.md)
+- [ADR-0334 Central is fed once per run](adr/0334-central-is-fed-once-per-run.md)
+- [ADR-0335 The showcase is a package, and example.yml is folded in](adr/0335-the-showcase-is-a-package-and-example-yml-is-folded-in.md)
+- [ADR-0336 One dependency to start from, and a BOM to line up the rest](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
+- [ADR-0337 The native showcase is built on every platform](adr/0337-the-native-showcase-is-built-on-every-platform.md)
 
 ---
 

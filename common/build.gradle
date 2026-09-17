@@ -1,5 +1,7 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-common (ADR-0334).
+    id 'goldberry.publish'
 }
 
 description = 'Goldberry common: the plumbing every module shares'

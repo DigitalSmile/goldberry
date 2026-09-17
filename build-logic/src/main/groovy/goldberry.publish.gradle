@@ -1,0 +1,119 @@
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavaPlatform
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
+import io.github.digitalsmile.goldberry.build.publish.PublishedModule
+import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+
+// ============================================================================
+// Publishing to Maven Central (docs/ARCHITECTURE.md §15, ADR-0334)
+//
+// Applied by the shipped modules and nothing else -- `PublishedModules` is the
+// list, and applying this anywhere off it fails here rather than putting a
+// build-time tool on Central, which is forever.
+//
+// One task does both halves: `./gradlew publishToMavenCentral` uploads a
+// `-SNAPSHOT` to the Central Portal's snapshot repository and a release to a
+// Portal deployment. Only `publish.yml` runs it, once per run, with every
+// platform's library in hand -- see ADR-0334 for why no per-OS workflow may.
+//
+// Credentials and the signing key arrive as Gradle properties, which CI sets
+// from secrets through `ORG_GRADLE_PROJECT_*`:
+//   mavenCentralUsername, mavenCentralPassword          the Portal user token
+//   signingInMemoryKey, signingInMemoryKeyPassword      the ASCII-armoured key
+// `docs/releasing.md` is the checklist.
+// ============================================================================
+
+plugins {
+    // First, so `version` is resolved before the coordinates read it. Not the
+    // java conventions: `:bom` is a `java-platform`, which cannot share a project
+    // with `java-library`, so a module applies whichever of the two it is before
+    // this plugin (ADR-0336).
+    id 'goldberry.versioning'
+    id 'com.vanniktech.maven.publish'
+}
+
+def module = PublishedModules.require(project.name)
+
+mavenPublishing {
+    switch (module) {
+        case PublishedModule.Bom:
+            if (!pluginManager.hasPlugin('java-platform')) {
+                throw new GradleException(":${project.name} publishes a BOM and must apply 'java-platform' first")
+            }
+            configure(new JavaPlatform())
+            break
+        default:
+            if (!pluginManager.hasPlugin('java-library')) {
+                throw new GradleException(
+                        ":${project.name} publishes a jar and must apply 'goldberry.java-conventions' first")
+            }
+            configure(new JavaLibrary(new JavadocJar.Javadoc(), new SourcesJar.Sources()))
+    }
+    coordinates(PublishedModules.GROUP, module.artifactId(), project.version.toString())
+
+    // A release stops in the Portal as a validated deployment and a person
+    // presses Publish, until `-Pgoldberry.centralAutoRelease=true` says the chain
+    // has earned it. A release on Central cannot be withdrawn, so the first few
+    // get a look before they are permanent (ADR-0334).
+    publishToMavenCentral(providers.gradleProperty('goldberry.centralAutoRelease')
+            .map { Boolean.parseBoolean(it) }
+            .getOrElse(false))
+
+    // Central requires a signature on a release and has no use for one on a
+    // snapshot. Signing only releases is also what lets a contributor run
+    // `publishToMavenLocal` without a key.
+    if (!project.version.toString().endsWith('-SNAPSHOT')) {
+        signAllPublications()
+    }
+
+    pom {
+        name = PublishedModules.displayName(module)
+        description = project.description
+        inceptionYear = '2026'
+        url = 'https://github.com/DigitalSmile/goldberry'
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+            }
+        }
+        developers {
+            developer {
+                id = 'digitalsmile'
+                name = 'DigitalSmile'
+                url = 'https://github.com/DigitalSmile'
+            }
+        }
+        scm {
+            url = 'https://github.com/DigitalSmile/goldberry'
+            connection = 'scm:git:https://github.com/DigitalSmile/goldberry.git'
+            developerConnection = 'scm:git:ssh://git@github.com/DigitalSmile/goldberry.git'
+        }
+    }
+}
+
+// :core's test fixtures -- GoldenImage, TestFrames -- are shared with :widgets
+// inside this build and are not API. `java-test-fixtures` adds them to the `java`
+// component, so without this every consumer's POM would name them.
+pluginManager.withPlugin('java-test-fixtures') {
+    components.named('java', AdhocComponentWithVariants) { component ->
+        component.withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
+        component.withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
+        // `withSourcesJar()` in the conventions gives the fixtures a sources
+        // variant of their own, and it leaks the same way.
+        configurations.matching { it.name == 'testFixturesSourcesElements' }.configureEach { sources ->
+            component.withVariantsFromConfiguration(sources) { skip() }
+        }
+    }
+}
+
+// Doclint off for the published javadoc. Central needs a javadoc jar and the
+// sources have ~120 doclint errors today -- `{@link}`s to types another module
+// owns, `@param` on `///` comments -- none of which stops the page rendering.
+// Turning the lint into a gate is `book/src/TODO.md`'s business, not a reason for
+// a release to fail at its last step.
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}

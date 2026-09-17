@@ -1,5 +1,7 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-html (ADR-0334).
+    id 'goldberry.publish'
     // `markdown-view` is a @Markup widget, so this module declares a catalog of
     // its own and an application that puts one in a KDL document finds it through
     // the module path rather than by naming it (ADR-0131).

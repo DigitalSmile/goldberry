@@ -15,6 +15,11 @@ jqwik = "1.9.3"
 # an older one fails with "Unsupported class file major version".
 jacoco = "0.8.14"
 
+# --- Publishing (ADR-0334) ----------------------------------------------------
+# Central Portal uploads, snapshots and in-memory signing. Resolved from Maven
+# Central rather than the plugin portal, whose marker stopped at 0.13.
+mavenPublishPlugin = "0.37.0"
+
 # --- Static analysis (docs/testing.md §2) ------------------------------------
 spotless = "8.10.1"
 palantirFormat = "2.97.0"
