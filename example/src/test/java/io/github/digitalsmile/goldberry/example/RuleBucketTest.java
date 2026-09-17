@@ -44,8 +44,20 @@ class RuleBucketTest {
     ///   makes them a scale rather than a widget's parts.
     /// - **`:root`**, which is the theme's token layer and matches the one node
     ///   with no parent.
-    private static final List<String> UNTYPED_BY_NATURE =
-            List.of(".body", ".body-strong", ".caption", ".display", ".heading", ".mono", ".title", ":root");
+    private static final List<String> UNTYPED_BY_NATURE = List.of(
+            ".body",
+            ".body-strong",
+            ".caption",
+            ".display",
+            ".heading",
+            ".mono",
+            ".title",
+            // A disabled control inside a disabled container does not fade
+            // twice, and neither half of that names a kind: it is true of every
+            // control in the catalog and of every container that can hold one
+            // ([ADR-0379]).
+            ":disabled :disabled",
+            ":root");
 
     private static StyleResolver toolkit() {
         return new StyleResolver(new ArrayList<>(Controls.stylesheets(Theme.NORD_DARK)));

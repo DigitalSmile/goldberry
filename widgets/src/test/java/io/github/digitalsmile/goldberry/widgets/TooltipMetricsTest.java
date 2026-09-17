@@ -95,33 +95,31 @@ class TooltipMetricsTest {
         }
     }
 
-    /// **Open, and recorded in §17.1.** §3 says radius 4; the rule writes 8. §1.5
-    /// groups radii as `4` (inputs, small controls) · `8` (buttons, cards) · `12`
-    /// (dialogs, popovers, frost panels) and names no tooltip in any of them — so
-    /// the nearest named thing is a popover at 12 and a tooltip is a small one.
-    /// Neither 4 nor 8 follows from §1.5, which is why this is a decision and not
-    /// an edit.
-    ///
-    /// Asserted at what ships, so the disagreement stays exactly one number wide.
+    /// §3's radius, which the sheet wrote as 8 for two hundred ADRs and now
+    /// writes as 4 ([ADR-0380]). §1.5 groups radii as `4` (inputs, small
+    /// controls) · `8` (buttons, cards) · `12` (dialogs, popovers, frost panels)
+    /// and names no tooltip in any of them, so neither number *follows* — which
+    /// is why it was a decision to take rather than an edit, and why the one
+    /// taken is the one §3 wrote down.
     @Test
-    @DisplayName("the radius that ships, which is not the radius §3 asks for")
+    @DisplayName("§3's radius, which is what ships")
     void radius() {
-        assertEquals(Corners.all(8), styleOf("tooltip").decoration().corners());
+        assertEquals(Corners.all(4), styleOf("tooltip").decoration().corners());
     }
 
-    /// **Open, and recorded in §17.1** — the one departure that already had its
-    /// argument written down, in the stylesheet: §1.4 gives `caption` to
-    /// secondary text *under* a control, where the reader has the control for
-    /// context, and a tooltip is the only text on screen at the moment it is
-    /// read.
+    /// §3's type rank, which the sheet wrote as `body` with an argument beside
+    /// it: §1.4 gives `caption` to secondary text *under* a control, where the
+    /// reader has the control for context, and a tooltip is the only text on
+    /// screen at the moment it is read. The argument stands and the design
+    /// system is the authority, so it is §1.4's to answer ([ADR-0380]).
     @Test
-    @DisplayName("the size that ships, which is `body` where §3 says `caption`")
+    @DisplayName("§3's `caption`, which is what ships")
     void typography() {
         var style = styleOf("tooltip");
         var caption = styleOf("badge").typography().size();
 
-        assertEquals(13, style.typography().size(), 1e-9, "§1.4's `body`");
-        assertEquals(11, caption, 1e-9, "and `caption` is the 11 it is not");
+        assertEquals(caption, style.typography().size(), 1e-9, "a tooltip is `caption`, like a badge");
+        assertEquals(11, caption, 1e-9, "and `caption` is 11");
     }
 
     /// The one number in the row that never drifted, asserted so the pair of

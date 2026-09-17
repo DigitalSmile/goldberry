@@ -429,12 +429,19 @@ segmented:disabled {
   cursor: not-allowed;
 }
 
-/* There is no `radio-group:disabled radio:disabled { opacity: 1 }` undo here any
-   more, and its absence is the point of ADR-0077. A disabled container fades its
-   whole subtree by itself, because opacity multiplies down -- so `:disabled`
-   stays on the node that *declared* it and does not propagate, while the
-   unavailability propagates for input through the router. A rule whose job was
-   to undo its own mechanism was the mechanism saying it was the wrong one. */
+/* `:disabled` propagates now (ADR-0379): a control inside a disabled container
+   matches it, which is what the widget contract has always said and what a
+   descendant rule needs in order to say anything about a disabled subtree.
+
+   One rule pays for it. Opacity multiplies down a subtree, so a faded control
+   inside a faded container would be faded twice -- 0.45 of 0.45 is 0.2, which
+   reads as broken rather than as unavailable. This says the fade belongs to the
+   outermost disabled node, once, and is the *general* form of the
+   `radio-group:disabled radio:disabled` undo ADR-0077 deleted: that one was
+   undoing a mechanism, and this one states what the mechanism means. */
+:disabled :disabled {
+  opacity: 1;
+}
 
 /* ---------------------------------------------------------------- button --
  *
@@ -3102,16 +3109,22 @@ tooltip {
      tooltip. 320 because a tooltip is "a label rather than a surface" and should
      not be able to reach a `dialog`'s minimum width (ADR-0181). */
   max-width: 320px;
-  border-radius: 8px;
+  /* §3's row, both numbers, after two hundred ADRs of disagreeing with it
+     (ADR-0380). The stylesheet used to write 8 and `body` with an argument
+     beside each; the argument was good and the design system is the authority,
+     and a toolkit whose own sheet quietly departs from its own specification has
+     a specification nobody can read a screen against. §17.1 recorded it as a
+     decision to take; this is it, taken the way the section says to take it. */
+  border-radius: 4px;
   background: var(--gb-hud-bg);
   border: 1px solid var(--gb-hud-border);
   color: var(--gb-hud-text);
-  /* `body`, not `caption`. §1.4 gives caption to secondary text *under* a
-     control, where the reader has the control itself for context; a tooltip is
-     the only text on screen at the moment it is read, and 11px of it at arm's
-     length is a squint. */
-  font-size: var(--gb-font-body);
-  line-height: var(--gb-line-body);
+  /* `caption`, as §3 asks. What the sheet used to say against it: §1.4 gives
+     caption to secondary text *under* a control, where the reader has the
+     control for context, and a tooltip is the only text on screen at the moment
+     it is read. That reading is now §1.4's to answer rather than this rule's. */
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
 }
 
 /* ------------------------------------------------------------------ menu --
@@ -3407,10 +3420,21 @@ tab:checked {
    it can fade rather than appear -- and `--gb-accent` here rather than the tab's
    `color`, because there is no `currentColor` in the subset either; a tab given
    a colour of its own writes it straight onto this box through `restyle`. */
+/* §3.1 gives `tabs` and `segmented` the same travelling indicator, and this is
+   the `tabs` half (ADR-0377). The underline belongs to the selected tab and is
+   drawn at its own edges; what moves is a `transform` the strip writes — the
+   distance back to the tab that *was* selected, and how much wider that one was
+   — which then relaxes to nothing on the next frame.
+
+   A transform and not a `left` or a `width`, because `transition` takes the
+   compositor-cheap set only: either of those would run Yoga on every frame of
+   the travel. `--gb-motion-base` is the clock the pill is on, because §3.1 says
+   the two arrive together. */
 tab-indicator {
   height: 2px;
   background: transparent;
-  transition: background-color var(--gb-motion-fast) ease-enter;
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              transform var(--gb-motion-base) ease-enter;
 }
 
 tab-indicator:checked {

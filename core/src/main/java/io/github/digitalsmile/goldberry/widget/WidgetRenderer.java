@@ -357,7 +357,7 @@ public final class WidgetRenderer {
         tree.styleResolver(resolver);
         var textHitsBefore = FrameTrace.ENABLED ? paragraphs.hits() : 0;
         var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
-        var boxes = render(tree.root(), null, now);
+        var boxes = render(tree.root(), null, false, now);
         if (FrameTrace.ENABLED) {
             tree.trace()
                     .text((int) (paragraphs.hits() - textHitsBefore), (int) (paragraphs.misses() - textMissesBefore));
@@ -437,7 +437,10 @@ public final class WidgetRenderer {
     ///
     /// @param inherited the resolved style of the nearest ancestor that had one,
     ///                  or null at the root
-    private List<Box> render(Element element, @Nullable ComputedStyle inherited, double now) {
+    /// @param disabledAbove whether an ancestor is disabled, which this node is
+    ///                  too — `core-widgets.md`'s widget contract, and the half
+    ///                  of it the *cascade* owes ([ADR-0379])
+    private List<Box> render(Element element, @Nullable ComputedStyle inherited, boolean disabledAbove, double now) {
         // The pseudo-classes a widget owns rather than the router. `:disabled`,
         // `:checked` and `:indeterminate` are facts about the *description* —
         // what the widget was built with — so they are mirrored onto the element
@@ -462,7 +465,12 @@ public final class WidgetRenderer {
             // asked — the same mirroring the pseudo-classes below get, for the
             // same reason, with the frame added (ADR-0150).
             element.frameClasses(styled.classes(frames));
-            element.setPseudoClass(PseudoClass.DISABLED, styled.isDisabled());
+            // Its own, **or** an ancestor's. A button inside a disabled `form`
+            // says nothing about itself and is drawn disabled all the same,
+            // which is the same rule the router has enforced for input since
+            // ADR-0077 — it walked up to find it, and this walks down because
+            // the styles already resolve that way (ADR-0379).
+            element.setPseudoClass(PseudoClass.DISABLED, disabledAbove || styled.isDisabled());
             element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
             element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());
             element.setPseudoClass(PseudoClass.INVALID, styled.isInvalid());
@@ -570,7 +578,11 @@ public final class WidgetRenderer {
             // control whose colour is mid-transition would otherwise take the
             // halfway value as its own inherited starting point and transition
             // again from there.
-            children.addAll(render(child, handDown, now));
+            children.addAll(render(
+                    child,
+                    handDown,
+                    disabledAbove || (element.widget() instanceof Styled owner && owner.isDisabled()),
+                    now));
         }
 
         if (!(element.widget() instanceof Paints paints)) {

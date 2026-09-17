@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// ```kdl
 /// text "Hello"
 /// text class="caption" bind="user.name"
+/// text style="title" "Two spellings of one thing"
 /// ```
 ///
 /// The content is either written down or bound. `source` is §9's `bind`: when it
@@ -37,6 +38,14 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// colour; `class="body"` and the rest of §1.4's scale are rules in
 /// `controls.css`, which is why a `text` with no ancestor setting `color` is
 /// still an open question rather than a default written here.
+///
+/// ## Two spellings of the type scale
+///
+/// §2 asks for `style="body"` and what shipped was `class="body"`. Both work:
+/// `style=` names a [TextRank] and is checked — a typo is refused where it is
+/// written rather than resolving to a class no rule matches — and `class=` is
+/// the CSS spelling, which is what a rule of an application's own will be
+/// written against anyway ([ADR-0381]).
 @Markup("text")
 public record Text(String content, Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Text>, Bindable<Text> {
@@ -129,6 +138,35 @@ public record Text(String content, Observable<?> source, Attributes attributes)
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var source = wiring.bound(node);
         var literal = Wiring.label(node);
-        return source == null ? new Text(literal, Attributes.of(node)) : new Text(literal, source, Attributes.of(node));
+        var attributes = ranked(Attributes.of(node), node.stringProperty("style"));
+        return source == null ? new Text(literal, attributes) : new Text(literal, source, attributes);
+    }
+
+    /// `attributes` with `rank`'s class added, or unchanged when no `style=` was
+    /// written.
+    ///
+    /// Added to the classes rather than kept as a component of its own, because
+    /// the two spellings must be **one** thing below the markup: a rule written
+    /// `text.title` has to match a `text style="title"`, and a widget carrying a
+    /// rank the cascade could not see would be a second mechanism that looks like
+    /// the first ([ADR-0381]).
+    private static Attributes ranked(Attributes attributes, @Nullable String rank) {
+        return rank == null
+                ? attributes
+                : withClass(attributes, TextRank.of(rank).cssClass());
+    }
+
+    /// `attributes` with one more class, keeping the ones it had: a document may
+    /// write both spellings, and `text style="title" class="muted"` means both.
+    private static Attributes withClass(Attributes attributes, String added) {
+        var classes = new java.util.LinkedHashSet<>(attributes.classes());
+        classes.add(added);
+        return attributes.classes(classes.toArray(String[]::new));
+    }
+
+    /// This text at one of §1.4's ranks — the Java spelling of `style="title"`.
+    public Text style(TextRank rank) {
+        return withAttributes(
+                withClass(attributes, Objects.requireNonNull(rank, "rank").cssClass()));
     }
 }

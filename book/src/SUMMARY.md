@@ -387,7 +387,11 @@
 - [ADR-0374 Wrapped lines share a cross axis](adr/0374-wrapped-lines-share-a-cross-axis.md)
 - [ADR-0375 A box that does not fit says so](adr/0375-a-box-that-does-not-fit-says-so.md)
 - [ADR-0376 One key map, three editors](adr/0376-one-key-map-three-editors.md)
+- [ADR-0377 An underline travels by being let go of](adr/0377-an-underline-travels-by-being-let-go-of.md)
 - [ADR-0378 The desktop's own modifier has a name](adr/0378-the-desktops-own-modifier-has-a-name.md)
+- [ADR-0379 A disabled container reaches the cascade](adr/0379-a-disabled-container-reaches-the-cascade.md)
+- [ADR-0380 The tooltip row is what ships](adr/0380-the-tooltip-row-is-what-ships.md)
+- [ADR-0381 A rank has two spellings and one meaning](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
 
 ---
 

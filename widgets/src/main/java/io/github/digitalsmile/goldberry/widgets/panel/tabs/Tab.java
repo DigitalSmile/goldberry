@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
@@ -73,6 +75,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                   supplied by the strip. Reading it is also what *starts* an
 ///                   arrival, because `render` is the only place a widget is
 ///                   given the clock (ADR-0109)
+/// @param travel     where this tab's underline is coming from, supplied by the
+///                   strip on the tab it has just selected ([ADR-0377]); null on
+///                   every other tab and on every frame after the first of a
+///                   journey
 /// @param onSelect   supplied by [Tabs]
 /// @param onClose    supplied by [Tabs]
 /// @param attributes `id` and `class`, exactly as on the primitives
@@ -91,6 +97,7 @@ public record Tab(
         java.util.function.DoubleUnaryOperator visibility,
         java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
         double dragOffset,
+        Travel travel,
         Attributes attributes)
         implements Widget.Leaf,
                 Styled,
@@ -99,6 +106,35 @@ public record Tab(
                 io.github.digitalsmile.goldberry.input.handler.Located,
                 Attributed<Tab>,
                 Semantics {
+
+    /// Where this tab's underline still is, relative to where it belongs — a
+    /// **displacement** that shrinks to nothing, which is what makes the
+    /// underline slide from the tab that was selected to this one ([ADR-0377]).
+    ///
+    /// Supplied by [Tabs], like [#visibility] and [#reveal], and for the same
+    /// reason: only the strip has seen both headers. A difference between two
+    /// painted rectangles rather than a position, so a strip whose headers
+    /// nothing has measured hands over null and the underline appears where it
+    /// belongs with no journey at all.
+    ///
+    /// @param dx      how far left of here the underline still is, in logical
+    ///                pixels, or 0 once it has been let go of
+    /// @param scale   how many times this header's width it still is, or 1
+    /// @param id      which journey, counted by the strip — the indicator's
+    ///                **key**, so a displaced underline is a new element whose
+    ///                first frame starts nothing (ADR-0065), and letting go of
+    ///                the displacement is a change to the same element and
+    ///                therefore a transition
+    /// @param arrived told when a displaced underline has been drawn once, which
+    ///                is what asks the strip to let go of it
+    public record Travel(
+            double dx, double scale, int id, @Nullable Runnable arrived) {
+
+        /// Whether this journey has anywhere left to go.
+        boolean isDisplaced() {
+            return dx != 0 || scale != 1;
+        }
+    }
 
     /// The shape a tab had before a strip could drag it.
     public Tab(
@@ -129,6 +165,7 @@ public record Tab(
                 visibility,
                 reveal,
                 0,
+                null,
                 attributes);
     }
 
@@ -145,7 +182,22 @@ public record Tab(
 
     /// A tab with a value and a label, and whatever it shows.
     public Tab(String value, String label, Widget... content) {
-        this(value, label, null, 0, false, List.of(content), false, null, null, null, null, null, Attributes.NONE);
+        this(
+                value,
+                label,
+                null,
+                0,
+                false,
+                List.of(content),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                null,
+                Attributes.NONE);
     }
 
     /// This tab with an icon before its label.
@@ -164,6 +216,7 @@ public record Tab(
                 visibility,
                 reveal,
                 dragOffset,
+                travel,
                 attributes);
     }
 
@@ -183,6 +236,7 @@ public record Tab(
                 visibility,
                 reveal,
                 dragOffset,
+                travel,
                 attributes);
     }
 
@@ -204,6 +258,7 @@ public record Tab(
                 visibility,
                 reveal,
                 dragOffset,
+                travel,
                 attributes);
     }
 
@@ -220,7 +275,8 @@ public record Tab(
             Runnable close,
             java.util.function.BooleanSupplier isAnimating,
             java.util.function.DoubleUnaryOperator howVisible,
-            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal) {
+            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
+            Travel journey) {
         return new Tab(
                 value,
                 label,
@@ -235,6 +291,7 @@ public record Tab(
                 howVisible,
                 reveal,
                 dragOffset,
+                journey,
                 attributes);
     }
 
@@ -276,6 +333,7 @@ public record Tab(
                 visibility,
                 reveal,
                 dragOffset,
+                travel,
                 value);
     }
 
@@ -301,9 +359,8 @@ public record Tab(
     /// (see [TabIndicator]).
     @Override
     public List<Widget> children() {
-        return closable
-                ? List.of(new TabIndicator(selected, colour), new TabClose(onClose))
-                : List.of(new TabIndicator(selected, colour));
+        var indicator = new TabIndicator(selected, colour, travel);
+        return closable ? List.of(indicator, new TabClose(onClose)) : List.of(indicator);
     }
 
     /// The tab's own colour, written where a transition can see it — and only
@@ -338,6 +395,7 @@ public record Tab(
                 visibility,
                 reveal,
                 offset,
+                travel,
                 attributes);
     }
 

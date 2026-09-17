@@ -83,9 +83,25 @@ final class TabsState extends State<Tabs> {
 
     private double dragPointer;
 
-    /// Where each header was last painted, for working out where a dragged tab
-    /// was dropped.
+    /// Where each header was last painted, in the window's coordinates and in
+    /// strip order.
+    ///
+    /// Two things read it: a drop, which asks which headers it landed between
+    /// ([ADR-0372]), and the underline, which travels from the header it was
+    /// under to the one it is under now ([ADR-0377]). The second is why every
+    /// strip collects them and not only a reorderable one.
     private final Map<String, LogicalRect> headerRects = new LinkedHashMap<>();
+
+    /// Which tab the underline was under when the selection last changed.
+    private String underlined;
+
+    /// The journey the underline is on: its number, and what is left of the
+    /// displacement. Null when it is not on one.
+    private Tab.Travel travel;
+
+    /// How many journeys there have been, which is what makes each one a new
+    /// element (see [TabIndicator#key()]).
+    private int journeys;
 
     /// Where the header viewport was when it last told us, for the page buttons.
     private ScrollController.Position headerPosition = ScrollController.Position.NONE;
@@ -108,13 +124,59 @@ final class TabsState extends State<Tabs> {
         headerScroll.onChange(null);
     }
 
-    /// A header of a reorderable strip was painted: remember where, and act on a
-    /// pending reveal if it is this one.
+    /// A header was painted: remember where, and act on a pending reveal if it is
+    /// this one.
+    ///
+    /// No rebuild of its own. Every header reports every frame, and a strip that
+    /// rebuilt on each of those would rebuild for ever; what these rectangles
+    /// are for is the *next* selection, which brings a rebuild with it.
     private void located(String value, LogicalRect self, LogicalRect clip) {
         headerRects.put(value, self);
         if (value.equals(pendingReveal)) {
             revealed(self, clip);
         }
+    }
+
+    /// The underline has been drawn displaced once: let go of the displacement,
+    /// which is what makes it slide home.
+    ///
+    /// Called from a `render`, so it only **marks** — the rebuild happens on the
+    /// next frame, which is what a deferred rebuild is for (ADR-0052) and how a
+    /// tab's departure ends too.
+    private void arrived(int journey) {
+        if (travel != null && travel.id() == journey && travel.isDisplaced()) {
+            setState(() -> travel = new Tab.Travel(0, 1, journey, null));
+        }
+    }
+
+    /// Starts a journey if the selection has moved and both headers were
+    /// measured, and answers what the selected tab's underline should carry.
+    ///
+    /// A **difference** between two painted rectangles, which is all the
+    /// indicator needs and all this can honestly give: a strip whose headers
+    /// nothing has measured — a tree painted with no router behind it — gets
+    /// null and the underline simply appears where it belongs, exactly as it did
+    /// before this existed ([ADR-0377]).
+    private Tab.Travel journey(String selected) {
+        if (selected == null) {
+            underlined = null;
+            travel = null;
+            return null;
+        }
+        if (!selected.equals(underlined)) {
+            var was = underlined == null ? null : headerRects.get(underlined);
+            var now = headerRects.get(selected);
+            underlined = selected;
+            journeys++;
+            travel = was == null || now == null || now.size().width() <= 0
+                    ? null
+                    : new Tab.Travel(
+                            was.left() - now.left(),
+                            was.size().width() / now.size().width(),
+                            journeys,
+                            () -> arrived(journeys));
+        }
+        return travel;
     }
 
     /// What a [TabDrag] reports to.
@@ -214,6 +276,9 @@ final class TabsState extends State<Tabs> {
         lastBuilt.keySet().removeIf(value -> !phases.containsKey(value));
 
         var selected = strip.selected();
+        // Before the headers are built, because the tab that has just been
+        // selected is handed what it is travelling from.
+        var journey = journey(selected);
         var headers = new ArrayList<Widget>(phases.size() + others.size() + 1);
         List<Widget> content = List.of();
         for (var value : List.copyOf(phases.keySet())) {
@@ -238,14 +303,13 @@ final class TabsState extends State<Tabs> {
                     leaving ? null : () -> strip.close(value),
                     phase::isRunning,
                     now -> visibility(value, phase, now),
-                    // Non-null only for the tab that has just been selected, so
-                    // exactly one header per build is asked where it is —
-                    // and only until it has been brought into view (ADR-0120).
-                    // A reorderable strip asks every header, because a drop is
-                    // placed against all of them (ADR-0372).
-                    reorderable
-                            ? (self, clip) -> located(value, self, clip)
-                            : value.equals(pendingReveal) ? this::revealed : null);
+                    // Every header of every strip, because two things read the
+                    // rectangles: a drop is placed against all of them
+                    // (ADR-0372) and the underline travels between them
+                    // (ADR-0377). A reveal is still one tab's, and is still
+                    // cleared as soon as it is acted on (ADR-0120).
+                    leaving ? null : (self, clip) -> located(value, self, clip),
+                    isSelected ? journey : null);
             headers.add(
                     reorderable
                             ? new TabDrag(
