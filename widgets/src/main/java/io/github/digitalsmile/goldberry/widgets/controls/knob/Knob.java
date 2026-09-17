@@ -78,12 +78,14 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param source     §9's `bind=`, or null
 /// @param onChange   what the user is asking for — never what the knob decided
 /// @param disabled   whether it refuses input and matches `:disabled`
+/// @param circular   whether a drag follows the pointer round the dial rather
+///                   than up and down — §3's optional circular drag (ADR-0369)
 /// @param attributes `id` and `class`; `class="large"` is §3's 48px diameter
 @Markup("knob")
 public record Knob(
         double min, double max, double value, double step, int detents,
         Observable<?> source, DoubleConsumer onChange,
-        boolean disabled, Attributes attributes)
+        boolean disabled, boolean circular, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> , Semantics {
 
     /// §3: "value drag **200px** per full range". Logical pixels, so a knob
@@ -137,6 +139,20 @@ public record Knob(
     }
 
     /// A `0..1` knob, which is what most bindings want.
+    /// The shape a knob had before it could be dragged round.
+    public Knob(
+            double min,
+            double max,
+            double value,
+            double step,
+            int detents,
+            Observable<?> source,
+            DoubleConsumer onChange,
+            boolean disabled,
+            Attributes attributes) {
+        this(min, max, value, step, detents, source, onChange, disabled, false, attributes);
+    }
+
     public Knob(double value, DoubleConsumer onChange) {
         this(0, 1, value, 0, 0, null, onChange, false, Attributes.NONE);
     }
@@ -207,22 +223,28 @@ public record Knob(
     /// This knob with §3's optional detents — magnetic positions across the
     /// travel, which is not the same thing as a `step` (see the class comment).
     public Knob detents(int detents) {
-        return new Knob(min, max, value, step, detents, source, onChange, disabled, attributes);
+        return new Knob(min, max, value, step, detents, source, onChange, disabled, circular, attributes);
+    }
+
+    /// This knob dragged round its dial rather than up and down — §3's
+    /// "circular-drag optional" (ADR-0369).
+    public Knob circular(boolean value) {
+        return new Knob(min, max, this.value, step, detents, source, onChange, disabled, value, attributes);
     }
 
     /// This knob, disabled or not.
     public Knob disabled(boolean value) {
-        return new Knob(min, max, this.value, step, detents, source, onChange, value, attributes);
+        return new Knob(min, max, this.value, step, detents, source, onChange, value, circular, attributes);
     }
 
     @Override
     public Knob bound(Observable<?> source) {
-        return new Knob(min, max, value, step, detents, source, onChange, disabled, attributes);
+        return new Knob(min, max, value, step, detents, source, onChange, disabled, circular, attributes);
     }
 
     @Override
     public Knob withAttributes(Attributes attributes) {
-        return new Knob(min, max, value, step, detents, source, onChange, disabled, attributes);
+        return new Knob(min, max, value, step, detents, source, onChange, disabled, circular, attributes);
     }
 
     @Override
@@ -302,12 +324,8 @@ public record Knob(
 
     /// §3's vertical drag, and §3.1's "1:1, no animation".
     ///
-    /// Vertical is the primary gesture and the only one here. §3 offers
-    /// "circular-drag optional" and it stays unbuilt: a circular drag has to
-    /// decide what happens when the pointer crosses the 90° gap at the bottom,
-    /// and every answer is either a jump or a wrap that depends on which way
-    /// round the user went — which needs the accumulated angle, a second piece of
-    /// gesture state, for a gesture that is nobody's first choice.
+    /// Vertical is the primary gesture. §3's optional circular drag is
+    /// [#circular(boolean)] — see [#circularTo].
     @Override
     public void onPointer(PointerEvent event) {
         if (event.kind() == PointerEvent.Kind.WHEEL) {
@@ -329,6 +347,11 @@ public record Knob(
         if (!dragging || Double.isNaN(event.anchor())) {
             return;
         }
+        if (circular) {
+            circularTo(event);
+            event.consume();
+            return;
+        }
         // Up is more. `dragY` is positive downwards, because a screen's y is, and
         // a knob turned up by dragging down would be the one control in the
         // toolkit that disagrees with every other.
@@ -337,6 +360,46 @@ public record Knob(
         // Consumed so an ancestor -- a scroll view, a list row -- does not also
         // act on a drag that is plainly this control's.
         event.consume();
+    }
+
+    /// The circular drag: the value follows the pointer's angle round the dial.
+    ///
+    /// What it needs is where the pointer is and what the knob holds now, and
+    /// both are already here — the angle from [PointerEvent#local()] measured
+    /// against `knob-dial`, and [#resolved()]. The accumulated angle the TODO
+    /// entry expected is not needed, because the one thing it was for is refusing
+    /// a jump, and a jump can be recognised from the current value alone:
+    ///
+    /// - on the travel, a move to a fraction more than half the travel away is a
+    ///   jump across the gap, and is held at the end nearer the current value;
+    /// - in the 90° gap at the bottom, the value stays at the end nearer the
+    ///   current value, so pushing past the top holds it at the top rather than
+    ///   flipping it to the bottom (ADR-0369).
+    private void circularTo(PointerEvent event) {
+        var local = event.local();
+        if (local.width() <= 0 || local.height() <= 0) {
+            return;
+        }
+        var angle = Math.atan2(local.y() - local.height() / 2, local.x() - local.width() / 2);
+        var current = fraction();
+        var wanted = circularFraction(angle, current);
+        ask(detented(min + wanted * (max - min)));
+    }
+
+    /// Where round the travel `angle` puts a knob that is at `current`, refusing
+    /// a jump across the gap — see [#circularTo].
+    static double circularFraction(double angle, double current) {
+        var turn = 2 * Math.PI;
+        var delta = (angle - ARC_START) % turn;
+        if (delta < 0) {
+            delta += turn;
+        }
+        var nearerEnd = current >= 0.5 ? 1.0 : 0.0;
+        if (delta > ARC_SWEEP) {
+            return nearerEnd;
+        }
+        var fraction = delta / ARC_SWEEP;
+        return Math.abs(fraction - current) > 0.5 ? nearerEnd : fraction;
     }
 
     /// A click on the **ring** turns the knob to the angle clicked.
@@ -535,7 +598,9 @@ public record Knob(
                 node.numberProperty("step", 0),
                 (int) node.numberProperty("detents", 0),
                 wiring.bound(node), wiring.numeric(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+                Wiring.disabled(node),
+                "circular".equals(node.stringProperty("drag")),
+                Attributes.of(node));
     }
 
     @Override

@@ -378,6 +378,7 @@
 - [ADR-0366 A kept tab is hidden, not removed](adr/0366-a-kept-tab-is-hidden-not-removed.md)
 - [ADR-0367 A document places a list it cannot describe](adr/0367-a-document-places-a-list-it-cannot-describe.md)
 - [ADR-0368 A focus by name reaches the popup it came from](adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
+- [ADR-0369 A knob turns round its dial from its own value](adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
 
 ---
 

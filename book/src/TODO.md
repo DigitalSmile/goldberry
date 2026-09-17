@@ -381,12 +381,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   every golden rather than editing one file. Autocomplete itself reaches markup
   through `suggestions=` and `options=` (ADR-0367). —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
-- **The circular drag is not built, and §3 offers it.** "Rotary: vertical-drag primary
-  (**circular-drag optional**)". The vertical drag ships; the circular one needs an
-  answer for the pointer crossing the 90° gap at the bottom, and every answer is either
-  a jump or a wrap that depends on which way round the user went — which needs the
-  accumulated angle, a *second* piece of gesture state, for a gesture that is nobody's
-  first choice. — [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
 - **A slider maps the pointer over the track's full width**, so at the extremes the
   thumb's centre is up to 8px from the finger. Mapping over the *travel* needs the
   thumb's width, which is the stylesheet's and not the widget's. The mapping is
@@ -1311,6 +1305,10 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The circular drag is not built, and §3 offers it.**~~ **It is, opt-in,
+  2026-09-17**, with no accumulated angle: a jump across the gap is recognised
+  from the knob's current value, and held at the nearer end. —
+  [ADR-0369](adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
 - ~~**A `select tree=#true` has no typeahead.**~~ **It has the tree's own,
   2026-09-17.** The design question was answered by ADR-0209 (visible rows only).
   The defect was elsewhere: a tree moves its typeahead with `host.focus(id)`, and

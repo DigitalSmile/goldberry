@@ -59,7 +59,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| `knob` circular drag | §3's "rotary" mode | — | open |
+| `knob` circular drag | §3's "rotary" mode, opt-in `drag="circular"` | 0369 | done |
 | `toggle` thumb follows the pointer | during the drag | — | answered: design-system §1.7 lists the 1:1 drags and a toggle is not one; §3.1 asks for a thumb `translate` instead |
 | `toggle` compact density | the thumb and track shrink | — | answered: §3's `toggle` row gives no compact value, unlike every row that has one |
 | `code-input` arrow keys | move between boxes | — | answered: §4 makes a code one textbox with one insertion point, so there is nowhere for an arrow to go |
@@ -184,3 +184,9 @@ can be reversed:
 - `core` `Popup#focusById`; `Launcher#focus` tries open popups topmost first.
 - `widgets` `controls/select/SelectState.chosenTreeRow`.
 - Tests: `core` `PopupFocusByIdTest`; `widgets` `SelectTreeTypeaheadTest`.
+
+### Knob circular drag
+
+- `widgets` `controls/knob/Knob#circular`, `circularTo`, `circularFraction`;
+  `drag="circular"` in markup.
+- Tests: `KnobCircularTest`.
