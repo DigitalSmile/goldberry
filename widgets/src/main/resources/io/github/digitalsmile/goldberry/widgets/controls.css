@@ -3469,6 +3469,14 @@ tab-panel {
   padding: 12px 0 0 0;
 }
 
+/* A kept tab's content in a `keep-alive` strip: the panel's column, one level
+   down, so a page lays its content out exactly as the panel would have
+   (ADR-0366). The hidden ones take no box at all. */
+tab-page {
+  flex-direction: column;
+  flex-grow: 1;
+}
+
 /* The `>` on a row that leads to a submenu — dimmer than the label, like the
    accelerator, because it is context for the command rather than the command
    (ADR-0113). */

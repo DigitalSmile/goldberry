@@ -140,6 +140,22 @@ public interface Styled extends Widget {
         return false;
     }
 
+    /// Whether this node and everything under it is **kept but not used**:
+    /// mounted, with its elements and their state intact, and not rendered, laid
+    /// out, painted, hit-tested, or reachable by the keyboard.
+    ///
+    /// What a background tab is when its `tabs` keeps its content alive (ADR-0366):
+    /// the scroll position, the caret and the half-typed form survive, and nothing
+    /// in it answers a key or a click. Not `display: none` — no stylesheet can say
+    /// it, because what is kept is a widget's decision about its own children.
+    ///
+    /// **Inherited downwards by walking up**, as [#isDisabled()] is for input: the
+    /// renderer stops at a hidden node, and the router refuses focus to anything
+    /// under one and lets go of focus that was there.
+    default boolean isHidden() {
+        return false;
+    }
+
     /// Whether this node is on, for `:checked`.
     ///
     /// A widget's own fact for the same reason [#isDisabled()] is: nothing about

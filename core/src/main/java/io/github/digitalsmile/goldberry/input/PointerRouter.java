@@ -281,7 +281,7 @@ public final class PointerRouter {
         if (restoreTo != null && !restoreTo.isMounted()) {
             restoreTo = null;
         }
-        if (focused == null || focused.isMounted()) {
+        if (focused == null || (focused.isMounted() && !isHidden(focused))) {
             return;
         }
         // Reachability is checked because a *nested* modal closing leaves an
@@ -1822,7 +1822,21 @@ public final class PointerRouter {
     }
 
     private static boolean isFocusable(Element element) {
-        return element.widget() instanceof Handles handles && handles.isFocusable() && !isDisabled(element);
+        return element.widget() instanceof Handles handles
+                && handles.isFocusable()
+                && !isDisabled(element)
+                && !isHidden(element);
+    }
+
+    /// Whether `element` is kept but hidden — by itself or by any ancestor
+    /// ([Styled#isHidden()], ADR-0366). Walked up for [#isDisabled]'s reason.
+    private static boolean isHidden(Element element) {
+        for (var current = element; current != null; current = parentOf(current)) {
+            if (current.widget() instanceof Styled styled && styled.isHidden()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// Whether `element` is disabled — **by itself or by any ancestor**.

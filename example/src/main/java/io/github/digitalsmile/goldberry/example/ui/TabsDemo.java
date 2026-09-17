@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -40,7 +41,8 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
             Neither can be a CSS transition: an arriving tab's element did not exist last \
             frame, and a departing one has already been dropped from the list above — so the \
             strip keeps it for the length of its departure and animates both from the frame \
-            clock (ADR-0109).""";
+            clock (ADR-0109). The strip keeps every chapter it has shown alive, so a note typed \
+            under one is still there when you come back to it (ADR-0366).""";
 
     /// What each chapter's panel says. A sentence per stage rather than one
     /// sentence with the name substituted into it, because a strip of identical
@@ -57,7 +59,13 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
     public Widget build(BuildContext context) {
         var strip = new ArrayList<Widget>();
         for (var name : Models.<List<String>>observable(model, "app.tabs").get()) {
-            strip.add(new Tab(name, name, new Text(body(name)).id("tab-body"))
+            strip.add(new Tab(
+                            name,
+                            name,
+                            new Text(body(name)).id("tab-body"),
+                            // Unbound on purpose: what is typed lives in the
+                            // field's own state, which only `keep-alive` keeps.
+                            new TextInput().placeholder("A note on " + name))
                     .closable(true)
                     // A colour a stylesheet cannot know: it is a fact about the
                     // chapter's name rather than about its state (ADR-0107).
@@ -76,6 +84,7 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
                                         actions::closeTab,
                                         actions::newTab,
                                         Attributes.NONE)
+                                .keepAlive(true)
                                 .id("demo-tabs"),
                         new Text(NOTE, Attributes.NONE.classes("caption")).id("tabs-note")));
     }

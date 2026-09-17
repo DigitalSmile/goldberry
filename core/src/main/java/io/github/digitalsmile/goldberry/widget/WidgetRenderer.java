@@ -447,6 +447,12 @@ public final class WidgetRenderer {
         // A widget cannot be both checked and indeterminate; `Styled` says so,
         // and mirroring `isChecked() && !isIndeterminate()` would hide a widget
         // that broke the rule instead of letting its stylesheet show it.
+        // A hidden node contributes no box, and nothing under it is rendered:
+        // its elements stay mounted and keep their state, which is what hiding
+        // rather than removing is for (ADR-0366).
+        if (element.widget() instanceof Styled hidden && hidden.isHidden()) {
+            return List.of();
+        }
         var trace = FrameTrace.ENABLED ? element.tree().trace() : null;
         if (trace != null) {
             trace.countWalk();

@@ -2,8 +2,10 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -68,6 +70,10 @@ final class TabsState extends State<Tabs> {
     /// Whether a build has happened. The first one animates nothing: a window
     /// opening should show its tabs, not play six arrivals at once.
     private boolean opened;
+
+    /// The tabs a `keep-alive` strip has shown and still has, in the order they
+    /// were first shown (ADR-0366).
+    private final Set<String> kept = new LinkedHashSet<>();
 
     /// Where the header viewport was when it last told us, for the page buttons.
     private ScrollController.Position headerPosition = ScrollController.Position.NONE;
@@ -155,12 +161,29 @@ final class TabsState extends State<Tabs> {
                 content = tab.content();
             }
         }
+        if (strip.keepAlive()) {
+            content = keptPages(current, selected);
+        }
         headers.addAll(others);
         if (strip.onNew() != null) {
             headers.add(new TabNew(strip.onNew()));
         }
         opened = true;
         return new TabStrip(headers, content, headerScroll, headerPosition, strip.attributes());
+    }
+
+    /// A page per tab this strip has shown and still has, the selected one
+    /// visible and the rest hidden, so every one of them keeps its state.
+    private List<Widget> keptPages(Map<String, Tab> current, String selected) {
+        kept.retainAll(current.keySet());
+        if (selected != null && current.containsKey(selected)) {
+            kept.add(selected);
+        }
+        var pages = new ArrayList<Widget>(kept.size());
+        for (var value : kept) {
+            pages.add(new TabPage(value, current.get(value).content(), value.equals(selected)));
+        }
+        return pages;
     }
 
     /// Everything in `current` that was not here before is arriving — except on

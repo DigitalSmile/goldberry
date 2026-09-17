@@ -264,12 +264,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   two shifts and a rule about which wins. Nobody has asked. —
   [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
 
-- **A tab's content is rebuilt when it is selected again.** That is the cost of
-  §5's "lazy content instantiation" and is right — but it means a scroll position,
-  a caret or a half-typed form in a background tab is gone, and the toolkit offers
-  nowhere to put it except the application's model. `collapse` will have the same
-  trade. —
-  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
 - **Nothing reorders tabs**, and a reorder would need a different animation from
   an arrival: a tab that moves has two positions and nothing to interpolate between
   them, which is ADR-0097's missing geometry again. §5 does not ask for
@@ -1337,6 +1331,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A tab's content is rebuilt when it is selected again.**~~ **Only by default,
+  2026-09-17.** `keep-alive` keeps every shown tab mounted and hidden while another
+  is selected, through a new `Styled.isHidden()`: kept, not rendered, not
+  focusable. §5's lazy default is unchanged. —
+  [ADR-0366](adr/0366-a-kept-tab-is-hidden-not-removed.md)
 - ~~**A tab strip scrolls, and has no chevrons at either end.**~~ **It has them,
   2026-09-17**, while it overflows: a `ScrollController` can now say where its
   viewport is and when that changes, which was the missing question. —

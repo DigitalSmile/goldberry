@@ -38,7 +38,7 @@ decided not to build, with the reason in the ADR.
 |------|------------------|-----|--------|
 | Overflow chevrons | a strip wider than its tabs scrolls by buttons | 0365 | done |
 | Reordering | drag a tab to a new place | — | open |
-| Content kept | a tab selected again is not rebuilt | — | open |
+| Content kept | a tab selected again is not rebuilt (opt-in `keep-alive`) | 0366 | done |
 
 ## `select` and `menubar`
 
@@ -161,3 +161,13 @@ can be reversed:
   `controls.css`: `tab-pager`.
 - Tests: `TabPagerTest`. `gallery-basic-narrow` and `gallery-icons-narrow`
   re-blessed.
+
+### Tabs keep-alive
+
+- `core` `widget/style/Styled#isHidden`; `WidgetRenderer` skips a hidden
+  subtree; `PointerRouter` refuses and releases focus under one.
+- `widgets` `panel/tabs/Tabs#keepAlive`, `TabPage`, `TabsState.keptPages`;
+  `controls.css`: `tab-page`.
+- Tests: `core` `input/HiddenSubtreeTest`; `widgets` `TabsKeepAliveTest`.
+- `example` `ui/TabsDemo` keeps its chapters alive with a note field each;
+  `gallery-navigation` re-blessed.

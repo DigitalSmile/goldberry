@@ -82,6 +82,7 @@ public record Tabs(
         Consumer<String> onChange,
         Consumer<String> onClose,
         Runnable onNew,
+        boolean keepAlive,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
@@ -92,18 +93,42 @@ public record Tabs(
     }
 
     public Tabs(@Nullable String value, Widget... children) {
-        this(value, List.of(children), null, null, null, null, Attributes.NONE);
+        this(value, List.of(children), null, null, null, null, false, Attributes.NONE);
+    }
+
+    /// The shape a strip had before it could keep its tabs alive.
+    public Tabs(
+            String value,
+            List<Widget> children,
+            Observable<?> source,
+            Consumer<String> onChange,
+            Consumer<String> onClose,
+            Runnable onNew,
+            Attributes attributes) {
+        this(value, children, source, onChange, onClose, onNew, false, attributes);
+    }
+
+    /// This strip keeping every tab it has shown mounted, hidden while another is
+    /// selected — so a background tab's scroll position, caret and half-typed form
+    /// are still there when it comes back (ADR-0366).
+    ///
+    /// Off by default: §5 asks for "lazy content instantiation", and a strip of
+    /// twenty heavy documents that kept every one alive would hold all twenty.
+    /// A tab that has never been selected is still not built, and a closed one is
+    /// let go.
+    public Tabs keepAlive(boolean value) {
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, value, attributes);
     }
 
     /// This strip reporting what the user picked.
     public Tabs onChange(Consumer<String> handler) {
-        return new Tabs(value, children, source, handler, onClose, onNew, attributes);
+        return new Tabs(value, children, source, handler, onClose, onNew, keepAlive, attributes);
     }
 
     /// This strip with closable tabs' × wired up. A tab is closable when *it*
     /// says so; this is who hears about it.
     public Tabs onClose(Consumer<String> handler) {
-        return new Tabs(value, children, source, onChange, handler, onNew, attributes);
+        return new Tabs(value, children, source, onChange, handler, onNew, keepAlive, attributes);
     }
 
     /// This strip with an add affordance at the end of the row.
@@ -113,12 +138,12 @@ public record Tabs(
     /// is half a control, and the alternative is every application drawing its own
     /// `+` and lining it up with the row by hand.
     public Tabs onNew(Runnable handler) {
-        return new Tabs(value, children, source, onChange, onClose, handler, attributes);
+        return new Tabs(value, children, source, onChange, onClose, handler, keepAlive, attributes);
     }
 
     @Override
     public Tabs bound(Observable<?> value) {
-        return new Tabs(this.value, children, value, onChange, onClose, onNew, attributes);
+        return new Tabs(this.value, children, value, onChange, onClose, onNew, keepAlive, attributes);
     }
 
     @Override
@@ -128,7 +153,7 @@ public record Tabs(
 
     @Override
     public Tabs withAttributes(Attributes value) {
-        return new Tabs(this.value, children, source, onChange, onClose, onNew, value);
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, keepAlive, value);
     }
 
     /// The tabs as written, before the strip rebuilt them with what only it knows
@@ -187,6 +212,7 @@ public record Tabs(
                 wiring.valued(node, "change"),
                 wiring.valued(node, "close"),
                 wiring.action(node, "new"),
+                node.booleanProperty("keep-alive"),
                 Attributes.of(node));
     }
 }
