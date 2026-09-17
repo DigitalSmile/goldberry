@@ -325,6 +325,12 @@ public final class BoxPainter {
                 path.lineTo(width * 0.66, height * 0.5);
                 path.lineTo(width * 0.38, height * 0.74);
             }
+            case CHEVRON_START -> {
+                // CHEVRON_END mirrored about the box's vertical centre line.
+                path.moveTo(width * 0.62, height * 0.26);
+                path.lineTo(width * 0.34, height * 0.5);
+                path.lineTo(width * 0.62, height * 0.74);
+            }
             case CHEVRON_DOWN -> {
                 // The same drawing as CHEVRON_END with the axes swapped, so a
                 // chevron in a select and a chevron in a menu are the same

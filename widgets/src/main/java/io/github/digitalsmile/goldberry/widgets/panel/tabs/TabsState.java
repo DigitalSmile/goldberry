@@ -69,6 +69,27 @@ final class TabsState extends State<Tabs> {
     /// opening should show its tabs, not play six arrivals at once.
     private boolean opened;
 
+    /// Where the header viewport was when it last told us, for the page buttons.
+    private ScrollController.Position headerPosition = ScrollController.Position.NONE;
+
+    @Override
+    protected void initState() {
+        // The strip's page buttons depend on whether the headers overflow and
+        // where they are scrolled to, which is the viewport's state and not ours;
+        // the controller says when it moves (ADR-0365).
+        headerScroll.onChange(() -> {
+            var next = headerScroll.position();
+            if (isMounted() && !next.equals(headerPosition)) {
+                setState(() -> headerPosition = next);
+            }
+        });
+    }
+
+    @Override
+    protected void dispose() {
+        headerScroll.onChange(null);
+    }
+
     /// Acts on a pending reveal, then forgets it.
     ///
     /// Handed the selected header's rectangle and the one that clips it, which is
@@ -139,7 +160,7 @@ final class TabsState extends State<Tabs> {
             headers.add(new TabNew(strip.onNew()));
         }
         opened = true;
-        return new TabStrip(headers, content, headerScroll, strip.attributes());
+        return new TabStrip(headers, content, headerScroll, headerPosition, strip.attributes());
     }
 
     /// Everything in `current` that was not here before is arriving — except on

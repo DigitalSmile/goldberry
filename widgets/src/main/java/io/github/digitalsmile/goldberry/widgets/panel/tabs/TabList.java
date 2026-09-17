@@ -23,13 +23,21 @@ import java.util.Set;
 /// The rule it carries is a [TabRule] rather than a `border-bottom`, because §8's
 /// subset has no per-edge borders — see [TabIndicator].
 ///
-/// @param headers the tabs, already told which of them is selected
-record TabList(List<Widget> headers, ScrollController controller)
+/// @param headers    the tabs, already told which of them is selected
+/// @param controller the header viewport's controller
+/// @param position   where that viewport was last, for the page buttons
+record TabList(List<Widget> headers, ScrollController controller, ScrollController.Position position)
         implements Widget.Leaf, Styled, Paints {
 
     TabList {
         headers = List.copyOf(headers == null ? List.of() : headers);
     }
+
+    /// How much of the viewport's width a page moves.
+    static final double PAGE_FRACTION = 0.8;
+
+    /// The least a page moves, so a strip squeezed to nothing still moves.
+    static final double PAGE_FLOOR = 40;
 
     @Override
     public String cssType() {
@@ -60,13 +68,23 @@ record TabList(List<Widget> headers, ScrollController controller)
     /// conditional.
     @Override
     public List<Widget> children() {
+        var viewport = new Scroll(List.copyOf(headers), ScrollAxis.HORIZONTAL, Attributes.NONE.classes("tab-viewport"))
+                // So a tab selected while the strip is scrolled past it can ask
+                // to be brought back (ADR-0120).
+                .controlledBy(controller);
+        if (!position.overflowsX()) {
+            return List.of(new TabRule(), viewport);
+        }
+        // A strip wider than its window gets a chevron at each end, the
+        // conventional tab bar's affordance beside the viewport's own
+        // (ADR-0365). Most of a width per page, so a tab cut off at one edge is
+        // still in view after it.
+        var page = Math.max(PAGE_FLOOR, position.width() * PAGE_FRACTION);
         return List.of(
                 new TabRule(),
-                new Scroll(List.copyOf(headers), ScrollAxis.HORIZONTAL,
-                        Attributes.NONE.classes("tab-viewport"))
-                        // So a tab selected while the strip is scrolled past it
-                        // can ask to be brought back (ADR-0120).
-                        .controlledBy(controller));
+                new TabPager(false, position.canScrollLeft(), () -> controller.scrollBy(-page, 0)),
+                viewport,
+                new TabPager(true, position.canScrollRight(), () -> controller.scrollBy(page, 0)));
     }
 
     @Override

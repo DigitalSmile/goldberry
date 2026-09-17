@@ -3346,6 +3346,27 @@ scroll.tab-viewport scrollbar.horizontal { height: 6px }
 scroll.tab-viewport scroll-thumb.horizontal { height: 4px }
 scroll.tab-viewport:hover scroll-thumb.horizontal { height: 6px }
 
+/* A strip wider than its window has a chevron at each end, `tab-new`'s size and
+   treatment, and `:disabled` at the edge it would page past (ADR-0365). */
+tab-pager {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  transition: background-color var(--gb-motion-fast);
+}
+
+tab-pager:hover {
+  color: var(--gb-text);
+  background: var(--gb-overlay-hover);
+}
+
+tab-pager:disabled {
+  color: var(--gb-text-placeholder);
+  background: transparent;
+}
+
 /* The rule under the headers, as a box: §8's subset has one `border` and no
    per-edge longhands, so `border-bottom` is not a declaration that exists
    (ADR-0107). Pinned across the bottom of the list, with the selected tab's

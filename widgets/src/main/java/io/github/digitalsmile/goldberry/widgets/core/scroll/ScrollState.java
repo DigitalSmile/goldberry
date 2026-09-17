@@ -230,6 +230,7 @@ final class ScrollState extends State<Scroll> {
             viewport = bounds;
             content = part;
         });
+        notifyController();
     }
 
     /// Starts or ends a thumb drag, holding the bars open for its duration.
@@ -262,6 +263,25 @@ final class ScrollState extends State<Scroll> {
             offsetY = y;
             fade.woken();
         });
+        notifyController();
+    }
+
+    /// Where this viewport is, for [ScrollController#position()].
+    ScrollController.Position position() {
+        return new ScrollController.Position(
+                offsetX,
+                offsetY,
+                viewport.overflowX(content),
+                viewport.overflowY(content),
+                viewport.width(),
+                viewport.height());
+    }
+
+    /// Tells the controller its position moved.
+    private void notifyController() {
+        if (held != null && held.attached == this) {
+            held.changed();
+        }
     }
 
     /// How much further right the viewport will draw once the glide lands —
@@ -298,5 +318,6 @@ final class ScrollState extends State<Scroll> {
             // arrive, which is why the wake is here rather than in each handler.
             fade.woken();
         });
+        notifyController();
     }
 }

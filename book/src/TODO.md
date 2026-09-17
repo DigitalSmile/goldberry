@@ -264,13 +264,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   two shifts and a rule about which wins. Nobody has asked. —
   [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
 
-- **A tab strip scrolls, and has no chevrons at either end.** The headers are in
-  a horizontal viewport now, so a strip wider than its window can be reached —
-  by wheel or by dragging its thumb. A tab bar conventionally also has an arrow
-  at each end that pages the strip, and that is a different affordance from the
-  viewport: it needs to know it is at an edge, which is `scrollIntoView`'s
-  missing question again. —
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - **A tab's content is rebuilt when it is selected again.** That is the cost of
   §5's "lazy content instantiation" and is right — but it means a scroll position,
   a caret or a half-typed form in a background tab is gone, and the toolkit offers
@@ -1344,6 +1337,10 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A tab strip scrolls, and has no chevrons at either end.**~~ **It has them,
+  2026-09-17**, while it overflows: a `ScrollController` can now say where its
+  viewport is and when that changes, which was the missing question. —
+  [ADR-0365](adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
 - ~~**The "always show scroll bars" gutter is not built, and nothing switches
   it.**~~ **Both, 2026-09-17**, in density's shape rather than a settings
   mechanism: `Scrollbars.ALWAYS` is a token stylesheet an application passes to

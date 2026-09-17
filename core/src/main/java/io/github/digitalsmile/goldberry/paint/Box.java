@@ -197,6 +197,11 @@ public record Box(
             /// time it opens.
             CHEVRON_END,
 
+            /// A single `<` — [#CHEVRON_END] mirrored, for a tab strip's
+            /// page-back affordance (ADR-0365). A kind rather than a mirroring
+            /// transform for [#CHEVRON_UP]'s reason.
+            CHEVRON_START,
+
             /// A single `v` — the affordance on a closed `select`, saying that
             /// there is a list under it.
             ///

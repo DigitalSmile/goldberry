@@ -374,6 +374,7 @@
 - [ADR-0362 A text area draws `scroll`'s bar](adr/0362-a-text-area-draws-scrolls-bar.md)
 - [ADR-0363 A programmatic scroll glides, and the offset is already there](adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
 - [ADR-0364 Always-shown scroll bars are a token sheet](adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
+- [ADR-0365 An overflowing tab strip pages from its ends](adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
 
 ---
 

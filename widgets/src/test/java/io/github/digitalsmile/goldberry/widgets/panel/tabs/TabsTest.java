@@ -28,6 +28,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `tabs` — the strip, the lazy panel, and the three things a tab can be given
@@ -254,7 +255,9 @@ class TabsTest {
     @Test
     @DisplayName("a strip is one Tab stop with a horizontal roving selection")
     void keyboard() {
-        assertEquals(FocusScope.HORIZONTAL, new TabStrip(List.of(), List.of(), null, null).focusScope());
+        assertEquals(
+                FocusScope.HORIZONTAL,
+                new TabStrip(List.of(), List.of(), null, ScrollController.Position.NONE, null).focusScope());
         assertTrue(new Tab("a", "First").isFocusable());
         assertFalse(
                 new TabClose(() -> {}).isFocusable(),

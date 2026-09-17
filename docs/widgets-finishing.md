@@ -36,7 +36,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| Overflow chevrons | a strip wider than its tabs scrolls by buttons | — | open |
+| Overflow chevrons | a strip wider than its tabs scrolls by buttons | 0365 | done |
 | Reordering | drag a tab to a new place | — | open |
 | Content kept | a tab selected again is not rebuilt | — | open |
 
@@ -151,3 +151,13 @@ can be reversed:
   `ScrollContent` pads by it.
 - Tests: `ScrollGutterTest`.
 - `example` — `ShowcaseModel.scrollbars`, `app.toggle-scrollbars`, a File menu item.
+
+### Tab strip pagers
+
+- `core` `paint/Box.Mark.Kind.CHEVRON_START`, drawn in `BoxPainter`.
+- `widgets` `core/scroll/ScrollController.Position`, `position()`, `onChange`;
+  `ScrollState.position` and its notifications. `panel/tabs/TabPager`;
+  `TabsState` listens; `TabStrip` and `TabList` carry the position.
+  `controls.css`: `tab-pager`.
+- Tests: `TabPagerTest`. `gallery-basic-narrow` and `gallery-icons-narrow`
+  re-blessed.

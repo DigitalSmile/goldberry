@@ -63,6 +63,59 @@ public final class ScrollController {
         return attached != null;
     }
 
+    /// Where a viewport is, and how far it could go — the answer to "is it at an
+    /// edge", which a tab strip's page buttons need (ADR-0365).
+    ///
+    /// @param offsetX   how far it is scrolled right, towards where a glide ends
+    /// @param offsetY   how far down
+    /// @param overflowX how far right it could go in all
+    /// @param overflowY how far down
+    /// @param width     the viewport's width, as last laid out
+    /// @param height    its height
+    public record Position(
+            double offsetX, double offsetY, double overflowX, double overflowY, double width, double height) {
+
+        /// Where a viewport with nothing attached is: nowhere, with nothing to scroll.
+        public static final Position NONE = new Position(0, 0, 0, 0, 0, 0);
+
+        /// Whether there is anything to scroll across.
+        public boolean overflowsX() {
+            return overflowX > 0.5;
+        }
+
+        /// Whether it can go further left.
+        public boolean canScrollLeft() {
+            return offsetX > 0.5;
+        }
+
+        /// Whether it can go further right.
+        public boolean canScrollRight() {
+            return offsetX < overflowX - 0.5;
+        }
+    }
+
+    /// The attached viewport's [Position], or [Position#NONE].
+    public Position position() {
+        return attached == null ? Position.NONE : attached.position();
+    }
+
+    /// Told whenever the attached viewport's [#position()] changes, or null to stop.
+    ///
+    /// One listener, because a controller has one owner: the application or state
+    /// that created it.
+    public void onChange(@Nullable Runnable listener) {
+        this.listener = listener;
+    }
+
+    private @Nullable Runnable listener;
+
+    /// Called by [ScrollState] when its offset or its extents moved.
+    void changed() {
+        if (listener != null) {
+            listener.run();
+        }
+    }
+
     /// Moves the viewport by `dx`, `dy`, clamped to what there is to show.
     ///
     /// A **distance** and not a target, so the viewport needs to know nothing
