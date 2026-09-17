@@ -816,6 +816,105 @@ icon-tile-name {
   flex-shrink: 1;
 }
 
+/* --- the emoji sheet (ADR-0386) -------------------------------------------- */
+
+/* The same furniture as the icon sheet above, because it is the same sheet with
+   a different tile in it: a virtualized list of reflowing rows, a header that
+   stays put, and a viewport that fills what the header leaves. What differs is
+   the tile — an icon is a path and an emoji is text. */
+#emoji-screen {
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  flex-grow: 1;
+}
+
+#emoji-header {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#emoji-search-row {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+#emoji-search {
+  flex-grow: 1;
+}
+
+#emoji-count {
+  flex-shrink: 0;
+}
+
+#emoji-viewport {
+  flex-grow: 1;
+}
+
+#emoji-wall {
+  gap: 0;
+}
+
+/* `IconsScreen.ROW_PITCH` again, and the two numbers must agree or `ListRow`
+   says so in the log — the emoji sheet reuses that pitch because it reuses the
+   tile's height. */
+#emoji-wall list-row {
+  height: 76px;
+  padding: 0;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: default;
+  background: transparent;
+}
+
+#emoji-wall list-row:hover {
+  background: transparent;
+}
+
+emoji-tile {
+  width: 152px;
+  height: 68px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  flex-grow: 1;
+  padding: 4px;
+  border-radius: 8px;
+  color: var(--gb-text);
+  transition: background var(--gb-motion-fast);
+}
+
+emoji-tile:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* **The whole demonstration is this declaration.** §6.1's font chain is a
+   primary family and an emoji slot, and `font-family` is how a document reaches
+   the second one — no API, no registry, one rule. The face behind it is
+   `goldberry-emoji`, which this application opts into and credits on the screen
+   (ADR-0384, ADR-0386).
+
+   A build without that artifact draws these in the UI face instead and says so
+   once in the log, rather than failing to open a window. */
+emoji-glyph {
+  font-family: OpenMoji;
+  font-size: 24px;
+  line-height: 28px;
+  flex-shrink: 0;
+}
+
+emoji-tile-name {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  flex-shrink: 1;
+}
+
 /* --- the chip rows (ADR-0305) ---------------------------------------------- */
 
 /* `flex-wrap`, which the chip row is the second consumer of: a filter row is as

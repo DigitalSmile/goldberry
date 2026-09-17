@@ -73,25 +73,26 @@ class ShowcaseShellTest {
 
     // --- the gallery ---------------------------------------------------------
 
-    /// Eleven screens, ten of which have a digit — and **which** ten is the
+    /// Thirteen screens, ten of which have a digit — and **which** ten is the
     /// decision this asserts ([ADR-0307]).
     ///
     /// This test used to say `GALLERY.size() <= 10` and call the eleventh screen
     /// "a decision about which one loses its key". The decision is that **none of
     /// them does**: `Ctrl+1`…`Ctrl+0` keep meaning exactly what they have always
-    /// meant, and `icons` is reached by the strip, by the arrows inside it, and by
-    /// Edit ▸ Go to.
+    /// meant, and `icons`, `emoji` and `motion` are reached by the strip, by the
+    /// arrows inside it, and by Edit ▸ Go to.
     ///
     /// The reason is what the two kinds of screen are for. The first ten are
     /// galleries a reader moves *between* — the digit is worth having because the
-    /// comparison is the point. The icon sheet is a reference opened once and
+    /// comparison is the point. The two sheets are references opened once and
     /// searched, and re-pointing a shortcut somebody already knows in order to
-    /// give it one would cost more than it bought.
+    /// give one a key would cost more than it bought ([ADR-0386] added the second
+    /// of them and moved no digit, which is the property being kept).
     ///
     /// What is still load-bearing is that the digits and the strip agree about
     /// the first ten, which is [GalleryOrderTest]'s.
     @Test
-    @DisplayName("eleven screens; the first ten have a digit and the eleventh has the strip")
+    @DisplayName("thirteen screens; the first ten have a digit and the rest have the strip")
     void theGallery() {
         assertEquals(
                 List.of(
@@ -106,6 +107,7 @@ class ShowcaseShellTest {
                         "html",
                         "canvas",
                         "icons",
+                        "emoji",
                         "motion"),
                 Screen.GALLERY);
 

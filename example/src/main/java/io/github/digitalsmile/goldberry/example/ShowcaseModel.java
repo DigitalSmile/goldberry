@@ -352,6 +352,12 @@ public final class ShowcaseModel {
     @Bind("app.icon-query")
     private String iconQuery = "";
 
+    /// The same for the Emoji screen, and a second field rather than one shared
+    /// with the icons: two sheets that filtered on one value would clear each
+    /// other every time a reader moved between them.
+    @Bind("app.emoji-query")
+    private String emojiQuery = "";
+
     /// Which gallery screen is showing — the tab strip under the bar (ADR-0110).
     /// `Ctrl+1`, a menu item and the strip itself are three ways to set one value
     /// rather than three copies of a selection.
@@ -446,6 +452,11 @@ public final class ShowcaseModel {
     /// What the icon sheet is filtering on.
     public String iconQuery() {
         return iconQuery;
+    }
+
+    /// And what the emoji sheet is filtering on.
+    public String emojiQuery() {
+        return emojiQuery;
     }
 
     /// Everything that *happens* to these values. One method per thing a control
@@ -553,6 +564,12 @@ public final class ShowcaseModel {
         @Action("app.set-icon-query")
         public void setIconQuery(String value) {
             values.iconQuery = value == null ? "" : value;
+        }
+
+        /// The emoji sheet's own field, for [ShowcaseModel#emojiQuery]'s reason.
+        @Action("app.set-emoji-query")
+        public void setEmojiQuery(String value) {
+            values.emojiQuery = value == null ? "" : value;
         }
 
         // --- the road --------------------------------------------------------

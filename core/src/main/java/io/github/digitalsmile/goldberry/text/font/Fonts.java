@@ -11,6 +11,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.assets.Face;
 import io.github.digitalsmile.goldberry.css.Typography;
@@ -198,12 +199,33 @@ public final class Fonts implements AutoCloseable {
     }
 
     private FontFace faceFor(Face face) {
+        if (face == BundledFont.EMOJI && !BundledAssets.hasEmojiFont()) {
+            // The emoji face ships as `goldberry-emoji` and this application did
+            // not add it (ADR-0384). Caught here for the reason `opens` below
+            // catches its own failure: this runs inside a render pass, and a
+            // stylesheet that writes `font-family: OpenMoji` must not be able to
+            // turn a window into no text at all. Said once, because a cascade
+            // asks per element per frame.
+            if (emojiReported.compareAndSet(false, true)) {
+                LOG.warn(
+                        "the emoji face is not on the module path, so text asking for it is drawn in {}."
+                                + " Add io.github.digitalsmile:goldberry-emoji — and its credit — to draw emoji"
+                                + " (ADR-0384)",
+                        BundledFont.UI.family());
+            }
+            return faceFor(BundledFont.UI);
+        }
         return faces.computeIfAbsent(face, key -> switch (key) {
             case BundledFont bundled -> FontFace.bundled(bundled);
             case FontSource source ->
                 FontFace.of(source.family(), source.bytes().get());
         });
     }
+
+    /// Whether the missing emoji face has been mentioned. One line per process,
+    /// not one per element per frame.
+    private final java.util.concurrent.atomic.AtomicBoolean emojiReported =
+            new java.util.concurrent.atomic.AtomicBoolean();
 
     /// Whether a shipped face opens, trying it the first time it is asked about.
     ///

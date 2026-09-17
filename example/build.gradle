@@ -26,6 +26,13 @@ dependencies {
     // `Showcase.stylesheets()` adds beside the toolkit's own.
     implementation project(':html')
 
+    // The emoji face (ADR-0384). An application adds this on purpose, because
+    // OpenMoji is CC BY-SA and the credit goes on screen -- the Emoji screen
+    // carries it. Nothing here names a type of it: the face reaches `:core`
+    // through a service, so this puts a provider on the module path and nothing
+    // else.
+    implementation project(':emoji')
+
     // The golden-image harness and the renderer requirement, so the gallery can
     // be checked as pictures the way the catalog is (§14, ADR-0110).
     testImplementation testFixtures(project(':core'))

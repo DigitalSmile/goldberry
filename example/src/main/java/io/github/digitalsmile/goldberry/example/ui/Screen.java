@@ -97,7 +97,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "motion");
+            "canvas", "icons", "emoji", "motion");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -123,6 +123,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("html", "HTML"),
             Map.entry("canvas", "Canvas"),
             Map.entry("icons", "Icons"),
+            Map.entry("emoji", "Emoji"),
             Map.entry("motion", "Motion"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
@@ -296,6 +297,11 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // which is [Navigation]'s reason and §2.4's ban on nested
                     // same-axis scrollers (ADR-0307).
                     new Tab("icons", title("icons"), new IconsScreen(model, actions)),
+                    // The same sheet with a different asset in it, and the screen
+                    // where this application opts into `goldberry-emoji` and
+                    // carries the credit CC BY-SA asks for (ADR-0384, ADR-0386).
+                    // Not `scrolled`, for the Icons screen's reason.
+                    new Tab("emoji", title("emoji"), new EmojiScreen(model, actions)),
                     // What moves by itself: a canvas choreography, `@keyframes`
                     // and `@starting-style`, one card each. Last, so no digit
                     // moves (ADR-0354).

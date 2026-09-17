@@ -20,6 +20,7 @@ import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
@@ -88,6 +89,13 @@ class GalleryGoldenTest {
     /// The same, at a chosen size — for a screen with more on it than the
     /// window shows.
     private void paint(String name, String screen, Theme theme, int width, int height) {
+        paint(name, screen, theme, width, height, false);
+    }
+
+    /// The same, choosing how the text is drawn: with the one-font renderer these
+    /// goldens were taken with, or with a **book**, which is what a screen about
+    /// `font-family` needs ([ADR-0386]).
+    private void paint(String name, String screen, Theme theme, int width, int height, boolean book) {
         actions.pickScreen(screen);
 
         var inflater = Widgets.inflater(
@@ -136,6 +144,27 @@ class GalleryGoldenTest {
         // checked for describing the same picture (ADR-0162). The whole screen
         // goes through that sweep now, which it always did — the difference is
         // that the render it sweeps is one an application could have written.
+        if (book) {
+            // A **font book** rather than the one-font renderer, for the one
+            // screen whose subject is `font-family`: the emoji sheet draws every
+            // glyph through the face the cascade picks, and a renderer that
+            // ignores the property would photograph a wall of `.notdef`
+            // ([ADR-0386]). Opened and closed per picture, because a book owns
+            // the faces it opened.
+            try (var fonts = Fonts.bundled()) {
+                GoldenImage.assertMatches(
+                        name,
+                        width,
+                        height,
+                        1.0f,
+                        (size, scale) -> Offscreen.of(size)
+                                .scale(scale)
+                                .stylesheets(sheets)
+                                .fonts(fonts)
+                                .render(root));
+            }
+            return;
+        }
         GoldenImage.assertMatches(
                 name,
                 width,
@@ -266,6 +295,21 @@ class GalleryGoldenTest {
     @DisplayName("the Icons screen, and every tile in the first viewport")
     void icons() {
         paint("gallery-icons", "icons", Theme.NORD_DARK, 1200, 900);
+    }
+
+    /// The Emoji sheet, drawn through a **font book** — the one golden in this
+    /// file that is not taken with the one-font renderer ([ADR-0386]).
+    ///
+    /// It has to be. The screen's whole subject is `font-family: OpenMoji`
+    /// reaching §6.1's emoji slot, and a renderer that ignores the property would
+    /// photograph 1845 tiles of `.notdef` and call it a picture of an emoji
+    /// sheet. So this one opens a book, which is also what proves the face is on
+    /// the module path: without `goldberry-emoji` the glyphs would fall back to
+    /// Inter and this image would move.
+    @Test
+    @DisplayName("the Emoji screen, through a font book so the face is the one it names")
+    void emoji() {
+        paint("gallery-emoji", "emoji", Theme.NORD_DARK, 1200, 900, true);
     }
 
     /// The twelfth screen, 200 ms in on the virtual clock: the tile floor part way
