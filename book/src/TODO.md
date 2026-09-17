@@ -116,14 +116,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   a transform origin says otherwise, and §8's subset has no `transform-origin`.
   The colour transition is what ships until it does. —
   [ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
-- **A floating button scales in, and does not scale out.** The way in is an
-  `@starting-style` now. The way out is §1.7's `closing` phase for an overlay,
-  which the overlay layer does not run: `Overlay.remove()` takes the button
-  down on the frame it is called. A toast's arrival could use the same starting
-  style. It is not moved onto one, because its `Phase` also drives the stack's
-  reflow. —
-  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md),
-  [ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
 - **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
   `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
   written on it: a role nothing consumes is a value written for a bridge that does
@@ -131,14 +123,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
 
 ### `text-input`, and what §4 still owes
-
-- **A field's room is `width - 2 × left padding`.** `text-area` made the same
-  assumption and a stylesheet with asymmetric padding found it: the text wrapped
-  wider than its room (`docs/gaps.md` G43). `text-input` does not wrap, so the
-  same arithmetic scrolls the caret into view a few pixels late rather than
-  drawing under the padding, and every shipped stylesheet pads it symmetrically.
-  The fix is `AreaPadding`'s, on `TextEditor.laidOut`. —
-  [ADR-0350](adr/0350-a-gutter-strip-is-outside-the-clip-its-numbers-are-inside.md)
 
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -1439,8 +1423,15 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**A floating button does not scale in.**~~ **It does, 2026-09-17**, from an
   `@starting-style`: the entering state the overlay layer had no way to give
   it, and CSS's own answer to "what does an element transition from on its first
-  frame". The way out stays open, above. —
-  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md)
+  frame". **And it scales out**: a `FloatSlot` bound to a switch puts `leaving` on
+  the button, the stylesheet plays the exit on `fast`, and a host timer removes
+  the overlay after it. A general closing phase for overlays is still not built,
+  and nothing else has asked for one. —
+  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md),
+  [ADR-0355](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
+- ~~**A field's room is `width - 2 × left padding`.**~~ **Each edge comes off
+  once, 2026-09-17**, in `text-input` as in `text-area`. —
+  [ADR-0355](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 - ~~**§8's subset has no `@keyframes` and is not going to grow one.**~~ **It has
   one, 2026-09-17.** ADR-0081's argument was about loops that must stay in phase,
   and those stay clock functions. What it did not cover is authored motion

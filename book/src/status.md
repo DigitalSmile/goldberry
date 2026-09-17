@@ -7160,6 +7160,12 @@ And three ways for something to move by itself, asked for alongside the gaps:
   while something moves and woken by a host timer in between. It has a card for
   each of the other two mechanisms as well.
 
+What that batch left open was closed the same day
+([ADR-0355](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)): `text-input` subtracts
+each padding edge once, a floating button leaves on `fast` before its overlay is
+removed, and the Motion floor starts on its first render, so the screen has a
+golden.
+
 ### Not started
 
 **Client-side decorations.** §3, §4, §6, §7 and §10 are **complete**, mechanism

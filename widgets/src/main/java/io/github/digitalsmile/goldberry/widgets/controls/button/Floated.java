@@ -33,7 +33,9 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 ///
 /// Stateful because an overlay is a handle that has to be given back: the
 /// state attaches it on the first build, re-attaches it when the button
-/// changes, and removes it when the element unmounts (ADR-0347).
+/// changes, and takes it down when the element unmounts (ADR-0347). Taking it
+/// down is an exit rather than a cut: the button is sent out with `leaving` and
+/// the overlay removed once `--gb-motion-fast` has passed (ADR-0355).
 ///
 /// @param button what floats
 /// @param corner where — `bottom-end` by default, §3's own

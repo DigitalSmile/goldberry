@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
+import java.time.Duration;
 import java.util.HashSet;
 
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -15,6 +17,20 @@ final class FloatedState extends State<Floated> {
 
     private @Nullable Overlay overlay;
 
+    /// The slot in [#overlay], whose switch sends the button out.
+    private @Nullable FloatSlot slot;
+
+    /// The host the overlay was put on, which is also what removes it once its
+    /// exit has played.
+    private @Nullable Host attachedTo;
+
+    /// How long the way out takes: `--gb-motion-fast`, §3.1's "out: reverse,
+    /// fast", read at each build so a theme's value is the one used.
+    private double exitMillis = EXIT_FALLBACK_MILLIS;
+
+    /// What the exit takes when no stylesheet says: `fast`'s specified value.
+    static final double EXIT_FALLBACK_MILLIS = 100;
+
     /// What is floating now, so a rebuild with the same button does not take
     /// it down and put it back — which would restart its hover and its focus.
     private @Nullable Floated floating;
@@ -22,6 +38,7 @@ final class FloatedState extends State<Floated> {
     @Override
     public Widget build(BuildContext context) {
         var host = context.host().orElse(null);
+        exitMillis = context.duration("--gb-motion-fast", EXIT_FALLBACK_MILLIS);
         var wanted = widget();
         current = wanted;
         if (host != null && (floating == null || !presentsAs(wanted, floating))) {
@@ -57,26 +74,56 @@ final class FloatedState extends State<Floated> {
         var button = wanted.button();
         var classes = new HashSet<>(button.attributes().classes());
         classes.add(Button.FLOAT);
-        var floated = new Button(button.label(), button.icon(), this::press, button.disabled(), button.attributes())
+        // The switch before the button, so the button's press can ask its own
+        // switch rather than whichever slot this state holds by then.
+        Property<Boolean> leaving = Property.of(false);
+        var floated = new Button(
+                        button.label(), button.icon(), () -> press(leaving), button.disabled(), button.attributes())
                 .withAttributes(button.attributes().classes(classes.toArray(String[]::new)));
-        overlay = host.overlay(floated, wanted.corner());
+        slot = new FloatSlot(floated, leaving);
+        overlay = host.overlay(slot, wanted.corner());
+        attachedTo = host;
         floating = wanted;
     }
 
-    /// The press, forwarded to the latest description's handler.
-    private void press() {
+    /// The press, forwarded to the latest description's handler — and ignored
+    /// once the button is leaving, which is §1.7's "input is disabled the instant
+    /// closing starts": a press on a button that is fading out is a ghost click.
+    private void press(Property<Boolean> leaving) {
+        if (Boolean.TRUE.equals(leaving.get())) {
+            return;
+        }
         var latest = current;
         if (latest != null && latest.button().onPress() != null) {
             latest.button().onPress().run();
         }
     }
 
+    /// Sends the floating button out and lets go of it.
+    ///
+    /// The overlay stays up for the length of the exit, with `leaving` on the
+    /// button so the stylesheet's rule plays it, and is removed by a timer on the
+    /// host after that (ADR-0355). This state forgets it at once: a rebuild that
+    /// attaches a new button while the old one leaves shows both for a moment,
+    /// crossing, which is what a toast queue does too. Without a host to time the
+    /// exit on, the overlay goes at once.
     private void detach() {
-        if (overlay != null) {
-            overlay.remove();
-            overlay = null;
-        }
+        var leavingOverlay = overlay;
+        var leavingSlot = slot;
+        var host = attachedTo;
+        overlay = null;
+        slot = null;
+        attachedTo = null;
         floating = null;
+        if (leavingOverlay == null) {
+            return;
+        }
+        if (host == null || leavingSlot == null || exitMillis <= 0) {
+            leavingOverlay.remove();
+            return;
+        }
+        leavingSlot.leaving().set(true);
+        host.after(Duration.ofMillis(Math.max(1, Math.round(exitMillis))), leavingOverlay::remove);
     }
 
     @Override

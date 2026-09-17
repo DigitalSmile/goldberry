@@ -62,6 +62,17 @@ class TileFloorTest {
     }
 
     @Test
+    @DisplayName("the settle starts on the first frame that asks, painted or not")
+    void startsOnTheFirstFrame() {
+        floor.at(500);
+
+        assertTrue(floor.isMoving(500 + floor.settledAfter() - 1, false));
+        assertFalse(floor.isMoving(500 + floor.settledAfter(), false), "counted from the render, not a later paint");
+        floor.at(9_000);
+        assertTrue(floor.hasSettled(500 + floor.settledAfter()), "and a later frame does not restart it");
+    }
+
+    @Test
     @DisplayName("a replay asks for the frame that will start it")
     void replayAsks() {
         paintAt(0, false);

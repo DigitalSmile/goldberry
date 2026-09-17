@@ -364,6 +364,7 @@
 - [ADR-0352 An element enters from its starting style](adr/0352-an-element-enters-from-its-starting-style.md)
 - [ADR-0353 A stylesheet may name keyframes](adr/0353-a-stylesheet-may-name-keyframes.md)
 - [ADR-0354 A choreography is a function of time, and a timer wakes it](adr/0354-a-choreography-is-a-function-of-time-and-a-timer-wakes-it.md)
+- [ADR-0355 A floating button leaves, a field's room is both paddings, and a floor starts on its first frame](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 
 ---
 

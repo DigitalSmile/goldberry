@@ -41,9 +41,9 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///    from its starting style. The entries already there stay put, because an
 ///    element enters once.
 ///
-/// The screen is not photographed. A golden of it would be a picture of one
-/// moment of three animations, and the tests for each mechanism assert the
-/// moments that matter as numbers.
+/// The screen is photographed at the offscreen renderer's 200 ms: one moment
+/// of three animations, the same on every run because the clock is virtual. The
+/// floor is part way through its ripple, which is the picture worth keeping.
 public record MotionScreen() implements Widget.Stateful {
 
     private static final String NOTE =
@@ -104,7 +104,7 @@ public record MotionScreen() implements Widget.Stateful {
                                 }
                             },
                             attributes("motion-floor"))
-                    .animating(style -> floor.isMoving(style.nowMillis(), style.reducedMotion()));
+                    .animating(style -> floor.at(style.nowMillis()).isMoving(style.nowMillis(), style.reducedMotion()));
             return captioned(
                     "A settle, painted",
                     "motion-floor-card",

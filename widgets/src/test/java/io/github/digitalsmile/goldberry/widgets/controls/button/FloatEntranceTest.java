@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.motion.Clock;
@@ -20,7 +21,7 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// `design-system.md` §1.7's `button[float]`: in with `opacity` and `scale`
-/// 0.9→1, on `base` — the entrance ADR-0347 could not build and `@starting-style`
+/// 0.9→1, on `base`, and out on `fast` — the entrance ADR-0347 could not build and `@starting-style`
 /// can ([ADR-0352]).
 class FloatEntranceTest {
 
@@ -72,6 +73,28 @@ class FloatEntranceTest {
         assertEquals(1, arrived.opacity(), 1e-9);
         assertEquals(1, scaleOf(arrived), 1e-9);
         assertFalse(renderer.isAnimating());
+    }
+
+    @Test
+    @DisplayName("and it leaves on fast, the entrance reversed, when `leaving` is put on it")
+    void leaves() {
+        var leaving = Property.of(false);
+        var slot = new FloatSlot(floating(), leaving);
+        var tree = new ElementTree(slot);
+        renderer.render(tree);
+        clock.advance(200);
+        assertEquals(1, renderer.render(tree).opacity(), 1e-9);
+
+        leaving.set(true);
+        tree.flush();
+        var start = renderer.render(tree);
+        clock.advance(100);
+        var gone = renderer.render(tree);
+
+        assertEquals(1, start.opacity(), 1e-9, "a transition starts from where the button is");
+        assertEquals(0, gone.opacity(), 1e-9);
+        assertEquals(0.9, scaleOf(gone), 1e-9);
+        assertFalse(renderer.isAnimating(), "and is done in 100 ms, faster than the 160 it came in on");
     }
 
     @Test

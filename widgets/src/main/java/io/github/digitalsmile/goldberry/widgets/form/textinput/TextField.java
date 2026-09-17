@@ -324,7 +324,7 @@ record TextField(
         // Stashed for the pointer, which arrives outside a render pass and cannot
         // shape anything for itself. The same move `scroll` makes with the clock:
         // render is the only place a widget is handed what it needs to measure.
-        var padding = leftPadding(style);
+        var padding = padding(style.padding().left());
         // Read once and used three times: the caret's box, the room the scroll
         // offset must leave for it, and nothing else. A caret three pixels wide
         // whose field reserved one would be clipped at the end of the text
@@ -335,7 +335,8 @@ record TextField(
         // The alignment goes down with the paragraph, because the editor places the
         // caret and the highlight from it and the `Value` beside them draws from the
         // same resolved style ([ADR-0324]).
-        var offset = editor.laidOut(paragraph, padding, caretWidth, style.textAlign());
+        var offset =
+                editor.laidOut(paragraph, padding, padding(style.padding().right()), caretWidth, style.textAlign());
 
         // No child's `left` carries the padding any more. It used to: an
         // absolutely positioned box was placed against the **border** box while
@@ -415,14 +416,14 @@ record TextField(
                 .overflow(io.github.digitalsmile.goldberry.layout.Overflow.HIDDEN);
     }
 
-    /// The field's left padding in logical pixels, or 0 when the style gives none
-    /// in points.
+    /// One edge of the field's padding in logical pixels, or 0 when the style
+    /// gives none in points.
     ///
     /// A percentage padding on a text field is not something §3 asks for and not
     /// something this can resolve without the width Yoga has not computed yet, so
     /// it reads as zero rather than as a guess.
-    private static double leftPadding(ComputedStyle style) {
-        return style.padding().left() instanceof Length.Points points ? points.value() : 0;
+    private static double padding(Length edge) {
+        return edge instanceof Length.Points points ? points.value() : 0;
     }
 
     private static int clamp(int offset, int length) {

@@ -145,6 +145,11 @@ interface TextEditor {
     /// that can measure text — so it is also the only place the scroll offset can
     /// be worked out and the only place the pointer's mapping can be prepared.
     ///
+    /// @param leftPadding  where the text starts, in from the left edge
+    /// @param rightPadding what comes off the far end; a field's two paddings need
+    ///                     not match, and doubling the left one scrolled the caret
+    ///                     into view late under `padding: 0 16px 0 4px`
+    ///                     (`docs/gaps.md` G43, ADR-0355)
     /// @param align what the cascade said about `text-align`, which decides where
     ///              a line **narrower** than the field sits in it — and therefore
     ///              where the caret, the highlight and the composition's rule go
@@ -153,7 +158,7 @@ interface TextEditor {
     ///         edge: the scroll, **less** the alignment's indent. One number
     ///         because the two can never both be non-zero — a line that overflows
     ///         has no slack to be aligned in, and one that fits does not scroll
-    double laidOut(Paragraph paragraph, double leftPadding, double caretWidth, TextAlign align);
+    double laidOut(Paragraph paragraph, double leftPadding, double rightPadding, double caretWidth, TextAlign align);
 
     /// `Ctrl+C`. @return whether there was a selection this field would let out
     boolean copy();

@@ -97,6 +97,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     private Paragraph paragraph;
     private Mask mask = Mask.of("", false);
     private double leftPadding;
+    private double rightPadding;
 
     /// What an input method is composing, or `""` when it is not —
     /// `docs/gaps.md` G16.
@@ -468,7 +469,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (!focused || widget().disabled() || widget().readOnly() || bounds.width() <= 0) {
             return java.util.Optional.empty();
         }
-        var width = bounds.width() - 2 * leftPadding;
+        var width = bounds.width() - leftPadding - rightPadding;
         return java.util.Optional.of(io.github.digitalsmile.goldberry.render.model.LogicalRect.of(
                 0, 0, (float) Math.max(1, width), Math.max(1, bounds.height())));
     }
@@ -599,17 +600,18 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, double padding, double caretWidth, TextAlign align) {
+    public double laidOut(Paragraph shaped, double left, double right, double caretWidth, TextAlign align) {
         paragraph = shaped;
-        leftPadding = padding;
+        leftPadding = left;
+        rightPadding = right;
 
         var display = mask.display();
         var caretAt = paragraph.widthBetween(0, Math.clamp(mask.display(edit.caret()), 0, display.length()));
         var textWidth = paragraph.widthBetween(0, display.length());
-        // The last frame's width, less the padding on both sides. Zero before
+        // The last frame's width, less each side's own padding. Zero before
         // anything has been measured, which reads as "no room" and leaves the
         // offset alone rather than snapping it to the caret.
-        var room = bounds.width() - 2 * padding;
+        var room = bounds.width() - left - right;
         if (room <= 0) {
             return shift();
         }

@@ -7,7 +7,8 @@ Date: 2026-09-17
 Accepted. Extends [ADR-0067](0067-motion-is-an-overlay-on-a-frame-clock.md).
 Builds `design-system.md` §3.1's `button[float]` entrance, which
 [ADR-0347](0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md) left
-unbuilt.
+unbuilt. The way out it left unbuilt is built by
+[ADR-0355](0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md).
 
 ## Context
 

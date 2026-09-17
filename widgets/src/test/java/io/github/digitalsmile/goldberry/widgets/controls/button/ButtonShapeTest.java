@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,7 @@ class ButtonShapeTest {
             var overlay = state.overlay();
             assertNotNull(overlay, "the host was handed an overlay");
             assertEquals(Corner.BOTTOM_END, overlay.corner());
-            var floated = (Button) overlay.widget();
+            var floated = ((FloatSlot) overlay.widget()).button();
             assertTrue(
                     floated.classes().containsAll(Set.of("float", "circle")),
                     floated.classes().toString());
@@ -101,9 +102,37 @@ class ButtonShapeTest {
             tree.flush();
             assertTrue(overlay == state.overlay(), "an equal button must not be taken down and put back");
 
+            var slot = (FloatSlot) overlay.widget();
             tree.unmount();
 
-            assertNull(state.overlay());
+            assertNull(state.overlay(), "the state lets go at once");
+            assertTrue(slot.isLeaving(), "and the button is sent out, to be removed when its exit has played");
+        }
+
+        @Test
+        @DisplayName("a leaving button carries `leaving`, ignores a press, and is removed after --gb-motion-fast")
+        void leavesThenGoes() {
+            var presses = new int[1];
+            var tree = new ElementTree(new Floated(new Button("", plus, () -> presses[0]++, false, null)), host);
+            tree.flush();
+            var state = (FloatedState) tree.root().state().orElseThrow();
+            var slot = (FloatSlot) state.overlay().widget();
+            slot.button().onPress().run();
+            assertEquals(1, presses[0]);
+
+            tree.unmount();
+
+            var leaving = (Button) slot.build(null);
+            assertTrue(
+                    leaving.classes().contains(FloatSlot.LEAVING),
+                    leaving.classes().toString());
+            slot.button().onPress().run();
+            assertEquals(1, presses[0], "a press on a button on its way out is a ghost click");
+            assertEquals(
+                    Duration.ofMillis((long) FloatedState.EXIT_FALLBACK_MILLIS),
+                    host.scheduledDelays().getLast(),
+                    "no stylesheet here, so fast's specified 100 ms");
+            assertTrue(host.hasPendingTimer(), "the overlay is removed by the timer, not at once");
         }
 
         @Test

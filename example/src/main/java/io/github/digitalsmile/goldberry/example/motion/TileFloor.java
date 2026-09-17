@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 ///
 /// Two different things, because the floor needs two different kinds of
 /// frame. **While something moves**, the canvas asks for the next frame itself
-/// through `Canvas.animating`, with [#isMoving] as the question, so the settle
+/// through `Canvas.animating`, with [#at] and [#isMoving] as the question, so the settle
 /// and a fade run at the display's rate and stop asking the moment they end.
 /// **Between swaps** nothing moves for 900 ms, and a canvas that kept asking
 /// would repaint a still picture fifty times. A timer on the host starts the
@@ -69,9 +69,9 @@ public final class TileFloor {
     private int focusColumn;
     private int focusRow;
 
-    /// When the settle started, on the frame clock, or NaN until the next paint
+    /// When the settle started, on the frame clock, or NaN until the next frame
     /// reads the clock. A replay sets it back to NaN: whoever asked for it has no
-    /// frame time, and the painter does.
+    /// frame time, and the next frame does.
     private double startedAt = Double.NaN;
 
     private int swaps;
@@ -79,7 +79,7 @@ public final class TileFloor {
     private int swapFrom;
     private int swapTo;
 
-    /// When the current fade started, NaN before the paint that starts it, or
+    /// When the current fade started, NaN before the frame that starts it, or
     /// negative infinity when nothing has been swapped yet.
     private double swapStartedAt = Double.NEGATIVE_INFINITY;
 
@@ -142,7 +142,7 @@ public final class TileFloor {
         startedAt = Double.NaN;
     }
 
-    /// Starts the next glaze swap. The fade starts on the next paint, where there
+    /// Starts the next glaze swap. The fade starts on the next frame, where there
     /// is a frame time to start it at.
     public void swap() {
         if (swapTile >= 0) {
@@ -156,6 +156,27 @@ public final class TileFloor {
         swapTo = BANDS.get(glazes[index] == BANDS.get(neighbour) ? band : neighbour);
         swapStartedAt = Double.NaN;
         swaps++;
+    }
+
+    /// Tells the floor what time this frame is, which starts a settle or a fade
+    /// that is waiting for one.
+    ///
+    /// Called by the canvas's `animating` predicate, which the renderer asks on
+    /// **every render**, and by [#paint]. Starting on the render rather than on
+    /// the first paint is what makes the floor photographable: an offscreen
+    /// render renders twice to measure and paints once, so a floor started by its
+    /// paint would be photographed at its first instant, with every tile still
+    /// above its place and invisible (ADR-0355).
+    ///
+    /// @return this floor, so the predicate can ask its question in one line
+    public TileFloor at(double now) {
+        if (Double.isNaN(startedAt)) {
+            startedAt = now;
+        }
+        if (Double.isNaN(swapStartedAt)) {
+            swapStartedAt = now;
+        }
+        return this;
     }
 
     /// Whether anything on the floor is moving at `now`: a tile still settling, or
@@ -201,12 +222,7 @@ public final class TileFloor {
     /// Draws the floor as it is at `style.nowMillis()`.
     public void paint(Frame frame, LogicalSize size, CanvasStyle style) {
         var now = style.nowMillis();
-        if (Double.isNaN(startedAt)) {
-            startedAt = now;
-        }
-        if (Double.isNaN(swapStartedAt)) {
-            swapStartedAt = now;
-        }
+        at(now);
         var width = tileWidth(size);
         var height = tileHeight(size);
         if (width <= 0 || height <= 0) {

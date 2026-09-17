@@ -564,8 +564,9 @@ button.link:active {
    only one. §1.7's way in is `opacity` and `scale` 0.9→1 on `base`, and it is
    an `@starting-style` below: the button enters from the starting rule on its
    first frame, which is the entering state the overlay layer did not have
-   (ADR-0352). The way out is not built, because an overlay that is removed has
-   no last frame to transition in. */
+   (ADR-0352). The way out is `button.float.leaving` below, on `fast` with the
+   exit curve: the overlay stays up for `--gb-motion-fast` with the class on,
+   and is removed after (ADR-0355). */
 button.outlined {
   background: none;
   border: 1px solid var(--gb-border);
@@ -620,6 +621,16 @@ button.float:active {
     opacity: 0;
     transform: scale(0.9);
   }
+}
+
+/* The way out: the entrance reversed, faster, on the exit curve (sec. 1.7's
+   rule 2). Later and more specific than the `:active` rule, so a button pressed
+   as it leaves still leaves. */
+button.float.leaving {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity var(--gb-motion-fast) ease-exit,
+              transform var(--gb-motion-fast) ease-exit;
 }
 
 /* -------------------------------------------------------------- checkbox --

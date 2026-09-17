@@ -114,11 +114,16 @@ now reaches the border (G43), which is the band the entry reported, gone. The fu
 `./gradlew build` is green. `FrameBudgetTest`'s icon-sheet budget failed once under
 the parallel build and passed when run alone, as it is known to.
 
-## Left open
+## Left open, and then closed
 
-- `text-input` has the same `2 × left padding` room arithmetic that G43 fixed in
-  `text-area`. It is filed in `TODO.md`.
-- A floating button's way *out*: overlays have no closing phase.
-- G43's reported number drift was not reproduced here. If it survives a snapshot with
-  ADR-0350 in it, it is a new entry.
+Three things were written down as not done when the batch landed. All three are
+closed in [ADR-0355](../book/src/adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md):
 
+| Item | Status |
+|------|--------|
+| `text-input` subtracted `2 × left padding` for its room | done: `TextEditor.laidOut` takes both edges. Test: `widgets` `form/textinput/AsymmetricPaddingTest` |
+| A floating button had no way out | done: `FloatSlot` plus `button.float.leaving`, removed by a host timer after `--gb-motion-fast`. Tests: `ButtonShapeTest`, `FloatEntranceTest` |
+| The Motion screen's floor was blank offscreen, so it had no golden | done: `TileFloor.at(now)` is called from the canvas's predicate on every render. Golden: `gallery-motion`. Test: `TileFloorTest` |
+
+Still not done, and not an item: G43's reported number drift did not reproduce
+here. If it survives a snapshot with ADR-0350 in it, it is a new entry.

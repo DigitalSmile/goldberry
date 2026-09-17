@@ -265,6 +265,20 @@ class GalleryGoldenTest {
         paint("gallery-icons", "icons", Theme.NORD_DARK, 1200, 900);
     }
 
+    /// The twelfth screen, 200 ms in on the virtual clock: the tile floor part way
+    /// through its ripple, the swatches part way through a breath and the mark
+    /// part way round ([ADR-0354], [ADR-0355]).
+    ///
+    /// Deterministic, which is the whole reason it can be a golden: every one of
+    /// the three is a function of the frame time, and the offscreen renderer's
+    /// time is not the wall's. Its floor starts on the first render rather than
+    /// the first paint, or this picture would have no tiles in it.
+    @Test
+    @DisplayName("the Motion screen, 200 ms in")
+    void motion() {
+        paint("gallery-motion", "motion", Theme.NORD_DARK, 1200, 900);
+    }
+
     /// The same sheet in a narrow window, which is the **only** thing that can
     /// show the reflow ([ADR-0309]).
     ///

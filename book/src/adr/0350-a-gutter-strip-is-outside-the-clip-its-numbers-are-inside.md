@@ -7,7 +7,8 @@ Date: 2026-09-17
 Accepted. Closes `docs/gaps.md` G43, a defect in
 [ADR-0331](0331-a-gutter-numbers-hard-lines-at-soft-positions.md). Relies on
 [ADR-0272](0272-an-absolute-child-is-placed-inside-the-padding.md)'s
-`ContainingBlock`.
+`ContainingBlock`. `text-input`'s matching arithmetic is fixed by
+[ADR-0355](0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md).
 
 ## Context
 

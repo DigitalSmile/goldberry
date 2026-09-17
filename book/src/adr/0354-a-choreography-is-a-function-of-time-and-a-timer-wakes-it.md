@@ -6,7 +6,9 @@ Date: 2026-09-17
 
 Accepted. Uses [ADR-0348](0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)
 (G41) and sits beside [ADR-0352](0352-an-element-enters-from-its-starting-style.md)
-and [ADR-0353](0353-a-stylesheet-may-name-keyframes.md).
+and [ADR-0353](0353-a-stylesheet-may-name-keyframes.md). The floor starts on its first
+render rather than its first paint, and the screen has a golden, since
+[ADR-0355](0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md).
 
 ## Context
 
