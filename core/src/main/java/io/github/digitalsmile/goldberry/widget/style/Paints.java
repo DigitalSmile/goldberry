@@ -202,6 +202,27 @@ public interface Paints extends Widget {
         return false;
     }
 
+    /// [#isAnimating()], asked with what this widget was rendered against.
+    ///
+    /// The renderer's own question, and the one it calls — once per frame,
+    /// **straight after** [#render], with the style that `render` was handed and
+    /// the same [Context], so the answer is about the frame just built rather
+    /// than about the next one. The default is the no-argument form, which is all
+    /// a spinner needs: whether it loops is a fact about how it was built.
+    ///
+    /// A widget whose answer depends on the clock overrides this one instead. A
+    /// `canvas` whose painter settles after a delay is the case: whether it
+    /// wants another frame is "has the last tile landed yet", which is a question
+    /// about [Context#nowMillis()] rather than about the description
+    /// (`docs/gaps.md` G41, [ADR-0348]).
+    ///
+    /// @param style   the style `render` was given, animation overlay included
+    /// @param context the context `render` was given; its per-node accessors still
+    ///                answer for this node here
+    default boolean isAnimating(ComputedStyle style, Context context) {
+        return isAnimating();
+    }
+
     /// Builds this widget's box.
     ///
     /// @param style    what the cascade resolved for this node

@@ -223,6 +223,12 @@ SDL_GetTrayEntryChecked
 SDL_CreateSurfaceFrom
 SDL_DestroySurface
 
+# The window's own icon -- the taskbar's, the dock's, the switcher's
+# (docs/gaps.md G40, ADR-0351). One surface for the 100% size and the rest
+# hung off it as alternates, which is how SDL picks one per display scale.
+SDL_SetWindowIcon
+SDL_AddSurfaceAlternateImage
+
 # The platform's own file dialogs (docs/gaps.md G9). Export a board as a PNG,
 # import an image, open a snapshot: all three are a path the user chose, and a
 # toolkit that drew its own file browser would be drawing the one part of the

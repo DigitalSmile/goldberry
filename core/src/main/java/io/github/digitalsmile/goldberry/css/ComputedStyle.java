@@ -1,15 +1,20 @@
 package io.github.digitalsmile.goldberry.css;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.cascade.KeyframeAnimations;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
@@ -150,6 +155,10 @@ public record ComputedStyle(
         Decoration decoration,
         Typography typography,
         Transitions transitions,
+        // The other half of §1.7's motion: what runs by itself rather than moving
+        // between two styles. Resolved like `transition`, and like it not
+        // inherited (ADR-0353).
+        KeyframeAnimations animations,
         // Not finished when the cascade produces it, unlike everything above.
         // `transform: translate(50%)` and the `transform-origin` default of
         // `50% 50%` are proportions of the box, and the box has no size until
@@ -220,6 +229,7 @@ public record ComputedStyle(
             Decoration.NONE,
             Typography.INITIAL,
             Transitions.NONE,
+            KeyframeAnimations.NONE,
             Transform.NONE,
             Cursor.DEFAULT);
 
@@ -244,6 +254,7 @@ public record ComputedStyle(
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
+        Objects.requireNonNull(animations, "animations");
         Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(cursor, "cursor");
     }
@@ -305,6 +316,26 @@ public record ComputedStyle(
             if (!"font-size".equals(entry.getKey())) {
                 style = style.with(entry.getKey(), entry.getValue(), own);
             }
+        }
+        return style;
+    }
+
+    /// This style with `declarations` applied **on top of it** — what a keyframe
+    /// is (ADR-0353).
+    ///
+    /// Not [#of], which starts from [#INITIAL]: a keyframe that says `opacity: 0`
+    /// leaves every other property where the element's own rules put it, so it is
+    /// applied to the element's resolved style rather than to a blank one. `em`
+    /// resolves against this style's own font size, as it would on the element.
+    ///
+    /// A declaration that does not parse is dropped with the usual warning.
+    public ComputedStyle applied(Map<String, List<Token>> declarations, CssLength.Context context) {
+        Objects.requireNonNull(declarations, "declarations");
+        Objects.requireNonNull(context, "context");
+        var own = new CssLength.Context((float) typography.size(), context.rootFontSize());
+        var style = this;
+        for (var entry : declarations.entrySet()) {
+            style = style.with(entry.getKey(), entry.getValue(), own);
         }
         return style;
     }
@@ -651,6 +682,46 @@ public record ComputedStyle(
             // Resolved by the cascade like everything else, which is what lets
             // `button` and `button:hover` declare different transitions and lets
             // an application turn one off by overriding a rule.
+            // `@keyframes`, run by name: the shorthand and its seven longhands,
+            // each a comma-separated list (ADR-0353). A bad value drops the
+            // declaration and names it, `transition`'s rule.
+            case "animation" -> animationList(value).map(v -> animations(v)).orElseGet(() -> dropped(property, value));
+
+            case "animation-name" ->
+                animationNames(value)
+                        .map(v -> animations(animations.names(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-duration" ->
+                eachOf(value, part -> nonNegative(milliseconds(part)))
+                        .map(v -> animations(animations.durations(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-timing-function" ->
+                eachOf(value, ComputedStyle::easing)
+                        .map(v -> animations(animations.easings(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-delay" ->
+                eachOf(value, ComputedStyle::milliseconds)
+                        .map(v -> animations(animations.delays(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-iteration-count" ->
+                eachOf(value, ComputedStyle::iterationCount)
+                        .map(v -> animations(animations.iterations(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-direction" ->
+                eachOf(value, part -> single(part, KeyframeAnimations.Direction::parse))
+                        .map(v -> animations(animations.directions(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "animation-fill-mode" ->
+                eachOf(value, part -> single(part, KeyframeAnimations.FillMode::parse))
+                        .map(v -> animations(animations.fillModes(v)))
+                        .orElseGet(() -> dropped(property, value));
+
             case "transition" ->
                 transitionList(value)
                         // A lambda and not `this::transitions`: the accessor and the
@@ -820,6 +891,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -852,6 +924,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -884,6 +957,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -916,6 +990,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -948,6 +1023,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -980,6 +1056,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1012,6 +1089,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1044,6 +1122,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1076,6 +1155,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1110,6 +1190,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1142,6 +1223,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1174,6 +1256,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1206,6 +1289,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1238,6 +1322,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1270,6 +1355,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1302,6 +1388,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1334,6 +1421,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1366,6 +1454,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1398,6 +1487,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1432,6 +1522,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1481,6 +1572,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1513,6 +1605,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1545,6 +1638,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1577,6 +1671,7 @@ public record ComputedStyle(
                 v,
                 typography,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1609,6 +1704,7 @@ public record ComputedStyle(
                 decoration,
                 v,
                 transitions,
+                animations,
                 transform,
                 cursor);
     }
@@ -1640,6 +1736,41 @@ public record ComputedStyle(
                 opacity,
                 decoration,
                 typography,
+                v,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// This style running `v` — `animation` (ADR-0353).
+    public ComputedStyle animations(KeyframeAnimations v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
                 v,
                 transform,
                 cursor);
@@ -1673,6 +1804,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 v,
                 cursor);
     }
@@ -1705,6 +1837,7 @@ public record ComputedStyle(
                 decoration,
                 typography,
                 transitions,
+                animations,
                 transform,
                 v);
     }
@@ -1718,7 +1851,7 @@ public record ComputedStyle(
     /// size until Yoga has run — which is after the cascade, in a different
     /// engine. Refused here so `border-radius: 50%` is a dropped declaration with
     /// a warning naming it, rather than a corner that is silently square.
-    private static java.util.Optional<Double> points(List<Token> value, CssLength.Context context) {
+    private static Optional<Double> points(List<Token> value, CssLength.Context context) {
         return length(value, context).filter(Length.Points.class::isInstance).map(v ->
                 (double) ((Length.Points) v).value());
     }
@@ -1730,7 +1863,7 @@ public record ComputedStyle(
     /// in v1: a character outside the bundled faces renders `.notdef`,
     /// deliberately. Honouring the rest of the list would be pretending to a
     /// mechanism that does not exist.
-    private static java.util.Optional<String> family(List<Token> value) {
+    private static Optional<String> family(List<Token> value) {
         for (var part : split(value)) {
             if (part.isEmpty()) {
                 continue;
@@ -1740,10 +1873,10 @@ public record ComputedStyle(
                 var name = token.text();
                 // `Inter, sans-serif` and `"JetBrains Mono", monospace` both stop
                 // at the first name; a trailing comma belongs to the list syntax.
-                return java.util.Optional.of(name.endsWith(",") ? name.substring(0, name.length() - 1) : name);
+                return Optional.of(name.endsWith(",") ? name.substring(0, name.length() - 1) : name);
             }
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
     /// A CSS weight — a number, or `normal` / `bold`.
@@ -1751,20 +1884,20 @@ public record ComputedStyle(
     /// Resolved to one of the two shipped faces here rather than carried as a
     /// number, so a weight no face can honour is discovered in the cascade and
     /// not in the painter.
-    private static java.util.Optional<BundledFont.Weight> weight(List<Token> value) {
+    private static Optional<BundledFont.Weight> weight(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         var token = tokens.getFirst();
         if (token.is(TokenType.IDENT)) {
             return switch (token.text().toLowerCase(Locale.ROOT)) {
-                case "normal" -> java.util.Optional.of(BundledFont.Weight.REGULAR);
-                case "bold" -> java.util.Optional.of(BundledFont.Weight.SEMI_BOLD);
-                default -> java.util.Optional.empty();
+                case "normal" -> Optional.of(BundledFont.Weight.REGULAR);
+                case "bold" -> Optional.of(BundledFont.Weight.SEMI_BOLD);
+                default -> Optional.empty();
             };
         }
-        return java.util.Optional.ofNullable(CssLength.parseNumber(value))
+        return Optional.ofNullable(CssLength.parseNumber(value))
                 .filter(v -> v >= 1 && v <= 1000)
                 .map(BundledFont.Weight::nearest);
     }
@@ -1775,15 +1908,15 @@ public record ComputedStyle(
     /// visible: the declaration is dropped with a warning rather than silently read
     /// as `italic`, so a stylesheet that asked for a slant learns that this toolkit
     /// does not synthesize one.
-    private static java.util.Optional<BundledFont.Style> fontStyle(List<Token> value) {
+    private static Optional<BundledFont.Style> fontStyle(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1 || !tokens.getFirst().is(TokenType.IDENT)) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         return switch (tokens.getFirst().text().toLowerCase(Locale.ROOT)) {
-            case "normal" -> java.util.Optional.of(BundledFont.Style.UPRIGHT);
-            case "italic" -> java.util.Optional.of(BundledFont.Style.ITALIC);
-            default -> java.util.Optional.empty();
+            case "normal" -> Optional.of(BundledFont.Style.UPRIGHT);
+            case "italic" -> Optional.of(BundledFont.Style.ITALIC);
+            default -> Optional.empty();
         };
     }
 
@@ -1791,13 +1924,13 @@ public record ComputedStyle(
     ///
     /// Returned already negated in the ratio case, which is how [Typography]
     /// carries both forms in one field.
-    private static java.util.Optional<Double> lineHeight(List<Token> value, CssLength.Context context) {
+    private static Optional<Double> lineHeight(List<Token> value, CssLength.Context context) {
 
         var absolute = points(value, context);
         if (absolute.isPresent()) {
             return absolute.filter(v -> v > 0);
         }
-        return java.util.Optional.ofNullable(CssLength.parseNumber(value))
+        return Optional.ofNullable(CssLength.parseNumber(value))
                 .filter(v -> v > 0)
                 .map(v -> -v);
     }
@@ -1820,20 +1953,20 @@ public record ComputedStyle(
     /// `transition: width 200ms` is refused rather than ignored — §1.7 says
     /// layout properties never transition, and an author who asked for one is
     /// asking for something the system deliberately will not do.
-    private java.util.Optional<Transitions> transitionList(List<Token> value) {
+    private Optional<Transitions> transitionList(List<Token> value) {
 
         var entries = splitOnCommas(value);
         if (entries.size() == 1
                 && entries.getFirst().size() == 1
                 && entries.getFirst().getFirst().isIdent("none")) {
-            return java.util.Optional.of(Transitions.NONE);
+            return Optional.of(Transitions.NONE);
         }
 
         var parsed = new java.util.EnumMap<Transitions.Animatable, Transitions.Timing>(Transitions.Animatable.class);
         for (var entry : entries) {
             var parts = split(entry);
             if (parts.isEmpty()) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
 
             Transitions.Animatable property = null;
@@ -1854,11 +1987,11 @@ public record ComputedStyle(
                         easing = asEasing;
                         continue;
                     }
-                    return java.util.Optional.empty();
+                    return Optional.empty();
                 }
                 var time = milliseconds(part);
                 if (time == null) {
-                    return java.util.Optional.empty();
+                    return Optional.empty();
                 }
                 // CSS's rule: the first time is the duration, the second the
                 // delay. Ordering carries meaning here because both are times
@@ -1868,12 +2001,12 @@ public record ComputedStyle(
                 } else if (delay == null) {
                     delay = time;
                 } else {
-                    return java.util.Optional.empty();
+                    return Optional.empty();
                 }
             }
 
             if (property == null || duration == null) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
             parsed.put(
                     property,
@@ -1884,7 +2017,184 @@ public record ComputedStyle(
                             easing == null ? Easing.EASE_ENTER : easing,
                             delay == null ? 0 : delay));
         }
-        return java.util.Optional.of(new Transitions(parsed));
+        return Optional.of(new Transitions(parsed));
+    }
+
+    /// An `animation` shorthand: a comma-separated list of
+    /// `<name> <duration> [<easing>] [<delay>] [<count>] [<direction>] [<fill>]`,
+    /// in any order but with the first time the duration and the second the delay,
+    /// which is CSS's rule and `transition`'s (ADR-0353).
+    ///
+    /// `none` alone turns every animation off. A name that collides with a
+    /// keyword (`infinite`, `both`, `reverse`) is read as the keyword, which is
+    /// also CSS's rule, so a block called `both` can only be named through
+    /// `animation-name`.
+    ///
+    /// All or nothing, like `transition`: a list with one bad entry is dropped
+    /// whole.
+    private static Optional<KeyframeAnimations> animationList(List<Token> value) {
+        var entries = splitOnCommas(value);
+        if (entries.size() == 1
+                && entries.getFirst().size() == 1
+                && entries.getFirst().getFirst().isIdent("none")) {
+            return Optional.of(KeyframeAnimations.NONE);
+        }
+        var names = new ArrayList<String>();
+        var durations = new ArrayList<Double>();
+        var easings = new ArrayList<Easing>();
+        var delays = new ArrayList<Double>();
+        var counts = new ArrayList<Double>();
+        var directions = new ArrayList<KeyframeAnimations.Direction>();
+        var fills = new ArrayList<KeyframeAnimations.FillMode>();
+        for (var entry : entries) {
+            String name = null;
+            Double duration = null;
+            Double delay = null;
+            Double count = null;
+            Easing easing = null;
+            KeyframeAnimations.Direction direction = null;
+            KeyframeAnimations.FillMode fill = null;
+            for (var part : split(entry)) {
+                if (part.size() != 1) {
+                    return Optional.empty();
+                }
+                var token = part.getFirst();
+                var time = milliseconds(part);
+                if (time != null) {
+                    if (duration == null) {
+                        duration = time;
+                    } else if (delay == null) {
+                        delay = time;
+                    } else {
+                        return Optional.empty();
+                    }
+                    continue;
+                }
+                if (token.is(TokenType.NUMBER)) {
+                    if (count != null || token.numeric() < 0) {
+                        return Optional.empty();
+                    }
+                    count = token.numeric();
+                    continue;
+                }
+                if (!token.is(TokenType.IDENT) && !token.is(TokenType.STRING)) {
+                    return Optional.empty();
+                }
+                var word = token.text();
+                if (token.is(TokenType.IDENT)) {
+                    if (count == null && word.equalsIgnoreCase("infinite")) {
+                        count = Double.POSITIVE_INFINITY;
+                        continue;
+                    }
+                    var asEasing = Easing.parse(word);
+                    if (easing == null && asEasing != null) {
+                        easing = asEasing;
+                        continue;
+                    }
+                    var asDirection = KeyframeAnimations.Direction.parse(word);
+                    if (direction == null && asDirection != null) {
+                        direction = asDirection;
+                        continue;
+                    }
+                    var asFill = KeyframeAnimations.FillMode.parse(word);
+                    if (fill == null && asFill != null && !word.equalsIgnoreCase("none")) {
+                        fill = asFill;
+                        continue;
+                    }
+                }
+                if (name != null) {
+                    return Optional.empty();
+                }
+                name = word;
+            }
+            if (name == null) {
+                return Optional.empty();
+            }
+            names.add(name);
+            durations.add(duration == null ? 0 : nonNegativeOr(duration));
+            easings.add(easing == null ? Easing.EASE_ENTER : easing);
+            delays.add(delay == null ? 0 : delay);
+            counts.add(count == null ? 1 : count);
+            directions.add(direction == null ? KeyframeAnimations.Direction.NORMAL : direction);
+            fills.add(fill == null ? KeyframeAnimations.FillMode.NONE : fill);
+        }
+        if (durations.contains(-1.0)) {
+            return Optional.empty();
+        }
+        return Optional.of(new KeyframeAnimations(names, durations, easings, delays, counts, directions, fills));
+    }
+
+    /// `animation-name`: `none`, or a comma-separated list of names.
+    private static Optional<List<String>> animationNames(List<Token> value) {
+        var entries = splitOnCommas(value);
+        if (entries.size() == 1
+                && entries.getFirst().size() == 1
+                && entries.getFirst().getFirst().isIdent("none")) {
+            return Optional.of(List.of());
+        }
+        var names = new ArrayList<String>();
+        for (var entry : entries) {
+            var parts = split(entry);
+            if (parts.size() != 1 || parts.getFirst().size() != 1) {
+                return Optional.empty();
+            }
+            var token = parts.getFirst().getFirst();
+            if (!(token.is(TokenType.IDENT) || token.is(TokenType.STRING))) {
+                return Optional.empty();
+            }
+            names.add(token.text());
+        }
+        return Optional.of(names);
+    }
+
+    /// A comma-separated list where every entry is one value `parse` reads, or
+    /// empty when any entry is not.
+    private static <T> Optional<List<T>> eachOf(List<Token> value, Function<List<Token>, @Nullable T> parse) {
+        var values = new ArrayList<T>();
+        for (var entry : splitOnCommas(value)) {
+            // One value per entry, with the spacing around the comma taken off.
+            var parts = split(entry);
+            var parsed = parts.size() == 1 ? parse.apply(parts.getFirst()) : null;
+            if (parsed == null) {
+                return Optional.empty();
+            }
+            values.add(parsed);
+        }
+        return values.isEmpty() ? Optional.empty() : Optional.of(values);
+    }
+
+    /// One identifier's worth of `parse`, or null.
+    private static <T> @Nullable T single(List<Token> part, Function<String, @Nullable T> parse) {
+        return part.size() == 1 && part.getFirst().is(TokenType.IDENT)
+                ? parse.apply(part.getFirst().text())
+                : null;
+    }
+
+    private static @Nullable Easing easing(List<Token> part) {
+        return single(part, Easing::parse);
+    }
+
+    /// `infinite` or a non-negative number.
+    private static @Nullable Double iterationCount(List<Token> part) {
+        if (part.size() != 1) {
+            return null;
+        }
+        var token = part.getFirst();
+        if (token.isIdent("infinite")) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return token.is(TokenType.NUMBER) && token.numeric() >= 0 ? token.numeric() : null;
+    }
+
+    /// A duration, which may not be negative the way a delay may.
+    private static @Nullable Double nonNegative(@Nullable Double millis) {
+        return millis == null || millis < 0 ? null : millis;
+    }
+
+    /// The same inside a shorthand, where the refusal is noted as `-1` and
+    /// checked once the entry is complete.
+    private static double nonNegativeOr(double millis) {
+        return millis < 0 ? -1.0 : millis;
     }
 
     /// The milliseconds a duration value says, or empty when it is not one.
@@ -1899,10 +2209,10 @@ public record ComputedStyle(
     /// Reusing this rather than writing a second `ms`/`s` reader is the whole
     /// point: two parsers for one syntax disagree the day either grows a unit,
     /// and this one already refuses a bare `200` for a stated reason.
-    public static java.util.OptionalDouble durationMillis(List<Token> value) {
+    public static OptionalDouble durationMillis(List<Token> value) {
         Objects.requireNonNull(value, "value");
         var parsed = milliseconds(value);
-        return parsed == null ? java.util.OptionalDouble.empty() : java.util.OptionalDouble.of(parsed);
+        return parsed == null ? OptionalDouble.empty() : OptionalDouble.of(parsed);
     }
 
     /// A time in `ms` or `s`, as milliseconds.
@@ -1933,8 +2243,8 @@ public record ComputedStyle(
     /// Splits a value on commas — the top-level list separator of a shorthand
     /// that takes several.
     private static List<List<Token>> splitOnCommas(List<Token> value) {
-        var entries = new java.util.ArrayList<List<Token>>();
-        var current = new java.util.ArrayList<Token>();
+        var entries = new ArrayList<List<Token>>();
+        var current = new ArrayList<Token>();
         for (var token : value) {
             if (token.is(TokenType.COMMA)) {
                 entries.add(List.copyOf(current));
@@ -1960,14 +2270,14 @@ public record ComputedStyle(
     ///
     /// `none` sets the width to zero, which is how a rule turns a border off
     /// without having to say `border-width: 0`.
-    private static java.util.Optional<Stroke> stroke(List<Token> value, CssLength.Context context) {
+    private static Optional<Stroke> stroke(List<Token> value, CssLength.Context context) {
         Double width = null;
         Integer argb = null;
         for (var part : split(value)) {
             if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
                 var keyword = part.getFirst().text().toLowerCase(Locale.ROOT);
                 if (keyword.equals("none") || keyword.equals("hidden")) {
-                    return java.util.Optional.of(new Stroke(0, CssColor.TRANSPARENT));
+                    return Optional.of(new Stroke(0, CssColor.TRANSPARENT));
                 }
                 if (STROKE_STYLES.contains(keyword)) {
                     if (!keyword.equals("solid")) {
@@ -1983,25 +2293,25 @@ public record ComputedStyle(
             }
             var asColour = CssColor.parse(part);
             if (asColour == null) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
             argb = asColour;
         }
         // A shorthand always resets what it does not mention, which is what makes
         // it a shorthand rather than three separate declarations: `border: red`
         // after `border: 2px solid blue` is a 0px border, not a red 2px one.
-        return java.util.Optional.of(new Stroke(width == null ? 0 : width, argb == null ? CssColor.TRANSPARENT : argb));
+        return Optional.of(new Stroke(width == null ? 0 : width, argb == null ? CssColor.TRANSPARENT : argb));
     }
 
     private static final java.util.Set<String> STROKE_STYLES =
             java.util.Set.of("solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset");
 
-    private static java.util.Optional<Integer> colour(List<Token> value) {
-        return java.util.Optional.ofNullable(CssColor.parse(value));
+    private static Optional<Integer> colour(List<Token> value) {
+        return Optional.ofNullable(CssColor.parse(value));
     }
 
-    private static java.util.Optional<Length> length(List<Token> value, CssLength.Context context) {
-        return java.util.Optional.ofNullable(CssLength.parse(value, context));
+    private static Optional<Length> length(List<Token> value, CssLength.Context context) {
+        return Optional.ofNullable(CssLength.parse(value, context));
     }
 
     /// [#length] for a property the layout engine has **no `auto` function
@@ -2023,7 +2333,7 @@ public record ComputedStyle(
     /// `width`, `height` and `margin` do **not** go through this: Yoga binds all
     /// three with their auto call, and `margin: 0 auto` is the reason margin was
     /// wanted.
-    private static java.util.Optional<Length> fixed(List<Token> value, CssLength.Context context) {
+    private static Optional<Length> fixed(List<Token> value, CssLength.Context context) {
         return length(value, context).filter(v -> v != Length.AUTO);
     }
 
@@ -2037,16 +2347,16 @@ public record ComputedStyle(
     ///
     /// @param auto whether `auto` is a value this property takes — true for
     ///        `margin` alone, of the three that use this
-    private static java.util.Optional<Insets> insets(List<Token> value, CssLength.Context context, boolean auto) {
-        var parts = new java.util.ArrayList<Length>();
+    private static Optional<Insets> insets(List<Token> value, CssLength.Context context, boolean auto) {
+        var parts = new ArrayList<Length>();
         for (var token : split(value)) {
             var length = CssLength.parse(token, context);
             if (length == null || (!auto && length == Length.AUTO)) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
             parts.add(length);
         }
-        return java.util.Optional.ofNullable(
+        return Optional.ofNullable(
                 switch (parts.size()) {
                     case 1 -> Insets.all(parts.getFirst());
                     case 2 -> Insets.symmetric(parts.get(0), parts.get(1));
@@ -2067,16 +2377,16 @@ public record ComputedStyle(
     /// shorthand is harder to see than one that did nothing. That is also what
     /// refuses the elliptical form — `10px / 20px` has a `/` in it, which is not
     /// a length, and `RoundRect` draws circles.
-    private static java.util.Optional<Corners> corners(List<Token> value, CssLength.Context context) {
-        var parts = new java.util.ArrayList<Double>();
+    private static Optional<Corners> corners(List<Token> value, CssLength.Context context) {
+        var parts = new ArrayList<Double>();
         for (var token : split(value)) {
             var radius = points(token, context);
             if (radius.isEmpty()) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
             parts.add(radius.get());
         }
-        return java.util.Optional.ofNullable(
+        return Optional.ofNullable(
                 switch (parts.size()) {
                     case 1 -> Corners.all(parts.getFirst());
                     case 2 -> new Corners(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
@@ -2093,13 +2403,13 @@ public record ComputedStyle(
     /// what "no background" can mean is the one thing it does mean to a painter,
     /// and it is how a rule turns a fill off without having to know what colour
     /// it is turning off. The same answer `border: none` gives, one property up.
-    private static java.util.Optional<Integer> backgroundLayer(List<Token> value) {
+    private static Optional<Integer> backgroundLayer(List<Token> value) {
         var parts = split(value);
         if (parts.size() == 1
                 && parts.getFirst().size() == 1
                 && parts.getFirst().getFirst().is(TokenType.IDENT)
                 && parts.getFirst().getFirst().text().toLowerCase(Locale.ROOT).equals("none")) {
-            return java.util.Optional.of(CssColor.TRANSPARENT);
+            return Optional.of(CssColor.TRANSPARENT);
         }
         return colour(value);
     }
@@ -2119,8 +2429,8 @@ public record ComputedStyle(
     /// been silently absent on both themes ever since. The warning was there and
     /// said "dropping border"; nothing was looking at it.
     private static List<List<Token>> split(List<Token> value) {
-        var parts = new java.util.ArrayList<List<Token>>();
-        var current = new java.util.ArrayList<Token>();
+        var parts = new ArrayList<List<Token>>();
+        var current = new ArrayList<Token>();
         var depth = 0;
         for (var token : value) {
             if (token.is(TokenType.OPEN_PAREN) || token.is(TokenType.FUNCTION)) {
@@ -2173,8 +2483,8 @@ public record ComputedStyle(
         LEFT
     }
 
-    private static java.util.Optional<Double> number(List<Token> value) {
-        return java.util.Optional.ofNullable(CssLength.parseNumber(value));
+    private static Optional<Double> number(List<Token> value) {
+        return Optional.ofNullable(CssLength.parseNumber(value));
     }
 
     /// A CSS keyword mapped onto a Yoga enum by name: `space-between` onto
@@ -2204,10 +2514,10 @@ public record ComputedStyle(
             "START", "FLEX_START",
             "END", "FLEX_END");
 
-    private static <E extends Enum<E>> java.util.Optional<E> keyword(List<Token> value, Class<E> type) {
+    private static <E extends Enum<E>> Optional<E> keyword(List<Token> value, Class<E> type) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1 || !tokens.getFirst().is(TokenType.IDENT)) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         var name = tokens.getFirst().text().toUpperCase(Locale.ROOT).replace('-', '_');
         var direct = constant(type, name);
@@ -2218,14 +2528,14 @@ public record ComputedStyle(
         // constant called `START` keeps its own meaning rather than being
         // shadowed by an alias written for a different one.
         var alias = KEYWORD_ALIASES.get(name);
-        return alias == null ? java.util.Optional.empty() : constant(type, alias);
+        return alias == null ? Optional.empty() : constant(type, alias);
     }
 
-    private static <E extends Enum<E>> java.util.Optional<E> constant(Class<E> type, String name) {
+    private static <E extends Enum<E>> Optional<E> constant(Class<E> type, String name) {
         try {
-            return java.util.Optional.of(Enum.valueOf(type, name));
+            return Optional.of(Enum.valueOf(type, name));
         } catch (IllegalArgumentException e) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
     }
 
@@ -2239,13 +2549,13 @@ public record ComputedStyle(
     /// `none` beside another keyword is also refused rather than resolved. CSS says
     /// the same, and the alternative is guessing which half of a contradiction the
     /// author meant.
-    private static java.util.Optional<Set<TextDecoration>> decorations(List<Token> value) {
+    private static Optional<Set<TextDecoration>> decorations(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty() || tokens.stream().anyMatch(t -> !t.is(TokenType.IDENT))) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         if (tokens.size() == 1 && tokens.getFirst().text().equalsIgnoreCase("none")) {
-            return java.util.Optional.of(TextDecoration.NONE);
+            return Optional.of(TextDecoration.NONE);
         }
         var lines = java.util.EnumSet.noneOf(TextDecoration.class);
         for (var token : tokens) {
@@ -2253,10 +2563,10 @@ public record ComputedStyle(
             if (line == null || !lines.add(line)) {
                 // Unknown, or named twice -- both are a declaration nobody can read
                 // back, and neither is worth half-applying.
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
         }
-        return java.util.Optional.of(Set.copyOf(lines));
+        return Optional.of(Set.copyOf(lines));
     }
 
     /// CSS's `flex-wrap`, whose default keyword is spelled without the hyphen
@@ -2266,12 +2576,12 @@ public record ComputedStyle(
     /// enum, so the generic keyword parser turns `nowrap` into `NOWRAP` and
     /// finds nothing. The other two spellings agree, so this special-cases one
     /// word and defers.
-    private static java.util.Optional<Wrap> wrap(List<Token> value) {
+    private static Optional<Wrap> wrap(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() == 1
                 && tokens.getFirst().is(TokenType.IDENT)
                 && tokens.getFirst().text().equalsIgnoreCase("nowrap")) {
-            return java.util.Optional.of(Wrap.NO_WRAP);
+            return Optional.of(Wrap.NO_WRAP);
         }
         return keyword(value, Wrap.class);
     }
@@ -2285,12 +2595,12 @@ public record ComputedStyle(
     /// gutter to an application setting rather than to a keyword. So `auto` maps
     /// onto [Overflow#SCROLL] and nothing downstream has to carry a distinction
     /// no rule in the canon can act on (ADR-0114).
-    private static java.util.Optional<Overflow> overflow(List<Token> value) {
+    private static Optional<Overflow> overflow(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() == 1
                 && tokens.getFirst().is(TokenType.IDENT)
                 && tokens.getFirst().text().equalsIgnoreCase("auto")) {
-            return java.util.Optional.of(Overflow.SCROLL);
+            return Optional.of(Overflow.SCROLL);
         }
         return keyword(value, Overflow.class);
     }

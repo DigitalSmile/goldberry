@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.assets;
 
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 /// The faces that ship inside `goldberry-core`.
@@ -30,7 +32,7 @@ import org.jspecify.annotations.Nullable;
 /// Two weights × two styles is four Inter faces, and the matrix closes on purpose:
 /// a stylesheet that asks for a semibold italic heading gets one, rather than the
 /// nearest of three.
-public enum BundledFont {
+public enum BundledFont implements Face {
 
     /// Inter Regular (400) — the UI face, and what every metric in the design
     /// system is authored against.
@@ -122,6 +124,10 @@ public enum BundledFont {
         }
     }
 
+    /// Every face, once: [#of] runs per text node per restyle, and `values()`
+    /// copies its array on every call.
+    private static final List<BundledFont> ALL = List.of(values());
+
     private final String resource;
     private final String family;
     private final Weight weight;
@@ -135,16 +141,19 @@ public enum BundledFont {
     }
 
     /// The family name as the font itself declares it.
+    @Override
     public String family() {
         return family;
     }
 
     /// Which of the two shipped weights this face is.
+    @Override
     public Weight weight() {
         return weight;
     }
 
     /// Whether this face is upright or italic.
+    @Override
     public Style style() {
         return style;
     }
@@ -167,32 +176,9 @@ public enum BundledFont {
     /// Falls back to the family's upright regular in the end, because refusing
     /// would mean throwing from inside a paint pass.
     public static @Nullable BundledFont of(String family, Weight weight, Style style) {
-        BundledFont sameStyle = null;
-        BundledFont sameWeight = null;
-        BundledFont plain = null;
-        for (var candidate : values()) {
-            if (!candidate.family.equalsIgnoreCase(family)) {
-                continue;
-            }
-            if (candidate.weight == weight && candidate.style == style) {
-                return candidate;
-            }
-            if (candidate.style == style && candidate.weight == Weight.REGULAR) {
-                sameStyle = candidate;
-            }
-            if (candidate.weight == weight && candidate.style == Style.UPRIGHT) {
-                sameWeight = candidate;
-            }
-            if (candidate.weight == Weight.REGULAR && candidate.style == Style.UPRIGHT) {
-                plain = candidate;
-            }
-        }
-        // The style it asked for at the wrong weight beats the weight it asked for
-        // in the wrong style, which is the order the note above explains.
-        if (sameStyle != null) {
-            return sameStyle;
-        }
-        return sameWeight != null ? sameWeight : plain;
+        // The rule is [Face#match]'s, shared with the faces an application ships,
+        // so a shipped family falls back exactly the way Inter does (ADR-0349).
+        return Face.match(ALL, family, weight, style);
     }
 
     String resource() {

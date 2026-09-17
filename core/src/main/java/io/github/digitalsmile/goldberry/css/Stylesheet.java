@@ -9,20 +9,30 @@ import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
 
 /// A parsed stylesheet and the layer it belongs to.
 ///
-/// @param layer where its rules sit in the cascade
-/// @param rules in source order
-public record Stylesheet(CascadeLayer layer, List<StyleRule> rules) {
+/// @param layer     where its rules sit in the cascade
+/// @param rules     in source order
+/// @param keyframes the `@keyframes` blocks it declares, in source order
+///                  (ADR-0353)
+public record Stylesheet(CascadeLayer layer, List<StyleRule> rules, List<Keyframes> keyframes) {
 
     public Stylesheet {
         Objects.requireNonNull(layer, "layer");
         rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
+        keyframes = List.copyOf(Objects.requireNonNull(keyframes, "keyframes"));
+    }
+
+    /// A stylesheet of rules and no keyframes — every one built before
+    /// `@keyframes` was in the subset.
+    public Stylesheet(CascadeLayer layer, List<StyleRule> rules) {
+        this(layer, rules, List.of());
     }
 
     /// Parses `css` into a stylesheet in `layer`.
     ///
     /// @throws CssSyntaxException if the text is not in the supported subset
     public static Stylesheet parse(CascadeLayer layer, String css) {
-        return new Stylesheet(layer, CssParser.parse(css));
+        var parsed = CssParser.parseSheet(css);
+        return new Stylesheet(layer, parsed.rules(), parsed.keyframes());
     }
 
     /// Parses a stylesheet from a resource beside `owner`.

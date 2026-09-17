@@ -12,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.input.drop.FileDrop;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.tap.ModifierTaps;
@@ -29,6 +30,7 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.IconImage;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.stats.FrameRing;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
@@ -359,6 +361,31 @@ public final class Window implements AutoCloseable {
     public Window title(String title) {
         window.setTitle(title);
         return this;
+    }
+
+    /// Sets the picture the taskbar, the dock and the window switcher show for
+    /// this window, from several sizes of one image (`docs/gaps.md` G40,
+    /// ADR-0351).
+    ///
+    /// **Several sizes, not one scaled.** Windows wants 16 and 32, a dock wants 48
+    /// or more, and scaling one PNG down is the blur a hand-drawn icon set exists
+    /// to avoid. The platform picks among them, and the backend decides which one
+    /// is the base the platform scales from.
+    ///
+    /// @param images the sizes, in any order; empty leaves the platform's own icon
+    /// @return whether the platform took it. False on a backend with no desktop,
+    ///         on a library built before the call existed, on macOS (whose dock
+    ///         shows the bundle's icon), and on a Wayland compositor without
+    ///         `xdg-toplevel-icon`.
+    public boolean icon(List<Image> images) {
+        Objects.requireNonNull(images, "images");
+        if (images.isEmpty() || !window.isOpen()) {
+            return false;
+        }
+        var icons = images.stream()
+                .map(image -> IconImage.of(image.width(), image.height(), image::argb))
+                .toList();
+        return window.setIcon(icons);
     }
 
     public boolean isOpen() {

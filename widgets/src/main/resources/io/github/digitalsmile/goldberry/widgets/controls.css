@@ -561,8 +561,11 @@ button.link:active {
    layer at `Overlay.WINDOW_MARGIN` from two edges, and what the class adds is
    §1.5's elevation 1. The edge is the elevation, as it is on every floating
    surface in this sheet; a shadow here would be the first, and it would be the
-   only one. The 0.9→1 scale on the way in is not built: the overlay layer has
-   no entering state for a transition to run from. */
+   only one. §1.7's way in is `opacity` and `scale` 0.9→1 on `base`, and it is
+   an `@starting-style` below: the button enters from the starting rule on its
+   first frame, which is the entering state the overlay layer did not have
+   (ADR-0352). The way out is not built, because an overlay that is removed has
+   no last frame to transition in. */
 button.outlined {
   background: none;
   border: 1px solid var(--gb-border);
@@ -599,6 +602,24 @@ button.circle {
 
 button.float {
   border: 1px solid var(--gb-border-strong);
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-fast) ease-enter,
+              opacity var(--gb-motion-base) ease-enter,
+              transform var(--gb-motion-base) ease-enter;
+}
+
+/* The press still snaps (§1.7 rule 1). The rule above is as specific as
+   `button:active` and later, so without this a floating button's press would
+   fade in. */
+button.float:active {
+  transition: background-color 0ms;
+}
+
+@starting-style {
+  button.float {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 
 /* -------------------------------------------------------------- checkbox --

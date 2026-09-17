@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.font.FontSource;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -107,6 +108,10 @@ public final class Offscreen {
 
     private @Nullable Font font;
 
+    /// The faces the book this call opens should know beyond the bundled ones —
+    /// ignored when the caller hands over a book or a font of their own.
+    private List<FontSource> shippedFonts = List.of();
+
     private int settleMillis = DEFAULT_SETTLE_MILLIS;
 
     private int background;
@@ -167,6 +172,19 @@ public final class Offscreen {
     /// correct, and wasteful if there is a second call coming.
     public Offscreen fonts(Fonts value) {
         this.fonts = Objects.requireNonNull(value, "fonts");
+        this.font = null;
+        return this;
+    }
+
+    /// The faces an application ships, for the book this call opens —
+    /// [io.github.digitalsmile.goldberry.Application#fonts()]'s list, so a render
+    /// test paints the families the window paints (ADR-0349).
+    ///
+    /// Clears a book or a font given earlier: a caller naming faces is asking for
+    /// the book to be opened here, with them in it.
+    public Offscreen fonts(List<FontSource> shipped) {
+        this.shippedFonts = List.copyOf(Objects.requireNonNull(shipped, "shipped"));
+        this.fonts = null;
         this.font = null;
         return this;
     }
@@ -251,7 +269,7 @@ public final class Offscreen {
         // Opened here and closed in the `finally`, and only when the caller named
         // no fonts of their own: a book is memory-mapped faces and is the one
         // thing in a render worth keeping between calls.
-        var ownFonts = fonts == null && font == null ? Fonts.bundled() : null;
+        var ownFonts = fonts == null && font == null ? Fonts.bundled(shippedFonts) : null;
         try {
             var clock = Clock.virtual();
             var renderer = renderer(ownFonts, clock);

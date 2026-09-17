@@ -18,10 +18,12 @@ import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.example.brand.ShowcaseIcon;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
@@ -192,6 +194,13 @@ public final class Showcase implements Application {
     /// Re-read only when [Host#restyle] asks, which is what makes a theme switch
     /// two lines and costs nothing the rest of the time. The theme and the
     /// density are one call because they are one list (ADR-0074).
+    /// Four tiles on a plate, drawn at each size a desktop asks for rather than
+    /// scaled from one (ADR-0351).
+    @Override
+    public List<Image> icon() {
+        return ShowcaseIcon.sizes();
+    }
+
     @Override
     public List<Stylesheet> stylesheets() {
         var sheets = new ArrayList<>(Controls.stylesheets(model.theme(), model.density()));

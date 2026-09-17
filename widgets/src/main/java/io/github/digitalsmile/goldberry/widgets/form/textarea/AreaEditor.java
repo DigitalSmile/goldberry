@@ -133,9 +133,14 @@ interface AreaEditor {
     /// hit test, the caret and the wrap all measure from the far side of it
     /// (`docs/gaps.md` G37, [ADR-0331]).
     ///
-    /// @param gutter how wide the line-number column is, or 0 when there is none
+    /// All four edges of the padding come down, not the leading two: the wrap
+    /// comes off both sides and the visible height off both ends, and a stylesheet
+    /// may make them differ (`docs/gaps.md` G43, ADR-0350).
+    ///
+    /// @param padding the control's resolved padding
+    /// @param gutter  how wide the line-number column is, or 0 when there is none
     /// @return how far the content is scrolled **up**, in logical pixels
-    double laidOut(Paragraph paragraph, double leftPadding, double topPadding, double gutter, TextAlign align);
+    double laidOut(Paragraph paragraph, AreaPadding padding, double gutter, TextAlign align);
 
     /// The width the text wraps at — this control's width less its padding **and
     /// less its gutter**, from the last frame.

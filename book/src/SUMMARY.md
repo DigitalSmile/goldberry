@@ -357,6 +357,13 @@
 - [ADR-0345 A timeline is a list whose line goes on](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
 - [ADR-0346 A link is a word, and the desktop opens the rest](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
 - [ADR-0347 An icon-only button is a circle, and `float` is a place](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
+- [ADR-0348 A canvas asks for its next frame with what it was painted with](adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)
+- [ADR-0349 A face an application ships is found after the bundled ones](adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md)
+- [ADR-0350 A gutter strip is outside the clip, and its numbers are inside it](adr/0350-a-gutter-strip-is-outside-the-clip-its-numbers-are-inside.md)
+- [ADR-0351 A window icon is several sizes, and the backend picks the base](adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)
+- [ADR-0352 An element enters from its starting style](adr/0352-an-element-enters-from-its-starting-style.md)
+- [ADR-0353 A stylesheet may name keyframes](adr/0353-a-stylesheet-may-name-keyframes.md)
+- [ADR-0354 A choreography is a function of time, and a timer wakes it](adr/0354-a-choreography-is-a-function-of-time-and-a-timer-wakes-it.md)
 
 ---
 

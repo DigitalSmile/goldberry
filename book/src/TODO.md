@@ -116,10 +116,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   a transform origin says otherwise, and §8's subset has no `transform-origin`.
   The colour transition is what ships until it does. —
   [ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
-- **A floating button does not scale in.** §3.1's `opacity` + `scale` 0.9→1 on the
-  way in needs an entering state for the transition to run from, and the overlay
-  layer mounts a widget already at rest. The same gap as `toast`'s arrival, and
-  the same answer when it comes. —
+- **A floating button scales in, and does not scale out.** The way in is an
+  `@starting-style` now. The way out is §1.7's `closing` phase for an overlay,
+  which the overlay layer does not run: `Overlay.remove()` takes the button
+  down on the frame it is called. A toast's arrival could use the same starting
+  style. It is not moved onto one, because its `Phase` also drives the stack's
+  reflow. —
+  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md),
   [ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
 - **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
   `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
@@ -128,6 +131,14 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
 
 ### `text-input`, and what §4 still owes
+
+- **A field's room is `width - 2 × left padding`.** `text-area` made the same
+  assumption and a stylesheet with asymmetric padding found it: the text wrapped
+  wider than its room (`docs/gaps.md` G43). `text-input` does not wrap, so the
+  same arithmetic scrolls the caret into view a few pixels late rather than
+  drawing under the padding, and every shipped stylesheet pads it symmetrically.
+  The fix is `AreaPadding`'s, on `TextEditor.laidOut`. —
+  [ADR-0350](adr/0350-a-gutter-strip-is-outside-the-clip-its-numbers-are-inside.md)
 
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -1424,6 +1435,19 @@ on, which in four cases is the same thing.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**A floating button does not scale in.**~~ **It does, 2026-09-17**, from an
+  `@starting-style`: the entering state the overlay layer had no way to give
+  it, and CSS's own answer to "what does an element transition from on its first
+  frame". The way out stays open, above. —
+  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md)
+- ~~**§8's subset has no `@keyframes` and is not going to grow one.**~~ **It has
+  one, 2026-09-17.** ADR-0081's argument was about loops that must stay in phase,
+  and those stay clock functions. What it did not cover is authored motion
+  (sequences, staggers, fills) that otherwise needs a widget of its own.
+  §1.7's rule 4 still binds the toolkit's sheets, and `ToolkitLoopsTest` checks
+  it. —
+  [ADR-0353](adr/0353-a-stylesheet-may-name-keyframes.md)
 
 - ~~**The published javadoc is built with doclint off.**~~ **On, less `missing`,
   and clean across every published module.** The 120 errors were one idiom —

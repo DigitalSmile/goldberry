@@ -22,7 +22,8 @@ public record SdlSurfaceCalls(
         UpdateWindowSurfaceRects updateWindowSurfaceRects,
         DestroyWindowSurface destroyWindowSurface,
         CreateSurfaceFrom createSurfaceFrom,
-        DestroySurface destroySurface) {
+        DestroySurface destroySurface,
+        AddSurfaceAlternateImage addSurfaceAlternateImage) {
 
     /// Binds every function above.
     ///
@@ -33,7 +34,8 @@ public record SdlSurfaceCalls(
                 new UpdateWindowSurfaceRects(lookup),
                 new DestroyWindowSurface(lookup),
                 new CreateSurfaceFrom(lookup),
-                new DestroySurface(lookup));
+                new DestroySurface(lookup),
+                new AddSurfaceAlternateImage(lookup));
     }
 
     /// Borrows the window’s own drawing surface.
@@ -189,6 +191,43 @@ public record SdlSurfaceCalls(
                 FD_SDL_DestroySurface.invokeExact(address, surface);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_DestroySurface", t);
+            }
+        }
+    }
+
+    /// Hangs another size of the same picture off a surface, for a display scale
+    /// the first one was not drawn for.
+    ///
+    /// SDL takes its own reference to `image`, so the caller destroys its handle
+    /// straight after, as with any surface (ADR-0351).
+    ///
+    /// `_Bool SDL_AddSurfaceAlternateImage(void*, void*)`
+    public static final class AddSurfaceAlternateImage {
+
+        private static final MethodHandle FD_SDL_AddSurfaceAlternateImage =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        AddSurfaceAlternateImage(SymbolLookup lookup) {
+            // Optional, like `SDL_OpenURL`: a library built before the window icon
+            // must keep opening windows, and an icon is decoration (ADR-0351).
+            this.address = Downcalls.optionalSymbol(lookup, "SDL_AddSurfaceAlternateImage");
+        }
+
+        /// Whether this build of the library exports it.
+        public boolean isAvailable() {
+            return address != null;
+        }
+
+        /// Calls `SDL_AddSurfaceAlternateImage`.
+        ///
+        /// @return false if SDL refused
+        public boolean call(MemorySegment surface, MemorySegment image) {
+            try {
+                return (boolean) FD_SDL_AddSurfaceAlternateImage.invokeExact(address, surface, image);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_AddSurfaceAlternateImage", t);
             }
         }
     }

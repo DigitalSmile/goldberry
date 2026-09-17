@@ -1,7 +1,9 @@
 # ADR-0081 — A perpetual loop has no state
 
 *Accepted, 2026-08-17. Extends
-[ADR-0067](0067-motion-is-an-overlay-on-a-frame-clock.md).*
+[ADR-0067](0067-motion-is-an-overlay-on-a-frame-clock.md). Its sentence about
+`@keyframes` is reversed by
+[ADR-0353](0353-a-stylesheet-may-name-keyframes.md); the loops stay clock functions.*
 
 ## Context
 

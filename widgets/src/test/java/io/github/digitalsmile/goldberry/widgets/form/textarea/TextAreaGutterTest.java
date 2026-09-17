@@ -67,12 +67,18 @@ class TextAreaGutterTest {
 
     /// The box holding the gutter's numbers, or null when there is none.
     ///
-    /// The **last** child of the control, because the numbers are drawn by
-    /// `TextAreaBox` itself after every part and the strip: an area with no gutter
-    /// ends in an underline, which carries no text.
+    /// The **last** child of the control's clipped content layer, because the
+    /// numbers are drawn by `TextAreaBox` itself after every part: an area with no
+    /// gutter ends in an underline, which carries no text. The strip is outside
+    /// that layer, beside it (ADR-0350).
     private Box numbers(ElementTree tree) {
-        var last = render(tree).children().getLast();
+        var last = content(render(tree)).children().getLast();
         return last.text() == null ? null : last;
+    }
+
+    /// The layer the scrolling parts are in, which is the control's last child.
+    private static Box content(Box area) {
+        return area.children().getLast();
     }
 
     private static String textOf(Box box) {
@@ -119,7 +125,7 @@ class TextAreaGutterTest {
         var box = numbers(tree);
 
         assertEquals(TextAlign.END, box.text().flow().textAlign());
-        var value = render(tree).children().stream()
+        var value = content(render(tree)).children().stream()
                 .filter(child -> child.text() != null)
                 .findFirst()
                 .orElseThrow();

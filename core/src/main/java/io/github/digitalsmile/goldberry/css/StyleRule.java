@@ -18,7 +18,10 @@ import io.github.digitalsmile.goldberry.css.select.Selector;
 ///                     resolves ties in
 /// @param order        the rule's position in its stylesheet, counted across
 ///                     nested at-rules
-public record StyleRule(List<Selector> selectors, List<Declaration> declarations, int order) {
+/// @param starting     whether it was written inside `@starting-style`, which
+///                     makes it the style an element transitions *from* on its
+///                     first frame rather than one it has (ADR-0352)
+public record StyleRule(List<Selector> selectors, List<Declaration> declarations, int order, boolean starting) {
 
     public StyleRule {
         selectors = List.copyOf(Objects.requireNonNull(selectors, "selectors"));
@@ -26,6 +29,11 @@ public record StyleRule(List<Selector> selectors, List<Declaration> declarations
         if (selectors.isEmpty()) {
             throw new IllegalArgumentException("a rule needs at least one selector");
         }
+    }
+
+    /// An ordinary rule — every rule written outside `@starting-style`.
+    public StyleRule(List<Selector> selectors, List<Declaration> declarations, int order) {
+        this(selectors, declarations, order, false);
     }
 
     @Override

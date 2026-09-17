@@ -1,13 +1,20 @@
 package io.github.digitalsmile.goldberry.text.font;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.assets.Face;
 import io.github.digitalsmile.goldberry.css.Typography;
+import io.github.digitalsmile.goldberry.log.Logs;
 
 /// Every face and size a window draws with, opened once and kept.
 ///
@@ -36,9 +43,19 @@ import io.github.digitalsmile.goldberry.css.Typography;
 /// Closing it closes every font and face it opened, in that order — which is the
 /// ordering `FontFace` documents and nothing else enforces.
 ///
+/// ## Faces an application ships
+///
+/// [#bundled(List)] adds [FontSource]s to the families a `font-family` can name,
+/// **after** the bundled ones: a family is looked up among the toolkit's faces
+/// first, so an application that ships a file it calls `Inter` has not replaced
+/// the face every metric in the design system was drawn against (`docs/gaps.md`
+/// G39, ADR-0349). A shipped face is opened lazily like a bundled one, and one
+/// whose bytes cannot be read or parsed is reported once and drawn in the UI
+/// face from then on.
+///
 /// ## What it caches
 ///
-/// Faces by [BundledFont], and fonts by (face, size). Those are the two levels
+/// Faces by [Face] (a [BundledFont] or a [FontSource]), and fonts by (face, size). Those are the two levels
 /// ADR-0044
 /// established: a face is size-independent because Goldberry never scales the
 /// shaper, so a second size costs 4.4 µs rather than 681 and no second copy of
@@ -56,14 +73,26 @@ public final class Fonts implements AutoCloseable {
     /// any rasterizer distinguishes and far above floating-point noise.
     private static final double SIZE_QUANTUM = 1000.0;
 
-    private final Map<BundledFont, FontFace> faces = new LinkedHashMap<>();
+    private static final Logger LOG = Logs.of(Fonts.class);
+
+    private final Map<Face, FontFace> faces = new LinkedHashMap<>();
     private final Map<Key, Font> fonts = new LinkedHashMap<>();
+
+    /// What the application ships, searched after the bundled faces.
+    private final List<FontSource> shipped;
+
+    /// Shipped faces that could not be opened — asked for once, reported once,
+    /// and answered with the UI face after that rather than read again every
+    /// frame.
+    private final Set<FontSource> unusable = new HashSet<>();
 
     private boolean closed;
 
-    private record Key(BundledFont face, long size) {}
+    private record Key(Face face, long size) {}
 
-    private Fonts() {}
+    private Fonts(List<FontSource> shipped) {
+        this.shipped = shipped;
+    }
 
     /// A book over the faces bundled in `goldberry-core`.
     ///
@@ -73,7 +102,46 @@ public final class Fonts implements AutoCloseable {
     /// claim is measured against
     /// (ADR-0028).
     public static Fonts bundled() {
-        return new Fonts();
+        return new Fonts(List.of());
+    }
+
+    /// A book over the bundled faces **and** the ones an application ships.
+    ///
+    /// Opens nothing, like [#bundled()]; the sources are only described here.
+    /// A source whose family is also a bundled family can never be reached,
+    /// because the bundled faces are searched first, and it is logged rather than
+    /// refused. A stylesheet that asked for `Inter` still gets Inter, and the
+    /// warning says why the file went unused.
+    ///
+    /// @param shipped the application's faces, in no particular order
+    /// @throws IllegalArgumentException if two sources claim the same family,
+    ///         weight and style — one of them would never be drawn, and nothing
+    ///         could say which
+    public static Fonts bundled(List<FontSource> shipped) {
+        Objects.requireNonNull(shipped, "shipped");
+        var sources = List.copyOf(shipped);
+        var seen = new HashSet<String>();
+        for (var source : sources) {
+            var corner = source.family().toLowerCase(Locale.ROOT) + '/' + source.weight() + '/' + source.style();
+            if (!seen.add(corner)) {
+                throw new IllegalArgumentException("two faces claim " + source.family() + " "
+                        + source.weight().value() + " " + source.style().cssName()
+                        + "; one of them could never be drawn");
+            }
+            if (BundledFont.of(source.family(), source.weight(), source.style()) != null) {
+                LOG.warn(
+                        "{} names a family the toolkit bundles; `font-family: {}` will keep drawing the bundled"
+                                + " face, which is searched first",
+                        source,
+                        source.family());
+            }
+        }
+        return new Fonts(sources);
+    }
+
+    /// The faces this book was given beyond the bundled ones.
+    public List<FontSource> shipped() {
+        return shipped;
     }
 
     /// The font a resolved style asks for.
@@ -86,27 +154,78 @@ public final class Fonts implements AutoCloseable {
     /// it merely does not match, which is the same distinction `var()` draws.
     public Font of(Typography typography) {
         Objects.requireNonNull(typography, "typography");
-        var face = typography.face();
-        return of(face == null ? BundledFont.UI : face, typography.size());
+        Face face = typography.face();
+        if (face == null && !shipped.isEmpty()) {
+            face = Face.match(shipped, typography.family(), typography.weight(), typography.style());
+        }
+        return fontOf(face == null ? BundledFont.UI : face, typography.size());
     }
 
     /// The font for one bundled face at one size.
     public Font of(BundledFont face, double size) {
+        return fontOf(face, size);
+    }
+
+    /// The font for one shipped face at one size — the UI face at that size when
+    /// the source's bytes cannot be read or parsed.
+    ///
+    /// @throws IllegalArgumentException if this book was not given `face`
+    public Font of(FontSource face, double size) {
+        Objects.requireNonNull(face, "face");
+        if (!shipped.contains(face)) {
+            throw new IllegalArgumentException(face + " is not one of the faces this book was opened with");
+        }
+        return fontOf(face, size);
+    }
+
+    private Font fontOf(Face face, double size) {
         requireUsable();
         Objects.requireNonNull(face, "face");
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException("a font size must be positive, not " + size);
         }
+        var usable = face instanceof FontSource source && !opens(source) ? BundledFont.UI : face;
         var quantized = Math.round(size * SIZE_QUANTUM);
         return fonts.computeIfAbsent(
-                new Key(face, quantized), key -> Font.on(faceOf(key.face()), key.size() / SIZE_QUANTUM));
+                new Key(usable, quantized), key -> Font.on(faceFor(key.face()), key.size() / SIZE_QUANTUM));
     }
 
     /// The typeface for one bundled face, opened on first use.
     public FontFace faceOf(BundledFont face) {
         requireUsable();
         Objects.requireNonNull(face, "face");
-        return faces.computeIfAbsent(face, FontFace::bundled);
+        return faceFor(face);
+    }
+
+    private FontFace faceFor(Face face) {
+        return faces.computeIfAbsent(face, key -> switch (key) {
+            case BundledFont bundled -> FontFace.bundled(bundled);
+            case FontSource source ->
+                FontFace.of(source.family(), source.bytes().get());
+        });
+    }
+
+    /// Whether a shipped face opens, trying it the first time it is asked about.
+    ///
+    /// The failure is caught **here** rather than where the face is drawn: this
+    /// runs inside a render pass, and a missing resource in an application's jar
+    /// must not become a window with no text in it.
+    private boolean opens(FontSource source) {
+        if (unusable.contains(source)) {
+            return false;
+        }
+        if (faces.containsKey(source)) {
+            return true;
+        }
+        try {
+            faceFor(source);
+            return true;
+        } catch (RuntimeException e) {
+            unusable.add(source);
+            LOG.warn(
+                    "could not open {}; text asking for it is drawn in {} instead", source, BundledFont.UI.family(), e);
+            return false;
+        }
     }
 
     /// How many distinct fonts are open — diagnostics, and what a test asserts

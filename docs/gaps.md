@@ -7,7 +7,7 @@ belongs in Goldberry.** Drawing, input, text, windows and platform integration a
 boards, notes, CRDT sync and agents are brd's. When brd hits the line, the answer is an entry here —
 not a workaround that quietly becomes a second toolkit.
 
-Updated 2026-09-16.
+Updated 2026-09-17.
 
 **Every entry on this list is closed or answered again.** Six arrived together —
 the desktop's theme, an italic face and text decorations, a picker inside a popup, a
@@ -23,6 +23,15 @@ a hover hook for something that is not a menu item, a read-only field that opene
 wrong end of its value, two missing codecs and a missing drop event, a `chip` dot that
 took no colour, a line-number gutter, and an editing seam an application can talk to.
 Working notes for that batch are in [gaps-g33-g38.md](gaps-g33-g38.md).
+
+**Five more arrived on 2026-09-17, and all five are answered.** G42, handing a URL to the desktop,
+was already built by the time its entry was written (ADR-0346). The other four are closed in
+ADR-0348 to ADR-0351: faces an application ships, a window icon, a `canvas` that asks for its next
+frame, and a defect in `text-area`'s gutter strip. Working notes are in
+[gaps-g39-g43.md](gaps-g39-g43.md). One answer is not the one its entry expected. G43's strip was
+not mispositioned but clipped, and fixing it turned up a second defect beside it: a wrap width that
+assumed the left and right padding were equal. The drift the entry reported could not be reproduced
+against this checkout, and ADR-0350 says so rather than claiming it.
 
 Two of them are worth naming because of *how* they were answered rather than that they
 were. G35a is one gap and two decisions: WebP is VP8, so the toolkit links the reference
@@ -122,6 +131,11 @@ a rule.
 | ~~[G36](#g36)~~ | ~~A `chip`'s dot takes no colour~~ | **closed** — ADR-0328 | done |
 | ~~[G37](#g37)~~ | ~~A line-number gutter on `text-area`~~ | **closed** — ADR-0331 | done |
 | ~~[G38](#g38)~~ | ~~An editing seam an application can talk to~~ | **closed** — ADR-0332 | done |
+| ~~[G39](#g39)~~ | ~~Faces an application ships, reachable from `font-family`~~ | **closed** — ADR-0349 | done |
+| ~~[G40](#g40)~~ | ~~A window icon~~ | **closed** — ADR-0351 | done |
+| ~~[G41](#g41)~~ | ~~A `canvas` that can ask for its next frame~~ | **closed** — ADR-0348 | done |
+| ~~[G42](#g42)~~ | ~~Hand a URL to the desktop~~ | **closed** — ADR-0346 | done |
+| ~~[G43](#g43)~~ | ~~`text-area`'s gutter strip does not reach its padding~~ | **closed** — ADR-0350 | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -1901,8 +1915,212 @@ changes the model *and* moves the caret in one action ends at the caret it asked
 the undo history — `Ctrl+Z` undoes a `**` the way it undoes a keystroke — and is **not** echoed back
 through `onEdit`.
 
+<a id="g39"></a>
+
+### G39 — faces an application ships, reachable from `font-family` — **closed**
+
+**What Tessera needs.** The landing page sets display text in **Forum** and running text in **Golos
+Text**, both SIL OFL. The client should use the same two. Today a stylesheet can name only the faces
+`BundledFont` enumerates, so `font-family: Forum` resolves to nothing and the hero title is Inter at 32px
+standing in.
+
+**Why it is not Tessera's.** A face has to reach the cascade, `Paragraph` layout, the text-input caret and
+the rasterizer's glyph cache together, and all four are Goldberry's. A canvas *could* load the bytes with
+`Font.of(byte[], size)` and draw a title itself, but a title that does not select, wrap or follow
+`font-size` like every other label is a second text stack.Cfif 
+
+**Proposed API.**
+
+```java
+/// Faces the application ships, added to the families `font-family` resolves -- after the bundled ones,
+/// so an application cannot shadow Inter by accident. Read once at start-up.
+default List<FontSource> Application.fonts() { return List.of(); }
+
+/// One face: a family name as CSS writes it, which weight and style it is, and where its bytes are.
+record FontSource(String family, BundledFont.Weight weight, BundledFont.Style style, Supplier<byte[]> bytes) {
+    static FontSource resource(String family, Weight weight, Style style, Class<?> anchor, String name);
+}
+```
+
+and the same list on `Offscreen.fonts(...)`, so a render test paints what the window paints. The
+`Weight`/`Style` closed matrix is kept as it is: a face that fills a corner it does not have falls back the
+way `BundledFont.of` already does.
+
+**What Tessera does meanwhile.** Nothing to the text. `.home-title` is size and regular weight, and
+`docs/brand/README.md` says which face it is standing in for.
+
+**Closed — [ADR-0349](../book/src/adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md).**
+As proposed, with the record in `text.font`: `Application.fonts()` returns `FontSource`s, each a
+family, a `Weight`, a `Style` and a `Supplier<byte[]>`, with `FontSource.resource(…)` and `FontSource.of(…)`
+as factories. The same list goes to `Offscreen.fonts(List<FontSource>)`. The window's book searches the
+bundled faces first, so a file called `Inter` is never drawn, and then the shipped ones, by the **same**
+matching rule (`assets.Face.match`) that `BundledFont.of` now delegates to. A shipped face is read the
+first time something is drawn in it. One that cannot be read or parsed is logged once and drawn in
+Inter, not thrown out of a paint pass. Tessera's `TesseraApp.fonts()` is the change, and the
+`.home-title` stand-in note can go.
+
+<a id="g40"></a>
+
+### G40 — a window icon — **closed**
+
+**What Tessera needs.** The taskbar, dock and window switcher to show the mark
+(`docs/brand/png/tessera-icon-dark-*.png`) rather than the platform's generic application icon. This is
+separate from installer packaging (plan D6), which covers the icon in the launcher. A window run from a
+jar or `gradlew run` has only what the toolkit sets.
+
+**Why it is not Tessera's.** It is `SDL_SetWindowIcon` on a surface, and on Wayland the `xdg-toplevel-icon`
+protocol. Both are platform calls that sit behind `Host` ([ADR-0004](adr/0004-ffm-lives-in-one-module.md)).
+
+**Proposed API.**
+
+```java
+/// The window's icon, largest first; the platform picks the size it wants. Empty is the platform default.
+default List<Image> Application.icon() { return List.of(); }
+```
+
+`Image` rather than a path, because `Image.decode` already exists and the application can
+decode from its own resources. A list because Windows wants 16 and 32, macOS wants 1024, and scaling
+one down is the blur the PNG set exists to avoid.
+
+**What Tessera does meanwhile.** Ships the PNGs, and `AppIcon` paints them, so the day this lands the
+change is one method on `TesseraApp`.
+
+**Closed — [ADR-0351](../book/src/adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md).**
+`Application.icon()` returns `List<Image>`, and `Window.icon(List<Image>)` is there for a change at
+runtime. SDL's model decides one thing the proposal left open: the surface passed to
+`SDL_SetWindowIcon` is the **100% size**, the others hang off it as alternates, and X11 reads only
+that base. So the backend picks it, as the smallest size at least 48 wide, and the order of the list
+does not matter. Pixels leave in straight alpha. Two symbols are bound as optional, so a stale
+`libgoldberry` shows the generic icon. macOS and a Wayland compositor without `xdg-toplevel-icon` answer
+false, which is logged at debug. The change in Tessera is one method on `TesseraApp`.
+
+<a id="g41"></a>
+
+### G41 — a `canvas` that can ask for its next frame — **closed**
+
+**What Tessera needs.** The site's tiles **settle**: each drops in from 20px above, turned a few degrees,
+staggered by its distance from the focus. After that, one tile every 1.3 seconds takes the glaze of a
+neighbouring band. `Mosaic.Tile.delayMillis` already carries the stagger, and a `StyledPainter` is already
+handed `nowMillis` and `reducedMotion`. What is missing is a way to ask for a *next* frame:
+`Paints.isAnimating()` is how a `Spinner` keeps the idle loop turning, and `Canvas` does not override it,
+so a canvas painted from the clock is painted once.
+
+**Why it is not Tessera's.** Tessera cannot implement `Paints` on a leaf of its own without writing a
+second `Canvas`, and a timer that calls `host.repaint()` repaints the whole window on a clock the frame
+pacer cannot see (ADR-0271's lateness measurement would count every one of them as late).
+
+**Proposed API.**
+
+```java
+/// This canvas, asking for another frame while `animating` says so -- read once per frame, after paint,
+/// with the same frame time the painter was given. `reducedMotion` is the painter's to honour.
+public Canvas Canvas.animating(Predicate<CanvasStyle> animating);
+```
+
+A predicate rather than a boolean, so the settle can stop by itself when the last tile has landed
+(`now - mountedAt > maxDelay + 850`) instead of the application rebuilding the widget to turn it off.
+
+**What Tessera does meanwhile.** The floor is still, and `reducedMotion` users get what they would have got
+anyway.
+
+**Closed — [ADR-0348](../book/src/adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md).**
+As proposed: `Canvas.animating(Predicate<CanvasStyle>)`, asked once per frame straight after the
+painter is bound, with the same `CanvasStyle`, so the frame that lands the last tile is the frame that
+answers false. `Paints` gained `isAnimating(ComputedStyle, Context)` for it, and the no-argument
+form every other widget uses is untouched. The showcase's Motion screen is the settle this entry
+describes, with the part it implies spelled out
+([ADR-0354](../book/src/adr/0354-a-choreography-is-a-function-of-time-and-a-timer-wakes-it.md)): the
+predicate asks for frames while something moves, and a `host.after(1.3s)` timer starts each glaze
+swap, so the loop idles between them.
+
+<a id="g42"></a>
+
+### G42 — hand a URL to the desktop — **closed**
+
+**What Tessera needs.** A `[link](https://…)` pressed in a note's preview to open in the browser, and a
+`mailto:` in the mail client ([ADR-0052](adr/0052-the-note-scope.md)). `markdown-view.onLink` already
+hands over the `href` and says, correctly, that following it is the application's -- and the application
+has nothing to follow it with.
+
+**Why it is not Tessera's.** It is `SDL_OpenURL`, or `xdg-open` / `ShellExecute` / `NSWorkspace` behind
+it: a platform call, and the toolkit owns the platform layer ([ADR-0004](adr/0004-ffm-lives-in-one-module.md)).
+`java.awt.Desktop` would work on some desktops and pull AWT into a client that has none.
+
+**Proposed API.**
+
+```java
+/// Hands `url` to the desktop. A request, not a result: false when the platform would not take it --
+/// headless, a scheme nothing handles -- which the caller reports rather than retries.
+default boolean Host.openExternal(String url) { return false; }
+```
+
+A local `../goldberry` checkout already has exactly this, uncommitted (it names ADR-0346), which is how
+the signature above was checked against the toolkit's style -- and why nothing in Tessera calls it yet:
+the published snapshot does not have it ([ADR-0050](adr/0050-goldberry-is-a-published-snapshot.md)).
+
+**What Tessera does meanwhile.** `NoteLinkActions` is built with no opener, so a web link says *"Opening
+web links from a note waits on the toolkit (G42)"* and the URL, rather than doing nothing. The day this
+lands it is `new NoteLinkActions(model, host::openExternal)` and the test for the refusal is deleted.
+Schemes other than `http`, `https` and `mailto` stay refused either way: a `file:` link in a shared note is
+not something a click should follow.
+
+**Answered — [ADR-0346](../book/src/adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md).**
+The uncommitted change this entry saw is committed: `Host.openExternal(String)` with the signature
+above, `SDL_OpenURL` behind it, and §2's `link` built on it. Tessera's refusal test goes once it takes
+a snapshot that has it.
+
+<a id="g43"></a>
+
+### G43 — `text-area`'s gutter strip does not reach its padding — **closed**
+
+**A defect, not a missing feature**, in the published `2026.1-SNAPSHOT`.
+
+**What happens.** `TextAreaBox` places `text-area-gutter` absolutely with insets of `-padding.top`,
+`-padding.bottom` and `-padding.left`, and a width of `gutterWidth + padding.left` -- the comment says
+*"pulled out to the border on the left so the control's own padding is inside it"*. What paints is a strip
+the size of the **content** box: with `padding: 12px 16px`, the filled column starts 12 px down and 16 px
+in, and a band of `text-area`'s own background shows above it and to its left. With the left padding
+removed the left band goes and the top one stays -- which is how it was found, from a person saying the
+padding was "still weird" after exactly that change.
+
+Measured in Tessera's note editor (`build/reports/notes/editor-edit.png`): at `padding: 12px 16px 12px 0`
+the column's fill begins at y = 12, and the pixels above it are `--gb-surface-sunken`.
+
+**And a second symptom, worse than the first.** With `--gb-gutter-gap` set to anything but its 8 px
+default **and** a non-zero left padding, the numbers are wrapped against a different width than the text:
+after the first soft-wrapped line every number sits one visual line too high. Isolated by rendering one
+change at a time -- gap 14 with left padding 4 misaligns; gap 8 with padding 4, and gap 14 with padding 0,
+are both right. Presumably one of the two widths reads the token and the other the constant, or one
+subtracts the padding and the other does not.
+
+**Why it is not Tessera's.** The strip's box and the numbers' wrap are the widget's; there is no
+declaration that moves either, and a Tessera-drawn column beside the pane is the thing G37 closed.
+
+**What would fix it.** Whatever makes the negative insets land -- most likely the insets being taken in
+border-box coordinates by a layout that places absolute children in the padding box, the same class of
+mismatch ADR-0272 fixed for the caret and the selection. A local `../goldberry` checkout has uncommitted
+changes in this file; if one of them is this, publishing it closes the entry.
+
+**What Tessera does meanwhile.** `.note-source text-area-gutter { background: transparent }`: no fill, so
+no band, and the muted numbers mark the column on their own. And the left padding is **0**, with the room
+coming from a 14 px gap, which is the one combination that keeps the numbers on their lines. `MarkdownEditorRenderTest.theGutterHasNoBand`
+asserts the padding and the column are one colour. When this lands the rule is deleted and the column
+gets its fill back.
+
+**Closed — [ADR-0350](../book/src/adr/0350-a-gutter-strip-is-outside-the-clip-its-numbers-are-inside.md).**
+The first symptom was the **clip**, not the insets. `overflow: hidden` clips a box's children to its
+content box, and the strip is a child, so the strip was placed at the border and cut back by exactly the
+padding. `text-area` now draws two layers: a content layer pinned to the content box that clips
+everything that scrolls, and the strip beside it, from the border's inner edge, with its leading corners
+fitted to the field's radius. The second symptom **could not be reproduced** against this checkout. It
+was rendered with every padding and gap combination named above, and the numbers stayed on their lines.
+What the reproduction found instead is a real width error next to it: the wrap width was
+`width - 2 × left padding`, so `padding: 12px 16px 12px 4px` wrapped the text 12px wider than its room
+and ran it under the right padding. It subtracts each edge once now. `TextAreaGutterStripTest` checks
+both on pixels. If Tessera's drift survives a snapshot with this in it, it is a new entry.
+
 ---
 
-**Nothing else, and nothing open.** All six were raised by building something rather than by reading
-the API surface — which is what all thirty-eight have in common — and all six are closed, in ADR-0326
-to ADR-0332. The next entry goes below this line, before any code is written for it (§3).
+**Nothing else, and nothing open.** All five of the latest were raised by building something rather
+than by reading the API surface, as all forty-three have been, and all five are answered, in ADR-0346 and
+ADR-0348 to ADR-0351. The next entry goes below this line, before any code is written for it (§3).

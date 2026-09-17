@@ -105,7 +105,8 @@ class ShowcaseShellTest {
                         "markdown",
                         "html",
                         "canvas",
-                        "icons"),
+                        "icons",
+                        "motion"),
                 Screen.GALLERY);
 
         // A keyboard has ten digits and `Screen.GALLERY` may be longer. What must

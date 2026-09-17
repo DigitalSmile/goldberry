@@ -8,6 +8,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
@@ -481,14 +482,14 @@ record TextAreaBox(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var padding = padding(style);
+        var padding = AreaPadding.of(style);
         var paragraph = context.paragraph(style, display);
         // The gutter's width is decided before the text is laid out, because the
         // text wraps at what is left over — which is why it is computed from the
         // document's line count rather than from the layout it is about to cause
         // ([ADR-0331]).
         var gutterWidth = gutterWidth(style, context, hardLines());
-        var offset = editor.laidOut(paragraph, padding.left(), padding.top(), gutterWidth, style.textAlign());
+        var offset = editor.laidOut(paragraph, padding, gutterWidth, style.textAlign());
 
         var lineHeight = paragraph.font().lineHeight();
         var width = editor.contentWidth();
@@ -560,18 +561,9 @@ record TextAreaBox(
             }
         }
 
+        Box strip = null;
         if (gutter) {
-            // The strip: pinned top **and** bottom so it runs the height of the
-            // control rather than stopping where the text does, and pulled out to
-            // the border on the left so the control's own padding is inside it.
-            boxes.add(children.get(gutterIndex())
-                    .position(Position.ABSOLUTE)
-                    .inset(new Insets(
-                            Length.points((float) -padding.top()),
-                            Length.UNDEFINED,
-                            Length.points((float) -padding.bottom()),
-                            Length.points((float) -padding.left())))
-                    .size(Length.points((float) (gutterWidth + padding.left())), Length.UNDEFINED));
+            strip = strip(children.get(gutterIndex()), style, padding, gutterWidth);
 
             var numbers = gutterText(lines);
             if (!numbers.isEmpty()) {
@@ -592,7 +584,27 @@ record TextAreaBox(
             }
         }
 
-        var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
+        // **Two layers, and the clip is on the inner one** (`docs/gaps.md` G43,
+        // ADR-0350). Everything that scrolls -- the text, the washes, the caret,
+        // the numbers -- has to stop at the content box, which is where a box's
+        // own `overflow: hidden` clips. The strip has to reach the border, which
+        // is outside that clip by exactly the padding. On one box those two ask
+        // for different clips. So the scrolling parts go in a
+        // box pinned to the content box that clips, and the strip is its sibling
+        // under a control that does not.
+        //
+        // The inner box's insets are zero on all four edges: `ContainingBlock`
+        // shifts each by the control's padding, which is what lands it on the
+        // content box, and it has no padding of its own, so every part inside it
+        // is placed in the same coordinates it was before.
+        var content = Box.of()
+                .position(Position.ABSOLUTE)
+                .inset(new Insets(ZERO, ZERO, ZERO, ZERO))
+                .overflow(Overflow.HIDDEN)
+                .children(boxes.toArray(Box[]::new));
+        var layers = strip == null ? new Box[] {content} : new Box[] {strip, content};
+
+        var box = Box.of().style(style).children(layers);
         // **A filling area takes what its parent gives it.** `flex-grow` rather than
         // a height, because the height is the layout's answer and not this widget's:
         // what it then does with it -- how many lines are on screen, how far the text
@@ -600,7 +612,39 @@ record TextAreaBox(
         box = fill
                 ? box.grow(1).shrink(1).size(Length.UNDEFINED, Length.UNDEFINED)
                 : box.size(Length.UNDEFINED, Length.points((float) height(lines.size(), lineHeight, padding)));
-        return box.cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT).overflow(Overflow.HIDDEN);
+        return box.cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT).overflow(Overflow.VISIBLE);
+    }
+
+    /// A zero inset, which [io.github.digitalsmile.goldberry.paint.tree.ContainingBlock]
+    /// moves onto the padding edge.
+    private static final Length ZERO = Length.points(0);
+
+    /// The number column's fill, placed from the inside of the border to the
+    /// start of the text.
+    ///
+    /// **Inside the border, not on it.** A control that no longer clips its
+    /// children would otherwise have the strip painted over its own 1px edge,
+    /// so each inset is the padding less the border's width. The two corners on
+    /// the leading side take the control's radius less that width as well,
+    /// because a square strip in a rounded field shows its corners outside the
+    /// curve.
+    ///
+    /// The insets are **negative paddings** on purpose. `ContainingBlock` adds the
+    /// control's padding to every inset it is given, so `-padding + border` is
+    /// where it lands: the border's inner edge.
+    private static Box strip(Box part, ComputedStyle style, AreaPadding padding, double gutterWidth) {
+        var border = style.decoration().borderWidth();
+        var corners = style.decoration().corners();
+        var fitted =
+                new Corners(Math.max(0, corners.topLeft() - border), 0, 0, Math.max(0, corners.bottomLeft() - border));
+        return part.position(Position.ABSOLUTE)
+                .inset(new Insets(
+                        Length.points((float) (border - padding.top())),
+                        Length.UNDEFINED,
+                        Length.points((float) (border - padding.bottom())),
+                        Length.points((float) (border - padding.left()))))
+                .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - border)), Length.UNDEFINED)
+                .decoration(part.decoration().corners(fitted));
     }
 
     /// The control's height: as many lines as the text has, between [#rows] and
@@ -610,9 +654,9 @@ record TextAreaBox(
     /// function of how many lines the text wrapped into, which no selector can
     /// ask — a `height` a stylesheet set would be a control that stopped growing
     /// the moment somebody themed it.
-    private double height(int lines, double lineHeight, Insets2 padding) {
+    private double height(int lines, double lineHeight, AreaPadding padding) {
         var shown = Math.clamp(lines, rows, Math.max(rows, maxRows));
-        return shown * lineHeight + padding.top() + padding.bottom();
+        return shown * lineHeight + padding.vertical();
     }
 
     /// One rectangle per visual line a span of the display covers — the
@@ -689,21 +733,6 @@ record TextAreaBox(
     private static Insets leftTop(double left, double top) {
         return new Insets(Length.points((float) top), Length.UNDEFINED, Length.UNDEFINED, Length.points((float) left));
     }
-
-    private static Insets2 padding(ComputedStyle style) {
-        return new Insets2(
-                points(style.padding().left()),
-                points(style.padding().top()),
-                points(style.padding().bottom()));
-    }
-
-    private static double points(Length length) {
-        return length instanceof Length.Points p ? p.value() : 0;
-    }
-
-    /// The three padding edges this control reads. Not `Insets`, which is four
-    /// `Length`s and needs resolving at every use.
-    private record Insets2(double left, double top, double bottom) {}
 
     /// A placed rectangle, one line tall.
     private record Rect(double x, double y, double width) {}

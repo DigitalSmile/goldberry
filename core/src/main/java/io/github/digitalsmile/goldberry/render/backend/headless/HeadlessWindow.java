@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.IconImage;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// A window that exists only as state.
@@ -173,6 +174,25 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.requireUiThread();
         requireOpen();
         this.title = Objects.requireNonNull(title, "title");
+    }
+
+    /// The sizes the last [#setIcon] was given, in the order it was given them —
+    /// empty until one is set.
+    private List<IconImage> icon = List.of();
+
+    /// Recorded, because there is no taskbar here. Answers true, so a caller's
+    /// "the platform would not" path is a different test.
+    @Override
+    public boolean setIcon(List<IconImage> images) {
+        backend.requireUiThread();
+        requireOpen();
+        this.icon = List.copyOf(Objects.requireNonNull(images, "images"));
+        return true;
+    }
+
+    /// What [#setIcon] was last asked for.
+    public List<IconImage> icon() {
+        return icon;
     }
 
     /// Stands in for the window manager, which is the only way this rule can be

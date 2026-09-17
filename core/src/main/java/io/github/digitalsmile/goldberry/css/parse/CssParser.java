@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.css.Declaration;
+import io.github.digitalsmile.goldberry.css.Keyframes;
 import io.github.digitalsmile.goldberry.css.StyleRule;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 
@@ -22,11 +23,29 @@ import io.github.digitalsmile.goldberry.css.select.Selector;
 /// so the rules inside are not lost, and the condition is retained on the rules
 /// it produced. Evaluating those conditions needs a window to ask about width and
 /// colour scheme, which is the next piece.
+///
+/// Two at-rules **are** applied. `@starting-style` marks the rules inside it as the
+/// style an element transitions *from* on its first frame (ADR-0352).
+/// `@keyframes` names a sequence `animation-name` can run (ADR-0353).
 public final class CssParser {
+
+    /// What a stylesheet's text parsed into: its rules, and its named keyframes.
+    ///
+    /// @param rules     in source order, `@starting-style` rules among them
+    /// @param keyframes in source order; a later block with the same name wins,
+    ///                  which is the cascade's business rather than the parser's
+    public record Parsed(List<StyleRule> rules, List<Keyframes> keyframes) {
+
+        public Parsed {
+            rules = List.copyOf(rules);
+            keyframes = List.copyOf(keyframes);
+        }
+    }
 
     private final List<Token> tokens;
     private int index;
     private int ruleOrder;
+    private final List<Keyframes> keyframes = new ArrayList<>();
 
     private CssParser(List<Token> tokens) {
         this.tokens = tokens;
@@ -36,8 +55,17 @@ public final class CssParser {
     ///
     /// @throws CssSyntaxException if anything in it is not in the supported subset
     public static List<StyleRule> parse(String css) {
+        return parseSheet(css).rules();
+    }
+
+    /// Parses a stylesheet's text into its rules **and** its keyframes.
+    ///
+    /// @throws CssSyntaxException if anything in it is not in the supported subset
+    public static Parsed parseSheet(String css) {
         Objects.requireNonNull(css, "css");
-        return new CssParser(CssTokenizer.tokenize(css)).parseRules();
+        var parser = new CssParser(CssTokenizer.tokenize(css));
+        var rules = parser.parseRules();
+        return new Parsed(rules, parser.keyframes);
     }
 
     private List<StyleRule> parseRules() {
@@ -63,8 +91,18 @@ public final class CssParser {
     /// both are wrong only until the media evaluator lands.
     private List<StyleRule> atRule() {
         var at = advance();
+        if (at.text().equalsIgnoreCase("starting-style")) {
+            return startingStyle(at);
+        }
+        if (at.text().equalsIgnoreCase("keyframes")) {
+            keyframes.add(keyframes(at));
+            return List.of();
+        }
         if (!at.text().equalsIgnoreCase("media")) {
-            throw error(at, "unsupported at-rule \"@" + at.text() + "\"; this subset has @media and nothing else");
+            throw error(
+                    at,
+                    "unsupported at-rule \"@" + at.text()
+                            + "\"; this subset has @media, @starting-style and @keyframes and nothing else");
         }
         // The prelude, up to the block.
         while (!peek().is(TokenType.OPEN_BRACE)) {
@@ -86,6 +124,106 @@ public final class CssParser {
         }
         advance(); // }
         return inner;
+    }
+
+    /// `@starting-style { rules }` — the block form, which is the one CSS has
+    /// at the top level of a sheet.
+    ///
+    /// The rules inside are ordinary rules marked as starting styles. They keep
+    /// their place in the source order, so a starting rule written after a normal
+    /// one of equal specificity wins against it, as CSS says (ADR-0352).
+    private List<StyleRule> startingStyle(Token at) {
+        skipWhitespace();
+        if (!peek().is(TokenType.OPEN_BRACE)) {
+            throw error(at, "@starting-style takes a block and no prelude; found " + peek().describe());
+        }
+        advance(); // {
+        var inner = new ArrayList<StyleRule>();
+        skipWhitespace();
+        while (!peek().is(TokenType.CLOSE_BRACE)) {
+            if (peek().is(TokenType.EOF)) {
+                throw error(peek(), "unclosed @starting-style block");
+            }
+            if (peek().is(TokenType.AT_KEYWORD)) {
+                throw error(peek(), "@starting-style holds style rules and nothing else");
+            }
+            var rule = styleRule();
+            inner.add(new StyleRule(rule.selectors(), rule.declarations(), rule.order(), true));
+            skipWhitespace();
+        }
+        advance(); // }
+        return inner;
+    }
+
+    /// `@keyframes name { from { … } 50%, 75% { … } to { … } }`.
+    ///
+    /// Refused rather than tolerated for the reasons the rest of this parser
+    /// refuses: a keyframe selector that is not `from`, `to` or a percentage from
+    /// 0 to 100, an empty name, or `!important` inside a keyframe, which CSS
+    /// ignores and an author who wrote it did not expect to be ignored.
+    private Keyframes keyframes(Token at) {
+        skipWhitespace();
+        var name = peek();
+        if (!(name.is(TokenType.IDENT) || name.is(TokenType.STRING)) || name.isIdent("none")) {
+            throw error(name, "@keyframes needs a name, and " + name.describe() + " is not one");
+        }
+        advance();
+        skipWhitespace();
+        if (!peek().is(TokenType.OPEN_BRACE)) {
+            throw error(peek(), "expected \"{\" after @keyframes " + name.text() + ", found " + peek().describe());
+        }
+        advance(); // {
+        var frames = new ArrayList<Keyframes.Frame>();
+        skipWhitespace();
+        while (!peek().is(TokenType.CLOSE_BRACE)) {
+            if (peek().is(TokenType.EOF)) {
+                throw error(peek(), "unclosed @keyframes " + name.text());
+            }
+            var offsets = keyframeSelectors();
+            var declarations = declarationBlock();
+            for (var declaration : declarations) {
+                if (declaration.important()) {
+                    throw error(
+                            at,
+                            "\"" + declaration.property() + "\" in @keyframes " + name.text()
+                                    + " is !important, which a keyframe cannot be");
+                }
+            }
+            for (var offset : offsets) {
+                frames.add(new Keyframes.Frame(offset, declarations));
+            }
+            skipWhitespace();
+        }
+        advance(); // }
+        return new Keyframes(name.text(), frames);
+    }
+
+    /// `from`, `to`, `40%`, comma-separated, up to the `{`.
+    private List<Double> keyframeSelectors() {
+        var offsets = new ArrayList<Double>();
+        while (true) {
+            skipWhitespace();
+            var token = peek();
+            if (token.isIdent("from")) {
+                offsets.add(0.0);
+            } else if (token.isIdent("to")) {
+                offsets.add(1.0);
+            } else if (token.is(TokenType.PERCENTAGE) && token.numeric() >= 0 && token.numeric() <= 100) {
+                offsets.add(token.numeric() / 100);
+            } else {
+                throw error(token, "a keyframe is from, to or a percentage from 0% to 100%, not " + token.describe());
+            }
+            advance();
+            skipWhitespace();
+            if (peek().is(TokenType.COMMA)) {
+                advance();
+                continue;
+            }
+            if (peek().is(TokenType.OPEN_BRACE)) {
+                return offsets;
+            }
+            throw error(peek(), "expected \",\" or \"{\" after a keyframe, found " + peek().describe());
+        }
     }
 
     private StyleRule styleRule() {

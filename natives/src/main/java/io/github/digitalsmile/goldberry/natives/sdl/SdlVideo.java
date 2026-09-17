@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlThemeCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlIconImage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
@@ -271,6 +272,80 @@ public final class SdlVideo {
                 throw new SdlException("SDL_SetWindowTitle", Sdl.get().lastError());
             }
         }
+    }
+
+    /// Sets `window`'s icon from one or more sizes of the same picture.
+    ///
+    /// SDL's model is **one surface for 100% display scale, with the other sizes
+    /// hung off it as alternates**. On a 2x display it uses the 64px version of a
+    /// 32px icon when there is one, and it scales the nearest one when there is
+    /// not. X11's path reads the base surface alone. So the choice of base is the
+    /// caller's and matters: the first image here is the base, and the rest are
+    /// its alternates, in any order (ADR-0351).
+    ///
+    /// Every surface is a view over the caller's buffer and is destroyed before
+    /// this returns: `SDL_SetWindowIcon` converts the base and its alternates into
+    /// its own copy first.
+    ///
+    /// @param images the base size first, then any others; at least one
+    /// @return false when the library predates the export, or the platform would
+    ///         not take an icon, which is a Wayland compositor without
+    ///         `xdg-toplevel-icon`
+    public boolean setWindowIcon(SdlWindowHandle window, List<SdlIconImage> images) {
+        Objects.requireNonNull(window, "window");
+        Objects.requireNonNull(images, "images");
+        if (images.isEmpty()) {
+            throw new IllegalArgumentException("an icon needs at least one image");
+        }
+        if (!canSetWindowIcon()) {
+            return false;
+        }
+        var base = surfaceOf(images.getFirst());
+        try {
+            for (var alternate : images.subList(1, images.size())) {
+                var surface = surfaceOf(alternate);
+                try {
+                    if (!sdlSurfaceCalls.addSurfaceAlternateImage().call(base, surface)) {
+                        LOG.debug(
+                                "SDL kept no {}x{} alternate for the window icon: {}",
+                                alternate.width(),
+                                alternate.height(),
+                                Sdl.get().lastError());
+                    }
+                } finally {
+                    // SDL took its own reference to it, or refused it.
+                    sdlSurfaceCalls.destroySurface().call(surface);
+                }
+            }
+            if (!sdlWindowCalls.setWindowIcon().call(window.pointer(), base)) {
+                LOG.debug("SDL_SetWindowIcon refused: {}", Sdl.get().lastError());
+                return false;
+            }
+            return true;
+        } finally {
+            sdlSurfaceCalls.destroySurface().call(base);
+        }
+    }
+
+    /// Whether this build exports both calls a window icon needs.
+    public boolean canSetWindowIcon() {
+        return sdlWindowCalls.setWindowIcon().isAvailable()
+                && sdlSurfaceCalls.addSurfaceAlternateImage().isAvailable();
+    }
+
+    private MemorySegment surfaceOf(SdlIconImage image) {
+        var surface = sdlSurfaceCalls
+                .createSurfaceFrom()
+                .call(
+                        image.width(),
+                        image.height(),
+                        SdlPixelFormat.ARGB8888.value(),
+                        MemorySegment.ofBuffer(image.pixels()),
+                        image.stride());
+        if (MemorySegment.NULL.equals(surface)) {
+            throw new SdlException("SDL_CreateSurfaceFrom", Sdl.get().lastError());
+        }
+        return surface;
     }
 
     /// Asks the window manager to maximize `window`.

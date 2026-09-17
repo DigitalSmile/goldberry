@@ -907,3 +907,118 @@ icon-tile-name {
 #styled-area.rule-both {
   text-decoration: underline line-through;
 }
+
+/* --- the Motion screen (ADR-0352, ADR-0353, ADR-0354) ----------------------- */
+
+/* The floor is a canvas, and a canvas has no size of its own. */
+#motion-floor {
+  height: 220px;
+  cursor: pointer;
+}
+
+#motion-swatches,
+#motion-entering-actions,
+#motion-entries {
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#motion-entries {
+  min-height: 32px;
+}
+
+/* A breath: in from a little below and a little small, and back out again.
+   `alternate` plays it forwards and backwards, and `both` holds the first frame
+   through each swatch's delay, so a late swatch does not flash at rest before
+   it starts. */
+@keyframes motion-breathe {
+  from {
+    opacity: 0.35;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+panel.motion-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--gb-accent);
+  animation: motion-breathe 1200ms ease-exit infinite alternate both;
+}
+
+/* The stagger is five longhands: a later rule changes the delay of an
+   animation an earlier rule named. */
+panel.motion-swatch.d1 {
+  animation-delay: 120ms;
+}
+
+panel.motion-swatch.d2 {
+  animation-delay: 240ms;
+}
+
+panel.motion-swatch.d3 {
+  animation-delay: 360ms;
+}
+
+panel.motion-swatch.d4 {
+  animation-delay: 480ms;
+}
+
+/* A turn that never ends. The implicit start is the element's own transform,
+   which is none, so only the end is written. */
+@keyframes motion-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+panel.motion-turn {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--gb-surface-2);
+  border: 2px solid var(--gb-accent);
+  animation: motion-turn 1800ms linear infinite;
+}
+
+/* Keyframes whose values are tokens: they are resolved against the element, so
+   the plate follows a theme switch mid-cycle. */
+@keyframes motion-glaze {
+  from {
+    background-color: var(--gb-chart-1);
+  }
+  50% {
+    background-color: var(--gb-chart-3);
+  }
+  to {
+    background-color: var(--gb-chart-5);
+  }
+}
+
+panel.motion-glaze {
+  width: 72px;
+  height: 36px;
+  border-radius: 6px;
+  animation: motion-glaze 5200ms ease-enter infinite alternate;
+}
+
+/* An entry fades and drops into place from its starting style. The chip's own
+   hover transition is repeated here, since a transition list is replaced whole. */
+chip.motion-entry {
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-fast) ease-enter,
+              opacity var(--gb-motion-base) ease-enter,
+              transform var(--gb-motion-base) ease-enter;
+}
+
+@starting-style {
+  chip.motion-entry {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+}

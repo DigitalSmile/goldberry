@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlIconImage;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
@@ -23,6 +25,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.IconImage;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// An SDL window behind the SPI.
@@ -340,6 +343,60 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         requireOpen();
         this.title = Objects.requireNonNull(title, "title");
         video().setWindowTitle(handle, title);
+    }
+
+    /// The size SDL is handed as the icon's base, which is the size it treats as
+    /// 100% display scale and the **only** size X11's path reads.
+    ///
+    /// 48, and not the 32 a Windows taskbar draws at 100%. X11 reads the base
+    /// alone and a dock scales it, so 48 is the size a scaled-up 32 would blur
+    /// at. On Windows and Wayland the alternates cover the rest (ADR-0351).
+    static final int BASE_ICON_SIZE = 48;
+
+    @Override
+    public boolean setIcon(List<IconImage> images) {
+        backend.requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(images, "images");
+        if (images.isEmpty()) {
+            throw new IllegalArgumentException("an icon needs at least one image");
+        }
+        var ordered = baseFirst(images).stream()
+                .map(image -> new SdlIconImage(
+                        image.pixels(), image.size().width(), image.size().height()))
+                .toList();
+        var taken = video().setWindowIcon(handle, ordered);
+        if (!taken) {
+            LOG.debug("the platform took no window icon; it shows its own");
+        }
+        return taken;
+    }
+
+    /// `images`, with the one SDL should treat as its base moved to the front:
+    /// the smallest at least [#BASE_ICON_SIZE] wide, or the largest when none is.
+    static List<IconImage> baseFirst(List<IconImage> images) {
+        IconImage base = null;
+        for (var image : images) {
+            var width = image.size().width();
+            if (base == null) {
+                base = image;
+                continue;
+            }
+            var current = base.size().width();
+            var fits = width >= BASE_ICON_SIZE;
+            var currentFits = current >= BASE_ICON_SIZE;
+            if ((fits && (!currentFits || width < current)) || (!fits && !currentFits && width > current)) {
+                base = image;
+            }
+        }
+        var ordered = new ArrayList<IconImage>(images.size());
+        ordered.add(base);
+        for (var image : images) {
+            if (image != base) {
+                ordered.add(image);
+            }
+        }
+        return ordered;
     }
 
     /// Hands the floor to the window manager, which is what enforces it.

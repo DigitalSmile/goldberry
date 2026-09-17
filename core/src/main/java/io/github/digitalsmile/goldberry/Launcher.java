@@ -305,6 +305,12 @@ final class Launcher implements Host {
         window = Window.open(WindowSpec.of(application.title(), size)
                 .withMinimumSize(floorFitting(size))
                 .withMaximized(application.maximized() && options.size() == null));
+        // Straight after opening, so the taskbar never shows the generic icon for
+        // longer than the first frame takes (ADR-0351).
+        var icon = application.icon();
+        if (!icon.isEmpty() && !window.icon(icon)) {
+            LOG.debug("the platform kept its own window icon");
+        }
         if (options.resize() != null) {
             resizeWalk = new ResizeWalk(size, options.resize());
             LOG.info("walking the window's size a pixel a frame: {}", resizeWalk);
@@ -313,7 +319,9 @@ final class Launcher implements Host {
         // On the UI thread and staying there: the book owns native objects from
         // two libraries, confined to the thread that built them, and opening a
         // face per frame would put font parsing on the frame path.
-        fonts = Fonts.bundled();
+        // With the application's own faces added after the bundled ones, read
+        // here and never again (ADR-0349).
+        fonts = Fonts.bundled(application.fonts());
 
         router = new PointerRouter();
         window.pointerRouter(router);

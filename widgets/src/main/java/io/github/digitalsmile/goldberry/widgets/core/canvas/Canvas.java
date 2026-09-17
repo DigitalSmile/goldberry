@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.core.canvas;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 
@@ -14,6 +15,7 @@ import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.CanvasStyle;
 import io.github.digitalsmile.goldberry.paint.Painter;
 import io.github.digitalsmile.goldberry.paint.StyledPainter;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -92,6 +94,22 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// A canvas with no `Input` is exactly what it was before: a styled, sized
 /// surface that draws and hears nothing, and not a Tab stop.
 ///
+/// ## It can keep the frame loop turning
+///
+/// §1.7's loop is idle when nothing moves, so a painter drawn from
+/// [CanvasStyle#nowMillis()] is painted once and left there unless the canvas
+/// asks for the next frame. [#animating(Predicate)] is how it asks — a predicate
+/// over the same [CanvasStyle] the painter was handed, so a settle that ends by
+/// itself can say so without the application rebuilding anything:
+///
+/// ```java
+/// var mounted = clock.nowMillis();
+/// new Canvas(floor::paint).animating(style -> style.nowMillis() - mounted < LAST_TILE_LANDS)
+/// ```
+///
+/// A timer calling `host.repaint()` would do it too, and would repaint the whole
+/// window on a clock the frame pacer cannot see (`docs/gaps.md` G41, ADR-0348).
+///
 /// ## Markup names no painter yet
 ///
 /// A `canvas` node inflates to a styled, sized surface that draws nothing. The
@@ -107,12 +125,24 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                   [Painter] is not asked for one.
 /// @param input      what to do with pointer and key events, or null to hear none
 /// @param attributes `id` and `class`, exactly as on the other primitives
+/// @param animating  whether the canvas wants another frame after this one, or
+///                   null for a still drawing — [#animating(Predicate)]
 @Markup("canvas")
-public record Canvas(@Nullable Painter painter, @Nullable Input input, Attributes attributes)
+public record Canvas(
+        @Nullable Painter painter,
+        @Nullable Input input,
+        Attributes attributes,
+        @Nullable Predicate<CanvasStyle> animating)
         implements Widget.Leaf, Styled, Paints, Attributed<Canvas>, Handles, Semantics {
 
     public Canvas {
         attributes = attributes == null ? Attributes.NONE : attributes;
+    }
+
+    /// A canvas that draws a still picture — every canvas written before
+    /// [#animating(Predicate)] existed.
+    public Canvas(@Nullable Painter painter, @Nullable Input input, Attributes attributes) {
+        this(painter, input, attributes, null);
     }
 
     /// A canvas that draws `painter` and hears nothing.
@@ -165,7 +195,24 @@ public record Canvas(@Nullable Painter painter, @Nullable Input input, Attribute
     /// a state machine over a *sequence* of events, and five callbacks that have
     /// to share state between them is five closures over the same mutable object.
     public Canvas input(Input value) {
-        return new Canvas(painter, value, attributes);
+        return new Canvas(painter, value, attributes, animating);
+    }
+
+    /// This canvas, asking for another frame for as long as `value` says so.
+    ///
+    /// Read **once per frame, straight after the painter is bound**, with the
+    /// same [CanvasStyle] the painter was given — the same `nowMillis`, so the
+    /// frame that draws the last tile landing is the frame that answers false and
+    /// the loop goes quiet on the next one rather than a frame later.
+    ///
+    /// A predicate rather than a boolean, so an animation that ends can stop by
+    /// itself. `style -> true` is a loop; `style -> !style.reducedMotion()` is a
+    /// loop that stops for a user who asked for less movement, which is the
+    /// painter's to honour and not the canvas's to guess (§1.7).
+    ///
+    /// @param value the question, or null for a still drawing
+    public Canvas animating(@Nullable Predicate<CanvasStyle> value) {
+        return new Canvas(painter, input, attributes, value);
     }
 
     @Override
@@ -190,7 +237,7 @@ public record Canvas(@Nullable Painter painter, @Nullable Input input, Attribute
 
     @Override
     public Canvas withAttributes(Attributes value) {
-        return new Canvas(painter, input, value);
+        return new Canvas(painter, input, value, animating);
     }
 
     @Override
@@ -294,6 +341,17 @@ public record Canvas(@Nullable Painter painter, @Nullable Input input, Attribute
         // a `stack` and not a canvas.
         var painting = painter instanceof StyledPainter styled ? styled.bound(context.canvasStyle(style)) : painter;
         return Box.of().style(style).painting(painting);
+    }
+
+    /// Whether [#animating(Predicate)] asks for another frame.
+    ///
+    /// The snapshot is taken again rather than shared with [#render]: it is a
+    /// record of four values read off the context, and the renderer asks this
+    /// inside the same window `render` ran in, so both see this node's style and
+    /// this frame's clock (ADR-0348).
+    @Override
+    public boolean isAnimating(ComputedStyle style, Context context) {
+        return animating != null && animating.test(context.canvasStyle(style));
     }
 
     /// Builds a `canvas` from markup — see the class note on why it names no

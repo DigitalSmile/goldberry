@@ -276,6 +276,24 @@ public interface BackendWindow extends AutoCloseable {
     /// Sets the window title.
     void setTitle(String title);
 
+    /// Sets the picture the taskbar, the dock and the window switcher show for
+    /// this window (`docs/gaps.md` G40, ADR-0351).
+    ///
+    /// Several sizes of one picture, in any order. The backend picks which one
+    /// the platform treats as the base, because the rule for that is the
+    /// platform's.
+    ///
+    /// A request and not a promise. False by default, which is what a backend
+    /// with no desktop answers, and what a platform that takes no icon from a
+    /// window answers too: macOS shows the bundle's icon, and a Wayland
+    /// compositor without `xdg-toplevel-icon` shows the desktop file's.
+    ///
+    /// @param images at least one size
+    /// @return whether the platform took it
+    default boolean setIcon(List<IconImage> images) {
+        return false;
+    }
+
     /// Asks the platform to maximize this window, or to give its ordinary size
     /// back.
     ///

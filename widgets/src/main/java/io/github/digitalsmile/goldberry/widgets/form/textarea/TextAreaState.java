@@ -76,16 +76,15 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     private Extent bounds = Extent.NONE;
     private Paragraph paragraph;
-    private double leftPadding;
-    private double topPadding;
+    private AreaPadding padding = AreaPadding.NONE;
 
     /// How wide the line-number column was on the last frame, or 0 when there is
     /// none — [TextArea#gutter(boolean)].
     ///
-    /// Beside [#leftPadding] rather than folded into it, because the two are not
-    /// the same number in the two places they are used: the padding is on *both*
-    /// sides and comes off the wrap twice, and the gutter is on one and comes off
-    /// once (`docs/gaps.md` G37, [ADR-0331]).
+    /// Beside [#padding] rather than folded into it, because the two are not the
+    /// same number in the two places they are used: the padding is on *both*
+    /// sides and each edge comes off the wrap, and the gutter is on one and comes
+    /// off once (`docs/gaps.md` G37, [ADR-0331]).
     private double gutterWidth;
 
     /// What an input method is composing, or `""` when it is not —
@@ -415,14 +414,14 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             return;
         }
         var lineHeight = paragraph.font().lineHeight();
-        var row = (int) Math.floor((y - topPadding + scrollOffset) / lineHeight);
+        var row = (int) Math.floor((y - padding.top() + scrollOffset) / lineHeight);
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
         // The press is where the user pressed, so the line's own indent comes off
         // it — the mirror of what the caret adds ([ADR-0324]).
         // The gutter comes off as well as the padding: a click at the left edge of
         // the *text* is a click one gutter's width in from the left edge of the
         // control ([ADR-0331]).
-        var offset = paragraph.offsetAt(line.start(), line.end(), x - leftPadding - gutterWidth - indentOf(line));
+        var offset = paragraph.offsetAt(line.start(), line.end(), x - padding.left() - gutterWidth - indentOf(line));
 
         var next = switch (Math.min(clickCount, 3)) {
             // A triple-click is "select the line", and here there really is one.
@@ -509,10 +508,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, double left, double top, double gutter, TextAlign align) {
+    public double laidOut(Paragraph shaped, AreaPadding edges, double gutter, TextAlign align) {
         paragraph = shaped;
-        leftPadding = left;
-        topPadding = top;
+        padding = edges;
         gutterWidth = gutter;
         textAlign = align;
 
@@ -557,7 +555,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (lineHeight <= 0) {
             return area.maxRows();
         }
-        var content = bounds.height() - 2 * topPadding;
+        var content = bounds.height() - padding.vertical();
         return Math.max(1, (int) Math.floor(content / lineHeight));
     }
 
@@ -595,7 +593,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public double contentWidth() {
-        var measured = bounds.width() - 2 * leftPadding - gutterWidth;
+        // Both edges, each once. `2 * left` was every shipped stylesheet's answer
+        // and nobody else's: `padding: 12px 16px 12px 0` wrapped the text 16
+        // pixels wider than its room (`docs/gaps.md` G43, ADR-0350).
+        var measured = bounds.width() - padding.horizontal() - gutterWidth;
         if (measured > 1) {
             return measured;
         }

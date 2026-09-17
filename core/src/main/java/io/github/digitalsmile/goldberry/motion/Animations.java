@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.motion;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -9,9 +12,6 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
-import io.github.digitalsmile.goldberry.css.value.CssColor;
-import io.github.digitalsmile.goldberry.css.value.Shadow;
-import io.github.digitalsmile.goldberry.css.value.Transform;
 
 /// One node's running transitions — `docs/design-system.md` §1.7.
 ///
@@ -92,6 +92,33 @@ public final class Animations {
 
     private final Map<Animatable, Running> running = new EnumMap<>(Animatable.class);
 
+    /// What resolves a `@keyframes` block for the node these animations belong
+    /// to — the renderer, which has the cascade (ADR-0353).
+    @FunctionalInterface
+    public interface KeyframeSource {
+
+        /// The block called `name`, resolved against `target`, or null when no
+        /// stylesheet declares one.
+        @Nullable
+        KeyframeTrack track(String name, ComputedStyle target);
+    }
+
+    /// When each keyframe animation this node runs was first applied, by name, on
+    /// the frame clock. The start of an animation's timeline is the frame its name
+    /// appeared in the node's style, and it is kept for as long as the name stays
+    /// there, so a later rule that changes only its delay does not restart it.
+    private final Map<String, Double> keyframeStarts = new LinkedHashMap<>();
+
+    /// The blocks resolved against [#tracksTarget], by name.
+    private final Map<String, KeyframeTrack> tracks = new HashMap<>();
+
+    /// The style [#tracks] were resolved against, by identity. A new style is a
+    /// new resolution, since a keyframe's `var()` may mean something else now.
+    private @Nullable ComputedStyle tracksTarget;
+
+    /// Whether any keyframe animation was waiting or running on the last frame.
+    private boolean keyframesRunning;
+
     /// A node that has not animated anything yet.
     ///
     /// Built by the element that owns it, and by nothing else: an `Animations`
@@ -132,9 +159,9 @@ public final class Animations {
                 running.remove(property);
                 continue;
             }
-            var to = valueOf(target, property);
-            var from = currentOr(property, valueOf(before, property), now);
-            if (sameValue(property, from, to)) {
+            var to = Animatables.valueOf(target, property);
+            var from = currentOr(property, Animatables.valueOf(before, property), now);
+            if (Animatables.sameValue(property, from, to)) {
                 // Already there, or never left. Clearing here is what makes a
                 // finished transition stop costing a frame.
                 if (running.containsKey(property) && running.get(property).to().equals(to)) {
@@ -173,9 +200,66 @@ public final class Animations {
         for (var entry : running.entrySet()) {
             var property = entry.getKey();
             var animation = entry.getValue();
-            var value = interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
-            styled = withValue(styled, property, value);
+            var value = Animatables.interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
+            styled = Animatables.withValue(styled, property, value);
         }
+        return styled;
+    }
+
+    /// `base` with every keyframe animation `target` names applied at `now`
+    /// (ADR-0353).
+    ///
+    /// Beneath transitions, which is CSS's order: a transition's in-flight value
+    /// is applied over this result by [#apply], so a control whose hover colour
+    /// is moving shows the move even while a keyframe animation names the same
+    /// property.
+    ///
+    /// @param target the style the cascade resolved, which names the animations
+    ///               and is what their keyframes are resolved against
+    /// @param base   what to write the animated values onto, usually `target`
+    /// @param source resolves a block by name, for this node
+    public ComputedStyle animate(ComputedStyle target, ComputedStyle base, double now, KeyframeSource source) {
+        Objects.requireNonNull(target, "target");
+        Objects.requireNonNull(base, "base");
+        Objects.requireNonNull(source, "source");
+        var declared = target.animations();
+        if (declared.isEmpty()) {
+            keyframeStarts.clear();
+            tracks.clear();
+            tracksTarget = null;
+            keyframesRunning = false;
+            return base;
+        }
+        if (tracksTarget != target) {
+            tracks.clear();
+            tracksTarget = target;
+        }
+        var entries = declared.entries();
+        var names = new HashSet<String>();
+        var styled = base;
+        var anyRunning = false;
+        for (var entry : entries) {
+            names.add(entry.name());
+            var start = keyframeStarts.computeIfAbsent(entry.name(), name -> now);
+            var elapsed = now - start;
+            anyRunning |= KeyframeTrack.isRunning(entry, elapsed);
+            var progress = KeyframeTrack.progress(entry, elapsed);
+            if (progress == null) {
+                continue;
+            }
+            var track = tracks.get(entry.name());
+            if (track == null) {
+                track = source.track(entry.name(), target);
+                if (track == null) {
+                    continue;
+                }
+                tracks.put(entry.name(), track);
+            }
+            styled = track.apply(styled, progress, entry.easing());
+        }
+        keyframeStarts.keySet().retainAll(names);
+        tracks.keySet().retainAll(names);
+        keyframesRunning = anyRunning;
         return styled;
     }
 
@@ -190,12 +274,13 @@ public final class Animations {
     /// @return whether this node needs another frame
     public boolean settle(double now) {
         running.entrySet().removeIf(entry -> entry.getValue().isDoneAt(now));
-        return !running.isEmpty();
+        return !running.isEmpty() || keyframesRunning;
     }
 
-    /// Whether anything is in flight.
+    /// Whether anything is in flight — a transition, or a keyframe animation
+    /// waiting out its delay or running.
     public boolean isAnimating() {
-        return !running.isEmpty();
+        return !running.isEmpty() || keyframesRunning;
     }
 
     /// How many properties are moving — diagnostics, and what a test asserts
@@ -211,66 +296,6 @@ public final class Animations {
             return fallback;
         }
         // The retarget rule: a reversal starts from where the value actually is.
-        return interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
-    }
-
-    /// A property's value read off a style.
-    ///
-    /// Colours are carried as their `0xAARRGGBB` bits in a `Double`, which is
-    /// exact — a double holds every 32-bit integer — so the four numeric
-    /// properties share one representation. `transform` is the [Transform]
-    /// itself and `box-shadow` the [Shadow] itself; see [Running] for why that
-    /// is worth a boxed value.
-    private static Object valueOf(ComputedStyle style, Animatable property) {
-        return switch (property) {
-            case OPACITY -> style.opacity();
-            case BACKGROUND_COLOR -> (double) style.background();
-            case BORDER_COLOR -> (double) style.decoration().borderColor();
-            case BOX_SHADOW -> style.decoration().shadow();
-            case COLOR -> (double) style.color();
-            case TRANSFORM -> style.transform();
-        };
-    }
-
-    private static ComputedStyle withValue(ComputedStyle style, Animatable property, Object value) {
-        return switch (property) {
-            case OPACITY -> style.opacity((Double) value);
-            case BACKGROUND_COLOR -> style.background(argb(value));
-            case BORDER_COLOR -> style.decoration(style.decoration().borderColor(argb(value)));
-            case BOX_SHADOW -> style.decoration(style.decoration().shadow((Shadow) value));
-            case COLOR -> style.color(argb(value));
-            case TRANSFORM -> style.transform((Transform) value);
-        };
-    }
-
-    private static int argb(Object value) {
-        return (int) Math.round((Double) value);
-    }
-
-    private static boolean sameValue(Animatable property, Object a, Object b) {
-        // Opacity is the one that arrives from arithmetic rather than from a
-        // literal -- `45%` of an inherited value -- so two "equal" opacities can
-        // differ in the last bit and a transition would restart every frame.
-        if (property == Animatable.OPACITY) {
-            return Math.abs((Double) a - (Double) b) < 1e-6;
-        }
-        return a.equals(b);
-    }
-
-    /// Where a property is at eased progress `t`.
-    ///
-    /// Numbers move linearly; colours move through **OKLCH**, because the sRGB
-    /// midpoint of two saturated colours is a muddy grey that is neither of them
-    /// (§1.7, and the reason the space is specified rather than left to the
-    /// implementation); a transform moves function by function, which is what
-    /// makes halfway between `rotate(0)` and `rotate(180deg)` a rotation rather
-    /// than a collapsed box.
-    private static Object interpolate(Animatable property, Object from, Object to, double t) {
-        return switch (property) {
-            case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
-            case BACKGROUND_COLOR, BORDER_COLOR, COLOR -> (double) CssColor.mix(argb(from), argb(to), t);
-            case BOX_SHADOW -> ((Shadow) from).mix((Shadow) to, t);
-            case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
-        };
+        return Animatables.interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
     }
 }

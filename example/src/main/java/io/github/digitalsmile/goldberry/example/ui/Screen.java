@@ -97,7 +97,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons");
+            "canvas", "icons", "motion");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -122,7 +122,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("markdown", "Markdown"),
             Map.entry("html", "HTML"),
             Map.entry("canvas", "Canvas"),
-            Map.entry("icons", "Icons"));
+            Map.entry("icons", "Icons"),
+            Map.entry("motion", "Motion"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -294,7 +295,11 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // it is a virtualized `list` and owns a viewport of its own,
                     // which is [Navigation]'s reason and §2.4's ban on nested
                     // same-axis scrollers (ADR-0307).
-                    new Tab("icons", title("icons"), new IconsScreen(model, actions))))),
+                    new Tab("icons", title("icons"), new IconsScreen(model, actions)),
+                    // What moves by itself: a canvas choreography, `@keyframes`
+                    // and `@starting-style`, one card each. Last, so no digit
+                    // moves (ADR-0354).
+                    new Tab("motion", title("motion"), scrolled(new MotionScreen()))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

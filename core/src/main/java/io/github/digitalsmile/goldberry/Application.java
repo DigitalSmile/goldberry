@@ -3,8 +3,10 @@ package io.github.digitalsmile.goldberry;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.text.font.FontSource;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// What a Goldberry application implements. Everything else is
@@ -121,6 +123,54 @@ public interface Application {
     /// therefore two lines — set the field, call `restyle()` — and switching
     /// nothing costs nothing.
     default List<Stylesheet> stylesheets() {
+        return List.of();
+    }
+
+    /// The window's icon — the picture the taskbar, the dock and the window
+    /// switcher show — as several sizes of one image.
+    ///
+    /// ```java
+    /// @Override public List<Image> icon() {
+    ///     return Stream.of(16, 32, 48, 256)
+    ///             .map(size -> Image.decode(read("icons/app-" + size + ".png")))
+    ///             .toList();
+    /// }
+    /// ```
+    ///
+    /// Read once, as the window opens and before [#start]. [Image] rather than a
+    /// path, because `Image.decode` already exists and an application decodes from
+    /// its own resources. A list, because each platform wants its own sizes and a
+    /// scaled-down PNG is a blurred one. The toolkit picks which size the platform
+    /// scales from (`docs/gaps.md` G40, ADR-0351).
+    ///
+    /// Empty by default, which leaves the platform's generic icon. On macOS the
+    /// dock shows the application bundle's icon whatever this says, and on Wayland
+    /// a compositor without `xdg-toplevel-icon` shows the desktop file's. Installer
+    /// packaging covers both.
+    default List<Image> icon() {
+        return List.of();
+    }
+
+    /// The faces this application ships, added to the families `font-family` can
+    /// name.
+    ///
+    /// ```java
+    /// @Override public List<FontSource> fonts() {
+    ///     return List.of(FontSource.resource(
+    ///             "Forum", Weight.REGULAR, Style.UPRIGHT, MyApp.class, "fonts/Forum-Regular.ttf"));
+    /// }
+    /// ```
+    ///
+    /// Read **once**, before [#start], when the window's font book is opened. A
+    /// face reaches the cascade, paragraph layout, a field's caret and the glyph
+    /// cache together, because all four already share that book. The bundled
+    /// families are searched first, so a file called `Inter` does not replace the
+    /// face the design system's metrics were drawn against. A face whose bytes
+    /// cannot be read is logged once and drawn in the UI face (`docs/gaps.md`
+    /// G39, ADR-0349).
+    ///
+    /// Empty by default: the bundled faces are the whole design system.
+    default List<FontSource> fonts() {
         return List.of();
     }
 

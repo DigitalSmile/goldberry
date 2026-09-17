@@ -727,6 +727,25 @@ public final class Element implements BuildContext, StyleElement {
         return animations;
     }
 
+    /// Whether this element has been styled by a render yet — the question
+    /// `@starting-style` asks, since its rules apply to an element's **first**
+    /// style and to no later one (ADR-0352).
+    private boolean styled;
+
+    /// Notes that this element has been styled, and says whether this was the
+    /// first time.
+    ///
+    /// Held on the element for the reason every animation state is: a widget is
+    /// rebuilt constantly, and an element that survives a rebuild has not
+    /// entered again.
+    boolean firstStyled() {
+        if (styled) {
+            return false;
+        }
+        styled = true;
+        return true;
+    }
+
     /// Whether this node is animating — read without creating the state, so
     /// asking does not allocate.
     boolean isAnimating() {

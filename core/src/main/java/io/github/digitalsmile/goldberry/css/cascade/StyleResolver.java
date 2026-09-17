@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.css.Declaration;
+import io.github.digitalsmile.goldberry.css.Keyframes;
 import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.StyleRule;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -114,10 +115,27 @@ public final class StyleResolver {
     /// bucketing worth having.
     private final List<Candidate> untyped = new java.util.ArrayList<>();
 
+    /// `@starting-style` rules, bucketed the same way and kept **out** of the two
+    /// maps above: a starting rule is never part of the style an element has,
+    /// only of the one it transitions from on its first frame (ADR-0352).
+    private final java.util.Map<String, List<Candidate>> startingByType = new java.util.HashMap<>();
+
+    private final List<Candidate> startingUntyped = new java.util.ArrayList<>();
+
+    /// Every `@keyframes` block by name. A later sheet's block replaces an
+    /// earlier one's whole, and so does a later block in the same sheet, which is
+    /// CSS's rule. Keyframes do not merge (ADR-0353).
+    private final java.util.Map<String, Keyframes> keyframes = new java.util.HashMap<>();
+
     public StyleResolver(List<Stylesheet> stylesheets) {
         this.stylesheets = List.copyOf(Objects.requireNonNull(stylesheets, "stylesheets"));
         indexAncestorStates();
         indexByType();
+        for (var sheet : this.stylesheets) {
+            for (var block : sheet.keyframes()) {
+                keyframes.put(block.name(), block);
+            }
+        }
     }
 
     /// Buckets every rule by the type its rightmost compound names.
@@ -129,18 +147,19 @@ public final class StyleResolver {
         for (var sheet : stylesheets) {
             for (var rule : sheet.rules()) {
                 var candidate = new Candidate(rule, sheet.layer());
+                var typed = rule.starting() ? startingByType : byType;
                 var everywhere = false;
                 for (var selector : rule.selectors()) {
                     var subject = selector.parts().getFirst().compound().type();
                     if (subject == null) {
                         everywhere = true;
                     } else {
-                        byType.computeIfAbsent(subject, key -> new java.util.ArrayList<>())
+                        typed.computeIfAbsent(subject, key -> new java.util.ArrayList<>())
                                 .add(candidate);
                     }
                 }
                 if (everywhere) {
-                    untyped.add(candidate);
+                    (rule.starting() ? startingUntyped : untyped).add(candidate);
                 }
             }
         }
@@ -148,6 +167,11 @@ public final class StyleResolver {
 
     /// The rules that could match an element of this type.
     private List<Candidate> candidatesFor(String type) {
+        return candidatesFor(type, byType, untyped);
+    }
+
+    private static List<Candidate> candidatesFor(
+            String type, java.util.Map<String, List<Candidate>> byType, List<Candidate> untyped) {
         if (type == null) {
             return untyped;
         }
@@ -233,7 +257,85 @@ public final class StyleResolver {
         // declarations the cascade produces, so asking for them separately ran it
         // twice for every element resolved (ADR-0152).
         var declared = cascade(element);
-        var customProperties = customPropertiesFor(element, declared);
+        return substituted(element, declared, customPropertiesFor(element, declared));
+    }
+
+    /// Whether any sheet here has an `@starting-style` rule at all — the check
+    /// that keeps an element's first frame from running a second cascade in the
+    /// overwhelmingly common case of a sheet with none.
+    public boolean hasStartingStyles() {
+        return !startingByType.isEmpty() || !startingUntyped.isEmpty();
+    }
+
+    /// The declarations `element` **starts** from on its first frame, or null when
+    /// no `@starting-style` rule matches it (ADR-0352).
+    ///
+    /// CSS's "before-change style" for an element with no previous style: the
+    /// ordinary cascade with the matching starting rules added in their source
+    /// positions. So a starting rule that says only `opacity: 0` leaves every
+    /// other property where the ordinary rules put it, and only `opacity`
+    /// transitions.
+    ///
+    /// @return property name to value tokens, or null when nothing would differ
+    public @Nullable Map<String, List<Token>> resolveStarting(StyleElement element) {
+        Objects.requireNonNull(element, "element");
+        if (!hasStartingStyles()) {
+            return null;
+        }
+        var starting = candidatesFor(element.type(), startingByType, startingUntyped);
+        var matched = false;
+        for (var candidate : starting) {
+            if (matchesAny(candidate.rule(), element)) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            return null;
+        }
+        var all = new ArrayList<Candidate>(candidatesFor(element.type()));
+        all.addAll(starting);
+        // The element's own custom properties, not the starting cascade's: a
+        // starting rule that declared one would otherwise be cached as the
+        // element's for every later frame.
+        return substituted(element, cascade(element, all), customPropertiesFor(element));
+    }
+
+    /// The `@keyframes` block called `name`, or null when no sheet declares one.
+    public @Nullable Keyframes keyframes(String name) {
+        return keyframes.get(Objects.requireNonNull(name, "name"));
+    }
+
+    /// One keyframe's declarations, with `var()` resolved **for `element`**, in
+    /// source order — or null for a declaration whose `var()` resolves to nothing,
+    /// which is dropped here as it would be anywhere else.
+    ///
+    /// Per element, because `var(--gb-accent)` in a keyframe means the accent of
+    /// the element the animation runs on (ADR-0353).
+    public Map<String, List<Token>> resolveKeyframe(StyleElement element, Keyframes.Frame frame) {
+        Objects.requireNonNull(element, "element");
+        Objects.requireNonNull(frame, "frame");
+        var declared = new java.util.LinkedHashMap<String, List<Token>>();
+        for (var declaration : frame.declarations()) {
+            declared.remove(declaration.property());
+            declared.put(declaration.property(), declaration.value());
+        }
+        return substituted(element, declared, customPropertiesFor(element));
+    }
+
+    private static boolean matchesAny(StyleRule rule, StyleElement element) {
+        for (var selector : rule.selectors()) {
+            if (SelectorMatcher.matches(selector, element)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// `declared` with every `var()` substituted against `customProperties`, and
+    /// custom properties themselves left out.
+    private Map<String, List<Token>> substituted(
+            StyleElement element, Map<String, List<Token>> declared, Map<String, List<Token>> customProperties) {
 
         var resolved = new LinkedHashMap<String, List<Token>>();
         for (var entry : declared.entrySet()) {
@@ -332,12 +434,16 @@ public final class StyleResolver {
 
     /// The winning declaration for each property on `element`, before `var()`.
     private Map<String, List<Token>> cascade(StyleElement element) {
+        return cascade(element, candidatesFor(element.type()));
+    }
+
+    private Map<String, List<Token>> cascade(StyleElement element, List<Candidate> candidates) {
         var matches = new ArrayList<Match>();
         // Only the rules whose rightmost compound could name this element. The
         // order they come out in does not matter: every match carries its layer,
         // its specificity and the rule's own order, and the sort below is what
         // decides the winner (ADR-0152).
-        for (var candidate : candidatesFor(element.type())) {
+        for (var candidate : candidates) {
             var rule = candidate.rule();
             // The most specific *matching* selector in the list is the one
             // that represents the rule, per the cascade.

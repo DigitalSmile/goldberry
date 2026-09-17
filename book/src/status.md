@@ -7116,6 +7116,50 @@ What each of the four left behind — a `badge` marker, a `scaleX` connector, a
 floating button's scale-in, and the roles a bridge would give them — is four
 entries at the top of [TODO.md](TODO.md)'s catalog section.
 
+### Five more gap entries, and three kinds of motion
+
+`docs/gaps.md` G39 to G43 arrived on 2026-09-17 and are answered. Working notes
+are in `docs/gaps-g39-g43.md`.
+
+- **A `canvas` asks for its next frame**
+  ([ADR-0348](adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)).
+  `Canvas.animating(Predicate<CanvasStyle>)`, asked by the renderer straight after
+  `render`, through a new `Paints.isAnimating(ComputedStyle, Context)` whose
+  default is the old question.
+- **Faces an application ships**
+  ([ADR-0349](adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md)).
+  `Application.fonts()` returns `FontSource`s, and the window's book searches them
+  after the bundled faces by the one matching rule both now share (`assets.Face`).
+  A face that will not open is logged once and drawn in Inter.
+- **`text-area`'s gutter strip**
+  ([ADR-0350](adr/0350-a-gutter-strip-is-outside-the-clip-its-numbers-are-inside.md)).
+  The field draws a clipped content layer and puts the strip beside it, so the
+  strip reaches the border. The wrap subtracts each padding edge once, where it
+  used to double the left one.
+- **A window icon**
+  ([ADR-0351](adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)),
+  and **two new native symbols**, both optional: `SDL_SetWindowIcon` and
+  `SDL_AddSurfaceAlternateImage`. `Application.icon()` is several sizes, and
+  the backend picks the base SDL scales from. The showcase has a computed icon.
+- G42 was already built as `Host.openExternal` (ADR-0346).
+
+And three ways for something to move by itself, asked for alongside the gaps:
+
+- **`@starting-style`** ([ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md)).
+  On an element's first styled frame, its declared transitions run from the
+  starting style. `button.float` enters with §3.1's scale 0.9→1, which ADR-0347
+  could not build.
+- **`@keyframes` and `animation`** ([ADR-0353](adr/0353-a-stylesheet-may-name-keyframes.md)).
+  CSS's timing model (delay, iterations, direction, fill, easing per segment) as a
+  second layer of the overlay, beneath transitions and under the same whitelist.
+  Reduced motion drops every keyframe animation. The toolkit's sheets declare
+  none, and a test keeps §1.7's rule 4 true of them.
+- **A choreography on a canvas** ([ADR-0354](adr/0354-a-choreography-is-a-function-of-time-and-a-timer-wakes-it.md)).
+  The showcase's new **Motion** screen: a tile floor that settles as a ripple and
+  re-glazes itself, drawn as a function of the frame time, asking for frames only
+  while something moves and woken by a host timer in between. It has a card for
+  each of the other two mechanisms as well.
+
 ### Not started
 
 **Client-side decorations.** §3, §4, §6, §7 and §10 are **complete**, mechanism

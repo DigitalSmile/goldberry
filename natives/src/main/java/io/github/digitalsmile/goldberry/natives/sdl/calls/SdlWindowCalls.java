@@ -23,6 +23,7 @@ public record SdlWindowCalls(
         DestroyWindow destroyWindow,
         ShowWindow showWindow,
         SetWindowTitle setWindowTitle,
+        SetWindowIcon setWindowIcon,
         MaximizeWindow maximizeWindow,
         RestoreWindow restoreWindow,
         SetWindowPosition setWindowPosition,
@@ -47,6 +48,7 @@ public record SdlWindowCalls(
                 new DestroyWindow(lookup),
                 new ShowWindow(lookup),
                 new SetWindowTitle(lookup),
+                new SetWindowIcon(lookup),
                 new MaximizeWindow(lookup),
                 new RestoreWindow(lookup),
                 new SetWindowPosition(lookup),
@@ -237,6 +239,47 @@ public record SdlWindowCalls(
                 return (boolean) FD_SDL_SetWindowTitle.invokeExact(address, window, title);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetWindowTitle", t);
+            }
+        }
+    }
+
+    /// Sets the picture the taskbar, the dock and the window switcher show for a
+    /// window.
+    ///
+    /// SDL converts the surface, and every alternate hung off it, into its own
+    /// copy before this returns, so the caller's surface and pixels need only
+    /// outlive the call (ADR-0351).
+    ///
+    /// `_Bool SDL_SetWindowIcon(void*, void*)`
+    public static final class SetWindowIcon {
+
+        private static final MethodHandle FD_SDL_SetWindowIcon =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetWindowIcon(SymbolLookup lookup) {
+            // Optional: a `libgoldberry` built before the export must keep opening
+            // windows, and a window with the platform's generic icon is still a
+            // window (ADR-0351).
+            this.address = Downcalls.optionalSymbol(lookup, "SDL_SetWindowIcon");
+        }
+
+        /// Whether this build of the library exports it.
+        public boolean isAvailable() {
+            return address != null;
+        }
+
+        /// Calls `SDL_SetWindowIcon`.
+        ///
+        /// @param icon an `SDL_Surface*`, possibly with alternates
+        /// @return false if SDL refused — on Wayland, a compositor without the
+        ///         `xdg-toplevel-icon` protocol is one
+        public boolean call(MemorySegment window, MemorySegment icon) {
+            try {
+                return (boolean) FD_SDL_SetWindowIcon.invokeExact(address, window, icon);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetWindowIcon", t);
             }
         }
     }

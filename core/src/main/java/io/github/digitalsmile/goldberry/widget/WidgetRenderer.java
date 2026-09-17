@@ -1,17 +1,22 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.motion.KeyframeTrack;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.ParagraphCache;
@@ -33,6 +38,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// costs nothing at paint time.
 public final class WidgetRenderer {
 
+    private static final Logger LOG = Logs.of(WidgetRenderer.class);
+
     private final StyleResolver resolver;
     private final CssLength.Context lengths;
     private final Paints.Context paintContext;
@@ -47,6 +54,9 @@ public final class WidgetRenderer {
 
     /// Whether `prefers-reduced-motion` is on — §1.7's rule 6.
     private boolean reducedMotion;
+
+    /// Names `animation-name` used that no sheet declares, reported once each.
+    private final Set<String> unknownKeyframes = new HashSet<>();
 
     /// Whether the tree rendered by the last [#render(ElementTree)] is still
     /// moving. Read by the application to decide whether to ask for another
@@ -381,6 +391,41 @@ public final class WidgetRenderer {
         return paragraphs;
     }
 
+    /// `style` as a user who asked for less movement gets it: every transition
+    /// instant and every keyframe animation gone (§1.7's rule 6).
+    private static ComputedStyle reduced(ComputedStyle style) {
+        return style.transitions(style.transitions().reduced())
+                .animations(style.animations().reduced());
+    }
+
+    /// The style `element` enters from, or null when no `@starting-style` rule
+    /// matches it (ADR-0352).
+    ///
+    /// The widget's inline values are applied to it as they are to the element's
+    /// real style. A segmented control's indicator position is the widget's last
+    /// word on both, so it does not appear to move on the first frame.
+    private @Nullable ComputedStyle startingStyle(Element element, @Nullable ComputedStyle inherited) {
+        var declared = resolver.resolveStarting(element);
+        if (declared == null) {
+            return null;
+        }
+        var starting = ComputedStyle.of(declared, lengths, inherited);
+        return element.widget() instanceof Styled styled ? styled.restyle(starting) : starting;
+    }
+
+    /// The `@keyframes` block called `name`, resolved for `element` against
+    /// `target`, or null when no stylesheet declares one (ADR-0353).
+    private @Nullable KeyframeTrack track(Element element, String name, ComputedStyle target) {
+        var block = resolver.keyframes(name);
+        if (block == null) {
+            if (unknownKeyframes.size() < 512 && unknownKeyframes.add(name)) {
+                LOG.warn("animation-name \"{}\" names no @keyframes block in any stylesheet", name);
+            }
+            return null;
+        }
+        return KeyframeTrack.resolve(block, target, frame -> resolver.resolveKeyframe(element, frame), lengths);
+    }
+
     /// The boxes one element contributes — one if it paints, otherwise its
     /// children's.
     ///
@@ -485,12 +530,28 @@ public final class WidgetRenderer {
         // style, because a cascade that saw the halfway colour as the node's real
         // one would start a second transition from it and never arrive.
         var painted = self;
-        if (self != null && (!self.transitions().isEmpty() || element.isAnimating())) {
+        // Asked on every element's first styled frame, whether or not it
+        // transitions, so the flag means "has been styled" and not "has been
+        // styled while something moved". The cascade behind it runs only when a
+        // sheet has a starting rule and one matches (ADR-0352).
+        var entering = self != null && element.firstStyled();
+        if (self != null && (!self.transitions().isEmpty() || !self.animations().isEmpty() || element.isAnimating())) {
             var motionBegan = trace == null ? 0L : System.nanoTime();
             var animations = element.animations();
-            animations.observe(
-                    reducedMotion ? self.transitions(self.transitions().reduced()) : self, now);
-            painted = animations.apply(self, now);
+            var target = reducedMotion ? reduced(self) : self;
+            if (entering && !self.transitions().isEmpty()) {
+                var starting = startingStyle(element, inherited);
+                if (starting != null) {
+                    // Observed first, so the target observed next is a change
+                    // from it and every transition it declares starts from the
+                    // starting value -- which is all `@starting-style` is.
+                    animations.observe(reducedMotion ? reduced(starting) : starting, now);
+                }
+            }
+            animations.observe(target, now);
+            // Keyframes beneath transitions, CSS's order (ADR-0353).
+            var keyframed = animations.animate(target, self, now, (name, style) -> track(element, name, style));
+            painted = animations.apply(keyframed, now);
             animating |= animations.settle(now);
             if (trace != null) {
                 trace.motion(System.nanoTime() - motionBegan);
@@ -520,8 +581,13 @@ public final class WidgetRenderer {
         // `canvas` does -- cannot read a stale node's tokens.
         currentElement = element;
         Box box;
+        // Asked inside the same window as `render`, so a context read by the
+        // answer -- a canvas's predicate is handed its `CanvasStyle` -- is still
+        // this node's (ADR-0348).
+        boolean wantsFrame;
         try {
             box = paints.render(painted, List.copyOf(children), paintContext).owner(element);
+            wantsFrame = paints.isAnimating(painted, paintContext);
         } finally {
             currentElement = null;
         }
@@ -542,7 +608,7 @@ public final class WidgetRenderer {
         // the one that goes quiet: one wasted frame per arrival, per widget, and
         // the reason a golden of an arrival had to render three times
         // (ADR-0228).
-        animating |= paints.isAnimating();
+        animating |= wantsFrame;
         return List.of(box);
     }
 }
