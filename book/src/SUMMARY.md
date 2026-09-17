@@ -392,6 +392,8 @@
 - [ADR-0379 A disabled container reaches the cascade](adr/0379-a-disabled-container-reaches-the-cascade.md)
 - [ADR-0380 The tooltip row is what ships](adr/0380-the-tooltip-row-is-what-ships.md)
 - [ADR-0381 A rank has two spellings and one meaning](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
+- [ADR-0382 A GIF has the frames after the first](adr/0382-a-gif-has-the-frames-after-the-first.md)
+- [ADR-0385 WebP is written, and animated](adr/0385-webp-is-written-and-animated.md)
 
 ---
 

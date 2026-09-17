@@ -157,6 +157,12 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.image;
     exports io.github.digitalsmile.goldberry.image.png;
 
+    // A picture with more than one frame in it (ADR-0382). Its own package for
+    // `image.png`'s reason: the *sequence* is a value with arithmetic of its own
+    // — which frame is being shown, how long a pass takes, whether it ever stops
+    // — and none of that needs a decoder, a frame or a clock.
+    exports io.github.digitalsmile.goldberry.image.anim;
+
     // The GIF decoder (`docs/gaps.md` G35a, ADR-0329). Exported beside the PNG
     // encoder and for its reason: both are formats this toolkit owns outright
     // rather than links, and an application that has a reason to reach one

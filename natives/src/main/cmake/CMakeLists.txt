@@ -461,11 +461,19 @@ FetchContent_Declare(md4c
 # format is VP8, which is a video codec; there is no pure-Java answer worth
 # writing, and the reference decoder is BSD and small.
 #
-# **Only `webpdecoder`.** Upstream builds a decoder library out of three object
-# libraries and nothing else, which is what this links; the encoder, the muxer,
-# the demuxer (animation), the near-lossless path and all nine command-line tools
-# are switched off below. Goldberry reads one still frame and writes PNG, so the
-# encoder would be several hundred kilobytes of code nothing can reach.
+# **`webp` and `webpdemux`** (ADR-0385). This used to link `webpdecoder` alone --
+# the decoder-only library -- on the grounds that Goldberry reads one still frame
+# and writes PNG, so an encoder would be several hundred kilobytes nothing could
+# reach. Two things changed: an application that photographs a canvas wants to
+# *write* a WebP, and an animated WebP was what was left of the "one frame only"
+# entry once animated GIF was built. Both live in targets upstream already
+# builds -- `webp` is the decoder plus the encoder, `webpdemux` is the animation
+# reader over it -- so this is a link line and an export list rather than new
+# code.
+#
+# The command-line tools, the muxer (*writing* an animation) and the extras stay
+# off: nothing here assembles a WebP animation, and switching on nine binaries
+# to reach a library is how a build gets slow.
 #
 # Its headers mark the API `visibility("default")` on GCC and Clang -- unlike
 # Blend2D's and HarfBuzz's, which do not when built statically -- so it needs no
@@ -493,13 +501,16 @@ set(WEBP_BUILD_WEBP_JS OFF CACHE BOOL "" FORCE)
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
 FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c libwebp)
 
-if(NOT TARGET webpdecoder)
-    message(FATAL_ERROR
-        "libwebp was fetched but defines no `webpdecoder` target.\n"
-        "That target is the decoder-only library this build links -- see the "
-        "FetchContent block above and ADR-0329. An upstream that renamed it is a "
-        "build failure here rather than a missing symbol at load time.")
-endif()
+foreach(webp_target webp webpdemux)
+    if(NOT TARGET ${webp_target})
+        message(FATAL_ERROR
+            "libwebp was fetched but defines no `${webp_target}` target.\n"
+            "Those two are the codec and the animation reader this build links -- see "
+            "the FetchContent block above, ADR-0329 and ADR-0385. An upstream that "
+            "renamed one is a build failure here rather than a missing symbol at load "
+            "time.")
+    endif()
+endforeach()
 
 # --- What SDL actually decided (docs/gaps.md G32) ----------------------------
 #
@@ -652,7 +663,10 @@ target_link_libraries(goldberry PRIVATE
     yogacore
     harfbuzz
     SDL3::SDL3-static
-    webpdecoder)
+    # The demuxer first: it links `webp`, and a static link line is read left to
+    # right.
+    webpdemux
+    webp)
 
 # ============================================================================
 # Exported surface

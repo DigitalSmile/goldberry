@@ -21,17 +21,29 @@ import java.util.Objects;
 /// the same kind of thing: a format small enough that owning it costs less than
 /// linking it.
 ///
-/// ## The first frame, and only the first
+/// ## One frame, or all of them
 ///
-/// An animated GIF is a still image with more frames after it, and this reads the
-/// first one. That is a deliberate stop rather than an oversight: what an
-/// application does with a GIF here is put a picture on a board, and animation is
-/// a scheduler, a frame-disposal model and a clock — none of which belongs in a
-/// decoder. A GIF with one frame, which is most of them, decodes exactly.
+/// [#decode] reads the first frame, which is what a still picture on a board
+/// needs and what most GIFs contain. [#decodeAll] reads the sequence: every
+/// frame composited onto the one before it under the file's own disposal rules,
+/// each with the delay it declares, plus how many times the file says to loop
+/// ([ADR-0382]).
 ///
-/// The frame is composited onto the **logical screen** the file declares, so an
-/// image whose first frame is smaller than the canvas comes back the size the
-/// file says it is, with transparent pixels around it.
+/// The disposal model is the whole of why a frame cannot simply be decoded on
+/// its own. A GIF frame is usually a **patch** — an optimizer writes only the
+/// pixels that changed — and what is under it depends on what the frame before
+/// it asked for when it left: keep the canvas, clear the patch back to
+/// transparent, or put back what was there before the patch was drawn. A decoder
+/// that ignored it draws a trail of every frame at once, which is the classic
+/// way an animated GIF renders wrong.
+///
+/// The clock is still nobody's business here. What comes out is frames and
+/// durations; [io.github.digitalsmile.goldberry.image.anim.Animation] is what
+/// turns "how long has this been playing" into which of them to draw.
+///
+/// Each frame is composited onto the **logical screen** the file declares, so an
+/// image whose frames are smaller than the canvas comes back the size the file
+/// says it is, with transparent pixels around it.
 ///
 /// ## What comes out
 ///
@@ -56,9 +68,34 @@ public final class GifDecoder {
     /// Ends the file.
     private static final int TRAILER = 0x3B;
 
-    /// The extension that carries the transparent colour index and the frame
-    /// delay. The delay is read and discarded: see the note on animation above.
+    /// The extension that carries the transparent colour index, the frame delay
+    /// and what to do with the frame when it is over.
     private static final int GRAPHIC_CONTROL = 0xF9;
+
+    /// The extension a loop count is written in — NETSCAPE2.0, which is not in
+    /// any specification and is in almost every animated GIF.
+    private static final int APPLICATION = 0xFF;
+
+    /// What a frame asks for when it is over: leave the canvas alone.
+    private static final int DISPOSE_KEEP = 1;
+
+    /// Clear the frame's own rectangle back to transparent.
+    private static final int DISPOSE_BACKGROUND = 2;
+
+    /// Put back what was under the frame before it was drawn.
+    private static final int DISPOSE_PREVIOUS = 3;
+
+    /// What a frame with no delay is worth, in hundredths of a second.
+    ///
+    /// Browsers agree on this and no specification says it: a file asking for 0
+    /// means "as fast as possible", every renderer refuses, and 100 fps is not
+    /// what the author wanted either. 10 is the number Firefox and Chromium both
+    /// use for delays below their floor.
+    private static final int DEFAULT_DELAY_HUNDREDTHS = 10;
+
+    /// Below this, a delay is the default above instead — the same floor, and the
+    /// same two browsers.
+    private static final int MINIMUM_DELAY_HUNDREDTHS = 2;
 
     /// The rows an interlaced GIF is written in: every eighth from 0, every
     /// eighth from 4, every fourth from 2, every second from 1.
@@ -102,6 +139,49 @@ public final class GifDecoder {
         /// `width * height` pixels of `0xAARRGGBB`, row-major.
         public int[] argb() {
             return argb;
+        }
+    }
+
+    /// Every frame of a GIF, each already composited, with how long it is shown
+    /// and how many times the file asks to be played.
+    ///
+    /// @param frames    the frames, in order
+    /// @param loopCount how many times to play — **0 means for ever**, which is
+    ///                  what the NETSCAPE extension's own 0 means, and 1 is what
+    ///                  a file with no such extension gets
+    public record Sequence(java.util.List<Frame> frames, int loopCount) {
+
+        public Sequence {
+            frames = java.util.List.copyOf(frames);
+            if (frames.isEmpty()) {
+                throw new IllegalArgumentException("a sequence with no frames in it is not one");
+            }
+        }
+
+        /// Whether this is one frame — a still picture, which most GIFs are.
+        public boolean isStill() {
+            return frames.size() == 1;
+        }
+
+        /// How long one pass through takes, in milliseconds.
+        public int durationMillis() {
+            var total = 0;
+            for (var frame : frames) {
+                total += frame.delayMillis();
+            }
+            return total;
+        }
+    }
+
+    /// One frame of a [Sequence]: the whole logical screen as it looks while
+    /// that frame is shown, and how long it is shown for.
+    public record Frame(Decoded image, int delayMillis) {
+
+        public Frame {
+            Objects.requireNonNull(image, "image");
+            if (delayMillis < 0) {
+                throw new IllegalArgumentException("a frame is shown for " + delayMillis + "ms, which is not a time");
+            }
         }
     }
 
@@ -151,25 +231,205 @@ public final class GifDecoder {
         }
     }
 
-    private static Decoded read(ByteBuffer in) {
+    /// Decodes every frame of `bytes`.
+    ///
+    /// Each frame is the whole logical screen with that frame drawn onto what the
+    /// frames before it left — see the note on disposal above. A GIF with one
+    /// frame comes back as a sequence of one, and is exactly what [#decode]
+    /// returns.
+    ///
+    /// @throws GifFormatException if the bytes are not a GIF, or are a GIF that
+    ///         ends in the middle of something
+    public static Sequence decodeAll(ByteBuffer bytes) {
+        Objects.requireNonNull(bytes, "bytes");
+        if (!looksLikeGif(bytes)) {
+            throw new GifFormatException("these bytes do not begin with a GIF signature");
+        }
+        var in = bytes.slice().order(ByteOrder.LITTLE_ENDIAN);
+        try {
+            return readAll(in);
+        } catch (BufferUnderflowException | IndexOutOfBoundsException e) {
+            throw new GifFormatException("this GIF ends in the middle of a block: " + in.limit() + " bytes", e);
+        }
+    }
+
+    /// Every frame, in order, each composited onto what the one before it left.
+    private static Sequence readAll(ByteBuffer in) {
+        var screen = header(in);
+        var frames = new java.util.ArrayList<Frame>();
+        var loopCount = 1;
+
+        // The canvas every frame is drawn onto, and what the *next* frame will
+        // find there. A GIF frame is a patch on what is already drawn, which is
+        // the whole reason this loop carries a canvas rather than decoding each
+        // frame on its own.
+        var canvas = new int[Math.multiplyExact(screen.width(), screen.height())];
+        var control = Control.NONE;
+
+        while (true) {
+            var block = Byte.toUnsignedInt(in.get());
+            if (block == TRAILER) {
+                break;
+            }
+            if (block == EXTENSION) {
+                var label = Byte.toUnsignedInt(in.get());
+                if (label == GRAPHIC_CONTROL) {
+                    control = graphicControl(in);
+                } else if (label == APPLICATION) {
+                    var found = loopCount(in);
+                    if (found >= 0) {
+                        loopCount = found;
+                    }
+                } else {
+                    skipSubBlocks(in);
+                }
+                continue;
+            }
+            if (block != IMAGE) {
+                throw new GifFormatException(
+                        "0x" + Integer.toHexString(block) + " is not a block a GIF may start with here");
+            }
+
+            var patch = descriptor(in, screen, control.transparentIndex());
+            // What has to go back when this frame is over, captured *before* it
+            // is drawn — because "previous" means before, and after is too late.
+            var restore = control.disposal() == DISPOSE_PREVIOUS ? canvas.clone() : null;
+            draw(canvas, screen, patch);
+            frames.add(new Frame(new Decoded(screen.width(), screen.height(), canvas.clone()), control.delayMillis()));
+
+            canvas = disposed(canvas, screen, patch, control.disposal(), restore);
+            control = Control.NONE;
+        }
+        if (frames.isEmpty()) {
+            throw new GifFormatException("this GIF has no image in it: the trailer came first");
+        }
+        return new Sequence(frames, loopCount);
+    }
+
+    /// The canvas the next frame starts from.
+    private static int[] disposed(int[] canvas, Screen screen, Patch patch, int disposal, int[] restore) {
+        return switch (disposal) {
+            case DISPOSE_BACKGROUND -> {
+                // The frame's own rectangle back to transparent. "Background" is
+                // what the specification calls it and transparent is what every
+                // renderer does: the background *colour* index has meant nothing
+                // since the format left CompuServe.
+                for (var y = Math.max(0, patch.top());
+                        y < Math.min(screen.height(), patch.top() + patch.height());
+                        y++) {
+                    for (var x = Math.max(0, patch.left());
+                            x < Math.min(screen.width(), patch.left() + patch.width());
+                            x++) {
+                        canvas[y * screen.width() + x] = 0;
+                    }
+                }
+                yield canvas;
+            }
+            case DISPOSE_PREVIOUS -> restore == null ? canvas : restore;
+            // KEEP, and "no disposal specified" -- which is 0, and which every
+            // renderer treats as keep.
+            default -> canvas;
+        };
+    }
+
+    /// The header, up to and including the global colour table.
+    private static Screen header(ByteBuffer in) {
         in.position(6);
-        var screenWidth = Short.toUnsignedInt(in.getShort());
-        var screenHeight = Short.toUnsignedInt(in.getShort());
+        var width = Short.toUnsignedInt(in.getShort());
+        var height = Short.toUnsignedInt(in.getShort());
         var packed = Byte.toUnsignedInt(in.get());
-        in.get(); // the background colour index, which this does not use: see below
+        in.get(); // the background colour index, which nothing here uses
         in.get(); // the pixel aspect ratio, which nothing has honoured since 1990
-
-        if (screenWidth <= 0 || screenHeight <= 0) {
-            throw new GifFormatException("a GIF's logical screen is " + screenWidth + "x" + screenHeight
-                    + ", which is not a size an image can have");
+        if (width <= 0 || height <= 0) {
+            throw new GifFormatException(
+                    "a GIF's logical screen is " + width + "x" + height + ", which is not a size an image can have");
         }
-
-        int[] globalPalette = null;
+        int[] palette = null;
         if ((packed & 0x80) != 0) {
-            globalPalette = palette(in, 2 << (packed & 0x07));
+            palette = palette(in, 2 << (packed & 0x07));
+        }
+        return new Screen(width, height, palette);
+    }
+
+    /// The logical screen, and the colours a frame falls back to.
+    ///
+    /// A class rather than a record for [Decoded]'s reason: the palette is an
+    /// array, and a record holding one has an `equals` that lies.
+    private static final class Screen {
+
+        private final int width;
+        private final int height;
+        private final int[] palette;
+
+        Screen(int width, int height, int[] palette) {
+            this.width = width;
+            this.height = height;
+            this.palette = palette;
         }
 
-        var transparentIndex = -1;
+        int width() {
+            return width;
+        }
+
+        int height() {
+            return height;
+        }
+
+        int[] palette() {
+            return palette;
+        }
+    }
+
+    /// What a graphic control extension said about the frame after it.
+    private record Control(int disposal, int delayMillis, int transparentIndex) {
+
+        /// What a frame with no control extension before it gets.
+        static final Control NONE = new Control(DISPOSE_KEEP, hundredthsToMillis(0), -1);
+    }
+
+    /// Reads a graphic control extension.
+    private static Control graphicControl(ByteBuffer in) {
+        var size = Byte.toUnsignedInt(in.get());
+        var fields = Byte.toUnsignedInt(in.get());
+        var hundredths = Short.toUnsignedInt(in.getShort());
+        var index = Byte.toUnsignedInt(in.get());
+        // The block length is always 4 in every version of the specification, but
+        // skipping by what it says rather than by what it should say costs
+        // nothing and survives an extension.
+        in.position(in.position() + Math.max(0, size - 4));
+        skipSubBlocks(in);
+        return new Control((fields >> 2) & 0x07, hundredthsToMillis(hundredths), (fields & 0x01) != 0 ? index : -1);
+    }
+
+    /// A delay in hundredths as milliseconds, with the floor every renderer
+    /// applies — see [#DEFAULT_DELAY_HUNDREDTHS].
+    private static int hundredthsToMillis(int hundredths) {
+        return (hundredths < MINIMUM_DELAY_HUNDREDTHS ? DEFAULT_DELAY_HUNDREDTHS : hundredths) * 10;
+    }
+
+    /// The loop count out of a NETSCAPE2.0 application extension, or -1 for any
+    /// other application block.
+    private static int loopCount(ByteBuffer in) {
+        var size = Byte.toUnsignedInt(in.get());
+        var identifier = new byte[size];
+        in.get(identifier);
+        var netscape = new String(identifier, java.nio.charset.StandardCharsets.US_ASCII).startsWith("NETSCAPE");
+        var loops = -1;
+        var length = Byte.toUnsignedInt(in.get());
+        while (length != 0) {
+            var at = in.position();
+            if (netscape && length >= 3 && Byte.toUnsignedInt(in.get(at)) == 1) {
+                loops = Short.toUnsignedInt(in.getShort(at + 1));
+            }
+            in.position(at + length);
+            length = Byte.toUnsignedInt(in.get());
+        }
+        return loops;
+    }
+
+    private static Decoded read(ByteBuffer in) {
+        var screen = header(in);
+        var control = Control.NONE;
         while (true) {
             var block = Byte.toUnsignedInt(in.get());
             if (block == TRAILER) {
@@ -178,34 +438,73 @@ public final class GifDecoder {
             if (block == EXTENSION) {
                 var label = Byte.toUnsignedInt(in.get());
                 if (label == GRAPHIC_CONTROL) {
-                    var size = Byte.toUnsignedInt(in.get());
-                    var fields = Byte.toUnsignedInt(in.get());
-                    in.getShort(); // the delay, in hundredths: animation is not read
-                    var index = Byte.toUnsignedInt(in.get());
-                    transparentIndex = (fields & 0x01) != 0 ? index : -1;
-                    // The block length is always 4 in every version of the
-                    // specification, but skipping by what it says rather than by
-                    // what it should say costs nothing and survives an extension.
-                    in.position(in.position() + Math.max(0, size - 4));
-                    skipSubBlocks(in);
+                    control = graphicControl(in);
+                } else if (label == APPLICATION) {
+                    loopCount(in);
                 } else {
                     skipSubBlocks(in);
                 }
                 continue;
             }
             if (block == IMAGE) {
-                return frame(in, screenWidth, screenHeight, globalPalette, transparentIndex);
+                var patch = descriptor(in, screen, control.transparentIndex());
+                // The whole screen, transparent, with the frame drawn into it. A
+                // frame smaller than the screen is ordinary -- an optimizer
+                // writes one whenever only part of the picture changed -- and
+                // cropping to it would hand back an image of a size the file
+                // never claimed.
+                var argb = new int[Math.multiplyExact(screen.width(), screen.height())];
+                draw(argb, screen, patch);
+                return new Decoded(screen.width(), screen.height(), argb);
             }
             throw new GifFormatException(
                     "0x" + Integer.toHexString(block) + " is not a block a GIF may start with here");
         }
     }
 
-    /// The first image descriptor and the frame behind it, composited onto the
-    /// logical screen.
-    private static Decoded frame(
-            ByteBuffer in, int screenWidth, int screenHeight, int[] globalPalette, int transparentIndex) {
+    /// One frame's own pixels and where they go on the screen. Transparent
+    /// pixels are a zero, which is what makes drawing one a test on alpha.
+    ///
+    /// A class for [Screen]'s reason.
+    private static final class Patch {
 
+        private final int left;
+        private final int top;
+        private final int width;
+        private final int height;
+        private final int[] argb;
+
+        Patch(int left, int top, int width, int height, int[] argb) {
+            this.left = left;
+            this.top = top;
+            this.width = width;
+            this.height = height;
+            this.argb = argb;
+        }
+
+        int left() {
+            return left;
+        }
+
+        int top() {
+            return top;
+        }
+
+        int width() {
+            return width;
+        }
+
+        int height() {
+            return height;
+        }
+
+        int[] argb() {
+            return argb;
+        }
+    }
+
+    /// Reads an image descriptor and the LZW data behind it.
+    private static Patch descriptor(ByteBuffer in, Screen screen, int transparentIndex) {
         var left = Short.toUnsignedInt(in.getShort());
         var top = Short.toUnsignedInt(in.getShort());
         var width = Short.toUnsignedInt(in.getShort());
@@ -213,12 +512,12 @@ public final class GifDecoder {
         var packed = Byte.toUnsignedInt(in.get());
         var interlaced = (packed & 0x40) != 0;
 
-        var palette = globalPalette;
+        var palette = screen.palette();
         if ((packed & 0x80) != 0) {
             palette = palette(in, 2 << (packed & 0x07));
         }
         if (palette == null) {
-            throw new GifFormatException("this GIF's first frame names no colour table, global or local");
+            throw new GifFormatException("this GIF has a frame that names no colour table, global or local");
         }
         if (width <= 0 || height <= 0) {
             throw new GifFormatException(
@@ -226,23 +525,10 @@ public final class GifDecoder {
         }
 
         var indices = Lzw.decode(in, Math.multiplyExact(width, height));
-
-        // The whole screen, transparent, with the frame drawn into it. A frame
-        // smaller than the screen is ordinary -- an optimizer writes one whenever
-        // only part of the picture changed -- and cropping to it would hand back
-        // an image of a size the file never claimed.
-        var argb = new int[Math.multiplyExact(screenWidth, screenHeight)];
+        var argb = new int[width * height];
         for (var row = 0; row < height; row++) {
             var sourceRow = interlaced ? interlacedRow(row, height) : row;
-            var y = top + sourceRow;
-            if (y < 0 || y >= screenHeight) {
-                continue;
-            }
             for (var column = 0; column < width; column++) {
-                var x = left + column;
-                if (x < 0 || x >= screenWidth) {
-                    continue;
-                }
                 var index = indices[row * width + column] & 0xFF;
                 if (index == transparentIndex || index >= palette.length) {
                     // Transparent, or an index past the end of the table -- which
@@ -250,10 +536,30 @@ public final class GifDecoder {
                     // nothing rather than as a failure.
                     continue;
                 }
-                argb[y * screenWidth + x] = palette[index];
+                argb[sourceRow * width + column] = palette[index];
             }
         }
-        return new Decoded(screenWidth, screenHeight, argb);
+        return new Patch(left, top, width, height, argb);
+    }
+
+    /// Draws a patch onto a canvas, leaving its transparent pixels alone.
+    private static void draw(int[] canvas, Screen screen, Patch patch) {
+        for (var row = 0; row < patch.height(); row++) {
+            var y = patch.top() + row;
+            if (y < 0 || y >= screen.height()) {
+                continue;
+            }
+            for (var column = 0; column < patch.width(); column++) {
+                var x = patch.left() + column;
+                if (x < 0 || x >= screen.width()) {
+                    continue;
+                }
+                var pixel = patch.argb()[row * patch.width() + column];
+                if (pixel != 0) {
+                    canvas[y * screen.width() + x] = pixel;
+                }
+            }
+        }
     }
 
     /// Which row of the image the `n`-th row of an interlaced frame is.

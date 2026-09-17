@@ -580,12 +580,37 @@ goldberry_md_entity
 #
 # Bound directly rather than through a shim, which is sec. 3.1's rule: WebPGetInfo
 # reads the size out of the header without decoding, WebPDecodeRGBA allocates and
-# decodes one still frame, and WebPFree gives its buffer back. Only the decoder
-# half of libwebp is linked -- the encoder, the muxer and the animation demuxer
-# are switched off in the superbuild.
+# decodes one still frame, and WebPFree gives its buffer back.
 #
 # WebPFree and not free(): libwebp may be built against a different allocator
 # than the one this process's free() uses, and upstream says so in as many words.
 WebPGetInfo
 WebPDecodeRGBA
 WebPFree
+
+# --- WebP, written and animated (ADR-0385) -----------------------------------
+#
+# The encoder. Two calls, because there are two answers and an application knows
+# which it wants: a photograph is lossy at a quality, and a screenshot of a user
+# interface is lossless -- flat colour and hard edges are what VP8's transform is
+# worst at and what the lossless path is best at. Both allocate, both hand the
+# buffer back through WebPFree above.
+WebPEncodeRGBA
+WebPEncodeLosslessRGBA
+
+# The animation reader. `WebPAnimDecoderOptionsInit` and `WebPAnimDecoderNew` are
+# static inlines in demux.h that forward to these with the ABI version, so the
+# *Internal* names are what a binding can reach -- the version is passed from
+# Java and checked by the library, which is exactly what the inline does.
+#
+# `WebPAnimDecoderGetNext` hands back a fully composited canvas and a timestamp,
+# so the disposal model that animated GIF needed in Java (ADR-0382) is upstream's
+# here. The buffer belongs to the decoder and is valid until the next call, which
+# is why the binding copies before it asks again.
+WebPAnimDecoderOptionsInitInternal
+WebPAnimDecoderNewInternal
+WebPAnimDecoderGetInfo
+WebPAnimDecoderGetNext
+WebPAnimDecoderHasMoreFrames
+WebPAnimDecoderReset
+WebPAnimDecoderDelete

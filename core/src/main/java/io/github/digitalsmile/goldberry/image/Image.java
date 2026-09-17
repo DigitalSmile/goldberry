@@ -183,6 +183,62 @@ public final class Image {
     ///         different failure from its contents not being an image, and is
     ///         reported as a different type
     /// @throws ImageDecodeException if the bytes are not an image
+    /// Decodes every frame — [ADR-0382].
+    ///
+    /// **Every image is an animation**, and most are an animation of one frame:
+    /// a PNG, a JPEG, a QOI, a WebP and a GIF with one frame in it all come back
+    /// as a still. What this adds over [#decode] is the rest of an animated
+    /// GIF's frames, each composited under the file's own disposal rules, with
+    /// the delay it declares and the number of times it asks to be played.
+    ///
+    /// An **animated WebP** is every frame too, since [ADR-0385] linked
+    /// `webpdemux`: libwebp composites each canvas itself, so the disposal model
+    /// GIF needs in Java is upstream's there.
+    ///
+    /// @throws ImageDecodeException if no codec recognises the bytes, or the
+    ///         image is malformed
+    public static io.github.digitalsmile.goldberry.image.anim.Animation decodeAnimation(ByteBuffer bytes) {
+        Objects.requireNonNull(bytes, "bytes");
+        if (ImageFormat.of(bytes) == ImageFormat.WEBP) {
+            var animated = Webp.get().decodeAnimation(bytes);
+            if (animated == null) {
+                // A still WebP, which is most of them: the container is the same
+                // and only an animated one has frames to walk (ADR-0385).
+                return io.github.digitalsmile.goldberry.image.anim.Animation.still(decode(bytes));
+            }
+            var frames = new java.util.ArrayList<io.github.digitalsmile.goldberry.image.anim.Animation.Frame>(
+                    animated.frames().size());
+            var durations = animated.durations();
+            for (var i = 0; i < animated.frames().size(); i++) {
+                var frame = animated.frames().get(i);
+                frames.add(new io.github.digitalsmile.goldberry.image.anim.Animation.Frame(
+                        ofArgb(frame.width(), frame.height(), frame.pixels()), durations[i]));
+            }
+            return new io.github.digitalsmile.goldberry.image.anim.Animation(frames, animated.loopCount());
+        }
+        if (!GifDecoder.looksLikeGif(bytes)) {
+            return io.github.digitalsmile.goldberry.image.anim.Animation.still(decode(bytes));
+        }
+        try {
+            var sequence = GifDecoder.decodeAll(bytes);
+            var frames = new java.util.ArrayList<io.github.digitalsmile.goldberry.image.anim.Animation.Frame>(
+                    sequence.frames().size());
+            for (var frame : sequence.frames()) {
+                var decoded = frame.image();
+                frames.add(new io.github.digitalsmile.goldberry.image.anim.Animation.Frame(
+                        ofArgb(decoded.width(), decoded.height(), decoded.argb()), frame.delayMillis()));
+            }
+            return new io.github.digitalsmile.goldberry.image.anim.Animation(frames, sequence.loopCount());
+        } catch (GifFormatException e) {
+            throw new ImageDecodeException(String.valueOf(e.getMessage()), e);
+        }
+    }
+
+    /// The same, from an array.
+    public static io.github.digitalsmile.goldberry.image.anim.Animation decodeAnimation(byte[] bytes) {
+        return decodeAnimation(ByteBuffer.wrap(Objects.requireNonNull(bytes, "bytes")));
+    }
+
     public static Image decode(Path file) {
         Objects.requireNonNull(file, "file");
         try {
@@ -374,6 +430,40 @@ public final class Image {
     /// encoder is Java's rather than the rasterizer's.
     public byte[] encodePng() {
         return PngEncoder.encode(this);
+    }
+
+    /// This image as **lossless** WebP bytes — [ADR-0385].
+    ///
+    /// The lossless path, because that is what a picture this toolkit drew wants:
+    /// VP8's transform is worst at flat colour and hard edges, which is what a
+    /// user interface is made of. A lossless WebP of a screen is typically a
+    /// third of the PNG.
+    ///
+    /// @throws ImageEncodeException if libwebp refuses — an image wider or taller
+    ///         than WebP's 16383-pixel limit is the ordinary reason
+    public byte[] encodeWebp() {
+        return encodeWebp(-1);
+    }
+
+    /// The same, at a **lossy** quality — for a photograph, which is the case the
+    /// lossy path is good at.
+    ///
+    /// @param quality `0..100`; a negative number asks for the lossless path,
+    ///                which is what [#encodeWebp()] passes
+    /// @throws ImageEncodeException if libwebp refuses
+    public byte[] encodeWebp(float quality) {
+        var pixels = new int[Math.multiplyExact(width(), height())];
+        for (var y = 0; y < height(); y++) {
+            for (var x = 0; x < width(); x++) {
+                pixels[y * width() + x] = argb(x, y);
+            }
+        }
+        var encoded = Webp.get().encode(pixels, width(), height(), quality);
+        if (encoded == null) {
+            throw new ImageEncodeException("libwebp would not encode this " + width() + "x" + height()
+                    + " image. WebP's limit is 16383 pixels on a side; a picture larger than that is a PNG.");
+        }
+        return encoded;
     }
 
     /// Premultiplies an `0xAARRGGBB` colour into the buffer's own form.
