@@ -56,31 +56,22 @@ class AnimationSweepTest {
     /// [SemanticsSweepTest]'s reason: the question is about *this module's*
     /// widgets, and the failure message should name a file somebody can open.
     private static List<Class<?>> catalogClasses() throws IOException {
-        try (var files = Files.walk(MAIN)) {
-            var names = files.filter(p -> p.toString().endsWith(".java"))
-                    .map(MAIN::relativize)
-                    .map(Path::toString)
-                    .filter(n -> !n.endsWith("package-info.java") && !n.endsWith("module-info.java"))
-                    .map(n -> n.substring(0, n.length() - ".java".length()).replace('/', '.'))
-                    .sorted()
-                    .toList();
-            var found = new ArrayList<Class<?>>();
-            for (var name : names) {
-                try {
-                    var type = Class.forName(name, false, AnimationSweepTest.class.getClassLoader());
-                    found.add(type);
-                    // Nested types too: `Skeleton` and `CarouselView` both put an
-                    // animating part inside the widget that owns it, and a sweep
-                    // that only saw top-level types would miss exactly the parts
-                    // that move.
-                    found.addAll(List.of(type.getDeclaredClasses()));
-                } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                    // A file whose top-level type is named differently, or one
-                    // the module system does not open to this test.
-                }
+        var found = new ArrayList<Class<?>>();
+        for (var name : SourceTree.binaryNames(MAIN)) {
+            try {
+                var type = Class.forName(name, false, AnimationSweepTest.class.getClassLoader());
+                found.add(type);
+                // Nested types too: `Skeleton` and `CarouselView` both put an
+                // animating part inside the widget that owns it, and a sweep
+                // that only saw top-level types would miss exactly the parts
+                // that move.
+                found.addAll(List.of(type.getDeclaredClasses()));
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                // A file whose top-level type is named differently, or one
+                // the module system does not open to this test.
             }
-            return found;
         }
+        return found;
     }
 
     private static boolean declaresIsAnimating(Class<?> type) {

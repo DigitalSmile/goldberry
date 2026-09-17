@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,27 +52,17 @@ class SemanticsSweepTest {
     /// `:core`'s parts as well. It is also what makes the failure message useful:
     /// it names a file somebody can open.
     private static List<Class<?>> catalogClasses() throws IOException {
-        var root = Path.of("src/main/java");
-        try (var files = Files.walk(root)) {
-            var names = files.filter(p -> p.toString().endsWith(".java"))
-                    .map(root::relativize)
-                    .map(Path::toString)
-                    .filter(n -> !n.endsWith("package-info.java") && !n.endsWith("module-info.java"))
-                    .map(n -> n.substring(0, n.length() - ".java".length()).replace('/', '.'))
-                    .sorted()
-                    .toList();
-            var found = new ArrayList<Class<?>>();
-            for (var name : names) {
-                try {
-                    found.add(Class.forName(name, false, SemanticsSweepTest.class.getClassLoader()));
-                } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                    // A file whose top-level type is named differently, or one
-                    // the module system does not open to this test. Neither is a
-                    // widget this rule can reach, and skipping is right.
-                }
+        var found = new ArrayList<Class<?>>();
+        for (var name : SourceTree.binaryNames(Path.of("src/main/java"))) {
+            try {
+                found.add(Class.forName(name, false, SemanticsSweepTest.class.getClassLoader()));
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                // A file whose top-level type is named differently, or one
+                // the module system does not open to this test. Neither is a
+                // widget this rule can reach, and skipping is right.
             }
-            return found;
         }
+        return found;
     }
 
     /// Whether instances of `type` can take the focus.

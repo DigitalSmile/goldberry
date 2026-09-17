@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.render.event;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -172,6 +173,12 @@ public final class EventLoop implements AutoCloseable {
     /// Collected before running: a timer's action may schedule another, and a
     /// tooltip's does — an action that added itself to the list being walked would
     /// fire in the same iteration for ever.
+    ///
+    /// And sorted before running. The list is in the order timers were made, and
+    /// a pump that overslept — a loaded macOS runner did, by more than the gap
+    /// between a 5 ms and a 30 ms timer — hands this method both at once. Firing
+    /// them in list order then fires the later one first, which is the one
+    /// ordering a caller can never have meant (ADR-0338).
     private void fireDueTimers() {
         if (timers.isEmpty()) {
             return;
@@ -187,6 +194,7 @@ public final class EventLoop implements AutoCloseable {
                 due.add(timer);
             }
         }
+        due.sort(Comparator.comparingLong(timer -> timer.dueNanos));
         for (var timer : due) {
             if (!timer.cancelled) {
                 timer.action.run();

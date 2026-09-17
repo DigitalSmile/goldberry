@@ -105,6 +105,29 @@ class EventLoopTimerTest {
         assertEquals(java.util.List.of("early", "late"), fired);
     }
 
+    /// The same rule when the loop was asleep past both: a pump that overslept
+    /// hands `fireDueTimers` both at once, and list order is creation order. This
+    /// is the case the wall clock only produces on a loaded machine, so it is
+    /// produced on purpose here.
+    @Test
+    @Timeout(10)
+    @DisplayName("two timers both overdue at one wake-up still fire in due order")
+    void bothOverdueAtOnce() throws InterruptedException {
+        withAWindow();
+        var fired = new ArrayList<String>();
+
+        loop.after(Duration.ofMillis(10), () -> {
+            fired.add("late");
+            loop.stop();
+        });
+        loop.after(Duration.ofMillis(1), () -> fired.add("early"));
+        Thread.sleep(25);
+
+        loop.run(event -> {});
+
+        assertEquals(java.util.List.of("early", "late"), fired);
+    }
+
     /// A timer's action scheduling another is the ordinary case — a tooltip
     /// closing schedules the next one's delay — and it must not fire in the same
     /// iteration, or a self-rescheduling timer is an infinite loop.

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.module.ModuleDescriptor;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -105,8 +106,15 @@ class HtmlStylesTest {
         if (source == null) {
             fail("no code source for the test classes; cannot locate the module's own descriptor");
         }
-        // `.../build/classes/java/test` -> `.../build/classes/java/main`
-        var main = Path.of(source.getLocation().getPath()).resolveSibling("main");
+        // `.../build/classes/java/test` -> `.../build/classes/java/main`. Through
+        // the URI: `getPath()` keeps the leading slash of `file:/D:/...`, which
+        // `Path.of` refuses on Windows (ADR-0338).
+        Path main;
+        try {
+            main = Path.of(source.getLocation().toURI()).resolveSibling("main");
+        } catch (URISyntaxException e) {
+            throw new AssertionError("the test classes' code source is not a file URI: " + source.getLocation(), e);
+        }
         var moduleInfo = main.resolve("module-info.class");
         assertTrue(Files.isRegularFile(moduleInfo), "expected the compiled descriptor at " + moduleInfo);
         try (var in = Files.newInputStream(moduleInfo)) {

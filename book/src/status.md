@@ -7278,8 +7278,12 @@ fixed blind: two natives tests that turned a `file:/D:/...` code source into a p
 the wrong way, a drift guard that split a CRLF checkout on a blank line that was not
 there, a showcase build that took MinGW's `cc` because `cl` was not on the PATH and
 so wrote a `libgoldberry.dll` nothing looked for, and a macOS trace that SDL's
-status-bar tray aborted under the headless driver. Each has a unit test; the next
-Snapshot and Showcase runs are their verification.
+status-bar tray aborted under the headless driver. All four passed at `fd36169a`,
+which made the Showcase green on every leg for the first time and left three red jobs
+in the Snapshot. Their annotations named a real bug — `EventLoop` fired two overdue
+timers in creation order when a slow pump handed it both at once — and four more
+Windows separator assumptions in tests, all fixed with unit tests and waiting on the
+next run.
 
 ### Releasing — built, never run
 

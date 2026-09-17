@@ -217,16 +217,16 @@ final class WaylandDecorations {
     static Optional<Boolean> onInitialThread(Path threadSelf) {
         try {
             // e.g. "55887/task/55887" on the initial thread, "55889/task/55890"
-            // on any other.
-            // A procfs path never ends in a separator, so there are no trailing
-            // empties to drop -- and the length check below rejects anything
-            // that is not the shape expected.
-            @SuppressWarnings("StringSplitter")
-            var parts = Files.readSymbolicLink(threadSelf).toString().split("/");
-            if (parts.length < 3 || !parts[1].equals("task")) {
+            // on any other. Read as path elements rather than split on '/': the
+            // link's target is a relative path, and a Path prints it with the
+            // platform's separator -- which on Windows, where the unit test
+            // makes one in a temp directory, is a backslash (ADR-0338).
+            var target = Files.readSymbolicLink(threadSelf);
+            if (target.getNameCount() < 3 || !target.getName(1).toString().equals("task")) {
                 return Optional.empty();
             }
-            return Optional.of(parts[0].equals(parts[2]));
+            return Optional.of(
+                    target.getName(0).toString().equals(target.getName(2).toString()));
         } catch (IOException | UnsupportedOperationException e) {
             return Optional.empty();
         }

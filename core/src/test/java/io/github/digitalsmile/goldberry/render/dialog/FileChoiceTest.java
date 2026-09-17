@@ -51,7 +51,8 @@ class FileChoiceTest {
         // The compiler is the assertion here: adding a fourth case to the sealed
         // interface stops this method compiling, which is the whole reason it is
         // sealed rather than an enum plus a payload.
-        assertEquals("chose /a.png", describe(FileChoice.of(Path.of("/a.png"))));
+        // Through `Path`, because Windows prints it as `\a.png` (ADR-0338).
+        assertEquals("chose " + Path.of("/a.png"), describe(FileChoice.of(Path.of("/a.png"))));
         assertEquals("cancelled", describe(FileChoice.cancelled()));
         assertEquals("failed: no portal", describe(FileChoice.failed("no portal")));
     }

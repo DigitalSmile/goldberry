@@ -121,20 +121,49 @@ None of them can run on the machine this is written on.
    from it would meet its first one on a user's desktop. The runner has a window
    server, as the jlink run proved.
 
+### The five behind those
+
+The push carrying 6–9 (`fd36169a`) turned the Showcase green on all three legs and
+every native build, verify and Linux job in the Snapshot. Its own annotations —
+the first this record produced — named the layer the first four had hidden:
+
+10. **Two timers overdue at one wake-up fired in creation order.** `EventLoop`
+    collected what was due and ran it in list order; a macOS runner's pump
+    overslept past both a 5 ms and a 30 ms timer and ran the 30 ms one first. The
+    test's own name said the rule. `fireDueTimers` sorts by due time, and a new
+    test sleeps past both timers before running the loop so the case no longer
+    needs a slow machine to appear. The only change to toolkit behaviour in this
+    record.
+11. **`WaylandDecorations` split a symlink target on `/`.** The `/proc` reader is
+    Linux-only in use, but its unit test makes the link in a temp directory, and
+    on Windows a relative target prints with backslashes. It reads the target's
+    path elements now.
+12. **`FileChoiceTest` compared against `/a.png` as text**, which Windows prints
+    as `\a.png`. The expectation goes through `Path` too.
+13. **`HtmlStylesTest` and `MarkdownStylesTest`** carried the same `getPath()`
+    conversion as 6, on the html module's descriptor. Through the URI now.
+14. **The catalog sweeps found no catalog.** `AnimationSweepTest` and
+    `SemanticsSweepTest` turned a relative source path into a binary name with
+    `replace('/', '.')`, which on Windows changes nothing, so `Class.forName`
+    found no class and both sweeps reported an empty tree. `SourceTree`, one
+    helper in the `arch` test package, joins the path's elements instead and is
+    tested on its own.
+
 ## Consequences
 
 - Reproduced locally in a fresh clone, with no build cache and no library: the
   `java` job's three steps pass. Then, against a local libgoldberry:
   `:natives:test` and `:core/:widgets/:html:test` pass with all three coverage
   floors.
-- **Diagnosed from the logs, fixed blind:** Windows `:natives:test`, Windows
-  `:build-logic:test`, the showcase's Windows image and the macOS trace (6–9 above).
-  Each fix is unit-tested where it has logic, but no machine here runs the platform
-  it is for, so the next Snapshot and Showcase runs are the verification. What is
-  still an inference is the MSVC + Ninja configure of the whole superbuild, which
-  `windows.yml` has only ever done through the Visual Studio generator.
+- **Diagnosed from the logs, fixed blind, and then confirmed by the run:** 6–9
+  passed on their platforms at `fd36169a` — the MSVC + Ninja configure of the whole
+  superbuild included, which `windows.yml` had only ever done through the Visual
+  Studio generator. 10–14 are fixed the same way and wait on the run after.
 - The Showcase's two publish jobs failed only for want of the macOS and Windows
   artifacts, and need nothing of their own.
+- Every test in this record that reached a path did so through a string. The
+  rule that falls out: a code source is a URI, a relative source path is a list of
+  elements, and a path in an expected string is a `Path` first.
 - A PR's `java` job no longer enforces the coverage floors; the verify job does.
   A drop in coverage now turns the verify job red, not the `java` job.
 - The runner keeps ten error annotations per step and fifty per job. A step with
