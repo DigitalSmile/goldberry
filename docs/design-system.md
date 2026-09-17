@@ -182,8 +182,8 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `color-picker` | swatch 24, radius 4; plane 200×160; hue/alpha sliders `slider` metrics; preset swatch 20, gap 4. Two notes from building it ([ADR-0276](../book/src/adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)): the ramps are **12** tall rather than a `slider`'s 4, because a ramp is something you read as well as drag and a 4-point rainbow is a line; and the plane has **no compact value**, because a colour space is not denser on a small screen — a compact plane would give a dragged colour a coarser resolution rather than a tidier layout |
 | `code-input` | box 40×48 (36×44); gap 8; radius 4; `title`, centred; group gap 16 at the midpoint when `length` is even |
 | `breadcrumbs` | height 24; `body`; separator = `chevron-right` 16 in `--gb-text-muted`, gap 4; overflow menu after 4 crumbs. **Built** ([ADR-0306](../book/src/adr/0306-the-last-crumb-is-where-you-are.md)). A crumb is 20 tall with padding-x 4 and a 4 radius, so the hover wash reads as a target rather than a highlighted word; 4 is §1.3's legal value below the component default, the one `badge` and `button.link` already reach for. The separator is **square** at 16 — a chevron is a mark drawn to fill its box, so 16×24 would draw a stretched one, which is `tab-new`'s lesson. The current crumb is the strong weight in full ink with **no fill and no hover**: §6 says it is not a link, and a filled current crumb reads as a button. The row does not wrap — a path wrapped to two lines puts where-you-are under where-you-started — which is why there is an overflow menu at all |
-| `steps` | marker 24 (`full` radius); connector 2px; label `body-strong`, description `caption`; gap 12 horizontal / 8 vertical |
-| `wizard` | `steps` on top with 24 below; action bar = `dialog`'s (gap 8, top margin 24) |
+| `steps` | marker 24 (`full` radius); connector 2px; label `body-strong`, description `caption`; gap 12 horizontal / 8 vertical | **Built** ([ADR-0344](../book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)). The disc is 24 with a 2px ring; current fills with the accent, done with `--gb-success` and a tick, error with `--gb-danger` and a cross, upcoming is the ring alone. The label is a cell as tall as the disc with its text centred, so it sits on the disc's centre at every density. A vertical list's connector is 16 tall and 11 in from the edge — half of 24 less half of 2 |
+| `wizard` | `steps` on top with 24 below; action bar = `dialog`'s (gap 8, top margin 24) | **Built** ([ADR-0344](../book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)): `wizard-content` grows with 24 above it and 12 between its children; `wizard-actions` is `dialog-actions`' row |
 | `collapse` | header height 40 (36); padding-x 12; chevron 16; body padding 12; 1px `--gb-border` between siblings |
 | `carousel` | dot 8, gap 8, active `--gb-accent`; prev/next = `button.ghost.circle`; content padding 0 |
 | `statistic` | value `display`, label `caption` in `--gb-text-muted`, delta `body-strong`; gap 4; sparkline 64×24 |
@@ -191,7 +191,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `message` | padding 12/16; radius 8; icon 20 with gap 12; 1px border and a 4% tint of its `kind` colour |
 | `tour` | popover radius 12, padding 16, max width 320; veil per §1.5; target cut-out inset −4 with radius 8 |
 | `tree` row | `list` row metrics; indent 20 per level; chevron 16 in the indent gutter |
-| `timeline` | marker 12 (`full`); axis 2px in `--gb-border`; row gap 16; timestamp `caption` |
+| `timeline` | marker 12 (`full`); axis 2px in `--gb-border`; row gap 16; timestamp `caption` | **Built** ([ADR-0345](../book/src/adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)). The rail is a 20 column and the dot sits centred in a cell one `--gb-line-body` tall, so it is on the label's centre at every density; an entry with an icon has a 20 disc; the pending marker is a 2px ring in `--gb-border-strong`. The 16 between rows is the body's bottom padding rather than a gap, because a gap would break the line |
 | `affix` | no metrics of its own; `:affixed` adds elevation 1 |
 
 ---
@@ -227,7 +227,7 @@ Durations reference §1.7 tokens (`fast`/`base`/`overlay`); enters use `ease-ent
 | `date-picker` / `color-picker` / autocomplete popup | as `popover` |
 | `calendar` | month change: content `opacity` cross-fade fast — **never a slide**, because the grid is the same shape and sliding it implies the days moved |
 | `code-input` | focus moves between boxes: ring is instant per §1.7 rule 3; no travel effect |
-| `steps` | state change: marker `background-color` + `color` fast; connector fill `transform: scaleX` base |
+| `steps` | state change: marker `background-color` + `color` + `border-color` fast; connector fill `background-color` base — **not** `scaleX`, which needs a transform origin §8's subset does not express ([ADR-0344](../book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)) |
 | `collapse` | chevron `rotate` base; body **does not animate** — height is not on the whitelist (§1.7) and the body is unmounted while closed |
 | `carousel` | slide change: `translate` base, `ease-enter` · auto-advance suspended on hover, on focus within, and under reduced motion |
 | `skeleton` | opacity pulse 1.2s `linear` loop — the one decoration allowed to loop (§1.7 rule 4) · reduced-motion: holds at its dimmest |

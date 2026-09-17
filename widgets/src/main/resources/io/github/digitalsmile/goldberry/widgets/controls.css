@@ -379,6 +379,7 @@ radio-indicator:checked radio-dot {
  * (ADR-0073).
  */
 button:focus-visible,
+step:focus-visible,
 checkbox:focus-visible,
 radio:focus-visible,
 toggle:focus-visible,
@@ -4856,3 +4857,365 @@ crumb-overflow:hover {
   background: var(--gb-overlay-hover);
   color: var(--gb-text);
 }
+
+/* ----------------------------------------------------------------- steps --
+ *
+ * §3's row: "marker 24 (`full` radius); connector 2px; label `body-strong`,
+ * description `caption`; gap 12 horizontal / 8 vertical". Every number below is
+ * that row. The four states are classes on the step and on its marker
+ * (`done`, `current`, `upcoming`, `error`), and the current step is also
+ * `:checked` -- so a marker is filled by the class and the step's ink is chosen
+ * by the same word (ADR-0344).
+ *
+ * The list does not wrap: a sequence wrapped to two lines puts step four under
+ * step one, which reads as a grid. A vertical list is the answer to a narrow
+ * column, and `steps.vertical` is one class away.
+ */
+steps {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-text-muted);
+}
+
+steps.vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* A step is its marker beside its words. Muted until you reach it: the row is
+   context for the current step, and four labels in full ink compete. */
+step {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  border-radius: 4px;
+  transition: color var(--gb-motion-fast);
+}
+
+step.done,
+step.current {
+  color: var(--gb-text);
+}
+
+step.error {
+  color: var(--gb-danger-text);
+}
+
+/* Only a step the list handed a press is focusable, and only that one gets a
+   pointer and a wash. `:hover` on a picture would promise a click. */
+step:hover {
+  color: var(--gb-text);
+}
+
+/* The disc: 24 with a `full` radius, a 2px ring, and the number, tick or cross
+   inside it. Filled with the accent when current, with the success ink when
+   done, with the danger ink when failed -- and outlined only when upcoming,
+   which is what tells "not yet" from "you are here" without the number. */
+step-marker {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--gb-border-strong);
+  align-items: center;
+  justify-content: center;
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+  color: var(--gb-text-muted);
+  transition: background-color var(--gb-motion-fast), color var(--gb-motion-fast),
+    border-color var(--gb-motion-fast);
+}
+
+step-marker.current {
+  background: var(--gb-accent);
+  border-color: var(--gb-accent);
+  color: var(--gb-button-primary-text);
+}
+
+step-marker.done {
+  background: var(--gb-success);
+  border-color: var(--gb-success-line);
+  color: var(--gb-button-primary-text);
+  padding: 5px;
+}
+
+step-marker.error {
+  background: var(--gb-danger);
+  border-color: var(--gb-danger-line);
+  color: var(--gb-button-primary-text);
+  padding: 6px;
+}
+
+/* The words: the label in `body-strong`, the description under it in `caption`.
+   The label is a cell as tall as the disc with its text centred, so the word
+   sits on the disc's centre at every density -- a padding would assume a
+   line-height, and the token is the theme's. */
+step-body {
+  flex-direction: column;
+  gap: 0;
+}
+
+step-label {
+  min-height: 24px;
+  justify-content: center;
+  font-weight: var(--gb-weight-strong);
+}
+
+step-description {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+/* The line between two markers: 2px in the border colour, filled behind a
+   done step. It grows to take the room between steps in a row, and stands 16
+   tall under the marker's centre in a column -- 11px in from the edge, which
+   is half of 24 less half of 2. Its fill is a transition on the colour rather
+   than §3's `scaleX`, because a line that grows from one end needs a transform
+   origin the subset does not express. */
+step-connector {
+  flex-grow: 1;
+  min-width: 16px;
+  height: 2px;
+  margin-top: 11px;
+  background: var(--gb-border);
+  transition: background-color var(--gb-motion-base);
+}
+
+step-connector.done {
+  background: var(--gb-success);
+}
+
+steps.vertical step-connector {
+  flex-grow: 0;
+  min-width: 0;
+  width: 2px;
+  height: 16px;
+  margin-top: 0;
+  margin-left: 11px;
+}
+
+/* ---------------------------------------------------------------- wizard --
+ *
+ * §3's row: "`steps` on top with 24 below; action bar = `dialog`'s (gap 8, top
+ * margin 24)". A column of three: the indicator, the content, the bar. The
+ * content grows, so the bar sits at the bottom of whatever height the wizard
+ * was given, which is where a dialog's bar sits too (ADR-0344).
+ */
+wizard {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+wizard-content {
+  flex-direction: column;
+  align-items: stretch;
+  flex-grow: 1;
+  margin-top: 24px;
+  gap: 12px;
+}
+
+/* `dialog-actions`, under another name. `flex-end` is affirmative-right, which
+   is macOS' and Linux' order; a Windows theme writes
+   `wizard-actions { flex-direction: row-reverse }`. */
+wizard-actions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------- timeline --
+ *
+ * §3's row: "marker 12 (`full`); axis 2px in `--gb-border`; row gap 16;
+ * timestamp `caption`". Every number below is that row (ADR-0345).
+ *
+ * An entry is a row of a side, the rail and a side; the rail stretches to the
+ * entry's height so the line runs from marker to marker whatever is beside
+ * it. The gap between entries is the body's bottom padding rather than a gap
+ * on the list, because a gap would break the line.
+ */
+timeline {
+  flex-direction: column;
+  align-items: stretch;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-text);
+}
+
+entry {
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+timeline-rail {
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+/* One line tall, with the marker centred in it: the dot is on the centre of
+   the head beside it whatever `--gb-line-body` is. `min-height` and not
+   `height`, so an icon disc taller than a line still fits. */
+timeline-marker-cell {
+  min-height: var(--gb-line-body);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* The dot: 12 across, filled with the accent unless the entry said otherwise.
+   With an icon it is a 20 disc with the icon inside; pending, it is a ring. */
+timeline-marker {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--gb-accent);
+  align-items: center;
+  justify-content: center;
+  color: var(--gb-button-primary-text);
+}
+
+timeline-marker.icon {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+}
+
+timeline-marker.pending {
+  background: none;
+  border: 2px solid var(--gb-border-strong);
+}
+
+timeline-line {
+  width: 2px;
+  flex-grow: 1;
+  margin-top: 2px;
+  background: var(--gb-border);
+}
+
+/* A side takes the room the rail leaves. On a plain timeline there is one;
+   alternating, there are two and each entry fills one of them. */
+timeline-side {
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+timeline-body {
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+  padding-bottom: 16px;
+}
+
+timeline-head {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+}
+
+timeline-label {
+  font-weight: var(--gb-weight-strong);
+}
+
+timeline-time {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+timeline-content {
+  flex-direction: column;
+  gap: 8px;
+  color: var(--gb-text-muted);
+}
+
+/* Alternating: both sides are half the row, so the axis is in the middle of
+   every entry whatever is on either side of it. `flex-basis` is not in §8's
+   subset; a percentage width and an equal shrink are the same arithmetic. */
+timeline.alternate timeline-side {
+  width: 50%;
+  flex-grow: 0;
+  flex-shrink: 1;
+}
+
+/* Across the axis: the body sits on the far side, so its padding is on the
+   other edge. */
+entry.end timeline-body {
+  padding-left: 0;
+  padding-right: 8px;
+  align-items: flex-end;
+}
+
+entry.end timeline-head {
+  flex-direction: row-reverse;
+}
+
+/* Along the page: the list is a row, the rail is a row, and the words hang
+   under the markers. The line bridges to the next marker, so the body's
+   padding goes to the right rather than the bottom. */
+timeline.horizontal {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+timeline.horizontal entry {
+  flex-direction: column;
+  align-items: stretch;
+  flex-grow: 1;
+}
+
+timeline.horizontal timeline-rail {
+  flex-direction: row;
+  width: auto;
+  height: 20px;
+  padding-left: 4px;
+}
+
+timeline.horizontal timeline-marker-cell {
+  min-height: 0;
+  height: 20px;
+}
+
+timeline.horizontal timeline-line {
+  width: auto;
+  height: 2px;
+  margin-top: 0;
+  margin-left: 2px;
+}
+
+timeline.horizontal timeline-body {
+  padding-left: 0;
+  padding-top: 8px;
+  padding-right: 16px;
+  padding-bottom: 0;
+}
+
+timeline.horizontal entry.end timeline-body {
+  padding-right: 16px;
+  padding-top: 0;
+  padding-bottom: 8px;
+  align-items: flex-start;
+}
+
+timeline.horizontal entry.end timeline-head {
+  flex-direction: row;
+}
+
+timeline.horizontal entry.end {
+  flex-direction: column-reverse;
+}
+

@@ -353,6 +353,8 @@
 - [ADR-0341 CodeQL findings are fixed where real and answered where not](adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md)
 - [ADR-0342 A window is resized from outside, and the run says what it cost](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)
 - [ADR-0343 The published javadoc is linted](adr/0343-the-published-javadoc-is-linted.md)
+- [ADR-0344 A list of steps writes where each one stands, and a wizard moves nothing](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
+- [ADR-0345 A timeline is a list whose line goes on](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
 
 ---
 

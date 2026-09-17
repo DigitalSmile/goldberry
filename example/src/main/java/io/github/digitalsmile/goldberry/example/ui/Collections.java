@@ -39,9 +39,9 @@ public final class Collections {
 
     private Collections() {}
 
-    /// The three collection cards, in the order they are offered to the wall.
+    /// The four collection cards, in the order they are offered to the wall.
     public static List<Widget> cards() {
-        return List.of(new Leagues(), new Company(), new Realms());
+        return List.of(new Leagues(), new Company(), new Realms(), new Chronicle());
     }
 
     private static Widget caption(String text) {

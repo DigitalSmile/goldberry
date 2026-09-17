@@ -23,9 +23,9 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 
 | Widget | Spec | ADR | Status |
 |--------|------|-----|--------|
-| `steps` | `docs/core-widgets.md` §6 | — | open |
-| `wizard` | `docs/core-widgets.md` §6 | — | open |
-| `timeline` | `docs/core-widgets.md` §10 | — | open |
+| `steps` | `docs/core-widgets.md` §6 | 0344 | done |
+| `wizard` | `docs/core-widgets.md` §6 | 0344 | done |
+| `timeline` | `docs/core-widgets.md` §10 | 0345 | done |
 | `link` | `docs/core-widgets.md` §2 | — | open |
 | `button` `outlined`, `square`, `circle`, `float` | `docs/core-widgets.md` §3 | — | open |
 
@@ -59,6 +59,18 @@ now. **open** — not started. **not ours** — needs a person and an account, n
   onto their `call` methods, under a summary naming the C function.
 - Twenty `[links]` qualified, corrected or made code spans, across `core`, `widgets`, `html`
   and `natives`; `PointerRouter.CaretAreaSink`'s tags moved onto `accept`.
+
+### The widgets
+
+- `widgets` `nav/steps/` — `Steps`, `Step`, `StepState`, and the parts `StepList`, `StepMarker`,
+  `StepBody`, `StepText`, `StepConnector`. Tests: `StepsTest`, `StepsGoldenTest`.
+- `widgets` `nav/wizard/` — `Wizard`, `WizardPage`, `WizardState`, and the parts `WizardPanel`,
+  `WizardContent`, `WizardActions`. Tests: `WizardTest`, `WizardGoldenTest`.
+- `widgets` `panel/timeline/` — `Timeline`, `Entry`, and the parts `TimelineList`, `TimelineRail`,
+  `TimelineMarker`, `TimelineLine`, `TimelineSide`, `TimelineBody`, `TimelineHead`, `TimelineText`,
+  `TimelineContent`. Tests: `TimelineTest`, `TimelineGoldenTest`.
+- `controls.css` — `steps`, `wizard` and `timeline` sections.
+- `example` — `WizardDemo` on Navigation, `Chronicle` on Collections.
 
 ### The licences
 

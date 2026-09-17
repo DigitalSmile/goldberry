@@ -48,7 +48,7 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
                 "Navigation",
                 NOTE,
                 2,
-                List.of(new TabsDemo(model, actions), trail(), new Scrolling(), tour()));
+                List.of(new TabsDemo(model, actions), trail(), new WizardDemo(), new Scrolling(), tour()));
     }
 
     /// §6's `breadcrumbs`, driven by the model's path ([ADR-0306]).

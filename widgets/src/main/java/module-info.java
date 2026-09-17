@@ -101,6 +101,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
     exports io.github.digitalsmile.goldberry.widgets.panel.table;
     exports io.github.digitalsmile.goldberry.widgets.panel.calendar;
+    exports io.github.digitalsmile.goldberry.widgets.panel.timeline;
     exports io.github.digitalsmile.goldberry.widgets.panel.tree;
 
     /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
@@ -172,6 +173,8 @@ module io.github.digitalsmile.goldberry.widgets {
     /// (ADR-0306). `steps` and `wizard` join it here; the separator, the `…` and
     /// the row itself are parts and stay inside.
     exports io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
+    exports io.github.digitalsmile.goldberry.widgets.nav.steps;
+    exports io.github.digitalsmile.goldberry.widgets.nav.wizard;
 
     /// `docs/core-widgets.md` §7's `overlay` group. `hud` is the first of it and
     /// the only one that needs no popup: it floats in the window's own overlay
