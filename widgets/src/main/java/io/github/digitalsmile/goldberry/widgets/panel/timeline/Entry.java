@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.timeline;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -29,12 +30,17 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// entry colour="#a3be8c" "Built"
 /// ```
 ///
-/// ## The marker is a dot, or an icon
+/// ## The marker is a dot, an icon, or a widget
 ///
 /// §10 lists "dot, icon or `badge`". A dot takes the entry's `colour`, or the
-/// stylesheet's; an icon sits in a larger disc. A `badge` as the marker is not
-/// built — see `book/src/TODO.md` — because a marker that is a widget needs a
-/// slot markup can name, and nothing else in the catalog has one yet.
+/// stylesheet's; an icon sits in a larger disc. Anything else — a `badge` is
+/// the one §10 names — is written in a `marker` slot ([EntryMarker]) and drawn
+/// on the axis in place of the dot; the rail keeps its width, so the axis does
+/// not move under a wide one (ADR-0356). A widget marker wins over an icon.
+///
+/// ```kdl
+/// entry "Released" { marker { badge class="success" "v2" }; text "Published." }
+/// ```
 ///
 /// ## Placed by the list
 ///
@@ -48,6 +54,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param icon       an icon in the marker, or null for a dot
 /// @param colour     the dot's colour as `0xAARRGGBB`, or 0 for the
 ///                   stylesheet's
+/// @param marker     a widget drawn on the axis instead of the dot, or null
 /// @param body       the content shown under the label
 /// @param placement  supplied by [Timeline] on every build; not an attribute
 /// @param attributes `id` and `class`, exactly as on every other widget
@@ -57,6 +64,7 @@ public record Entry(
         @Nullable String time,
         @Nullable Icon icon,
         int colour,
+        @Nullable Widget marker,
         List<Widget> body,
         Placement placement,
         Attributes attributes)
@@ -99,23 +107,41 @@ public record Entry(
 
     /// An event with a name, and whatever goes under it.
     public Entry(String label, Widget... body) {
-        this(label, null, null, 0, List.of(body), Placement.NONE, Attributes.NONE);
+        this(label, null, null, 0, null, List.of(body), Placement.NONE, Attributes.NONE);
+    }
+
+    /// The shape an entry had before it could hold a widget marker.
+    public Entry(
+            String label,
+            @Nullable String time,
+            @Nullable Icon icon,
+            int colour,
+            List<Widget> body,
+            Placement placement,
+            Attributes attributes) {
+        this(label, time, icon, colour, null, body, placement, attributes);
     }
 
     /// This event with a timestamp beside its name.
     public Entry at(@Nullable String when) {
-        return new Entry(label, when, icon, colour, body, placement, attributes);
+        return new Entry(label, when, icon, colour, marker, body, placement, attributes);
     }
 
     /// This event with an icon in its marker. The icon is **borrowed**
     /// (ADR-0043).
     public Entry withIcon(@Nullable Icon value) {
-        return new Entry(label, time, value, colour, body, placement, attributes);
+        return new Entry(label, time, value, colour, marker, body, placement, attributes);
     }
 
     /// This event's dot in `argb`, or 0 for the stylesheet's colour.
     public Entry colour(int argb) {
-        return new Entry(label, time, icon, argb, body, placement, attributes);
+        return new Entry(label, time, icon, argb, marker, body, placement, attributes);
+    }
+
+    /// This event with `widget` on the axis in place of its dot — the Java
+    /// spelling of a `marker` slot.
+    public Entry withMarker(@Nullable Widget widget) {
+        return new Entry(label, time, icon, colour, widget, body, placement, attributes);
     }
 
     /// Used by [Timeline] to say where this entry sits.
@@ -125,6 +151,7 @@ public record Entry(
                 time,
                 icon,
                 colour,
+                marker,
                 body,
                 new Placement(index, direction, side, twoSided, continues, false),
                 attributes);
@@ -137,6 +164,7 @@ public record Entry(
                 null,
                 null,
                 0,
+                null,
                 List.of(),
                 new Placement(-1, direction, side, twoSided, false, true),
                 Attributes.NONE);
@@ -144,7 +172,7 @@ public record Entry(
 
     @Override
     public Entry withAttributes(Attributes value) {
-        return new Entry(label, time, icon, colour, body, placement, value);
+        return new Entry(label, time, icon, colour, marker, body, placement, value);
     }
 
     @Override
@@ -161,7 +189,7 @@ public record Entry(
     /// `pending` for the trailing marker.
     @Override
     public Set<String> classes() {
-        var classes = new java.util.HashSet<>(attributes.classes());
+        var classes = new HashSet<>(attributes.classes());
         if (placement.side() == Side.END) {
             classes.add("end");
         }
@@ -182,7 +210,7 @@ public record Entry(
     /// which is what keeps it from being twice as wide as its words.
     @Override
     public List<Widget> children() {
-        var rail = new TimelineRail(icon, colour, placement);
+        var rail = new TimelineRail(icon, colour, marker, placement);
         var words = placement.pending()
                 ? new TimelineSide(List.of())
                 : new TimelineSide(List.of(new TimelineBody(label, time, body)));
@@ -225,14 +253,29 @@ public record Entry(
 
     /// Builds an `entry` from markup.
     ///
-    /// No placement: the list writes it.
+    /// No placement: the list writes it. A `marker` child is lifted out of the
+    /// body onto the axis; two of them is a document describing two points for
+    /// one event, and is refused.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        Widget marker = null;
+        var body = new ArrayList<Widget>(children.size());
+        for (var child : children) {
+            if (child instanceof EntryMarker(var content, var _)) {
+                if (marker != null) {
+                    throw new IllegalArgumentException("an entry has one marker, and this one names two");
+                }
+                marker = content;
+            } else {
+                body.add(child);
+            }
+        }
         return new Entry(
                 Wiring.label(node),
                 node.stringProperty("time"),
                 wiring.icon(node),
                 Wiring.colour(node, "colour", "color"),
-                children,
+                marker,
+                body,
                 Placement.NONE,
                 Attributes.of(node));
     }

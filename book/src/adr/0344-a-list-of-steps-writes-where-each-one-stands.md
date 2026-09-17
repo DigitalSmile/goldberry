@@ -6,6 +6,8 @@ Date: 2026-09-17
 
 Accepted. Builds `docs/core-widgets.md` §6's `steps` and `wizard`, the two
 `nav` widgets that `status.md` listed as "not started" after `breadcrumbs`.
+The connector's colour fill is superseded by ADR-0356: the subset did have a
+`transform-origin`.
 
 ## Context
 

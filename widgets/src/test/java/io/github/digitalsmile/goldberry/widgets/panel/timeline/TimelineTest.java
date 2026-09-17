@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,6 +19,7 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// §10's `timeline` — events along an axis, and what tells it from a list
@@ -184,6 +186,61 @@ class TimelineTest {
         }
     }
 
+    /// §10's third marker, "dot, icon or `badge`" ([ADR-0356]).
+    @Nested
+    @DisplayName("a widget marker")
+    class AWidgetMarker {
+
+        private static Element markerOf(Element entry) {
+            var rail = entry.children().getFirst();
+            return rail.children().getFirst().children().getFirst();
+        }
+
+        @Test
+        @DisplayName("a badge is drawn on the axis in a holder that says so")
+        void aBadgeOnTheAxis() {
+            var timeline = new Timeline(new Entry("Released").withMarker(new Badge("2")), new Entry("Patched"));
+            var marker = markerOf(entries(timeline).getFirst());
+
+            assertEquals("timeline-marker", marker.type());
+            assertTrue(marker.classes().contains("widget"));
+            assertEquals(List.of("badge"), types(marker));
+            assertEquals(List.of(), types(markerOf(entries(timeline).get(1))), "a dot holds nothing");
+        }
+
+        @Test
+        @DisplayName("it wins over an icon, and the axis keeps its line")
+        void winsOverAnIcon() {
+            var entry = new Entry("Released").withIcon(null).withMarker(new Badge("v2"));
+            var rows = entries(new Timeline(entry, new Entry("Next")));
+
+            var marker = (TimelineMarker) markerOf(rows.getFirst()).widget();
+            assertEquals(Set.of("widget"), marker.classes());
+            assertEquals(List.of("timeline-marker-cell", "timeline-line"), rail(rows.getFirst()));
+        }
+
+        @Test
+        @DisplayName("the pending marker is never a widget")
+        void pendingIsARing() {
+            var timeline = new Timeline(new Entry("Released").withMarker(new Badge("2"))).pending(true);
+            var ring = markerOf(entries(timeline).getLast());
+
+            assertEquals(Set.of("pending"), ring.classes());
+            assertEquals(List.of(), types(ring));
+        }
+
+        @Test
+        @DisplayName("it names nothing: the entry is still named by its label")
+        void theNameIsTheLabel() {
+            var entry =
+                    (Entry) entries(new Timeline(new Entry("Released").at("Fri").withMarker(new Badge("v2"))))
+                            .getFirst()
+                            .widget();
+
+            assertEquals("Released, Fri", entry.accessibleName());
+        }
+    }
+
     @Nested
     @DisplayName("markup")
     class Markup {
@@ -211,6 +268,44 @@ class TimelineTest {
             assertEquals(0xFFA3BE8C, written.get(1).colour());
             assertEquals(0xFFBF616A, written.get(2).colour(), "either spelling of colour");
             assertEquals(Entry.Placement.NONE, written.get(0).placement(), "a document cannot place an entry");
+        }
+
+        @Test
+        @DisplayName("a marker slot is lifted onto the axis, and the rest stays the body")
+        void aMarkerSlot() {
+            var timeline = (Timeline)
+                    Widgets.inflater().inflateAll(KdlParser.parse("""
+                            timeline {
+                                entry "Released" {
+                                    text "Before."
+                                    marker { badge class="success" "v2" }
+                                    badge "not a marker"
+                                }
+                            }
+                            """)).getFirst();
+
+            var entry = (Entry) timeline.rawEntries().getFirst();
+            var badge = assertInstanceOf(Badge.class, entry.marker());
+            assertEquals("v2", badge.text());
+            assertEquals(2, entry.body().size(), "a badge outside the slot is content");
+            assertInstanceOf(Text.class, entry.body().getFirst());
+        }
+
+        @Test
+        @DisplayName("an entry has one marker, and a marker holds one widget")
+        void oneAndOne() {
+            assertThrows(
+                    IllegalArgumentException.class, () -> Widgets.inflater().inflateAll(KdlParser.parse("""
+                            entry "Twice" { marker { badge "1" }; marker { badge "2" } }
+                            """)));
+            assertThrows(
+                    IllegalArgumentException.class, () -> Widgets.inflater().inflateAll(KdlParser.parse("""
+                            entry "Empty" { marker }
+                            """)));
+            assertThrows(
+                    IllegalArgumentException.class, () -> Widgets.inflater().inflateAll(KdlParser.parse("""
+                            entry "Crowded" { marker { badge "1"; badge "2" } }
+                            """)));
         }
     }
 }

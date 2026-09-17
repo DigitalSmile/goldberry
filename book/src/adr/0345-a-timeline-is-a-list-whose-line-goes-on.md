@@ -4,7 +4,8 @@ Date: 2026-09-17
 
 ## Status
 
-Accepted. Builds `docs/core-widgets.md` §10's `timeline`.
+Accepted. Builds `docs/core-widgets.md` §10's `timeline`. A `badge` as the
+marker, left unbuilt here, is ADR-0356's `marker` slot.
 
 ## Context
 

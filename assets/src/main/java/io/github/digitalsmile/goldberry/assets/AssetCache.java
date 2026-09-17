@@ -1,13 +1,16 @@
 package io.github.digitalsmile.goldberry.assets;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+
+import io.github.digitalsmile.goldberry.assets.download.Downloader;
 
 /// Fetches pinned archives and proves they are the ones that were pinned.
 ///
@@ -23,13 +26,22 @@ import java.util.HexFormat;
 public final class AssetCache {
 
     private final Path directory;
+    private final Downloader downloader;
 
     public AssetCache(Path directory) {
+        this(directory, Downloader.standard());
+    }
+
+    /// A cache that downloads through `downloader` — a test's, or the build's.
+    public AssetCache(Path directory, Downloader downloader) {
         this.directory = directory;
+        this.downloader = downloader;
     }
 
     /// Returns the archive's path, downloading it only if what is on disk is not
     /// already the right bytes.
+    ///
+    /// A transient failure is retried by the [Downloader]; a wrong hash is not.
     ///
     /// @throws IOException if the download fails, or succeeds and hashes wrong
     public Path fetch(Asset asset) throws IOException {
@@ -45,9 +57,7 @@ public final class AssetCache {
         // error would be about corruption rather than about being interrupted.
         var partial = Files.createTempFile(directory, asset.name(), ".part");
         try {
-            try (InputStream in = URI.create(asset.url()).toURL().openStream()) {
-                Files.copy(in, partial, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            }
+            downloader.copyTo(URI.create(asset.url()), partial);
             var actual = sha256(partial);
             if (!actual.equals(asset.sha256())) {
                 throw new IOException(
@@ -56,7 +66,7 @@ public final class AssetCache {
                                 + ".\nThe upstream release changed, or the download was corrupted."
                                 + " Do not update the checksum without establishing which.");
             }
-            Files.move(partial, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING);
             return target;
         } finally {
             Files.deleteIfExists(partial);
@@ -64,10 +74,8 @@ public final class AssetCache {
     }
 
     /// Downloads a small text file — a licence — straight into memory.
-    public static String fetchText(String url) throws IOException {
-        try (InputStream in = URI.create(url).toURL().openStream()) {
-            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-        }
+    public String fetchText(String url) throws IOException {
+        return new String(downloader.readAll(URI.create(url)), StandardCharsets.UTF_8);
     }
 
     /// The SHA-256 of a file, as lowercase hex.

@@ -14,9 +14,17 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// Filled when the step before it is done, so the line is drawn from where you
 /// have been and stops at where you are: `step-connector.done` is the whole of
-/// how a stylesheet says so. It is a box with a background and nothing in it,
-/// and the design-system's "connector fill `transform: scaleX` base" is a
-/// transition the stylesheet owns.
+/// how a stylesheet says so.
+///
+/// ## A track with a fill in it
+///
+/// The connector is the unfilled track, and its one child is a
+/// [StepConnectorFill] that covers it. §3.1's "connector fill `transform:
+/// scaleX` base" is a transition on that child: it is `scaleX(0)` about its start
+/// edge until the connector is done and `scaleX(1)` after, so the line grows from
+/// the step you left towards the one you reached (ADR-0356). The fill is present
+/// in every state for the reason `check-mark` is — a node built already done has
+/// no previous style to move from, and would snap (ADR-0067).
 ///
 /// @param done whether the step before it is done
 record StepConnector(boolean done) implements Widget.Leaf, Styled, Paints {
@@ -32,7 +40,12 @@ record StepConnector(boolean done) implements Widget.Leaf, Styled, Paints {
     }
 
     @Override
+    public List<Widget> children() {
+        return List.of(new StepConnectorFill());
+    }
+
+    @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style);
+        return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 }

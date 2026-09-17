@@ -114,6 +114,9 @@ is a number to read rather than a gate to pass.
 ## 5. Contributor workflow
 
 `./gradlew check` = the fast lane locally (formatting auto-applied, blocking analysis, both-mode tests, linux goldens if on linux — otherwise golden tests compare against the platform's set or skip with a notice). Golden updates: run `blessGoldens`, commit the PNGs, explain the visual change in the PR. New widgets must arrive with: spec (core-widgets format), GDS metrics row, gallery pages, semantics assertions, and goldens — per the GDS §5 governance rule: before code review, not after.
+
+**A test that paints must skip without the library.** The Java-only CI jobs build with `-Pgoldberry.skipNative=true`, so a `:core` test that rasterizes (a golden, or a window whose paint handler runs) calls `RendererRequirement.enforce()` first. To check a change the way those jobs will, point the library at nothing and run everything: `./gradlew test --continue -Dgoldberry.native.library=/nonexistent/libgoldberry.so`. Failures there are this defect; skips are correct ([ADR-0357](../book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)).
+
 ## 6. What is built
 
 This section tracks the gap between the plan above and the repository. It is the

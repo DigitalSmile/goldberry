@@ -76,6 +76,9 @@ class WindowResizeTest {
     @Timeout(10)
     @DisplayName("what the manager decided arrives through onResize, and a frame follows")
     void arrivesThroughTheHandler() {
+        // The only test here that runs the frame loop, and a frame rasterizes:
+        // without libgoldberry it skips rather than failing a Java-only build.
+        RendererRequirement.enforce();
         var window = Window.open(WindowSpec.of("resize", OPENING));
         List<LogicalSize> resizes = new ArrayList<>();
         var painted = new int[1];

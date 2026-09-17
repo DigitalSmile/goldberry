@@ -29,6 +29,17 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 | `link` | `docs/core-widgets.md` §2 | 0346 | done |
 | `button` `outlined`, `square`, `circle`, `float` | `docs/core-widgets.md` §3 | 0347 | done |
 
+## Follow-ups the widgets left
+
+| Item | What it asks for | ADR | Status |
+|------|------------------|-----|--------|
+| `steps` connector | §3.1's `scaleX` fill, about the start edge | 0356 | done |
+| `timeline` marker | §10's `badge` as the marker, from a `marker` slot | 0356 | done |
+| `isModal` second consumer | a `wizard` or a `sheet` | 0356 | answered: not `wizard`; `sheet` is not built |
+| `status.md` M3.5 row | still said one method was left after ADR-0290 | — | done |
+| Showcase marker | Rivendell's `IX` badge on the Collections screen | 0356 | done |
+| Snapshot run 12 | `WindowResizeTest` without the library; a 500 on an asset download | 0357 | done |
+
 ## What each one touched
 
 ### The frame evidence
@@ -84,3 +95,23 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 
 - `licenses/*.txt` — the seven placeholders replaced by the verbatim upstream file from the
   superbuild's pinned checkout, with the `NOT-VENDORED` marker gone and the revision named.
+
+### The follow-ups
+
+- `widgets` `nav/steps/StepConnector` holds a `StepConnectorFill`; `controls.css`
+  scales it with `transform-origin` and a `transform` transition. Tests:
+  `StepsTest` "the connector's fill". Goldens unchanged.
+- `widgets` `panel/timeline/EntryMarker` (`@Markup("marker")`); `Entry#marker`,
+  `Entry#withMarker`, `Entry.inflate` lifting the slot; `TimelineRail` and
+  `TimelineMarker` carry the widget; `timeline-marker.widget` in `controls.css`.
+  Tests: `TimelineTest` "a widget marker" and two markup tests;
+  `TimelineGoldenTest#badgeMarkers`, `timeline-badges-dark.png`.
+- `example` `ui/Chronicle` — Rivendell's `IX` badge marker; `GalleryGoldenTest#collections`
+  is 1040 tall and `gallery-collections.png` is re-blessed.
+
+### Snapshot run 12
+
+- `core` `WindowResizeTest#arrivesThroughTheHandler` — `RendererRequirement.enforce()`.
+- `assets` `download/Downloader` — four attempts on 408, 429, 5xx and dropped
+  connections; `AssetCache` and `PrepareAssets` fetch through it. Tests:
+  `assets` `download/DownloaderTest`.

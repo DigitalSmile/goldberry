@@ -14,7 +14,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **eleven** screens, the last of them a searchable sheet of all 1544 bundled icons, in a window that opens maximized and stops at 640×480 |
-| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **started** | Drawing, layout and shaping are the toolkit's own vocabulary; Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and **one method** is all that is left. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
+| [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, AccessKit bridge, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. The other ten are unscheduled |
@@ -7099,6 +7099,10 @@ four options were left after `chip`, and all of them went in on 2026-09-17:
   `pending` — the unfilled marker that tells a timeline from a list with dots.
   An alternating timeline gives every entry both sides at half width, which is
   the `flex-basis: 0` the subset does not have. The Collections screen has one.
+  **A marker can be a widget** — a `badge` in a `marker` child
+  ([ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)) —
+  and a step's connector grows by `scaleX` about its start edge rather than
+  changing colour.
 - **`link`** ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
   §2's text widget, and **one new native symbol** with it: `SDL_OpenURL`, bound
   optional like the theme call, behind `Backend.openUrl` and `Host.openExternal`.
@@ -7229,7 +7233,9 @@ signature** — was never written down and was broken in two families.
   a shaped run is six `int[]` with no foreign memory and nothing to close — and
   HarfBuzz's two packages now export to `:core` and nobody else, checked by
   compiling a module that tries to name `GlyphRun`.
-- **What is left is one method.** `Frame.drawGlyphs(double, double, BlendFont,
+- **What was left was one method, and it is closed**
+  ([ADR-0290](adr/0290-the-pen-belongs-to-the-rasterizer.md), `paint.GlyphPen`).
+  It was `Frame.drawGlyphs(double, double, BlendFont,
   BlendGlyphBuffer, int)`, whose only caller is `Font.draw`. The other leaks were
   *values* and a value can be mirrored; this one passes **handles**, and the
   difficulty is ownership: glyph rasterization needs a context, a font and a
@@ -7359,6 +7365,10 @@ is not a claim about hardware. The workflow has not run since the change; it run
 on a tag or by hand, and the numbers it produces belong here when it has.
 
 ### CI — green where it can be reproduced, and saying why where it cannot
+
+**Snapshot run 12 went red and is repaired** ([ADR-0357](adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)):
+`WindowResizeTest` painted a frame without asking for the library, which fails every
+Java-only job, and a 500 from github.com failed one asset download that is now retried.
 
 [ADR-0338](adr/0338-a-red-run-says-why-in-public.md). Every workflow had been red since
 2026-08-16. From a fresh clone with no library, five causes turned up and are fixed:

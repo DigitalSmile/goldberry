@@ -106,16 +106,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
 
 ### What the last four widgets left behind
 
-- **A `badge` cannot be a timeline's marker.** §10 lists "dot, icon or `badge`",
-  and the first two are built: a marker that is a *widget* needs a slot markup can
-  name, and nothing else in the catalog has one. When something does, `entry`
-  takes it the same way. —
-  [ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
-- **A step's connector fills by colour, not by `scaleX`.** §3.1 asks for the fill
-  to grow along the line; a `transform: scaleX` grows from the box's centre unless
-  a transform origin says otherwise, and §8's subset has no `transform-origin`.
-  The colour transition is what ships until it does. —
-  [ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
 - **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
   `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
   written on it: a role nothing consumes is a value written for a bridge that does
@@ -138,10 +128,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   test can currently provoke. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
-  have. A `wizard` step and a `sheet` are the plausible seconds; it is tested in
-  `:core` against bare widgets rather than through `dialog`, so the second one
-  finds a mechanism rather than a dialog-shaped hole. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+  have. `sheet` is the plausible second, and it is not built. **A `wizard` is
+  not**: §6 makes its content a focus-scope, and a wizard written inline that
+  trapped the keyboard and the pointer would lock the window around it. It is
+  tested in `:core` against bare widgets rather than through `dialog`, so the
+  second one finds a mechanism rather than a dialog-shaped hole. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
+  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - **Four widgets announce what they are and cannot say what they hold.**
   Each has a specification sentence with two halves and only the first is built.
   `code-input` is "a single textbox with the whole code as its value" —
@@ -1420,6 +1413,17 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A step's connector fills by colour, not by `scaleX`.**~~ **It grows,
+  2026-09-17.** The reason given was that §8's subset has no `transform-origin`,
+  and it has had one since ADR-0068. The sentence was copied from an older note
+  and never checked against `TransformTest`. The connector is now a track with a
+  fill scaled about its start edge. —
+  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+- ~~**A `badge` cannot be a timeline's marker.**~~ **It can, 2026-09-17**, from a
+  `marker` child that `entry` lifts onto the axis. The slot is named rather than
+  inferred, so a badge written as content stays content. The rail keeps its
+  width and a wide marker overhangs it. —
+  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - ~~**A floating button does not scale in.**~~ **It does, 2026-09-17**, from an
   `@starting-style`: the entering state the overlay layer had no way to give
   it, and CSS's own answer to "what does an element transition from on its first

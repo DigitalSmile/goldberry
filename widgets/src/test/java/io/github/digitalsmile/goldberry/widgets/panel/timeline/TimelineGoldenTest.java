@@ -19,12 +19,14 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// What a timeline looks like (§14, [ADR-0050]): a vertical one with a body
-/// and a pending marker, an alternating one, and a horizontal one under both.
+/// and a pending marker, an alternating one, and a horizontal one under both —
+/// and a release log whose markers are badges ([ADR-0356]).
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class TimelineGoldenTest {
@@ -35,6 +37,10 @@ class TimelineGoldenTest {
     }
 
     private void paint(String name, Theme theme, Widget content) {
+        paint(name, theme, 560, 360, content);
+    }
+
+    private void paint(String name, Theme theme, int width, int height, Widget content) {
         var renderer = new WidgetRenderer(
                 List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #page { gap: 24px; padding: 16px; background: var(--gb-bg) }
@@ -44,7 +50,7 @@ class TimelineGoldenTest {
                 TestFont.get());
 
         GoldenImage.assertMatches(
-                name, 560, 360, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
+                name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 
     private static Attributes id(String id) {
@@ -68,6 +74,25 @@ class TimelineGoldenTest {
                 .direction(Timeline.Direction.HORIZONTAL)
                 .pending(true);
         return new Column(List.of(new Row(List.of(vertical, alternate), id("pair")), horizontal), id("page"));
+    }
+
+    /// A one-digit badge is exactly the rail's width; `v2` overhangs it into the
+    /// body's padding, and the axis stays where the dots put it.
+    private static Widget releases() {
+        return new Column(
+                List.of(new Timeline(
+                        new Entry("Released", new Text("Tagged and published."))
+                                .at("Fri")
+                                .withMarker(new Badge("v2", null, new Attributes(null, Set.of("success"), null))),
+                        new Entry("Reviewed").at("Thu").withMarker(new Badge("3")),
+                        new Entry("Drafted").at("Mon"))),
+                id("page"));
+    }
+
+    @Test
+    @DisplayName("badges on the axis, with a dot after them")
+    void badgeMarkers() {
+        paint("timeline-badges-dark", Theme.NORD_DARK, 280, 200, releases());
     }
 
     @Test

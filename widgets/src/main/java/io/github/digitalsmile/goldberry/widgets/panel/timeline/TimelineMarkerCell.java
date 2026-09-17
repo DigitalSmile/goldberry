@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// The cell the marker is centred in — a **part** one line tall, so the dot
 /// sits on the centre of the head beside it at every density (ADR-0345).
 ///
-/// @param marker the dot, the icon disc or the pending ring
+/// @param marker the dot, the icon disc, the pending ring or a widget holder
 record TimelineMarkerCell(TimelineMarker marker) implements Widget.Leaf, Styled, Paints {
 
     @Override

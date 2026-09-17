@@ -215,10 +215,13 @@ class GalleryGoldenTest {
         paint("gallery-navigation", "navigation", Theme.NORD_DARK, 1200, 900);
     }
 
+    /// 1040 tall: the timeline card ends below the fold at 900, and Rivendell's
+    /// `badge` marker — the one widget marker in the showcase — sat on the last
+    /// row, cut in half (ADR-0356).
     @Test
     @DisplayName("the Collections screen")
     void collections() {
-        paint("gallery-collections", "collections", Theme.NORD_DARK, 1200, 900);
+        paint("gallery-collections", "collections", Theme.NORD_DARK, 1200, 1040);
     }
 
     @Test

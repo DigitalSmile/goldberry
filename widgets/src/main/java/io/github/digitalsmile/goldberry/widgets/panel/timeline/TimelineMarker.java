@@ -14,16 +14,22 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The dot on the axis — a **part**. Twelve across with a `full` radius; a
 /// larger disc with the icon inside when there is one (`timeline-marker.icon`),
-/// and a ring with nothing in it for the pending one (`timeline-marker.pending`).
+/// a ring with nothing in it for the pending one (`timeline-marker.pending`),
+/// and — when the entry wrote a `marker` slot — a bare holder for that widget
+/// (`timeline-marker.widget`), which takes the widget's size and paints nothing
+/// of its own (ADR-0356).
 ///
 /// The colour is the entry's when it gave one and the stylesheet's otherwise
 /// — a dot is data when a timeline colours its kinds, which is `chip`'s rule
 /// for the same dot (ADR-0328).
 ///
 /// @param icon    the icon, or null
-/// @param colour  the fill, or 0 for the stylesheet's
+/// @param colour  the fill, or 0 for the stylesheet's; ignored for a widget
+/// @param widget  the widget drawn in place of the dot, or null
 /// @param pending whether this is the trailing unfilled marker
-record TimelineMarker(@Nullable Icon icon, int colour, boolean pending) implements Widget.Leaf, Styled, Paints {
+record TimelineMarker(
+        @Nullable Icon icon, int colour, @Nullable Widget widget, boolean pending)
+        implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -35,11 +41,22 @@ record TimelineMarker(@Nullable Icon icon, int colour, boolean pending) implemen
         if (pending) {
             return Set.of("pending");
         }
+        if (widget != null) {
+            return Set.of("widget");
+        }
         return icon == null ? Set.of() : Set.of("icon");
     }
 
     @Override
+    public List<Widget> children() {
+        return widget == null || pending ? List.of() : List.of(widget);
+    }
+
+    @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
+        if (widget != null && !pending) {
+            return Box.of().style(style).children(children.toArray(Box[]::new));
+        }
         var box = Box.of().style(style);
         if (colour != 0 && !pending) {
             box = box.background(colour);

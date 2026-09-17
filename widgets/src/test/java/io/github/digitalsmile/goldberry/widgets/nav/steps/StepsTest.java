@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.nav.steps;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +16,13 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform.Function.Scale;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
@@ -24,6 +32,7 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// §6's `steps` — where a process is, as a list ([ADR-0344]).
@@ -112,6 +121,68 @@ class StepsTest {
             assertEquals(
                     List.of("step-label", "step-description"),
                     body.children().stream().map(Element::type).toList());
+        }
+    }
+
+    /// §3.1's "connector fill `transform: scaleX` base", read off the toolkit's
+    /// own stylesheet ([ADR-0356]). The fill is a child that is always there, so
+    /// the only thing a step changing does is move its transform.
+    @Nested
+    @DisplayName("the connector's fill")
+    class TheFill {
+
+        private static ComputedStyle fillOf(Steps steps, int connector) {
+            var list = new ElementTree(steps).root().children().getFirst();
+            var fill = list.children().get(connector).children().getFirst();
+            assertEquals("step-connector-fill", fill.type());
+            var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
+            return ComputedStyle.of(resolver.resolve(fill), CssLength.Context.DEFAULT);
+        }
+
+        @Test
+        @DisplayName("every connector holds one fill, done or not")
+        void theFillIsAlwaysThere() {
+            var list = listNode(three(1));
+
+            for (var connector : List.of(list.children().get(1), list.children().get(3))) {
+                assertEquals(
+                        List.of("step-connector-fill"),
+                        connector.children().stream().map(Element::type).toList());
+            }
+        }
+
+        @Test
+        @DisplayName("a row's fill is scaled to nothing about its left edge until the step before is done")
+        void aRowGrowsFromTheLeft() {
+            var steps = three(1);
+            var filled = fillOf(steps, 1).transform();
+            var empty = fillOf(steps, 3).transform();
+
+            assertEquals(List.of(new Scale(1, 1)), filled.functions());
+            assertEquals(List.of(new Scale(0, 1)), empty.functions());
+            assertEquals(new Transform.Origin(Transform.Length.ZERO, Transform.Length.HALF), empty.origin());
+            var matrix = empty.matrix(100, 2);
+            assertEquals(0, matrix.mapX(100, 1), 1e-9, "the far end is drawn at the near one: it grows from the left");
+        }
+
+        @Test
+        @DisplayName("a column's fill grows down, about its top")
+        void aColumnGrowsDown() {
+            var steps = three(1).direction(Steps.Direction.VERTICAL);
+            var filled = fillOf(steps, 1).transform();
+            var empty = fillOf(steps, 3).transform();
+
+            assertEquals(List.of(new Scale(1, 1)), filled.functions());
+            assertEquals(List.of(new Scale(1, 0)), empty.functions());
+            assertEquals(0, empty.matrix(2, 16).mapY(1, 16), 1e-9, "the bottom is drawn at the top");
+        }
+
+        @Test
+        @DisplayName("what moves is the fill's transform")
+        void theTransformIsWhatTransitions() {
+            var fill = fillOf(three(1), 1);
+
+            assertNotNull(fill.transitions().get(Transitions.Animatable.TRANSFORM));
         }
     }
 

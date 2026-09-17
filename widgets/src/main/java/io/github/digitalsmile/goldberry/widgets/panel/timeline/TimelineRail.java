@@ -25,8 +25,11 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// @param icon      an icon for the marker, or null for a dot
 /// @param colour    the dot's colour, or 0 for the stylesheet's
+/// @param marker    a widget drawn in place of the dot, or null
 /// @param placement where the entry is
-record TimelineRail(@Nullable Icon icon, int colour, Entry.Placement placement) implements Widget.Leaf, Styled, Paints {
+record TimelineRail(
+        @Nullable Icon icon, int colour, @Nullable Widget marker, Entry.Placement placement)
+        implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -40,7 +43,7 @@ record TimelineRail(@Nullable Icon icon, int colour, Entry.Placement placement) 
 
     @Override
     public List<Widget> children() {
-        var cell = new TimelineMarkerCell(new TimelineMarker(icon, colour, placement.pending()));
+        var cell = new TimelineMarkerCell(new TimelineMarker(icon, colour, marker, placement.pending()));
         return placement.continues() ? List.of(cell, new TimelineLine()) : List.of(cell);
     }
 

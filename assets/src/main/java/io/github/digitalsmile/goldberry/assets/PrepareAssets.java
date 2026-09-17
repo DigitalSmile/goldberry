@@ -50,7 +50,7 @@ public final class PrepareAssets {
             var archive = cache.fetch(asset);
             extract(asset, archive, resources);
             if (licences != null) {
-                vendorLicence(asset, archive, licences);
+                vendorLicence(cache, asset, archive, licences);
             }
         }
 
@@ -125,7 +125,7 @@ public final class PrepareAssets {
     }
 
     /// Writes the verbatim upstream licence text into `licenses/`.
-    private static void vendorLicence(Asset asset, Path archive, Path licences) throws IOException {
+    private static void vendorLicence(AssetCache cache, Asset asset, Path archive, Path licences) throws IOException {
         Files.createDirectories(licences);
         for (var wanted : asset.licence().entrySet()) {
             try (var zip = new ZipFile(archive.toFile())) {
@@ -145,7 +145,7 @@ public final class PrepareAssets {
         if (asset.licenceUrl() != null) {
             Files.writeString(
                     licences.resolve(asset.licenceAs()),
-                    AssetCache.fetchText(asset.licenceUrl()),
+                    cache.fetchText(asset.licenceUrl()),
                     StandardCharsets.UTF_8);
             System.out.println("  vendored licenses/" + asset.licenceAs()
                     + " from " + asset.licenceUrl());

@@ -365,6 +365,8 @@
 - [ADR-0353 A stylesheet may name keyframes](adr/0353-a-stylesheet-may-name-keyframes.md)
 - [ADR-0354 A choreography is a function of time, and a timer wakes it](adr/0354-a-choreography-is-a-function-of-time-and-a-timer-wakes-it.md)
 - [ADR-0355 A floating button leaves, a field's room is both paddings, and a floor starts on its first frame](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
+- [ADR-0356 A connector grows from where you were, and an entry has a marker slot](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+- [ADR-0357 A test that paints asks for the library, and a download asks again](adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)
 
 ---
 

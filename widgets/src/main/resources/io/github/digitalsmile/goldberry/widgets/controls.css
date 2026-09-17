@@ -5060,23 +5060,34 @@ step-description {
   color: var(--gb-text-muted);
 }
 
-/* The line between two markers: 2px in the border colour, filled behind a
-   done step. It grows to take the room between steps in a row, and stands 16
-   tall under the marker's centre in a column -- 11px in from the edge, which
-   is half of 24 less half of 2. Its fill is a transition on the colour rather
-   than §3's `scaleX`, because a line that grows from one end needs a transform
-   origin the subset does not express. */
+/* The line between two markers: a 2px track in the border colour, with a fill
+   in it that grows behind a done step. It grows to take the room between steps
+   in a row, and stands 16 tall under the marker's centre in a column -- 11px in
+   from the edge, which is half of 24 less half of 2.
+
+   The fill is §3's `scaleX` base: it covers the track, is scaled to nothing
+   about its start edge until the step before it is done, and grows from the
+   step you left towards the one you reached (ADR-0356). A column grows it
+   down, about its top. */
 step-connector {
   flex-grow: 1;
   min-width: 16px;
   height: 2px;
   margin-top: 11px;
   background: var(--gb-border);
-  transition: background-color var(--gb-motion-base);
 }
 
-step-connector.done {
+step-connector-fill {
+  width: 100%;
+  height: 100%;
   background: var(--gb-success);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--gb-motion-base) ease-enter;
+}
+
+step-connector.done step-connector-fill {
+  transform: scaleX(1);
 }
 
 steps.vertical step-connector {
@@ -5086,6 +5097,15 @@ steps.vertical step-connector {
   height: 16px;
   margin-top: 0;
   margin-left: 11px;
+}
+
+steps.vertical step-connector-fill {
+  transform: scaleY(0);
+  transform-origin: center top;
+}
+
+steps.vertical step-connector.done step-connector-fill {
+  transform: scaleY(1);
 }
 
 /* ---------------------------------------------------------------- wizard --
@@ -5183,6 +5203,19 @@ timeline-marker.icon {
 timeline-marker.pending {
   background: none;
   border: 2px solid var(--gb-border-strong);
+}
+
+/* A widget in the `marker` slot -- a `badge` is the one §10 names. The holder
+   is as big as the widget and paints nothing, so the badge is drawn as a badge.
+   The rail keeps its 20px: a wider marker overhangs it evenly on both sides
+   rather than moving the axis for one entry, and a short badge's overhang lands
+   in the body's 8px of left padding (ADR-0356). A timeline whose markers are
+   all wide widens `timeline-rail` instead. */
+timeline-marker.widget {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
 }
 
 timeline-line {
