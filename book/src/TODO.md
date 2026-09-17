@@ -447,24 +447,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   means to match a node nobody can see. Nothing has asked for it. —
   [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
   [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- **A `select`'s *field* is as wide as its current value.** The list is now at
-  least as wide as the field (ADR-0145), which was the half that showed; the
-  field itself still tracks its value, so it moves when the value does. No
-  selector can measure a set of options — the same wall `segmented` hit, where
-  the answer was that the control writes the width itself (ADR-0099). **The
-  reason given for not doing it has expired.** It said this "means measuring text
-  outside a layout pass, which only `Paragraph` can do and only for a style that
-  has been resolved" — and `render` is exactly that place:
-  `Paints.Context.paragraph(style, text)` shapes against the node's own resolved
-  style, and a shaped paragraph's natural width is one call. It is not the
-  `Measured` trap either, because what is measured is *text*, a pure function of
-  the model and the style, rather than last frame's geometry. What it actually
-  costs is a component on `SelectField` carrying the option labels, arithmetic
-  over the padding, the gap and the chevron, and **every `select` golden in the
-  corpus** — which is a decision about a shipped drawing rather than a missing
-  mechanism, and `docs/core-widgets.md` §3 already asks for it. —
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md),
-  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says
   the application supplies the list, and it arrives by rebuilding the widget in
   answer to `change` — a channel a document does not have, so a document may write
@@ -1404,6 +1386,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `select`'s *field* is as wide as its current value.**~~ **As wide as its
+  widest option, 2026-09-17.** The value cell's preferred width is the widest of
+  the option labels and the placeholder, shaped in `render`; a stylesheet's width
+  still wins. —
+  [ADR-0359](adr/0359-a-select-is-as-wide-as-its-widest-option.md)
 - ~~**There is no `img` widget.**~~ **There is, 2026-09-17**: `image`, with the
   `object-fit` modes, a natural size that takes part in layout, loading and error
   states and a decode that does not run on the UI thread, which is the list this

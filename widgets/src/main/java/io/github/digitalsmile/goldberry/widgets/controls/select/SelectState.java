@@ -71,6 +71,7 @@ final class SelectState extends State<Select> {
         }
         return new SelectField(
                 select.label(),
+                widths(select),
                 select.selected() == null,
                 chips(select),
                 editor(select),
@@ -82,6 +83,22 @@ final class SelectState extends State<Select> {
                 this::restore,
                 this::settle,
                 this::located);
+    }
+
+    /// The labels a closed single select could show: every option's and the
+    /// placeholder. Empty for a tree, whose labels are nodes that may not be
+    /// loaded, and for `multiple` and `autocomplete`, which draw chips or an
+    /// editor instead of a value (ADR-0359).
+    private static List<String> widths(Select select) {
+        if (select.isTree() || select.multiple() || select.autocomplete()) {
+            return List.of();
+        }
+        var labels = new ArrayList<String>();
+        labels.add(select.placeholder());
+        for (var option : select.options()) {
+            labels.add(option.label());
+        }
+        return List.copyOf(labels);
     }
 
     /// §3's "renders the selection as `badge` chips ... each with a remove

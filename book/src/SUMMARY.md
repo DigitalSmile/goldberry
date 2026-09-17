@@ -368,6 +368,7 @@
 - [ADR-0356 A connector grows from where you were, and an entry has a marker slot](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - [ADR-0357 A test that paints asks for the library, and a download asks again](adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)
 - [ADR-0358 An image loads off the frame, and is its own size](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
+- [ADR-0359 A select is as wide as its widest option](adr/0359-a-select-is-as-wide-as-its-widest-option.md)
 
 ---
 

@@ -29,8 +29,8 @@ decided not to build, with the reason in the ADR.
 |------|------------------|-----|--------|
 | Column resizing | drag a header edge | — | open |
 | Sticky header | the header stays while the rows scroll | — | open |
-| Cell focus | arrow keys between cells | — | open |
-| Horizontal virtualization | columns off screen are not built | — | open |
+| Cell focus | arrow keys between cells | — | answered: §10's table is a grid of rows; a spreadsheet is another widget (ADR-0214) |
+| Horizontal virtualization | columns off screen are not built | — | answered: pays past about fifty columns, past where a table is the right widget (ADR-0214) |
 
 ## `tabs`
 
@@ -45,7 +45,7 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | Tree-select typeahead | typing inside the open tree list | — | open |
-| Field width | as wide as the widest option, not the current one | — | open |
+| Field width | as wide as the widest option, not the current one | 0359 | done |
 | Menubar `Left`/`Right` | move between menus while one is open | — | open |
 
 ## `affix`
@@ -60,10 +60,10 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | `knob` circular drag | §3's "rotary" mode | — | open |
-| `toggle` thumb follows the pointer | during the drag | — | open |
-| `toggle` compact density | the thumb and track shrink | — | open |
-| `code-input` arrow keys | move between boxes | — | open |
-| `code-input` copy and cut | the whole code | — | open |
+| `toggle` thumb follows the pointer | during the drag | — | answered: design-system §1.7 lists the 1:1 drags and a toggle is not one; §3.1 asks for a thumb `translate` instead |
+| `toggle` compact density | the thumb and track shrink | — | answered: §3's `toggle` row gives no compact value, unlike every row that has one |
+| `code-input` arrow keys | move between boxes | — | answered: §4 makes a code one textbox with one insertion point, so there is nowhere for an arrow to go |
+| `code-input` copy and cut | the whole code | — | answered: §4 gives a masked code no way out, and copy is one |
 
 ## Markup
 
@@ -75,6 +75,17 @@ decided not to build, with the reason in the ADR.
 | `tour` | a KDL element | — | open |
 | `toast` | a KDL element | — | open |
 | Autocomplete | on `text-input` and `select` from KDL | — | open |
+
+## Decisions taken without an answer
+
+Asked on 2026-09-17 and not answered, so the recommended option was taken and
+can be reversed:
+
+- The five items above marked **answered** are not built, because the design
+  system or the spec records a decision against each.
+- A tab's content stays lazy by default; keeping it is an opt-in `keep-alive`.
+- An affix on two axes, dragging tabs to reorder, and a reveal that scrolls one
+  axis first are opt-in options with the defaults unchanged.
 
 ## What each one touched
 
@@ -90,3 +101,9 @@ decided not to build, with the reason in the ADR.
   `ImageViewTest`, `ImageGoldenTest` (`image-dark`, `image-light`).
 - `example` `ui/CanvasScreen` — "The image widget" card; `showcase.css`;
   `gallery-canvas` re-blessed.
+
+### `select` field width
+
+- `widgets` `controls/select/SelectValue` — `widths`, shaped in `render`;
+  `SelectField` carries them; `SelectState.widths`.
+- Tests: `SelectWidthTest`. Five `select-*` goldens re-blessed.

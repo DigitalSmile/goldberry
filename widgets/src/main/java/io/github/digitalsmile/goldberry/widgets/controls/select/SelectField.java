@@ -46,6 +46,9 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// @param text        the chosen option's label, or the placeholder. Ignored
 ///                    when `chips` is non-empty — see [#children()]
+/// @param widths      every label the value could show — the options and the
+///                    placeholder — so the field is as wide as the widest
+///                    (ADR-0359); empty for one that tracks its value
 /// @param placeholder whether `text` is the placeholder
 /// @param chips       §3's "`badge` chips inside the closed control", one per
 ///                    value a `select multiple` holds, or empty for the ordinary
@@ -64,6 +67,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param onLocated   where the last frame put this, and what clips it
 record SelectField(
         String text,
+        List<String> widths,
         boolean placeholder,
         List<Widget> chips,
         Widget editor,
@@ -284,7 +288,7 @@ record SelectField(
             // `text-input`'s and stay there.
             parts.add(editor);
         } else if (chips.isEmpty()) {
-            parts.add(new SelectValue(text, placeholder));
+            parts.add(new SelectValue(text, placeholder, widths));
         }
         parts.add(new SelectChevron());
         return List.copyOf(parts);
