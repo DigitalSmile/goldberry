@@ -355,6 +355,8 @@
 - [ADR-0343 The published javadoc is linted](adr/0343-the-published-javadoc-is-linted.md)
 - [ADR-0344 A list of steps writes where each one stands, and a wizard moves nothing](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
 - [ADR-0345 A timeline is a list whose line goes on](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
+- [ADR-0346 A link is a word, and the desktop opens the rest](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+- [ADR-0347 An icon-only button is a circle, and `float` is a place](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
 
 ---
 

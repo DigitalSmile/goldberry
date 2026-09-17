@@ -148,10 +148,14 @@ class GalleryGoldenTest {
                         .render(root));
     }
 
+    /// 1720 tall rather than 900, for the Forms screen's reason: the shapes card
+    /// and the links card sit below the fold at 900, and a golden that stopped
+    /// there would not photograph the two things it exists to show (ADR-0346,
+    /// ADR-0347).
     @Test
     @DisplayName("the Basic screen")
     void basic() {
-        paint("gallery-basic", "basic", Theme.NORD_DARK, 1200, 900);
+        paint("gallery-basic", "basic", Theme.NORD_DARK, 1200, 1720);
     }
 
     @Test
@@ -288,6 +292,6 @@ class GalleryGoldenTest {
     @Test
     @DisplayName("the Basic screen on the light theme")
     void lightTheme() {
-        paint("gallery-basic-light", "basic", Theme.NORD_LIGHT, 1200, 900);
+        paint("gallery-basic-light", "basic", Theme.NORD_LIGHT, 1200, 1720);
     }
 }

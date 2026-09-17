@@ -9,10 +9,12 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Floated;
 import io.github.digitalsmile.goldberry.widgets.controls.chip.Chip;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
+import io.github.digitalsmile.goldberry.widgets.text.Link;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Basic** screen: §1's type scale, §2's wrapped paragraph and **every §3
@@ -93,12 +95,66 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
         }
         extra.add(road());
         extra.add(tags());
+        extra.add(shapes());
+        extra.add(links());
         // A value, like every other widget here: the state that remembers what
         // the last dialog answered is the card's own, made once when it is
         // mounted and kept across the rebuilds this screen does for everything
         // else.
         extra.add(new FileDialogsCard());
         return Wall.of("basic", "Basic", NOTE, cards, extra.toArray(Widget[]::new));
+    }
+
+    /// §3's four remaining button options ([ADR-0347]): `outlined`, which
+    /// composes with the semantic variants; `square`, for buttons that butt
+    /// against each other; `circle`, which an icon-only button is without being
+    /// told; and `float`, which lifts a button out of this card and into the
+    /// window's corner — so the `+` at the bottom right of this screen is
+    /// described here and drawn there.
+    private Widget shapes() {
+        return Notifications.card(
+                "shapes-card",
+                "Four more buttons",
+                List.of(
+                        new Row(
+                                List.of(
+                                        new Button("Outlined", actions::click).styled(Button.OUTLINED),
+                                        new Button("Danger", actions::click).styled(Button.OUTLINED, "danger"),
+                                        new Button("Square", actions::click).styled(Button.SQUARE),
+                                        new Button("", plus, actions::click, false, null).id("circle-button")),
+                                Attributes.NONE.id("shapes-row")),
+                        new Text(
+                                "Outlined is a transparent fill with a border, and it composes with"
+                                        + " danger. The disc on the right was not told to be one: an"
+                                        + " icon-only button is a circle unless it says square. The"
+                                        + " floating + in the window's corner is a button on this card,"
+                                        + " lifted out of it.",
+                                Attributes.NONE.classes("caption")),
+                        new Floated(new Button(
+                                "",
+                                plus,
+                                actions::click,
+                                false,
+                                Attributes.NONE.id("float-button").classes("primary")))));
+    }
+
+    /// §2's `link`: a word that does something, in-app or outside the window
+    /// ([ADR-0346]).
+    private Widget links() {
+        return Notifications.card(
+                "links-card",
+                "Text that does something",
+                List.of(
+                        new Link("March a league, as a link", actions::click).id("league-link"),
+                        new Link("Somewhere you have been", actions::click).visited(true),
+                        Link.external("Goldberry on GitHub", "https://github.com/DigitalSmile/goldberry")
+                                .id("github-link"),
+                        new Text(
+                                "The first two stay in the window; the third goes to the desktop's"
+                                        + " browser, carries the icon that says so, and says so to a"
+                                        + " screen reader. Visited is the application's word — the"
+                                        + " toolkit keeps no history.",
+                                Attributes.NONE.classes("caption"))));
     }
 
     /// The paragraph card. Absent from the returned list rather than emptied,

@@ -144,6 +144,28 @@ public class TestHost implements Host {
         return Optional.ofNullable(systemTheme);
     }
 
+    private final List<String> openedUrls = new ArrayList<>();
+
+    /// Whether [#openExternal] answers true. A desktop with no handler for
+    /// the scheme says false, and a `link` has to cope with that too.
+    private boolean opensExternal = true;
+
+    @Override
+    public boolean openExternal(String url) {
+        openedUrls.add(url);
+        return opensExternal;
+    }
+
+    /// Every URL something asked to open, in order.
+    public List<String> openedUrls() {
+        return List.copyOf(openedUrls);
+    }
+
+    /// Makes [#openExternal] refuse, as a desktop without a handler would.
+    public void refuseExternal() {
+        opensExternal = false;
+    }
+
     @Override
     public void onSystemThemeChanged(Consumer<SystemTheme> listener) {
         systemThemeListeners.add(listener);

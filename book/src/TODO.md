@@ -104,6 +104,29 @@ other entry was a cost nobody had measured, and measuring it was the answer.
 
 ## The catalog: specified and unbuilt
 
+### What the last four widgets left behind
+
+- **A `badge` cannot be a timeline's marker.** §10 lists "dot, icon or `badge`",
+  and the first two are built: a marker that is a *widget* needs a slot markup can
+  name, and nothing else in the catalog has one. When something does, `entry`
+  takes it the same way. —
+  [ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
+- **A step's connector fills by colour, not by `scaleX`.** §3.1 asks for the fill
+  to grow along the line; a `transform: scaleX` grows from the box's centre unless
+  a transform origin says otherwise, and §8's subset has no `transform-origin`.
+  The colour transition is what ships until it does. —
+  [ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
+- **A floating button does not scale in.** §3.1's `opacity` + `scale` 0.9→1 on the
+  way in needs an entering state for the transition to run from, and the overlay
+  layer mounts a widget already at rest. The same gap as `toast`'s arrival, and
+  the same answer when it comes. —
+  [ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
+- **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
+  `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
+  written on it: a role nothing consumes is a value written for a bridge that does
+  not exist. The AccessKit bridge is where the words arrive. —
+  [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+
 ### `text-input`, and what §4 still owes
 
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
@@ -352,28 +375,16 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   coverage before code, in that order: they had passed two gates of three, and the
   third is what "built" means.
 
-  **This entry said "none of it is built" and then "one of them is built now", and
-  it is out of date in the good direction.** What is left of the list is four
-  widgets and four options:
-
-  - **`link`** — §2's *text* widget, and **no longer blocked**: it needed
-    `text-decoration` in §8's subset, because "never by colour alone" makes the
-    underline non-optional, and the subset has it
-    ([ADR-0321](adr/0321-a-rule-under-text-belongs-to-the-face.md)) — the property
-    resolves, inherits and is drawn at the face's own position and thickness. What
-    is left is the widget: a word inside a sentence rather than a control, which is
-    the part `button.link` cannot stand in for. Not the same thing as
-    `button.link`, which is built
-    ([ADR-0293](adr/0293-a-button-that-reads-as-a-link.md)).
-  - **`steps` and `wizard`** — the other two of §6's `nav` group. The package
-    exists now, because `breadcrumbs` opened it
-    ([ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)), so they have
-    somewhere to land.
-  - **`timeline`** — §10's, and the only one of the four with nothing waiting on
-    it.
-  - **`button`'s `outlined` / `square` / `circle` / `float`** — four classes and
-    no Java at all, which is what makes them the cheapest thing on this list and
-    also the reason nothing has needed them.
+  **This entry said "none of it is built", then "one of them is built now", then
+  "four widgets and four options are left" — and now none are.** The last four
+  went in on 2026-09-17: `link`
+  ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
+  `steps` and `wizard`
+  ([ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)),
+  `timeline` ([ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
+  and `button`'s `outlined` / `square` / `circle` / `float`
+  ([ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
+  What each left behind is its own entry under *The catalog* below.
 
   Everything else on it went in: `segmented` first, then `affix`, the three
   pickers, `code-input`, autocomplete on both controls, tree-select, `collapse`,

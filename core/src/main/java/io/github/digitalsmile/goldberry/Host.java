@@ -235,6 +235,21 @@ public interface Host {
     /// which module may make one.
     java.util.Optional<SystemTheme> systemTheme();
 
+    /// Hands a URL to the desktop — the browser for `https:`, the mail client
+    /// for `mailto:` — through the platform, which is the one place a process
+    /// may ask for one to be opened.
+    ///
+    /// What §2's `link` does with an `href`. A request rather than a result:
+    /// the desktop opens it in its own time, and false means the platform would
+    /// not — a headless run, a library without the export, a scheme nothing
+    /// handles — which a caller reports rather than retries (ADR-0346).
+    ///
+    /// @param url what to open
+    /// @return whether the platform took the request
+    default boolean openExternal(String url) {
+        return false;
+    }
+
     /// Told when that setting changes, on the UI thread, for as long as the window
     /// is open.
     ///

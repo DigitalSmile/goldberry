@@ -131,7 +131,7 @@ class ChainingTest {
         for (var type : names()) {
             var markup =
                     switch (type) {
-                        case "text", "button", "badge", "chip" -> type + " \"x\"";
+                        case "text", "link", "button", "badge", "chip" -> type + " \"x\"";
                         case "radio" -> "radio value=\"x\" \"X\"";
                         case "option" -> "option value=\"x\" \"X\"";
                         default -> type;

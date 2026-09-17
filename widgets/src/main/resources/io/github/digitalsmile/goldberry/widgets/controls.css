@@ -379,6 +379,7 @@ radio-indicator:checked radio-dot {
  * (ADR-0073).
  */
 button:focus-visible,
+link:focus-visible,
 step:focus-visible,
 checkbox:focus-visible,
 radio:focus-visible,
@@ -545,6 +546,59 @@ button.link:hover {
 
 button.link:active {
   background: var(--gb-overlay-active);
+}
+
+/* §3's shapes and the outline, all classes (ADR-0347).
+
+   `outlined` is a transparent fill with a 1px `--gb-border` and the text ink,
+   and it composes with the semantic variants: `button.outlined.danger` is a
+   danger outline, which is the one place the border and the ink change
+   together. `square` is radius 0, for buttons that butt against each other or
+   a field; `circle` is a `full` radius on a box as wide as it is tall, which
+   is what an icon-only button gets without asking -- see `Button.classes()`.
+
+   `float` (the `float=true` attribute) is placement, not appearance: the button is in the window's overlay
+   layer at `Overlay.WINDOW_MARGIN` from two edges, and what the class adds is
+   §1.5's elevation 1. The edge is the elevation, as it is on every floating
+   surface in this sheet; a shadow here would be the first, and it would be the
+   only one. The 0.9→1 scale on the way in is not built: the overlay layer has
+   no entering state for a transition to run from. */
+button.outlined {
+  background: none;
+  border: 1px solid var(--gb-border);
+  color: var(--gb-text);
+}
+
+button.outlined:hover {
+  background: var(--gb-overlay-hover);
+}
+
+button.outlined:active {
+  background: var(--gb-overlay-active);
+}
+
+button.outlined.primary {
+  border-color: var(--gb-accent);
+  color: var(--gb-accent);
+}
+
+button.outlined.danger {
+  border-color: var(--gb-danger-line);
+  color: var(--gb-danger-text);
+}
+
+button.square {
+  border-radius: 0;
+}
+
+button.circle {
+  width: var(--gb-button-height);
+  padding: 0;
+  border-radius: 9999px;
+}
+
+button.float {
+  border: 1px solid var(--gb-border-strong);
 }
 
 /* -------------------------------------------------------------- checkbox --
@@ -5219,3 +5273,36 @@ timeline.horizontal entry.end {
   flex-direction: column-reverse;
 }
 
+/* ------------------------------------------------------------------ link --
+ *
+ * §2's `link`: text that does something. The theme's link ink, `body`, an
+ * underline on hover and the standard ring on focus; `visited` is the
+ * application's to set, because the toolkit keeps no history, and it takes the
+ * muted ink. An external link carries its 12px `external-link` icon after the
+ * word, in the same ink (ADR-0346).
+ *
+ * It is a row rather than a text leaf, so the icon can sit beside the word
+ * without joining its text run -- which is also why it is block-level: a link
+ * inside a sentence is `span class="link"`, and this widget is a word on its
+ * own line.
+ */
+link {
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  border-radius: 4px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-button-link-text);
+  cursor: pointer;
+  transition: color var(--gb-motion-fast);
+}
+
+link:hover {
+  text-decoration: underline;
+}
+
+link.visited {
+  color: var(--gb-text-muted);
+}

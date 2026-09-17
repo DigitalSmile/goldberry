@@ -29,6 +29,7 @@ public record SdlCoreCalls(
         GetRevision getRevision,
         GetCurrentVideoDriver getCurrentVideoDriver,
         SetHint setHint,
+        OpenUrl openUrl,
         GetModState getModState,
         GetGlobalMouseState getGlobalMouseState) {
 
@@ -48,6 +49,7 @@ public record SdlCoreCalls(
                 new GetRevision(lookup),
                 new GetCurrentVideoDriver(lookup),
                 new SetHint(lookup),
+                new OpenUrl(lookup),
                 new GetModState(lookup),
                 new GetGlobalMouseState(lookup));
     }
@@ -308,6 +310,43 @@ public record SdlCoreCalls(
                 return (MemorySegment) FD_SDL_GetCurrentVideoDriver.invokeExact(address);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetCurrentVideoDriver", t);
+            }
+        }
+    }
+
+    /// Opens a URL in the desktop's own handler — the browser, the mail client,
+    /// whatever the scheme belongs to.
+    ///
+    /// `_Bool SDL_OpenURL(void*)`
+    public static final class OpenUrl {
+
+        private static final MethodHandle FD_SDL_OpenURL = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        OpenUrl(SymbolLookup lookup) {
+            // Optional, like the theme call: a `libgoldberry` built before this
+            // export existed must keep opening windows, and "the platform would
+            // not" is an answer a link already has to handle (ADR-0346).
+            this.address = Downcalls.optionalSymbol(lookup, "SDL_OpenURL");
+        }
+
+        /// Whether this build of the library exports it.
+        ///
+        /// @return false when it does not, in which case [#call] must not be used
+        public boolean isAvailable() {
+            return address != null;
+        }
+
+        /// Calls `SDL_OpenURL`.
+        ///
+        /// @param url the URL, NUL-terminated
+        /// @return false if the platform refused or has no handler for it
+        public boolean call(MemorySegment url) {
+            try {
+                return (boolean) FD_SDL_OpenURL.invokeExact(address, url);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_OpenURL", t);
             }
         }
     }

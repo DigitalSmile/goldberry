@@ -7077,20 +7077,49 @@ new `Typography` component, two new `Popup`/`Router` flags, four `TextGeometry`
 overloads and two more bundled font files. No new native artifact, and exactly one
 new native symbol — the theme query.
 
+### The catalog's last four widgets, and the button's last four options
+
+The written-down surface of `docs/core-widgets.md` is built. Four widgets and
+four options were left after `chip`, and all of them went in on 2026-09-17:
+
+- **`steps` and `wizard`**
+  ([ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)), the
+  other two of §6's `nav` package. The list writes index, count and state onto
+  every step on every build, the way the trail writes which crumb is current;
+  `error` and `reachable` are the step's own words, and a press needs both
+  `clickable` on the list and `reachable` on the step. The wizard makes one
+  `Step` per `page` and hands them to the standalone `Steps`, builds only the
+  current page, reports Back, Next and Finish, and moves nothing — and when the
+  index changes under it, asks the host to focus the new page on a zero-delay
+  timer, as a dialog does on opening. Its bar is `dialog-actions` under another
+  name. The showcase's Navigation screen has both on one index.
+- **`timeline`** ([ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
+  §10's. An entry is a rail beside a side, the rail stretches so the line runs
+  from marker to marker, and the line after the last marker is drawn only when
+  `pending` — the unfilled marker that tells a timeline from a list with dots.
+  An alternating timeline gives every entry both sides at half width, which is
+  the `flex-basis: 0` the subset does not have. The Collections screen has one.
+- **`link`** ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
+  §2's text widget, and **one new native symbol** with it: `SDL_OpenURL`, bound
+  optional like the theme call, behind `Backend.openUrl` and `Host.openExternal`.
+  The state makes and closes the `external-link` icon — the one icon the toolkit
+  owns — and `Enter` activates while `Space` does not. Three of them are on the
+  Basic screen, one external.
+- **`button`'s `outlined`, `square`, `circle` and `float`**
+  ([ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
+  Three classes, one line of logic — an icon-only button adds `circle` unless
+  told `square` — and `Floated`, a stateful wrapper that puts the button in the
+  window's overlay layer and builds nothing in place, forwarding its press to the
+  latest handler so a rebuild does not take it down and put it back.
+
+What each of the four left behind — a `badge` marker, a `scaleX` connector, a
+floating button's scale-in, and the roles a bridge would give them — is four
+entries at the top of [TODO.md](TODO.md)'s catalog section.
+
 ### Not started
 
-**Client-side decorations**, and — since `breadcrumbs` opened the `nav` package
-— `steps` and `wizard`, which are the other two of §6. §4 and §7 are both
-**complete**, mechanism and all, and §3 gained `chip`
-([ADR-0305](adr/0305-a-chip-is-a-badge-you-can-press.md)).
-
-The two `nav` widgets are ordinary widget work with nothing blocking them: the
-package exists, and `steps` is a child of `wizard` rather than a drawing, so they
-go in that order. `link`, `timeline` and `button`'s four remaining options are the
-rest of the catalog's written-down surface, and all of it is in
-[TODO.md](TODO.md).
-
-What is left of M3 that is **not** widget work is one platform question: whether
+**Client-side decorations.** §3, §4, §6, §7 and §10 are **complete**, mechanism
+and all; what is left of M3 is one platform question: whether
 Goldberry carries its own decorations — `SdlWindowFlag.BORDERLESS` already
 describes the design — or keeps depending on
 libdecor and the two packages from two phases that

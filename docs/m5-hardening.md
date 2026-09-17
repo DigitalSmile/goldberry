@@ -26,8 +26,8 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 | `steps` | `docs/core-widgets.md` §6 | 0344 | done |
 | `wizard` | `docs/core-widgets.md` §6 | 0344 | done |
 | `timeline` | `docs/core-widgets.md` §10 | 0345 | done |
-| `link` | `docs/core-widgets.md` §2 | — | open |
-| `button` `outlined`, `square`, `circle`, `float` | `docs/core-widgets.md` §3 | — | open |
+| `link` | `docs/core-widgets.md` §2 | 0346 | done |
+| `button` `outlined`, `square`, `circle`, `float` | `docs/core-widgets.md` §3 | 0347 | done |
 
 ## What each one touched
 
@@ -69,8 +69,16 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 - `widgets` `panel/timeline/` — `Timeline`, `Entry`, and the parts `TimelineList`, `TimelineRail`,
   `TimelineMarker`, `TimelineLine`, `TimelineSide`, `TimelineBody`, `TimelineHead`, `TimelineText`,
   `TimelineContent`. Tests: `TimelineTest`, `TimelineGoldenTest`.
-- `controls.css` — `steps`, `wizard` and `timeline` sections.
-- `example` — `WizardDemo` on Navigation, `Chronicle` on Collections.
+- `widgets` `text/Link`, `LinkState`, `LinkText`; `Primitives.builtInTypes()` gains `link`. Tests:
+  `LinkTest`, `LinkGoldenTest`.
+- `widgets` `controls/button/Button#classes` (the default circle), `Floated`, `FloatedState`. Tests:
+  `ButtonShapeTest`.
+- `natives` `SdlCoreCalls.OpenUrl`, `Sdl#openUrl`, `Sdl#canOpenUrl`, `SDL_OpenURL` on the export list;
+  `core` `Backend#openUrl`, `Sdl3Backend`, `HeadlessBackend#openedUrls`, `Host#openExternal`,
+  `Launcher`. Tests: `natives` `SdlOpenUrlTest`, `core` `OpenExternalTest`.
+- `controls.css` — `steps`, `wizard`, `timeline`, `link` sections and the four `button` classes.
+- `example` — `WizardDemo` on Navigation, `Chronicle` on Collections, the shapes and links cards on
+  Basic; the Basic golden is 1900 tall to photograph them.
 
 ### The licences
 

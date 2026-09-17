@@ -125,6 +125,21 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// Hands a URL to the desktop's own handler for its scheme — the browser
+    /// for `https:`, the mail client for `mailto:`.
+    ///
+    /// Process-global, like the theme: the desktop opens it, not a window. It
+    /// is a request, made and not awaited, and **false is an answer rather
+    /// than a failure**: a headless backend, a library built before the export
+    /// and a desktop with no handler for the scheme all give it, and a `link`
+    /// that hears it has nothing more to do than say so (ADR-0346).
+    ///
+    /// @param url what to open
+    /// @return whether the request was made
+    default boolean openUrl(String url) {
+        return false;
+    }
+
     /// The session's clipboard.
     ///
     /// Never null and never [Optional]: a platform without one reports

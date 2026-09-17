@@ -97,6 +97,31 @@ public final class Sdl {
         }
     }
 
+    /// Hands a URL to the desktop's own handler for its scheme.
+    ///
+    /// `https:` opens the browser, `mailto:` the mail client, `file:` the file
+    /// manager — whatever the desktop has registered. Asynchronous on every
+    /// platform: SDL returns once the request is made, not once the browser is
+    /// up (ADR-0346).
+    ///
+    /// @return whether the request was made; false on a library built before
+    ///         the export, or a desktop with no handler for the scheme
+    public boolean openUrl(String url) {
+        if (!canOpenUrl()) {
+            return false;
+        }
+        var open = sdlCoreCalls.openUrl();
+        try (var arena = Arena.ofConfined()) {
+            return open.call(arena.allocateFrom(url));
+        }
+    }
+
+    /// Whether this build of the library exports `SDL_OpenURL` at all — false
+    /// on one built before ADR-0346, which [#openUrl] answers false for too.
+    public boolean canOpenUrl() {
+        return sdlCoreCalls.openUrl().isAvailable();
+    }
+
     /// The video driver SDL chose — `wayland`, `x11`, `windows`, `cocoa`.
     ///
     /// Worth logging at startup, and worth checking before believing anything

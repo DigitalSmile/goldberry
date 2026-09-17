@@ -60,6 +60,10 @@ SDL_GetCurrentVideoDriver
 SDL_GetSystemTheme
 SDL_SetHint
 
+# A URL handed to the desktop's own handler for its scheme -- the browser, the
+# mail client. What sec. 2's `link` opens an `href` through (ADR-0346).
+SDL_OpenURL
+
 # Windowing and the CPU present path (sec. 4, sec. 5).
 SDL_CreateWindow
 SDL_DestroyWindow

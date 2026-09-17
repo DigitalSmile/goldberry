@@ -379,6 +379,24 @@ public final class HeadlessBackend implements Backend {
     /// a backend with no desktop under it.
     private @Nullable SystemTheme systemTheme;
 
+    /// Every URL handed to [#openUrl], in order — what a test asserts a `link`
+    /// asked for, since there is no desktop here to open one.
+    private final List<String> openedUrls = new ArrayList<>();
+
+    /// Recorded rather than opened: there is no desktop. Answers true, so a
+    /// caller's "the platform would not" path is a different test.
+    @Override
+    public boolean openUrl(String url) {
+        requireUiThread();
+        openedUrls.add(Objects.requireNonNull(url, "url"));
+        return true;
+    }
+
+    /// What [#openUrl] was asked for, in order.
+    public List<String> openedUrls() {
+        return List.copyOf(openedUrls);
+    }
+
     @Override
     public Optional<SystemTheme> systemTheme() {
         return Optional.ofNullable(systemTheme);

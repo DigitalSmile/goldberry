@@ -48,7 +48,7 @@ class WidgetParityTest {
     @DisplayName("every built-in is constructible from KDL")
     void constructibleFromKdl(String type) {
         // `text` needs its content argument; the rest are bare nodes.
-        var markup = type.equals("text") ? "text \"hi\"" : type;
+        var markup = worded(type) ? type + " \"hi\"" : type;
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         assertNotNull(widget);
@@ -110,7 +110,7 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in is selectable by its type, id and class")
     void styleable(String type) {
-        var markup = type.equals("text") ? "text id=\"x\" class=\"a\" \"hi\"" : type + " id=\"x\" class=\"a\"";
+        var markup = worded(type) ? type + " id=\"x\" class=\"a\" \"hi\"" : type + " id=\"x\" class=\"a\"";
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
         var root = new ElementTree(widget).root();
         // For a composite, the styled node is the one it builds -- and `id` and
@@ -132,13 +132,20 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in renders to a box")
     void rendersToABox(String type) {
-        var markup = type.equals("text") ? "text \"hi\"" : type;
+        var markup = worded(type) ? type + " \"hi\"" : type;
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         // Not rendered here -- text needs a real font, which needs the native
         // library -- but the contract that makes rendering possible is checkable
         // without one.
         assertInstanceOf(Paints.class, widget instanceof Paints ? widget : styledNode(widget));
+    }
+
+    /// The two built-ins that refuse to exist without a word: a `text` with no
+    /// text and a `link` with no word are both §13 failures, so the parity
+    /// checks hand them one.
+    private static boolean worded(String type) {
+        return type.equals("text") || type.equals("link");
     }
 
     @Test

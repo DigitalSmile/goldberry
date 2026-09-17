@@ -1051,6 +1051,12 @@ public final class Sdl3Backend implements Backend {
     }
 
     @Override
+    public boolean openUrl(String url) {
+        Objects.requireNonNull(url, "url");
+        return Sdl.get().openUrl(url);
+    }
+
+    @Override
     public Optional<SystemTheme> systemTheme() {
         // Not cached. SDL keeps the answer itself and updates it from the same
         // platform notification that produces the event, so a copy here would be a

@@ -113,10 +113,34 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
         return attributes.id();
     }
 
+    /// The document's classes — plus `circle` for an icon-only button that was
+    /// not told `square`.
+    ///
+    /// §3: "A button given an icon and no label is a circle by default — an
+    /// icon-only button is a disc everywhere else in the canon, and requiring
+    /// `class="circle"` to get the obvious result is the kind of improvisation
+    /// Principle 3 exists to prevent; `class="square"` overrides it"
+    /// (ADR-0347).
     @Override
     public Set<String> classes() {
-        return attributes.classes();
+        var written = attributes.classes();
+        if (!label.isEmpty() || icon == null || written.contains(SQUARE) || written.contains(CIRCLE)) {
+            return written;
+        }
+        var classes = new java.util.HashSet<>(written);
+        classes.add(CIRCLE);
+        return Set.copyOf(classes);
     }
+
+    /// §3's shape classes, and the placement one. Named so a caller does not
+    /// spell them twice.
+    public static final String SQUARE = "square";
+
+    public static final String CIRCLE = "circle";
+
+    public static final String OUTLINED = "outlined";
+
+    public static final String FLOAT = "float";
 
     @Override
     public Object key() {
@@ -203,6 +227,19 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
     /// *built* by a document: an `Icon` owns native memory and has to be closed,
     /// so one reloaded on every keystroke would leak per reload.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var button = button(node, wiring);
+        // §3's `float=#true`: a class of *placement*, not of appearance, so it
+        // composes with every variant and shape above. Lifted out of layout by
+        // a stateful wrapper that puts the button in the window's overlay
+        // layer (ADR-0347).
+        if (node.booleanProperty(FLOAT)) {
+            return new Floated(button, Floated.corner(node.stringProperty("corner")));
+        }
+        return button;
+    }
+
+    /// The button itself, floated or not.
+    private static Button button(KdlNode node, Wiring wiring) {
         var label = Wiring.label(node);
         var glyph = wiring.icon(node);
         // A document that names an icon and gets none has a *registry* problem,

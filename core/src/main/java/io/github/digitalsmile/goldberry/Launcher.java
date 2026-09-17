@@ -1561,6 +1561,12 @@ final class Launcher implements Host {
     }
 
     @Override
+    public boolean openExternal(String url) {
+        Objects.requireNonNull(url, "url");
+        return GoldberryRuntime.get().backend().openUrl(url);
+    }
+
+    @Override
     public Fonts fonts() {
         return fonts;
     }
