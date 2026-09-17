@@ -7233,35 +7233,51 @@ signature** — was never written down and was broken in two families.
 
 ## M5 — Hardening
 
-**Started, with the release half.** Text editing depth, the AccessKit bridge, IME
-preedit, docs, and the first release — **and the three-platform frame evidence M1 is waiting on**, which is
-here rather than in M1 because it is a CI job and because the hardening milestone
-is where every other "prove it on hardware nobody has run it on" item already
-lives.
+**Started, with the release half.** Text editing depth, the AccessKit bridge,
+docs, and the first release — IME preedit is done
+([ADR-0289](adr/0289-a-composition-is-not-an-edit.md),
+[ADR-0292](adr/0292-a-field-composes-and-a-password-does-not.md)) — **and the
+three-platform frame evidence M1 was waiting on**, which is here rather than in
+M1 because it is a CI job and because the hardening milestone is where every
+other "prove it on hardware nobody has run it on" item already lives.
 
-What that job needs, in the order the work falls:
+### The frame evidence — built, and run once headless
 
-- **A window that can be resized from outside.** M1's claim is a paragraph
-  *resized* at 60 fps, and nothing can drive one: `SDL_SetWindowSize` is bound in
-  `:natives` and `BackendWindow` never exposes it, so an application cannot resize
-  its own window either. One SPI method, and a `--resize=` option that changes the
-  size by a pixel a frame — which is what a drag actually produces, and what found
-  the damage-clamp bug ([ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)).
-- **A run that says what it cost.** The ring already holds the rate, the four
-  stage spans and the frames nobody saw
-  ([ADR-0271](adr/0271-a-frame-that-never-happened-is-counted.md)); what is missing
-  is a summary line at exit. "N of 300 frames were late while resizing" is the
-  60 fps claim in one number.
-- **A ceiling under it, on three runners.** `showcase.yml` already opens a real
-  window on `ubuntu-24.04`, `macos-14` and `windows-2022` and asserts that three
-  frames were drawn. Painting three hundred while resizing, and failing over
-  budget, is a change to those three steps rather than a new workflow.
+[ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md).
+The three things that job needed are all built, in the order the work fell:
 
-**And a caveat that has to be written down with the numbers.** GitHub's runners
-are GPU-less virtual machines. Measuring there is real evidence about three
-platforms' *drivers* — Cocoa/Metal, D3D, X11 — and far better than one VirtualBox
-VM, but it is not a claim about hardware, and the milestone should close on what
-was measured rather than on what it would be nice to have measured.
+- **A window that can be resized from outside.** `BackendWindow.resize` is the
+  SPI method, a request the window manager answers with a `Resized`; `Sdl3Window`
+  hands it to `SDL_SetWindowSize`, and `HeadlessWindow` plays the manager the way
+  its popup already did — clamped to the floor, applied when the event is
+  delivered. `Window.resize` is the public face, and `--resize=WxH` walks the size
+  a pixel a frame there and back through a `ResizeWalk` that steps from the
+  window's own size, **between** frames: asking from inside the painter changed
+  the size under the frame on every driver where `SDL_SetWindowSize` is
+  synchronous, and every frame was refused and counted late.
+- **A run that says what it cost.** `FrameRing` keeps the run's totals beside its
+  window, `FrameStats.summary()` hands them out as a `FrameSummary`, and the
+  launcher logs one line after the window has closed: `frames: 60 frame(s)
+  painted, 0 late; paint mean 22.48 ms, worst 446.07 ms; display 0.0 Hz` — the
+  showcase, headless, on this machine, with the JIT warming up.
+  `--late-budget=N` turns it into a verdict: over `N`, `FrameBudgetException`
+  after shutdown and a non-zero exit.
+- **A ceiling under it, on three runners.** `showcase.yml` runs each native image
+  for 300 frames with `--resize=1580x1100 --late-budget=30`, and the summary line
+  goes into the step summary.
+
+**Found on the way:** `Launcher.run` registered its own `onResize` and `onMove`
+*after* `Application.start`, into the one slot a window has, so an application's
+handler was silently replaced — the showcase's "resized to" line had never fired.
+The launcher has its own hooks now, and the application's slot is its own.
+
+**The caveat, written down with the numbers.** GitHub's runners are GPU-less
+virtual machines, and on Linux the image paints into Xvfb, which reports no
+refresh rate — the pacer does not pace there and a run can only be late by
+refusing frames. Measuring there is real evidence about three platforms'
+*drivers* — Cocoa/Metal, D3D, X11 — and far better than one VirtualBox VM, but it
+is not a claim about hardware. The workflow has not run since the change; it runs
+on a tag or by hand, and the numbers it produces belong here when it has.
 
 ### CI — green where it can be reproduced, and saying why where it cannot
 

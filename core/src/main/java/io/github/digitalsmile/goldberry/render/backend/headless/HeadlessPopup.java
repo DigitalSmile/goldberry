@@ -2,9 +2,6 @@ package io.github.digitalsmile.goldberry.render.backend.headless;
 
 import java.util.Objects;
 
-import org.jspecify.annotations.Nullable;
-
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -28,9 +25,6 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     private LogicalPoint offset;
     private int moves;
     private int resizes;
-
-    /// The size asked for and not yet in force. See [#resize].
-    private @Nullable LogicalSize requestedSize;
 
     HeadlessPopup(HeadlessBackend backend, HeadlessWindow owner, PopupSpec spec, DisplayScale scale) {
         super(backend, spec.size(), scale, "");
@@ -76,9 +70,9 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         // it has — which a caller that measures straight after this call gets
         // wrong on two of the three desktops. Applying it instantly would make
         // this fake the one place that bug passes, so the size lands when the
-        // event is delivered, exactly as it does through SDL.
-        requestedSize = size;
-        backend().post(new BackendEvent.Resized(this, size, scale().toPhysical(size)));
+        // event is delivered, exactly as it does through SDL. The mechanism is
+        // the window's, since ADR-0342 gave a window the same request.
+        request(size);
         resizes++;
     }
 
@@ -87,15 +81,6 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     @Override
     public void setTitle(String title) {
         throw new UnsupportedOperationException("a popup has no titlebar to put \"" + title + "\" in");
-    }
-
-    /// Called by the backend as the resize event is handed over: the point at
-    /// which a real platform's new size becomes visible to a caller.
-    void resizeDelivered() {
-        if (requestedSize != null) {
-            applySize(requestedSize);
-            requestedSize = null;
-        }
     }
 
     /// How many times this popup has been moved. For tests, like every other

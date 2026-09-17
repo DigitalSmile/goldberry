@@ -1,8 +1,9 @@
 # The native showcase (ADR-0337, ADR-0340)
 #
 # Builds the showcase as a GraalVM native image on each desktop platform -- one
-# executable with libgoldberry inside it (ADR-0159) -- runs it until it has
-# presented three frames, and uploads it. On a `v*` tag the three binaries are
+# executable with libgoldberry inside it (ADR-0159) -- runs it for three
+# hundred frames while its window is resized a pixel a frame, fails if more
+# than the budget of them were late (ADR-0342), and uploads it. On a `v*` tag the three binaries are
 # also attached to the tag's GitHub Release, created as a draft so it is
 # published by hand beside the Central deployment (docs/releasing.md).
 #
@@ -142,28 +143,45 @@ jobs:
         if: always()
         run: ls -l example/build/native || echo "::warning::no native image was produced"
 
-      # The binary is what ships, so the binary is what runs.
+      # The binary is what ships, so the binary is what runs -- and it runs under
+      # the load M1's claim is about: three hundred frames with the window
+      # resized a pixel a frame, which is what a drag produces. The launcher
+      # counts every refresh that went by with a frame wanted and undelivered
+      # and exits non-zero past the budget (ADR-0342).
+      #
+      # The budget is a tenth of the frames, and it is a ceiling on a GPU-less
+      # virtual machine painting into a software X server, Cocoa or D3D --
+      # evidence about three platforms' drivers, not a claim about hardware.
+      # A run that is over it has regressed; a run that is well under it has
+      # not proved 60 fps on a desktop. The summary line in the log is the
+      # number, and the step summary carries it.
       - name: Run the native image (linux)
         if: runner.os == 'Linux'
         run: |
-          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-            ./example/build/native/goldberry-showcase-${{ matrix.target }} --frames=3 | tee native-run.log
-          grep -q "painted 3 frame(s); exiting" native-run.log \
-            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+          xvfb-run -a --server-args="-screen 0 1920x1200x24" \
+            ./example/build/native/goldberry-showcase-${{ matrix.target }} \
+              --frames=300 --resize=1580x1100 --late-budget=30 | tee native-run.log
+          grep -q "painted 300 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three hundred frames"; exit 1; }
+          grep "frames: " native-run.log | sed 's/^.*frames: /Frames (${{ matrix.target }}): /' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the native image (macos)
         if: runner.os == 'macOS'
         run: |
-          ./example/build/native/goldberry-showcase-${{ matrix.target }} --frames=3 | tee native-run.log
-          grep -q "painted 3 frame(s); exiting" native-run.log \
-            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+          ./example/build/native/goldberry-showcase-${{ matrix.target }} \
+            --frames=300 --resize=1580x1100 --late-budget=30 | tee native-run.log
+          grep -q "painted 300 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three hundred frames"; exit 1; }
+          grep "frames: " native-run.log | sed 's/^.*frames: /Frames (${{ matrix.target }}): /' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the native image (windows)
         if: runner.os == 'Windows'
         run: |
-          ./example/build/native/goldberry-showcase-${{ matrix.target }}.exe --frames=3 | tee native-run.log
-          grep -q "painted 3 frame(s); exiting" native-run.log \
-            || { echo "::error::the native showcase did not present three frames"; exit 1; }
+          ./example/build/native/goldberry-showcase-${{ matrix.target }}.exe \
+            --frames=300 --resize=1580x1100 --late-budget=30 | tee native-run.log
+          grep -q "painted 300 frame(s); exiting" native-run.log \
+            || { echo "::error::the native showcase did not present three hundred frames"; exit 1; }
+          grep "frames: " native-run.log | sed 's/^.*frames: /Frames (${{ matrix.target }}): /' >> "$GITHUB_STEP_SUMMARY"
 
       # Tarred on unix for the executable bit: the zip `upload-artifact` writes
       # does not carry it, and a binary that cannot be run is not a binary. On

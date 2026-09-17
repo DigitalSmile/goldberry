@@ -43,6 +43,9 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// The floor a "user" drag is stopped at — see [#resizeTo].
     private LogicalSize minimumSize = WindowSpec.NO_MINIMUM;
 
+    /// The size asked for through [#resize] and not yet in force — see there.
+    private @Nullable LogicalSize requestedSize;
+
     private @Nullable PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
     private int presentCount;
@@ -191,6 +194,45 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     public LogicalSize minimumSize() {
         backend.requireUiThread();
         return minimumSize;
+    }
+
+    /// The request, answered by the window manager this backend stands in for:
+    /// clamped to the floor, and **applied when the event is delivered** rather
+    /// than here.
+    ///
+    /// On X11 and Wayland the window manager decides when a resize happens, and
+    /// `size()` keeps reporting the old one until it has — which a caller that
+    /// measures straight after this call gets wrong on two of the three
+    /// desktops. Applying it instantly would make this fake the one place that
+    /// bug passes, so the size lands as the `Resized` is handed over, exactly
+    /// as it does through SDL and exactly as a popup's already did. Which is
+    /// also what a frame in flight needs: a size that changed under the painter
+    /// is a refused frame, and a request is not supposed to be one.
+    @Override
+    public void resize(LogicalSize size) {
+        Objects.requireNonNull(size, "size");
+        backend.requireUiThread();
+        requireOpen();
+        if (size.width() <= 0 || size.height() <= 0) {
+            throw new IllegalArgumentException("a window needs a positive size, and " + size + " has none");
+        }
+        request(atLeastMinimum(size));
+    }
+
+    /// Announces `size` as the window manager's answer, to be applied by
+    /// [#resizeDelivered].
+    final void request(LogicalSize size) {
+        requestedSize = size;
+        backend.post(new BackendEvent.Resized(this, size, scale.toPhysical(size)));
+    }
+
+    /// Called by the backend as the resize event is handed over: the point at
+    /// which a real platform's new size becomes visible to a caller.
+    final void resizeDelivered() {
+        if (requestedSize != null) {
+            applySize(requestedSize);
+            requestedSize = null;
+        }
     }
 
     /// Records whether text input was asked for, so a test can assert that a

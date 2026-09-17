@@ -266,4 +266,36 @@ class FrameRingTest {
         assertEquals(0, stats.lateFrames());
         assertTrue(FrameStats.none().isEmpty());
     }
+
+    @Test
+    @DisplayName("the summary is the whole run, not the last sixty frames")
+    void summaryOutlivesTheWindow() {
+        var ring = new FrameRing();
+        ring.displayHertz(120);
+        // Twice the capacity, at 1 ms a frame, with one late refresh in the
+        // first half -- which the window has forgotten by the end.
+        for (var frame = 0; frame < FrameRing.CAPACITY * 2; frame++) {
+            if (frame == 3) {
+                ring.late(1);
+            }
+            ring.record(frame * 10 * MS, frame * 10 * MS + MS);
+        }
+        // And one dear frame at the very end.
+        ring.record(200 * 10 * MS, 200 * 10 * MS + 9 * MS);
+
+        var summary = ring.summary();
+
+        assertEquals(FrameRing.CAPACITY * 2 + 1, summary.frames());
+        assertEquals(0, ring.lateFrames(), "the window has aged the late frame out");
+        assertEquals(1, summary.late(), "the run has not");
+        assertEquals(9.0, summary.worstPaintMillis(), 1e-9);
+        assertEquals((120 + 9) / 121.0, summary.meanPaintMillis(), 1e-9);
+        assertEquals(120, summary.displayHertz());
+    }
+
+    @Test
+    @DisplayName("an empty ring summarizes to nothing")
+    void emptySummary() {
+        assertEquals(FrameSummary.NONE, new FrameRing().summary());
+    }
 }

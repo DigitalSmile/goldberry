@@ -365,6 +365,22 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return minimumSize;
     }
 
+    /// `SDL_SetWindowSize`, which is a request on every platform SDL runs on:
+    /// the compositor answers with a `SDL_EVENT_WINDOW_RESIZED` when it has
+    /// decided, and [#size()] reads what it decided. Rounded rather than
+    /// ceilinged, unlike the minimum: a size is a target and a floor is a
+    /// promise, and a promise is kept by rounding away from the breach.
+    @Override
+    public void resize(LogicalSize size) {
+        Objects.requireNonNull(size, "size");
+        backend.requireUiThread();
+        requireOpen();
+        if (size.width() <= 0 || size.height() <= 0) {
+            throw new IllegalArgumentException("a window needs a positive size, and " + size + " has none");
+        }
+        video().setWindowSize(handle, Math.round(size.width()), Math.round(size.height()));
+    }
+
     /// Asks the window manager, and records nothing (ADR-0252).
     ///
     /// The state this produces comes back as `SDL_EVENT_WINDOW_MAXIMIZED` or

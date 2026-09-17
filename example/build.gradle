@@ -169,6 +169,16 @@ tasks.named('run') {
     if (size.present) {
         showcaseArgs += '--size=' + size.get()
     }
+    // The frame-evidence pair (ADR-0342): walk the window's size a pixel a
+    // frame towards WxH, and exit non-zero past N late refreshes.
+    var resize = providers.gradleProperty('goldberry.example.resize')
+    if (resize.present) {
+        showcaseArgs += '--resize=' + resize.get()
+    }
+    var lateBudget = providers.gradleProperty('goldberry.example.lateBudget')
+    if (lateBudget.present) {
+        showcaseArgs += '--late-budget=' + lateBudget.get()
+    }
     if (!showcaseArgs.isEmpty()) {
         args = showcaseArgs
     }

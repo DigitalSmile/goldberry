@@ -142,7 +142,8 @@ public final class Goldberry {
     /// [#stop()].
     ///
     /// @param args the process arguments, from which the launcher reads
-    ///             `--frames=N` and `--size=WxH` and ignores everything else
+    ///             `--frames=N`, `--size=WxH`, `--resize=WxH` and
+    ///             `--late-budget=N` and ignores everything else
     public static void launch(Application application, String[] args) {
         new Launcher(application, Launcher.Options.of(args)).run();
     }

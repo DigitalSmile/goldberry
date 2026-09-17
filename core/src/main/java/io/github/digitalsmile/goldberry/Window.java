@@ -64,6 +64,19 @@ public final class Window implements AutoCloseable {
     private Consumer<LogicalPoint> moveHandler = position -> {};
     private Consumer<DisplayScale> scaleHandler = scale -> {};
 
+    /// The launcher's own resize and move hooks, beside the application's rather
+    /// than in its slot.
+    ///
+    /// There is one public handler per window and the application owns it. The
+    /// launcher used to take the same slot after `Application.start`, which
+    /// meant an application's `onResize` was replaced without a word — the
+    /// showcase's "resized to" line never once fired. These run first, and the
+    /// application's handler runs after, whichever of the two was set last
+    /// (ADR-0342).
+    private Consumer<LogicalSize> launcherResize = size -> {};
+
+    private Consumer<LogicalPoint> launcherMove = position -> {};
+
     /// Everything listening for a file drop — a list rather than a single
     /// handler, because a window is one place and a drop concerns whatever is
     /// under the pointer: a board and a settings panel in the same window both
@@ -168,9 +181,22 @@ public final class Window implements AutoCloseable {
 
     /// Called after the window's logical size changes. A repaint is already
     /// scheduled; this is for anything else that has to react.
+    ///
+    /// The application's slot: the launcher has its own and does not take this
+    /// one, so a handler set in `Application.start` stays set.
     public Window onResize(Consumer<LogicalSize> handler) {
         this.resizeHandler = Objects.requireNonNull(handler, "handler");
         return this;
+    }
+
+    /// The launcher's resize hook — see [#launcherResize].
+    void launcherOnResize(Consumer<LogicalSize> handler) {
+        this.launcherResize = Objects.requireNonNull(handler, "handler");
+    }
+
+    /// The launcher's move hook — see [#launcherResize].
+    void launcherOnMove(Consumer<LogicalPoint> handler) {
+        this.launcherMove = Objects.requireNonNull(handler, "handler");
     }
 
     /// Called after the window's top-left corner moves on the desktop.
@@ -297,6 +323,26 @@ public final class Window implements AutoCloseable {
     public Window minimumSize(LogicalSize minimum) {
         window.setMinimumSize(Objects.requireNonNull(minimum, "minimum"));
         return this;
+    }
+
+    /// Asks for the window to be resized, in logical pixels.
+    ///
+    /// **A request.** The window manager decides when it happens, and may clamp
+    /// it to [#minimumSize()] or refuse it outright, so [#size()] may still be
+    /// the old one immediately afterwards; what it decided arrives through
+    /// [#onResize] like any other resize. A closed window ignores it, because
+    /// there is nothing left to size.
+    ///
+    /// The launcher's `--resize=WxH` is this, one pixel a frame, which is what a
+    /// drag produces and what a frame loop has to be measured under
+    /// (ADR-0342).
+    ///
+    /// @param size the size asked for; both sides positive
+    public void resize(LogicalSize size) {
+        Objects.requireNonNull(size, "size");
+        if (window.isOpen()) {
+            window.resize(size);
+        }
     }
 
     /// The scale of the display the window is on. Fractional in the ordinary
@@ -600,6 +646,7 @@ public final class Window implements AutoCloseable {
         // longer matches, which is the same test one step later -- and dropping
         // it eagerly means a multi-megabyte allocation for every resize event a
         // compositor sends, which during a drag is per pointer motion.
+        launcherResize.accept(size);
         resizeHandler.accept(size);
         repaint();
     }
@@ -608,6 +655,7 @@ public final class Window implements AutoCloseable {
         LOG.trace("window moved to {}", position);
         // No repaint. The frame on screen is still the right one -- see
         // [#onMove].
+        launcherMove.accept(position);
         moveHandler.accept(position);
     }
 

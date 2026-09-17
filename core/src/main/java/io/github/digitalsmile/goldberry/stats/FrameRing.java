@@ -100,6 +100,15 @@ public final class FrameRing implements FrameStats {
     /// a mean and the one thing this ring cannot forget.
     private long count;
 
+    /// The run's totals, kept beside the ring rather than in it: what
+    /// [#summary] reports once the window has aged the frames out. Three
+    /// `long`s written on the frame path, which is the whole of their cost
+    /// ([ADR-0342]).
+    private long lateTotal;
+
+    private long paintedTotal;
+    private long paintedWorst;
+
     /// What the display does, as the backend last reported it — see
     /// [FrameStats#displayHertz].
     private double displayHertz;
@@ -126,6 +135,9 @@ public final class FrameRing implements FrameStats {
     public void record(long startNanos, long paintNanos) {
         finished[next] = paintNanos;
         painted[next] = Math.max(0L, paintNanos - startNanos);
+        paintedTotal += painted[next];
+        paintedWorst = Math.max(paintedWorst, painted[next]);
+        lateTotal += pendingLate;
         built[next] = pendingBuilt;
         styled[next] = pendingStyled;
         laid[next] = pendingLaid;
@@ -265,6 +277,18 @@ public final class FrameRing implements FrameStats {
             total += ring[(next - 1 - i + CAPACITY) % CAPACITY];
         }
         return total / 1_000_000.0 / size;
+    }
+
+    /// The run so far, from the totals rather than the window — so a run of
+    /// three hundred frames reports three hundred, and every refresh it missed,
+    /// not the last sixty of either.
+    @Override
+    public FrameSummary summary() {
+        if (count == 0) {
+            return FrameSummary.NONE;
+        }
+        return new FrameSummary(
+                count, lateTotal, paintedTotal / 1_000_000.0 / count, paintedWorst / 1_000_000.0, displayHertz);
     }
 
     @Override

@@ -106,13 +106,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
 
 ### `text-input`, and what §4 still owes
 
-- **IME preedit is not drawn, and committed text already works.** The platform
-  hands over *finished* characters and a field takes them like any others, so an
-  IME is usable today; what is missing is the underlined in-progress string,
-  which needs a second text the field draws and does not hold, and
-  `SDL_SetTextInputArea` so the candidate window lands under the caret rather
-  than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
   resize — invisible, because a resize is followed immediately by another frame.
@@ -680,12 +673,6 @@ description had no effect.
   of their own state machines — a rewrite of two controls, with a hundred golden
   images and a full interaction suite behind them, and not something to do inside
   a feature that was about something else.
-- **IME preedit is missing entirely**, and it is a native change before it is a
-  toolkit one: `SDL_EVENT_TEXT_EDITING` is not bound, `SDL_SetTextInputArea` is
-  not bound, and neither the router nor `Handles` has anywhere to deliver a
-  composition string to. Committed text works and always has, so a Latin keyboard
-  and most dictation is fine; what is missing is the inline candidate display a
-  CJK input method draws. M5 owns it and `docs/gaps.md` G15 states the shape.
 - **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
   not promise visual order for mixed-direction text, and a caret in it needs a
   walk the toolkit does not have. Latin, Cyrillic and CJK are exact; Arabic and
@@ -1437,6 +1424,15 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**IME preedit is not drawn, and committed text already works.**~~ ~~**IME
+  preedit is missing entirely.**~~ **Both were closed by `docs/gaps.md` G15 and
+  G16 and the entries had not been struck.** `SDL_EVENT_TEXT_EDITING` and
+  `SDL_SetTextInputArea` are bound, `text.edit.Editor` draws the composition
+  where it will land, and `text-input` and `text-area` take one inline; a
+  `password` deliberately does not, because a candidate window is an unmasked
+  window. —
+  [ADR-0289](adr/0289-a-composition-is-not-an-edit.md),
+  [ADR-0292](adr/0292-a-field-composes-and-a-password-does-not.md)
 - ~~**The native image's foreign registrations are generated but the fix is untested
   on an image.**~~ **Tested by hand on all three platforms, 2026-09-17.** A manual
   Showcase run built the image on Linux, macOS and Windows, and the html, canvas and

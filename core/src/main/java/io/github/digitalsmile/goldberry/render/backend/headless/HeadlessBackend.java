@@ -326,10 +326,10 @@ public final class HeadlessBackend implements Backend {
             if (event instanceof BackendEvent.FrameDue frame && frame.window() instanceof HeadlessWindow window) {
                 window.frameDelivered();
             }
-            // A popup's requested size becomes its actual size here, which is
-            // where a window manager's answer would arrive. See HeadlessPopup.
-            if (event instanceof BackendEvent.Resized resized && resized.window() instanceof HeadlessPopup popup) {
-                popup.resizeDelivered();
+            // A requested size becomes the actual size here, which is where a
+            // window manager's answer would arrive. See HeadlessWindow#resize.
+            if (event instanceof BackendEvent.Resized resized && resized.window() instanceof HeadlessWindow window) {
+                window.resizeDelivered();
             }
             sink.accept(event);
         }

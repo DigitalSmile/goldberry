@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.drive.FrameBudgetException;
+import io.github.digitalsmile.goldberry.drive.ResizeWalk;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
@@ -174,50 +176,77 @@ final class Launcher implements Host {
 
     private int painted;
 
-    /// The two flags the launcher understands on the command line, both for CI.
+    /// The walk `--resize=` asked for, or null when the window is left alone.
+    private ResizeWalk resizeWalk;
+
+    /// The four flags the launcher understands on the command line, all for CI.
     ///
     /// A toolkit that parsed argv would be overstepping; these are read only from
     /// the array an application chose to hand over, and an application that calls
     /// [Goldberry#launch(Application)] passes none.
     ///
-    /// @param frames paint this many frames and exit, or 0 to run until closed —
-    ///               which is how a headless run proves a window opened without a
-    ///               human to close it
-    /// @param size   the opening size, or null for the application's own
-    record Options(int frames, LogicalSize size) {
+    /// @param frames     paint this many frames and exit, or 0 to run until
+    ///                   closed — which is how a headless run proves a window
+    ///                   opened without a human to close it
+    /// @param size       the opening size, or null for the application's own
+    /// @param resize     walk the window's size a pixel a frame between the
+    ///                   opening size and this one, or null to leave it alone —
+    ///                   the load a frame-rate claim is measured under
+    ///                   ([ADR-0342])
+    /// @param lateBudget how many refreshes the run may miss before it exits
+    ///                   non-zero, or -1 for a run that is not judged
+    record Options(int frames, LogicalSize size, LogicalSize resize, long lateBudget) {
 
-        static final Options NONE = new Options(0, null);
+        static final Options NONE = new Options(0, null, null, -1);
 
-        /// Reads `--frames=N` and `--size=WxH`, ignoring everything else — an
-        /// application's own arguments are its business.
+        /// The two flags there were before the walk and the budget.
+        Options(int frames, LogicalSize size) {
+            this(frames, size, null, -1);
+        }
+
+        /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH` and
+        /// `--late-budget=N`, ignoring everything else — an application's own
+        /// arguments are its business.
         static Options of(String[] args) {
             var frames = 0;
             LogicalSize size = null;
+            LogicalSize resize = null;
+            var lateBudget = -1L;
             for (var arg : args == null ? new String[0] : args) {
                 if (arg.startsWith("--frames=")) {
-                    frames = whole(arg, arg.substring("--frames=".length()));
+                    frames = whole(arg, arg.substring("--frames=".length()), "frames");
                 } else if (arg.startsWith("--size=")) {
-                    // Trailing empties dropped is the behaviour wanted: the
-                    // length check below is what rejects `--size=800x` anyway.
-                    @SuppressWarnings("StringSplitter")
-                    var parts = arg.substring("--size=".length()).split("x");
-                    if (parts.length == 2) {
-                        size = new LogicalSize(real(arg, parts[0]), real(arg, parts[1]));
-                    }
+                    size = pair(arg, arg.substring("--size=".length()));
+                } else if (arg.startsWith("--resize=")) {
+                    resize = pair(arg, arg.substring("--resize=".length()));
+                } else if (arg.startsWith("--late-budget=")) {
+                    lateBudget = whole(arg, arg.substring("--late-budget=".length()), "late frames");
                 }
             }
-            return new Options(frames, size);
+            return new Options(frames, size, resize, lateBudget);
+        }
+
+        /// `WxH`, or null for anything that is not two numbers around an `x`.
+        private static LogicalSize pair(String flag, String text) {
+            // Trailing empties dropped is the behaviour wanted: the length
+            // check below is what rejects `--size=800x` anyway.
+            @SuppressWarnings("StringSplitter")
+            var parts = text.split("x");
+            if (parts.length != 2) {
+                return null;
+            }
+            return new LogicalSize(real(flag, parts[0]), real(flag, parts[1]));
         }
 
         /// `--frames=N`'s `N`, or a refusal that names the flag.
         ///
         /// `NumberFormatException` names the text and not the flag it came from,
         /// and a launcher's argument error is read by whoever typed it.
-        private static int whole(String flag, String text) {
+        private static int whole(String flag, String text, String what) {
             try {
                 return Integer.parseInt(text);
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(flag + " is not a whole number of frames", e);
+                throw new IllegalArgumentException(flag + " is not a whole number of " + what, e);
             }
         }
 
@@ -276,6 +305,10 @@ final class Launcher implements Host {
         window = Window.open(WindowSpec.of(application.title(), size)
                 .withMinimumSize(floorFitting(size))
                 .withMaximized(application.maximized() && options.size() == null));
+        if (options.resize() != null) {
+            resizeWalk = new ResizeWalk(size, options.resize());
+            LOG.info("walking the window's size a pixel a frame: {}", resizeWalk);
+        }
 
         // On the UI thread and staying there: the book owns native objects from
         // two libraries, confined to the thread that built them, and opening a
@@ -332,7 +365,10 @@ final class Launcher implements Host {
         // anchored to. Re-placing here is what stops a menu opened at the bottom
         // of a short window from hanging off a taller one, and what keeps a
         // right-aligned heading's menu under the heading ([ADR-0231]).
-        window.onResize(resized -> replaceAfterPaint = true);
+        // In the launcher's own hook and not the application's slot: this runs
+        // after `start`, and taking `onResize` here replaced whatever the
+        // application had just wired into it (ADR-0342).
+        window.launcherOnResize(resized -> replaceAfterPaint = true);
 
         // A **move** does not move the anchor and does not need a paint: the
         // frame on screen is still the right one, and `anchor(id)` answers from
@@ -340,7 +376,7 @@ final class Launcher implements Host {
         // menu that was flipped or shifted against a screen edge has to be asked
         // again — immediately, from the capture that is already current
         // ([ADR-0270]).
-        window.onMove(position -> replacePopups());
+        window.launcherOnMove(position -> replacePopups());
 
         // The desktop's light-or-dark setting, forwarded to whoever asked for it.
         // Installed unconditionally rather than on the first listener: there is one
@@ -450,6 +486,13 @@ final class Launcher implements Host {
             shutDown();
         }
         LOG.info("{} finished after {} frame(s)", application.getClass().getSimpleName(), painted);
+        // The whole run in one line, after the window has gone: the ring kept
+        // the totals, and this is the number a frame-rate claim is (ADR-0342).
+        var summary = window.frames().summary();
+        LOG.info("frames: {}", summary.describe());
+        if (summary.exceeds(options.lateBudget())) {
+            throw new FrameBudgetException(summary, options.lateBudget());
+        }
     }
 
     /// The renderer for this frame, built if the stylesheets have moved.
@@ -570,6 +613,21 @@ final class Launcher implements Host {
         }
 
         painted++;
+        // **Between frames, not inside this one.** On Windows and macOS
+        // `SDL_SetWindowSize` takes effect on the spot, so a request made from
+        // inside the painter changes the size under the frame being painted and
+        // the platform then refuses it -- every frame of the run, each counted
+        // late. A zero-delay timer runs on the next pump, after this frame has
+        // been presented. And from where the window actually is, so a manager
+        // that clamped or lagged the last request is walked from its answer
+        // rather than from the ask; the resize itself asks for the next frame.
+        if (resizeWalk != null) {
+            after(java.time.Duration.ZERO, () -> {
+                if (window.isOpen()) {
+                    window.resize(resizeWalk.next(window.size()));
+                }
+            });
+        }
         if (options.frames() > 0) {
             if (painted >= options.frames()) {
                 LOG.info("painted {} frame(s); exiting", painted);

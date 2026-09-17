@@ -150,7 +150,9 @@ address to call as an argument), so it can be linked while the image is being
 built, which is what turns it into a constant the compiler can lower into a
 direct call.
 
-Sixty frames of the showcase, headless, on this machine:
+Sixty frames of the showcase, headless, on this machine (`--resize=WxH` walks the
+window a pixel a frame while it runs, and `--late-budget=N` fails the run past `N`
+missed refreshes — ADR-0342):
 
 ```
 ./example/build/native/goldberry-showcase-linux-x64     -Dgoldberry.backend.videoDriver=dummy --frames=60

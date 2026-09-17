@@ -228,6 +228,25 @@ public interface BackendWindow extends AutoCloseable {
     /// @param cursor the caret's x offset from `area`'s left edge
     default void textInputArea(@Nullable LogicalRect area, double cursor) {}
 
+    /// Asks the platform to resize this window, in logical pixels.
+    ///
+    /// **A request, not a change.** The window manager decides when — and
+    /// whether — it happens, so [#size()] keeps reporting the old size until a
+    /// [BackendEvent.Resized] arrives, exactly as it would for a drag. A backend
+    /// with a window manager to ask hands the request over and reports nothing
+    /// itself; the headless one plays the manager and delivers the event, so a
+    /// test can drive the whole path.
+    ///
+    /// This is what lets a frame loop be measured under a resize with no hand on
+    /// the window: `--resize=WxH` walks the size a pixel a frame, which is what a
+    /// drag produces (ADR-0342). It is also the one way an application can size
+    /// its own window after opening it.
+    ///
+    /// Default: does nothing, for a backend with no window manager to ask.
+    ///
+    /// @param size the size asked for, in logical pixels; both sides positive
+    default void resize(LogicalSize size) {}
+
     /// Sets the smallest size the **user** may drag this window down to.
     ///
     /// A constraint on the window manager, not a clamp the toolkit applies after

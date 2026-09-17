@@ -198,6 +198,17 @@ public interface FrameStats {
         return count() == 0;
     }
 
+    /// The whole run, for the line a launcher writes at exit.
+    ///
+    /// A source that keeps no totals answers from its window: the count is
+    /// already every frame, and the rest is the last sixty standing in for the
+    /// lot. [FrameRing] overrides it with what it actually summed
+    /// ([ADR-0342]).
+    default FrameSummary summary() {
+        var paint = paint();
+        return new FrameSummary(count(), lateFrames(), paint.mean(), paint.max(), displayHertz());
+    }
+
     /// Statistics for a loop that has not run: every number zero.
     ///
     /// What a widget gets when it asks a tree that has no window under it — a

@@ -29,10 +29,32 @@ class LauncherOptionsTest {
     }
 
     @Test
-    @DisplayName("no arguments at all is no frames and no size")
+    @DisplayName("no arguments at all is no frames, no size, no walk and no budget")
     void nothing() {
         assertEquals(0, Launcher.Options.of(null).frames());
         assertNull(Launcher.Options.of(new String[0]).size());
+        assertNull(Launcher.Options.of(new String[0]).resize());
+        assertEquals(-1, Launcher.Options.of(new String[0]).lateBudget());
+    }
+
+    @Test
+    @DisplayName("a walk and a budget are read like the other two")
+    void walkAndBudget() {
+        var options = Launcher.Options.of(new String[] {"--resize=1580x1100", "--late-budget=12"});
+
+        assertEquals(new LogicalSize(1580, 1100), options.resize());
+        assertEquals(12, options.lateBudget());
+    }
+
+    @Test
+    @DisplayName("a walk with one number is no walk, and a budget that is not a number names its flag")
+    void walkAndBudgetRefusals() {
+        assertNull(Launcher.Options.of(new String[] {"--resize=1580x"}).resize());
+
+        var refused = assertThrows(
+                IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {"--late-budget=few"}));
+        assertTrue(refused.getMessage().contains("--late-budget=few"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("late frames"), refused.getMessage());
     }
 
     @Test

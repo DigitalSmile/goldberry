@@ -64,7 +64,9 @@ public interface BackendPopup extends BackendWindow {
     /// Asks for the popup to be resized, in logical pixels.
     ///
     /// A filtering autocomplete narrows as the list shortens, and a submenu is as
-    /// tall as its items — neither is known when the popup is created.
+    /// tall as its items — neither is known when the popup is created. It is
+    /// [BackendWindow#resize] made mandatory: a window may decline to be
+    /// resizable from inside, a popup cannot.
     ///
     /// **A request, not an assignment.** On X11 and Wayland the window manager
     /// decides when a resize happens, so [#size()] keeps reporting the old size
@@ -77,5 +79,6 @@ public interface BackendPopup extends BackendWindow {
     /// applied it instantly would let exactly that bug pass its tests.
     ///
     /// @throws IllegalArgumentException if the size is not positive
+    @Override
     void resize(LogicalSize size);
 }
