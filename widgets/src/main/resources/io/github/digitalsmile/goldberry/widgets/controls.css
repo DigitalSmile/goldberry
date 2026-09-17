@@ -3537,6 +3537,11 @@ scroll:hover scrollbar { background: var(--gb-surface-2) }
 scroll:hover scroll-thumb.vertical { width: 10px }
 scroll:hover scroll-thumb.horizontal { height: 10px }
 
+/* A `text-area` scrolls its own text and draws the same bar (ADR-0362), so it
+   widens on the same hover -- the control's rather than a viewport's. */
+text-area:hover scrollbar { background: var(--gb-surface-2) }
+text-area:hover scroll-thumb.vertical { width: 10px }
+
 /* "accent color while dragging". A class and not `:active`, because the thumb is
    moved by the bar around it rather than pressed itself, so the router's
    `:active` is on the wrong node. */

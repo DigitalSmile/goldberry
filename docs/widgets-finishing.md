@@ -18,7 +18,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| `text-area` scrollbar | §4's "scrollbar beyond" the maximum rows | — | open |
+| `text-area` scrollbar | §4's "scrollbar beyond" the maximum rows | 0362 | done |
 | Reserved gutter | §2.4's "always show scroll bars", and something to switch it | — | open |
 | A reveal glides | §3.1's `scroll` motion when a row is scrolled into view | — | open |
 | A reveal moves one axis at a time | a wide table revealing a cell | — | open |
@@ -125,3 +125,12 @@ can be reversed:
 - Tests: `TableResizeTest`.
 - `example` `ui/Collections` — the Name column is resizable; `gallery-collections`
   re-blessed.
+
+### `text-area` scrollbar
+
+- `widgets` `core/scroll/ScrollBar` is public. `form/textarea/TextAreaState`
+  builds one (`scrollbar`, `scrollTo`, `dragBar`) and asks for a rebuild when a
+  render moves the offset; `TextAreaBox` places it. `controls.css`:
+  `text-area:hover scrollbar`.
+- Tests: `TextAreaScrollbarTest`; `TextAreaGutterTest` finds the clipped layer.
+- `gallery-html` and `gallery-markdown` re-blessed.

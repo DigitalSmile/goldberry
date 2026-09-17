@@ -37,6 +37,7 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar;
 import io.github.digitalsmile.goldberry.widgets.form.Carets;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
@@ -131,6 +132,7 @@ record TextAreaBox(
         boolean disabled,
         boolean readOnly,
         Attributes attributes,
+        @Nullable ScrollBar scrollbar,
         AreaEditor editor)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
@@ -393,6 +395,12 @@ record TextAreaBox(
         if (gutter) {
             parts.add(new TextAreaGutter());
         }
+        // §4's "scrollbar beyond": `scroll`'s own bar, only while the text is
+        // taller than the control, and last so it paints over the text it sits on
+        // (ADR-0362).
+        if (scrollbar != null) {
+            parts.add(scrollbar);
+        }
         return parts;
     }
 
@@ -602,7 +610,15 @@ record TextAreaBox(
                 .inset(new Insets(ZERO, ZERO, ZERO, ZERO))
                 .overflow(Overflow.HIDDEN)
                 .children(boxes.toArray(Box[]::new));
-        var layers = strip == null ? new Box[] {content} : new Box[] {strip, content};
+        var layerList = new ArrayList<Box>(3);
+        if (strip != null) {
+            layerList.add(strip);
+        }
+        layerList.add(content);
+        if (scrollbar != null) {
+            layerList.add(bar(children.getLast(), style, padding));
+        }
+        var layers = layerList.toArray(Box[]::new);
 
         var box = Box.of().style(style).children(layers);
         // **A filling area takes what its parent gives it.** `flex-grow` rather than
@@ -645,6 +661,16 @@ record TextAreaBox(
                         Length.points((float) (border - padding.left()))))
                 .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - border)), Length.UNDEFINED)
                 .decoration(part.decoration().corners(fitted));
+    }
+
+    /// The scrollbar, down the content box's height and against the inside of the
+    /// right border — the right inset is a negative padding for [#strip]'s reason.
+    /// Beside the clipped layer rather than in it, so the part of it over the
+    /// padding is drawn and can be pressed.
+    private static Box bar(Box part, ComputedStyle style, AreaPadding padding) {
+        var border = style.decoration().borderWidth();
+        return part.position(Position.ABSOLUTE)
+                .inset(new Insets(ZERO, Length.points((float) (border - padding.right())), ZERO, Length.UNDEFINED));
     }
 
     /// The control's height: as many lines as the text has, between [#rows] and

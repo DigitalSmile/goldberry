@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
@@ -170,6 +171,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
                 area.disabled(),
                 area.readOnly(),
                 area.attributes(),
+                scrollbar(),
                 this);
     }
 
@@ -533,6 +535,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         }
         offset = Math.clamp(offset, 0, maximumScroll());
         scrollOffset = offset;
+        // The text moved to follow the caret after the bar was built, so the
+        // thumb is where the text was. One rebuild puts it where the text is; the
+        // next render lays out the same offset and asks for nothing.
+        if (!Double.isNaN(barOffset) && Math.abs(barOffset - offset) > 0.01 && isMounted()) {
+            setState(() -> {});
+        }
         return offset;
     }
 
@@ -686,6 +694,50 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private int visualLineEnd(int offset) {
         var layout = lines();
         return layout.isEmpty() ? edit.length() : layout.get(lineIndex(layout, offset)).end();
+    }
+
+    /// Whether the pointer is holding the scrollbar's thumb.
+    private boolean draggingBar;
+
+    /// The offset the scrollbar was last built with, so a render that moved the
+    /// text to follow the caret can ask for the rebuild that moves the thumb.
+    private double barOffset = Double.NaN;
+
+    /// §4's "scrollbar beyond": `scroll`'s bar over this control's own offset,
+    /// or null while the text fits (ADR-0362).
+    ///
+    /// The viewport is what the content box shows — the rows for an ordinary
+    /// area, the measured height for one that fills — so the thumb's length is
+    /// the proportion of the text on screen, and its track is the box it is
+    /// drawn down.
+    private @Nullable ScrollBar scrollbar() {
+        if (paragraph == null) {
+            barOffset = Double.NaN;
+            return null;
+        }
+        var lineHeight = paragraph.font().lineHeight();
+        var content = lines().size() * lineHeight;
+        var viewport = widget().fill() && bounds.height() > 0
+                ? bounds.height() - padding.vertical()
+                : visibleRows() * lineHeight;
+        if (lineHeight <= 0 || content <= viewport + 0.5) {
+            barOffset = Double.NaN;
+            return null;
+        }
+        barOffset = scrollOffset;
+        return new ScrollBar(
+                true, viewport, content, scrollOffset, this::scrollTo, draggingBar, this::dragBar);
+    }
+
+    private void scrollTo(double offset) {
+        var next = Math.clamp(offset, 0, maximumScroll());
+        if (next != scrollOffset) {
+            setState(() -> scrollOffset = next);
+        }
+    }
+
+    private void dragBar(boolean held) {
+        setState(() -> draggingBar = held);
     }
 
     /// How far this control can be scrolled: the text's height less what it

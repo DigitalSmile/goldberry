@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -76,9 +77,14 @@ class TextAreaGutterTest {
         return last.text() == null ? null : last;
     }
 
-    /// The layer the scrolling parts are in, which is the control's last child.
+    /// The layer the scrolling parts are in: the control's child that clips. Not
+    /// simply the last child, because a text that overflows puts its scrollbar
+    /// after it (ADR-0362).
     private static Box content(Box area) {
-        return area.children().getLast();
+        return area.children().stream()
+                .filter(child -> child.overflow() == Overflow.HIDDEN)
+                .findFirst()
+                .orElseThrow();
     }
 
     private static String textOf(Box box) {

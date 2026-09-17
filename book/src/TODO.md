@@ -173,14 +173,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   channel, and the shape of that depends on the AccessKit bridge nothing has
   built. M5. —
   [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
-- **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
-  maximum rows; it scrolls with the wheel and to keep the caret in view, and
-  draws no bar. `scroll`'s bars belong to a *viewport* rather than to a control,
-  so the choice is a `scroll` around the text — which would fight the auto-grow,
-  since both want to decide the height — or a second bar implementation. Neither
-  is obviously right. —
-  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
   `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
@@ -1371,6 +1363,10 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `text-area` has no visible scrollbar.**~~ **It has `scroll`'s, 2026-09-17**:
+  neither a `scroll` around the text nor a second bar. `ScrollBar` is three numbers
+  and two callbacks, and a text area knows all three. —
+  [ADR-0362](adr/0362-a-text-area-draws-scrolls-bar.md)
 - ~~**A `table` has no column resizing.**~~ **It has, 2026-09-17**, by asking: a
   resizable column's header carries a grip, and a drag asks the application for a
   width in pixels anchored at the width the header last came out as. Not a

@@ -53,7 +53,14 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param dragging  whether this bar is being dragged
 /// @param onDrag    told when a drag starts and ends, so the state can hold the
 ///                  bars open for its duration
-record ScrollBar(
+///
+/// ## Not only `scroll`'s
+///
+/// Public so that a control that scrolls its own content — `text-area`, which
+/// cannot sit in a `scroll` because the two would both decide its height — draws
+/// §2.4's bar rather than a second implementation of it (ADR-0362). It is still a
+/// **part**: nothing in markup names one.
+public record ScrollBar(
         boolean vertical,
         double viewport,
         double content,

@@ -371,6 +371,7 @@
 - [ADR-0359 A select is as wide as its widest option](adr/0359-a-select-is-as-wide-as-its-widest-option.md)
 - [ADR-0360 An affix stays inside its container](adr/0360-an-affix-stays-inside-its-container.md)
 - [ADR-0361 A column is resized by asking](adr/0361-a-column-is-resized-by-asking.md)
+- [ADR-0362 A text area draws `scroll`'s bar](adr/0362-a-text-area-draws-scrolls-bar.md)
 
 ---
 
