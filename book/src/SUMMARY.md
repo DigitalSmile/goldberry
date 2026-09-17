@@ -348,6 +348,7 @@
 - [ADR-0336 One dependency to start from, and a BOM to line up the rest](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
 - [ADR-0337 The native showcase is built on every platform](adr/0337-the-native-showcase-is-built-on-every-platform.md)
 - [ADR-0338 A red run says why, in public](adr/0338-a-red-run-says-why-in-public.md)
+- [ADR-0339 A foreign call is registered because it exists, not because a run reached it](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 
 ---
 

@@ -9,6 +9,10 @@ Accepted. The first thing built on
 takes [ADR-0155](0155-a-jar-binds-at-run-time-an-image-is-woven.md)'s weaving
 flag as its input.
 
+Amended by [ADR-0339](0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md):
+the foreign descriptors are generated from the bindings now, not traced. The trace
+still supplies reflection, services and resources.
+
 **An image has now been built and run** on linux-x64 against GraalVM CE 25.2.4:
 30.6 MiB, ~0.55 s to start, ~6 ms a frame headless, exit 0, and logging. It is
 still not built in CI.

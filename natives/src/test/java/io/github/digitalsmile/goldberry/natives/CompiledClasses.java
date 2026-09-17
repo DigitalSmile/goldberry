@@ -16,13 +16,13 @@ import java.nio.file.Path;
 /// the conversion that knows about drive letters, and it is the same call on
 /// every platform. Two tests each carried their own copy of the `getPath()` form
 /// and both failed on the first Windows run that reached them (ADR-0338).
-final class CompiledClasses {
+public final class CompiledClasses {
 
     private CompiledClasses() {}
 
     /// `.../build/classes/java/test` -> `.../build/classes/java/main`, for the
     /// module `witness` was compiled into.
-    static Path mainClassesBeside(Class<?> witness) {
+    public static Path mainClassesBeside(Class<?> witness) {
         var main = testClassesOf(witness).resolveSibling("main");
         if (!Files.isDirectory(main)) {
             fail("expected the main classes beside the test classes, at " + main);
@@ -31,7 +31,7 @@ final class CompiledClasses {
     }
 
     /// The directory `witness` was loaded from.
-    static Path testClassesOf(Class<?> witness) {
+    public static Path testClassesOf(Class<?> witness) {
         var source = witness.getProtectionDomain().getCodeSource();
         if (source == null) {
             fail("no code source for " + witness.getName() + "; cannot locate the module's own classes");

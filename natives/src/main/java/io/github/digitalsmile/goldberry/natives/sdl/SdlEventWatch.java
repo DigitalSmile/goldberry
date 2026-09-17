@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventWatchCalls;
 
 /// A callback SDL runs as each event arrives, before it is queued.
@@ -61,7 +62,7 @@ public final class SdlEventWatch implements AutoCloseable {
     /// The return value is ignored for a watch — it is the *filter* API that uses
     /// it to drop events — so this always returns true.
     private static final FunctionDescriptor DESCRIPTOR =
-            FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+            Upcalls.describe(FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
     private static final MethodHandle INVOKE = invokeHandle();
 

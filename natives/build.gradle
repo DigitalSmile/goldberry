@@ -374,6 +374,40 @@ def checkToolchain = tasks.register('checkToolchain') {
     }
 }
 
+// --- What a native image has to be told (ADR-0339) ---------------------------
+//
+// The foreign-call registrations, generated from the bindings rather than
+// traced from a run. A holder's descriptor is a constant in its class, and the
+// five upcall owners declare theirs, so the whole surface can be listed by
+// initialising the classes -- which needs no libgoldberry. The file travels in
+// the jar under META-INF/native-image/, where native-image finds it for any
+// application that has this module on its module path; the showcase's traced
+// metadata used to be the only source, and it held what 120 headless frames
+// reached, which was not the Markdown parser.
+def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
+def foreignMetadataFile = foreignMetadataDir.map {
+    it.file('META-INF/native-image/io.github.digitalsmile/goldberry-natives/reachability-metadata.json')
+}
+
+def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
+    group = 'build'
+    description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainModule = 'io.github.digitalsmile.goldberry.natives'
+    mainClass = 'io.github.digitalsmile.goldberry.natives.metadata.ForeignMetadata'
+    modularity.inferModulePath = true
+    // Linking a descriptor is a restricted operation, and the generator links
+    // every one of them.
+    jvmArgs '--enable-native-access=io.github.digitalsmile.goldberry.natives'
+    inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(foreignMetadataDir)
+    argumentProviders.add({ [foreignMetadataFile.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+}
+
+tasks.named('jar') {
+    from(foreignMetadata)
+}
+
 // --- Pinned upstream refs ----------------------------------------------------
 //
 // Every ref lives in gradle/libs.versions.toml and nowhere else. CMake reads it

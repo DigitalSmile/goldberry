@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlClipboardCalls;
 
@@ -82,13 +83,13 @@ public final class SdlClipboard {
     /// typedef const void *(SDLCALL *SDL_ClipboardDataCallback)(
     ///         void *userdata, const char *mime_type, size_t *size);
     /// ```
-    private static final FunctionDescriptor DATA =
-            FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+    private static final FunctionDescriptor DATA = Upcalls.describe(
+            FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
     /// ```c
     /// typedef void (SDLCALL *SDL_ClipboardCleanupCallback)(void *userdata);
     /// ```
-    private static final FunctionDescriptor CLEANUP = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
+    private static final FunctionDescriptor CLEANUP = Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
 
     private final SdlClipboardCalls sdlClipboardCalls;
 

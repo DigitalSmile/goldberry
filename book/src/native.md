@@ -90,11 +90,16 @@ does depend on what the code did, and the warning applies to it unchanged: a
 screen the run never reaches contributes nothing. Re-run the metadata task after
 adding one, and read the diff.
 
-The **FFM descriptors are the exception**, and stopped being run-dependent with
-ADR-0161: each one is linked in a holder's class initializer, and the holders of
-a library are all reached when its `…Calls` record binds, which happens on any
-JVM start. So the agent records all 134 of them whether or not the run reached
-the screen that uses them.
+The **FFM descriptors are no longer traced at all**
+([ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)).
+This page used to say they were never run-dependent, because a holder links its
+handle in its class initializer; it forgot that a `…Calls` record binds when its
+wrapper is first *used*, so a run that opened no Markdown initialised no
+`MarkdownCalls` and the agent recorded none of its five functions — which is how
+the Windows image died on the Markdown screen with `MissingForeignRegistrationError`.
+Now `:natives:foreignMetadata` initialises every holder and every upcall owner
+and writes the `foreign` section itself, into the `goldberry-natives` jar under
+`META-INF/native-image/`, where `native-image` reads it for any application.
 
 ## The image is woven, the jar is not
 
@@ -168,7 +173,7 @@ a value read from an object, not a constant read from a class, and measures
 
 **Nothing fails when it is missing.** The image builds, runs, paints correctly
 and is forty times slower, which is why the number is written down here. (It is
-silent only because the traced metadata registers the descriptors anyway; a
+silent only because the generated metadata registers the descriptors anyway; a
 descriptor registered *nowhere* raises `MissingForeignRegistrationError` and
 names itself.) To check it, move the properties file aside and rebuild passing
 the run-time half by hand:

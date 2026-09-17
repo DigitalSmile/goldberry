@@ -5,6 +5,9 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /// The linker every binding shares, and the two ways a symbol is looked up.
 ///
@@ -96,6 +99,13 @@ public final class Downcalls {
 
     private static final Linker LINKER = Linker.nativeLinker();
 
+    /// Every descriptor [#link] has been handed, in the order it was handed
+    /// them and without repeats. This is the downcall half of what a native
+    /// image has to be told before it is built, and the reason it is kept here
+    /// rather than traced from a run: a run records the screens it reached, and
+    /// this records the holders that exist (ADR-0339).
+    private static final List<FunctionDescriptor> LINKED = Collections.synchronizedList(new ArrayList<>());
+
     private Downcalls() {}
 
     /// The address of `symbol`, for a holder to keep.
@@ -133,7 +143,24 @@ public final class Downcalls {
     /// the Java types, and ADR-0010 accepted that obligation.
     @SuppressWarnings("restricted")
     public static MethodHandle link(FunctionDescriptor descriptor) {
+        synchronized (LINKED) {
+            if (!LINKED.contains(descriptor)) {
+                LINKED.add(descriptor);
+            }
+        }
         return LINKER.downcallHandle(descriptor);
+    }
+
+    /// The distinct descriptors linked so far.
+    ///
+    /// Complete only once every holder class has been initialised, which is
+    /// what `ForeignSurface` does before asking; on an ordinary JVM a holder is
+    /// initialised when its `…Calls` record first binds, so this list grows as
+    /// the program runs.
+    public static List<FunctionDescriptor> linked() {
+        synchronized (LINKED) {
+            return List.copyOf(LINKED);
+        }
     }
 
     /// What a binding raises when the crossing itself fails.

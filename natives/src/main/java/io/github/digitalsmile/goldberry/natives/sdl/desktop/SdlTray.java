@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
@@ -68,7 +69,7 @@ public final class SdlTray implements AutoCloseable {
     /// typedef void (SDLCALL *SDL_TrayCallback)(void *userdata, SDL_TrayEntry *entry);
     /// ```
     private static final FunctionDescriptor DESCRIPTOR =
-            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+            Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
     private static final MethodHandle INVOKE = invokeHandle();
 

@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlDialogCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.dialog.SdlDialogKind;
 import io.github.digitalsmile.goldberry.natives.sdl.dialog.SdlFileDialogCallback;
@@ -76,7 +77,7 @@ public final class SdlFileDialogs {
     /// typedef void (SDLCALL *SDL_DialogFileCallback)(void *userdata, const char *const *filelist, int filter);
     /// ```
     private static final FunctionDescriptor DESCRIPTOR =
-            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT);
+            Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
 
     /// `SDL_DialogFileFilter` is two pointers, and an array of them is what SDL
     /// reads. No `MemoryLayout` is needed for something this shape: the arena

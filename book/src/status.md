@@ -7286,6 +7286,22 @@ Windows separator assumptions in tests, all fixed with unit tests. At `d478ecfe`
 Snapshot passed on all twelve jobs, Maven Central rehearsal included, and the Showcase
 on three legs and both uploads: **the first green push since 2026-08-16.**
 
+### The image's foreign calls are generated, not traced
+
+[ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md).
+The Windows native image, run by hand, died on the html, canvas and Markdown screens
+with `MissingForeignRegistrationError`: the trace held what 120 headless frames
+reached, and a `…Calls` record binds on first use, so the parser's holders were never
+initialised and never recorded. `Downcalls.link` and the new `Upcalls.describe` record
+every descriptor at class initialisation; `ForeignSurface` initialises every holder
+package and upcall owner from the module listing; `ForeignMetadata` writes the
+`foreign` section in the agent's spelling; and `:natives:foreignMetadata` puts it in
+the `goldberry-natives` jar under `META-INF/native-image/`. Tested: every holder's
+handle shape is reported, the owners equal the sources that call `upcallStub`, and
+every shape the checked-in trace ever recorded is among the generated ones.
+**Unverified:** that the three screens now open in an image, which needs a GraalVM
+build no machine here has.
+
 ### Releasing — built, never run
 
 [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md),

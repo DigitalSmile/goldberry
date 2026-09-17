@@ -10,6 +10,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
@@ -53,13 +54,13 @@ public final class MeasureCallback implements AutoCloseable {
     /// rejects anything outside the three defined values, so if that assumption
     /// ever fails on a new target it surfaces as an exception naming the value
     /// rather than as a plausible-looking layout.
-    private static final FunctionDescriptor DESCRIPTOR = FunctionDescriptor.of(
+    private static final FunctionDescriptor DESCRIPTOR = Upcalls.describe(FunctionDescriptor.of(
             Layouts.YG_SIZE.layout(),
             ValueLayout.ADDRESS,
             ValueLayout.JAVA_FLOAT,
             ValueLayout.JAVA_INT,
             ValueLayout.JAVA_FLOAT,
-            ValueLayout.JAVA_INT);
+            ValueLayout.JAVA_INT));
 
     private static final MethodHandle INVOKE = invokeHandle();
 
