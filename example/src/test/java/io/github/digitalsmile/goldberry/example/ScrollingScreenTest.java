@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -76,7 +77,7 @@ class ScrollingScreenTest {
             var sheets = new ArrayList<Stylesheet>(
                     Controls.stylesheets(Theme.NORD_DARK, io.github.digitalsmile.goldberry.widgets.Density.REGULAR));
             sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
-            renderer = new WidgetRenderer(sheets, fonts);
+            renderer = new WidgetRenderer(sheets, fonts).clock(clock);
             tree = new ElementTree(new Scrolling());
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -90,9 +91,14 @@ class ScrollingScreenTest {
             router.updateRegions(HitTest.capture(render));
         }
 
+        /// A virtual clock, so a jump's glide (ADR-0363) arrives in the frames
+        /// [#settle] runs rather than whenever the machine gets there.
+        final Clock.Virtual clock = Clock.virtual();
+
         void settle() {
             for (var i = 0; i < 6; i++) {
                 frame();
+                clock.advance(60);
             }
         }
 

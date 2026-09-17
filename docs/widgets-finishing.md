@@ -20,7 +20,7 @@ decided not to build, with the reason in the ADR.
 |------|------------------|-----|--------|
 | `text-area` scrollbar | §4's "scrollbar beyond" the maximum rows | 0362 | done |
 | Reserved gutter | §2.4's "always show scroll bars", and something to switch it | — | open |
-| A reveal glides | §3.1's `scroll` motion when a row is scrolled into view | — | open |
+| A reveal glides | §3.1's `scroll` motion when a row is scrolled into view | 0363 | done |
 | A reveal moves one axis at a time | a wide table revealing a cell | — | open |
 
 ## `table`
@@ -134,3 +134,11 @@ can be reversed:
   `text-area:hover scrollbar`.
 - Tests: `TextAreaScrollbarTest`; `TextAreaGutterTest` finds the clipped layer.
 - `gallery-html` and `gallery-markdown` re-blessed.
+
+### A reveal glides
+
+- `widgets` `core/scroll/ScrollGlide`; `ScrollState.scrollBy` starts one and
+  `moveTo` cancels it; `ScrollViewport` draws it and animates while it runs;
+  `ScrollController.reveal` measures ahead of it.
+- Tests: `ScrollControllerTest` "gliding"; `ScrollControllerTest` and the
+  example's `ScrollingScreenTest` use a virtual clock.

@@ -44,6 +44,9 @@ final class ScrollState extends State<Scroll> {
     /// When the bars were last woken, and whether something is holding them open.
     private final ScrollFade fade = new ScrollFade();
 
+    /// A programmatic scroll on its way, drawn by the viewport (ADR-0363).
+    private final ScrollGlide glide = new ScrollGlide();
+
     /// Which bar the pointer is dragging, or null.
     private @Nullable Boolean draggingVertical;
 
@@ -164,6 +167,7 @@ final class ScrollState extends State<Scroll> {
                 viewport,
                 content,
                 fade,
+                glide,
                 this::moveTo,
                 draggingVertical,
                 this::drag,
@@ -233,7 +237,30 @@ final class ScrollState extends State<Scroll> {
     /// The clamp is the same one every other path takes, so a child asking to be
     /// revealed cannot scroll past the end any more than a wheel can.
     void scrollBy(double dx, double dy) {
-        moveTo(clamp(offsetX + dx, viewport.overflowX(content)), clamp(offsetY + dy, viewport.overflowY(content)));
+        var x = clamp(offsetX + dx, viewport.overflowX(content));
+        var y = clamp(offsetY + dy, viewport.overflowY(content));
+        if (x == offsetX && y == offsetY) {
+            return;
+        }
+        // A programmatic move glides: the offset goes to the target now, and the
+        // viewport draws the way there on the frame clock (ADR-0363).
+        glide.start(offsetX, offsetY, x, y);
+        setState(() -> {
+            offsetX = x;
+            offsetY = y;
+            fade.woken();
+        });
+    }
+
+    /// How much further right the viewport will draw once the glide lands —
+    /// what a rectangle painted this frame still has to travel.
+    double glideRemainingX() {
+        return offsetX - glide.shownX(offsetX);
+    }
+
+    /// How much further down it will draw.
+    double glideRemainingY() {
+        return offsetY - glide.shownY(offsetY);
     }
 
     private static double clamp(double value, double max) {
@@ -249,6 +276,8 @@ final class ScrollState extends State<Scroll> {
         if (x == offsetX && y == offsetY) {
             return;
         }
+        // Direct input: whatever was gliding stops where the pointer took over.
+        glide.cancel();
         setState(() -> {
             offsetX = x;
             offsetY = y;

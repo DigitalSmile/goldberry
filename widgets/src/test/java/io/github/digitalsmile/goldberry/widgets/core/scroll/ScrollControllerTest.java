@@ -17,6 +17,8 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -64,7 +66,8 @@ class ScrollControllerTest {
 
         Harness(Widget root) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+                    .clock(clock);
             tree = new ElementTree(root);
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -73,10 +76,20 @@ class ScrollControllerTest {
             frame();
         }
 
+        final Clock.Virtual clock = Clock.virtual();
+
         void frame() {
             tree.flush();
             render.update(target.frame(), renderer.render(tree));
             router.updateRegions(HitTest.capture(render));
+        }
+
+        /// A frame, and another once a programmatic scroll's glide has had time
+        /// to arrive (ADR-0363).
+        void settle() {
+            frame();
+            clock.advance(ScrollGlide.DURATION_MILLIS + 16);
+            frame();
         }
 
         /// Where the row with `id` is painted, in window coordinates.
@@ -145,7 +158,7 @@ class ScrollControllerTest {
             var before = harness.rowRect("row0").top();
 
             controller.scrollBy(0, 40);
-            harness.frame();
+            harness.settle();
 
             assertEquals(before - 40, harness.rowRect("row0").top(), 0.5);
         }
@@ -157,10 +170,10 @@ class ScrollControllerTest {
             var harness = new Harness(document(controller));
 
             controller.scrollBy(0, 10_000);
-            harness.frame();
+            harness.settle();
             var atEnd = harness.rowRect("row0").top();
             controller.scrollBy(0, 10_000);
-            harness.frame();
+            harness.settle();
 
             assertEquals(atEnd, harness.rowRect("row0").top(), 0.01);
         }
@@ -178,7 +191,7 @@ class ScrollControllerTest {
             var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
 
             controller.reveal(harness.rowRect("row20"), viewport);
-            harness.frame();
+            harness.settle();
 
             var after = harness.rowRect("row20");
             assertTrue(
@@ -193,7 +206,7 @@ class ScrollControllerTest {
             var harness = new Harness(document(controller));
 
             controller.reveal(harness.rowRect("row20"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
-            harness.frame();
+            harness.settle();
 
             // Brought *up to* the bottom edge and no further: a reveal that
             // centred its target would throw away everything the user was
@@ -212,9 +225,89 @@ class ScrollControllerTest {
             var before = harness.rowRect("row0").top();
 
             controller.reveal(harness.rowRect("row1"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
-            harness.frame();
+            harness.settle();
 
             assertEquals(before, harness.rowRect("row0").top(), 0.01);
+        }
+    }
+
+    /// §3.1: "`scrollIntoView` / programmatic: overlay duration" ([ADR-0363]).
+    @Nested
+    @DisplayName("gliding")
+    class Gliding {
+
+        @Test
+        @DisplayName("a programmatic scroll is on its way part of the way through, and there at the end")
+        void glides() {
+            var controller = new ScrollController();
+            var harness = new Harness(document(controller));
+            var before = harness.rowRect("row0").top();
+
+            controller.scrollBy(0, 100);
+            harness.frame();
+            harness.clock.advance(ScrollGlide.DURATION_MILLIS / 4);
+            harness.frame();
+            var partway = harness.rowRect("row0").top();
+            harness.clock.advance(ScrollGlide.DURATION_MILLIS);
+            harness.frame();
+
+            assertTrue(partway < before - 1 && partway > before - 99, "not partway: " + partway);
+            assertEquals(before - 100, harness.rowRect("row0").top(), 0.5);
+        }
+
+        @Test
+        @DisplayName("the wheel takes over at once, from where the glide had got to")
+        void wheelCancels() {
+            var controller = new ScrollController();
+            var harness = new Harness(document(controller));
+
+            controller.scrollBy(0, 100);
+            harness.frame();
+            harness.clock.advance(ScrollGlide.DURATION_MILLIS / 4);
+            harness.frame();
+            harness.router.pointerWheel(100, 40, 0, 1, Modifiers.NONE);
+            harness.frame();
+            var afterWheel = harness.rowRect("row0").top();
+            harness.clock.advance(ScrollGlide.DURATION_MILLIS);
+            harness.frame();
+
+            assertEquals(afterWheel, harness.rowRect("row0").top(), 0.01, "nothing kept gliding after the wheel");
+        }
+
+        @Test
+        @DisplayName("a reveal asked again mid-glide measures where the row will be, and does not overshoot")
+        void revealMidGlide() {
+            var controller = new ScrollController();
+            var harness = new Harness(document(controller));
+            var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
+
+            controller.reveal(harness.rowRect("row20"), viewport);
+            harness.frame();
+            harness.clock.advance(ScrollGlide.DURATION_MILLIS / 3);
+            harness.frame();
+            controller.reveal(harness.rowRect("row20"), viewport);
+            harness.settle();
+
+            var after = harness.rowRect("row20");
+            assertEquals(
+                    VIEWPORT_HEIGHT,
+                    after.top() + after.size().height(),
+                    1.0,
+                    "the row landed at the bottom edge, where one reveal puts it");
+        }
+
+        @Test
+        @DisplayName("under reduced motion it jumps")
+        void reducedMotionJumps() {
+            var controller = new ScrollController();
+            var harness = new Harness(document(controller));
+            harness.renderer.reducedMotion(true);
+            var before = harness.rowRect("row0").top();
+
+            controller.scrollBy(0, 100);
+            harness.frame();
+
+            assertEquals(before - 100, harness.rowRect("row0").top(), 0.5);
         }
     }
 }

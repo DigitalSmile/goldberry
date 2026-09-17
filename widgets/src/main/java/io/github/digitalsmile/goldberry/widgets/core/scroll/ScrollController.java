@@ -87,6 +87,16 @@ public final class ScrollController {
         if (attached == null) {
             return;
         }
+        // `self` was painted where a glide had got to, and the offset is already
+        // where it ends. Measure the rectangle where it will be, or a reveal asked
+        // again mid-glide would move the viewport a second time (ADR-0363).
+        var aheadX = attached.glideRemainingX();
+        var aheadY = attached.glideRemainingY();
+        self = LogicalRect.of(
+                (float) (self.left() - aheadX),
+                (float) (self.top() - aheadY),
+                self.size().width(),
+                self.size().height());
         var dy = distance(
                 self.top(),
                 self.top() + self.size().height(),

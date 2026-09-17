@@ -6,6 +6,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -62,6 +63,7 @@ record ScrollViewport(
         Extent viewport,
         Extent content,
         ScrollFade fade,
+        ScrollGlide glide,
         ScrollTarget onScroll,
         Boolean draggingVertical,
         java.util.function.BiConsumer<Boolean, Boolean> onDrag,
@@ -204,7 +206,7 @@ record ScrollViewport(
     /// paint them once at whatever opacity it caught and stop ([ADR-0081]).
     @Override
     public boolean isAnimating() {
-        return fade.isAnimating();
+        return fade.isAnimating() || glide.isAnimating();
     }
 
     /// The caller's height, when it gave one — see [Scroll#height(double)].
@@ -231,9 +233,10 @@ record ScrollViewport(
             onLine.accept(declared);
         }
         fade.stamp(context.nowMillis());
+        glide.stamp(context.nowMillis(), context.reducedMotion());
         var opacity = fade.opacity();
         return Box.of()
-                .children(fadeBars(boxes, opacity).toArray(Box[]::new))
+                .children(fadeBars(glided(boxes), opacity).toArray(Box[]::new))
                 .style(style)
                 // Along the axis, and this is load-bearing rather than tidy. A
                 // horizontal viewport laid out as a column would **stretch** its
@@ -246,6 +249,25 @@ record ScrollViewport(
                 // Yoga reads it for sizing -- a child may exceed this box without
                 // it growing -- and the painter reads it as a clip (ADR-0114).
                 .overflow(Overflow.HIDDEN);
+    }
+
+    /// The children with the content drawn where a glide has got to, or as they
+    /// were when nothing is gliding (ADR-0363). The content is the first box, and
+    /// its translation is replaced rather than added to, because what the
+    /// cascade put there is the glide's target.
+    private List<Box> glided(List<Box> boxes) {
+        if (!glide.isAnimating() || boxes.isEmpty()) {
+            return boxes;
+        }
+        var x = glide.shownX(offsetX);
+        var y = glide.shownY(offsetY);
+        var out = new java.util.ArrayList<Box>(boxes);
+        out.set(
+                0,
+                boxes.getFirst()
+                        .transform(Transform.of(
+                                new Transform.Function.Translate(Transform.Length.px(-x), Transform.Length.px(-y)))));
+        return out;
     }
 
     /// The children with the bars faded to `opacity` and the content left alone.

@@ -284,12 +284,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   viewport: it needs to know it is at an edge, which is `scrollIntoView`'s
   missing question again. —
   [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- **A revealed row lands rather than glides.** §3.1 gives `scroll`
-  "`scrollIntoView` / programmatic: overlay duration", and a reveal jumps: the
-  offset is state and nothing interpolates it. It is a transition on a value the
-  cascade cannot see — the same shape `TabPhase` solved for one widget, and the
-  second consumer that would justify promoting it. —
-  [ADR-0120](adr/0120-a-widget-scrolls-itself-into-view.md)
 - **A tab's content is rebuilt when it is selected again.** That is the cost of
   §5's "lazy content instantiation" and is right — but it means a scroll position,
   a caret or a half-typed form in a background tab is gone, and the toolkit offers
@@ -1363,6 +1357,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A revealed row lands rather than glides.**~~ **It glides, 2026-09-17**, over
+  the overlay duration. The offset goes to the target at once and the viewport
+  draws the way there on the frame clock, so direct input never waits; a reveal
+  asked mid-glide measures where its row will be. —
+  [ADR-0363](adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
 - ~~**A `text-area` has no visible scrollbar.**~~ **It has `scroll`'s, 2026-09-17**:
   neither a `scroll` around the text nor a second bar. `ScrollBar` is three numbers
   and two callbacks, and a text area knows all three. —
