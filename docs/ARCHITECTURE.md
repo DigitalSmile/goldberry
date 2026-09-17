@@ -251,7 +251,7 @@ try (var fonts = Fonts.bundled()) {
 - Emoji font: **OpenMoji** — monochrome (Black) variant as the default, matching the toolkit aesthetic; the **COLRv0 color variant** (palette re-themed toward Nord) is opt-in per text style (`emoji: color`).
 - COLRv0 is layered outlines + CPAL palette — implemented in the text stack by drawing each layer glyph with its palette color through Blend2D. No bitmap emoji formats (CBDT/sbix) in v1.
 - Segmentation: emoji sequences (ZWJ, VS-16, modifiers) detected during itemization and routed to the emoji slot.
-- OpenMoji is CC BY-SA; the re-themed derivative is published with attribution per license.
+- OpenMoji is CC BY-SA, and **it is not in `goldberry-core`**: the face ships as `goldberry-emoji`, an optional artifact an application adds on purpose, because CC BY-SA asks for attribution where the work is *seen* and no file inside a jar gives that. `:core` names the slot and loads the face through an `EmojiFont` service; with no provider, `Font.bundled(EMOJI, …)` fails with a sentence naming the artifact ([ADR-0384](../book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)). What ships is the unmodified monochrome build; a re-themed COLRv0 derivative would be published with attribution and a statement of changes, per the licence.
 
 ### 6.3 Icons
 
@@ -517,7 +517,7 @@ Screen-reader bridging (UIA / NSAccessibility / AT-SPI) is planned via **AccessK
 - **Optional content modules** (§11.1) are published beside these when they exist — `goldberry-html`, `-pdf`, `-code`, `-terminal`, `-vector`, `-media`, `-camera`, `-mic`, each with its own notice file and none of them a dependency of `-core` or `-widgets` (ADR-0190). **`goldberry-html` exists**, and it has no natives jar of its own: md4c rides `libgoldberry` (ADR-0294), which is the one clause of that record measured and departed from. The other seven do not exist.
 - Published to **Maven Central** under group `io.github.digitalsmile` (base package `io.github.digitalsmile.goldberry`): artifacts `goldberry-common`, `-core`, `-widgets`, `-html`, `-gpu`, plus `goldberry-natives` with `{platform}-{arch}` classifier jars (consumable from Gradle and Maven alike). **Versions are calendar versions** — `2026.1`, `2026.2`, `2026.2.1` — declared once in `gradle.properties` as the line being worked towards; every push to master publishes it as a `-SNAPSHOT` to the Central Portal's snapshot repository, and a matching `v*` tag publishes the release. One workflow uploads, once per run, after all three platforms are green (ADR-0333, ADR-0334; `docs/releasing.md`). Beside them, **`goldberry-bom`** pins every artifact's version and **`goldberry`** is the one dependency an application starts from: `-common`, `-natives`, `-core`, `-widgets` as dependencies and `-html`, `-gpu` — and every future content module — as `<optional>` (ADR-0336). The showcase is not published to a repository: a release tag builds it as a GraalVM native image on all three platforms and attaches the binaries to the tag's GitHub Release (ADR-0337, ADR-0340).
 - Single-jar quick start (fat natives) for tinkering; GraalVM native-image config shipped in the jars (`META-INF/native-image`).
-- License: toolkit Apache-2.0. Bundled assets — Inter (OFL), JetBrains Mono (OFL), Lucide (ISC), OpenMoji derivative (CC BY-SA, attribution in About/NOTICE). The statically linked native libraries also redistribute in object form: Blend2D, AsmJit, SDL3 (Zlib), Yoga, HarfBuzz. On Linux SDL loads the system libxkbcommon at run time; it is not redistributed. Full disclosure in `THIRD-PARTY-NOTICES.md` and `licenses/`, verified by `./gradlew checkLicenses`; see ADR-0015.
+- License: toolkit Apache-2.0. Bundled assets — Inter (OFL), JetBrains Mono (OFL), Lucide (ISC) in `goldberry-core`; OpenMoji (CC BY-SA, attribution in the application's About screen) in the optional `goldberry-emoji` (ADR-0384). The statically linked native libraries also redistribute in object form: Blend2D, AsmJit, SDL3 (Zlib), Yoga, HarfBuzz. On Linux SDL loads the system libxkbcommon at run time; it is not redistributed. Full disclosure in `THIRD-PARTY-NOTICES.md` and `licenses/`, verified by `./gradlew checkLicenses`; see ADR-0015.
 
 ## 16. Milestones
 
@@ -551,14 +551,21 @@ Recorded rather than reconciled, because the design documents are the authority
 and each of these needs a decision rather than an edit. `book/src/TODO.md`
 tracks them alongside the implementation's own gaps.
 
-- **The platform primary modifier.** `design-system.md` §2.3 wants accelerators
-  expressed against a platform-primary modifier — `Cmd` on macOS, `Ctrl`
-  elsewhere — "via one `Shortcut` abstraction". The shipped `Shortcut` refuses to
-  remap, arguing that silently translating them makes `Ctrl+C` mean two different
-  things depending on where it runs. Both are defensible; they are not
-  compatible. The design system wins by default, which makes this a change to the
-  code — but it should be an ADR, not a quiet edit, because the counter-argument
-  is a real one and is currently the only thing written down. (§7.2)
+**Five were taken on 2026-09-17**, and each went the way this section says it
+should — the design documents won, and where a reading was genuinely open the tie
+went to the row that wrote a number down. They are struck through below rather
+than deleted, because the argument each of them was up against is the part worth
+keeping.
+
+- ~~**The platform primary modifier.**~~ **Settled by
+  [ADR-0378](../book/src/adr/0378-the-desktops-own-modifier-has-a-name.md).**
+  §2.3 wanted accelerators against a platform-primary modifier — `Cmd` on macOS,
+  `Ctrl` elsewhere — "via one `Shortcut` abstraction"; the shipped `Shortcut`
+  refused to remap, because silently translating them makes `Ctrl+C` mean two
+  different things depending on where it runs. They were never incompatible: §2.3
+  wanted a way to *say* "whatever this desktop uses" and the code was refusing to
+  *guess* it. `Primary+S` says it, `Ctrl+S` still means `Ctrl`, and the toolkit's
+  own editing accelerators are on the primary modifier. (§7.2)
 - **Pixel-precise wheel deltas.** *Settled by ADR-0115, and left here because
   the resolution is a difference rather than an agreement.* §2.4 asks for
   "pixel-precise wheel/trackpad deltas with line fallback"; SDL exposes no pixel
@@ -576,27 +583,20 @@ tracks them alongside the implementation's own gaps.
   It is an addition rather than a disagreement: an area without it behaves exactly
   as §4 says. The sentence to amend is the one that assumes a multi-line field is
   always a form control. (§11)
-- **One module or two.** `core-widgets.md` says every built-in lives in a single
-  `goldberry-core` module, separated by package. The build ships `:core` and
-  `:widgets` as separate modules and artifacts (ADR-0014). The split is
-  load-bearing and is not moving; the sentence is what needs amending. (§11)
-- **A `tooltip`'s radius and its type rank.** `design-system.md` §3's row says
-  radius 4 and `caption`; the shipped rule writes 8 and `body`. Neither is drift
-  that anybody would defend as accidental — the type rank has its argument written
-  in `controls.css` (§1.4 gives `caption` to secondary text *under* a control,
-  where the reader has the control for context, and a tooltip is the only text on
-  screen at the moment it is read) — but neither has been agreed either. §1.5
-  groups radii as `4` (inputs, small controls) · `8` (buttons, cards) · `12`
-  (dialogs, popovers, frost panels) and names no tooltip in any of them, so the
-  nearest named thing is a popover at 12 and a tooltip is a small one; 4 and 8 are
-  both readings and neither follows. Found by reading the row against the
-  stylesheet: **three** of that row's four numbers had departed and only one said
-  so. `TooltipMetricsTest` pins what ships, so a fourth departure is a failing
-  test ([ADR-0263](../book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)). (§10.1)
-- **`text style="body"`.** `core-widgets.md` §2 gives `text` a `style=` attribute
-  for the typography tokens. What ships is `class="body"` — the same thing spelled
-  the way CSS already spells it. A second spelling may still earn its keep when
-  `field` and `form` need labels. (§10.1)
+- ~~**One module or two.**~~ **Already amended, and this entry outlived it.**
+  `core-widgets.md` now says "the single `goldberry-widgets` module (ADR-0014),
+  separated by package", which is what ships. The sentence this recorded was
+  edited on 2026-08-18 and nobody struck the record. (§11)
+- ~~**A `tooltip`'s radius and its type rank.**~~ **Settled by
+  [ADR-0380](../book/src/adr/0380-the-tooltip-row-is-what-ships.md): the code
+  follows the row.** §3 says radius 4 and `caption`; the sheet wrote 8 and `body`,
+  each with an argument beside it — §1.5 groups radii as `4` · `8` · `12` and
+  names no tooltip in any of them, so neither number *follows*, and §1.4 gives
+  `caption` to secondary text under a control where a tooltip is the only text on
+  screen. Where a reading is open, the tie goes to the row that wrote a number
+  down; the `body` argument stays in `controls.css` because it is §1.4's to
+  answer. `TooltipMetricsTest` pins all four numbers, so a fifth departure is a
+  failing test ([ADR-0263](../book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)). (§10.1)
 - **`checkable` names two different things.** `core-widgets.md` §3 spends the
   word twice. On `select tree=` it is a rule about which rows are an **answer** —
   `checkable="leaf|any"`, "leaf-only by default, because 'Europe' is usually a
@@ -608,34 +608,35 @@ tracks them alongside the implementation's own gaps.
   were one thing could not copy six files (ADR-0210). Recorded rather than
   reconciled: both sentences describe something real, and it is the *word* that
   is doing two jobs. (§10.1)
-- **A disabled container disabling its descendants.** `core-widgets.md`'s widget
-  contract says disabled propagates down the tree for input *and* semantics.
-  What works is a control passing the flag to the parts it builds itself, which
-  is enough for `checkbox` and will not be enough for `form` or `group-box`
-  (ADR-0065).
-- **`goldberry-emoji` is not a module, and core carries its attribution.**
-  `content-widgets.md`'s table quarantines OpenMoji in an optional artifact
-  because CC BY-SA wants *visible* attribution — an about box or a credits
-  screen, not a notice file. §6.2 puts it in core's text stack instead, so every
-  application that ships Goldberry inherits that obligation whether it renders an
-  emoji or not. Both are defensible and only one can be true: the fallback chain
-  is a text-stack decision and the licence is a packaging one. Needs an ADR
-  before v1, because it is the only obligation in the toolkit an application
-  cannot discharge with a file. (§6.2, §11.1)
-- **`goldberry-charts` is not an artifact.** `content-widgets.md` lists it as a
-  module planned for M3; ADR-0014 merged it into `:widgets` before that table was
-  written. Recorded rather than reconciled only because the table still says
-  otherwise — the code is not moving, and §3's argument about engines is
-  untouched by where the widgets live. (§11.1)
-- **"Zero new natives" is not zero new work.** `content-widgets.md` §9 and §10
-  argue that camera and microphone cost nothing new because SDL3 is already
-  statically linked. True of the *binary* and not of the *surface*: `tray-icon`
-  met this first and paid it — eleven symbols and two binding classes, taking the
-  list from 192 to 203 (ADR-0191) — and of the 59 `SDL_*` entries now on it, none
-  is audio and none is camera. Each of those modules is the same widening plus a
+- ~~**A disabled container disabling its descendants.**~~ **Built by
+  [ADR-0379](../book/src/adr/0379-a-disabled-container-reaches-the-cascade.md)**,
+  for input (ADR-0077) and now for the cascade: `:disabled` reaches every element
+  under a disabled one, and one rule — `:disabled :disabled { opacity: 1 }` —
+  keeps the fade on the outermost of them, which is what kept it out before. The
+  **semantics** half is still owed by something that does not exist: there is no
+  semantics tree, so nothing reports a role as unavailable yet.
+- ~~**`goldberry-emoji` is not a module, and core carries its attribution.**~~
+  **It is a module** (2026-09-17,
+  [ADR-0384](../book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
+  The table was right and §6.2 was wrong: CC BY-SA wants *visible* attribution —
+  an about box or a credits screen, not a notice file — so an obligation every
+  application inherited is now one an application takes on by adding an artifact.
+  The fallback chain is still a text-stack decision and the slot stays in
+  `:core`; the *face* is a packaging one and arrives through an `EmojiFont`
+  service. (§6.2, §11.1)
+- ~~**`goldberry-charts` is not an artifact.**~~ **The table says so now**
+  (2026-09-17). ADR-0014 merged it into `:widgets` before that table was written,
+  the code was never moving, and §3's argument about engines is untouched by where
+  the widgets live. (§11.1)
+- ~~**"Zero new natives" is not zero new work.**~~ **Both sentences say so now**
+  (2026-09-17). They were true of the *binary* and not of the *surface*:
+  `tray-icon` met this first and paid eleven symbols and two binding classes for
+  it (ADR-0191), and of the 76 `SDL_*` entries on the export list today none is
+  audio and none is camera. Each of those modules is the same widening plus a
   binding apiece (ADR-0190). (§3.2, §11.1)
-- **Dual y-axes.** `content-widgets.md` §4.1 lists "dual y-axes" among
-  `goldberry-plot`'s scales. `charts.md` §3.4 refuses them outright: two measures
+- ~~**Dual y-axes.**~~ **`charts.md` wins, and §4.1 says so now** (2026-09-17).
+  `content-widgets.md` listed "dual y-axes" among `goldberry-plot`'s scales;
+  `charts.md` §3.4 refuses them outright: two measures
   at different scales are two charts, small multiples, or one indexed to a common
   base, and a second y-scale is the single most reliable way to make a chart say
   something untrue. The design document is the authority and this is a refusal

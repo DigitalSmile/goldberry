@@ -8,7 +8,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 |---------------------|-------------------------|-------------|-------------------------------|--------|
 | `goldberry-html`    | md4c (+ litehtml, open) | < 1 MB      | BSD-3-Clause, MIT             | **built**: `markdown-view` and `html-view`, neither through an engine |
 | `goldberry-pdf`     | PDFium                  | tens of MB  | BSD-3 + bundled permissive    | planned (M4-adjacent) |
-| `goldberry-charts`  | first-party (canvas)    | none        | Apache-2.0                    | planned (M3) |
+| `goldberry-charts`  | first-party (canvas)    | none        | Apache-2.0                    | **not an artifact** — merged into `:widgets` by ADR-0014 before this table was written, and the charts shipped there in M2. §3's argument about engines is untouched by where the widgets live |
 | `goldberry-plot`    | first-party (on charts) | none        | Apache-2.0                    | post-v1 |
 | `goldberry-code`    | Tree-sitter             | small       | MIT                           | candidate |
 | `goldberry-terminal`| libvterm                | tiny        | MIT                           | candidate — strong for Scarlet |
@@ -17,7 +17,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 | `goldberry-camera`  | SDL3 camera subsystem   | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-mic`     | SDL3 audio recording    | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-web`     | Servo                   | large       | MPL-2.0                       | **parked** |
-| `goldberry-emoji`   | OpenMoji                | font only   | CC BY-SA 4.0 (attribution)    | planned (M2) |
+| `goldberry-emoji`   | OpenMoji                | font only   | CC BY-SA 4.0 (attribution)    | **built** (2026-09-17, ADR-0384) — the face reaches `:core` through an `EmojiFont` service, and an application that adds the artifact displays `OpenMojiFont.CREDIT` |
 
 ---
 
@@ -216,7 +216,7 @@ Layered on `goldberry-charts` primitives (axes, legend, tooltip, ramps) — same
 ### 4.1 Scope
 
 - **Plot types:** `scatter` (large-N), `histogram`, `box-plot`, `heatmap`, `contour`, `error-bar` decorations on line/scatter, step/stairs plots.
-- **Scales:** log and symlog axes with correct log tick labeling (extension of the Wilkinson pass), dual y-axes, shared/linked axes across plots (crosshair sync).
+- **Scales:** log and symlog axes with correct log tick labeling (extension of the Wilkinson pass), shared/linked axes across plots (crosshair sync). **Dual y-axes are refused**, and this line used to ask for them: `charts.md` §3.4 argues that two measures at different scales are two charts, small multiples, or one indexed to a common base, and that a second y-scale is the most reliable way to make a chart say something untrue. The more specific document wins.
 - **Large data:** spatial index (grid/quadtree) for hover/selection hit-testing on 10⁵–10⁶ point scatters; LTTB for series; density fallback (auto-switch scatter → heatmap above a point threshold).
 - **Colormaps:** the perceptual scientific families (viridis/magma-class, public-domain colormap data) alongside Nord-derived ramps — science needs perceptual uniformity more than brand fidelity; both offered, viridis-class default for heatmaps.
 - **Algorithms to implement:** Freedman–Diaconis binning for histograms, marching squares for contours, Welford/quantile passes for box plots.
@@ -276,7 +276,7 @@ Because everything is Blend2D, `Plot.renderTo(image)` gives publication-quality 
 
 ## 9. `goldberry-camera` — camera capture (SDL3)
 
-**Zero new natives.** The module calls SDL3's camera subsystem directly (V4L2/PipeWire on Linux, Media Foundation on Windows, CoreMedia on macOS) — SDL3 is already statically linked in `libgoldberry`. A separate artifact so that apps that don't use the camera never link camera code, and privacy review scopes to one small module.
+**Zero new natives — of the *binary*, and not of the *surface*.** The module calls SDL3's camera subsystem directly (V4L2/PipeWire on Linux, Media Foundation on Windows, CoreMedia on macOS) and SDL3 is already statically linked in `libgoldberry`, so nothing new is compiled or shipped. What it still costs is the export list and the bindings over it: none of the SDL entries on that list today is a camera one, and `tray-icon` met this first and paid eleven symbols and two binding classes for it (ADR-0191). A separate artifact so that apps that don't use the camera never link camera code, and privacy review scopes to one small module.
 
 - `camera-view` widget: device selection, live preview as a repaint-boundary layer updated at camera cadence (decoupled from the UI frame rate), format negotiation with YUY2/NV12 → BGRA conversion into `BLImage`, mirror option, `snapshot()` returning an image.
 - **Permission states are widget states:** the OS prompt flow (SDL surfaces approval/denial events) renders as themed placeholders — `awaiting-permission`, `denied` with guidance — never a black rectangle. macOS app bundles need the camera usage-description plist key; documented in the module README.
@@ -285,7 +285,7 @@ Because everything is Blend2D, `Plot.renderTo(image)` gives publication-quality 
 
 ## 10. `goldberry-mic` — microphone capture & audio UI (SDL3)
 
-**Zero new natives**, same reasoning: SDL3's audio API supports recording devices, and it's already in the binary.
+**Zero new natives**, with §9's correction: SDL3's audio API supports recording devices and is already in the binary, so nothing new is compiled — and the symbols and their bindings are still to be written, because no audio entry is on the export list either.
 
 - `AudioCapture`: device enumeration + PCM chunk stream (sample rate/format negotiated), delivered off-thread, exposed to Java as `MemorySegment`s with zero copies.
 - Visualization widgets, canvas-based and theme-colored: `level-meter` (peak/RMS with proper decay ballistics), `waveform-view` (rolling buffer), `spectrum-view` (small first-party Java FFT — Vector API candidate).

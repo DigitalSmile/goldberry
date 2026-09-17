@@ -58,6 +58,7 @@ dependencies {
     implementation platform('io.github.digitalsmile:goldberry-bom:2026.1-SNAPSHOT')
     implementation 'io.github.digitalsmile:goldberry'                // common, natives, core, widgets
     implementation 'io.github.digitalsmile:goldberry-html'           // optional: Markdown and HTML
+    implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the OpenMoji face (CC BY-SA)
     runtimeOnly 'io.github.digitalsmile:goldberry-natives::linux-x64'
 }
 ```

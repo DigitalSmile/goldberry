@@ -14,13 +14,20 @@ got out of it.
 **Where the documents disagree with each other** — as opposed to with the code —
 is listed in `docs/ARCHITECTURE.md` §17.1. `docs/design-system.md` and
 `docs/core-widgets.md` are the authority; the architecture document is a summary
-of them and records where it knowingly departs. The seven open ones are the
-platform primary modifier for accelerators, whether the catalog is one module or
-two, `text style=` against `text class=`, a disabled container disabling its
-descendants, and — since `docs/content-widgets.md` joined the plan — where the
-emoji font lives and who owes its attribution, whether `goldberry-charts` is an
-artifact, and what "zero new natives" costs (see [Content
-modules](#content-modules)). **Pixel-precise wheel deltas left this list** and
+of them and records where it knowingly departs. **Five of the seven were taken on
+2026-09-17** and each went the way the section says it should: the platform
+primary modifier is a modifier you can name
+([ADR-0378](adr/0378-the-desktops-own-modifier-has-a-name.md)), a disabled
+container reaches the cascade
+([ADR-0379](adr/0379-a-disabled-container-reaches-the-cascade.md)), `text style=`
+is built ([ADR-0381](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)), the
+`tooltip` row's radius and rank are what ships
+([ADR-0380](adr/0380-the-tooltip-row-is-what-ships.md)), and "one module or two"
+had been settled in `core-widgets.md` itself a month before anyone noticed. What
+is left is where the emoji font lives and who owes its attribution, whether
+`goldberry-charts` is an artifact, what "zero new natives" costs (see [Content
+modules](#content-modules)), and — recorded in §17.1 and never counted here —
+dual y-axes, the word `checkable` doing two jobs, and `masonry`'s missing row. **Pixel-precise wheel deltas left this list** and
 have now left the list below it too:
 [ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
 difference rather than an agreement — what §2.4 wanted from "pixel-precise" is
@@ -240,7 +247,7 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   is visible — only that there is a lot. The trade every scrollbar makes, named
   here because it is a place the widget knowingly stops telling the truth. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **`Measured` has a consumer whose reason is a *sibling's* geometry**, which is new:
+- **`Measured` has several consumers whose reason is a *sibling's* geometry**, which is new:
   a toast stack banks how tall each toast came out so that it can move the survivors
   by the height of the hole when one goes ([ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)).
   Every other consumer reads its own box. It obeys the third rule by construction for
@@ -344,14 +351,10 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   the unscoped version of the same thing. What would close it properly is a focus
   name that is relative to a subtree, which the router has no notion of. —
   [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
-- **`tree` moved from deferred to specified**, which changes what M5 owes. ARCHITECTURE
+- **`tree` moved from deferred to specified, and `table` has since followed it**, which changes what M5 owes. ARCHITECTURE
   §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
   `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
   needs it, so the two arrived together.
-- **`text` has no `style="body"` attribute.** `docs/core-widgets.md` §2 asks for one;
-  what ships is `class="body"`, which is the same thing spelled the way CSS already
-  spells it. Whether a second spelling earns its keep is a question for when `field` and
-  `form` need labels. — [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
 - **A segmented control fills its parent when nothing gives it a width**, which is new
   and is a real loss of convenience: in a toolbar beside other widgets it takes the
   whole row until an author writes `width`. It buys the travelling indicator, and there
@@ -391,19 +394,17 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   catalog wants. Reopened only if the design system changes its mind, in writing. —
   [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md), `docs/design-system.md`
   §1.7, §3.1
-- **The toggle does not shrink with a compact density**, read off §3 rather than
-  decided: the rows with a compact value carry it in parentheses and the `toggle` row
+- **The toggle does not shrink with a compact density**, and that is
+  **answered rather than open** (`docs/widgets-finishing.md`, ADR-0356): §3's row
+  carries no compact value for `toggle` where the rows that shrink carry one, so
+  the pill staying 36×20 inside a 28-tall row is the specification rather than a
+  gap. Kept here because the *screenshots* are what would say whether §1.3 meant
+  it. Read off §3 rather than decided: the rows with a compact value carry it in parentheses and the `toggle` row
   does not, so the pill stays 36×20 while the row around it takes `--gb-toggle-height`.
   Whether a 28-tall row holding a 20-tall pill is what §1.3 intends is a question for
   whoever writes the compact screenshots. —
   [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md),
   [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
-- **Nothing detects the density the user wants**, exactly as with reduced motion: an
-  application that knows sets it, and SDL exposes no query for either. Density is more
-  often the application's own preference than an OS setting, so this one may never need
-  detecting. —
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md),
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
 - **An indeterminate bar turns where it should run off the edge, and that is now
   a choice rather than a limit.** `progress`'s indeterminate sweep travels
   there-and-back within its track because the off-the-edges drawing — the more
@@ -498,19 +499,6 @@ description had no effect.
   does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
   that is the seam a painter should use too. Nothing has measured a painter that
   needs it.
-- **No image cache for `Image.decode` itself.** The `image` widget has one — one decode per source, bounded by bytes (ADR-0358) — and a `canvas` decoding by hand does not go through it.
-- **PNG is the only format written.** The decoder reads PNG, JPEG, QOI, WebP and
-  GIF ([ADR-0329](adr/0329-two-more-codecs-one-fetched-and-one-written.md));
-  `encodePng` writes the first. JPEG encoding would be seven more exported
-  symbols and a codec object family, and WebP encoding is the half of libwebp
-  this build deliberately does not compile; both are decisions with their own
-  reasons rather than a side effect of this one.
-- **One frame only.** A GIF decodes to its **first** frame and an animated WebP
-  does not decode at all — that one needs `webpdemux`, a second library the
-  superbuild does not build. An APNG, an animated GIF or an animated WebP is a
-  sequence and a clock, and would be its own record: a disposal model, a delay
-  per frame and something to drive it. `docs/gaps.md` G35a stopped deliberately
-  short of all three.
 - **No `Image.scaled(...)`.** Scaling happens at the blit, which is where the
   destination size is known. A resampled *copy* — for a thumbnail written to disk
   — is a different operation and would need a filter argument that
@@ -538,14 +526,6 @@ description had no effect.
 
 ## Editing text
 
-- **Two key maps.** `text.edit.Editor` and `TextField` map the same keys to the
-  same intents and agree because they were written from each other, not because
-  anything enforces it
-  ([ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)).
-  Converging them means `text-input` and `text-area` holding an `Editor` instead
-  of their own state machines — a rewrite of two controls, with a hundred golden
-  images and a full interaction suite behind them, and not something to do inside
-  a feature that was about something else.
 - **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
   not promise visual order for mixed-direction text, and a caret in it needs a
   walk the toolkit does not have. Latin, Cyrillic and CJK are exact; Arabic and
@@ -585,9 +565,10 @@ description had no effect.
 
 ## Content modules
 
-`docs/content-widgets.md` specifies eleven optional modules; **none of them
-exists**, and none is scheduled while M3 still owes client-side decorations and
-the rest of §4. The shape they share is
+`docs/content-widgets.md` specifies eleven optional modules; **one of them
+exists** — `:html`, whole, with no engine under either half — and none of the
+other ten is scheduled while M3 still owes client-side decorations and the rest
+of §4. The shape they share is
 [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
 on, which in four cases is the same thing.
@@ -725,39 +706,6 @@ on, which in four cases is the same thing.
 
 ## Layout
 
-- **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
-  `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.
-  Nothing in `statistic` is shaped around its absence: a sparkline is one more
-  child at the end of the column. —
-  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- **`flex-basis` is one of two layout properties §8 names and nothing resolves**,
-  `align-content` being the other — see below; this used to say "the only" and
-  had never agreed with the entry three down from it. It
-  was implemented for `segmented` and taken back out rather than left as a property with
-  no consumer — `flex-basis: 0` makes Yoga compute a track's content size as *zero*, so
-  an unconstrained bar collapses. It is the last of §8's `flex-grow`/`shrink`/`basis`
-  still unimplemented, and `:core`'s five primitives all still shrink — right for
-  containers, and unexamined for `spacer`, which presumably wants to keep a fixed size.
-  — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
-  [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md)
-- **Nothing has a minimum size, so overflow is silent — and both halves of this
-  entry's reasoning have since expired.** `flex-shrink: 0` stops a control being
-  squashed and does not stop it being *clipped*: a window narrower than its
-  content overflows rather than deforming, which is CSS's behaviour. This said
-  "a scroll view or an ellipsis is for. Neither exists yet", and both exist now —
-  `scroll` since [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-  and an ellipsis since
-  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md). What is
-  left is that **nothing warns**: a control clipped out of the window is silent,
-  and reaching for either answer is the author's to do. **`badge`'s half is
-  closed**: §3's row gained `min-width 20` and its padding-x dropped to 4, and
-  `badge-digits.png` shows a round `3`
-  ([ADR-0259](adr/0259-a-badge-with-one-digit-is-a-circle.md)). The minimum alone
-  would have done nothing, which is the part worth keeping — `8 + a caption digit
-  + 8` is 23 in a 20-tall box, so a badge with the default padding can never be
-  round however large its minimum. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
-  [ADR-0259](adr/0259-a-badge-with-one-digit-is-a-circle.md),
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - **An icon larger than its slot overflows it.** An `Icon` is a path built at a
   size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
   16px leading column is 20px — centred now rather than parked in the corner,
@@ -765,13 +713,6 @@ on, which in four cases is the same thing.
   the column. An application that wants them to fit builds them at 16, and
   nothing says so at the door. —
   [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
-- **`align-content` is still absent**, which is what decides how wrapped *lines*
-  share the cross axis. It does not matter to a chip row, whose height is its
-  content, and it would to a wrapped row in a box with a fixed height — where
-  Yoga spreads the lines and CSS's default packs them. Nothing in the catalog
-  wants one yet, which is the rule §8's subset has grown by all along. —
-  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
-
 ## Style, colour and motion
 
 - **An outer shadow is painted *under* the box, not cut out of it.** CSS knocks
@@ -838,23 +779,11 @@ on, which in four cases is the same thing.
   the platform leaves there. The fallback that always works — filling the frame
   with the panel's own colour, for square corners — is kept in reserve. —
   [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
-- **`Styled.restyle` is an escape hatch, and the honest risk is what goes into it.**
+- **`Styled.restyle` is an escape hatch with three callers now, and the honest risk is what goes into it.**
   What a widget writes there is unthemeable and unoverridable — right for a number
   nobody else can compute, wrong for anything else. It has one caller in the toolkit and
   one rule ("only what a stylesheet could not have written"); a second caller that is
   *not* a count is the signal to look at it again.
-- **A `tabs` indicator still cannot travel, though `segmented`'s does.** §3.1 gives the
-  two the same effect and the same controller.
-  [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md) got `segmented` moving by
-  making its cells a **grid** — every segment exactly `1/n`, so the distance to segment
-  *k* is `k` times the indicator's own width and needs no measurement — and that is
-  exactly what `tabs` cannot do: its tabs are as wide as their labels. What it would
-  need is *where the next item was laid out*, and geometry exists after a paint where
-  only the router can see it (ADR-0080), so a widget that moved something by the width
-  of its sibling would need a read-back path and would stop being a pure function of its
-  model. `Host.anchor` is the first half of that path. —
-  [ADR-0097](adr/0097-a-selection-that-travels-needs-a-geometry.md),
-  [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md)
 - **A segment's focus ring lands exactly on the bar's edge.** §2.2's ring is 2px at a
   2px offset and the bar's inset is 2, so the two coincide — legible in
   `segmented-focus.png`, and an accident of two numbers derived separately rather than a
@@ -907,10 +836,6 @@ on, which in four cases is the same thing.
   a primitive does not. The showcase now sets `color: var(--gb-text)` on its root, which
   is what an application should do — but nothing warns one that has not. —
   [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
-- **Reduced motion is obeyed but not detected.** `renderer.reducedMotion(true)`
-  collapses every transition; nothing reads the OS setting, because SDL exposes no query
-  for it. An application that knows sets it. —
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
 - **`StyleElement` documents three nullable members inside a `@NullMarked`
   package and annotates none of them.** `type()`, `id()` and `parent()` each say
   "or null" in their own javadoc and each is declared as a plain `String` or
@@ -940,7 +865,7 @@ on, which in four cases is the same thing.
 ## Rendering and performance
 
 - **What is still asserted only at 1x, now that the goldens are not.** Every one of
-  the 106 golden images is drawn again at 2x and 1.5x and checked for being the same
+  the the golden corpus — about 245 images now is drawn again at 2x and 1.5x and checked for being the same
   picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
   without a golden behind them — so the whole widget catalog, text included, is now
   covered against the logical-against-physical family ADR-0157 found. **Four classes
@@ -1018,19 +943,15 @@ on, which in four cases is the same thing.
   is the largest single term in a frame. —
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md),
   [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
-- **AsmJit's W^X handling on Apple Silicon is now reachable.**
-  [ADR-0002](adr/0002-cpu-rasterization-with-blend2d.md) flagged that Blend2D
-  JIT-compiles its pipelines and that macOS needs `MAP_JIT` and
-  `pthread_jit_write_protect_np`. Nothing triggered it until now, because nothing
-  created a rendering context. The first frame the macOS build paints is the test. —
-  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-- **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
-  the *state* path; a rebuilt widget still throws away everything below it,
-  because what changed there is the node's identity to the cascade — its classes
-  and its id — rather than one bit of its state. Narrowing that needs the same
-  index keyed on classes as well as types, and nothing has measured it as a
-  problem. —
-  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
+- **`Element.update` invalidates a subtree only when the cascade could see the
+  change.** ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
+  rebuilt widget throws away what is below it when `matchesDiffer` says its
+  identity to the cascade moved — its type, its classes or its id — and
+  invalidates its own style alone when it did not. What is left is the case where
+  the identity *did* move, which still costs the subtree and which nothing has
+  measured as a problem. —
+  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md),
+  [ADR-0315](adr/0315-a-rebuild-is-not-a-restyle.md)
 - **A HUD costs about three shaped paragraphs a frame, and reports the cost as
   its own.** Its readings are strings that change every frame, so no cache keyed
   on the string can hold them. The caption says so rather than hiding it, and the
@@ -1046,13 +967,13 @@ on, which in four cases is the same thing.
   macOS and Windows. The budget half is met with 3.9× of headroom
   ([ADR-0047](adr/0047-a-frame-nobody-sees-costs-full-price.md)); the breadth half
   is one VirtualBox VM. **Scheduled at M5** — see [status.md](status.md#m5--hardening) for
-  the shape of it. Three things are missing and only the first is toolkit work:
-  nothing can **resize a window from outside** (`SDL_SetWindowSize` is bound in
-  `:natives` and `BackendWindow` never exposes it, so an application cannot resize
-  its own window either); a run reports **no timings** at exit, though the ring
-  holds every number one would print; and the three `showcase.yml` legs that
-  already open a real window on each runner assert only that three frames were
-  drawn. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
+  the shape of it. The three things that were missing are **all built**
+  ([ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
+  `Window.resize` and `--resize=WxH` walk a window's size from outside,
+  `FrameSummary` prints what a run cost at exit, and `showcase.yml` paints 300
+  frames while resizing on each runner and fails over `--late-budget`. What is
+  missing now is a **run**: that workflow fires on a tag or by hand, there is no
+  tag, and the only recorded numbers are 60 frames headless on one machine. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
   so what this can prove is that three platforms' *drivers* hold the budget, not
   that hardware does. —
   [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md),
@@ -1065,11 +986,6 @@ on, which in four cases is the same thing.
   measured twice on the same session type. —
   [ADR-0037](adr/0037-what-the-text-path-costs.md),
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-- **Layout verification has not yet passed in CI.** The first run's verify jobs failed
-  without running a test, and the fix — verify the downloaded artifact, and fail rather
-  than skip when it is absent — has been tested locally against every path but has not
-  itself been through CI. —
-  [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - **The Wayland preference is evidence from one compositor.** SDL chooses X11 on a
   Wayland session unless the compositor advertises `wp_fifo_manager_v1`, which GNOME's
   Mutter does not; Goldberry asks for `wayland,x11` instead, because XWayland resizes
@@ -1287,6 +1203,87 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**PNG is the only format written.**~~ **WebP is written too, 2026-09-17**,
+  and losslessly by default: VP8 is worst at the flat colour and hard edges a
+  user interface is made of, so `encodeWebp()` is the lossless path and
+  `encodeWebp(quality)` is for a photograph. **JPEG is still not written** and is
+  what is left of this entry: Blend2D ships a JPEG decoder and no encoder, so it
+  means a third codec library or a written one — neither worth it while a
+  lossless WebP is a third of a PNG. —
+  [ADR-0385](adr/0385-webp-is-written-and-animated.md)
+- ~~**Reduced motion is obeyed but not detected.**~~ **Detected, 2026-09-17**, and
+  obeyed by a renderer the launcher builds: the settings portal on Linux,
+  `SystemParametersInfoW` on Windows and `NSWorkspace` on macOS, each a read-only
+  FFM query against a library the process already has, with no native build
+  behind any of them. "The desktop does not say" is still an answer and still is
+  not an instruction. Asked once per process; a change mid-session waits for a
+  restart. —
+  [ADR-0383](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
+- ~~**Nothing detects the density the user wants.**~~ **Answered: there is
+  nothing to detect, 2026-09-17.** Reduced motion was detectable because three
+  desktops expose it; density is not, because none of them has such a setting —
+  §1.3's compact mode is an application's own decision about its screens, which
+  is what this entry suspected and what asking the three platforms confirmed. —
+  [ADR-0383](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
+- ~~**Layout verification has not yet passed in CI.**~~ **It has, since the first
+  all-green snapshot.** The verify legs on all three runners ran the layout probe
+  against the downloaded artifact at `d478ecfe`, which is the run
+  `book/src/status.md` records as twelve green jobs. —
+  [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
+- ~~**AsmJit's W^X handling on Apple Silicon is now reachable.**~~ **Reached, and
+  green.** The showcase painted frames on `macos-14` on all three legs and the
+  macOS goldens ran, which is the JIT it was a question about doing its work. What
+  is still untried is AVX-512, which is a different machine and is on the
+  scale-invariance entry rather than this one. —
+  [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+- ~~**`text` has no `style="body"` attribute.**~~ **It has, 2026-09-17**, and it is
+  the same class the stylesheet already had a rule for: `style=` names a closed
+  vocabulary and is checked, `class=` is the open one and is not. —
+  [ADR-0381](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
+- ~~**One frame only.**~~ **Every frame of a GIF, 2026-09-17**, composited under
+  the file's own disposal rules, with its delays and its loop count;
+  `image.anim.Animation` says which one is showing and holds no clock. An
+  animated **WebP** followed a few hours later, once `webpdemux` was linked —
+  libwebp composites its own canvases, so the disposal model is upstream's there. —
+  [ADR-0382](adr/0382-a-gif-has-the-frames-after-the-first.md),
+  [ADR-0385](adr/0385-webp-is-written-and-animated.md)
+- ~~**A `tabs` indicator still cannot travel, though `segmented`'s does.**~~ **It
+  travels, 2026-09-17**, by being displaced onto the header it is leaving and then
+  let go of — a difference between two painted rectangles rather than a position,
+  so a strip painted with no router behind it draws exactly what it drew before. —
+  [ADR-0377](adr/0377-an-underline-travels-by-being-let-go-of.md)
+- ~~**Two key maps.**~~ **One, 2026-09-17**, and there were three by the time it was
+  read again. `text.edit.keys` is the table; each editor keeps its own text and
+  answers a sealed `EditCommand`, so a key added tomorrow fails to compile in the
+  three places that have to answer it. Converging the *editors* is still the
+  rewrite it always was. —
+  [ADR-0376](adr/0376-one-key-map-three-editors.md)
+- ~~**Nothing has a minimum size, so overflow is silent.**~~ **It says so once,
+  2026-09-17.** The layout pass asks the root whether its line overran — one
+  foreign call on a frame where everything fits — and names what is off the edge
+  when it did. A `scroll` viewport and an absolute child are not overruns. —
+  [ADR-0375](adr/0375-a-box-that-does-not-fit-says-so.md)
+- ~~**`align-content` is still absent.**~~ **It is resolved, 2026-09-17**,
+  defaulting to `stretch`, which is what every box in the catalog already did. It
+  also gives `SPACE_BETWEEN` and its two neighbours a property that means them:
+  they were constants the enum advertised and no declaration could reach. —
+  [ADR-0374](adr/0374-wrapped-lines-share-a-cross-axis.md)
+- ~~**`flex-basis` is one of two layout properties §8 names and nothing
+  resolves.**~~ **It resolves, 2026-09-17**, and `masonry` is the consumer that
+  wanted it: `flex-basis: 0` with `flex-grow: 1` is 1/n of a row after its gaps,
+  where the inline `width: 100/n %` it replaces was 1/n before them. The collapse
+  that took it out in the first place is still real and is now the author's to
+  avoid. —
+  [ADR-0373](adr/0373-a-column-starts-from-nothing-and-grows.md)
+- ~~**`statistic`'s sparkline waits on `canvas`.**~~ **Built on 2026-08-23**, and
+  the entry outlived it: `canvas` is in the catalog and the sparkline is the last
+  child of the column, exactly as this said it would be.
+- ~~**No image cache for `Image.decode` itself.**~~ **Answered rather than built,
+  2026-09-17.** `ImageLoader.shared()` is public, bounded and off-thread, and a
+  `canvas` painter that decodes by hand can use it — which is what the entry
+  itself named as the seam. A second cache *inside* `Image.decode` would be one
+  the caller cannot see, cannot bound and cannot clear. —
+  [ADR-0358](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
 - ~~**Nothing reorders tabs.**~~ **A strip with `onReorder` does, 2026-09-17.** The
   dragged tab follows the pointer 1:1, which needs no interpolation, and the drop
   asks the application for the new index; the others still jump into place,

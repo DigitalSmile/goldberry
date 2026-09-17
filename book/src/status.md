@@ -17,7 +17,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, AccessKit bridge, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on |
-| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. The other ten are unscheduled |
+| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: OpenMoji ships there because CC BY-SA wants attribution where the work is seen, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)). The other nine are unscheduled |
 
 ## Foundation
 
@@ -7482,6 +7482,15 @@ every file under the showcase's resources.
   `delete:packages`.
 
 ## Content modules
+
+**Two of eleven.** `:emoji` is the second and is unlike the first: no parser, no
+native, one font and the obligation that comes with it. OpenMoji is CC BY-SA,
+which asks for attribution *where the work is seen* — an about box, a credits
+screen — and no file inside a jar gives that, so the face left `:core` for an
+artifact an application adds on purpose. `:core` keeps the slot in §6.1's font
+chain and loads the face through an `EmojiFont` service;
+`Font.bundled(EMOJI, …)` without the artifact fails with a sentence naming it
+([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
 
 **One of eleven, and now all of it.** `docs/content-widgets.md` specifies
 eleven optional modules — HTML/markdown, PDF, plotting, code, terminal, vector,
