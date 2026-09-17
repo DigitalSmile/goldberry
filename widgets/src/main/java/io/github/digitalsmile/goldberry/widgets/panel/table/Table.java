@@ -11,6 +11,7 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -19,6 +20,9 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.core.affix.Affix;
 import io.github.digitalsmile.goldberry.widgets.core.affix.Edge;
+import io.github.digitalsmile.goldberry.widgets.markup.Bound;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
@@ -82,6 +86,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 /// @param onResize   asked for a column's new width in pixels when a resizable
 ///                   column's grip is dragged, or null
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("table")
 public record Table<T>(
         List<T> items,
         Function<T, String> identity,
@@ -260,5 +265,12 @@ public record Table<T>(
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `table` from markup: a [Bound] over the `Table` a model's `bind=`
+    /// value holds, since a cell factory is code a document cannot write
+    /// (ADR-0367).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Bound(wiring.bound(node), Table.class, Attributes.of(node));
     }
 }

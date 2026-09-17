@@ -340,14 +340,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   against `toast`, `segmented` against `radio-group`, `code-input` against a
   styled `text-input` are all decisions that would otherwise have been made by
   whoever happened to need one, and none of them was.
-- **A `list` is Java, like `canvas` and like autocomplete.** An item-factory is a
-  function and §8's documents have no way to write one, so no markup builds a
-  list — the same wall, reached for the third time, and the third different
-  widget that would want the answer `Named` gave for controllers
-  ([ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
-  A named item-factory is the shape; nothing has needed it badly enough to
-  design what a document would say about a row. —
-  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 - **A virtual list can have its focused row scrolled out of existence.** Wheel
   far from the focus ring and the focused row leaves the window, is unmounted,
   and the router drops it — which is ADR-0180's rule doing exactly what it should
@@ -392,14 +384,11 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   means to match a node nobody can see. Nothing has asked for it. —
   [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
   [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says
-  the application supplies the list, and it arrives by rebuilding the widget in
-  answer to `change` — a channel a document does not have, so a document may write
-  the field and it simply offers nothing under it; giving markup a named
-  suggestion source is a decision about `Wiring`. And `SelectList` now has two
-  callers, which is what moved `Option` into a package of its own; it stayed put
-  because the CSS type it carries is `select-list`, so moving it renames a type in
-  every stylesheet and every golden rather than editing one file. —
+- **`SelectList` is in the wrong package.** It now has two callers, which is what
+  moved `Option` into a package of its own; it stayed put because the CSS type it
+  carries is `select-list`, so moving it renames a type in every stylesheet and
+  every golden rather than editing one file. Autocomplete itself reaches markup
+  through `suggestions=` and `options=` (ADR-0367). —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
 - **The circular drag is not built, and §3 offers it.** "Rotary: vertical-drag primary
   (**circular-drag optional**)". The vertical drag ships; the circular one needs an
@@ -1331,6 +1320,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `list` is Java, like `canvas` and like autocomplete.**~~ **A document
+  places one, 2026-09-17**, and `table` and `tree` the same way: `bind=` names the
+  widget the model built, since its factory is code. Autocomplete names the bound
+  list its answer lands in, with `suggestions=` or `options=`. —
+  [ADR-0367](adr/0367-a-document-places-a-list-it-cannot-describe.md)
 - ~~**A tab's content is rebuilt when it is selected again.**~~ **Only by default,
   2026-09-17.** `keep-alive` keeps every shown tab mounted and hidden while another
   is selected, through a new `Styled.isHidden()`: kept, not rendered, not

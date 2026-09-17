@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Suggested;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
@@ -366,6 +367,15 @@ public record TextInput(
     /// `segmented` and `select` already use: a field's handler is useless without
     /// what was typed (ADR-0073).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var field = field(node, wiring);
+        // `suggestions=` names the value the application's answer to `change`
+        // lands in, which is the channel the comment below says a document did
+        // not have (ADR-0367).
+        var suggestions = node.stringProperty("suggestions");
+        return suggestions == null ? field : new Suggested(wiring.bindings().resolve(suggestions), field::suggesting);
+    }
+
+    private static TextInput field(KdlNode node, Wiring wiring) {
         return new TextInput(
                 node.stringProperty("value"),
                 wiring.bound(node),
@@ -379,9 +389,9 @@ public record TextInput(
                 // supplies the list — "the widget raises the query, the
                 // application supplies the list" — so the suggestions arrive by
                 // rebuilding this widget with new ones in answer to `change`,
-                // which is a channel a document does not have. A document may
-                // still write the field; it simply offers nothing under it
-                // (ADR-0182).
+                // which is a channel a document does not have -- unless it names
+                // where the answer lands, with `suggestions=` (ADR-0182,
+                // ADR-0367).
                 java.util.List.of(),
                 Wiring.disabled(node),
                 Attributes.of(node));

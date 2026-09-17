@@ -46,7 +46,7 @@ decided not to build, with the reason in the ADR.
 |------|------------------|-----|--------|
 | Tree-select typeahead | typing inside the open tree list | — | open |
 | Field width | as wide as the widest option, not the current one | 0359 | done |
-| Menubar `Left`/`Right` | move between menus while one is open | — | open |
+| Menubar `Left`/`Right` | move between menus while one is open | 0219 | done before this batch; the spec line was stale |
 
 ## `affix`
 
@@ -69,12 +69,12 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| `list` | a KDL element | — | open |
-| `table` | a KDL element | — | open |
-| `tree` | a KDL element | — | open |
-| `tour` | a KDL element | — | open |
-| `toast` | a KDL element | — | open |
-| Autocomplete | on `text-input` and `select` from KDL | — | open |
+| `list` | a KDL element | 0367 | done: `list bind=` |
+| `table` | a KDL element | 0367 | done: `table bind=` |
+| `tree` | a KDL element | 0367 | done: `tree bind=` |
+| `tour` | a KDL element | 0367 | answered: starting one needs a `Host` (ADR-0121) |
+| `toast` | a KDL element | 0367 | answered: raised through a controller, not placed |
+| Autocomplete | on `text-input` and `select` from KDL | 0367 | done: `suggestions=`, `options=` |
 
 ## Decisions taken without an answer
 
@@ -171,3 +171,10 @@ can be reversed:
 - Tests: `core` `input/HiddenSubtreeTest`; `widgets` `TabsKeepAliveTest`.
 - `example` `ui/TabsDemo` keeps its chapters alive with a note field each;
   `gallery-navigation` re-blessed.
+
+### Markup for list, table, tree and autocomplete
+
+- `widgets` `markup/Bound`; `@Markup` and `inflate` on `panel/list/ListView`,
+  `panel/table/Table`, `panel/tree/Tree`. `controls/option/Suggested`;
+  `TextInput.inflate` and `Select.inflate` wrap with it; `Select#withOptions`.
+- Tests: `markup/BoundMarkupTest`.

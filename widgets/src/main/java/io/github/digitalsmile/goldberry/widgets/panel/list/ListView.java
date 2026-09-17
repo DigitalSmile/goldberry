@@ -7,10 +7,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Bound;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A vertical list over an item model — `docs/core-widgets.md` §10's `list`.
@@ -108,6 +112,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// @param rowHeight   how tall a row is, in logical pixels — the number that
 ///                    turns virtualization on; zero builds every row
 /// @param attributes  `id` and `class`, exactly as on the primitives
+@Markup("list")
 public record ListView<T>(
         List<T> items,
         Function<T, String> identity,
@@ -351,5 +356,12 @@ public record ListView<T>(
     @Override
     public State<?> createState() {
         return new ListState<T>();
+    }
+
+    /// Builds a `list` from markup: a [Bound] over the `ListView` a model's
+    /// `bind=` value holds, since a row factory is code a document cannot write
+    /// (ADR-0367).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Bound(wiring.bound(node), ListView.class, Attributes.of(node));
     }
 }

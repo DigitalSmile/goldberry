@@ -5,10 +5,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Bound;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 /// A hierarchical list — `docs/core-widgets.md` §3's `tree`.
@@ -68,6 +72,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 /// @param checked    the ids of the ticked nodes; empty for none
 /// @param onCheck    the checked set the user asked for, whole
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("tree")
 public record Tree(
         List<TreeNode> roots,
         Set<String> selected,
@@ -185,5 +190,12 @@ public record Tree(
     @Override
     public State<?> createState() {
         return new TreeState();
+    }
+
+    /// Builds a `tree` from markup: a [Bound] over the `Tree` a model's `bind=`
+    /// value holds, since a node's children are suppliers a document cannot write
+    /// (ADR-0367).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Bound(wiring.bound(node), Tree.class, Attributes.of(node));
     }
 }

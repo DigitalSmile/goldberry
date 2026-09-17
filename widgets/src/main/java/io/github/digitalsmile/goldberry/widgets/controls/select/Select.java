@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Suggested;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
@@ -485,6 +486,39 @@ public record Select(
     /// The same valued action `segmented` and `radio-group` take: a set's handler
     /// is useless without the value picked (ADR-0073).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var select = control(node, children, wiring);
+        // `options=` names a bound list that replaces the written options each
+        // time it changes -- what an autocomplete's `query` is answered with
+        // (ADR-0367).
+        var options = node.stringProperty("options");
+        return options == null ? select : new Suggested(wiring.bindings().resolve(options), select::withOptions);
+    }
+
+    /// This control offering `options` in place of the options it was written with.
+    public Select withOptions(List<Option> options) {
+        var next = new ArrayList<Widget>(children.size());
+        for (var child : children) {
+            if (!(child instanceof Option)) {
+                next.add(child);
+            }
+        }
+        next.addAll(options);
+        return new Select(
+                value,
+                next,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
+    }
+
+    private static Select control(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Select(
                 node.stringProperty("value"),
                 children,
