@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.FieldSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashSet;
@@ -338,7 +339,7 @@ class LinuxDependenciesTest {
          * {@code checkToolchain}. A required dependency the check would reject has
          * to be installed here, or CI fails on its own preflight.
          */
-        private static final List<String> APT_WORKFLOWS = List.of("showcase.yml");
+        static final List<String> APT_WORKFLOWS = List.of("showcase.yml", "nightly.yml");
 
         /**
          * The release leg. It runs CMake directly inside a manylinux container with
@@ -349,7 +350,7 @@ class LinuxDependenciesTest {
         private static final String DNF_WORKFLOW = "linux.yml";
 
         @ParameterizedTest(name = "{0} installs every required package")
-        @ValueSource(strings = {"showcase.yml"})
+        @FieldSource("APT_WORKFLOWS")
         @DisplayName("the Gradle-driven workflows install what checkToolchain requires")
         void gradleWorkflowsInstallEveryRequiredPackage(String name) {
             var text = workflow(name);
@@ -397,7 +398,7 @@ class LinuxDependenciesTest {
         }
 
         @ParameterizedTest(name = "{0} installs every capability's package")
-        @ValueSource(strings = {"showcase.yml"})
+        @FieldSource("APT_WORKFLOWS")
         @DisplayName("the Gradle-driven workflows install them too")
         void gradleWorkflowsInstallEveryCapabilityPackage(String name) {
             var text = workflow(name);

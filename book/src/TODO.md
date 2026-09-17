@@ -1338,6 +1338,15 @@ on, which in four cases is the same thing.
   decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
   standing question behind both records.
 
+- **Four CI fixes are unverified on the platforms they are for.** The Windows
+  `:natives:test` path, the CRLF checkout, the MinGW-instead-of-MSVC showcase build and
+  the macOS trace aborting in SDL's tray were all diagnosed from the runners' logs and
+  fixed on a Linux machine. The next Snapshot and Showcase runs are the test. The least
+  certain is the MSVC + Ninja configure of the superbuild under `:natives:cmakeBuild`,
+  which `windows.yml` has only ever done through the Visual Studio generator; if it
+  fails, the fallback is to drive CMake the way `windows.yml` does. —
+  [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+
 ## The native build and its bindings
 
 - **The layout registry is now mostly constants, not layouts.** Seven struct layouts and

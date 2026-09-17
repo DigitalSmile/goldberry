@@ -89,6 +89,11 @@ if (!skipNative && !externalLibrary) {
 // without a frame. See :core's note for why these are a ratchet.
 // ============================================================================
 tasks.named('jacocoTestCoverageVerification') {
+    // Measured with libgoldberry loaded, so only meaningful with it. Under
+    // -Pgoldberry.skipNative every test that shapes, paints or parses skips, and
+    // the figure drops to roughly half -- a gate no Java-only build can pass. The
+    // Linux verify job runs it against the real library instead (ADR-0338).
+    onlyIf('the native library is part of this build') { !skipNative }
     violationRules {
         rule {
             limit { counter = 'LINE'; minimum = 0.87 }

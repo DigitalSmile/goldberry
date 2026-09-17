@@ -1126,6 +1126,15 @@ public final class Sdl3Backend implements Backend {
         requireOpen();
         Objects.requireNonNull(spec, "spec");
 
+        // Asked before SDL is, because this is the one absence SDL reports by
+        // aborting the process rather than by returning NULL (TrayAvailability).
+        var absent = TrayAvailability.absenceReason(
+                System.getProperty("os.name", ""), Sdl.get().videoDriver());
+        if (absent.isPresent()) {
+            LOG.debug("this desktop has no system tray: {}", absent.get());
+            return Optional.empty();
+        }
+
         var tray = Sdl3Tray.open(this, spec);
         if (tray.isEmpty()) {
             // No AppIndicator, no notification area, no shell. Absence rather

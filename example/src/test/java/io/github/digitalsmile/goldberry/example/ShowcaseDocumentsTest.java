@@ -14,6 +14,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.example.ui.Panes;
 import io.github.digitalsmile.goldberry.markdown.model.Heading;
@@ -185,6 +186,9 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the Markdown screen binds one property to an editor and a preview")
     void markdownIsLive() {
+        // Building the preview parses its document, and md4c is in libgoldberry --
+        // which CI's Java job does not build. The one test here that needs it.
+        RendererRequirement.enforce();
         // `markdown.kdl` says `markdown-view` and nothing in this application tells
         // the inflater where that node comes from: `goldberry-html` declares a
         // `WidgetCatalog`, the module path carries it, and `Widgets.inflater` finds it

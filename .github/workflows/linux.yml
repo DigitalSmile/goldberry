@@ -246,9 +246,16 @@ jobs:
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
+      #
+      # The coverage floors run here and not in the `java` job: they were measured
+      # with the library loaded, and with `-Pgoldberry.skipNative` every test that
+      # shapes or paints skips, which halves the figure (ADR-0338). One leg is
+      # enough -- coverage does not differ by CPU.
       - name: Core, widget and Markdown tests, and the golden images
+        env:
+          COVERAGE: ${{ matrix.target == 'linux-x64' && ':core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification :html:jacocoTestCoverageVerification' || '' }}
         run: |
-          ./gradlew :core:test :widgets:test :html:test --no-daemon \
+          ./gradlew :core:test :widgets:test :html:test $COVERAGE --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 

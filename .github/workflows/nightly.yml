@@ -42,6 +42,24 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
 
+      # The same list as showcase.yml, and for the same reason: this job builds
+      # libgoldberry through Gradle, so `checkToolchain` stops the build before
+      # CMake runs if a required header is absent -- and since ADR-0325 that
+      # includes D-Bus, IBus and udev. This step was missing, and every nightly
+      # failed at "Build libgoldberry". LinuxDependenciesTest now holds this file
+      # to the table along with showcase.yml.
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev \
+            libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libibus-1.0-dev
+
       # The native library, not `-Pgoldberry.skipNative`: PIT re-runs the suite
       # once per mutant, and a test that skips for want of a rasterizer kills
       # nothing. Skipping it would report a mutation score for a suite that
@@ -85,6 +103,19 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
+
+      # As in the mutation job above: Gradle's `checkToolchain` needs these.
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev \
+            libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libibus-1.0-dev
 
       # The native library, because every benchmark that shapes text or paints a
       # frame needs a rasterizer -- without it they skip quietly, which looks

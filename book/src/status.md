@@ -7263,6 +7263,24 @@ platforms' *drivers* — Cocoa/Metal, D3D, X11 — and far better than one Virtu
 VM, but it is not a claim about hardware, and the milestone should close on what
 was measured rather than on what it would be nice to have measured.
 
+### CI — green where it can be reproduced, and saying why where it cannot
+
+[ADR-0338](adr/0338-a-red-run-says-why-in-public.md). Every workflow had been red since
+2026-08-16. From a fresh clone with no library, five causes turned up and are fixed:
+two font fixtures that skipped once and then failed ~280 tests, four tests that
+reached libgoldberry without asking, coverage floors a Java-only build cannot meet
+(they now run on the linux-x64 verify leg), `GoldberryTest` still expecting semver
+after ADR-0333, and a nightly that installed no system packages. The `java` job
+and the Linux verify steps pass locally. On a runner, every failed test and the
+build's own failure are now **check-run annotations**, readable without signing in.
+The four failures no machine here can run were then read off the runners' logs and
+fixed blind: two natives tests that turned a `file:/D:/...` code source into a path
+the wrong way, a drift guard that split a CRLF checkout on a blank line that was not
+there, a showcase build that took MinGW's `cc` because `cl` was not on the PATH and
+so wrote a `libgoldberry.dll` nothing looked for, and a macOS trace that SDL's
+status-bar tray aborted under the headless driver. Each has a unit test; the next
+Snapshot and Showcase runs are their verification.
+
 ### Releasing — built, never run
 
 [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md),

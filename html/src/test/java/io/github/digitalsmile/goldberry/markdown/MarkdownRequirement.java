@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.markdown;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Assumptions;
 
 /// What a test that parses does when `libgoldberry` is not there.
@@ -13,17 +15,27 @@ import org.junit.jupiter.api.Assumptions;
 /// broken one is a real failure and propagates: `-Dgoldberry.native.required=true`
 /// is not consulted here because it does not need to be, since a library that loads
 /// and then parses wrongly fails the assertions rather than skipping them.
-final class MarkdownRequirement {
+public final class MarkdownRequirement {
 
     private MarkdownRequirement() {}
 
     /// Returns normally when md4c can parse, and aborts the test when the library is
     /// simply not there.
-    static void enforce() {
+    public static void enforce() {
+        missing().ifPresent(Assumptions::abort);
+    }
+
+    /// Why nothing can parse, or empty when md4c is there.
+    ///
+    /// The question on its own, for a runner that skips by returning a reason rather
+    /// than by catching an abort -- jqwik, whose properties report an abort as an
+    /// error ([MarkdownAvailable]).
+    public static Optional<String> missing() {
         try {
             Markdown.parse("x");
+            return Optional.empty();
         } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
-            Assumptions.abort("libgoldberry is not loadable from :html's tests, so nothing can parse: " + e
+            return Optional.of("libgoldberry is not loadable from :html's tests, so nothing can parse: " + e
                     + ". Run :natives:cmakeBuild, or pass -Dgoldberry.native.library=<path>"
                     + " — see html/build.gradle.");
         }

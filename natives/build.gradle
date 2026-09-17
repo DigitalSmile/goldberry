@@ -1,5 +1,6 @@
 import io.github.digitalsmile.goldberry.build.LinuxDependencies
 import io.github.digitalsmile.goldberry.build.ToolResolver
+import io.github.digitalsmile.goldberry.build.toolchain.WindowsToolchain
 
 plugins {
     id 'goldberry.java-conventions'
@@ -180,6 +181,15 @@ def allowDegradedPlatform = providers.gradleProperty('goldberry.allowDegradedPla
 def cmakeExecutable = resolveTool('cmake')
 def ninjaExecutable = resolveTool('ninja')
 
+// On Windows the compiler is resolved too, and handed to CMake by path. Left to
+// its own search, CMake's Ninja generator takes the first `cc` on the PATH --
+// which on a GitHub runner is MinGW's, because `cl` is only on the PATH inside a
+// Developer Command Prompt. That build configured without complaint and wrote a
+// `libgoldberry.dll` nothing here looks for (ADR-0338). `checkToolchain` owns the
+// error when this is null.
+def onWindowsHost = hostTarget.id.startsWith('windows')
+def msvcExecutable = onWindowsHost ? resolveTool(WindowsToolchain.COMPILER) : null
+
 // --- Toolchain check ---------------------------------------------------------
 // Fails with instructions rather than with a cryptic CMake error 200 lines into
 // a configure run.
@@ -340,6 +350,15 @@ def checkToolchain = tasks.register('checkToolchain') {
             }
         }
 
+        // MSVC, and not whatever `cc` happens to be first on the PATH. The
+        // compiler CMake would have taken instead is named in the message, so
+        // the reader learns what the build would have quietly done.
+        if (onWindowsHost && msvcExecutable == null) {
+            def standIn = ['cc', 'gcc', 'clang'].collect { resolveTool(it) }.find { it != null }
+            throw new GradleException(
+                    WindowsToolchain.missingCompilerMessage(Optional.ofNullable(standIn?.toPath())))
+        }
+
         // Naming the executables, not just saying OK. When a machine has two
         // CMakes -- a system one and a Homebrew one, or a pip upgrade shadowing
         // both -- "which one did it use" is the first question, and printing the
@@ -350,7 +369,8 @@ def checkToolchain = tasks.register('checkToolchain') {
                     // is tolerated above and must not become an NPE here.
                     def version = versionOf(name)?.join('.') ?: '?'
                     "  ${name.padRight(6)} ${version.padRight(8)} ${executable}"
-                }.join('\n'))
+                }.join('\n') +
+                (msvcExecutable != null ? "\n  ${WindowsToolchain.COMPILER.padRight(6)} ${'MSVC'.padRight(8)} ${msvcExecutable}" : ''))
     }
 }
 
@@ -466,6 +486,8 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // Toggling this changes what the library can do without changing an input
     // file, exactly like the two above.
     inputs.property 'allowDegradedPlatform', allowDegradedPlatform
+    // A different compiler is a different configuration, cache and all.
+    inputs.property 'compiler', msvcExecutable?.absolutePath ?: ''
 
     // Not `outputs.dir cmakeWorkDir`. That directory used to hold `_deps` as
     // well -- 7,500-odd files and 350 MB -- and Gradle fingerprinted the lot on
@@ -497,6 +519,11 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     }
     if (ninjaExecutable != null) {
         configureArguments << "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable.absolutePath}".toString()
+    }
+    if (msvcExecutable != null) {
+        // By path, for the reason `msvcExecutable` exists at all: a search would
+        // find MinGW first on a machine that has both.
+        configureArguments.addAll(WindowsToolchain.cmakeArguments(msvcExecutable.toPath()))
     }
     // `?: 'cmake'` only to keep configuration from failing when no toolchain is
     // installed at all -- checkToolchain runs first and reports it properly.

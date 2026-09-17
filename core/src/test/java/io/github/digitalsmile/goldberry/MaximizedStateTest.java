@@ -29,6 +29,8 @@ class MaximizedStateTest {
 
     @BeforeEach
     void install() {
+        // A headless window still paints into a Blend2D image.
+        RendererRequirement.enforce();
         backend = new HeadlessBackend(new DisplayScale(1f));
         GoldberryTestAccess.install(backend);
     }

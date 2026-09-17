@@ -90,8 +90,17 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ninja
 
-      # Windows needs nothing: the runner image already carries MSVC, CMake and
-      # Ninja, and the Wayland/X11 dependencies do not exist there.
+      # Windows carries MSVC, CMake and Ninja already, but `cl` is only on the
+      # PATH inside a Developer Command Prompt. Without this step CMake's Ninja
+      # generator took C:\mingw64\bin\cc.exe, built a `libgoldberry.dll` with GNU
+      # naming and a libstdc++ dependency, and `showcaseImage` then failed looking
+      # for the `goldberry.dll` an MSVC build writes. `checkToolchain` now refuses
+      # to build without `cl` (ADR-0338).
+      - name: Install build tools (windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon
@@ -210,10 +219,21 @@ jobs:
       # recorded, and a foreign descriptor registered nowhere fails at its first
       # call. Whether the sets actually differ is unmeasured; tracing is cheaper
       # than finding out on a user's machine.
-      # Headless (`videoDriver=dummy`), so no display is needed.
-      - name: Trace the showcase for native-image (macos, windows)
-        if: runner.os != 'Linux'
+      # Headless (`videoDriver=dummy`) on Windows, so no display is needed.
+      - name: Trace the showcase for native-image (windows)
+        if: runner.os == 'Windows'
         run: ./gradlew :example:nativeImageMetadata --no-daemon --stacktrace
+
+      # On the real driver on macOS. Under `dummy` no Cocoa application is ever
+      # started, and SDL's status-bar tray then aborts the process from inside
+      # CoreGraphics (`CGSConnectionByID ... is_initialized`) -- which is how
+      # this step died with no Java frame in sight. The toolkit now declines the
+      # tray in that state, but a trace with no tray calls in it would leave the
+      # image without them; the runner has a window server, so the trace is of a
+      # real run (ADR-0338).
+      - name: Trace the showcase for native-image (macos)
+        if: runner.os == 'macOS'
+        run: ./gradlew :example:nativeImageMetadata -Pgoldberry.trace.videoDriver=cocoa --no-daemon --stacktrace
 
       - name: Build the native image
         run: ./gradlew :example:nativeImage --no-daemon --stacktrace

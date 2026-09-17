@@ -1,4 +1,5 @@
 import io.github.digitalsmile.goldberry.build.nativeimage.GraalVmRelease
+import io.github.digitalsmile.goldberry.build.nativeimage.TraceVideoDriver
 import io.github.digitalsmile.goldberry.build.publish.PublishedModules
 import io.github.digitalsmile.goldberry.build.publish.ShowcasePackage
 
@@ -415,6 +416,15 @@ tasks.register('nativeImageMetadata', Exec) {
     def appJar = tasks.named('jar').flatMap { it.archiveFile }
     def macos = hostTarget.startsWith('macos')
 
+    // `dummy` unless asked otherwise: headless, so this runs on a build machine.
+    // Every binding and every sweep still happens; only the compositor does not.
+    // The macOS leg of showcase.yml asks for `cocoa`, because SDL's status-bar
+    // tray cannot exist without a Cocoa application and the trace should record
+    // it (TraceVideoDriver, ADR-0338).
+    def videoDriver = TraceVideoDriver.choose(
+            providers.gradleProperty(TraceVideoDriver.PROPERTY).getOrNull())
+    inputs.property 'videoDriver', videoDriver
+
     outputs.dir(metadataDir)
     outputs.upToDateWhen { false }
 
@@ -431,10 +441,7 @@ tasks.register('nativeImageMetadata', Exec) {
         def command = [graalTool('java'),
                        '--enable-native-access=io.github.digitalsmile.goldberry.natives',
                        "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
-                       // Headless, so this runs on a build machine. Every binding
-                       // and every sweep still happens; only the compositor does
-                       // not.
-                       '-Dgoldberry.backend.videoDriver=dummy',
+                       "-Dgoldberry.backend.videoDriver=${videoDriver}",
                        "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
         if (macos) {
             command += '-XstartOnFirstThread'  // ADR-0039

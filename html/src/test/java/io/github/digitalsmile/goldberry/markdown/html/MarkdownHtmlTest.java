@@ -7,13 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.markdown.Markdown;
 import io.github.digitalsmile.goldberry.markdown.MarkdownExtension;
+import io.github.digitalsmile.goldberry.markdown.MarkdownRequirement;
 import io.github.digitalsmile.goldberry.markdown.MarkdownSyntax;
 import io.github.digitalsmile.goldberry.markdown.model.CellAlignment;
 import io.github.digitalsmile.goldberry.markdown.model.Code;
@@ -49,13 +49,11 @@ import io.github.digitalsmile.goldberry.markdown.model.WikiLink;
 @DisplayName("writing HTML")
 class MarkdownHtmlTest {
 
-    @BeforeAll
-    static void requireLibrary() {
-        // Only the parsing tests below need it, and they are the majority.
-        io.github.digitalsmile.goldberry.markdown.model.Document.EMPTY.blocks();
-    }
-
+    /// Parses, so md4c has to be there. Asked here rather than in a `@BeforeAll`:
+    /// the tests that build a model by hand need no library, and the `@BeforeAll`
+    /// that stood here touched nothing native and so skipped nothing.
     private static String html(String markdown) {
+        MarkdownRequirement.enforce();
         return MarkdownHtml.of(markdown);
     }
 
@@ -315,6 +313,7 @@ class MarkdownHtmlTest {
         @Test
         @DisplayName("escapes what the dialect refused to treat as markup")
         void refusedHtmlIsEscaped() {
+            MarkdownRequirement.enforce();
             var syntax = MarkdownSyntax.gitHub().with(MarkdownExtension.NO_HTML);
             assertEquals(
                     "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n",

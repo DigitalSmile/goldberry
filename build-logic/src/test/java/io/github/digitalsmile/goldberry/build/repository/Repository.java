@@ -40,17 +40,34 @@ public final class Repository {
                         + "; set -Dgoldberry.repoRoot=<repo>");
     }
 
-    /** A file under the root, read whole; a missing file is an error, not an empty string. */
+    /**
+     * A file under the root, read whole and with its line endings normalised to
+     * LF; a missing file is an error, not an empty string.
+     */
     public static String read(String relative) {
         var file = root().resolve(relative);
         if (!Files.isRegularFile(file)) {
             throw new AssertionError(file + " does not exist");
         }
         try {
-            return Files.readString(file);
+            return lineFeeds(Files.readString(file));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * CRLF and a bare CR become LF.
+     *
+     * <p>Git on a Windows runner checks out with {@code core.autocrlf=true}, so
+     * every workflow arrived there with CRLF endings. A guard that split
+     * {@code showcase.yml} on {@code "\n\n"} found no such thing, and failed with
+     * a {@code StringIndexOutOfBoundsException} instead of a message. The guards
+     * are about content, not about line endings, so the endings are taken out
+     * here, once, rather than in each of them (ADR-0338).
+     */
+    static String lineFeeds(String text) {
+        return text.replace("\r\n", "\n").replace('\r', '\n');
     }
 
     /** Whether a file exists under the root. */

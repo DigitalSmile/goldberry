@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.natives;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -67,15 +66,7 @@ class HolderShapeTest {
     }
 
     private static Path classesRoot() {
-        var source = HolderShapeTest.class.getProtectionDomain().getCodeSource();
-        if (source == null) {
-            fail("no code source for the test classes");
-        }
-        var main = Path.of(source.getLocation().getPath()).resolveSibling("main");
-        if (!Files.isDirectory(main)) {
-            fail("expected the main classes beside the test classes, at " + main);
-        }
-        return main;
+        return CompiledClasses.mainClassesBeside(HolderShapeTest.class);
     }
 
     private static java.lang.reflect.Field handleField(Class<?> holder) {

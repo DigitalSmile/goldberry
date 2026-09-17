@@ -32,10 +32,15 @@ public final class TestFont {
     public static synchronized Fonts get() {
         if (fonts == null) {
             try {
-                fonts = Fonts.bundled();
+                var book = Fonts.bundled();
                 // Force the first parse here, so a machine with no native
                 // library skips rather than failing inside a paint pass.
-                fonts.of(BundledFont.UI, 13);
+                book.of(BundledFont.UI, 13);
+                // Kept only once that parse worked. Assigned before it, the first
+                // caller skipped and every later one was handed a book that could
+                // not open a face -- ~280 failures instead of skips in CI's Java
+                // job, which builds no library (ADR-0338).
+                fonts = book;
             } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
                 Assumptions.abort(
                         "libgoldberry is not loadable from :widgets' tests, so nothing can shape" + " text: " + e);

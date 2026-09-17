@@ -68,7 +68,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **JaCoCo** per module (toolVersion pinned latest for JDK 25 class files) + Gradle `jacoco-report-aggregation` for one project-wide XML/HTML.
 - **Merged across modes:** execution data from woven and fallback runs feed one report — a line is uncovered only if neither mode reaches it.
 - **Exclusions:** weaver *output* classes (no source mapping) excluded from reports; `natives` bindings module excluded from gates (its real test is layout agreement); the weaver *module itself* is covered normally.
-- **Gates:** per-module `jacocoTestCoverageVerification`, wired into `check`, and trivially passing in a module that declares no rules — so a floor exists only where a module has said what its own means. `:core` is at 80% line / 68% branch, `:widgets` and `:html` at 87% / 71%, and the `css`, `kdl` and `bind` packages at 70%. Every number is a **ratchet set from a measured value**, not a target: it catches a change that drops coverage and never blocks one that merely fails to raise it.
+- **Gates:** per-module `jacocoTestCoverageVerification`, wired into `check`, and trivially passing in a module that declares no rules — so a floor exists only where a module has said what its own means. `:core` is at 80% line / 68% branch, `:widgets` and `:html` at 87% / 71%, and the `css`, `kdl` and `bind` packages at 70%. Every number is a **ratchet set from a measured value**, not a target: it catches a change that drops coverage and never blocks one that merely fails to raise it. The floors were measured with libgoldberry loaded, so they run only when it is part of the build (`onlyIf { !skipNative }`) — in CI, on the linux-x64 verify leg, not the `java` job (ADR-0338).
 - **Codecov** for PR diff coverage — wired, guarded, not yet connected (§7).
 - **PIT (pitest)** nightly over the logic packages, run through PIT's own command line rather than `gradle-pitest-plugin`, which reads `reporting.baseDir` and so cannot be applied on Gradle 9. It completes where the test runtime is plain and its coverage minion dies where the tests run on the module path (§6).
 
@@ -79,13 +79,15 @@ be aspirational is now §6's business.
 
 | Lane | Workflow | Trigger | Contents |
 |------|----------|---------|----------|
-| fast | `linux.yml` (`java` job) | PR, and every push through `snapshot.yml` | `./gradlew build checkLicenses` — Spotless, Error Prone, NullAway, PMD, ArchUnit, the coverage gates, unit + widget tests. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
-| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | PR, and every push through `snapshot.yml` | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
+| fast | `linux.yml` (`java` job) | PR, and every push through `snapshot.yml` | `./gradlew build checkLicenses -Pgoldberry.skipNative=true` — Spotless, Error Prone, NullAway, PMD, ArchUnit, unit + widget tests, every test that needs the library skipping. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
+| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | PR, and every push through `snapshot.yml` | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU — and, on linux-x64, the coverage gates |
 | showcase | `showcase.yml` | every push + PR + tag | The example's tests against a built library (Linux), then the jlink image and the GraalVM native image on three platforms, each run until it presents three frames; on a push, both kinds to GitHub Packages (ADR-0335, ADR-0337) |
 | advisory | `codeql.yml`, `qodana.yml` | PR + schedule | CodeQL security queries; Qodana's inspection set once a token exists |
 | nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |
 | snapshot | `snapshot.yml` → `publish.yml` | push to master | Every OS, then one upload of every module and all four classifier jars as `-SNAPSHOT` to Central (ADR-0334) |
 | release | `release.yml` → `publish.yml` | `v*` tag; dispatch rehearses | The same chain as a signed release to a Central Portal deployment, after the licence check (ADR-0333, ADR-0334) |
+
+**A failure names itself.** On a runner, every failed test and the build's own failure become check-run annotations (`build.ci` in build-logic, ADR-0338), which the public API serves where a job log needs a login.
 
 **Goldens are on every PR, not on a `full` label.** They are the assertion for
 painters (§0.2), so gating them behind a label would mean the check that matters

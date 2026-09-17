@@ -11,6 +11,7 @@ import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
+import net.jqwik.api.lifecycle.AddLifecycleHook;
 
 import io.github.digitalsmile.goldberry.markdown.html.MarkdownHtml;
 import io.github.digitalsmile.goldberry.markdown.model.Block;
@@ -24,6 +25,9 @@ import io.github.digitalsmile.goldberry.markdown.model.Paragraph;
 /// Generated rather than written down, because the interesting inputs are the ones
 /// nobody would think to write: a paragraph that is one ampersand, a word made of
 /// angle brackets, text that is nothing but whitespace.
+///
+/// Every property here parses, so the class skips where md4c is not there.
+@AddLifecycleHook(MarkdownAvailable.class)
 class MarkdownPropertyTest {
 
     /// Text a paragraph can be made of: printable, no newlines — which would make more

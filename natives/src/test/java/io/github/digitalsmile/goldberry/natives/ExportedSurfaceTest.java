@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.natives;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -42,20 +41,10 @@ import org.junit.jupiter.api.Test;
 @DisplayName("the exported native surface")
 class ExportedSurfaceTest {
 
-    /// Where this module's compiled classes are, found through a class rather
-    /// than through a path, so it works from Gradle and from an IDE alike.
+    /// Where this module's compiled classes are. Through [CompiledClasses], which
+    /// goes by the code source's URI: the `getPath()` form failed on Windows.
     private static Path classesRoot() {
-        var source = ExportedSurfaceTest.class.getProtectionDomain().getCodeSource();
-        if (source == null) {
-            fail("no code source for the test classes; cannot locate the module's own classes");
-        }
-        // `.../build/classes/java/test` -> `.../build/classes/java/main`
-        var tests = Path.of(source.getLocation().getPath());
-        var main = tests.resolveSibling("main");
-        if (!Files.isDirectory(main)) {
-            fail("expected the main classes beside the test classes, at " + main);
-        }
-        return main;
+        return CompiledClasses.mainClassesBeside(ExportedSurfaceTest.class);
     }
 
     private static ModuleDescriptor descriptor(Path root) {

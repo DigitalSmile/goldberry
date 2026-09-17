@@ -1,3 +1,6 @@
+import io.github.digitalsmile.goldberry.build.ci.BuildFailureAnnotation
+import io.github.digitalsmile.goldberry.build.ci.TestFailureAnnotations
+import io.github.digitalsmile.goldberry.build.ci.WorkflowCommand
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
@@ -161,6 +164,26 @@ tasks.withType(Test).configureEach {
     testLogging {
         events 'failed', 'skipped'
         exceptionFormat = 'full'
+    }
+}
+
+// On a GitHub Actions runner, every failed test and the build's own failure also
+// become annotations on the run (ADR-0338). A job log cannot be read without
+// signing in; a check run's annotations can, so this is what makes a red CI run
+// say why to anyone.
+//
+// The build failure is registered from here, once per build, rather than by a
+// plugin on the root project: applying anything from build-logic there puts its
+// classpath -- the jmh plugin included -- under every module, and :core's
+// versioned `me.champeau.jmh` request then refuses to resolve.
+if (WorkflowCommand.onGithubActions(System.getenv())) {
+    tasks.withType(Test).configureEach { Test task ->
+        task.addTestListener(new TestFailureAnnotations(task.path, { line -> println line }))
+    }
+    def registered = 'goldberry.buildFailureAnnotation'
+    if (!gradle.extensions.extraProperties.has(registered)) {
+        gradle.extensions.extraProperties.set(registered, true)
+        objects.newInstance(BuildFailureAnnotation.Registrar).register()
     }
 }
 

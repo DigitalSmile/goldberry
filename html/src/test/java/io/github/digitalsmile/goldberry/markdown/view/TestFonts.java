@@ -21,10 +21,13 @@ final class TestFonts {
     static synchronized Fonts get() {
         if (fonts == null) {
             try {
-                fonts = Fonts.bundled();
+                var book = Fonts.bundled();
                 // The first parse here, so a machine with no native library skips
                 // rather than failing inside a paint pass.
-                fonts.of(BundledFont.UI, 13);
+                book.of(BundledFont.UI, 13);
+                // Only now: kept before the parse, every caller after the first
+                // got a book that could not open a face instead of a skip.
+                fonts = book;
             } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
                 Assumptions.abort("libgoldberry is not loadable from :html's tests, so nothing can shape text: " + e);
             }
