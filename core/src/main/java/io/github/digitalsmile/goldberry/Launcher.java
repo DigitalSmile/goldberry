@@ -1632,4 +1632,9 @@ final class Launcher implements Host {
     public Window window() {
         return window;
     }
+
+    @Override
+    public double displayScale() {
+        return window.scale().factor();
+    }
 }

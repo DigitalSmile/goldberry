@@ -36,8 +36,12 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.canvas.Canvas;
 import io.github.digitalsmile.goldberry.widgets.core.canvas.Input;
+import io.github.digitalsmile.goldberry.widgets.core.image.Fit;
+import io.github.digitalsmile.goldberry.widgets.core.image.ImageSource;
+import io.github.digitalsmile.goldberry.widgets.core.image.ImageView;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -348,6 +352,9 @@ public record CanvasScreen() implements Widget.Stateful {
         private float dragX;
 
         private float dragY;
+
+        /// The sample the image card loads through the widget rather than a painter.
+        private static final ImageSource SAMPLE = ImageSource.resource(CanvasScreen.class, "canvas-sample.jpg");
 
         private static Attributes id(String id, String... classes) {
             return new Attributes(id, Set.of(classes), id);
@@ -773,6 +780,26 @@ public record CanvasScreen() implements Widget.Stateful {
                                             + " a format: the label under each tile is what `ImageFormat`"
                                             + " read out of the file's first twelve bytes, so a `.png` full"
                                             + " of JPEG would still decode and still say JPEG.")),
+                            captioned(
+                                    "The image widget",
+                                    id("image-widget-card"),
+                                    new Row(
+                                            List.of(
+                                                    new ImageView(SAMPLE, "The sample, whole")
+                                                            .withAttributes(id("image-contain", "framed")),
+                                                    new ImageView(SAMPLE, "The sample, cropped to a square")
+                                                            .fit(Fit.COVER)
+                                                            .withAttributes(id("image-cover", "framed")),
+                                                    new ImageView(SAMPLE, "The sample, stretched")
+                                                            .fit(Fit.FILL)
+                                                            .withAttributes(id("image-fill", "framed")),
+                                                    new ImageView(SAMPLE, "The sample, at its own size")
+                                                            .withAttributes(id("image-natural"))),
+                                            id("image-row")),
+                                    caption("No painter: `image` loads the same JPEG off the classpath on a"
+                                            + " virtual thread and draws it contained, covering, filling"
+                                            + " and at its natural size. The first three boxes are square,"
+                                            + " so each fit is visible by what it leaves out.")),
                             captioned(
                                     "Rendered with no window",
                                     id("rendered-card"),

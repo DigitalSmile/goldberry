@@ -496,6 +496,19 @@ panel.surface-demo {
   cursor: default;
 }
 
+/* The image widget's card: three square boxes, so contain, cover and fill each
+   show what they do with a 3:2 picture, and one with no size at all. */
+#image-row {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+image.framed {
+  width: 96px;
+  height: 96px;
+  outline: 1px solid var(--gb-border);
+}
+
 /* --- Navigation ------------------------------------------------------------ */
 
 /* The demo strip fills what its card leaves it, so its panel is a panel rather

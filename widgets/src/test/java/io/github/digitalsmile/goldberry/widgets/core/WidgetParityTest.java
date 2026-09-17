@@ -48,7 +48,7 @@ class WidgetParityTest {
     @DisplayName("every built-in is constructible from KDL")
     void constructibleFromKdl(String type) {
         // `text` needs its content argument; the rest are bare nodes.
-        var markup = worded(type) ? type + " \"hi\"" : type;
+        var markup = markup(type, "");
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         assertNotNull(widget);
@@ -110,7 +110,7 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in is selectable by its type, id and class")
     void styleable(String type) {
-        var markup = worded(type) ? type + " id=\"x\" class=\"a\" \"hi\"" : type + " id=\"x\" class=\"a\"";
+        var markup = markup(type, " id=\"x\" class=\"a\"");
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
         var root = new ElementTree(widget).root();
         // For a composite, the styled node is the one it builds -- and `id` and
@@ -132,13 +132,25 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in renders to a box")
     void rendersToABox(String type) {
-        var markup = worded(type) ? type + " \"hi\"" : type;
+        var markup = markup(type, "");
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         // Not rendered here -- text needs a real font, which needs the native
         // library -- but the contract that makes rendering possible is checkable
         // without one.
         assertInstanceOf(Paints.class, widget instanceof Paints ? widget : styledNode(widget));
+    }
+
+    /// A bare node of `type` with `attributes`, and what the few that refuse to
+    /// exist without one are handed: a word, or an image's source and alt text.
+    private static String markup(String type, String attributes) {
+        if (worded(type)) {
+            return type + attributes + " \"hi\"";
+        }
+        if (type.equals("image")) {
+            return type + attributes + " src=\"x.png\" alt=\"x\"";
+        }
+        return type + attributes;
     }
 
     /// The two built-ins that refuse to exist without a word: a `text` with no

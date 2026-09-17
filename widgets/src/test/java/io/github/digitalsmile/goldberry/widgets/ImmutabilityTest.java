@@ -50,6 +50,7 @@ class ImmutabilityTest {
                         case "text", "link", "button", "badge", "chip" -> type + " \"x\"";
                         case "radio" -> "radio value=\"x\" \"X\"";
                         case "option" -> "option value=\"x\" \"X\"";
+                        case "image" -> "image src=\"x.png\" alt=\"x\"";
                         default -> type;
                     };
             widgets.add(inflater.inflate(

@@ -31,6 +31,6 @@ public final class Primitives {
         // `scroll` and not `scroll-content`: the parity test checks the names a
         // document may write, and the content node is one this widget builds
         // for itself.
-        return List.of("text", "link", "row", "column", "panel", "spacer", "scroll", "affix", "canvas");
+        return List.of("text", "link", "row", "column", "panel", "spacer", "scroll", "affix", "canvas", "image");
     }
 }

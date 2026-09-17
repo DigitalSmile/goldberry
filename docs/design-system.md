@@ -155,6 +155,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `button` | height 32 (28); padding-x 12; icon+label gap 6; radius 8; `body-strong` | `outlined` is a 1px `--gb-border` on no fill in `--gb-text`, taking the accent or the danger line with `.primary` / `.danger`; `square` radius 0; `circle` a `full` radius on a box `--gb-button-height` wide; `float` a 1px `--gb-border-strong` edge, which is this sheet's elevation ([ADR-0347](../book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)) |
 | `text-input` / `select` | height 32 (28); padding-x 8; radius 4; `body`; fill `--gb-surface-sunken` — a field is a **well**, and the token is an alpha so it is one step below the page, a `panel` or a `card` alike (ADR-0168); caret and selection are one **line** tall, not one control tall; placeholder `--gb-text-placeholder`, not `--gb-text-muted`, which is two rungs from `--gb-text` and invisible inside a filled field |
 | `text-area` | min-height 64; padding 8; radius 4 |
+| `image` | natural size unless given one; loading and error fill `--gb-surface-2`, radius 4; error: min 40×40, padding 8, gap 4, Lucide `image-off` 20 over the alt text in `caption` and `--gb-text-muted` ([ADR-0358](../book/src/adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)) |
 | `checkbox` / `radio` | glyph 16; hit ≥32; label gap 8 |
 | `toggle` | track 36×20; thumb 16; travel 16 |
 | `slider` | track 4; thumb 16 (`full` radius); hit ≥32 cross-axis |

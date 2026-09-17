@@ -610,21 +610,12 @@ description had no effect.
 
 ## Images, and what the primitive is not
 
-- **There is no `img` widget.** `image.Image` and `Frame.drawImage` are the
-  primitive ([ADR-0283](adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)),
-  and a `canvas` is how an application draws one today. A catalogue entry would
-  need `object-fit`, an intrinsic size that participates in layout, a loading and
-  an error state, and a decode that does not happen on the UI thread — which is a
-  widget's worth of decisions and not a drawing call's. Nothing has needed it:
-  the first consumer draws images onto a board it is already painting by hand.
-- **Nothing decodes off the UI thread.** `Image.decode` is synchronous, and a
-  large JPEG is tens of milliseconds. The seam exists — a decode is a pure
-  function from bytes to a value with no thread affinity at all, which is exactly
-  what ADR-0020's virtual threads are for — and nothing has measured a case that
-  needs it yet.
-- **No image cache.** Decoding the same file twice decodes it twice. A cache
-  wants an eviction policy and a key that is not a `byte[]`, and an application
-  holding its own `Map<Id, Image>` is what a value type makes easy.
+- **`Image.decode` is still synchronous.** A large JPEG is tens of milliseconds,
+  and a `canvas` painter that decodes pays it on the UI thread. The `image` widget
+  does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
+  that is the seam a painter should use too. Nothing has measured a painter that
+  needs it.
+- **No image cache for `Image.decode` itself.** The `image` widget has one — one decode per source, bounded by bytes (ADR-0358) — and a `canvas` decoding by hand does not go through it.
 - **PNG is the only format written.** The decoder reads PNG, JPEG, QOI, WebP and
   GIF ([ADR-0329](adr/0329-two-more-codecs-one-fetched-and-one-written.md));
   `encodePng` writes the first. JPEG encoding would be seven more exported
@@ -1413,6 +1404,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**There is no `img` widget.**~~ **There is, 2026-09-17**: `image`, with the
+  `object-fit` modes, a natural size that takes part in layout, loading and error
+  states and a decode that does not run on the UI thread, which is the list this
+  entry said a catalogue entry would need. SVG is still not decoded. —
+  [ADR-0358](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
 - ~~**A step's connector fills by colour, not by `scaleX`.**~~ **It grows,
   2026-09-17.** The reason given was that §8's subset has no `transform-origin`,
   and it has had one since ADR-0068. The sentence was copied from an older note

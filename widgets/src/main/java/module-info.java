@@ -68,6 +68,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.core;
     exports io.github.digitalsmile.goldberry.widgets.core.affix;
     exports io.github.digitalsmile.goldberry.widgets.core.canvas;
+    exports io.github.digitalsmile.goldberry.widgets.core.image;
 
     /// `docs/core-widgets.md` §11's data widgets, built on `canvas` and the
     /// theme palette rather than on a chart engine (`content-widgets.md` §3).

@@ -7077,6 +7077,17 @@ new `Typography` component, two new `Popup`/`Router` flags, four `TextGeometry`
 overloads and two more bundled font files. No new native artifact, and exactly one
 new native symbol — the theme query.
 
+### `image`
+
+[ADR-0358](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md). §1's
+`image` is built: a file, a resource, bytes, an `Image` in hand or an
+application's supplier, with `srcset` variants picked by the window's scale. It
+decodes once per source on a virtual thread through a cache bounded at 256 MiB,
+is its natural size until a stylesheet sizes it, and crops for `cover` rather
+than clipping. `image.loading` and `image.error` are the skeleton's fill, and an
+error shows `image-off` and the alt text. Alt text is required unless the picture
+is decorative. SVG is not decoded. The Canvas screen has a card of four.
+
 ### The catalog's last four widgets, and the button's last four options
 
 The written-down surface of `docs/core-widgets.md` is built. Four widgets and

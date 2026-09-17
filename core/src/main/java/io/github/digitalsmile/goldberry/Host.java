@@ -613,6 +613,16 @@ public interface Host {
     /// closes this closes the window's text.
     Fonts fonts();
 
+    /// How many device pixels one logical pixel covers in this window right now —
+    /// 1 at 100%, 2 on a retina display.
+    ///
+    /// For a widget choosing between rasters of one picture (ADR-0358), which
+    /// must not reach for [#window()] to ask: a widget never names a window
+    /// (ADR-0121). 1 by default, which is right for a host with no window under it.
+    default double displayScale() {
+        return 1.0;
+    }
+
     /// The window, for the handful of things this interface deliberately does not
     /// wrap: the close-request hook, the cursor, resize and scale notifications.
     ///

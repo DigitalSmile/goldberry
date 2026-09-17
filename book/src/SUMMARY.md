@@ -367,6 +367,7 @@
 - [ADR-0355 A floating button leaves, a field's room is both paddings, and a floor starts on its first frame](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 - [ADR-0356 A connector grows from where you were, and an entry has a marker slot](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - [ADR-0357 A test that paints asks for the library, and a download asks again](adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)
+- [ADR-0358 An image loads off the frame, and is its own size](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
 
 ---
 

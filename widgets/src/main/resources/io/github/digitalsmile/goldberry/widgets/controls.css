@@ -3990,6 +3990,44 @@ panel {
   border-radius: 8px;
 }
 
+/* ----------------------------------------------------------------- image --
+ *
+ * §1's `image`. The box is the picture's natural size until a stylesheet gives
+ * it one, so nothing here sets a width or a height (ADR-0358).
+ *
+ * Loading, it is the skeleton's fill: §1's "placeholder fill until loaded", in
+ * the colour every other placeholder in the catalog already uses. A view with
+ * no size of its own has nothing to fill until the picture arrives, which is
+ * why an image in a list of known shape should be given one. Failed, it keeps
+ * the same fill and says so: Lucide's `image-off` and the alt text, centred,
+ * in the muted ink, which is what a browser shows for the same reason. */
+image {
+  flex-shrink: 0;
+}
+
+image.loading,
+image.error {
+  background: var(--gb-surface-2);
+  border-radius: 4px;
+}
+
+image.error {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--gb-text-muted);
+}
+
+image-alt {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  text-align: center;
+}
+
 /* ------------------------------------------------------------------ card --
  *
  * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens", and
