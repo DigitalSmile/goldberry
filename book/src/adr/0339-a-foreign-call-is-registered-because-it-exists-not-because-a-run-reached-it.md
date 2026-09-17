@@ -77,9 +77,10 @@ the one comparison against the reader that matters.
 ## Consequences
 
 - An image built from this commit registers all of the holders' distinct
-  descriptors and six upcall shapes. Whether the html, canvas and Markdown screens
-  now open in the Windows image is verified by the next Showcase run's image and a
-  hand test, since no machine here has GraalVM.
+  descriptors and six upcall shapes. **Verified by hand on 2026-09-17**, from a
+  manual Showcase run: the native image opens the html, canvas and Markdown
+  screens on Linux, macOS and Windows. The canvas screen needed one more fix on
+  the way, a resource rather than a call (ADR-0160's amendment).
 - The registrations are exact rather than derived from a `MethodHandle`'s type: a
   struct passed by value keeps its layout, which a `MethodType` would have
   flattened to `MemorySegment`.

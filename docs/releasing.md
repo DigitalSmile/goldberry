@@ -17,7 +17,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 | `goldberry-bom` and the `goldberry` umbrella, `html`/`gpu` optional | **built**, resolved by a local consumer build |
 | `snapshot.yml` → `publish.yml` → Central snapshots | **built, never run** — waits on the secrets below |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
-| `showcase.yml` → native images on the tag's draft GitHub Release | **built, never run on a tag** — the image builds and runs on all three platforms on every manual run |
+| `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **not done** — blocks the first release, not snapshots |
 
 ## Versions

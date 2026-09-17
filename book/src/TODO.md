@@ -1338,14 +1338,6 @@ on, which in four cases is the same thing.
   decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
   standing question behind both records.
 
-- **The native image's foreign registrations are generated but the fix is untested on
-  an image.** ADR-0339 replaces the traced `foreign` section with one written from the
-  bindings, because the Windows image died on the html, canvas and Markdown screens.
-  No machine here has GraalVM; the next Showcase run builds and runs the image for
-  three frames, which does not open those screens either. A hand run on Windows is
-  the verification, and a `--screen=<name>` launcher argument would let CI do it. —
-  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
-
 - **CI is green, and the fixes that made it so were written blind.** Nine causes on
   Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
   passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
@@ -1444,6 +1436,17 @@ on, which in four cases is the same thing.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**The native image's foreign registrations are generated but the fix is untested
+  on an image.**~~ **Tested by hand on all three platforms, 2026-09-17.** A manual
+  Showcase run built the image on Linux, macOS and Windows, and the html, canvas and
+  Markdown screens open on each. What the hand test found on the way was not a
+  foreign call but a resource: the canvas screen's five sample images had never been
+  declared, which ADR-0160's rule already covered and `DeclaredResourcesTest` now
+  enforces. What is still open from this entry: CI runs the image for three frames
+  and opens no screen, so a `--screen=<name>` launcher argument would let it do what
+  the hand test did. —
+  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 
 - ~~**A `Validator` is over a `String`, and `date-picker` will want
   otherwise.**~~ **The second seam turned out to be a composition, and `field`

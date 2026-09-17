@@ -65,8 +65,9 @@ tagged build is attached to the tag's GitHub Release.**
   both are unit-tested on every push, which is where the two real image failures
   of this week would have been caught.
 - The release checklist gains a step: publish the draft GitHub Release beside the
-  Central deployment. Until a tag is pushed the job has never run; a manual
-  `workflow_dispatch` exercises everything but the upload.
+  Central deployment. A manual run on 2026-09-17 built the three images, and
+  they were checked by hand on all three platforms; the upload to the release
+  is the one step that has not run, because no tag has been pushed yet.
 - The README's "self-contained image" section now describes the native image.
   Anyone who wanted the jlink form builds it from the ADR-0048 commit's recipe;
   nothing in the toolkit depended on it.
