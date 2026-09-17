@@ -1,6 +1,6 @@
 # ADR-0048: The showcase ships as a runtime image
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0340](0340-the-showcase-is-a-release-artifact-not-a-package.md) — the jlink image is gone; the showcase ships as a native image on the GitHub Release
 - **Date:** 2026-08-16
 - **Relates to:** `docs/ARCHITECTURE.md` §15; [ADR-0021](0021-the-example-is-a-separate-build.md), [ADR-0023](0023-logging-and-the-example-as-a-subproject.md), [ADR-0039](0039-macos-needs-the-first-thread.md), [ADR-0041](0041-three-platforms-four-artifacts-two-backends.md)
 
