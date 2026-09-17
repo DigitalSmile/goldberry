@@ -36,17 +36,21 @@ public final class PrepareAssets {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("usage: PrepareAssets <cache-dir> <resource-dir> [<licenses-dir>]");
+            System.err.println("usage: PrepareAssets <cache-dir> <resource-dir> [<licenses-dir>] [--only=a,b]");
             System.exit(2);
             return;
         }
         var cache = new AssetCache(Path.of(args[0]));
         var resources = Path.of(args[1]).resolve(RESOURCE_ROOT);
-        var licences = args.length > 2 ? Path.of(args[2]) : null;
+        var licences = args.length > 2 && !args[2].startsWith("--") ? Path.of(args[2]) : null;
+        var wanted = selection(args);
 
         Files.createDirectories(resources);
 
         for (var asset : Asset.all()) {
+            if (!wanted.contains(asset.name())) {
+                continue;
+            }
             var archive = cache.fetch(asset);
             extract(asset, archive, resources);
             if (licences != null) {
@@ -54,7 +58,33 @@ public final class PrepareAssets {
             }
         }
 
-        compileIcons(cache.fetch(Asset.LUCIDE), resources);
+        if (wanted.contains(Asset.LUCIDE.name())) {
+            compileIcons(cache.fetch(Asset.LUCIDE), resources);
+        }
+    }
+
+    /// Which assets to prepare — everything, or the `--only=` list.
+    ///
+    /// Two modules fetch assets now rather than one: `:core` takes the faces and
+    /// the icons, and `:emoji` takes OpenMoji alone, because the font that
+    /// carries an attribution obligation is an artifact an application opts into
+    /// ([ADR-0384]). The selection is by name so that a build script says which
+    /// assets it means rather than an index into a list.
+    private static java.util.Set<String> selection(String[] args) {
+        for (var argument : args) {
+            if (argument.startsWith("--only=")) {
+                var names = java.util.Set.of(argument.substring("--only=".length()).split(","));
+                var known = Asset.all().stream().map(Asset::name).collect(java.util.stream.Collectors.toSet());
+                for (var name : names) {
+                    if (!known.contains(name)) {
+                        throw new IllegalArgumentException(
+                                "there is no asset called '" + name + "'; they are " + known);
+                    }
+                }
+                return names;
+            }
+        }
+        return Asset.all().stream().map(Asset::name).collect(java.util.stream.Collectors.toSet());
     }
 
     /// Pulls the individual entries an asset contributes out of its archive.

@@ -19,19 +19,28 @@ code is present in every binary artifact Goldberry distributes:
   Yoga           MIT license       https://www.yogalayout.dev
   HarfBuzz       MIT license       https://harfbuzz.github.io
 
-The following assets are embedded in the published jars:
+The following assets are embedded in goldberry-core:
 
   Inter                SIL Open Font License 1.1   https://rsms.me/inter/
   JetBrains Mono       SIL Open Font License 1.1   https://www.jetbrains.com/lp/mono/
   Lucide               ISC license                 https://lucide.dev
-  OpenMoji (derived)   CC BY-SA 4.0                https://openmoji.org
 
-The OpenMoji emoji font shipped with Goldberry is a MODIFIED version of the
-original: its COLRv0 colour palette has been re-themed toward the Nord palette.
-Under CC BY-SA 4.0 that derivative is itself licensed CC BY-SA 4.0, and this
-modification is disclosed here as the licence requires. The Apache-2.0 licence
-of Goldberry's own code is unaffected — the font is an embedded asset, not
-linked code.
+And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
+
+  OpenMoji             CC BY-SA 4.0                https://openmoji.org
+
+OpenMoji is in an artifact of its own because CC BY-SA asks for attribution
+where the work is SEEN — an about box, a credits screen — which a notice file
+cannot give. An application that adds goldberry-emoji takes that obligation on:
+io.github.digitalsmile.goldberry.emoji.OpenMojiFont.CREDIT is the sentence to
+display. An application that does not add it ships no emoji font and owes
+nothing (ADR-0384).
+
+The face shipped is OpenMoji's own monochrome build, unmodified. Should a
+re-themed colour variant ship later, it would be a derivative work under
+CC BY-SA 4.0 and the modification would have to be disclosed here. The
+Apache-2.0 licence of Goldberry's own code is unaffected either way — the font
+is an embedded asset, not linked code.
 
 Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
 and the licenses/ directory.

@@ -53,8 +53,10 @@ dependencies {
 // ============================================================================
 // Bundled assets (§6.1, §6.2, §6.3, ADR-0033)
 //
-// Inter and JetBrains Mono are the embedded UI and code faces, OpenMoji is the
-// emoji slot, and Lucide is the icon set. The work is done by :assets — an
+// Inter and JetBrains Mono are the embedded UI and code faces, and Lucide is the
+// icon set. OpenMoji is **not** here: it ships as `goldberry-emoji`, because
+// CC BY-SA wants visible attribution and an application that never draws an
+// emoji should not inherit that obligation (ADR-0384). The work is done by :assets — an
 // ordinary Java tool with its own tests — and only invoked here.
 //
 // The archives are cached under ~/.gradle rather than in the project's build
@@ -83,13 +85,25 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
 
     classpath = configurations.assetTool
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
-    args assetCache.asFile.absolutePath, assetResources.get().asFile.absolutePath
+    // Everything but OpenMoji, which ships as `goldberry-emoji` because CC BY-SA
+    // wants attribution a notice file cannot give (ADR-0384).
+    args assetCache.asFile.absolutePath,
+            assetResources.get().asFile.absolutePath,
+            '--only=inter,jetbrains-mono,lucide'
 
     // The tool is the input: change the manifest — a version, a checksum, the
     // list of entries — and this reruns. The cache directory deliberately is
     // not, or an unrelated archive landing in it would redo all the work.
     inputs.files configurations.assetTool
     outputs.dir assetResources
+
+    // The directory is emptied first, so a file this build no longer prepares
+    // does not survive in it. OpenMoji moving to `:emoji` is exactly that case:
+    // without this, an incremental build kept shipping the face `:core` had
+    // stopped fetching (ADR-0384).
+    doFirst {
+        delete assetResources
+    }
 }
 
 // Deriving the source directory from the task provider carries the dependency to
@@ -109,7 +123,8 @@ tasks.register('vendorLicences', JavaExec) {
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
-            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath
+            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
+            '--only=inter,jetbrains-mono,lucide'
 }
 
 // Frame rasterizes through Blend2D (ADR-0031), so the tests that paint need a

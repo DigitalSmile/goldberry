@@ -47,7 +47,25 @@ public final class BundledAssets {
     ///         jar was assembled without the asset step
     public static byte[] font(BundledFont font) {
         Objects.requireNonNull(font, "font");
+        if (font == BundledFont.EMOJI) {
+            // Not in this jar. OpenMoji is CC BY-SA and wants visible
+            // attribution, so it ships as `goldberry-emoji` and reaches this
+            // through a service (ADR-0384).
+            var provider = EmojiFont.provider();
+            if (provider == null) {
+                throw new MissingEmojiFontException();
+            }
+            return provider.bytes();
+        }
         return read(ROOT + font.resource());
+    }
+
+    /// Whether the emoji face is on the module path.
+    ///
+    /// For an application that draws an emoji only when it can — a picker, a
+    /// reaction bar — and for the toolkit's own tests, which run both ways.
+    public static boolean hasEmojiFont() {
+        return EmojiFont.provider() != null;
     }
 
     /// The path data for one Lucide icon, in a 24×24 box.

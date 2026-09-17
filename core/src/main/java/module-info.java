@@ -45,6 +45,11 @@ module io.github.digitalsmile.goldberry.core {
     // pack, needs to name what it is replacing.
     exports io.github.digitalsmile.goldberry.assets;
 
+    // The emoji face is not in this jar (ADR-0384). OpenMoji is CC BY-SA and
+    // wants visible attribution, so it ships as `goldberry-emoji` and arrives
+    // through a service — the module system's own answer to "somebody may have
+    // brought this", and the same mechanism a widget catalog uses (ADR-0131).
+    uses io.github.digitalsmile.goldberry.assets.EmojiFont;
 
     // The CSS engine (ADR-0049): stylesheets, the cascade, and the ComputedStyle
     // a render object is styled by (§8, ADR-0004). Exported because loading a

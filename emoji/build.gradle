@@ -1,0 +1,131 @@
+plugins {
+    id 'goldberry.java-conventions'
+    // Published to Maven Central as goldberry-emoji (ADR-0334, ADR-0384).
+    id 'goldberry.publish'
+}
+
+description = 'Goldberry emoji: the OpenMoji face, and the attribution that comes with it'
+
+// ============================================================================
+// The font with an obligation on it (ADR-0384)
+//
+// `docs/content-widgets.md` §11.1 quarantines anything carrying an attribution
+// obligation into an artifact an application opts into, and OpenMoji is the one
+// entry on that list that had been shipping inside `:core` anyway: CC BY-SA
+// wants *visible* attribution — an about box, a credits screen — which a notice
+// file cannot give. An application that never draws an emoji should not inherit
+// that, and one that does should meet it on purpose.
+//
+// So this module is the face and nothing else. There is no code here beyond the
+// provider that hands its bytes to `:core` through a service, because a font is
+// not a widget.
+// ============================================================================
+dependencies {
+    // The `EmojiFont` service this implements, and nothing more: no widget, no
+    // backend, no native library.
+    api project(':core')
+
+    // The shaping test needs HarfBuzz through :natives, and the rasterizer guard
+    // that skips it on a machine with no libgoldberry — the same pair :widgets
+    // and :html take (ADR-0050).
+    testImplementation project(':natives')
+    testImplementation testFixtures(project(':core'))
+}
+
+// The shaping test goes through the real library, like every other module's.
+evaluationDependsOn(':natives')
+
+def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+
+    inputs.files(providers.provider {
+        var library = file(providers.systemProperty('goldberry.native.library')
+                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                .get())
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
+}
+
+def skipNative = providers.gradleProperty('goldberry.skipNative')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
+
+if (!skipNative && !externalLibrary) {
+    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
+}
+
+def assetCache = layout.settingsDirectory.dir('.gradle/assets')
+def assetResources = layout.buildDirectory.dir('generated/assets')
+
+configurations {
+    assetTool
+}
+
+dependencies {
+    assetTool project(':assets')
+}
+
+// The same tool `:core` runs, told which asset it means. One archive, one file:
+// `--only=openmoji` is what keeps this module from fetching 90 MB of fonts it
+// does not ship.
+def prepareAssets = tasks.register('prepareAssets', JavaExec) {
+    group = 'assets'
+    description = 'Fetches the pinned OpenMoji release and prepares it as a resource.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    args assetCache.asFile.absolutePath, assetResources.get().asFile.absolutePath, '--only=openmoji'
+
+    inputs.files configurations.assetTool
+    outputs.dir assetResources
+
+    // The directory is emptied first, so a file this build no longer prepares
+    // does not survive in it. OpenMoji moving to `:emoji` is exactly that case:
+    // without this, an incremental build kept shipping the face `:core` had
+    // stopped fetching (ADR-0384).
+    doFirst {
+        delete assetResources
+    }
+}
+
+sourceSets.main.resources.srcDir(prepareAssets.map { assetResources.get() })
+
+/// Vendors OpenMoji's licence text into licenses/, the way :core does for the
+/// assets it still carries.
+tasks.register('vendorLicences', JavaExec) {
+    group = 'assets'
+    description = 'Copies OpenMoji\'s licence into licenses/ from the pinned archive.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    args assetCache.asFile.absolutePath,
+            assetResources.get().asFile.absolutePath,
+            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
+            '--only=openmoji'
+}
+
+// ============================================================================
+// Coverage floor (docs/testing.md §3)
+//
+// One class, which reads a resource. What the tests reach is every line but the
+// `catch (IOException)` — a stream that opens and then fails mid-read, which
+// this module has no way to produce and which a mock would prove nothing about.
+// The floor is a little under what the suite reaches, which is this repository's
+// rule for every other module's number.
+// ============================================================================
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; minimum = 0.70 }
+            limit { counter = 'BRANCH'; minimum = 0.50 }
+        }
+    }
+}

@@ -24,6 +24,7 @@
             <option value="$PROJECT_DIR$/build-logic" />
             <option value="$PROJECT_DIR$/common" />
             <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/emoji" />
             <option value="$PROJECT_DIR$/example" />
             <option value="$PROJECT_DIR$/gpu" />
             <option value="$PROJECT_DIR$/html" />

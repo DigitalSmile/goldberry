@@ -36,6 +36,7 @@ public final class PublishedModules {
             new Library("core", Inclusion.REQUIRED),
             new Library("widgets", Inclusion.REQUIRED),
             new Library("html", Inclusion.OPTIONAL),
+            new Library("emoji", Inclusion.OPTIONAL),
             new Library("gpu", Inclusion.OPTIONAL),
             new Bom(),
             new Umbrella());

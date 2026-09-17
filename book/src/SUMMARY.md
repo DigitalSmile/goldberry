@@ -394,6 +394,7 @@
 - [ADR-0381 A rank has two spellings and one meaning](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
 - [ADR-0382 A GIF has the frames after the first](adr/0382-a-gif-has-the-frames-after-the-first.md)
 - [ADR-0383 The desktop is asked whether to move less](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
+- [ADR-0384 The emoji face is an artifact an application opts into](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)
 - [ADR-0385 WebP is written, and animated](adr/0385-webp-is-written-and-animated.md)
 
 ---

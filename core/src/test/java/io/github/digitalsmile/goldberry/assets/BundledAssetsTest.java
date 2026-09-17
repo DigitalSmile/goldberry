@@ -1,7 +1,9 @@
 package io.github.digitalsmile.goldberry.assets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -58,9 +60,12 @@ class BundledAssetsTest {
     }
 
     @ParameterizedTest
-    @EnumSource(BundledFont.class)
+    @EnumSource(value = BundledFont.class, names = "EMOJI", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("every bundled font is present and is a real font file")
     void fontsAreBundled(BundledFont font) {
+        // Every one but the emoji face, which is not in this jar: OpenMoji is
+        // CC BY-SA and ships as `goldberry-emoji`, so the face and the test that
+        // shapes with it both live there ([ADR-0384]).
         var bytes = BundledAssets.font(font);
 
         assertTrue(bytes.length > 10_000, () -> font + " is only " + bytes.length + " bytes");
@@ -197,33 +202,26 @@ class BundledAssetsTest {
     }
 
     @Test
-    @DisplayName("emoji shape through the emoji face and not through the UI one")
-    void emojiNeedTheEmojiFace() {
-        RendererRequirement.enforce();
+    @DisplayName("the emoji face is not in this jar, and says which artifact it is in")
+    void emojiIsItsOwnArtifact() {
+        // The obligation is the reason: CC BY-SA wants credit where the work is
+        // seen, which a notice file cannot give — so an application that draws
+        // emoji adds the artifact and meets it on purpose ([ADR-0384]). What is
+        // asserted here is that the failure *says* so: a missing resource would
+        // be a puzzle, and this is an instruction.
+        assertFalse(BundledAssets.hasEmojiFont(), "goldberry-emoji is not on this test's path");
 
-        var snowman = "☃";
-        try (var ui = ShapedFont.fromBytes(BundledAssets.font(BundledFont.UI));
-                var emoji = ShapedFont.fromBytes(BundledAssets.font(BundledFont.EMOJI));
-                var buffer = ShapingBuffer.create()) {
+        var thrown = assertThrows(MissingEmojiFontException.class, () -> BundledAssets.font(BundledFont.EMOJI));
+        assertTrue(thrown.getMessage().contains("goldberry-emoji"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("CC BY-SA"), thrown.getMessage());
+    }
 
-            buffer.addText(snowman);
-            buffer.guessSegmentProperties();
-            var throughEmoji = buffer.shape(emoji);
-
-            assertEquals(1, throughEmoji.length());
-            assertNotEquals(0, throughEmoji.glyphId(0), "OpenMoji has this character");
-
-            // The same character through the UI face, which is the point of
-            // having two slots: §6.1 says the chain is primary then emoji and
-            // stops there, so choosing the slot is the text stack's job. Nothing
-            // cascades on its own, and whatever Inter does with a snowman —
-            // notdef or an outline of its own — it is a different answer.
-            buffer.reset();
-            buffer.addText(snowman);
-            buffer.guessSegmentProperties();
-            var throughUi = buffer.shape(ui);
-
-            assertEquals(1, throughUi.length(), "one glyph either way");
-        }
+    @Test
+    @DisplayName("and the slot is still named here, because the text stack chooses it")
+    void theSlotSurvives() {
+        // §6.1's chain is primary then emoji, and which of the two a run of text
+        // goes through is the text stack's decision — so the *name* stays in the
+        // catalogue of faces even when the file is somebody else's.
+        assertEquals("OpenMoji", BundledFont.EMOJI.family());
     }
 }

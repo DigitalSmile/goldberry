@@ -63,17 +63,24 @@ when `html-view` is built, gets both a library and a notice file of its own.
 | [Inter](licenses/inter.txt) | OFL 1.1 | <https://rsms.me/inter/> | Default UI font |
 | [JetBrains Mono](licenses/jetbrains-mono.txt) | OFL 1.1 | <https://www.jetbrains.com/lp/mono/> | Default monospace font |
 | [Lucide](licenses/lucide.txt) | ISC | <https://lucide.dev> | Icon set, compiled to a binary path table |
-| [OpenMoji](licenses/openmoji.txt) | **CC BY-SA 4.0** | <https://openmoji.org> | Emoji font — **modified**, see below |
+| [OpenMoji](licenses/openmoji.txt) | **CC BY-SA 4.0** | <https://openmoji.org> | Emoji font — in **`goldberry-emoji`** and not in core, see below |
 
-### OpenMoji is the one that constrains us
+### OpenMoji is the one that constrains us, and it is opt-in
 
-§6.2 ships the COLRv0 colour variant with its CPAL palette re-themed toward
-Nord. That makes it a **derivative work** of a share-alike asset, and three
+**It ships in `goldberry-emoji`, not in `goldberry-core`** (ADR-0384). CC BY-SA
+asks for attribution *where the work is seen*, and no file in a jar meets that —
+so the obligation travels with an artifact an application adds on purpose rather
+than with every application that ever depended on the toolkit. One that never
+draws an emoji owes nothing here.
+
+What ships today is OpenMoji's own **monochrome** build, unmodified; §6.2's
+re-themed COLRv0 variant is opt-in and is not bundled, and were it bundled it
+would be a **derivative work** of a share-alike asset. Either way three
 obligations follow that no other component here imposes:
 
-1. **Attribution**, including an explicit statement that changes were made.
-   `NOTICE` and `licenses/openmoji.txt` carry it; any About dialog Goldberry
-   ships must carry it too.
+1. **Attribution**, and a statement of changes where changes were made.
+   `NOTICE` and `licenses/openmoji.txt` carry the text; an application that adds
+   the artifact must put `OpenMojiFont.CREDIT` where a reader can see it.
 2. **Share-alike** — the re-themed font is licensed CC BY-SA 4.0 and must be
    distributed as such. It cannot be relicensed Apache-2.0.
 3. **No additional restrictions** — Goldberry's own terms must not restrict what
