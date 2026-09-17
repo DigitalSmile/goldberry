@@ -45,6 +45,7 @@ module io.github.digitalsmile.goldberry.core {
     // pack, needs to name what it is replacing.
     exports io.github.digitalsmile.goldberry.assets;
 
+
     // The CSS engine (ADR-0049): stylesheets, the cascade, and the ComputedStyle
     // a render object is styled by (§8, ADR-0004). Exported because loading a
     // stylesheet and choosing a theme are things an application does.
@@ -239,6 +240,12 @@ module io.github.digitalsmile.goldberry.core {
     // wrong by a pixel drops a row off the bottom of a list -- which is exactly
     // the kind of defect a unit test catches and a golden image does not.
     exports io.github.digitalsmile.goldberry.paint.cull;
+    // What did not fit, and the one place that says so (ADR-0375). Its own
+    // package rather than a class in `paint.tree`, because the *reporting* is
+    // not a layout concern: the walk that finds an overrun needs the tree, and
+    // everything after it -- what to call the box, how to phrase it, how not to
+    // say it sixty times a second -- needs nothing but the two rectangles.
+    exports io.github.digitalsmile.goldberry.paint.overflow;
     exports io.github.digitalsmile.goldberry.paint.tree;
     exports io.github.digitalsmile.goldberry.paint;
 }

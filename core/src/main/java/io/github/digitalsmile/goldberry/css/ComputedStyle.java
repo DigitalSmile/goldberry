@@ -87,6 +87,13 @@ public record ComputedStyle(
         // *here* rather than on the parent -- it is the enum's own word for
         // "whatever my container said".
         Align alignSelf,
+        // The third property over [Align]'s value space, and the one that is
+        // about *lines* rather than about children: with `flex-wrap: wrap` a
+        // container has as many lines as its children needed, and this is how
+        // the leftover cross-axis room is shared between them. Meaningless on a
+        // container that does not wrap, which is CSS's own rule and Yoga's
+        // (ADR-0374).
+        Align alignContent,
         // §8 has listed `flex-wrap` from the start and nothing had needed it
         // either: every row in the catalog was a row that fitted, until `select
         // multiple` grew a row of chips (ADR-0192).
@@ -115,6 +122,13 @@ public record ComputedStyle(
         Length gap,
         double flexGrow,
         double flexShrink,
+        // The main-axis size a box *starts* from, before `flex-grow` shares out
+        // what is left and `flex-shrink` takes back what is missing. §8 has
+        // listed all three since the start and this was the last one
+        // unimplemented: a row of equal columns had to be written as a
+        // percentage width that the widget had to count, and a split pane had to
+        // measure itself first (ADR-0373).
+        Length flexBasis,
         // `position` and `inset` are the layout half's answer to a box that is
         // not where the flow would put it. §8 listed them from the start and
         // nothing had needed one: every widget until `segmented`'s travelling
@@ -183,6 +197,11 @@ public record ComputedStyle(
             // "Defer to my container", which is Yoga's default and CSS's: a
             // child that says nothing is aligned by `align-items` alone.
             Align.AUTO,
+            // How wrapped *lines* share the cross axis. `stretch` is Yoga's
+            // default under `useWebDefaults` and CSS's `normal` for a flex
+            // container, so a box that never mentions it lays out exactly as it
+            // did before this was a property (ADR-0374).
+            Align.STRETCH,
             // One line, however much it overflows -- Yoga's default and CSS's.
             Wrap.NO_WRAP,
             Length.UNDEFINED,
@@ -201,6 +220,9 @@ public record ComputedStyle(
             // CSS's default and Yoga's under `useWebDefaults`: a width is a
             // preferred width, and a cramped row may take it back.
             1,
+            // `auto`: the main size comes from `width`/`height` or the content,
+            // which is CSS's initial value and Yoga's (ADR-0373).
+            Length.AUTO,
             Position.RELATIVE,
             // Not `Insets.ZERO`: an inset of zero pins a node to its container's
             // edge, and "no inset at all" is what a node that never mentions one
@@ -432,6 +454,11 @@ public record ComputedStyle(
             case "align-self" ->
                 keyword(value, Align.class).map(this::alignSelf).orElseGet(() -> dropped(property, value));
 
+            // The same value space again, read by a container about its wrapped
+            // lines (ADR-0374).
+            case "align-content" ->
+                keyword(value, Align.class).map(this::alignContent).orElseGet(() -> dropped(property, value));
+
             // Not `keyword(value, Wrap.class)`: CSS spells the default `nowrap`
             // as one word and `YGWrap` spells it `NoWrap`, so the two disagree
             // by a hyphen the generic parser inserts. `wrap-reverse` and `wrap`
@@ -508,6 +535,11 @@ public record ComputedStyle(
             // window squashed it (ADR-0076).
             case "flex-shrink" ->
                 number(value).filter(v -> v >= 0).map(this::flexShrink).orElseGet(() -> dropped(property, value));
+
+            // The third of §8's flex trio, and the one whose `auto` is a value:
+            // `flex-basis: auto` is "ask `width` or the content", which is what
+            // undoes a more general rule (ADR-0373).
+            case "flex-basis" -> length(value, context).map(this::flexBasis).orElseGet(() -> dropped(property, value));
 
             // §8 has listed `position` since the beginning and nothing had
             // needed it: a segmented control's indicator is the first box in
@@ -869,6 +901,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -878,6 +911,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -902,6 +936,7 @@ public record ComputedStyle(
                 v,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -911,6 +946,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -935,6 +971,7 @@ public record ComputedStyle(
                 justifyContent,
                 v,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -944,6 +981,45 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// This style with a different `align-content` — how its wrapped lines share
+    /// the cross axis.
+
+    public ComputedStyle alignContent(Align v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                v,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -968,6 +1044,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 v,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -977,6 +1054,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1001,6 +1079,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 v,
                 width,
                 height,
@@ -1010,6 +1089,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1034,6 +1114,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 v,
                 height,
@@ -1043,6 +1124,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1067,6 +1149,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 v,
@@ -1076,6 +1159,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1100,6 +1184,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1109,6 +1194,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1133,6 +1219,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1142,6 +1229,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1168,6 +1256,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1177,6 +1266,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1201,6 +1291,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1210,6 +1301,7 @@ public record ComputedStyle(
                 v,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1234,6 +1326,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1243,6 +1336,45 @@ public record ComputedStyle(
                 gap,
                 v,
                 flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// This style with a different `flex-basis` — the main-axis size its box
+    /// starts from.
+
+    public ComputedStyle flexBasis(Length v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                v,
                 position,
                 inset,
                 overflow,
@@ -1267,6 +1399,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1276,6 +1409,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 v,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1300,6 +1434,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1309,6 +1444,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 v,
                 inset,
                 overflow,
@@ -1333,6 +1469,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1342,6 +1479,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 v,
                 overflow,
@@ -1366,6 +1504,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1375,6 +1514,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 v,
@@ -1399,6 +1539,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1408,6 +1549,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1432,6 +1574,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1441,6 +1584,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1465,6 +1609,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1474,6 +1619,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1500,6 +1646,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1509,6 +1656,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1550,6 +1698,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1559,6 +1708,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1583,6 +1733,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1592,6 +1743,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1616,6 +1768,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1625,6 +1778,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1649,6 +1803,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1658,6 +1813,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1682,6 +1838,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1691,6 +1848,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1715,6 +1873,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1724,6 +1883,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1749,6 +1909,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1758,6 +1919,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1782,6 +1944,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1791,6 +1954,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,
@@ -1815,6 +1979,7 @@ public record ComputedStyle(
                 justifyContent,
                 alignItems,
                 alignSelf,
+                alignContent,
                 wrap,
                 width,
                 height,
@@ -1824,6 +1989,7 @@ public record ComputedStyle(
                 gap,
                 flexGrow,
                 flexShrink,
+                flexBasis,
                 position,
                 inset,
                 overflow,

@@ -4937,14 +4937,18 @@ masonry {
   gap: 12px;
 }
 
-/* The width is **not** here: it is 1/n of the row and no selector can count n,
-   so the widget writes it inline the way `segmented`'s indicator does
-   (ADR-0099). `flex-grow` alone would size a column to its content, and then a
-   card's height would depend on which column it landed in -- which is the loop
-   the whole layout is built to avoid. */
+/* The width **is** here now: `flex-basis: 0` with `flex-grow: 1` is 1/n of the
+   row without counting n, and it is 1/n of what the gaps left rather than of the
+   whole row -- which the inline `width: 100/n %` it replaces was not, so three
+   columns and two 12px gaps overflowed their row by 24px (ADR-0373).
+   `flex-grow` alone would size a column to its content, and then a card's height
+   would depend on which column it landed in -- which is the loop the whole
+   layout is built to avoid. */
 masonry-column {
   flex-direction: column;
   gap: 12px;
+  flex-basis: 0;
+  flex-grow: 1;
 }
 
 /* A cell adds nothing of its own: it exists to report a height. Anything drawn

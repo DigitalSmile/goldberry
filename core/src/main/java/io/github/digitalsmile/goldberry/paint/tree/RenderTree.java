@@ -109,6 +109,13 @@ public final class RenderTree implements AutoCloseable {
         // here, rather than in each of the walks that follow. A frame painted
         // twice (a damage pass and a full one) settles once ([ADR-0313]).
         root.settle();
+        // One question per frame: did the root's own line run past the window?
+        // Only then is it worth walking the tree to find out what is off the
+        // edge, and only the first overrun of each shape is ever said out loud
+        // ([ADR-0375]).
+        if (root.node().hadOverflow()) {
+            OverflowWatch.check(root);
+        }
     }
 
     /// Brings the retained tree in line with `box`, at `scale`. The half of

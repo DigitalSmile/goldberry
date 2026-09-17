@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.layout.Align;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.layout.Wrap;
@@ -167,6 +168,74 @@ class RenderTreeTest {
                 // is Yoga distributing the height, and a chip row that is as
                 // tall as its content puts it at 20.
                 assertEquals(100, wrapped.get(3).top(), "on a second line");
+            }
+        }
+
+        @Test
+        @DisplayName("`align-content` decides where a second line sits")
+        void alignContent() {
+            // The property `flex-wrap` made meaningful and nothing resolved
+            // until ADR-0374: with one line it says nothing, and with two it is
+            // the only thing that decides where the spare cross-axis room goes.
+            // The test above asserts the stretched default at 100; these are the
+            // same three children with the other two answers.
+            try (var tree = RenderTree.create()) {
+                var row = Box.of()
+                        .direction(FlexDirection.ROW)
+                        .size(Length.points(200), Length.points(200))
+                        .wrap(Wrap.WRAP)
+                        .children(sized(80, 20), sized(80, 20), sized(80, 20));
+
+                tree.update(target.frame(), row.alignContent(Align.FLEX_START));
+                assertEquals(
+                        20, layouts(tree).get(3).top(), "packed: the second line starts where the first one ended");
+
+                tree.update(target.frame(), row.alignContent(Align.SPACE_BETWEEN));
+                assertEquals(
+                        180,
+                        layouts(tree).get(3).top(),
+                        "space-between: the two lines take the row's ends, which is a value"
+                                + " `align-items` has and cannot use");
+
+                tree.update(target.frame(), row.alignContent(Align.STRETCH));
+                assertEquals(100, layouts(tree).get(3).top(), "and stretch is what a box that says nothing gets");
+            }
+        }
+
+        @Test
+        @DisplayName("`flex-basis` is where the main axis starts from, not where it ends")
+        void flexBasis() {
+            // A row of equal columns is what this buys, and it is the case a
+            // percentage width cannot express without counting the columns
+            // (ADR-0373): three children of very different content widths in a
+            // 300pt row, each starting from nothing and growing equally.
+            try (var tree = RenderTree.create()) {
+                var row = Box.of()
+                        .direction(FlexDirection.ROW)
+                        .size(Length.points(300), Length.points(100))
+                        .children(
+                                sized(10, 20).grow(1).basis(Length.points(0)),
+                                sized(200, 20).grow(1).basis(Length.points(0)),
+                                sized(30, 20).grow(1).basis(Length.points(0)));
+
+                tree.update(target.frame(), row);
+                var equal = layouts(tree);
+                assertEquals(100, equal.get(1).width(), "each column is a third of the row");
+                assertEquals(100, equal.get(2).width(), "however wide its own content is");
+                assertEquals(100, equal.get(3).width());
+
+                // `auto` is the default and the difference: the same three grow
+                // from their own widths, so the 200pt child stays the widest.
+                tree.update(
+                        target.frame(),
+                        row.children(
+                                sized(10, 20).grow(1),
+                                sized(200, 20).grow(1),
+                                sized(30, 20).grow(1)));
+                var fromContent = layouts(tree);
+                assertTrue(
+                        fromContent.get(2).width() > fromContent.get(1).width(),
+                        "with `flex-basis: auto` the widths are the children's own plus a share");
             }
         }
 

@@ -186,6 +186,55 @@ class ComputedStyleTest {
         }
 
         @Test
+        @DisplayName("`align-content` takes the three keywords nothing else could use")
+        void alignContent() {
+            // `SPACE_BETWEEN`, `SPACE_AROUND` and `SPACE_EVENLY` were on [Align]
+            // from the start and no property accepted them, because the one they
+            // belong to was not resolved (ADR-0374).
+            assertEquals(
+                    Align.SPACE_BETWEEN,
+                    compute("button { align-content: space-between }").alignContent());
+            assertEquals(
+                    Align.SPACE_EVENLY,
+                    compute("button { align-content: space-evenly }").alignContent());
+            assertEquals(
+                    Align.FLEX_START,
+                    compute("button { align-content: flex-start }").alignContent());
+        }
+
+        @Test
+        @DisplayName("and stretches until a rule says otherwise")
+        void alignContentDefaultsToStretch() {
+            assertEquals(Align.STRETCH, ComputedStyle.INITIAL.alignContent());
+            assertEquals(
+                    ComputedStyle.INITIAL.alignContent(),
+                    compute("button { align-content: sideways }").alignContent(),
+                    "a keyword CSS has not got is dropped like any other");
+        }
+
+        @Test
+        @DisplayName("`flex-basis` takes a length, a percentage and `auto`")
+        void flexBasis() {
+            assertEquals(Length.points(0), compute("button { flex-basis: 0 }").flexBasis());
+            assertEquals(
+                    Length.points(120), compute("button { flex-basis: 120px }").flexBasis());
+            assertEquals(
+                    Length.percent(50), compute("button { flex-basis: 50% }").flexBasis());
+            // The keyword that is a value rather than a missing one: it undoes a
+            // more general rule, exactly as `align-self: auto` does (ADR-0373).
+            assertEquals(Length.AUTO, compute("button { flex-basis: auto }").flexBasis());
+        }
+
+        @Test
+        @DisplayName("and is `auto` for a box with no rule")
+        void flexBasisDefaultsToAuto() {
+            assertEquals(Length.AUTO, ComputedStyle.INITIAL.flexBasis());
+            assertEquals(
+                    ComputedStyle.INITIAL.flexBasis(),
+                    compute("button { flex-basis: sideways }").flexBasis());
+        }
+
+        @Test
         @DisplayName("`flex-wrap` takes CSS's three spellings, `nowrap` included")
         void flexWrap() {
             assertEquals(

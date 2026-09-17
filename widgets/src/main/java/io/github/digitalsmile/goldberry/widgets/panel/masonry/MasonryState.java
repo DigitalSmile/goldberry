@@ -77,7 +77,7 @@ final class MasonryState extends State<Masonry> {
 
         var wrapped = new ArrayList<Widget>(columns);
         for (var bucket : buckets) {
-            wrapped.add(new MasonryColumn(List.copyOf(bucket), columns));
+            wrapped.add(new MasonryColumn(List.copyOf(bucket)));
         }
         return new MasonryBox(List.copyOf(wrapped), masonry.attributes());
     }

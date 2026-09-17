@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
@@ -17,29 +16,27 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// would make this a loop rather than a layout, which is why `masonry` takes a
 /// count rather than a list of widths.
 ///
-/// ## The width is written by the widget, not by a rule
+/// ## The width is a rule's, and it used to be the widget's
 ///
-/// `1/n` of the row, where `n` is a number **no selector can count** — which is
-/// ADR-0099's
-/// situation exactly, and takes its answer: `restyle` writes the inline value the
-/// cascade cannot express. `flex-grow: 1` alone would size the columns to their
-/// *content*, so a column holding a wide chart would be wider than one holding a
-/// statistic — and then a card's height would depend on which column it landed
-/// in, which is the loop this layout is built to avoid. `flex-basis: 0` would
-/// have said it in CSS and is the one §8 property still unimplemented.
+/// `flex-basis: 0` with `flex-grow: 1`, in `controls.css`. Every column starts
+/// from nothing and they share the whole row, so `1/n` needs no `n` — which is
+/// what this could not say until §8's last flex property was resolved
+/// ([ADR-0373]). Before that the count was carried into the widget and written
+/// out as an inline `width: 100/n %`, which was `1/n` of the row **plus** the
+/// gaps between the columns: three columns and two 12px gaps overflowed their
+/// row by 24px, and the last column was the one that paid.
+///
+/// `flex-grow: 1` alone would size the columns to their *content*, so a column
+/// holding a wide chart would be wider than one holding a statistic — and then a
+/// card's height would depend on which column it landed in, which is the loop
+/// this layout is built to avoid.
 ///
 /// @param children the cards in this column
-/// @param count    how many columns the row has, which is this one's share
-record MasonryColumn(List<Widget> children, int count) implements Widget.Leaf, Styled, Paints {
+record MasonryColumn(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
         return "masonry-column";
-    }
-
-    @Override
-    public ComputedStyle restyle(ComputedStyle resolved) {
-        return resolved.width(Length.percent((float) (100.0 / Math.max(1, count))));
     }
 
     @Override

@@ -70,6 +70,10 @@ class RecordWitherTest {
                 // `componentsAreDistinct` refuses, because a swap between them
                 // would be invisible to the check below.
                 io.github.digitalsmile.goldberry.layout.Align.CENTER,
+                // `alignContent`, and a third distinct value of the same type
+                // for the same reason -- and one of the three the property is
+                // alone in accepting (ADR-0374).
+                io.github.digitalsmile.goldberry.layout.Align.SPACE_BETWEEN,
                 io.github.digitalsmile.goldberry.layout.Wrap.WRAP_REVERSE,
                 length(11),
                 length(22),
@@ -82,6 +86,8 @@ class RecordWitherTest {
                 length(55),
                 6,
                 7,
+                // `flexBasis`, distinct from every other bare `Length` here.
+                length(88),
                 io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE,
                 new io.github.digitalsmile.goldberry.layout.Insets(length(61), length(62), length(63), length(64)),
                 true,
@@ -105,6 +111,7 @@ class RecordWitherTest {
                 .justifyContent(io.github.digitalsmile.goldberry.layout.Justify.CENTER)
                 .alignItems(io.github.digitalsmile.goldberry.layout.Align.FLEX_END)
                 .alignSelf(io.github.digitalsmile.goldberry.layout.Align.CENTER)
+                .alignContent(io.github.digitalsmile.goldberry.layout.Align.SPACE_BETWEEN)
                 .wrap(io.github.digitalsmile.goldberry.layout.Wrap.WRAP_REVERSE)
                 .width(length(11))
                 .height(length(22))
@@ -117,6 +124,7 @@ class RecordWitherTest {
                 .gap(length(55))
                 .flexGrow(6)
                 .flexShrink(7)
+                .flexBasis(length(88))
                 .position(io.github.digitalsmile.goldberry.layout.Position.ABSOLUTE)
                 .inset(new io.github.digitalsmile.goldberry.layout.Insets(
                         length(61), length(62), length(63), length(64)))

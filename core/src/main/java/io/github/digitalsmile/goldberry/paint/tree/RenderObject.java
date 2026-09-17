@@ -268,6 +268,13 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.alignSelf() != box.alignSelf()) {
             node.setAlignSelf(Yoga.align(box.alignSelf()));
         }
+        // Read by Yoga only when the container wraps, and set unconditionally
+        // anyway: "does this box wrap" is a question about the box next frame as
+        // well as this one, and a value the engine ignores costs one foreign
+        // call on the frame it changes (ADR-0374).
+        if (previous == null || previous.alignContent() != box.alignContent()) {
+            node.setAlignContent(Yoga.align(box.alignContent()));
+        }
         if (previous == null || previous.wrap() != box.wrap()) {
             node.setFlexWrap(Yoga.wrap(box.wrap()));
         }
@@ -325,6 +332,9 @@ public final class RenderObject implements AutoCloseable {
         }
         if (previous == null || previous.flexShrink() != box.flexShrink()) {
             node.setFlexShrink((float) box.flexShrink());
+        }
+        if (previous == null || !previous.flexBasis().equals(box.flexBasis())) {
+            node.setFlexBasis(Yoga.length(box.flexBasis()));
         }
         if (previous == null || previous.position() != box.position()) {
             node.setPositionType(Yoga.position(box.position()));
@@ -661,6 +671,7 @@ public final class RenderObject implements AutoCloseable {
                 // drawn rather than where -- a box that starts clipping, and one
                 // that starts painting over its siblings.
                 && a.alignSelf() == b.alignSelf()
+                && a.alignContent() == b.alignContent()
                 && a.wrap() == b.wrap()
                 && a.limits().equals(b.limits())
                 && a.overflow() == b.overflow()
@@ -672,6 +683,7 @@ public final class RenderObject implements AutoCloseable {
                 && a.gap().equals(b.gap())
                 && a.flexGrow() == b.flexGrow()
                 && a.flexShrink() == b.flexShrink()
+                && a.flexBasis().equals(b.flexBasis())
                 && a.position() == b.position()
                 && a.inset().equals(b.inset())
                 && java.util.Objects.equals(a.text(), b.text())
