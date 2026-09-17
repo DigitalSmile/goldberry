@@ -43,17 +43,6 @@ public record ImageCalls(
     /// into the buffer that will be presented (ADR-0031).
     ///
     /// `int bl_image_init_as_from_data(void*, int, int, int, void*, int64_t, int, void*, void*)`
-    ///
-    /// @param image an uninitialised `BLImageCore` to take over
-    /// @param width width in pixels
-    /// @param height height in pixels
-    /// @param format a `BLFormat`
-    /// @param pixels the first pixel; the caller keeps ownership
-    /// @param stride bytes per row, signed — negative means bottom-up, which this toolkit never
-    ///        produces
-    /// @param accessFlags a `BLDataAccessFlags`
-    /// @param destroyFunc called when Blend2D releases the image; NULL to free nothing
-    /// @param userData passed to `destroyFunc`
     public static final class ImageInitAsFromData {
 
         private static final MethodHandle FD_bl_image_init_as_from_data = Downcalls.link(FunctionDescriptor.of(
@@ -65,6 +54,18 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_init_as_from_data");
         }
 
+        /// Calls `bl_image_init_as_from_data`.
+        ///
+        /// @param image an uninitialised `BLImageCore` to take over
+        /// @param width width in pixels
+        /// @param height height in pixels
+        /// @param format a `BLFormat`
+        /// @param pixels the first pixel; the caller keeps ownership
+        /// @param stride bytes per row, signed — negative means bottom-up, which this toolkit never
+        ///        produces
+        /// @param accessFlags a `BLDataAccessFlags`
+        /// @param destroyFunc called when Blend2D releases the image; NULL to free nothing
+        /// @param userData passed to `destroyFunc`
         public int call(
                 MemorySegment image,
                 int width,
@@ -91,8 +92,6 @@ public record ImageCalls(
     /// knows one (ADR-0283).
     ///
     /// `int bl_image_init(void*)`
-    ///
-    /// @param image an uninitialised `BLImageCore` to take over
     public static final class ImageInit {
 
         private static final MethodHandle FD_bl_image_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -103,6 +102,9 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_init");
         }
 
+        /// Calls `bl_image_init`.
+        ///
+        /// @param image an uninitialised `BLImageCore` to take over
         public int call(MemorySegment image) {
             try {
                 return (int) FD_bl_image_init.invokeExact(address, image);
@@ -122,12 +124,6 @@ public record ImageCalls(
     /// (ADR-0283).
     ///
     /// `int bl_image_read_from_data(void*, const void*, size_t, const void*)`
-    ///
-    /// @param image an initialised `BLImageCore` to decode into
-    /// @param data the first encoded byte
-    /// @param size how many bytes there are
-    /// @param codecs a `BLArray` of codecs to consider, or NULL for the built-in
-    ///        ones — which is what this library is compiled with
     public static final class ImageReadFromData {
 
         private static final MethodHandle FD_bl_image_read_from_data =
@@ -139,6 +135,13 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_read_from_data");
         }
 
+        /// Calls `bl_image_read_from_data`.
+        ///
+        /// @param image an initialised `BLImageCore` to decode into
+        /// @param data the first encoded byte
+        /// @param size how many bytes there are
+        /// @param codecs a `BLArray` of codecs to consider, or NULL for the built-in
+        ///        ones — which is what this library is compiled with
         public int call(MemorySegment image, MemorySegment data, long size, MemorySegment codecs) {
             try {
                 return (int) FD_bl_image_read_from_data.invokeExact(address, image, data, size, codecs);
@@ -155,9 +158,6 @@ public record ImageCalls(
     /// format is normalised once here rather than asked about at every blit.
     ///
     /// `int bl_image_convert(void*, int)`
-    ///
-    /// @param image the image to convert
-    /// @param format a `BLFormat`
     public static final class ImageConvert {
 
         private static final MethodHandle FD_bl_image_convert =
@@ -169,6 +169,10 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_convert");
         }
 
+        /// Calls `bl_image_convert`.
+        ///
+        /// @param image the image to convert
+        /// @param format a `BLFormat`
         public int call(MemorySegment image, int format) {
             try {
                 return (int) FD_bl_image_convert.invokeExact(address, image, format);
@@ -181,8 +185,6 @@ public record ImageCalls(
     /// Releases Blend2D’s side of the image, leaving borrowed pixels untouched.
     ///
     /// `int bl_image_destroy(void*)`
-    ///
-    /// @param image the image to release
     public static final class ImageDestroy {
 
         private static final MethodHandle FD_bl_image_destroy =
@@ -194,6 +196,9 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_destroy");
         }
 
+        /// Calls `bl_image_destroy`.
+        ///
+        /// @param image the image to release
         public int call(MemorySegment image) {
             try {
                 return (int) FD_bl_image_destroy.invokeExact(address, image);
@@ -206,9 +211,6 @@ public record ImageCalls(
     /// Reads back where Blend2D thinks the pixels are, and at what stride.
     ///
     /// `int bl_image_get_data(void*, void*)`
-    ///
-    /// @param image the image to inspect
-    /// @param out a caller-allocated `BLImageData` to fill in
     public static final class ImageGetData {
 
         private static final MethodHandle FD_bl_image_get_data =
@@ -220,6 +222,10 @@ public record ImageCalls(
             this.address = Downcalls.symbol(lookup, "bl_image_get_data");
         }
 
+        /// Calls `bl_image_get_data`.
+        ///
+        /// @param image the image to inspect
+        /// @param out a caller-allocated `BLImageData` to fill in
         public int call(MemorySegment image, MemorySegment out) {
             try {
                 return (int) FD_bl_image_get_data.invokeExact(address, image, out);

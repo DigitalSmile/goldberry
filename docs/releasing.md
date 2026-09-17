@@ -18,7 +18,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 | `snapshot.yml` → `publish.yml` → Central snapshots | **built, never run** — waits on the secrets below |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
-| Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **not done** — blocks the first release, not snapshots |
+| Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **done** (2026-09-17) — all seven upstream files copied verbatim from the pinned checkouts; the check passes with eleven components |
 
 ## Versions
 
@@ -135,8 +135,10 @@ summary instead of failing.
 1. **Rehearse.** Actions → *Release* → *Run workflow* on master. It builds every
    platform and runs the whole chain into `mavenLocal`, uploading nothing — javadoc,
    POMs, the classifier jars. Fix anything red before tagging.
-2. **Vendor the licences** if not done: `./gradlew checkLicenses
-   -Pgoldberry.releaseCheck=true` must pass. The release run enforces it.
+2. **Check the licences**: `./gradlew checkLicenses -Pgoldberry.releaseCheck=true`
+   must pass. The release run enforces it. A bumped upstream pin in
+   `libs.versions.toml` means re-copying that component's file from the new
+   checkout, since the copyright lines are the upstream's.
 3. **Tag the commit that declares the version**:
    ```sh
    git tag -a v2026.1 -m "Goldberry 2026.1"

@@ -47,8 +47,6 @@ public record LayoutCalls(
     /// The node’s left edge, relative to its parent.
     ///
     /// `float YGNodeLayoutGetLeft(void*)`
-    ///
-    /// @return points
     public static final class LayoutGetLeft {
 
         private static final MethodHandle FD_YGNodeLayoutGetLeft =
@@ -60,6 +58,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetLeft");
         }
 
+        /// Calls `YGNodeLayoutGetLeft`.
+        ///
+        /// @return points
         public float call(MemorySegment node) {
             try {
                 return (float) FD_YGNodeLayoutGetLeft.invokeExact(address, node);
@@ -72,8 +73,6 @@ public record LayoutCalls(
     /// The node’s top edge, relative to its parent.
     ///
     /// `float YGNodeLayoutGetTop(void*)`
-    ///
-    /// @return points
     public static final class LayoutGetTop {
 
         private static final MethodHandle FD_YGNodeLayoutGetTop =
@@ -85,6 +84,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetTop");
         }
 
+        /// Calls `YGNodeLayoutGetTop`.
+        ///
+        /// @return points
         public float call(MemorySegment node) {
             try {
                 return (float) FD_YGNodeLayoutGetTop.invokeExact(address, node);
@@ -97,8 +99,6 @@ public record LayoutCalls(
     /// The node’s computed width.
     ///
     /// `float YGNodeLayoutGetWidth(void*)`
-    ///
-    /// @return points
     public static final class LayoutGetWidth {
 
         private static final MethodHandle FD_YGNodeLayoutGetWidth =
@@ -110,6 +110,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetWidth");
         }
 
+        /// Calls `YGNodeLayoutGetWidth`.
+        ///
+        /// @return points
         public float call(MemorySegment node) {
             try {
                 return (float) FD_YGNodeLayoutGetWidth.invokeExact(address, node);
@@ -122,8 +125,6 @@ public record LayoutCalls(
     /// The node’s computed height.
     ///
     /// `float YGNodeLayoutGetHeight(void*)`
-    ///
-    /// @return points
     public static final class LayoutGetHeight {
 
         private static final MethodHandle FD_YGNodeLayoutGetHeight =
@@ -135,6 +136,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetHeight");
         }
 
+        /// Calls `YGNodeLayoutGetHeight`.
+        ///
+        /// @return points
         public float call(MemorySegment node) {
             try {
                 return (float) FD_YGNodeLayoutGetHeight.invokeExact(address, node);
@@ -151,9 +155,6 @@ public record LayoutCalls(
     /// a physical one.
     ///
     /// `float YGNodeLayoutGetMargin(void*, int)`
-    ///
-    /// @param edge a **physical** `YGEdge` — LEFT or RIGHT, never START or END
-    /// @return points
     public static final class LayoutGetMargin {
 
         private static final MethodHandle FD_YGNodeLayoutGetMargin =
@@ -165,6 +166,10 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetMargin");
         }
 
+        /// Calls `YGNodeLayoutGetMargin`.
+        ///
+        /// @param edge a **physical** `YGEdge` — LEFT or RIGHT, never START or END
+        /// @return points
         public float call(MemorySegment node, int edge) {
             try {
                 return (float) FD_YGNodeLayoutGetMargin.invokeExact(address, node, edge);
@@ -177,9 +182,6 @@ public record LayoutCalls(
     /// The border width the pass resolved on one edge.
     ///
     /// `float YGNodeLayoutGetBorder(void*, int)`
-    ///
-    /// @param edge a physical `YGEdge`
-    /// @return points
     public static final class LayoutGetBorder {
 
         private static final MethodHandle FD_YGNodeLayoutGetBorder =
@@ -191,6 +193,10 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetBorder");
         }
 
+        /// Calls `YGNodeLayoutGetBorder`.
+        ///
+        /// @param edge a physical `YGEdge`
+        /// @return points
         public float call(MemorySegment node, int edge) {
             try {
                 return (float) FD_YGNodeLayoutGetBorder.invokeExact(address, node, edge);
@@ -203,9 +209,6 @@ public record LayoutCalls(
     /// The padding the pass resolved on one edge.
     ///
     /// `float YGNodeLayoutGetPadding(void*, int)`
-    ///
-    /// @param edge a physical `YGEdge`
-    /// @return points
     public static final class LayoutGetPadding {
 
         private static final MethodHandle FD_YGNodeLayoutGetPadding =
@@ -217,6 +220,10 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetPadding");
         }
 
+        /// Calls `YGNodeLayoutGetPadding`.
+        ///
+        /// @param edge a physical `YGEdge`
+        /// @return points
         public float call(MemorySegment node, int edge) {
             try {
                 return (float) FD_YGNodeLayoutGetPadding.invokeExact(address, node, edge);
@@ -229,8 +236,6 @@ public record LayoutCalls(
     /// The direction the node was actually laid out in, with `inherit` resolved.
     ///
     /// `int YGNodeLayoutGetDirection(void*)`
-    ///
-    /// @return a `YGDirection`
     public static final class LayoutGetDirection {
 
         private static final MethodHandle FD_YGNodeLayoutGetDirection =
@@ -242,6 +247,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetDirection");
         }
 
+        /// Calls `YGNodeLayoutGetDirection`.
+        ///
+        /// @return a `YGDirection`
         public int call(MemorySegment node) {
             try {
                 return (int) FD_YGNodeLayoutGetDirection.invokeExact(address, node);
@@ -254,8 +262,6 @@ public record LayoutCalls(
     /// Whether any child overflowed this node in the last pass.
     ///
     /// `_Bool YGNodeLayoutGetHadOverflow(void*)`
-    ///
-    /// @return true if something did not fit
     public static final class LayoutGetHadOverflow {
 
         private static final MethodHandle FD_YGNodeLayoutGetHadOverflow =
@@ -267,6 +273,9 @@ public record LayoutCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeLayoutGetHadOverflow");
         }
 
+        /// Calls `YGNodeLayoutGetHadOverflow`.
+        ///
+        /// @return true if something did not fit
         public boolean call(MemorySegment node) {
             try {
                 return (boolean) FD_YGNodeLayoutGetHadOverflow.invokeExact(address, node);

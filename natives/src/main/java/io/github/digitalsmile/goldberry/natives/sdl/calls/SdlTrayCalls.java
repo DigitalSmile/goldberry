@@ -62,10 +62,6 @@ public record SdlTrayCalls(
     /// apart the way `SDL_CreatePopupWindow`'s caller does.
     ///
     /// `void* SDL_CreateTray(void*, void*)`
-    ///
-    /// @param icon    an `SDL_Surface*`, or NULL for the platform's default
-    /// @param tooltip the hover text, NUL-terminated UTF-8, or NULL
-    /// @return an `SDL_Tray*`, or NULL if this desktop has no tray
     public static final class CreateTray {
 
         private static final MethodHandle FD_SDL_CreateTray =
@@ -77,6 +73,11 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateTray");
         }
 
+        /// Calls `SDL_CreateTray`.
+        ///
+        /// @param icon    an `SDL_Surface*`, or NULL for the platform's default
+        /// @param tooltip the hover text, NUL-terminated UTF-8, or NULL
+        /// @return an `SDL_Tray*`, or NULL if this desktop has no tray
         public MemorySegment call(MemorySegment icon, MemorySegment tooltip) {
             try {
                 return (MemorySegment) FD_SDL_CreateTray.invokeExact(address, icon, tooltip);
@@ -92,8 +93,6 @@ public record SdlTrayCalls(
     /// hold one upcall stub per entry and free them all at once.
     ///
     /// `void SDL_DestroyTray(void*)`
-    ///
-    /// @param tray the tray to take down
     public static final class DestroyTray {
 
         private static final MethodHandle FD_SDL_DestroyTray = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -104,6 +103,9 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroyTray");
         }
 
+        /// Calls `SDL_DestroyTray`.
+        ///
+        /// @param tray the tray to take down
         public void call(MemorySegment tray) {
             try {
                 FD_SDL_DestroyTray.invokeExact(address, tray);
@@ -117,9 +119,6 @@ public record SdlTrayCalls(
     /// desktop's background and not on the toolkit's.
     ///
     /// `void SDL_SetTrayIcon(void*, void*)`
-    ///
-    /// @param tray the tray
-    /// @param icon an `SDL_Surface*`, or NULL for the platform's default
     public static final class SetTrayIcon {
 
         private static final MethodHandle FD_SDL_SetTrayIcon =
@@ -131,6 +130,10 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetTrayIcon");
         }
 
+        /// Calls `SDL_SetTrayIcon`.
+        ///
+        /// @param tray the tray
+        /// @param icon an `SDL_Surface*`, or NULL for the platform's default
         public void call(MemorySegment tray, MemorySegment icon) {
             try {
                 FD_SDL_SetTrayIcon.invokeExact(address, tray, icon);
@@ -144,9 +147,6 @@ public record SdlTrayCalls(
     /// by doing nothing.
     ///
     /// `void SDL_SetTrayTooltip(void*, void*)`
-    ///
-    /// @param tray    the tray
-    /// @param tooltip NUL-terminated UTF-8, or NULL for none
     public static final class SetTrayTooltip {
 
         private static final MethodHandle FD_SDL_SetTrayTooltip =
@@ -158,6 +158,10 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetTrayTooltip");
         }
 
+        /// Calls `SDL_SetTrayTooltip`.
+        ///
+        /// @param tray    the tray
+        /// @param tooltip NUL-terminated UTF-8, or NULL for none
         public void call(MemorySegment tray, MemorySegment tooltip) {
             try {
                 FD_SDL_SetTrayTooltip.invokeExact(address, tray, tooltip);
@@ -171,9 +175,6 @@ public record SdlTrayCalls(
     /// and the wrapper never asks for it.
     ///
     /// `void* SDL_CreateTrayMenu(void*)`
-    ///
-    /// @param tray the tray to give a menu
-    /// @return an `SDL_TrayMenu*`, or NULL
     public static final class CreateTrayMenu {
 
         private static final MethodHandle FD_SDL_CreateTrayMenu =
@@ -185,6 +186,10 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateTrayMenu");
         }
 
+        /// Calls `SDL_CreateTrayMenu`.
+        ///
+        /// @param tray the tray to give a menu
+        /// @return an `SDL_TrayMenu*`, or NULL
         public MemorySegment call(MemorySegment tray) {
             try {
                 return (MemorySegment) FD_SDL_CreateTrayMenu.invokeExact(address, tray);
@@ -198,9 +203,6 @@ public record SdlTrayCalls(
     /// `SDL_TRAYENTRY_SUBMENU`.
     ///
     /// `void* SDL_CreateTraySubmenu(void*)`
-    ///
-    /// @param entry the entry to open a submenu on
-    /// @return an `SDL_TrayMenu*`, or NULL
     public static final class CreateTraySubmenu {
 
         private static final MethodHandle FD_SDL_CreateTraySubmenu =
@@ -212,6 +214,10 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateTraySubmenu");
         }
 
+        /// Calls `SDL_CreateTraySubmenu`.
+        ///
+        /// @param entry the entry to open a submenu on
+        /// @return an `SDL_TrayMenu*`, or NULL
         public MemorySegment call(MemorySegment entry) {
             try {
                 return (MemorySegment) FD_SDL_CreateTraySubmenu.invokeExact(address, entry);
@@ -227,12 +233,6 @@ public record SdlTrayCalls(
     /// `separator` is a widget for on this side of the boundary.
     ///
     /// `void* SDL_InsertTrayEntryAt(void*, int, void*, int)`
-    ///
-    /// @param menu  the menu to append to
-    /// @param pos   the position, or -1 to append
-    /// @param label NUL-terminated UTF-8, or NULL for a separator
-    /// @param flags an `SDL_TrayEntryFlags` mask with exactly one kind in it
-    /// @return an `SDL_TrayEntry*`, or NULL if `pos` was out of bounds
     public static final class InsertTrayEntryAt {
 
         private static final MethodHandle FD_SDL_InsertTrayEntryAt =
@@ -244,6 +244,13 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_InsertTrayEntryAt");
         }
 
+        /// Calls `SDL_InsertTrayEntryAt`.
+        ///
+        /// @param menu  the menu to append to
+        /// @param pos   the position, or -1 to append
+        /// @param label NUL-terminated UTF-8, or NULL for a separator
+        /// @param flags an `SDL_TrayEntryFlags` mask with exactly one kind in it
+        /// @return an `SDL_TrayEntry*`, or NULL if `pos` was out of bounds
         public MemorySegment call(MemorySegment menu, int pos, MemorySegment label, int flags) {
             try {
                 return (MemorySegment) FD_SDL_InsertTrayEntryAt.invokeExact(address, menu, pos, label, flags);
@@ -256,11 +263,6 @@ public record SdlTrayCalls(
     /// Says what to run when an entry is chosen.
     ///
     /// `void SDL_SetTrayEntryCallback(void*, void*, void*)`
-    ///
-    /// @param entry    the entry
-    /// @param callback an `SDL_TrayCallback` upcall stub, or NULL to clear
-    /// @param userdata passed back to the callback; the wrapper passes NULL and
-    ///        binds the entry's identity into the stub instead
     public static final class SetTrayEntryCallback {
 
         private static final MethodHandle FD_SDL_SetTrayEntryCallback =
@@ -272,6 +274,12 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetTrayEntryCallback");
         }
 
+        /// Calls `SDL_SetTrayEntryCallback`.
+        ///
+        /// @param entry    the entry
+        /// @param callback an `SDL_TrayCallback` upcall stub, or NULL to clear
+        /// @param userdata passed back to the callback; the wrapper passes NULL and
+        ///        binds the entry's identity into the stub instead
         public void call(MemorySegment entry, MemorySegment callback, MemorySegment userdata) {
             try {
                 FD_SDL_SetTrayEntryCallback.invokeExact(address, entry, callback, userdata);
@@ -287,8 +295,6 @@ public record SdlTrayCalls(
     /// back, so this is the only way to learn what the user chose.
     ///
     /// `_Bool SDL_GetTrayEntryChecked(void*)`
-    ///
-    /// @param entry the entry, which must be a checkbox
     public static final class GetTrayEntryChecked {
 
         private static final MethodHandle FD_SDL_GetTrayEntryChecked =
@@ -300,6 +306,9 @@ public record SdlTrayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetTrayEntryChecked");
         }
 
+        /// Calls `SDL_GetTrayEntryChecked`.
+        ///
+        /// @param entry the entry, which must be a checkbox
         public boolean call(MemorySegment entry) {
             try {
                 return (boolean) FD_SDL_GetTrayEntryChecked.invokeExact(address, entry);

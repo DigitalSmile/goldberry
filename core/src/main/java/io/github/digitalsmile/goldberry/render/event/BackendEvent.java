@@ -212,8 +212,9 @@ public sealed interface BackendEvent {
 
     /// A key went down.
     ///
-    /// @param keycode  the platform's virtual keycode — translated to a [Key] by
-    ///                 the layer that dispatches, so the SPI stays free of the
+    /// @param keycode  the platform's virtual keycode — translated to a
+    ///                 [io.github.digitalsmile.goldberry.input.key.Key] by the
+    ///                 layer that dispatches, so the SPI stays free of the
     ///                 toolkit's own naming
     /// @param modifiers the platform's modifier bitmask
     /// @param repeat   whether the platform is repeating a held key

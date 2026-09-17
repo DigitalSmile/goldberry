@@ -56,8 +56,6 @@ public record StyleCalls(
     /// Sets which way the node reads — LTR, RTL, or inherit.
     ///
     /// `void YGNodeStyleSetDirection(void*, int)`
-    ///
-    /// @param direction a `YGDirection`
     public static final class StyleSetDirection {
 
         private static final MethodHandle FD_YGNodeStyleSetDirection =
@@ -69,6 +67,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetDirection");
         }
 
+        /// Calls `YGNodeStyleSetDirection`.
+        ///
+        /// @param direction a `YGDirection`
         public void call(MemorySegment node, int direction) {
             try {
                 FD_YGNodeStyleSetDirection.invokeExact(address, node, direction);
@@ -81,8 +82,6 @@ public record StyleCalls(
     /// Sets the main axis — CSS’s `flex-direction`.
     ///
     /// `void YGNodeStyleSetFlexDirection(void*, int)`
-    ///
-    /// @param flexDirection a `YGFlexDirection`
     public static final class StyleSetFlexDirection {
 
         private static final MethodHandle FD_YGNodeStyleSetFlexDirection =
@@ -94,6 +93,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetFlexDirection");
         }
 
+        /// Calls `YGNodeStyleSetFlexDirection`.
+        ///
+        /// @param flexDirection a `YGFlexDirection`
         public void call(MemorySegment node, int flexDirection) {
             try {
                 FD_YGNodeStyleSetFlexDirection.invokeExact(address, node, flexDirection);
@@ -106,8 +108,6 @@ public record StyleCalls(
     /// Sets alignment along the main axis — CSS’s `justify-content`.
     ///
     /// `void YGNodeStyleSetJustifyContent(void*, int)`
-    ///
-    /// @param justify a `YGJustify`
     public static final class StyleSetJustifyContent {
 
         private static final MethodHandle FD_YGNodeStyleSetJustifyContent =
@@ -119,6 +119,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetJustifyContent");
         }
 
+        /// Calls `YGNodeStyleSetJustifyContent`.
+        ///
+        /// @param justify a `YGJustify`
         public void call(MemorySegment node, int justify) {
             try {
                 FD_YGNodeStyleSetJustifyContent.invokeExact(address, node, justify);
@@ -131,8 +134,6 @@ public record StyleCalls(
     /// Sets how wrapped lines are distributed — CSS’s `align-content`.
     ///
     /// `void YGNodeStyleSetAlignContent(void*, int)`
-    ///
-    /// @param align a `YGAlign`
     public static final class StyleSetAlignContent {
 
         private static final MethodHandle FD_YGNodeStyleSetAlignContent =
@@ -144,6 +145,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetAlignContent");
         }
 
+        /// Calls `YGNodeStyleSetAlignContent`.
+        ///
+        /// @param align a `YGAlign`
         public void call(MemorySegment node, int align) {
             try {
                 FD_YGNodeStyleSetAlignContent.invokeExact(address, node, align);
@@ -156,8 +160,6 @@ public record StyleCalls(
     /// Sets alignment across the main axis — CSS’s `align-items`.
     ///
     /// `void YGNodeStyleSetAlignItems(void*, int)`
-    ///
-    /// @param align a `YGAlign`
     public static final class StyleSetAlignItems {
 
         private static final MethodHandle FD_YGNodeStyleSetAlignItems =
@@ -169,6 +171,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetAlignItems");
         }
 
+        /// Calls `YGNodeStyleSetAlignItems`.
+        ///
+        /// @param align a `YGAlign`
         public void call(MemorySegment node, int align) {
             try {
                 FD_YGNodeStyleSetAlignItems.invokeExact(address, node, align);
@@ -181,8 +186,6 @@ public record StyleCalls(
     /// Overrides the parent’s `align-items` for one child — CSS’s `align-self`.
     ///
     /// `void YGNodeStyleSetAlignSelf(void*, int)`
-    ///
-    /// @param align a `YGAlign`
     public static final class StyleSetAlignSelf {
 
         private static final MethodHandle FD_YGNodeStyleSetAlignSelf =
@@ -194,6 +197,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetAlignSelf");
         }
 
+        /// Calls `YGNodeStyleSetAlignSelf`.
+        ///
+        /// @param align a `YGAlign`
         public void call(MemorySegment node, int align) {
             try {
                 FD_YGNodeStyleSetAlignSelf.invokeExact(address, node, align);
@@ -206,8 +212,6 @@ public record StyleCalls(
     /// Sets whether the node is in flow — CSS’s `position`.
     ///
     /// `void YGNodeStyleSetPositionType(void*, int)`
-    ///
-    /// @param positionType a `YGPositionType`
     public static final class StyleSetPositionType {
 
         private static final MethodHandle FD_YGNodeStyleSetPositionType =
@@ -219,6 +223,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetPositionType");
         }
 
+        /// Calls `YGNodeStyleSetPositionType`.
+        ///
+        /// @param positionType a `YGPositionType`
         public void call(MemorySegment node, int positionType) {
             try {
                 FD_YGNodeStyleSetPositionType.invokeExact(address, node, positionType);
@@ -231,8 +238,6 @@ public record StyleCalls(
     /// Sets whether children wrap onto new lines — CSS’s `flex-wrap`.
     ///
     /// `void YGNodeStyleSetFlexWrap(void*, int)`
-    ///
-    /// @param wrap a `YGWrap`
     public static final class StyleSetFlexWrap {
 
         private static final MethodHandle FD_YGNodeStyleSetFlexWrap =
@@ -244,6 +249,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetFlexWrap");
         }
 
+        /// Calls `YGNodeStyleSetFlexWrap`.
+        ///
+        /// @param wrap a `YGWrap`
         public void call(MemorySegment node, int wrap) {
             try {
                 FD_YGNodeStyleSetFlexWrap.invokeExact(address, node, wrap);
@@ -256,8 +264,6 @@ public record StyleCalls(
     /// Sets what happens to content that does not fit — CSS’s `overflow`.
     ///
     /// `void YGNodeStyleSetOverflow(void*, int)`
-    ///
-    /// @param overflow a `YGOverflow`
     public static final class StyleSetOverflow {
 
         private static final MethodHandle FD_YGNodeStyleSetOverflow =
@@ -269,6 +275,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetOverflow");
         }
 
+        /// Calls `YGNodeStyleSetOverflow`.
+        ///
+        /// @param overflow a `YGOverflow`
         public void call(MemorySegment node, int overflow) {
             try {
                 FD_YGNodeStyleSetOverflow.invokeExact(address, node, overflow);
@@ -281,8 +290,6 @@ public record StyleCalls(
     /// Sets whether the node lays out at all — CSS’s `display`.
     ///
     /// `void YGNodeStyleSetDisplay(void*, int)`
-    ///
-    /// @param display a `YGDisplay`
     public static final class StyleSetDisplay {
 
         private static final MethodHandle FD_YGNodeStyleSetDisplay =
@@ -294,6 +301,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetDisplay");
         }
 
+        /// Calls `YGNodeStyleSetDisplay`.
+        ///
+        /// @param display a `YGDisplay`
         public void call(MemorySegment node, int display) {
             try {
                 FD_YGNodeStyleSetDisplay.invokeExact(address, node, display);
@@ -306,8 +316,6 @@ public record StyleCalls(
     /// Sets how eagerly the node takes leftover space — CSS’s `flex-grow`.
     ///
     /// `void YGNodeStyleSetFlexGrow(void*, float)`
-    ///
-    /// @param flexGrow a share of the free space, 0 for none
     public static final class StyleSetFlexGrow {
 
         private static final MethodHandle FD_YGNodeStyleSetFlexGrow =
@@ -319,6 +327,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetFlexGrow");
         }
 
+        /// Calls `YGNodeStyleSetFlexGrow`.
+        ///
+        /// @param flexGrow a share of the free space, 0 for none
         public void call(MemorySegment node, float flexGrow) {
             try {
                 FD_YGNodeStyleSetFlexGrow.invokeExact(address, node, flexGrow);
@@ -331,8 +342,6 @@ public record StyleCalls(
     /// Sets how readily the node gives up space — CSS’s `flex-shrink`.
     ///
     /// `void YGNodeStyleSetFlexShrink(void*, float)`
-    ///
-    /// @param flexShrink a share of the overflow, 0 to refuse to shrink
     public static final class StyleSetFlexShrink {
 
         private static final MethodHandle FD_YGNodeStyleSetFlexShrink =
@@ -344,6 +353,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetFlexShrink");
         }
 
+        /// Calls `YGNodeStyleSetFlexShrink`.
+        ///
+        /// @param flexShrink a share of the overflow, 0 to refuse to shrink
         public void call(MemorySegment node, float flexShrink) {
             try {
                 FD_YGNodeStyleSetFlexShrink.invokeExact(address, node, flexShrink);
@@ -356,8 +368,6 @@ public record StyleCalls(
     /// Ties one axis to the other — CSS’s `aspect-ratio`.
     ///
     /// `void YGNodeStyleSetAspectRatio(void*, float)`
-    ///
-    /// @param aspectRatio width divided by height, or NaN to unset
     public static final class StyleSetAspectRatio {
 
         private static final MethodHandle FD_YGNodeStyleSetAspectRatio =
@@ -369,6 +379,9 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetAspectRatio");
         }
 
+        /// Calls `YGNodeStyleSetAspectRatio`.
+        ///
+        /// @param aspectRatio width divided by height, or NaN to unset
         public void call(MemorySegment node, float aspectRatio) {
             try {
                 FD_YGNodeStyleSetAspectRatio.invokeExact(address, node, aspectRatio);
@@ -384,9 +397,6 @@ public record StyleCalls(
     /// CSS — a percentage `border-width` is not a thing.
     ///
     /// `void YGNodeStyleSetBorder(void*, int, float)`
-    ///
-    /// @param edge a `YGEdge`
-    /// @param border in points
     public static final class StyleSetBorder {
 
         private static final MethodHandle FD_YGNodeStyleSetBorder =
@@ -398,6 +408,10 @@ public record StyleCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeStyleSetBorder");
         }
 
+        /// Calls `YGNodeStyleSetBorder`.
+        ///
+        /// @param edge a `YGEdge`
+        /// @param border in points
         public void call(MemorySegment node, int edge, float border) {
             try {
                 FD_YGNodeStyleSetBorder.invokeExact(address, node, edge, border);

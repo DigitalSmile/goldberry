@@ -80,10 +80,6 @@ public record ContextCalls(
     /// Begins rendering into `image`.
     ///
     /// `int bl_context_init_as(void*, void*, void*)`
-    ///
-    /// @param context an uninitialised `BLContextCore` to take over
-    /// @param image the image to draw into
-    /// @param createInfo a `BLContextCreateInfo`, which is where the worker count is asked for
     public static final class ContextInitAs {
 
         private static final MethodHandle FD_bl_context_init_as =
@@ -95,6 +91,11 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_init_as");
         }
 
+        /// Calls `bl_context_init_as`.
+        ///
+        /// @param context an uninitialised `BLContextCore` to take over
+        /// @param image the image to draw into
+        /// @param createInfo a `BLContextCreateInfo`, which is where the worker count is asked for
         public int call(MemorySegment context, MemorySegment image, MemorySegment createInfo) {
             try {
                 return (int) FD_bl_context_init_as.invokeExact(address, context, image, createInfo);
@@ -110,8 +111,6 @@ public record ContextCalls(
     /// is why this happens before presenting and not after.
     ///
     /// `int bl_context_end(void*)`
-    ///
-    /// @param context the context to finish
     public static final class ContextEnd {
 
         private static final MethodHandle FD_bl_context_end = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -122,6 +121,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_end");
         }
 
+        /// Calls `bl_context_end`.
+        ///
+        /// @param context the context to finish
         public int call(MemorySegment context) {
             try {
                 return (int) FD_bl_context_end.invokeExact(address, context);
@@ -135,8 +137,6 @@ public record ContextCalls(
     /// drawing, destroying gives back the memory.
     ///
     /// `int bl_context_destroy(void*)`
-    ///
-    /// @param context the context to release
     public static final class ContextDestroy {
 
         private static final MethodHandle FD_bl_context_destroy =
@@ -148,6 +148,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_destroy");
         }
 
+        /// Calls `bl_context_destroy`.
+        ///
+        /// @param context the context to release
         public int call(MemorySegment context) {
             try {
                 return (int) FD_bl_context_destroy.invokeExact(address, context);
@@ -160,9 +163,6 @@ public record ContextCalls(
     /// Waits for queued work without ending the context.
     ///
     /// `int bl_context_flush(void*, int)`
-    ///
-    /// @param context the context to flush
-    /// @param flags a `BLContextFlushFlags`; `SYNC` waits for the workers
     public static final class ContextFlush {
 
         private static final MethodHandle FD_bl_context_flush =
@@ -174,6 +174,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_flush");
         }
 
+        /// Calls `bl_context_flush`.
+        ///
+        /// @param context the context to flush
+        /// @param flags a `BLContextFlushFlags`; `SYNC` waits for the workers
         public int call(MemorySegment context, int flags) {
             try {
                 return (int) FD_bl_context_flush.invokeExact(address, context, flags);
@@ -189,10 +193,6 @@ public record ContextCalls(
     /// Blend2D exports: the op says how many doubles `data` holds.
     ///
     /// `int bl_context_apply_transform_op(void*, int, void*)`
-    ///
-    /// @param context the context to transform
-    /// @param op a `BLTransformOp` — which of translate, scale, rotate or a full matrix
-    /// @param data the operands that op expects, as doubles
     public static final class ContextApplyTransformOp {
 
         private static final MethodHandle FD_bl_context_apply_transform_op =
@@ -204,6 +204,11 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_apply_transform_op");
         }
 
+        /// Calls `bl_context_apply_transform_op`.
+        ///
+        /// @param context the context to transform
+        /// @param op a `BLTransformOp` — which of translate, scale, rotate or a full matrix
+        /// @param data the operands that op expects, as doubles
         public int call(MemorySegment context, int op, MemorySegment data) {
             try {
                 return (int) FD_bl_context_apply_transform_op.invokeExact(address, context, op, data);
@@ -216,9 +221,6 @@ public record ContextCalls(
     /// Sets the compositing operator subsequent drawing blends with.
     ///
     /// `int bl_context_set_comp_op(void*, int)`
-    ///
-    /// @param context the context to set it on
-    /// @param compOp a `BLCompOp`
     public static final class ContextSetCompOp {
 
         private static final MethodHandle FD_bl_context_set_comp_op =
@@ -230,6 +232,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_comp_op");
         }
 
+        /// Calls `bl_context_set_comp_op`.
+        ///
+        /// @param context the context to set it on
+        /// @param compOp a `BLCompOp`
         public int call(MemorySegment context, int compOp) {
             try {
                 return (int) FD_bl_context_set_comp_op.invokeExact(address, context, compOp);
@@ -244,8 +250,6 @@ public record ContextCalls(
     /// darken it.
     ///
     /// `int bl_context_clear_all(void*)`
-    ///
-    /// @param context the context to clear
     public static final class ContextClearAll {
 
         private static final MethodHandle FD_bl_context_clear_all =
@@ -257,6 +261,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_clear_all");
         }
 
+        /// Calls `bl_context_clear_all`.
+        ///
+        /// @param context the context to clear
         public int call(MemorySegment context) {
             try {
                 return (int) FD_bl_context_clear_all.invokeExact(address, context);
@@ -269,9 +276,6 @@ public record ContextCalls(
     /// Fills the whole clip region, blending over what is there.
     ///
     /// `int bl_context_fill_all_rgba32(void*, int)`
-    ///
-    /// @param context the context to fill
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextFillAllRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_all_rgba32 =
@@ -283,6 +287,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_fill_all_rgba32");
         }
 
+        /// Calls `bl_context_fill_all_rgba32`.
+        ///
+        /// @param context the context to fill
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(MemorySegment context, int argb) {
             try {
                 return (int) FD_bl_context_fill_all_rgba32.invokeExact(address, context, argb);
@@ -298,10 +306,6 @@ public record ContextCalls(
     /// antialiased across the pixels it covers rather than snapped (ADR-0031).
     ///
     /// `int bl_context_fill_rect_d_rgba32(void*, void*, int)`
-    ///
-    /// @param context the context to fill in
-    /// @param rect a `BLRect` — four doubles in the context’s own units
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextFillRectDRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_rect_d_rgba32 =
@@ -313,6 +317,11 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_fill_rect_d_rgba32");
         }
 
+        /// Calls `bl_context_fill_rect_d_rgba32`.
+        ///
+        /// @param context the context to fill in
+        /// @param rect a `BLRect` — four doubles in the context’s own units
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(MemorySegment context, MemorySegment rect, int argb) {
             try {
                 return (int) FD_bl_context_fill_rect_d_rgba32.invokeExact(address, context, rect, argb);
@@ -330,12 +339,6 @@ public record ContextCalls(
     /// to stop doing for rectangles.
     ///
     /// `int bl_context_fill_glyph_run_d_rgba32(void*, void*, void*, void*, int)`
-    ///
-    /// @param context the context to draw into
-    /// @param origin a `BLPoint` baseline origin
-    /// @param font the `BLFont` to render with
-    /// @param glyphRun a `BLGlyphRun` of ids and positions, normally HarfBuzz’s output
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextFillGlyphRunDRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_glyph_run_d_rgba32 =
@@ -347,6 +350,13 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_fill_glyph_run_d_rgba32");
         }
 
+        /// Calls `bl_context_fill_glyph_run_d_rgba32`.
+        ///
+        /// @param context the context to draw into
+        /// @param origin a `BLPoint` baseline origin
+        /// @param font the `BLFont` to render with
+        /// @param glyphRun a `BLGlyphRun` of ids and positions, normally HarfBuzz’s output
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(
                 MemorySegment context, MemorySegment origin, MemorySegment font, MemorySegment glyphRun, int argb) {
             try {
@@ -361,9 +371,6 @@ public record ContextCalls(
     /// Sets the width subsequent strokes are drawn at (ADR-0043).
     ///
     /// `int bl_context_set_stroke_width(void*, double)`
-    ///
-    /// @param context the context to set it on
-    /// @param width in the context’s own units, so a scaled context strokes in logical pixels
     public static final class ContextSetStrokeWidth {
 
         private static final MethodHandle FD_bl_context_set_stroke_width =
@@ -375,6 +382,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_stroke_width");
         }
 
+        /// Calls `bl_context_set_stroke_width`.
+        ///
+        /// @param context the context to set it on
+        /// @param width in the context’s own units, so a scaled context strokes in logical pixels
         public int call(MemorySegment context, double width) {
             try {
                 return (int) FD_bl_context_set_stroke_width.invokeExact(address, context, width);
@@ -391,9 +402,6 @@ public record ContextCalls(
     /// at each end.
     ///
     /// `int bl_context_set_stroke_caps(void*, int)`
-    ///
-    /// @param context the context to set it on
-    /// @param cap a `BLStrokeCap`
     public static final class ContextSetStrokeCaps {
 
         private static final MethodHandle FD_bl_context_set_stroke_caps =
@@ -405,6 +413,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_stroke_caps");
         }
 
+        /// Calls `bl_context_set_stroke_caps`.
+        ///
+        /// @param context the context to set it on
+        /// @param cap a `BLStrokeCap`
         public int call(MemorySegment context, int cap) {
             try {
                 return (int) FD_bl_context_set_stroke_caps.invokeExact(address, context, cap);
@@ -417,9 +429,6 @@ public record ContextCalls(
     /// Sets how subsequent strokes turn corners.
     ///
     /// `int bl_context_set_stroke_join(void*, int)`
-    ///
-    /// @param context the context to set it on
-    /// @param join a `BLStrokeJoin`
     public static final class ContextSetStrokeJoin {
 
         private static final MethodHandle FD_bl_context_set_stroke_join =
@@ -431,6 +440,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_stroke_join");
         }
 
+        /// Calls `bl_context_set_stroke_join`.
+        ///
+        /// @param context the context to set it on
+        /// @param join a `BLStrokeJoin`
         public int call(MemorySegment context, int join) {
             try {
                 return (int) FD_bl_context_set_stroke_join.invokeExact(address, context, join);
@@ -447,9 +460,6 @@ public record ContextCalls(
     /// (ADR-0278).
     ///
     /// `int bl_context_set_stroke_miter_limit(void*, double)`
-    ///
-    /// @param context the context to set it on
-    /// @param miterLimit the limit, as a multiple of the stroke width
     public static final class ContextSetStrokeMiterLimit {
 
         private static final MethodHandle FD_bl_context_set_stroke_miter_limit =
@@ -461,6 +471,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_stroke_miter_limit");
         }
 
+        /// Calls `bl_context_set_stroke_miter_limit`.
+        ///
+        /// @param context the context to set it on
+        /// @param miterLimit the limit, as a multiple of the stroke width
         public int call(MemorySegment context, double miterLimit) {
             try {
                 return (int) FD_bl_context_set_stroke_miter_limit.invokeExact(address, context, miterLimit);
@@ -477,11 +491,6 @@ public record ContextCalls(
     /// being rebuilt or the context’s transform being saved and restored.
     ///
     /// `int bl_context_fill_path_d_rgba32(void*, void*, void*, int)`
-    ///
-    /// @param context the context to fill in
-    /// @param origin a `BLPoint` the path is translated by
-    /// @param path the `BLPath` to fill
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextFillPathDRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_path_d_rgba32 =
@@ -493,6 +502,12 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_fill_path_d_rgba32");
         }
 
+        /// Calls `bl_context_fill_path_d_rgba32`.
+        ///
+        /// @param context the context to fill in
+        /// @param origin a `BLPoint` the path is translated by
+        /// @param path the `BLPath` to fill
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
                 return (int) FD_bl_context_fill_path_d_rgba32.invokeExact(address, context, origin, path, argb);
@@ -511,10 +526,6 @@ public record ContextCalls(
     /// through [ContextSetFillStyle] and this is what draws with it (ADR-0207).
     ///
     /// `int bl_context_fill_path_d(void*, void*, void*)`
-    ///
-    /// @param context the context to fill in
-    /// @param origin a `BLPoint` the path is translated by
-    /// @param path the `BLPath` to fill
     public static final class ContextFillPathD {
 
         private static final MethodHandle FD_bl_context_fill_path_d =
@@ -526,6 +537,11 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_fill_path_d");
         }
 
+        /// Calls `bl_context_fill_path_d`.
+        ///
+        /// @param context the context to fill in
+        /// @param origin a `BLPoint` the path is translated by
+        /// @param path the `BLPath` to fill
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path) {
             try {
                 return (int) FD_bl_context_fill_path_d.invokeExact(address, context, origin, path);
@@ -544,9 +560,6 @@ public record ContextCalls(
     /// drawing with it.
     ///
     /// `int bl_context_set_fill_style(void*, const void*)`
-    ///
-    /// @param context the context to set it on
-    /// @param style the object to fill with
     public static final class ContextSetFillStyle {
 
         private static final MethodHandle FD_bl_context_set_fill_style =
@@ -558,6 +571,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_fill_style");
         }
 
+        /// Calls `bl_context_set_fill_style`.
+        ///
+        /// @param context the context to set it on
+        /// @param style the object to fill with
         public int call(MemorySegment context, MemorySegment style) {
             try {
                 return (int) FD_bl_context_set_fill_style.invokeExact(address, context, style);
@@ -576,9 +593,6 @@ public record ContextCalls(
     /// another set.
     ///
     /// `int bl_context_set_fill_style_rgba32(void*, unsigned int)`
-    ///
-    /// @param context the context to set it on
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextSetFillStyleRgba32 {
 
         private static final MethodHandle FD_bl_context_set_fill_style_rgba32 =
@@ -590,6 +604,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_fill_style_rgba32");
         }
 
+        /// Calls `bl_context_set_fill_style_rgba32`.
+        ///
+        /// @param context the context to set it on
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(MemorySegment context, int argb) {
             try {
                 return (int) FD_bl_context_set_fill_style_rgba32.invokeExact(address, context, argb);
@@ -602,11 +620,6 @@ public record ContextCalls(
     /// Strokes a path, translated by `origin`, at the width and caps set above.
     ///
     /// `int bl_context_stroke_path_d_rgba32(void*, void*, void*, int)`
-    ///
-    /// @param context the context to stroke in
-    /// @param origin a `BLPoint` the path is translated by
-    /// @param path the `BLPath` to stroke
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha
     public static final class ContextStrokePathDRgba32 {
 
         private static final MethodHandle FD_bl_context_stroke_path_d_rgba32 =
@@ -618,6 +631,12 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_stroke_path_d_rgba32");
         }
 
+        /// Calls `bl_context_stroke_path_d_rgba32`.
+        ///
+        /// @param context the context to stroke in
+        /// @param origin a `BLPoint` the path is translated by
+        /// @param path the `BLPath` to stroke
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
                 return (int) FD_bl_context_stroke_path_d_rgba32.invokeExact(address, context, origin, path, argb);
@@ -634,11 +653,6 @@ public record ContextCalls(
     /// `BLRectI` ever crosses.
     ///
     /// `int bl_context_blit_image_d(void*, void*, void*, void*)`
-    ///
-    /// @param context the context to blit into
-    /// @param origin a `BLPoint` — where the image’s top-left lands
-    /// @param image the source image
-    /// @param imageArea a `const BLRectI*` sub-rectangle of the source, or NULL for all of it
     public static final class ContextBlitImageD {
 
         private static final MethodHandle FD_bl_context_blit_image_d =
@@ -650,6 +664,12 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_blit_image_d");
         }
 
+        /// Calls `bl_context_blit_image_d`.
+        ///
+        /// @param context the context to blit into
+        /// @param origin a `BLPoint` — where the image’s top-left lands
+        /// @param image the source image
+        /// @param imageArea a `const BLRectI*` sub-rectangle of the source, or NULL for all of it
         public int call(MemorySegment context, MemorySegment origin, MemorySegment image, MemorySegment imageArea) {
             try {
                 return (int) FD_bl_context_blit_image_d.invokeExact(address, context, origin, image, imageArea);
@@ -665,11 +685,6 @@ public record ContextCalls(
     /// context measured in logical ones (ADR-0157).
     ///
     /// `int bl_context_blit_scaled_image_d(void*, void*, void*, void*)`
-    ///
-    /// @param context the context to blit into
-    /// @param rect a `BLRect` destination, in the context’s own units
-    /// @param image the source image
-    /// @param imageArea a `const BLRectI*` sub-rectangle of the source, or NULL for all of it
     public static final class ContextBlitScaledImageD {
 
         private static final MethodHandle FD_bl_context_blit_scaled_image_d =
@@ -681,6 +696,12 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_blit_scaled_image_d");
         }
 
+        /// Calls `bl_context_blit_scaled_image_d`.
+        ///
+        /// @param context the context to blit into
+        /// @param rect a `BLRect` destination, in the context’s own units
+        /// @param image the source image
+        /// @param imageArea a `const BLRectI*` sub-rectangle of the source, or NULL for all of it
         public int call(MemorySegment context, MemorySegment rect, MemorySegment image, MemorySegment imageArea) {
             try {
                 return (int) FD_bl_context_blit_scaled_image_d.invokeExact(address, context, rect, image, imageArea);
@@ -693,9 +714,6 @@ public record ContextCalls(
     /// Sets an alpha multiplier applied to everything drawn afterwards.
     ///
     /// `int bl_context_set_global_alpha(void*, double)`
-    ///
-    /// @param context the context to set it on
-    /// @param alpha 0 to 1
     public static final class ContextSetGlobalAlpha {
 
         private static final MethodHandle FD_bl_context_set_global_alpha =
@@ -707,6 +725,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_set_global_alpha");
         }
 
+        /// Calls `bl_context_set_global_alpha`.
+        ///
+        /// @param context the context to set it on
+        /// @param alpha 0 to 1
         public int call(MemorySegment context, double alpha) {
             try {
                 return (int) FD_bl_context_set_global_alpha.invokeExact(address, context, alpha);
@@ -721,9 +743,6 @@ public record ContextCalls(
     /// How a frame is painted only inside its damage (ADR-0072).
     ///
     /// `int bl_context_clip_to_rect_d(void*, void*)`
-    ///
-    /// @param context the context to clip
-    /// @param rect a `BLRect` — four doubles in the context’s own units
     public static final class ContextClipToRectD {
 
         private static final MethodHandle FD_bl_context_clip_to_rect_d =
@@ -735,6 +754,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_clip_to_rect_d");
         }
 
+        /// Calls `bl_context_clip_to_rect_d`.
+        ///
+        /// @param context the context to clip
+        /// @param rect a `BLRect` — four doubles in the context’s own units
         public int call(MemorySegment context, MemorySegment rect) {
             try {
                 return (int) FD_bl_context_clip_to_rect_d.invokeExact(address, context, rect);
@@ -747,8 +770,6 @@ public record ContextCalls(
     /// Undoes the last clip, restoring the region in force before it.
     ///
     /// `int bl_context_restore_clipping(void*)`
-    ///
-    /// @param context the context to unclip
     public static final class ContextRestoreClipping {
 
         private static final MethodHandle FD_bl_context_restore_clipping =
@@ -760,6 +781,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_restore_clipping");
         }
 
+        /// Calls `bl_context_restore_clipping`.
+        ///
+        /// @param context the context to unclip
         public int call(MemorySegment context) {
             try {
                 return (int) FD_bl_context_restore_clipping.invokeExact(address, context);
@@ -776,9 +800,6 @@ public record ContextCalls(
     /// frame rather than to the previous region (ADR-0193).
     ///
     /// `int bl_context_save(void*, void*)`
-    ///
-    /// @param context the context to save
-    /// @param cookie a `BLContextCookie` to stamp, or NULL for an unguarded save
     public static final class ContextSave {
 
         private static final MethodHandle FD_bl_context_save =
@@ -790,6 +811,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_save");
         }
 
+        /// Calls `bl_context_save`.
+        ///
+        /// @param context the context to save
+        /// @param cookie a `BLContextCookie` to stamp, or NULL for an unguarded save
         public int call(MemorySegment context, MemorySegment cookie) {
             try {
                 return (int) FD_bl_context_save.invokeExact(address, context, cookie);
@@ -802,9 +827,6 @@ public record ContextCalls(
     /// Pops what [ContextSave] pushed.
     ///
     /// `int bl_context_restore(void*, void*)`
-    ///
-    /// @param context the context to restore
-    /// @param cookie the cookie the matching save stamped, or NULL
     public static final class ContextRestore {
 
         private static final MethodHandle FD_bl_context_restore =
@@ -816,6 +838,10 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_restore");
         }
 
+        /// Calls `bl_context_restore`.
+        ///
+        /// @param context the context to restore
+        /// @param cookie the cookie the matching save stamped, or NULL
         public int call(MemorySegment context, MemorySegment cookie) {
             try {
                 return (int) FD_bl_context_restore.invokeExact(address, context, cookie);

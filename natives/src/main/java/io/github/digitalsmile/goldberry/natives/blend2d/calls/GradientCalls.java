@@ -48,14 +48,6 @@ public record GradientCalls(
     ///
     /// `int bl_gradient_init_as(void*, int, const void*, int, const void*,`
     /// `size_t, const void*)`
-    ///
-    /// @param gradient an uninitialised `BLGradientCore` to take over
-    /// @param type a `BLGradientType`
-    /// @param values the geometry that type expects, as doubles
-    /// @param extendMode a `BLExtendMode` — what happens outside the two ends
-    /// @param stops a `const BLGradientStop*`, or NULL to add them afterwards
-    /// @param stopCount how many `stops` holds
-    /// @param transform a `const BLMatrix2D*` applied to the gradient, or NULL
     public static final class GradientInitAs {
 
         private static final MethodHandle FD_bl_gradient_init_as = Downcalls.link(
@@ -67,6 +59,15 @@ public record GradientCalls(
             this.address = Downcalls.symbol(lookup, "bl_gradient_init_as");
         }
 
+        /// Calls `bl_gradient_init_as`.
+        ///
+        /// @param gradient an uninitialised `BLGradientCore` to take over
+        /// @param type a `BLGradientType`
+        /// @param values the geometry that type expects, as doubles
+        /// @param extendMode a `BLExtendMode` — what happens outside the two ends
+        /// @param stops a `const BLGradientStop*`, or NULL to add them afterwards
+        /// @param stopCount how many `stops` holds
+        /// @param transform a `const BLMatrix2D*` applied to the gradient, or NULL
         public int call(
                 MemorySegment gradient,
                 int type,
@@ -87,8 +88,6 @@ public record GradientCalls(
     /// Releases the gradient.
     ///
     /// `int bl_gradient_destroy(void*)`
-    ///
-    /// @param gradient the gradient to release
     public static final class GradientDestroy {
 
         private static final MethodHandle FD_bl_gradient_destroy =
@@ -100,6 +99,9 @@ public record GradientCalls(
             this.address = Downcalls.symbol(lookup, "bl_gradient_destroy");
         }
 
+        /// Calls `bl_gradient_destroy`.
+        ///
+        /// @param gradient the gradient to release
         public int call(MemorySegment gradient) {
             try {
                 return (int) FD_bl_gradient_destroy.invokeExact(address, gradient);
@@ -112,11 +114,6 @@ public record GradientCalls(
     /// Adds a stop at `offset` along the gradient.
     ///
     /// `int bl_gradient_add_stop_rgba32(void*, double, unsigned int)`
-    ///
-    /// @param gradient the gradient to add to
-    /// @param offset 0 at the start point, 1 at the end
-    /// @param argb a colour as `0xAARRGGBB`, straight alpha — the same packing
-    ///        every other drawing call takes
     public static final class GradientAddStopRgba32 {
 
         private static final MethodHandle FD_bl_gradient_add_stop_rgba32 =
@@ -128,6 +125,12 @@ public record GradientCalls(
             this.address = Downcalls.symbol(lookup, "bl_gradient_add_stop_rgba32");
         }
 
+        /// Calls `bl_gradient_add_stop_rgba32`.
+        ///
+        /// @param gradient the gradient to add to
+        /// @param offset 0 at the start point, 1 at the end
+        /// @param argb a colour as `0xAARRGGBB`, straight alpha — the same packing
+        ///        every other drawing call takes
         public int call(MemorySegment gradient, double offset, int argb) {
             try {
                 return (int) FD_bl_gradient_add_stop_rgba32.invokeExact(address, gradient, offset, argb);

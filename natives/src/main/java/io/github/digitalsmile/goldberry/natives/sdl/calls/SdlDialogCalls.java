@@ -45,14 +45,6 @@ public record SdlDialogCalls(
     /// `filters` **must stay valid until the callback runs** — SDL's own header
     /// says so, and on Linux the request travels to an XDG portal over DBus and
     /// comes back much later.
-    ///
-    /// @param callback        an `SDL_DialogFileCallback` upcall stub
-    /// @param userdata        handed back to it, unread by SDL
-    /// @param window          the window to be modal for, or NULL
-    /// @param filters         an array of `SDL_DialogFileFilter`, or NULL
-    /// @param filterCount     how many of them; ignored when `filters` is NULL
-    /// @param defaultLocation a NUL-terminated path to start at, or NULL
-    /// @param allowMany       whether more than one file may be chosen
     public static final class ShowOpenFileDialog {
 
         private static final MethodHandle FD_SDL_ShowOpenFileDialog = Downcalls.link(
@@ -64,6 +56,15 @@ public record SdlDialogCalls(
             this.address = Downcalls.symbol(lookup, "SDL_ShowOpenFileDialog");
         }
 
+        /// Calls `SDL_ShowOpenFileDialog`.
+        ///
+        /// @param callback        an `SDL_DialogFileCallback` upcall stub
+        /// @param userdata        handed back to it, unread by SDL
+        /// @param window          the window to be modal for, or NULL
+        /// @param filters         an array of `SDL_DialogFileFilter`, or NULL
+        /// @param filterCount     how many of them; ignored when `filters` is NULL
+        /// @param defaultLocation a NUL-terminated path to start at, or NULL
+        /// @param allowMany       whether more than one file may be chosen
         public void call(
                 MemorySegment callback,
                 MemorySegment userdata,

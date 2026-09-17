@@ -54,12 +54,6 @@ public record SdlClipboardCalls(
     ///
     /// `bool SDL_SetClipboardData(SDL_ClipboardDataCallback, SDL_ClipboardCleanupCallback,`
     /// `void* userdata, const char* const* mime_types, size_t num_mime_types)`
-    ///
-    /// @param callback  produces the bytes for one MIME type
-    /// @param cleanup   called when this offer is replaced or cleared
-    /// @param userdata  handed back to both, unread by SDL
-    /// @param mimeTypes an array of NUL-terminated strings
-    /// @param count     how many of them
     public static final class SetClipboardData {
 
         private static final MethodHandle FD_SDL_SetClipboardData =
@@ -71,6 +65,13 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetClipboardData");
         }
 
+        /// Calls `SDL_SetClipboardData`.
+        ///
+        /// @param callback  produces the bytes for one MIME type
+        /// @param cleanup   called when this offer is replaced or cleared
+        /// @param userdata  handed back to both, unread by SDL
+        /// @param mimeTypes an array of NUL-terminated strings
+        /// @param count     how many of them
         public boolean call(
                 MemorySegment callback,
                 MemorySegment cleanup,
@@ -116,10 +117,6 @@ public record SdlClipboardCalls(
     /// this loop exactly as it does for text.
     ///
     /// `void* SDL_GetClipboardData(const char* mime_type, size_t* size)`
-    ///
-    /// @param mime a NUL-terminated MIME type
-    /// @param size filled in with how many bytes came back
-    /// @return the bytes, which the caller owns, or NULL
     public static final class GetClipboardData {
 
         private static final MethodHandle FD_SDL_GetClipboardData =
@@ -131,6 +128,11 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetClipboardData");
         }
 
+        /// Calls `SDL_GetClipboardData`.
+        ///
+        /// @param mime a NUL-terminated MIME type
+        /// @param size filled in with how many bytes came back
+        /// @return the bytes, which the caller owns, or NULL
         public MemorySegment call(MemorySegment mime, MemorySegment size) {
             try {
                 return (MemorySegment) FD_SDL_GetClipboardData.invokeExact(address, mime, size);
@@ -170,9 +172,6 @@ public record SdlClipboardCalls(
     /// A NUL-terminated array of NUL-terminated strings, allocated as one block:
     /// a single [SdlClipboardCalls.Free] releases the array and the strings with
     /// it.
-    ///
-    /// @param count filled in with how many types there are, or NULL
-    /// @return the types, which the caller owns, or NULL
     public static final class GetClipboardMimeTypes {
 
         private static final MethodHandle FD_SDL_GetClipboardMimeTypes =
@@ -184,6 +183,10 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetClipboardMimeTypes");
         }
 
+        /// Calls `SDL_GetClipboardMimeTypes`.
+        ///
+        /// @param count filled in with how many types there are, or NULL
+        /// @return the types, which the caller owns, or NULL
         public MemorySegment call(MemorySegment count) {
             try {
                 return (MemorySegment) FD_SDL_GetClipboardMimeTypes.invokeExact(address, count);
@@ -200,8 +203,6 @@ public record SdlClipboardCalls(
     /// is the caller’s to free with [SdlClipboardCalls.Free].
     ///
     /// `void* SDL_GetClipboardText(void)`
-    ///
-    /// @return a NUL-terminated string the caller owns; empty rather than NULL on failure
     public static final class GetClipboardText {
 
         private static final MethodHandle FD_SDL_GetClipboardText = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -212,6 +213,9 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetClipboardText");
         }
 
+        /// Calls `SDL_GetClipboardText`.
+        ///
+        /// @return a NUL-terminated string the caller owns; empty rather than NULL on failure
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_SDL_GetClipboardText.invokeExact(address);
@@ -224,9 +228,6 @@ public record SdlClipboardCalls(
     /// Puts text on the clipboard, replacing whatever was there.
     ///
     /// `_Bool SDL_SetClipboardText(void*)`
-    ///
-    /// @param text the text to publish, NUL-terminated
-    /// @return false if the compositor declined
     public static final class SetClipboardText {
 
         private static final MethodHandle FD_SDL_SetClipboardText =
@@ -238,6 +239,10 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetClipboardText");
         }
 
+        /// Calls `SDL_SetClipboardText`.
+        ///
+        /// @param text the text to publish, NUL-terminated
+        /// @return false if the compositor declined
         public boolean call(MemorySegment text) {
             try {
                 return (boolean) FD_SDL_SetClipboardText.invokeExact(address, text);
@@ -253,8 +258,6 @@ public record SdlClipboardCalls(
     /// trip.
     ///
     /// `_Bool SDL_HasClipboardText(void)`
-    ///
-    /// @return true if there is text to paste
     public static final class HasClipboardText {
 
         private static final MethodHandle FD_SDL_HasClipboardText = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
@@ -265,6 +268,9 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_HasClipboardText");
         }
 
+        /// Calls `SDL_HasClipboardText`.
+        ///
+        /// @return true if there is text to paste
         public boolean call() {
             try {
                 return (boolean) FD_SDL_HasClipboardText.invokeExact(address);
@@ -280,8 +286,6 @@ public record SdlClipboardCalls(
     /// linked against a different C runtime than the process.
     ///
     /// `void SDL_free(void*)`
-    ///
-    /// @param pointer memory SDL allocated
     public static final class Free {
 
         private static final MethodHandle FD_SDL_free = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -292,6 +296,9 @@ public record SdlClipboardCalls(
             this.address = Downcalls.symbol(lookup, "SDL_free");
         }
 
+        /// Calls `SDL_free`.
+        ///
+        /// @param pointer memory SDL allocated
         public void call(MemorySegment pointer) {
             try {
                 FD_SDL_free.invokeExact(address, pointer);

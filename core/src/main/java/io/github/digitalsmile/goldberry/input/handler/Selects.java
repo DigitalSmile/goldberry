@@ -36,7 +36,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// to one; right-clicking outside the selection replaces it. That distinction is
 /// the whole reason this is a widget's method rather than a `Consumer` an
 /// application supplies, and it is what
-/// [io.github.digitalsmile.goldberry.widgets.panel.list.ListView]'s rows do.
+/// `ListView`'s rows do.
 ///
 /// Like everything else that reports a gesture, this **asks** rather than
 /// selects: the selection is the application's value, and what a row does here is

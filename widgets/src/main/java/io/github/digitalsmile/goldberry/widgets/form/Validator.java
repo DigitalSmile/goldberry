@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 /// A validator that answered yes or no would leave the *reason* somewhere else,
 /// and the reason is the whole point: a field that goes red without saying why
 /// is a field somebody has to guess at. So the result is either
-/// [Result#valid()] or a message somebody can read, and there is nowhere for the
+/// [Result#VALID] or a message somebody can read, and there is nowhere for the
 /// two to disagree.
 ///
 /// The message is the application's words, not the toolkit's. A toolkit that

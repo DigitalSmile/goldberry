@@ -274,7 +274,7 @@ public record Box(
             /// Uses [#start] as its angle and ignores [#sweep]: it is a line and
             /// not an arc, so it has a direction and no length in radians. The
             /// length it *does* have is radial, and it is a proportion of the box
-            /// like every other mark's geometry — see [POINTER_INNER].
+            /// like every other mark's geometry — see [Mark#POINTER_INNER].
             POINTER
         }
 

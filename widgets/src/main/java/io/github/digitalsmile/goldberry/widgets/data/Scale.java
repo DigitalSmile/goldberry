@@ -21,8 +21,9 @@ package io.github.digitalsmile.goldberry.widgets.data;
 ///
 /// A series that did not change has `min == max`, and the honest picture of it is
 /// a line down the middle of the box rather than a division by zero at the top
-/// (or, worse, a `NaN` that silently draws nothing). [Sparkline] states the same
-/// rule for the same reason; it is here so the next four charts inherit it rather
+/// (or, worse, a `NaN` that silently draws nothing).
+/// [io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline] states the
+/// same rule for the same reason; it is here so the next four charts inherit it rather
 /// than each rediscovering it.
 ///
 /// ## Logarithmic is the same arithmetic on the logarithm

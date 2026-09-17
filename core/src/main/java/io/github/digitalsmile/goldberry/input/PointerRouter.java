@@ -603,12 +603,14 @@ public final class PointerRouter {
     /// Where the text being typed is, and where the caret is inside it — what an
     /// input method needs in order to put its candidate window somewhere sensible
     /// (`docs/gaps.md` G15).
-    ///
-    /// @param area   the line being typed on, in **window** logical coordinates,
-    ///               or null when nothing is being typed into
-    /// @param cursor the caret's x offset from the area's left edge
     @FunctionalInterface
     public interface CaretAreaSink {
+
+        /// Reports where the caret is.
+        ///
+        /// @param area   the line being typed on, in **window** logical coordinates,
+        ///               or null when nothing is being typed into
+        /// @param cursor the caret's x offset from the area's left edge
         void accept(@Nullable LogicalRect area, double cursor);
     }
 

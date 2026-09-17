@@ -29,8 +29,6 @@ public record CapabilityCalls(PlatformCapabilities platformCapabilities) {
     /// this is as cheap as it looks and may be asked before SDL has started.
     ///
     /// `uint32_t goldberry_platform_capabilities(void)`
-    ///
-    /// @return the bits, as `NativeCapability#bit()` numbers them
     public static final class PlatformCapabilities {
 
         private static final MethodHandle FD_goldberry_platform_capabilities =
@@ -42,6 +40,9 @@ public record CapabilityCalls(PlatformCapabilities platformCapabilities) {
             this.address = Downcalls.symbol(lookup, "goldberry_platform_capabilities");
         }
 
+        /// Calls `goldberry_platform_capabilities`.
+        ///
+        /// @return the bits, as `NativeCapability#bit()` numbers them
         public int call() {
             try {
                 return (int) FD_goldberry_platform_capabilities.invokeExact(address);

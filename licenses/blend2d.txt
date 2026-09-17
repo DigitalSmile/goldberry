@@ -4,13 +4,9 @@ Upstream:      https://github.com/blend2d/blend2d
 Licence file:  LICENSE.md
 Bundled as:    statically linked into libgoldberry
 
-NOT-VENDORED: the verbatim upstream licence file, including its exact
-copyright lines, must be copied here from the pinned revision before
-Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
-to fail the build while this marker is present.
+--- LICENSE.md at 6dbc2cefbc996379e07104e34519a440b49b15d7 (6dbc2cefbc996379e07104e34519a440b49b15d7), verbatim ---
 
---- Reference text of Zlib (informational until vendored; the upstream
-    copyright line governs and is not reproduced here) ---
+Copyright (c) 2017-2025 Petr Kobalicek, Fabian Yzerman
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages

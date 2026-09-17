@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 ///
 /// ## What it replaces
 ///
-/// A popup taller than the work area is clamped to the near edge by [Placement],
+/// A popup taller than the work area is clamped to the near edge by [io.github.digitalsmile.goldberry.Placement],
 /// which keeps the top visible and silently drops everything below it. A menu
 /// that loses its last three commands with no indication that it has is the
 /// worst kind of wrong, and it was the honest thing to do before `scroll`

@@ -7368,11 +7368,18 @@ every file under the showcase's resources.
   eleven reflective types and five downcalls, everything built since 30 August.
   A clean rebuild on 25.3 also found `--no-fallback` deprecated with no effect —
   both of the build's warnings — and it is gone: 1 min 23 s, peak RSS 2.27 GiB.
+- **The licence texts are vendored.** All seven of `licenses/`'s placeholders
+  carry the verbatim upstream file from the pinned revision — the same checkout
+  the superbuild fetched, whose `HEAD` was checked against `libs.versions.toml`
+  before copying — and `checkLicenses -Pgoldberry.releaseCheck=true` passes:
+  eleven components, all vendored.
+- **The javadoc is linted** ([ADR-0343](adr/0343-the-published-javadoc-is-linted.md)):
+  `-Xdoclint:all,-missing` on every published module, and clean. The 120 errors
+  were 425 `@param` lines on `…Calls` holder classes, moved to their `call`
+  methods by a script, and twenty links to types another package owns.
 - **Not done:** Central's side (namespace, snapshots enabled, token, signing key,
-  secrets); vendored licence texts, which block the first release; the javadoc's
-  120 doclint errors, published with the lint off; pruning old showcase snapshots;
-  any CI run of the native images on macOS and Windows, whose traces nobody has
-  reviewed.
+  secrets); pruning old showcase snapshots, which needs a token with
+  `delete:packages`.
 
 ## Content modules
 

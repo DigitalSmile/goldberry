@@ -41,9 +41,6 @@ public record SdlCursorCalls(
     /// cursor to fall back from.
     ///
     /// `void* SDL_CreateSystemCursor(int)`
-    ///
-    /// @param shape an `SDL_SystemCursor`
-    /// @return an `SDL_Cursor*`, or NULL
     public static final class CreateSystemCursor {
 
         private static final MethodHandle FD_SDL_CreateSystemCursor =
@@ -55,6 +52,10 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateSystemCursor");
         }
 
+        /// Calls `SDL_CreateSystemCursor`.
+        ///
+        /// @param shape an `SDL_SystemCursor`
+        /// @return an `SDL_Cursor*`, or NULL
         public MemorySegment call(int shape) {
             try {
                 return (MemorySegment) FD_SDL_CreateSystemCursor.invokeExact(address, shape);
@@ -67,9 +68,6 @@ public record SdlCursorCalls(
     /// Sets the active cursor.
     ///
     /// `_Bool SDL_SetCursor(void*)`
-    ///
-    /// @param cursor the cursor to show
-    /// @return false if SDL refused it
     public static final class SetCursor {
 
         private static final MethodHandle FD_SDL_SetCursor =
@@ -81,6 +79,10 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetCursor");
         }
 
+        /// Calls `SDL_SetCursor`.
+        ///
+        /// @param cursor the cursor to show
+        /// @return false if SDL refused it
         public boolean call(MemorySegment cursor) {
             try {
                 return (boolean) FD_SDL_SetCursor.invokeExact(address, cursor);
@@ -93,8 +95,6 @@ public record SdlCursorCalls(
     /// Releases a cursor.
     ///
     /// `void SDL_DestroyCursor(void*)`
-    ///
-    /// @param cursor the cursor to release
     public static final class DestroyCursor {
 
         private static final MethodHandle FD_SDL_DestroyCursor = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -105,6 +105,9 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroyCursor");
         }
 
+        /// Calls `SDL_DestroyCursor`.
+        ///
+        /// @param cursor the cursor to release
         public void call(MemorySegment cursor) {
             try {
                 FD_SDL_DestroyCursor.invokeExact(address, cursor);
@@ -117,8 +120,6 @@ public record SdlCursorCalls(
     /// Makes the cursor visible.
     ///
     /// `_Bool SDL_ShowCursor(void)`
-    ///
-    /// @return false only when there is no video subsystem
     public static final class ShowCursor {
 
         private static final MethodHandle FD_SDL_ShowCursor = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
@@ -129,6 +130,9 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_ShowCursor");
         }
 
+        /// Calls `SDL_ShowCursor`.
+        ///
+        /// @return false only when there is no video subsystem
         public boolean call() {
             try {
                 return (boolean) FD_SDL_ShowCursor.invokeExact(address);
@@ -141,8 +145,6 @@ public record SdlCursorCalls(
     /// Hides the cursor.
     ///
     /// `_Bool SDL_HideCursor(void)`
-    ///
-    /// @return false only when there is no video subsystem
     public static final class HideCursor {
 
         private static final MethodHandle FD_SDL_HideCursor = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
@@ -153,6 +155,9 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_HideCursor");
         }
 
+        /// Calls `SDL_HideCursor`.
+        ///
+        /// @return false only when there is no video subsystem
         public boolean call() {
             try {
                 return (boolean) FD_SDL_HideCursor.invokeExact(address);

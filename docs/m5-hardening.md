@@ -14,8 +14,8 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 | Frame evidence: a window resized from outside | `BackendWindow.resize`, `Window.resize`, `--resize=WxH` | 0342 | done |
 | Frame evidence: a run that says what it cost | a summary line at exit, `--late-budget=N` | 0342 | done |
 | Frame evidence: a ceiling on three runners | `showcase.yml` paints 300 frames while resizing and fails over budget | 0342 | done |
-| Licence texts vendored | `checkLicenses -Pgoldberry.releaseCheck=true` passes | 0015 | open |
-| Javadoc's doclint errors | published with the lint on | — | open |
+| Licence texts vendored | `checkLicenses -Pgoldberry.releaseCheck=true` passes | 0015 | done |
+| Javadoc's doclint errors | published with the lint on | 0343 | done |
 | Pruning old showcase snapshots | delete the `goldberry-showcase*` packages ADR-0340 stopped publishing | — | not ours: needs a token with `delete:packages` |
 | Central's side | namespace, snapshots, token, signing key, secrets | — | not ours: `docs/releasing.md` §One-time setup |
 
@@ -51,3 +51,16 @@ now. **open** — not started. **not ours** — needs a person and an account, n
 - Tests: `core` `WindowResizeTest`, `LauncherEvidenceTest`, `LauncherOptionsTest`,
   `drive/ResizeWalkTest`, `drive/FrameBudgetExceptionTest`, `stats/FrameSummaryTest`,
   `stats/FrameRingTest`.
+
+### The javadoc
+
+- `build-logic` `goldberry.publish.gradle` — `-Xdoclint:all,-missing`.
+- `natives` — 425 `@param`/`@return`/`@throws` lines moved from thirty `…Calls` holder classes
+  onto their `call` methods, under a summary naming the C function.
+- Twenty `[links]` qualified, corrected or made code spans, across `core`, `widgets`, `html`
+  and `natives`; `PointerRouter.CaretAreaSink`'s tags moved onto `accept`.
+
+### The licences
+
+- `licenses/*.txt` — the seven placeholders replaced by the verbatim upstream file from the
+  superbuild's pinned checkout, with the `NOT-VENDORED` marker gone and the revision named.

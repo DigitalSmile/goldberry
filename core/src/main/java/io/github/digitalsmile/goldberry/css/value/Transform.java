@@ -670,7 +670,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// One or two components, each a length, a percentage or one of CSS's five
     /// keywords. A single component sets the horizontal one and leaves the
     /// vertical centred, which is CSS's rule.
-    /// Public for the same reason [#parse(List, Origin)] is.
+    /// Public for the same reason [#parse(List, Origin, CssLength.Context)] is.
     // NullTernary reads `yield x == null ? null : ...` as a ternary that will be
     // unboxed. It will not: this method returns `Origin`, a record, and null is
     // its documented "this is not an origin" answer -- the same shape every

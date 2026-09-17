@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// which does something, and a menu without it asks the reader to hover every row
 /// to find out (ADR-0113).
 ///
-/// A painter mark rather than Lucide's `chevron-right`, for [ItemCheck]'s reason
+/// A painter mark rather than Lucide's `chevron-right`, for [ItemLead]'s reason
 /// and one more: an icon owns native memory that must be closed exactly once, and
 /// a menu is built and thrown away every time it opens.
 record ItemChevron() implements Widget.Leaf, Styled, Paints {

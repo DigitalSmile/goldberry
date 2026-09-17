@@ -28,9 +28,6 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
     /// Takes the next event if there is one, without waiting.
     ///
     /// `_Bool SDL_PollEvent(void*)`
-    ///
-    /// @param outEvent a caller-allocated `SDL_Event`, or NULL to discard one
-    /// @return false if the queue was empty
     public static final class PollEvent {
 
         private static final MethodHandle FD_SDL_PollEvent =
@@ -42,6 +39,10 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
             this.address = Downcalls.symbol(lookup, "SDL_PollEvent");
         }
 
+        /// Calls `SDL_PollEvent`.
+        ///
+        /// @param outEvent a caller-allocated `SDL_Event`, or NULL to discard one
+        /// @return false if the queue was empty
         public boolean call(MemorySegment outEvent) {
             try {
                 return (boolean) FD_SDL_PollEvent.invokeExact(address, outEvent);
@@ -56,10 +57,6 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
     /// What lets the UI thread sleep between frames instead of spinning.
     ///
     /// `_Bool SDL_WaitEventTimeout(void*, int)`
-    ///
-    /// @param outEvent a caller-allocated `SDL_Event`
-    /// @param timeoutMillis how long to block; 0 returns immediately
-    /// @return false if the timeout expired first
     public static final class WaitEventTimeout {
 
         private static final MethodHandle FD_SDL_WaitEventTimeout =
@@ -71,6 +68,11 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
             this.address = Downcalls.symbol(lookup, "SDL_WaitEventTimeout");
         }
 
+        /// Calls `SDL_WaitEventTimeout`.
+        ///
+        /// @param outEvent a caller-allocated `SDL_Event`
+        /// @param timeoutMillis how long to block; 0 returns immediately
+        /// @return false if the timeout expired first
         public boolean call(MemorySegment outEvent, int timeoutMillis) {
             try {
                 return (boolean) FD_SDL_WaitEventTimeout.invokeExact(address, outEvent, timeoutMillis);
@@ -85,9 +87,6 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
     /// How another thread wakes the UI thread up.
     ///
     /// `_Bool SDL_PushEvent(void*)`
-    ///
-    /// @param event the `SDL_Event` to enqueue; SDL copies it
-    /// @return false if a watch filtered it out
     public static final class PushEvent {
 
         private static final MethodHandle FD_SDL_PushEvent =
@@ -99,6 +98,10 @@ public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeo
             this.address = Downcalls.symbol(lookup, "SDL_PushEvent");
         }
 
+        /// Calls `SDL_PushEvent`.
+        ///
+        /// @param event the `SDL_Event` to enqueue; SDL copies it
+        /// @return false if a watch filtered it out
         public boolean call(MemorySegment event) {
             try {
                 return (boolean) FD_SDL_PushEvent.invokeExact(address, event);

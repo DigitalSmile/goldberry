@@ -28,10 +28,6 @@ public record VersionCalls(Version version) {
     /// Static linking makes this a build fact rather than a runtime one.
     ///
     /// `void hb_version(void*, void*, void*)`
-    ///
-    /// @param major a caller-allocated `unsigned*`
-    /// @param minor a caller-allocated `unsigned*`
-    /// @param micro a caller-allocated `unsigned*`
     public static final class Version {
 
         private static final MethodHandle FD_hb_version =
@@ -43,6 +39,11 @@ public record VersionCalls(Version version) {
             this.address = Downcalls.symbol(lookup, "hb_version");
         }
 
+        /// Calls `hb_version`.
+        ///
+        /// @param major a caller-allocated `unsigned*`
+        /// @param minor a caller-allocated `unsigned*`
+        /// @param micro a caller-allocated `unsigned*`
         public void call(MemorySegment major, MemorySegment minor, MemorySegment micro) {
             try {
                 FD_hb_version.invokeExact(address, major, minor, micro);

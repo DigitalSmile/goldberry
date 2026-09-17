@@ -6,7 +6,8 @@ import java.util.Locale;
 ///
 /// ## Why the toolkit owns this
 ///
-/// It is the value `css` resolves a declaration to and the value a [Box] is built
+/// It is the value `css` resolves a declaration to and the value a [io.github.digitalsmile.goldberry.paint.Box] is
+/// built
 /// from, which makes it the single most-written type in the widget catalogue —
 /// nineteen files in `:widgets` name it. It was the layout engine's own type
 /// until ADR-0279, which meant every application writing a widget read a

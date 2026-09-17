@@ -45,9 +45,6 @@ public record SdlSurfaceCalls(
     /// (ADR-0046).
     ///
     /// `void* SDL_GetWindowSurface(void*)`
-    ///
-    /// @param window the window to borrow from
-    /// @return an `SDL_Surface*`, or NULL on failure
     public static final class GetWindowSurface {
 
         private static final MethodHandle FD_SDL_GetWindowSurface =
@@ -59,6 +56,10 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowSurface");
         }
 
+        /// Calls `SDL_GetWindowSurface`.
+        ///
+        /// @param window the window to borrow from
+        /// @return an `SDL_Surface*`, or NULL on failure
         public MemorySegment call(MemorySegment window) {
             try {
                 return (MemorySegment) FD_SDL_GetWindowSurface.invokeExact(address, window);
@@ -74,10 +75,6 @@ public record SdlSurfaceCalls(
     /// inside it too (ADR-0072).
     ///
     /// `_Bool SDL_UpdateWindowSurfaceRects(void*, void*, int)`
-    ///
-    /// @param rects an `SDL_Rect*` array of the regions that changed
-    /// @param count how many rectangles
-    /// @return false if SDL refused
     public static final class UpdateWindowSurfaceRects {
 
         private static final MethodHandle FD_SDL_UpdateWindowSurfaceRects =
@@ -89,6 +86,11 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_UpdateWindowSurfaceRects");
         }
 
+        /// Calls `SDL_UpdateWindowSurfaceRects`.
+        ///
+        /// @param rects an `SDL_Rect*` array of the regions that changed
+        /// @param count how many rectangles
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, MemorySegment rects, int count) {
             try {
                 return (boolean) FD_SDL_UpdateWindowSurfaceRects.invokeExact(address, window, rects, count);
@@ -103,8 +105,6 @@ public record SdlSurfaceCalls(
     /// What a resize needs: the old surface is the old size.
     ///
     /// `_Bool SDL_DestroyWindowSurface(void*)`
-    ///
-    /// @return false if SDL refused
     public static final class DestroyWindowSurface {
 
         private static final MethodHandle FD_SDL_DestroyWindowSurface =
@@ -116,6 +116,9 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroyWindowSurface");
         }
 
+        /// Calls `SDL_DestroyWindowSurface`.
+        ///
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_DestroyWindowSurface.invokeExact(address, window);
@@ -135,13 +138,6 @@ public record SdlSurfaceCalls(
     /// as soon as that returns.
     ///
     /// `void* SDL_CreateSurfaceFrom(int, int, int, void*, int)`
-    ///
-    /// @param width  in pixels
-    /// @param height in pixels
-    /// @param format an `SDL_PixelFormat`
-    /// @param pixels the first pixel; the caller keeps ownership
-    /// @param pitch  bytes per row
-    /// @return an `SDL_Surface*`, or NULL on failure
     public static final class CreateSurfaceFrom {
 
         private static final MethodHandle FD_SDL_CreateSurfaceFrom =
@@ -153,6 +149,14 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateSurfaceFrom");
         }
 
+        /// Calls `SDL_CreateSurfaceFrom`.
+        ///
+        /// @param width  in pixels
+        /// @param height in pixels
+        /// @param format an `SDL_PixelFormat`
+        /// @param pixels the first pixel; the caller keeps ownership
+        /// @param pitch  bytes per row
+        /// @return an `SDL_Surface*`, or NULL on failure
         public MemorySegment call(int width, int height, int format, MemorySegment pixels, int pitch) {
             try {
                 return (MemorySegment)
@@ -167,8 +171,6 @@ public record SdlSurfaceCalls(
     /// to free.
     ///
     /// `void SDL_DestroySurface(void*)`
-    ///
-    /// @param surface the surface to release
     public static final class DestroySurface {
 
         private static final MethodHandle FD_SDL_DestroySurface = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -179,6 +181,9 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroySurface");
         }
 
+        /// Calls `SDL_DestroySurface`.
+        ///
+        /// @param surface the surface to release
         public void call(MemorySegment surface) {
             try {
                 FD_SDL_DestroySurface.invokeExact(address, surface);

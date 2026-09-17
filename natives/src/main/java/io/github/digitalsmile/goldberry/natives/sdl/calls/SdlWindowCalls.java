@@ -71,10 +71,6 @@ public record SdlWindowCalls(
     /// is the caret's offset from its left edge — an input method uses the first
     /// to keep its list clear of the text and the second to align it under the
     /// insertion point.
-    ///
-    /// @param window the window being typed into
-    /// @param rect   an `SDL_Rect`, or NULL to clear the area
-    /// @param cursor the caret's x offset within `rect`
     public static final class SetTextInputArea {
 
         private static final MethodHandle FD_SDL_SetTextInputArea =
@@ -86,6 +82,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetTextInputArea");
         }
 
+        /// Calls `SDL_SetTextInputArea`.
+        ///
+        /// @param window the window being typed into
+        /// @param rect   an `SDL_Rect`, or NULL to clear the area
+        /// @param cursor the caret's x offset within `rect`
         public boolean call(MemorySegment window, MemorySegment rect, int cursor) {
             try {
                 return (boolean) FD_SDL_SetTextInputArea.invokeExact(address, window, rect, cursor);
@@ -98,12 +99,6 @@ public record SdlWindowCalls(
     /// Creates a top-level window.
     ///
     /// `void* SDL_CreateWindow(void*, int, int, int64_t)`
-    ///
-    /// @param title the title, NUL-terminated
-    /// @param width in logical pixels
-    /// @param height in logical pixels
-    /// @param flags a mask of `SDL_WINDOW_*` flags
-    /// @return an `SDL_Window*`, or NULL on failure
     public static final class CreateWindow {
 
         private static final MethodHandle FD_SDL_CreateWindow =
@@ -115,6 +110,13 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateWindow");
         }
 
+        /// Calls `SDL_CreateWindow`.
+        ///
+        /// @param title the title, NUL-terminated
+        /// @param width in logical pixels
+        /// @param height in logical pixels
+        /// @param flags a mask of `SDL_WINDOW_*` flags
+        /// @return an `SDL_Window*`, or NULL on failure
         public MemorySegment call(MemorySegment title, int width, int height, long flags) {
             try {
                 return (MemorySegment) FD_SDL_CreateWindow.invokeExact(address, title, width, height, flags);
@@ -130,14 +132,6 @@ public record SdlWindowCalls(
     /// has to be able to hear (ADR-0102).
     ///
     /// `void* SDL_CreatePopupWindow(void*, int, int, int, int, int64_t)`
-    ///
-    /// @param parent the owning `SDL_Window*`
-    /// @param offsetX relative to the parent’s client area
-    /// @param offsetY relative to the parent’s client area
-    /// @param width in logical pixels
-    /// @param height in logical pixels
-    /// @param flags a mask of `SDL_WINDOW_*` flags; one of TOOLTIP or POPUP_MENU is required
-    /// @return an `SDL_Window*`, or NULL on failure
     public static final class CreatePopupWindow {
 
         private static final MethodHandle FD_SDL_CreatePopupWindow = Downcalls.link(
@@ -149,6 +143,15 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreatePopupWindow");
         }
 
+        /// Calls `SDL_CreatePopupWindow`.
+        ///
+        /// @param parent the owning `SDL_Window*`
+        /// @param offsetX relative to the parent’s client area
+        /// @param offsetY relative to the parent’s client area
+        /// @param width in logical pixels
+        /// @param height in logical pixels
+        /// @param flags a mask of `SDL_WINDOW_*` flags; one of TOOLTIP or POPUP_MENU is required
+        /// @return an `SDL_Window*`, or NULL on failure
         public MemorySegment call(MemorySegment parent, int offsetX, int offsetY, int width, int height, long flags) {
             try {
                 return (MemorySegment)
@@ -162,8 +165,6 @@ public record SdlWindowCalls(
     /// Destroys a window and everything hanging off it.
     ///
     /// `void SDL_DestroyWindow(void*)`
-    ///
-    /// @param window the window to destroy
     public static final class DestroyWindow {
 
         private static final MethodHandle FD_SDL_DestroyWindow = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -174,6 +175,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroyWindow");
         }
 
+        /// Calls `SDL_DestroyWindow`.
+        ///
+        /// @param window the window to destroy
         public void call(MemorySegment window) {
             try {
                 FD_SDL_DestroyWindow.invokeExact(address, window);
@@ -186,9 +190,6 @@ public record SdlWindowCalls(
     /// Maps the window. Nothing is on screen before this.
     ///
     /// `_Bool SDL_ShowWindow(void*)`
-    ///
-    /// @param window the window to map
-    /// @return false if SDL refused
     public static final class ShowWindow {
 
         private static final MethodHandle FD_SDL_ShowWindow =
@@ -200,6 +201,10 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_ShowWindow");
         }
 
+        /// Calls `SDL_ShowWindow`.
+        ///
+        /// @param window the window to map
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_ShowWindow.invokeExact(address, window);
@@ -212,9 +217,6 @@ public record SdlWindowCalls(
     /// Sets the window’s title.
     ///
     /// `_Bool SDL_SetWindowTitle(void*, void*)`
-    ///
-    /// @param title the title, NUL-terminated
-    /// @return false if SDL refused
     public static final class SetWindowTitle {
 
         private static final MethodHandle FD_SDL_SetWindowTitle =
@@ -226,6 +228,10 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetWindowTitle");
         }
 
+        /// Calls `SDL_SetWindowTitle`.
+        ///
+        /// @param title the title, NUL-terminated
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, MemorySegment title) {
             try {
                 return (boolean) FD_SDL_SetWindowTitle.invokeExact(address, window, title);
@@ -243,8 +249,6 @@ public record SdlWindowCalls(
     /// the window manager, which may refuse it — a tiling compositor has its own
     /// idea — so what it returns is whether SDL accepted the *ask*, and the state
     /// is `SDL_EVENT_WINDOW_MAXIMIZED` arriving afterwards (ADR-0252).
-    ///
-    /// @return false if SDL refused
     public static final class MaximizeWindow {
 
         private static final MethodHandle FD_SDL_MaximizeWindow =
@@ -256,6 +260,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_MaximizeWindow");
         }
 
+        /// Calls `SDL_MaximizeWindow`.
+        ///
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_MaximizeWindow.invokeExact(address, window);
@@ -269,8 +276,6 @@ public record SdlWindowCalls(
     /// also un-minimizes.
     ///
     /// `_Bool SDL_RestoreWindow(void*)`
-    ///
-    /// @return false if SDL refused
     public static final class RestoreWindow {
 
         private static final MethodHandle FD_SDL_RestoreWindow =
@@ -282,6 +287,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_RestoreWindow");
         }
 
+        /// Calls `SDL_RestoreWindow`.
+        ///
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_RestoreWindow.invokeExact(address, window);
@@ -294,10 +302,6 @@ public record SdlWindowCalls(
     /// Moves the window.
     ///
     /// `_Bool SDL_SetWindowPosition(void*, int, int)`
-    ///
-    /// @param x in the parent’s coordinates for a popup, the display’s for a top-level window
-    /// @param y the same
-    /// @return false if SDL refused
     public static final class SetWindowPosition {
 
         private static final MethodHandle FD_SDL_SetWindowPosition =
@@ -309,6 +313,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetWindowPosition");
         }
 
+        /// Calls `SDL_SetWindowPosition`.
+        ///
+        /// @param x in the parent’s coordinates for a popup, the display’s for a top-level window
+        /// @param y the same
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, int x, int y) {
             try {
                 return (boolean) FD_SDL_SetWindowPosition.invokeExact(address, window, x, y);
@@ -321,10 +330,6 @@ public record SdlWindowCalls(
     /// Reads where the window is.
     ///
     /// `_Bool SDL_GetWindowPosition(void*, void*, void*)`
-    ///
-    /// @param outX a caller-allocated `int*`
-    /// @param outY a caller-allocated `int*`
-    /// @return false if SDL refused
     public static final class GetWindowPosition {
 
         private static final MethodHandle FD_SDL_GetWindowPosition =
@@ -336,6 +341,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowPosition");
         }
 
+        /// Calls `SDL_GetWindowPosition`.
+        ///
+        /// @param outX a caller-allocated `int*`
+        /// @param outY a caller-allocated `int*`
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, MemorySegment outX, MemorySegment outY) {
             try {
                 return (boolean) FD_SDL_GetWindowPosition.invokeExact(address, window, outX, outY);
@@ -348,10 +358,6 @@ public record SdlWindowCalls(
     /// Resizes the window.
     ///
     /// `_Bool SDL_SetWindowSize(void*, int, int)`
-    ///
-    /// @param width in logical pixels
-    /// @param height in logical pixels
-    /// @return false if SDL refused
     public static final class SetWindowSize {
 
         private static final MethodHandle FD_SDL_SetWindowSize =
@@ -363,6 +369,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetWindowSize");
         }
 
+        /// Calls `SDL_SetWindowSize`.
+        ///
+        /// @param width in logical pixels
+        /// @param height in logical pixels
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, int width, int height) {
             try {
                 return (boolean) FD_SDL_SetWindowSize.invokeExact(address, window, width, height);
@@ -380,10 +391,6 @@ public record SdlWindowCalls(
     /// SDL’s own reading of it.
     ///
     /// `_Bool SDL_SetWindowMinimumSize(void*, int, int)`
-    ///
-    /// @param width in logical pixels, or 0 for no minimum
-    /// @param height in logical pixels, or 0 for no minimum
-    /// @return false if SDL refused
     public static final class SetWindowMinimumSize {
 
         private static final MethodHandle FD_SDL_SetWindowMinimumSize =
@@ -395,6 +402,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetWindowMinimumSize");
         }
 
+        /// Calls `SDL_SetWindowMinimumSize`.
+        ///
+        /// @param width in logical pixels, or 0 for no minimum
+        /// @param height in logical pixels, or 0 for no minimum
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, int width, int height) {
             try {
                 return (boolean) FD_SDL_SetWindowMinimumSize.invokeExact(address, window, width, height);
@@ -407,10 +419,6 @@ public record SdlWindowCalls(
     /// Reads the window’s size in **logical** pixels.
     ///
     /// `_Bool SDL_GetWindowSize(void*, void*, void*)`
-    ///
-    /// @param outWidth a caller-allocated `int*`
-    /// @param outHeight a caller-allocated `int*`
-    /// @return false if SDL refused
     public static final class GetWindowSize {
 
         private static final MethodHandle FD_SDL_GetWindowSize =
@@ -422,6 +430,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowSize");
         }
 
+        /// Calls `SDL_GetWindowSize`.
+        ///
+        /// @param outWidth a caller-allocated `int*`
+        /// @param outHeight a caller-allocated `int*`
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, MemorySegment outWidth, MemorySegment outHeight) {
             try {
                 return (boolean) FD_SDL_GetWindowSize.invokeExact(address, window, outWidth, outHeight);
@@ -437,10 +450,6 @@ public record SdlWindowCalls(
     /// scale is: the two disagree by exactly that factor.
     ///
     /// `_Bool SDL_GetWindowSizeInPixels(void*, void*, void*)`
-    ///
-    /// @param outWidth a caller-allocated `int*`
-    /// @param outHeight a caller-allocated `int*`
-    /// @return false if SDL refused
     public static final class GetWindowSizeInPixels {
 
         private static final MethodHandle FD_SDL_GetWindowSizeInPixels =
@@ -452,6 +461,11 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowSizeInPixels");
         }
 
+        /// Calls `SDL_GetWindowSizeInPixels`.
+        ///
+        /// @param outWidth a caller-allocated `int*`
+        /// @param outHeight a caller-allocated `int*`
+        /// @return false if SDL refused
         public boolean call(MemorySegment window, MemorySegment outWidth, MemorySegment outHeight) {
             try {
                 return (boolean) FD_SDL_GetWindowSizeInPixels.invokeExact(address, window, outWidth, outHeight);
@@ -464,8 +478,6 @@ public record SdlWindowCalls(
     /// The window’s id, which is what an event carries instead of a pointer.
     ///
     /// `int SDL_GetWindowID(void*)`
-    ///
-    /// @return an `SDL_WindowID`, or 0 on failure
     public static final class GetWindowId {
 
         private static final MethodHandle FD_SDL_GetWindowID = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -476,6 +488,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowID");
         }
 
+        /// Calls `SDL_GetWindowID`.
+        ///
+        /// @return an `SDL_WindowID`, or 0 on failure
         public int call(MemorySegment window) {
             try {
                 return (int) FD_SDL_GetWindowID.invokeExact(address, window);
@@ -491,9 +506,6 @@ public record SdlWindowCalls(
     /// a field that never asked never sees a keystroke.
     ///
     /// `_Bool SDL_StartTextInput(void*)`
-    ///
-    /// @param window the window that should receive text
-    /// @return false if SDL refused
     public static final class StartTextInput {
 
         private static final MethodHandle FD_SDL_StartTextInput =
@@ -505,6 +517,10 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_StartTextInput");
         }
 
+        /// Calls `SDL_StartTextInput`.
+        ///
+        /// @param window the window that should receive text
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_StartTextInput.invokeExact(address, window);
@@ -517,8 +533,6 @@ public record SdlWindowCalls(
     /// Stops text delivery for the window.
     ///
     /// `_Bool SDL_StopTextInput(void*)`
-    ///
-    /// @return false if SDL refused
     public static final class StopTextInput {
 
         private static final MethodHandle FD_SDL_StopTextInput =
@@ -530,6 +544,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_StopTextInput");
         }
 
+        /// Calls `SDL_StopTextInput`.
+        ///
+        /// @return false if SDL refused
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_StopTextInput.invokeExact(address, window);
@@ -542,8 +559,6 @@ public record SdlWindowCalls(
     /// Whether text delivery is on for the window.
     ///
     /// `_Bool SDL_TextInputActive(void*)`
-    ///
-    /// @return true if active
     public static final class TextInputActive {
 
         private static final MethodHandle FD_SDL_TextInputActive =
@@ -555,6 +570,9 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_TextInputActive");
         }
 
+        /// Calls `SDL_TextInputActive`.
+        ///
+        /// @return true if active
         public boolean call(MemorySegment window) {
             try {
                 return (boolean) FD_SDL_TextInputActive.invokeExact(address, window);

@@ -31,9 +31,6 @@ public record SdlThemeCalls(GetSystemTheme getSystemTheme) {
     /// What the desktop is set to.
     ///
     /// `SDL_SystemTheme SDL_GetSystemTheme(void)`
-    ///
-    /// @return an `SDL_SystemTheme`, which is `SDL_SYSTEM_THEME_UNKNOWN` on a
-    ///         desktop that has no such setting and on a driver that cannot ask
     public static final class GetSystemTheme {
 
         private static final MethodHandle FD_SDL_GetSystemTheme = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
@@ -54,6 +51,10 @@ public record SdlThemeCalls(GetSystemTheme getSystemTheme) {
             return address != null;
         }
 
+        /// Makes the call.
+        ///
+        /// @return an `SDL_SystemTheme`, which is `SDL_SYSTEM_THEME_UNKNOWN` on a
+        ///         desktop that has no such setting and on a driver that cannot ask
         public int call() {
             try {
                 return (int) FD_SDL_GetSystemTheme.invokeExact(address);

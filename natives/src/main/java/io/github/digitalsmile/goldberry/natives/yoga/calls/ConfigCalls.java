@@ -40,8 +40,6 @@ public record ConfigCalls(
     /// Allocates a config with Yoga’s defaults.
     ///
     /// `void* YGConfigNew(void)`
-    ///
-    /// @return the new `YGConfigRef`
     public static final class ConfigNew {
 
         private static final MethodHandle FD_YGConfigNew = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -52,6 +50,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigNew");
         }
 
+        /// Calls `YGConfigNew`.
+        ///
+        /// @return the new `YGConfigRef`
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_YGConfigNew.invokeExact(address);
@@ -64,8 +65,6 @@ public record ConfigCalls(
     /// Releases a config. Every node made with it must be gone first.
     ///
     /// `void YGConfigFree(void*)`
-    ///
-    /// @param config the config to release
     public static final class ConfigFree {
 
         private static final MethodHandle FD_YGConfigFree = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -76,6 +75,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigFree");
         }
 
+        /// Calls `YGConfigFree`.
+        ///
+        /// @param config the config to release
         public void call(MemorySegment config) {
             try {
                 FD_YGConfigFree.invokeExact(address, config);
@@ -91,8 +93,6 @@ public record ConfigCalls(
     /// two boxes that share an edge: both round to the same physical grid.
     ///
     /// `void YGConfigSetPointScaleFactor(void*, float)`
-    ///
-    /// @param factor physical pixels per logical one; 0 disables rounding entirely
     public static final class ConfigSetPointScaleFactor {
 
         private static final MethodHandle FD_YGConfigSetPointScaleFactor =
@@ -104,6 +104,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigSetPointScaleFactor");
         }
 
+        /// Calls `YGConfigSetPointScaleFactor`.
+        ///
+        /// @param factor physical pixels per logical one; 0 disables rounding entirely
         public void call(MemorySegment config, float factor) {
             try {
                 FD_YGConfigSetPointScaleFactor.invokeExact(address, config, factor);
@@ -116,8 +119,6 @@ public record ConfigCalls(
     /// The rounding grid in force.
     ///
     /// `float YGConfigGetPointScaleFactor(void*)`
-    ///
-    /// @return physical pixels per logical one
     public static final class ConfigGetPointScaleFactor {
 
         private static final MethodHandle FD_YGConfigGetPointScaleFactor =
@@ -129,6 +130,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigGetPointScaleFactor");
         }
 
+        /// Calls `YGConfigGetPointScaleFactor`.
+        ///
+        /// @return physical pixels per logical one
         public float call(MemorySegment config) {
             try {
                 return (float) FD_YGConfigGetPointScaleFactor.invokeExact(address, config);
@@ -144,8 +148,6 @@ public record ConfigCalls(
     /// what a node that says nothing does.
     ///
     /// `void YGConfigSetUseWebDefaults(void*, _Bool)`
-    ///
-    /// @param useWebDefaults true for CSS’s defaults, false for Yoga’s
     public static final class ConfigSetUseWebDefaults {
 
         private static final MethodHandle FD_YGConfigSetUseWebDefaults =
@@ -157,6 +159,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigSetUseWebDefaults");
         }
 
+        /// Calls `YGConfigSetUseWebDefaults`.
+        ///
+        /// @param useWebDefaults true for CSS’s defaults, false for Yoga’s
         public void call(MemorySegment config, boolean useWebDefaults) {
             try {
                 FD_YGConfigSetUseWebDefaults.invokeExact(address, config, useWebDefaults);
@@ -169,8 +174,6 @@ public record ConfigCalls(
     /// Whether CSS’s defaults are in force.
     ///
     /// `_Bool YGConfigGetUseWebDefaults(void*)`
-    ///
-    /// @return true for CSS’s defaults
     public static final class ConfigGetUseWebDefaults {
 
         private static final MethodHandle FD_YGConfigGetUseWebDefaults =
@@ -182,6 +185,9 @@ public record ConfigCalls(
             this.address = Downcalls.symbol(lookup, "YGConfigGetUseWebDefaults");
         }
 
+        /// Calls `YGConfigGetUseWebDefaults`.
+        ///
+        /// @return true for CSS’s defaults
         public boolean call(MemorySegment config) {
             try {
                 return (boolean) FD_YGConfigGetUseWebDefaults.invokeExact(address, config);

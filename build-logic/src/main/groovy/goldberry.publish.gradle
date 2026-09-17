@@ -109,11 +109,15 @@ pluginManager.withPlugin('java-test-fixtures') {
     }
 }
 
-// Doclint off for the published javadoc. Central needs a javadoc jar and the
-// sources have ~120 doclint errors today -- `{@link}`s to types another module
-// owns, `@param` on `///` comments -- none of which stops the page rendering.
-// Turning the lint into a gate is `book/src/TODO.md`'s business, not a reason for
-// a release to fail at its last step.
+// Doclint on for the published javadoc, less the `missing` group (ADR-0343).
+// The 120 errors that used to keep it off were `@param` blocks written on the
+// class above a one-method `...Calls` holder, which doclint reads as a tag on a
+// type, and twenty `[Foo]` links to a type another package or module owns; both
+// are fixed at the source and the lint is what keeps them fixed. `missing` is
+// left out on purpose: it wants a `@param` for every parameter, and this
+// codebase documents in prose -- a `///` sentence that says what a method does
+// is the documentation, and four hundred `@param x the x` lines would be noise
+// that hides the sentence.
 tasks.withType(Javadoc).configureEach {
-    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }

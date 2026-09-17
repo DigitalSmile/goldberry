@@ -45,14 +45,6 @@ public record FontCalls(
     /// Wraps bytes as a blob, copying them.
     ///
     /// `void* hb_blob_create(void*, int, int, void*, void*)`
-    ///
-    /// @param data the font file
-    /// @param length how many bytes
-    /// @param mode an `hb_memory_mode_t`; always DUPLICATE here, because nothing can
-    ///        promise a Java array outlives the face
-    /// @param userData passed to `destroy`
-    /// @param destroy called when the blob is released; NULL to free nothing
-    /// @return the new `hb_blob_t*`
     public static final class BlobCreate {
 
         private static final MethodHandle FD_hb_blob_create =
@@ -64,6 +56,15 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_blob_create");
         }
 
+        /// Calls `hb_blob_create`.
+        ///
+        /// @param data the font file
+        /// @param length how many bytes
+        /// @param mode an `hb_memory_mode_t`; always DUPLICATE here, because nothing can
+        ///        promise a Java array outlives the face
+        /// @param userData passed to `destroy`
+        /// @param destroy called when the blob is released; NULL to free nothing
+        /// @return the new `hb_blob_t*`
         public MemorySegment call(
                 MemorySegment data, int length, int mode, MemorySegment userData, MemorySegment destroy) {
             try {
@@ -77,8 +78,6 @@ public record FontCalls(
     /// Drops a reference to a blob.
     ///
     /// `void hb_blob_destroy(void*)`
-    ///
-    /// @param blob the blob to release
     public static final class BlobDestroy {
 
         private static final MethodHandle FD_hb_blob_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -89,6 +88,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_blob_destroy");
         }
 
+        /// Calls `hb_blob_destroy`.
+        ///
+        /// @param blob the blob to release
         public void call(MemorySegment blob) {
             try {
                 FD_hb_blob_destroy.invokeExact(address, blob);
@@ -104,10 +106,6 @@ public record FontCalls(
     /// is why the checking around here is about arguments and not results.
     ///
     /// `void* hb_face_create(void*, int)`
-    ///
-    /// @param blob the font file
-    /// @param index 0 for a plain font, the member index inside a collection
-    /// @return the new `hb_face_t*`
     public static final class FaceCreate {
 
         private static final MethodHandle FD_hb_face_create =
@@ -119,6 +117,11 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_face_create");
         }
 
+        /// Calls `hb_face_create`.
+        ///
+        /// @param blob the font file
+        /// @param index 0 for a plain font, the member index inside a collection
+        /// @return the new `hb_face_t*`
         public MemorySegment call(MemorySegment blob, int index) {
             try {
                 return (MemorySegment) FD_hb_face_create.invokeExact(address, blob, index);
@@ -131,8 +134,6 @@ public record FontCalls(
     /// Drops a reference to a face.
     ///
     /// `void hb_face_destroy(void*)`
-    ///
-    /// @param face the face to release
     public static final class FaceDestroy {
 
         private static final MethodHandle FD_hb_face_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -143,6 +144,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_face_destroy");
         }
 
+        /// Calls `hb_face_destroy`.
+        ///
+        /// @param face the face to release
         public void call(MemorySegment face) {
             try {
                 FD_hb_face_destroy.invokeExact(address, face);
@@ -155,11 +159,9 @@ public record FontCalls(
     /// HarfBuzz’s immortal empty face — a valid face with no glyphs.
     ///
     /// A singleton HarfBuzz owns, so it must **not** be destroyed. That is why
-    /// [ShapedFont] tracks whether its face was borrowed.
+    /// [io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont] tracks whether its face was borrowed.
     ///
     /// `void* hb_face_get_empty(void)`
-    ///
-    /// @return the shared empty `hb_face_t*`
     public static final class FaceGetEmpty {
 
         private static final MethodHandle FD_hb_face_get_empty = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -170,6 +172,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_face_get_empty");
         }
 
+        /// Calls `hb_face_get_empty`.
+        ///
+        /// @return the shared empty `hb_face_t*`
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_hb_face_get_empty.invokeExact(address);
@@ -187,9 +192,6 @@ public record FontCalls(
     /// TrueType one, and free to be anything.
     ///
     /// `int hb_face_get_upem(void*)`
-    ///
-    /// @param face the face to ask
-    /// @return units per em
     public static final class FaceGetUpem {
 
         private static final MethodHandle FD_hb_face_get_upem =
@@ -201,6 +203,10 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_face_get_upem");
         }
 
+        /// Calls `hb_face_get_upem`.
+        ///
+        /// @param face the face to ask
+        /// @return units per em
         public int call(MemorySegment face) {
             try {
                 return (int) FD_hb_face_get_upem.invokeExact(address, face);
@@ -213,9 +219,6 @@ public record FontCalls(
     /// Creates a font from a face, at the face’s own upem until scaled.
     ///
     /// `void* hb_font_create(void*)`
-    ///
-    /// @param face the face to instantiate
-    /// @return the new `hb_font_t*`
     public static final class FontCreate {
 
         private static final MethodHandle FD_hb_font_create = Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
@@ -226,6 +229,10 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_font_create");
         }
 
+        /// Calls `hb_font_create`.
+        ///
+        /// @param face the face to instantiate
+        /// @return the new `hb_font_t*`
         public MemorySegment call(MemorySegment face) {
             try {
                 return (MemorySegment) FD_hb_font_create.invokeExact(address, face);
@@ -238,8 +245,6 @@ public record FontCalls(
     /// Drops a reference to a font.
     ///
     /// `void hb_font_destroy(void*)`
-    ///
-    /// @param font the font to release
     public static final class FontDestroy {
 
         private static final MethodHandle FD_hb_font_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -250,6 +255,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_font_destroy");
         }
 
+        /// Calls `hb_font_destroy`.
+        ///
+        /// @param font the font to release
         public void call(MemorySegment font) {
             try {
                 FD_hb_font_destroy.invokeExact(address, font);
@@ -262,10 +270,6 @@ public record FontCalls(
     /// Sets the units advances come back in.
     ///
     /// `void hb_font_set_scale(void*, int, int)`
-    ///
-    /// @param font the font to scale
-    /// @param xScale horizontal scale in 26.6 units
-    /// @param yScale vertical scale in 26.6 units
     public static final class FontSetScale {
 
         private static final MethodHandle FD_hb_font_set_scale =
@@ -277,6 +281,11 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "hb_font_set_scale");
         }
 
+        /// Calls `hb_font_set_scale`.
+        ///
+        /// @param font the font to scale
+        /// @param xScale horizontal scale in 26.6 units
+        /// @param yScale vertical scale in 26.6 units
         public void call(MemorySegment font, int xScale, int yScale) {
             try {
                 FD_hb_font_set_scale.invokeExact(address, font, xScale, yScale);

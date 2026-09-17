@@ -352,6 +352,7 @@
 - [ADR-0340 The showcase is a release artifact, not a package](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
 - [ADR-0341 CodeQL findings are fixed where real and answered where not](adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md)
 - [ADR-0342 A window is resized from outside, and the run says what it cost](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)
+- [ADR-0343 The published javadoc is linted](adr/0343-the-published-javadoc-is-linted.md)
 
 ---
 

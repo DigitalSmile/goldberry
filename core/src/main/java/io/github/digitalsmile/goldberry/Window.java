@@ -45,7 +45,7 @@ import io.github.digitalsmile.goldberry.stats.FrameStats;
 /// Goldberry.run();
 /// ```
 ///
-/// Everything below is still there — [io.github.digitalsmile.goldberry.backend]
+/// Everything below is still there — [io.github.digitalsmile.goldberry.render]
 /// is exported, and an application that wants to drive the SPI directly can. This
 /// is the path for the ones that do not.
 ///

@@ -82,7 +82,7 @@ public @interface Bind {
     /// (ADR-0133).
     ///
     /// The toolkit wires it: an application that hands its model to
-    /// [io.github.digitalsmile.goldberry.Application#model()] restyles on a
+    /// [io.github.digitalsmile.goldberry.Application#models()] restyles on a
     /// change to this field and repaints on a change to any other, and says
     /// nothing about either.
     boolean restyle() default false;

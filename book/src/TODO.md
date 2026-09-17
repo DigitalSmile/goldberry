@@ -1370,22 +1370,12 @@ on, which in four cases is the same thing.
   native superbuild, so no new constraint; it is written down because the failure is far
   from its cause. —
   [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
-- **No licence text is vendored yet.** Every file in `licenses/` is a placeholder.
-  `./gradlew checkLicenses -Pgoldberry.releaseCheck=true` fails until they are copied
-  verbatim from the pinned upstream revisions. —
-  [ADR-0015](adr/0015-licensing-and-third-party-disclosure.md)
 - **The publishing chain has never run against Central.** Everything up to the upload
   is built and was rehearsed locally with stand-in libraries; what cannot be done from
   the repository is Central's side — the `io.github.digitalsmile` namespace, **snapshots
   enabled for it** (off by default), a user token, a GPG key on a keyserver, and the
   four secrets. Until then every snapshot run rehearses into `mavenLocal` and says so.
   `docs/releasing.md` is the list. —
-  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
-- **The published javadoc is built with doclint off.** 120 errors across `:natives`,
-  `:core` and `:widgets` — `{@link}`s to types the module cannot see and `@param` /
-  `@return` on comments javadoc does not treat as method docs — would fail the javadoc
-  jar Central requires. None of them stops a page rendering, so `goldberry.publish`
-  passes `-Xdoclint:none`; fixing them and turning the lint back on is the work. —
   [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
 - **Nothing bumps `goldberryVersion` after a release.** Forgetting leaves master
   publishing `2026.1-SNAPSHOT` after `2026.1` is out, which Maven orders below the
@@ -1424,6 +1414,22 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The published javadoc is built with doclint off.**~~ **On, less `missing`,
+  and clean across every published module.** The 120 errors were one idiom —
+  `@param` lines on a `…Calls` holder class rather than on its `call` method,
+  425 of them, moved by a script — and twenty `[Foo]` links to a type in another
+  package or module, three of which named things that no longer existed. The
+  `missing` group stays off because this codebase documents in prose. —
+  [ADR-0343](adr/0343-the-published-javadoc-is-linted.md)
+- ~~**No licence text is vendored yet.**~~ **All seven are, 2026-09-17.** The
+  superbuild's cached checkouts under `natives/.deps/<target>/<name>-src` *are*
+  the pinned revisions — their `HEAD`s were compared against
+  `libs.versions.toml` before copying — so the verbatim files came from there
+  rather than from a download that might have been a different tag.
+  `checkLicenses -Pgoldberry.releaseCheck=true` passes with eleven components.
+  What stays true: a bumped pin means re-copying that one file, because the
+  copyright lines are the upstream's and not the licence's. —
+  [ADR-0015](adr/0015-licensing-and-third-party-disclosure.md)
 - ~~**IME preedit is not drawn, and committed text already works.**~~ ~~**IME
   preedit is missing entirely.**~~ **Both were closed by `docs/gaps.md` G15 and
   G16 and the entries had not been struck.** `SDL_EVENT_TEXT_EDITING` and

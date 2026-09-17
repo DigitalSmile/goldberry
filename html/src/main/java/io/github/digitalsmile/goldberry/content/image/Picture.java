@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// engine's work that `docs/gaps.md` G17 said was missing: `Image.decode` and
 /// `Frame.drawImage` have existed since ADR-0283, and what was absent was a widget
 /// that draws one and an answer about who fetches. This is the widget; the fetching
-/// is still the application's, through [ImageSource] (ADR-0300).
+/// is still the application's, through [io.github.digitalsmile.goldberry.content.ImageSource] (ADR-0300).
 ///
 /// A part rather than a widget an application builds (ADR-0065): it is a CSS type,
 /// `picture`, and a document is what puts one on the screen.

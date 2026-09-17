@@ -33,14 +33,6 @@ public record ProbeCalls(ProbeMeasure probeMeasure) {
     /// the part that has to be proved on every target.
     ///
     /// `void goldberry_probe_measure(void*, float, int, float, int, void*, void*)`
-    ///
-    /// @param measureFunc a `YGMeasureFunc` upcall stub to invoke
-    /// @param width the width constraint to pass it
-    /// @param widthMode a `YGMeasureMode`
-    /// @param height the height constraint to pass it
-    /// @param heightMode a `YGMeasureMode`
-    /// @param outWidth a caller-allocated `float*` for the measured width
-    /// @param outHeight a caller-allocated `float*` for the measured height
     public static final class ProbeMeasure {
 
         private static final MethodHandle FD_goldberry_probe_measure = Downcalls.link(
@@ -52,6 +44,15 @@ public record ProbeCalls(ProbeMeasure probeMeasure) {
             this.address = Downcalls.symbol(lookup, "goldberry_probe_measure");
         }
 
+        /// Calls `goldberry_probe_measure`.
+        ///
+        /// @param measureFunc a `YGMeasureFunc` upcall stub to invoke
+        /// @param width the width constraint to pass it
+        /// @param widthMode a `YGMeasureMode`
+        /// @param height the height constraint to pass it
+        /// @param heightMode a `YGMeasureMode`
+        /// @param outWidth a caller-allocated `float*` for the measured width
+        /// @param outHeight a caller-allocated `float*` for the measured height
         public void call(
                 MemorySegment measureFunc,
                 float width,

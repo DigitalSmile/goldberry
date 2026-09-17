@@ -54,8 +54,6 @@ public record PathCalls(
     /// Initialises an empty path.
     ///
     /// `int bl_path_init(void*)`
-    ///
-    /// @param path an uninitialised `BLPathCore` to take over
     public static final class PathInit {
 
         private static final MethodHandle FD_bl_path_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -66,6 +64,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_init");
         }
 
+        /// Calls `bl_path_init`.
+        ///
+        /// @param path an uninitialised `BLPathCore` to take over
         public int call(MemorySegment path) {
             try {
                 return (int) FD_bl_path_init.invokeExact(address, path);
@@ -78,8 +79,6 @@ public record PathCalls(
     /// Releases the path.
     ///
     /// `int bl_path_destroy(void*)`
-    ///
-    /// @param path the path to release
     public static final class PathDestroy {
 
         private static final MethodHandle FD_bl_path_destroy = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -90,6 +89,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_destroy");
         }
 
+        /// Calls `bl_path_destroy`.
+        ///
+        /// @param path the path to release
         public int call(MemorySegment path) {
             try {
                 return (int) FD_bl_path_destroy.invokeExact(address, path);
@@ -103,8 +105,6 @@ public record PathCalls(
     /// reusable across frames without allocating.
     ///
     /// `int bl_path_reset(void*)`
-    ///
-    /// @param path the path to empty
     public static final class PathReset {
 
         private static final MethodHandle FD_bl_path_reset = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -115,6 +115,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_reset");
         }
 
+        /// Calls `bl_path_reset`.
+        ///
+        /// @param path the path to empty
         public int call(MemorySegment path) {
             try {
                 return (int) FD_bl_path_reset.invokeExact(address, path);
@@ -130,9 +133,6 @@ public record PathCalls(
     /// operation and so cannot fail.
     ///
     /// `int64_t bl_path_get_size(void*)`
-    ///
-    /// @param path the path to measure
-    /// @return the command count
     public static final class PathGetSize {
 
         private static final MethodHandle FD_bl_path_get_size =
@@ -144,6 +144,10 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_get_size");
         }
 
+        /// Calls `bl_path_get_size`.
+        ///
+        /// @param path the path to measure
+        /// @return the command count
         public long call(MemorySegment path) {
             try {
                 return (long) FD_bl_path_get_size.invokeExact(address, path);
@@ -156,8 +160,6 @@ public record PathCalls(
     /// Starts a new subpath at `(x, y)` — SVG’s `M`.
     ///
     /// `int bl_path_move_to(void*, double, double)`
-    ///
-    /// @param path the path to append to
     public static final class PathMoveTo {
 
         private static final MethodHandle FD_bl_path_move_to =
@@ -169,6 +171,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_move_to");
         }
 
+        /// Calls `bl_path_move_to`.
+        ///
+        /// @param path the path to append to
         public int call(MemorySegment path, double x, double y) {
             try {
                 return (int) FD_bl_path_move_to.invokeExact(address, path, x, y);
@@ -181,8 +186,6 @@ public record PathCalls(
     /// Draws a straight line to `(x, y)` — SVG’s `L`.
     ///
     /// `int bl_path_line_to(void*, double, double)`
-    ///
-    /// @param path the path to append to
     public static final class PathLineTo {
 
         private static final MethodHandle FD_bl_path_line_to =
@@ -194,6 +197,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_line_to");
         }
 
+        /// Calls `bl_path_line_to`.
+        ///
+        /// @param path the path to append to
         public int call(MemorySegment path, double x, double y) {
             try {
                 return (int) FD_bl_path_line_to.invokeExact(address, path, x, y);
@@ -206,10 +212,6 @@ public record PathCalls(
     /// Draws a quadratic Bézier — SVG’s `Q`.
     ///
     /// `int bl_path_quad_to(void*, double, double, double, double)`
-    ///
-    /// @param path the path to append to
-    /// @param x the end point
-    /// @param y the end point
     public static final class PathQuadTo {
 
         private static final MethodHandle FD_bl_path_quad_to = Downcalls.link(
@@ -221,6 +223,11 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_quad_to");
         }
 
+        /// Calls `bl_path_quad_to`.
+        ///
+        /// @param path the path to append to
+        /// @param x the end point
+        /// @param y the end point
         public int call(MemorySegment path, double controlX, double controlY, double x, double y) {
             try {
                 return (int) FD_bl_path_quad_to.invokeExact(address, path, controlX, controlY, x, y);
@@ -233,10 +240,6 @@ public record PathCalls(
     /// Draws a cubic Bézier — SVG’s `C`.
     ///
     /// `int bl_path_cubic_to(void*, double, double, double, double, double, double)`
-    ///
-    /// @param path the path to append to
-    /// @param x the end point
-    /// @param y the end point
     public static final class PathCubicTo {
 
         private static final MethodHandle FD_bl_path_cubic_to = Downcalls.link(FunctionDescriptor.of(
@@ -248,6 +251,11 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_cubic_to");
         }
 
+        /// Calls `bl_path_cubic_to`.
+        ///
+        /// @param path the path to append to
+        /// @param x the end point
+        /// @param y the end point
         public int call(
                 MemorySegment path,
                 double control1X,
@@ -274,10 +282,6 @@ public record PathCalls(
     /// bare `M`.
     ///
     /// `int bl_path_smooth_quad_to(void*, double, double)`
-    ///
-    /// @param path the path to append to
-    /// @param x the end point
-    /// @param y the end point
     public static final class PathSmoothQuadTo {
 
         private static final MethodHandle FD_bl_path_smooth_quad_to =
@@ -289,6 +293,11 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_smooth_quad_to");
         }
 
+        /// Calls `bl_path_smooth_quad_to`.
+        ///
+        /// @param path the path to append to
+        /// @param x the end point
+        /// @param y the end point
         public int call(MemorySegment path, double x, double y) {
             try {
                 return (int) FD_bl_path_smooth_quad_to.invokeExact(address, path, x, y);
@@ -303,10 +312,6 @@ public record PathCalls(
     /// reflection is Blend2D’s to do.
     ///
     /// `int bl_path_smooth_cubic_to(void*, double, double, double, double)`
-    ///
-    /// @param path the path to append to
-    /// @param x the end point
-    /// @param y the end point
     public static final class PathSmoothCubicTo {
 
         private static final MethodHandle FD_bl_path_smooth_cubic_to = Downcalls.link(
@@ -318,6 +323,11 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_smooth_cubic_to");
         }
 
+        /// Calls `bl_path_smooth_cubic_to`.
+        ///
+        /// @param path the path to append to
+        /// @param x the end point
+        /// @param y the end point
         public int call(MemorySegment path, double control2X, double control2Y, double x, double y) {
             try {
                 return (int) FD_bl_path_smooth_cubic_to.invokeExact(address, path, control2X, control2Y, x, y);
@@ -334,13 +344,6 @@ public record PathCalls(
     /// argument after them.
     ///
     /// `int bl_path_elliptic_arc_to(void*, double, double, double, _Bool, _Bool, double, double)`
-    ///
-    /// @param path the path to append to
-    /// @param xAxisRotation in **radians**, where SVG writes degrees
-    /// @param largeArc SVG’s large-arc flag
-    /// @param sweep SVG’s sweep flag
-    /// @param x the end point
-    /// @param y the end point
     public static final class PathEllipticArcTo {
 
         private static final MethodHandle FD_bl_path_elliptic_arc_to = Downcalls.link(FunctionDescriptor.of(
@@ -360,6 +363,14 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_elliptic_arc_to");
         }
 
+        /// Calls `bl_path_elliptic_arc_to`.
+        ///
+        /// @param path the path to append to
+        /// @param xAxisRotation in **radians**, where SVG writes degrees
+        /// @param largeArc SVG’s large-arc flag
+        /// @param sweep SVG’s sweep flag
+        /// @param x the end point
+        /// @param y the end point
         public int call(
                 MemorySegment path,
                 double radiusX,
@@ -381,8 +392,6 @@ public record PathCalls(
     /// Closes the current subpath — SVG’s `Z`.
     ///
     /// `int bl_path_close(void*)`
-    ///
-    /// @param path the path to close
     public static final class PathClose {
 
         private static final MethodHandle FD_bl_path_close = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -393,6 +402,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_close");
         }
 
+        /// Calls `bl_path_close`.
+        ///
+        /// @param path the path to close
         public int call(MemorySegment path) {
             try {
                 return (int) FD_bl_path_close.invokeExact(address, path);

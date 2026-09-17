@@ -44,8 +44,9 @@ public interface Handles extends Widget {
     /// (ADR-0080).
     ///
     /// Named as a **CSS type**, which is the vocabulary a part already has
-    /// ([ADR-0065]): the first descendant whose [Styled#cssType()] matches, in
-    /// document order. The router resolves it, because it is the one that holds
+    /// ([ADR-0065]): the first descendant whose
+    /// [io.github.digitalsmile.goldberry.widget.style.Styled#cssType()] matches,
+    /// in document order. The router resolves it, because it is the one that holds
     /// the painted rectangles and the widget cannot see its own elements — the
     /// argument already written for `dragX()` and for Tab.
     ///

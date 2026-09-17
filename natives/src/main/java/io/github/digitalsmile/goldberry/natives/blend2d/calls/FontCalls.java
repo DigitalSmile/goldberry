@@ -53,8 +53,6 @@ public record FontCalls(
     /// uninitialised one reads a pointer that was never written.
     ///
     /// `int bl_font_data_init(void*)`
-    ///
-    /// @param fontData an uninitialised `BLFontDataCore` to take over
     public static final class FontDataInit {
 
         private static final MethodHandle FD_bl_font_data_init =
@@ -66,6 +64,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_data_init");
         }
 
+        /// Calls `bl_font_data_init`.
+        ///
+        /// @param fontData an uninitialised `BLFontDataCore` to take over
         public int call(MemorySegment fontData) {
             try {
                 return (int) FD_bl_font_data_init.invokeExact(address, fontData);
@@ -78,12 +79,6 @@ public record FontCalls(
     /// Points a font data handle at bytes the caller owns.
     ///
     /// `int bl_font_data_create_from_data(void*, void*, int64_t, void*, void*)`
-    ///
-    /// @param fontData an initialised handle to replace
-    /// @param bytes the font file; the caller keeps ownership
-    /// @param length how many bytes
-    /// @param destroyFunc called when Blend2D releases the data; NULL to free nothing
-    /// @param userData passed to `destroyFunc`
     public static final class FontDataCreateFromData {
 
         private static final MethodHandle FD_bl_font_data_create_from_data =
@@ -95,6 +90,13 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_data_create_from_data");
         }
 
+        /// Calls `bl_font_data_create_from_data`.
+        ///
+        /// @param fontData an initialised handle to replace
+        /// @param bytes the font file; the caller keeps ownership
+        /// @param length how many bytes
+        /// @param destroyFunc called when Blend2D releases the data; NULL to free nothing
+        /// @param userData passed to `destroyFunc`
         public int call(
                 MemorySegment fontData,
                 MemorySegment bytes,
@@ -113,8 +115,6 @@ public record FontCalls(
     /// Releases the font data handle.
     ///
     /// `int bl_font_data_destroy(void*)`
-    ///
-    /// @param fontData the handle to release
     public static final class FontDataDestroy {
 
         private static final MethodHandle FD_bl_font_data_destroy =
@@ -126,6 +126,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_data_destroy");
         }
 
+        /// Calls `bl_font_data_destroy`.
+        ///
+        /// @param fontData the handle to release
         public int call(MemorySegment fontData) {
             try {
                 return (int) FD_bl_font_data_destroy.invokeExact(address, fontData);
@@ -138,8 +141,6 @@ public record FontCalls(
     /// Initialises an empty font face handle.
     ///
     /// `int bl_font_face_init(void*)`
-    ///
-    /// @param face an uninitialised `BLFontFaceCore` to take over
     public static final class FontFaceInit {
 
         private static final MethodHandle FD_bl_font_face_init =
@@ -151,6 +152,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_face_init");
         }
 
+        /// Calls `bl_font_face_init`.
+        ///
+        /// @param face an uninitialised `BLFontFaceCore` to take over
         public int call(MemorySegment face) {
             try {
                 return (int) FD_bl_font_face_init.invokeExact(address, face);
@@ -163,10 +167,6 @@ public record FontCalls(
     /// Reads one face out of font data.
     ///
     /// `int bl_font_face_create_from_data(void*, void*, int)`
-    ///
-    /// @param face an initialised handle to replace
-    /// @param fontData the font data to read
-    /// @param faceIndex 0 for a plain font, the member index inside a collection
     public static final class FontFaceCreateFromData {
 
         private static final MethodHandle FD_bl_font_face_create_from_data =
@@ -178,6 +178,11 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_face_create_from_data");
         }
 
+        /// Calls `bl_font_face_create_from_data`.
+        ///
+        /// @param face an initialised handle to replace
+        /// @param fontData the font data to read
+        /// @param faceIndex 0 for a plain font, the member index inside a collection
         public int call(MemorySegment face, MemorySegment fontData, int faceIndex) {
             try {
                 return (int) FD_bl_font_face_create_from_data.invokeExact(address, face, fontData, faceIndex);
@@ -190,8 +195,6 @@ public record FontCalls(
     /// Releases the font face handle.
     ///
     /// `int bl_font_face_destroy(void*)`
-    ///
-    /// @param face the handle to release
     public static final class FontFaceDestroy {
 
         private static final MethodHandle FD_bl_font_face_destroy =
@@ -203,6 +206,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_face_destroy");
         }
 
+        /// Calls `bl_font_face_destroy`.
+        ///
+        /// @param face the handle to release
         public int call(MemorySegment face) {
             try {
                 return (int) FD_bl_font_face_destroy.invokeExact(address, face);
@@ -215,8 +221,6 @@ public record FontCalls(
     /// Initialises an empty font handle.
     ///
     /// `int bl_font_init(void*)`
-    ///
-    /// @param font an uninitialised `BLFontCore` to take over
     public static final class FontInit {
 
         private static final MethodHandle FD_bl_font_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -227,6 +231,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_init");
         }
 
+        /// Calls `bl_font_init`.
+        ///
+        /// @param font an uninitialised `BLFontCore` to take over
         public int call(MemorySegment font) {
             try {
                 return (int) FD_bl_font_init.invokeExact(address, font);
@@ -239,11 +246,6 @@ public record FontCalls(
     /// Sizes a face into a font.
     ///
     /// `int bl_font_create_from_face(void*, void*, float)`
-    ///
-    /// @param font an initialised handle to replace
-    /// @param face the face to size
-    /// @param size em size — a `float`, not a double: Blend2D’s own choice, and the one
-    ///        place in the paint path where a coordinate narrows
     public static final class FontCreateFromFace {
 
         private static final MethodHandle FD_bl_font_create_from_face =
@@ -255,6 +257,12 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_create_from_face");
         }
 
+        /// Calls `bl_font_create_from_face`.
+        ///
+        /// @param font an initialised handle to replace
+        /// @param face the face to size
+        /// @param size em size — a `float`, not a double: Blend2D’s own choice, and the one
+        ///        place in the paint path where a coordinate narrows
         public int call(MemorySegment font, MemorySegment face, float size) {
             try {
                 return (int) FD_bl_font_create_from_face.invokeExact(address, font, face, size);
@@ -267,8 +275,6 @@ public record FontCalls(
     /// Releases the font handle.
     ///
     /// `int bl_font_destroy(void*)`
-    ///
-    /// @param font the handle to release
     public static final class FontDestroy {
 
         private static final MethodHandle FD_bl_font_destroy = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
@@ -279,6 +285,9 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_destroy");
         }
 
+        /// Calls `bl_font_destroy`.
+        ///
+        /// @param font the handle to release
         public int call(MemorySegment font) {
             try {
                 return (int) FD_bl_font_destroy.invokeExact(address, font);
@@ -291,9 +300,6 @@ public record FontCalls(
     /// Reads the font’s ascent, descent and line gap at its size.
     ///
     /// `int bl_font_get_metrics(void*, void*)`
-    ///
-    /// @param font the font to measure
-    /// @param out a caller-allocated `BLFontMetrics` to fill in
     public static final class FontGetMetrics {
 
         private static final MethodHandle FD_bl_font_get_metrics =
@@ -305,6 +311,10 @@ public record FontCalls(
             this.address = Downcalls.symbol(lookup, "bl_font_get_metrics");
         }
 
+        /// Calls `bl_font_get_metrics`.
+        ///
+        /// @param font the font to measure
+        /// @param out a caller-allocated `BLFontMetrics` to fill in
         public int call(MemorySegment font, MemorySegment out) {
             try {
                 return (int) FD_bl_font_get_metrics.invokeExact(address, font, out);

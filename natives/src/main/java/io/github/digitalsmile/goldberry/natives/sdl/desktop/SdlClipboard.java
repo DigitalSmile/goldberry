@@ -26,7 +26,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlClipboardCalls;
 /// SDL3's clipboard calls — text, and bytes under a MIME type.
 ///
 /// The facility `docs/ARCHITECTURE.md` §4 listed and
-/// [io.github.digitalsmile.goldberry.backend.Backend] left out, on the rule that
+/// `Backend` left out, on the rule that
 /// an interface with no consumer gets designed twice (ADR-0019). `text-input`
 /// was the first consumer and wanted three calls; a board that pastes a
 /// screenshot is the second, and wants the other half (ADR-0286).

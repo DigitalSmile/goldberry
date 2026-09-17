@@ -98,7 +98,7 @@ public interface Backend extends AutoCloseable {
     /// has a tray presence, a window does not.
     ///
     /// The menu these rows describe is drawn by the **platform**, not by
-    /// Goldberry — see [TrayItem].
+    /// Goldberry — see [io.github.digitalsmile.goldberry.render.tray.TrayItem].
     ///
     /// @param spec the icon, the tooltip and the menu
     /// @return the tray, or empty if this desktop has none

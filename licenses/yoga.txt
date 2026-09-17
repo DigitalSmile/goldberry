@@ -4,13 +4,11 @@ Upstream:      https://github.com/facebook/yoga
 Licence file:  LICENSE
 Bundled as:    statically linked into libgoldberry
 
-NOT-VENDORED: the verbatim upstream licence file, including its exact
-copyright lines, must be copied here from the pinned revision before
-Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
-to fail the build while this marker is present.
+--- LICENSE at v3.2.1 (042f5013152eb81c1552dec945b88f7b95ca350f), verbatim ---
 
---- Reference text of MIT (informational until vendored; the upstream
-    copyright line governs and is not reproduced here) ---
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

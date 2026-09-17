@@ -3,8 +3,6 @@ package io.github.digitalsmile.goldberry.input.key;
 import java.util.Locale;
 import java.util.Objects;
 
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-
 /// A key with modifiers, as an accelerator table names one (§7.2).
 ///
 /// Written the way a menu prints it — `Ctrl+S`, `Ctrl+Shift+Z`, `F5`, `Alt+F4` —
@@ -94,7 +92,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
     ///
     /// Repeats match: holding `Ctrl+Z` down repeats the undo, which is what the
     /// platform's own key repeat is for. A shortcut that must not repeat checks
-    /// [KeyEvent#repeat()] itself.
+    /// [io.github.digitalsmile.goldberry.input.event.KeyEvent#isRepeat()] itself.
     public boolean matches(Key pressed, Modifiers held) {
         return key == pressed && modifiers.equals(held);
     }

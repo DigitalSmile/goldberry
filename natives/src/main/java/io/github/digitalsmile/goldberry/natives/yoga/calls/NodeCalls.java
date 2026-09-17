@@ -58,8 +58,6 @@ public record NodeCalls(
     /// Allocates a node under Yoga’s default config.
     ///
     /// `void* YGNodeNew(void)`
-    ///
-    /// @return the new `YGNodeRef`
     public static final class NodeNew {
 
         private static final MethodHandle FD_YGNodeNew = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -70,6 +68,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeNew");
         }
 
+        /// Calls `YGNodeNew`.
+        ///
+        /// @return the new `YGNodeRef`
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_YGNodeNew.invokeExact(address);
@@ -82,9 +83,6 @@ public record NodeCalls(
     /// Allocates a node under a config of the caller’s.
     ///
     /// `void* YGNodeNewWithConfig(void*)`
-    ///
-    /// @param config the config the node and its subtree are laid out under
-    /// @return the new `YGNodeRef`
     public static final class NodeNewWithConfig {
 
         private static final MethodHandle FD_YGNodeNewWithConfig =
@@ -96,6 +94,10 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeNewWithConfig");
         }
 
+        /// Calls `YGNodeNewWithConfig`.
+        ///
+        /// @param config the config the node and its subtree are laid out under
+        /// @return the new `YGNodeRef`
         public MemorySegment call(MemorySegment config) {
             try {
                 return (MemorySegment) FD_YGNodeNewWithConfig.invokeExact(address, config);
@@ -107,13 +109,12 @@ public record NodeCalls(
 
     /// Releases one node.
     ///
-    /// One node and not its subtree: freeing a tree is [YogaNode]’s job, which
+    /// One node and not its subtree: freeing a tree is
+    /// [io.github.digitalsmile.goldberry.natives.yoga.YogaNode]’s job, which
     /// does it child-first and marks each Java wrapper dead on the way
     /// (ADR-0029).
     ///
     /// `void YGNodeFree(void*)`
-    ///
-    /// @param node the node to release; its children are not freed
     public static final class NodeFree {
 
         private static final MethodHandle FD_YGNodeFree = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -124,6 +125,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeFree");
         }
 
+        /// Calls `YGNodeFree`.
+        ///
+        /// @param node the node to release; its children are not freed
         public void call(MemorySegment node) {
             try {
                 FD_YGNodeFree.invokeExact(address, node);
@@ -136,10 +140,6 @@ public record NodeCalls(
     /// Inserts a child at an index.
     ///
     /// `void YGNodeInsertChild(void*, void*, int64_t)`
-    ///
-    /// @param node the parent
-    /// @param child the node to insert; it must have no parent
-    /// @param index where among the existing children
     public static final class NodeInsertChild {
 
         private static final MethodHandle FD_YGNodeInsertChild =
@@ -151,6 +151,11 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeInsertChild");
         }
 
+        /// Calls `YGNodeInsertChild`.
+        ///
+        /// @param node the parent
+        /// @param child the node to insert; it must have no parent
+        /// @param index where among the existing children
         public void call(MemorySegment node, MemorySegment child, long index) {
             try {
                 FD_YGNodeInsertChild.invokeExact(address, node, child, index);
@@ -163,9 +168,6 @@ public record NodeCalls(
     /// Detaches a child, which becomes parentless rather than freed.
     ///
     /// `void YGNodeRemoveChild(void*, void*)`
-    ///
-    /// @param node the parent
-    /// @param child the child to detach
     public static final class NodeRemoveChild {
 
         private static final MethodHandle FD_YGNodeRemoveChild =
@@ -177,6 +179,10 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeRemoveChild");
         }
 
+        /// Calls `YGNodeRemoveChild`.
+        ///
+        /// @param node the parent
+        /// @param child the child to detach
         public void call(MemorySegment node, MemorySegment child) {
             try {
                 FD_YGNodeRemoveChild.invokeExact(address, node, child);
@@ -189,8 +195,6 @@ public record NodeCalls(
     /// Detaches every child at once.
     ///
     /// `void YGNodeRemoveAllChildren(void*)`
-    ///
-    /// @param node the parent to empty
     public static final class NodeRemoveAllChildren {
 
         private static final MethodHandle FD_YGNodeRemoveAllChildren =
@@ -202,6 +206,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeRemoveAllChildren");
         }
 
+        /// Calls `YGNodeRemoveAllChildren`.
+        ///
+        /// @param node the parent to empty
         public void call(MemorySegment node) {
             try {
                 FD_YGNodeRemoveAllChildren.invokeExact(address, node);
@@ -217,9 +224,6 @@ public record NodeCalls(
     /// "size_t" scalar row in the layout table is what says so.
     ///
     /// `int64_t YGNodeGetChildCount(void*)`
-    ///
-    /// @param node the parent to count
-    /// @return the child count
     public static final class NodeGetChildCount {
 
         private static final MethodHandle FD_YGNodeGetChildCount =
@@ -231,6 +235,10 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeGetChildCount");
         }
 
+        /// Calls `YGNodeGetChildCount`.
+        ///
+        /// @param node the parent to count
+        /// @return the child count
         public long call(MemorySegment node) {
             try {
                 return (long) FD_YGNodeGetChildCount.invokeExact(address, node);
@@ -246,9 +254,6 @@ public record NodeCalls(
     /// (ADR-0017).
     ///
     /// `void YGNodeSetMeasureFunc(void*, void*)`
-    ///
-    /// @param node a **leaf**; Yoga aborts if it has children
-    /// @param measureFunc an upcall stub, or NULL to clear it
     public static final class NodeSetMeasureFunc {
 
         private static final MethodHandle FD_YGNodeSetMeasureFunc =
@@ -260,6 +265,10 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeSetMeasureFunc");
         }
 
+        /// Calls `YGNodeSetMeasureFunc`.
+        ///
+        /// @param node a **leaf**; Yoga aborts if it has children
+        /// @param measureFunc an upcall stub, or NULL to clear it
         public void call(MemorySegment node, MemorySegment measureFunc) {
             try {
                 FD_YGNodeSetMeasureFunc.invokeExact(address, node, measureFunc);
@@ -272,8 +281,6 @@ public record NodeCalls(
     /// Whether the node measures itself.
     ///
     /// `_Bool YGNodeHasMeasureFunc(void*)`
-    ///
-    /// @return true if a measure function is set
     public static final class NodeHasMeasureFunc {
 
         private static final MethodHandle FD_YGNodeHasMeasureFunc =
@@ -285,6 +292,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeHasMeasureFunc");
         }
 
+        /// Calls `YGNodeHasMeasureFunc`.
+        ///
+        /// @return true if a measure function is set
         public boolean call(MemorySegment node) {
             try {
                 return (boolean) FD_YGNodeHasMeasureFunc.invokeExact(address, node);
@@ -300,8 +310,6 @@ public record NodeCalls(
     /// dirtied by its own style being set.
     ///
     /// `void YGNodeMarkDirty(void*)`
-    ///
-    /// @param node a node with a measure function; Yoga aborts otherwise
     public static final class NodeMarkDirty {
 
         private static final MethodHandle FD_YGNodeMarkDirty = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -312,6 +320,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeMarkDirty");
         }
 
+        /// Calls `YGNodeMarkDirty`.
+        ///
+        /// @param node a node with a measure function; Yoga aborts otherwise
         public void call(MemorySegment node) {
             try {
                 FD_YGNodeMarkDirty.invokeExact(address, node);
@@ -324,8 +335,6 @@ public record NodeCalls(
     /// Whether the node needs laying out again.
     ///
     /// `_Bool YGNodeIsDirty(void*)`
-    ///
-    /// @return true if dirty
     public static final class NodeIsDirty {
 
         private static final MethodHandle FD_YGNodeIsDirty =
@@ -337,6 +346,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeIsDirty");
         }
 
+        /// Calls `YGNodeIsDirty`.
+        ///
+        /// @return true if dirty
         public boolean call(MemorySegment node) {
             try {
                 return (boolean) FD_YGNodeIsDirty.invokeExact(address, node);
@@ -352,8 +364,6 @@ public record NodeCalls(
     /// which is what makes it a per-pass flag rather than a permanent one.
     ///
     /// `_Bool YGNodeGetHasNewLayout(void*)`
-    ///
-    /// @return true if this node’s layout changed
     public static final class NodeGetHasNewLayout {
 
         private static final MethodHandle FD_YGNodeGetHasNewLayout =
@@ -365,6 +375,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeGetHasNewLayout");
         }
 
+        /// Calls `YGNodeGetHasNewLayout`.
+        ///
+        /// @return true if this node’s layout changed
         public boolean call(MemorySegment node) {
             try {
                 return (boolean) FD_YGNodeGetHasNewLayout.invokeExact(address, node);
@@ -377,8 +390,6 @@ public record NodeCalls(
     /// Sets or clears the "layout changed" flag.
     ///
     /// `void YGNodeSetHasNewLayout(void*, _Bool)`
-    ///
-    /// @param hasNewLayout normally false, to clear the flag after reading it
     public static final class NodeSetHasNewLayout {
 
         private static final MethodHandle FD_YGNodeSetHasNewLayout =
@@ -390,6 +401,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeSetHasNewLayout");
         }
 
+        /// Calls `YGNodeSetHasNewLayout`.
+        ///
+        /// @param hasNewLayout normally false, to clear the flag after reading it
         public void call(MemorySegment node, boolean hasNewLayout) {
             try {
                 FD_YGNodeSetHasNewLayout.invokeExact(address, node, hasNewLayout);
@@ -406,11 +420,6 @@ public record NodeCalls(
     /// (ADR-0069).
     ///
     /// `void YGNodeCalculateLayout(void*, float, float, int)`
-    ///
-    /// @param node the root to lay out
-    /// @param availableWidth the space offered, or `YGUndefined` (NaN) for unbounded
-    /// @param availableHeight the space offered, or `YGUndefined` (NaN) for unbounded
-    /// @param ownerDirection a `YGDirection` — which way the parent reads
     public static final class NodeCalculateLayout {
 
         private static final MethodHandle FD_YGNodeCalculateLayout =
@@ -422,6 +431,12 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeCalculateLayout");
         }
 
+        /// Calls `YGNodeCalculateLayout`.
+        ///
+        /// @param node the root to lay out
+        /// @param availableWidth the space offered, or `YGUndefined` (NaN) for unbounded
+        /// @param availableHeight the space offered, or `YGUndefined` (NaN) for unbounded
+        /// @param ownerDirection a `YGDirection` — which way the parent reads
         public void call(MemorySegment node, float availableWidth, float availableHeight, int ownerDirection) {
             try {
                 FD_YGNodeCalculateLayout.invokeExact(address, node, availableWidth, availableHeight, ownerDirection);

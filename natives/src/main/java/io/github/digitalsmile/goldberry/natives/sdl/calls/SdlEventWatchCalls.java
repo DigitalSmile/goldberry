@@ -30,10 +30,6 @@ public record SdlEventWatchCalls(AddEventWatch addEventWatch, RemoveEventWatch r
     /// return to the event pump while the user drags an edge.
     ///
     /// `_Bool SDL_AddEventWatch(void*, void*)`
-    ///
-    /// @param filter an `SDL_EventFilter` upcall stub
-    /// @param userData passed to the filter; NULL here, because the stub already knows
-    /// @return false if SDL could not grow its watch list
     public static final class AddEventWatch {
 
         private static final MethodHandle FD_SDL_AddEventWatch =
@@ -45,6 +41,11 @@ public record SdlEventWatchCalls(AddEventWatch addEventWatch, RemoveEventWatch r
             this.address = Downcalls.symbol(lookup, "SDL_AddEventWatch");
         }
 
+        /// Calls `SDL_AddEventWatch`.
+        ///
+        /// @param filter an `SDL_EventFilter` upcall stub
+        /// @param userData passed to the filter; NULL here, because the stub already knows
+        /// @return false if SDL could not grow its watch list
         public boolean call(MemorySegment filter, MemorySegment userData) {
             try {
                 return (boolean) FD_SDL_AddEventWatch.invokeExact(address, filter, userData);
@@ -57,9 +58,6 @@ public record SdlEventWatchCalls(AddEventWatch addEventWatch, RemoveEventWatch r
     /// Unregisters a watch. Both arguments must match the registration.
     ///
     /// `void SDL_RemoveEventWatch(void*, void*)`
-    ///
-    /// @param filter the stub that was registered
-    /// @param userData the same value it was registered with
     public static final class RemoveEventWatch {
 
         private static final MethodHandle FD_SDL_RemoveEventWatch =
@@ -71,6 +69,10 @@ public record SdlEventWatchCalls(AddEventWatch addEventWatch, RemoveEventWatch r
             this.address = Downcalls.symbol(lookup, "SDL_RemoveEventWatch");
         }
 
+        /// Calls `SDL_RemoveEventWatch`.
+        ///
+        /// @param filter the stub that was registered
+        /// @param userData the same value it was registered with
         public void call(MemorySegment filter, MemorySegment userData) {
             try {
                 FD_SDL_RemoveEventWatch.invokeExact(address, filter, userData);

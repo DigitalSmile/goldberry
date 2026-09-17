@@ -37,8 +37,6 @@ public record WebpCalls(GetInfo getInfo, DecodeRgba decodeRgba, Free free) {
     /// What makes it worth binding beside the decoder: it is also the cheapest
     /// honest answer to "are these bytes a WebP at all", which is what routes a
     /// decode. `size_t` is the pointer-width scalar on every target here.
-    ///
-    /// @return non-zero when the bytes are a WebP whose header parsed
     public static final class GetInfo {
 
         private static final MethodHandle FD_WebPGetInfo =
@@ -50,6 +48,9 @@ public record WebpCalls(GetInfo getInfo, DecodeRgba decodeRgba, Free free) {
             this.address = Downcalls.symbol(lookup, "WebPGetInfo");
         }
 
+        /// Calls `WebPGetInfo`.
+        ///
+        /// @return non-zero when the bytes are a WebP whose header parsed
         public int call(MemorySegment data, long size, MemorySegment width, MemorySegment height) {
             try {
                 return (int) FD_WebPGetInfo.invokeExact(address, data, size, width, height);
@@ -68,9 +69,6 @@ public record WebpCalls(GetInfo getInfo, DecodeRgba decodeRgba, Free free) {
     /// place in this module where an upstream allocates the pixels — the same
     /// exception the image decoder makes, and for the same reason: only the
     /// decoder knows how big the image is.
-    ///
-    /// @return the pixels, or [MemorySegment#NULL] when the bytes are not a WebP
-    ///         this library can decode
     public static final class DecodeRgba {
 
         private static final MethodHandle FD_WebPDecodeRGBA =
@@ -82,6 +80,10 @@ public record WebpCalls(GetInfo getInfo, DecodeRgba decodeRgba, Free free) {
             this.address = Downcalls.symbol(lookup, "WebPDecodeRGBA");
         }
 
+        /// Calls `WebPDecodeRGBA`.
+        ///
+        /// @return the pixels, or [MemorySegment#NULL] when the bytes are not a WebP
+        ///         this library can decode
         public MemorySegment call(MemorySegment data, long size, MemorySegment width, MemorySegment height) {
             try {
                 return (MemorySegment) FD_WebPDecodeRGBA.invokeExact(address, data, size, width, height);

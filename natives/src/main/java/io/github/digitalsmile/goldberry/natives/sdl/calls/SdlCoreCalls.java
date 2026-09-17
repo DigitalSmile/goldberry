@@ -55,9 +55,6 @@ public record SdlCoreCalls(
     /// Initialises SDL and the subsystems named.
     ///
     /// `_Bool SDL_Init(int)`
-    ///
-    /// @param subsystems a mask of `SDL_INIT_*` flags
-    /// @return false if SDL refused
     public static final class Init {
 
         private static final MethodHandle FD_SDL_Init = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT));
@@ -68,6 +65,10 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_Init");
         }
 
+        /// Calls `SDL_Init`.
+        ///
+        /// @param subsystems a mask of `SDL_INIT_*` flags
+        /// @return false if SDL refused
         public boolean call(int subsystems) {
             try {
                 return (boolean) FD_SDL_Init.invokeExact(address, subsystems);
@@ -80,9 +81,6 @@ public record SdlCoreCalls(
     /// Initialises further subsystems on top of an existing [SdlCoreCalls.Init].
     ///
     /// `_Bool SDL_InitSubSystem(int)`
-    ///
-    /// @param subsystems a mask of `SDL_INIT_*` flags
-    /// @return false if SDL refused
     public static final class InitSubSystem {
 
         private static final MethodHandle FD_SDL_InitSubSystem =
@@ -94,6 +92,10 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_InitSubSystem");
         }
 
+        /// Calls `SDL_InitSubSystem`.
+        ///
+        /// @param subsystems a mask of `SDL_INIT_*` flags
+        /// @return false if SDL refused
         public boolean call(int subsystems) {
             try {
                 return (boolean) FD_SDL_InitSubSystem.invokeExact(address, subsystems);
@@ -106,8 +108,6 @@ public record SdlCoreCalls(
     /// Shuts specific subsystems down. Cannot fail, by SDL’s design.
     ///
     /// `void SDL_QuitSubSystem(int)`
-    ///
-    /// @param subsystems a mask of `SDL_INIT_*` flags
     public static final class QuitSubSystem {
 
         private static final MethodHandle FD_SDL_QuitSubSystem = Downcalls.link(FunctionDescriptor.ofVoid(JAVA_INT));
@@ -118,6 +118,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_QuitSubSystem");
         }
 
+        /// Calls `SDL_QuitSubSystem`.
+        ///
+        /// @param subsystems a mask of `SDL_INIT_*` flags
         public void call(int subsystems) {
             try {
                 FD_SDL_QuitSubSystem.invokeExact(address, subsystems);
@@ -133,9 +136,6 @@ public record SdlCoreCalls(
     /// subsystems too — video brings events with it.
     ///
     /// `int SDL_WasInit(int)`
-    ///
-    /// @param subsystems a mask to test, or 0 for "tell me everything"
-    /// @return a mask of `SDL_INIT_*` flags
     public static final class WasInit {
 
         private static final MethodHandle FD_SDL_WasInit = Downcalls.link(FunctionDescriptor.of(JAVA_INT, JAVA_INT));
@@ -146,6 +146,10 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_WasInit");
         }
 
+        /// Calls `SDL_WasInit`.
+        ///
+        /// @param subsystems a mask to test, or 0 for "tell me everything"
+        /// @return a mask of `SDL_INIT_*` flags
         public int call(int subsystems) {
             try {
                 return (int) FD_SDL_WasInit.invokeExact(address, subsystems);
@@ -182,8 +186,6 @@ public record SdlCoreCalls(
     /// The calling thread’s last SDL error.
     ///
     /// `void* SDL_GetError(void)`
-    ///
-    /// @return a NUL-terminated string SDL owns, empty when there is none
     public static final class GetError {
 
         private static final MethodHandle FD_SDL_GetError = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -194,6 +196,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetError");
         }
 
+        /// Calls `SDL_GetError`.
+        ///
+        /// @return a NUL-terminated string SDL owns, empty when there is none
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_SDL_GetError.invokeExact(address);
@@ -206,8 +211,6 @@ public record SdlCoreCalls(
     /// Clears the calling thread’s error.
     ///
     /// `_Bool SDL_ClearError(void)`
-    ///
-    /// @return always true
     public static final class ClearError {
 
         private static final MethodHandle FD_SDL_ClearError = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
@@ -218,6 +221,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_ClearError");
         }
 
+        /// Calls `SDL_ClearError`.
+        ///
+        /// @return always true
         public boolean call() {
             try {
                 return (boolean) FD_SDL_ClearError.invokeExact(address);
@@ -230,8 +236,6 @@ public record SdlCoreCalls(
     /// The version of SDL linked into `libgoldberry`.
     ///
     /// `int SDL_GetVersion(void)`
-    ///
-    /// @return a packed version, `major * 1000000 + minor * 1000 + patch`
     public static final class GetVersion {
 
         private static final MethodHandle FD_SDL_GetVersion = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
@@ -242,6 +246,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetVersion");
         }
 
+        /// Calls `SDL_GetVersion`.
+        ///
+        /// @return a packed version, `major * 1000000 + minor * 1000 + patch`
         public int call() {
             try {
                 return (int) FD_SDL_GetVersion.invokeExact(address);
@@ -254,8 +261,6 @@ public record SdlCoreCalls(
     /// The source revision SDL was built from.
     ///
     /// `void* SDL_GetRevision(void)`
-    ///
-    /// @return a NUL-terminated string SDL owns
     public static final class GetRevision {
 
         private static final MethodHandle FD_SDL_GetRevision = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -266,6 +271,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetRevision");
         }
 
+        /// Calls `SDL_GetRevision`.
+        ///
+        /// @return a NUL-terminated string SDL owns
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_SDL_GetRevision.invokeExact(address);
@@ -282,8 +290,6 @@ public record SdlCoreCalls(
     /// else in the process gives that away. Empty until video is initialised.
     ///
     /// `void* SDL_GetCurrentVideoDriver(void)`
-    ///
-    /// @return a NUL-terminated string SDL owns
     public static final class GetCurrentVideoDriver {
 
         private static final MethodHandle FD_SDL_GetCurrentVideoDriver = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -294,6 +300,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetCurrentVideoDriver");
         }
 
+        /// Calls `SDL_GetCurrentVideoDriver`.
+        ///
+        /// @return a NUL-terminated string SDL owns
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_SDL_GetCurrentVideoDriver.invokeExact(address);
@@ -309,10 +318,6 @@ public record SdlCoreCalls(
     /// subsystem they affect is initialised.
     ///
     /// `_Bool SDL_SetHint(void*, void*)`
-    ///
-    /// @param name the hint’s name, NUL-terminated
-    /// @param value the value, NUL-terminated
-    /// @return false if SDL refused it
     public static final class SetHint {
 
         private static final MethodHandle FD_SDL_SetHint =
@@ -324,6 +329,11 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetHint");
         }
 
+        /// Calls `SDL_SetHint`.
+        ///
+        /// @param name the hint’s name, NUL-terminated
+        /// @param value the value, NUL-terminated
+        /// @return false if SDL refused it
         public boolean call(MemorySegment name, MemorySegment value) {
             try {
                 return (boolean) FD_SDL_SetHint.invokeExact(address, name, value);
@@ -344,8 +354,6 @@ public record SdlCoreCalls(
     /// whatever follows it in the return register.
     ///
     /// `short SDL_GetModState(void)`
-    ///
-    /// @return an `SDL_Keymod` bitmask
     public static final class GetModState {
 
         private static final MethodHandle FD_SDL_GetModState = Downcalls.link(FunctionDescriptor.of(JAVA_SHORT));
@@ -356,6 +364,9 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetModState");
         }
 
+        /// Calls `SDL_GetModState`.
+        ///
+        /// @return an `SDL_Keymod` bitmask
         public short call() {
             try {
                 return (short) FD_SDL_GetModState.invokeExact(address);
@@ -375,10 +386,6 @@ public record SdlCoreCalls(
     /// (ADR-0211).
     ///
     /// `unsigned int SDL_GetGlobalMouseState(float *x, float *y)`
-    ///
-    /// @param x out-parameter for the x coordinate, in desktop logical points
-    /// @param y out-parameter for the y coordinate
-    /// @return an `SDL_MouseButtonFlags` bitmask, which nothing reads yet
     public static final class GetGlobalMouseState {
 
         private static final MethodHandle FD_SDL_GetGlobalMouseState =
@@ -390,6 +397,11 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetGlobalMouseState");
         }
 
+        /// Calls `SDL_GetGlobalMouseState`.
+        ///
+        /// @param x out-parameter for the x coordinate, in desktop logical points
+        /// @param y out-parameter for the y coordinate
+        /// @return an `SDL_MouseButtonFlags` bitmask, which nothing reads yet
         public int call(MemorySegment x, MemorySegment y) {
             try {
                 return (int) FD_SDL_GetGlobalMouseState.invokeExact(address, x, y);

@@ -39,9 +39,6 @@ public record SdlDisplayCalls(
     /// Fractional, and it changes when the window is dragged between monitors.
     ///
     /// `float SDL_GetWindowDisplayScale(void*)`
-    ///
-    /// @param window the window to ask about
-    /// @return logical-to-physical factor, or 0 on failure
     public static final class GetWindowDisplayScale {
 
         private static final MethodHandle FD_SDL_GetWindowDisplayScale =
@@ -53,6 +50,10 @@ public record SdlDisplayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetWindowDisplayScale");
         }
 
+        /// Calls `SDL_GetWindowDisplayScale`.
+        ///
+        /// @param window the window to ask about
+        /// @return logical-to-physical factor, or 0 on failure
         public float call(MemorySegment window) {
             try {
                 return (float) FD_SDL_GetWindowDisplayScale.invokeExact(address, window);
@@ -68,10 +69,6 @@ public record SdlDisplayCalls(
     /// a menu that opens under a taskbar is a menu nobody can click (ADR-0104).
     ///
     /// `_Bool SDL_GetDisplayUsableBounds(int, void*)`
-    ///
-    /// @param displayId an `SDL_DisplayID`
-    /// @param outRect a caller-allocated `SDL_Rect`
-    /// @return false if SDL refused
     public static final class GetDisplayUsableBounds {
 
         private static final MethodHandle FD_SDL_GetDisplayUsableBounds =
@@ -83,6 +80,11 @@ public record SdlDisplayCalls(
             this.address = Downcalls.symbol(lookup, "SDL_GetDisplayUsableBounds");
         }
 
+        /// Calls `SDL_GetDisplayUsableBounds`.
+        ///
+        /// @param displayId an `SDL_DisplayID`
+        /// @param outRect a caller-allocated `SDL_Rect`
+        /// @return false if SDL refused
         public boolean call(int displayId, MemorySegment outRect) {
             try {
                 return (boolean) FD_SDL_GetDisplayUsableBounds.invokeExact(address, displayId, outRect);
@@ -99,9 +101,6 @@ public record SdlDisplayCalls(
     /// (ADR-0047).
     ///
     /// `int SDL_GetDisplayForWindow(void*)`
-    ///
-    /// @param window the window to locate
-    /// @return an `SDL_DisplayID`, or 0 on failure
     public static final class GetDisplayForWindow {
 
         private static final MethodHandle FD_SDL_GetDisplayForWindow =
@@ -120,6 +119,10 @@ public record SdlDisplayCalls(
             return address != null;
         }
 
+        /// Makes the call.
+        ///
+        /// @param window the window to locate
+        /// @return an `SDL_DisplayID`, or 0 on failure
         public int call(MemorySegment window) {
             try {
                 return (int) FD_SDL_GetDisplayForWindow.invokeExact(address, window);
@@ -134,9 +137,6 @@ public record SdlDisplayCalls(
     /// Optional, for [SdlDisplayCalls.GetDisplayForWindow]’s reason.
     ///
     /// `void* SDL_GetCurrentDisplayMode(int)`
-    ///
-    /// @param displayId an `SDL_DisplayID`
-    /// @return an `SDL_DisplayMode*` SDL owns, or NULL
     public static final class GetCurrentDisplayMode {
 
         private static final MethodHandle FD_SDL_GetCurrentDisplayMode =
@@ -155,6 +155,10 @@ public record SdlDisplayCalls(
             return address != null;
         }
 
+        /// Makes the call.
+        ///
+        /// @param displayId an `SDL_DisplayID`
+        /// @return an `SDL_DisplayMode*` SDL owns, or NULL
         public MemorySegment call(int displayId) {
             try {
                 return (MemorySegment) FD_SDL_GetCurrentDisplayMode.invokeExact(address, displayId);

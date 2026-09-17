@@ -36,8 +36,9 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// exactly that. What an author wants from a part is to *restyle* it, and a type
 /// selector is the whole of that.
 ///
-/// [Checkbox#controlTypes] therefore lists `checkbox` and not this, so the parity
-/// test is not asked to build a node that has no business existing.
+/// [io.github.digitalsmile.goldberry.widgets.Controls#controlTypes()] therefore
+/// lists `checkbox` and not this, so the parity test is not asked to build a node
+/// that has no business existing.
 ///
 /// @param state      which of the three states to draw, which is also what
 ///                   `:checked` and `:indeterminate` are mirrored from

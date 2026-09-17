@@ -27,9 +27,6 @@ public record RuntimeCalls(RuntimeQueryInfo runtimeQueryInfo) {
     /// Fills `out` with one of Blend2D’s runtime information structs.
     ///
     /// `int bl_runtime_query_info(int, void*)`
-    ///
-    /// @param infoType which `BLRuntimeInfoType` table to fill in
-    /// @param out a caller-allocated struct of the shape that info type describes
     public static final class RuntimeQueryInfo {
 
         private static final MethodHandle FD_bl_runtime_query_info =
@@ -41,6 +38,10 @@ public record RuntimeCalls(RuntimeQueryInfo runtimeQueryInfo) {
             this.address = Downcalls.symbol(lookup, "bl_runtime_query_info");
         }
 
+        /// Calls `bl_runtime_query_info`.
+        ///
+        /// @param infoType which `BLRuntimeInfoType` table to fill in
+        /// @param out a caller-allocated struct of the shape that info type describes
         public int call(int infoType, MemorySegment out) {
             try {
                 return (int) FD_bl_runtime_query_info.invokeExact(address, infoType, out);

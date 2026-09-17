@@ -30,11 +30,6 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
     /// compile into them.
     ///
     /// `void hb_shape(void*, void*, void*, int)`
-    ///
-    /// @param font the font to shape with
-    /// @param buffer a buffer with text and properties set; replaced by its glyphs
-    /// @param features an `hb_feature_t*` array, or NULL
-    /// @param numFeatures how many features, or 0
     public static final class Shape {
 
         private static final MethodHandle FD_hb_shape =
@@ -46,6 +41,12 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             this.address = Downcalls.symbol(lookup, "hb_shape");
         }
 
+        /// Calls `hb_shape`.
+        ///
+        /// @param font the font to shape with
+        /// @param buffer a buffer with text and properties set; replaced by its glyphs
+        /// @param features an `hb_feature_t*` array, or NULL
+        /// @param numFeatures how many features, or 0
         public void call(MemorySegment font, MemorySegment buffer, MemorySegment features, int numFeatures) {
             try {
                 FD_hb_shape.invokeExact(address, font, buffer, features, numFeatures);
@@ -58,10 +59,6 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
     /// Packs a four-character script tag.
     ///
     /// `int hb_script_from_string(void*, int)`
-    ///
-    /// @param name an ISO 15924 tag such as `Latn`
-    /// @param length how many bytes, or -1 if NUL-terminated
-    /// @return an `hb_script_t`
     public static final class ScriptFromString {
 
         private static final MethodHandle FD_hb_script_from_string =
@@ -73,6 +70,11 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             this.address = Downcalls.symbol(lookup, "hb_script_from_string");
         }
 
+        /// Calls `hb_script_from_string`.
+        ///
+        /// @param name an ISO 15924 tag such as `Latn`
+        /// @param length how many bytes, or -1 if NUL-terminated
+        /// @return an `hb_script_t`
         public int call(MemorySegment name, int length) {
             try {
                 return (int) FD_hb_script_from_string.invokeExact(address, name, length);
@@ -88,10 +90,6 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
     /// is never freed.
     ///
     /// `void* hb_language_from_string(void*, int)`
-    ///
-    /// @param name a BCP 47 tag such as `en-GB`
-    /// @param length how many bytes, or -1 if NUL-terminated
-    /// @return an `hb_language_t`
     public static final class LanguageFromString {
 
         private static final MethodHandle FD_hb_language_from_string =
@@ -103,6 +101,11 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             this.address = Downcalls.symbol(lookup, "hb_language_from_string");
         }
 
+        /// Calls `hb_language_from_string`.
+        ///
+        /// @param name a BCP 47 tag such as `en-GB`
+        /// @param length how many bytes, or -1 if NUL-terminated
+        /// @return an `hb_language_t`
         public MemorySegment call(MemorySegment name, int length) {
             try {
                 return (MemorySegment) FD_hb_language_from_string.invokeExact(address, name, length);

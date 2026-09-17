@@ -148,7 +148,7 @@ public interface Application {
     /// application that keeps two objects should not have to merge them by hand.
     ///
     /// A model here is also what
-    /// [io.github.digitalsmile.goldberry.widgets] resolves a document's `bind=`
+    /// `io.github.digitalsmile.goldberry.widgets` resolves a document's `bind=`
     /// and `press=` against, so the same list answers both questions.
     ///
     /// Opt out per model with `@Model(repaint = false)` — for one driving a

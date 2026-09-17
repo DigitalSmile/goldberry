@@ -51,8 +51,6 @@ public record BufferCalls(
     /// Allocates an empty buffer.
     ///
     /// `void* hb_buffer_create(void)`
-    ///
-    /// @return the new `hb_buffer_t*`
     public static final class BufferCreate {
 
         private static final MethodHandle FD_hb_buffer_create = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -63,6 +61,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_create");
         }
 
+        /// Calls `hb_buffer_create`.
+        ///
+        /// @return the new `hb_buffer_t*`
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_hb_buffer_create.invokeExact(address);
@@ -75,8 +76,6 @@ public record BufferCalls(
     /// Drops a reference to a buffer.
     ///
     /// `void hb_buffer_destroy(void*)`
-    ///
-    /// @param buffer the buffer to release
     public static final class BufferDestroy {
 
         private static final MethodHandle FD_hb_buffer_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -87,6 +86,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_destroy");
         }
 
+        /// Calls `hb_buffer_destroy`.
+        ///
+        /// @param buffer the buffer to release
         public void call(MemorySegment buffer) {
             try {
                 FD_hb_buffer_destroy.invokeExact(address, buffer);
@@ -99,8 +101,6 @@ public record BufferCalls(
     /// Clears the buffer’s contents and properties, keeping the allocation.
     ///
     /// `void hb_buffer_reset(void*)`
-    ///
-    /// @param buffer the buffer to empty
     public static final class BufferReset {
 
         private static final MethodHandle FD_hb_buffer_reset = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
@@ -111,6 +111,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_reset");
         }
 
+        /// Calls `hb_buffer_reset`.
+        ///
+        /// @param buffer the buffer to empty
         public void call(MemorySegment buffer) {
             try {
                 FD_hb_buffer_reset.invokeExact(address, buffer);
@@ -131,12 +134,6 @@ public record BufferCalls(
     /// UTF-16, so the text crosses without being transcoded.
     ///
     /// `void hb_buffer_add_utf16(void*, void*, int, int, int)`
-    ///
-    /// @param buffer the buffer to add to
-    /// @param text UTF-16 code units
-    /// @param textLength how many code units `text` holds, or -1 if NUL-terminated
-    /// @param itemOffset where the part to shape starts
-    /// @param itemLength how much of it to shape
     public static final class BufferAddUtf16 {
 
         private static final MethodHandle FD_hb_buffer_add_utf16 =
@@ -148,6 +145,13 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_add_utf16");
         }
 
+        /// Calls `hb_buffer_add_utf16`.
+        ///
+        /// @param buffer the buffer to add to
+        /// @param text UTF-16 code units
+        /// @param textLength how many code units `text` holds, or -1 if NUL-terminated
+        /// @param itemOffset where the part to shape starts
+        /// @param itemLength how much of it to shape
         public void call(MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
             try {
                 FD_hb_buffer_add_utf16.invokeExact(address, buffer, text, textLength, itemOffset, itemLength);
@@ -162,8 +166,6 @@ public record BufferCalls(
     /// A starting point, not an answer: a caller that knows better sets them.
     ///
     /// `void hb_buffer_guess_segment_properties(void*)`
-    ///
-    /// @param buffer a buffer with text already added
     public static final class BufferGuessSegmentProperties {
 
         private static final MethodHandle FD_hb_buffer_guess_segment_properties =
@@ -175,6 +177,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_guess_segment_properties");
         }
 
+        /// Calls `hb_buffer_guess_segment_properties`.
+        ///
+        /// @param buffer a buffer with text already added
         public void call(MemorySegment buffer) {
             try {
                 FD_hb_buffer_guess_segment_properties.invokeExact(address, buffer);
@@ -187,8 +192,6 @@ public record BufferCalls(
     /// Sets which way the text runs.
     ///
     /// `void hb_buffer_set_direction(void*, int)`
-    ///
-    /// @param direction an `hb_direction_t`
     public static final class BufferSetDirection {
 
         private static final MethodHandle FD_hb_buffer_set_direction =
@@ -200,6 +203,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_set_direction");
         }
 
+        /// Calls `hb_buffer_set_direction`.
+        ///
+        /// @param direction an `hb_direction_t`
         public void call(MemorySegment buffer, int direction) {
             try {
                 FD_hb_buffer_set_direction.invokeExact(address, buffer, direction);
@@ -212,8 +218,6 @@ public record BufferCalls(
     /// The direction in force.
     ///
     /// `int hb_buffer_get_direction(void*)`
-    ///
-    /// @return an `hb_direction_t`
     public static final class BufferGetDirection {
 
         private static final MethodHandle FD_hb_buffer_get_direction =
@@ -225,6 +229,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_get_direction");
         }
 
+        /// Calls `hb_buffer_get_direction`.
+        ///
+        /// @return an `hb_direction_t`
         public int call(MemorySegment buffer) {
             try {
                 return (int) FD_hb_buffer_get_direction.invokeExact(address, buffer);
@@ -237,8 +244,6 @@ public record BufferCalls(
     /// Sets the script the text is shaped as.
     ///
     /// `void hb_buffer_set_script(void*, int)`
-    ///
-    /// @param script an `hb_script_t`, which is a packed four-character tag
     public static final class BufferSetScript {
 
         private static final MethodHandle FD_hb_buffer_set_script =
@@ -250,6 +255,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_set_script");
         }
 
+        /// Calls `hb_buffer_set_script`.
+        ///
+        /// @param script an `hb_script_t`, which is a packed four-character tag
         public void call(MemorySegment buffer, int script) {
             try {
                 FD_hb_buffer_set_script.invokeExact(address, buffer, script);
@@ -262,8 +270,6 @@ public record BufferCalls(
     /// Sets the language, which some fonts shape differently for.
     ///
     /// `void hb_buffer_set_language(void*, void*)`
-    ///
-    /// @param language an `hb_language_t`, which is an interned pointer
     public static final class BufferSetLanguage {
 
         private static final MethodHandle FD_hb_buffer_set_language =
@@ -275,6 +281,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_set_language");
         }
 
+        /// Calls `hb_buffer_set_language`.
+        ///
+        /// @param language an `hb_language_t`, which is an interned pointer
         public void call(MemorySegment buffer, MemorySegment language) {
             try {
                 FD_hb_buffer_set_language.invokeExact(address, buffer, language);
@@ -287,8 +296,6 @@ public record BufferCalls(
     /// How many items the buffer holds — code units before shaping, glyphs after.
     ///
     /// `int hb_buffer_get_length(void*)`
-    ///
-    /// @return the item count
     public static final class BufferGetLength {
 
         private static final MethodHandle FD_hb_buffer_get_length =
@@ -300,6 +307,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_get_length");
         }
 
+        /// Calls `hb_buffer_get_length`.
+        ///
+        /// @return the item count
         public int call(MemorySegment buffer) {
             try {
                 return (int) FD_hb_buffer_get_length.invokeExact(address, buffer);
@@ -315,10 +325,6 @@ public record BufferCalls(
     /// against the count and the stride the layout table verified.
     ///
     /// `void* hb_buffer_get_glyph_infos(void*, void*)`
-    ///
-    /// @param buffer a shaped buffer
-    /// @param length a `unsigned*` to receive the count, or NULL
-    /// @return an `hb_glyph_info_t*` array owned by the buffer
     public static final class BufferGetGlyphInfos {
 
         private static final MethodHandle FD_hb_buffer_get_glyph_infos =
@@ -330,6 +336,11 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_get_glyph_infos");
         }
 
+        /// Calls `hb_buffer_get_glyph_infos`.
+        ///
+        /// @param buffer a shaped buffer
+        /// @param length a `unsigned*` to receive the count, or NULL
+        /// @return an `hb_glyph_info_t*` array owned by the buffer
         public MemorySegment call(MemorySegment buffer, MemorySegment length) {
             try {
                 return (MemorySegment) FD_hb_buffer_get_glyph_infos.invokeExact(address, buffer, length);
@@ -342,10 +353,6 @@ public record BufferCalls(
     /// The advances and offsets the shaper produced.
     ///
     /// `void* hb_buffer_get_glyph_positions(void*, void*)`
-    ///
-    /// @param buffer a shaped buffer
-    /// @param length a `unsigned*` to receive the count, or NULL
-    /// @return an `hb_glyph_position_t*` array owned by the buffer
     public static final class BufferGetGlyphPositions {
 
         private static final MethodHandle FD_hb_buffer_get_glyph_positions =
@@ -357,6 +364,11 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_get_glyph_positions");
         }
 
+        /// Calls `hb_buffer_get_glyph_positions`.
+        ///
+        /// @param buffer a shaped buffer
+        /// @param length a `unsigned*` to receive the count, or NULL
+        /// @return an `hb_glyph_position_t*` array owned by the buffer
         public MemorySegment call(MemorySegment buffer, MemorySegment length) {
             try {
                 return (MemorySegment) FD_hb_buffer_get_glyph_positions.invokeExact(address, buffer, length);

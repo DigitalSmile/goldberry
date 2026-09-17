@@ -32,11 +32,6 @@ public record MarkdownCalls(Parse parse, Data data, Size size, Free free, Entity
     /// Parses a document into an encoded event stream.
     ///
     /// `void* goldberry_md_parse(const char* text, uint32_t size, uint32_t flags)`
-    ///
-    /// @return an opaque stream handle, or [MemorySegment#NULL] when the document
-    ///         could not be turned into one — a runtime error in md4c, or a buffer
-    ///         that could not grow. Never "this was not Markdown", which is not a
-    ///         thing a document can fail to be
     public static final class Parse {
 
         private static final MethodHandle FD_goldberry_md_parse =
@@ -48,6 +43,12 @@ public record MarkdownCalls(Parse parse, Data data, Size size, Free free, Entity
             this.address = Downcalls.symbol(lookup, "goldberry_md_parse");
         }
 
+        /// Calls `goldberry_md_parse`.
+        ///
+        /// @return an opaque stream handle, or [MemorySegment#NULL] when the document
+        ///         could not be turned into one — a runtime error in md4c, or a buffer
+        ///         that could not grow. Never "this was not Markdown", which is not a
+        ///         thing a document can fail to be
         public MemorySegment call(MemorySegment text, int size, int flags) {
             try {
                 return (MemorySegment) FD_goldberry_md_parse.invokeExact(address, text, size, flags);
@@ -132,9 +133,6 @@ public record MarkdownCalls(Parse parse, Data data, Size size, Free free, Entity
     /// Resolves a named entity into its one or two codepoints.
     ///
     /// `int goldberry_md_entity(const char* name, uint32_t size, uint32_t* out)`
-    ///
-    /// @return 1 when the name is an entity and `out` has been written, 0 when it is
-    ///         not one
     public static final class Entity {
 
         private static final MethodHandle FD_goldberry_md_entity =
@@ -146,6 +144,10 @@ public record MarkdownCalls(Parse parse, Data data, Size size, Free free, Entity
             this.address = Downcalls.symbol(lookup, "goldberry_md_entity");
         }
 
+        /// Calls `goldberry_md_entity`.
+        ///
+        /// @return 1 when the name is an entity and `out` has been written, 0 when it is
+        ///         not one
         public int call(MemorySegment name, int size, MemorySegment out) {
             try {
                 return (int) FD_goldberry_md_entity.invokeExact(address, name, size, out);

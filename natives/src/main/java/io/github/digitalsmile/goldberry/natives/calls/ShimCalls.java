@@ -33,8 +33,6 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
     /// rather than at the first call that reads a struct differently.
     ///
     /// `int goldberry_abi_version(void)`
-    ///
-    /// @return the library’s ABI version
     public static final class AbiVersion {
 
         private static final MethodHandle FD_goldberry_abi_version = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
@@ -45,6 +43,9 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
             this.address = Downcalls.symbol(lookup, "goldberry_abi_version");
         }
 
+        /// Calls `goldberry_abi_version`.
+        ///
+        /// @return the library’s ABI version
         public int call() {
             try {
                 return (int) FD_goldberry_abi_version.invokeExact(address);
@@ -62,8 +63,6 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
     /// against [ShimCalls.LayoutCount].
     ///
     /// `void* goldberry_layout_table(void)`
-    ///
-    /// @return a `const goldberry_layout_entry*`
     public static final class LayoutTable {
 
         private static final MethodHandle FD_goldberry_layout_table = Downcalls.link(FunctionDescriptor.of(ADDRESS));
@@ -74,6 +73,9 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
             this.address = Downcalls.symbol(lookup, "goldberry_layout_table");
         }
 
+        /// Calls `goldberry_layout_table`.
+        ///
+        /// @return a `const goldberry_layout_entry*`
         public MemorySegment call() {
             try {
                 return (MemorySegment) FD_goldberry_layout_table.invokeExact(address);
@@ -86,8 +88,6 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
     /// How many entries the layout table holds.
     ///
     /// `int goldberry_layout_count(void)`
-    ///
-    /// @return the entry count
     public static final class LayoutCount {
 
         private static final MethodHandle FD_goldberry_layout_count = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
@@ -98,6 +98,9 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
             this.address = Downcalls.symbol(lookup, "goldberry_layout_count");
         }
 
+        /// Calls `goldberry_layout_count`.
+        ///
+        /// @return the entry count
         public int call() {
             try {
                 return (int) FD_goldberry_layout_count.invokeExact(address);

@@ -314,7 +314,7 @@ public record Item(
     /// answer to that and the only one that keeps the chevron after the
     /// accelerator rather than under it.
     ///
-    /// The tick is **always present** — see [#children()] and [ItemCheck].
+    /// The tick is **always present** — see [#children()] and [ItemLead].
     /// The leading column, when the menu this row is in has anything to put in
     /// one — a tick or an icon.
     ///
