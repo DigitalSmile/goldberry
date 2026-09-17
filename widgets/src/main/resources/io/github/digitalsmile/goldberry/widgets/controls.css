@@ -3660,7 +3660,10 @@ table-header {
   align-items: center;
   gap: 4px;
   padding: 0 12px;
-  overflow: hidden;
+  /* No `overflow: hidden` here: it clips at the content box, which would hide
+     the half of a resizable column's grip that lies over the padding and make it
+     impossible to press (ADR-0361). The label clips itself below, and the caret
+     does not shrink, so nothing escapes. */
   color: var(--gb-text-muted);
   font-weight: var(--gb-weight-strong);
 }
@@ -3683,6 +3686,28 @@ table-header.sorted {
 table-header:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: -2px;
+}
+
+/* A resizable column's grip: a 6px strip over the header's trailing edge, on
+   top of the padding rather than beside it, so a resizable header is exactly as
+   wide as one that is not. Invisible until it is found -- the cursor is the
+   affordance -- and then the accent, which is `split-divider`'s hover for the
+   same gesture (ADR-0361).
+
+   `right` is minus the header's padding-x: an absolute box here is placed
+   against the content edge, and §3's 12 is what lies between that and the
+   header's own edge. */
+table-grip {
+  position: absolute;
+  top: 0;
+  right: -12px;
+  bottom: 0;
+  width: 6px;
+  transition: background-color var(--gb-motion-fast);
+}
+
+table-grip:hover {
+  background: var(--gb-accent);
 }
 
 sort-caret {

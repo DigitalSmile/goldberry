@@ -149,6 +149,25 @@ public final class Collections {
                 setState(() -> sort = next);
             }
 
+            /// The Name column's width once somebody has dragged it, or NaN while
+            /// it still takes its share. Kept here, like the sort, because a
+            /// column's width is the application's to save and put back
+            /// (ADR-0361).
+            private double nameWidth = Double.NaN;
+
+            private void resize(String column, double width) {
+                if (column.equals("name")) {
+                    setState(() -> nameWidth = width);
+                }
+            }
+
+            private Column<Walker> nameColumn() {
+                var column = Column.<Walker>of("name", "Name", Walker::name)
+                        .sortable(true)
+                        .resizable(true);
+                return Double.isNaN(nameWidth) ? column.weight(2) : column.fixed(nameWidth);
+            }
+
             /// The sort, done **here**, which is the whole reason the widget does
             /// not do it: a table over a database would sort in the query, and one
             /// that had already sorted its rows in Java would make that impossible.
@@ -181,14 +200,14 @@ public final class Collections {
                                 caption("Clicking a header asks for a sort and this card does it — a"
                                         + " table over a database would sort in the query, which is why"
                                         + " the widget does not. The caret keeps its place on every"
-                                        + " sortable header, so nothing shuffles when the sort moves."),
+                                        + " sortable header, so nothing shuffles when the sort moves. Drag"
+                                        + " the Name header's right edge to resize it; the width is kept"
+                                        + " here too."),
                                 new Table<>(
                                                 sorted(),
                                                 Company.Walker::id,
                                                 List.of(
-                                                        Column.<Company.Walker>of("name", "Name", Company.Walker::name)
-                                                                .sortable(true)
-                                                                .weight(2),
+                                                        nameColumn(),
                                                         Column.<Company.Walker>of(
                                                                         "kindred", "Kindred", Company.Walker::kindred)
                                                                 .sortable(true)
@@ -204,6 +223,7 @@ public final class Collections {
                                                                 .sortable(true)
                                                                 .fixed(96)))
                                         .sorted(sort, this::sortBy)
+                                        .resized(this::resize)
                                         .selection(Selection.MULTIPLE)
                                         .selected(picked, this::pick)
                                         .withAttributes(Attributes.NONE.id("company")),

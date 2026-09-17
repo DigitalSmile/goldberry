@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.DoubleConsumer;
 
 import org.jspecify.annotations.Nullable;
 
@@ -11,6 +12,8 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -25,8 +28,19 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param columns what the table is showing
 /// @param sort    what it is sorted by, or null
 /// @param onSort  asked to sort by a column key
-record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> onSort)
+/// @param onResize asked for a column's new width
+record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> onSort, Resize onResize)
         implements Widget.Leaf, Styled, Paints, Semantics {
+
+    /// Asked for a column's new width, in logical pixels.
+    @FunctionalInterface
+    interface Resize {
+        void to(String column, double width);
+    }
+
+    /// The narrowest a drag may make a column: room for the cell padding on both
+    /// sides and a few characters, so a column cannot be dragged shut and lost.
+    static final double MINIMUM_WIDTH = 32;
 
     @Override
     public String cssType() {
@@ -42,7 +56,13 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
     public List<Widget> children() {
         var cells = new ArrayList<Widget>(columns.size());
         for (var column : columns) {
-            cells.add(new TableHeader(column, sortOf(column), onSort));
+            // A resizable header is wrapped in a node that remembers how wide it
+            // came out, because a drag is measured from that and nothing else
+            // in a table holds state (ADR-0361).
+            cells.add(
+                    column.resizable()
+                            ? new TableHeaderCell(column, sortOf(column), onSort, onResize)
+                            : new TableHeader(column, sortOf(column), onSort, Double.NaN, null, onResize));
         }
         return List.copyOf(cells);
     }
@@ -66,10 +86,27 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
     /// that answers no key, which is worse for a keyboard user than not being
     /// there. A sortable one is a control and is a stop like any other.
     ///
-    /// @param column this column
-    /// @param sort   the table's sort when it is *this* column's, else null
-    record TableHeader(Column<?> column, Sort sort, Consumer<String> onSort)
-            implements Widget.Leaf, Styled, Paints, Handles {
+    /// ## Resizing
+    ///
+    /// A resizable header holds a [TableGrip] at its trailing edge, and answers
+    /// the gesture's anchor with the width it last came out as. The router asks
+    /// the pressed chain deepest-first, so a press on the grip is anchored here
+    /// and handled there (ADR-0361).
+    ///
+    /// @param column     this column
+    /// @param sort       the table's sort when it is *this* column's, else null
+    /// @param onSort     asked to sort by this column
+    /// @param width      the width the last frame laid this header out at, or NaN
+    /// @param onMeasured told a new width, or null when nothing is listening
+    /// @param onResize   asked for a new width
+    record TableHeader(
+            Column<?> column,
+            Sort sort,
+            Consumer<String> onSort,
+            double width,
+            @Nullable DoubleConsumer onMeasured,
+            Resize onResize)
+            implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
         @Override
         public String cssType() {
@@ -100,6 +137,18 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
         @Override
         public boolean isFocusable() {
             return column.sortable();
+        }
+
+        @Override
+        public double gestureAnchor() {
+            return column.resizable() ? width : Double.NaN;
+        }
+
+        @Override
+        public void measured(Extent bounds, Extent part) {
+            if (onMeasured != null) {
+                onMeasured.accept(bounds.width());
+            }
         }
 
         @Override
@@ -141,10 +190,15 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
         /// reader clicks it, so every header the sort visits shuffles its text.
         @Override
         public List<Widget> children() {
-            if (!column.sortable()) {
-                return List.of(new TableLabel(column.header()));
+            var parts = new ArrayList<Widget>(3);
+            parts.add(new TableLabel(column.header()));
+            if (column.sortable()) {
+                parts.add(new SortCaret(sort));
             }
-            return List.of(new TableLabel(column.header()), new SortCaret(sort));
+            if (column.resizable()) {
+                parts.add(new TableGrip(column.key(), onResize));
+            }
+            return List.copyOf(parts);
         }
 
         @Override

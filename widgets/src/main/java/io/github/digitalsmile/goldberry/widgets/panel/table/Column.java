@@ -34,8 +34,15 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// @param width   logical pixels when [#fixed] is set, otherwise a flex weight
 /// @param fixed   whether [#width] is a size or a share
 /// @param sortable whether clicking the header asks for a sort
+/// @param resizable whether the header has a grip that asks for a new width
 public record Column<T>(
-        String key, String header, Function<T, Widget> cell, double width, boolean fixed, boolean sortable) {
+        String key,
+        String header,
+        Function<T, Widget> cell,
+        double width,
+        boolean fixed,
+        boolean sortable,
+        boolean resizable) {
 
     public Column {
         Objects.requireNonNull(key, "key");
@@ -58,13 +65,14 @@ public record Column<T>(
                 item -> new io.github.digitalsmile.goldberry.widgets.text.Text(text.apply(item)),
                 1,
                 false,
+                false,
                 false);
     }
 
     /// A column whose cells are whatever `cell` returns — §10's "any widget as a
     /// cell".
     public static <T> Column<T> widget(String key, String header, Function<T, Widget> cell) {
-        return new Column<>(key, header, cell, 1, false, false);
+        return new Column<>(key, header, cell, 1, false, false, false);
     }
 
     /// This column at exactly `pixels` wide, whatever is left over.
@@ -73,7 +81,7 @@ public record Column<T>(
     /// make it grow with the window, and a date is the same width in a wide table
     /// as in a narrow one.
     public Column<T> fixed(double pixels) {
-        return new Column<>(key, header, cell, pixels, true, sortable);
+        return new Column<>(key, header, cell, pixels, true, sortable, resizable);
     }
 
     /// This column taking `share` of what the fixed columns left.
@@ -81,7 +89,7 @@ public record Column<T>(
     /// Relative to the other weighted columns, exactly as `flex-grow` is: two
     /// columns of 1 and 3 split the space one part to three.
     public Column<T> weight(double share) {
-        return new Column<>(key, header, cell, share, false, sortable);
+        return new Column<>(key, header, cell, share, false, sortable, resizable);
     }
 
     /// This column's header asking for a sort when it is clicked.
@@ -93,6 +101,18 @@ public record Column<T>(
     /// because a record's accessor already has that name — which is the same
     /// reason [Table#selection] and `tree`'s `checkable` take theirs.
     public Column<T> sortable(boolean value) {
-        return new Column<>(key, header, cell, width, fixed, value);
+        return new Column<>(key, header, cell, width, fixed, value, resizable);
+    }
+
+    /// This column's header carrying a grip at its trailing edge that asks for a
+    /// new width when it is dragged — §3.1's "column resize: 1:1, like
+    /// `split-pane`'s drag".
+    ///
+    /// It asks and does not resize, for [#sortable]'s reason: the widths are the
+    /// application's, which is what lets one be saved and put back. The answer is
+    /// in pixels, and a weighted column that is dragged is a column the
+    /// application makes [#fixed] at that width (ADR-0361).
+    public Column<T> resizable(boolean value) {
+        return new Column<>(key, header, cell, width, fixed, sortable, value);
     }
 }

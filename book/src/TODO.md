@@ -397,10 +397,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   focused index, and pinning it would keep a row nobody is looking at built for
   ever. —
   [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- **A `table` has no column resizing.** §3's metrics row allows for it —
-  "column resize: 1:1, like `split-pane`'s drag" — and the divider would be a
-  `split-pane` between the headers, which is a widget that already exists. —
-  [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
 - **A `table` focuses rows and not cells.** Right for §10's grid semantics and
   wrong for a spreadsheet, which is a different widget rather than an option on
   this one. Horizontal virtualization is absent for the same reason: it is a
@@ -1375,6 +1371,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `table` has no column resizing.**~~ **It has, 2026-09-17**, by asking: a
+  resizable column's header carries a grip, and a drag asks the application for a
+  width in pixels anchored at the width the header last came out as. Not a
+  `split-pane` between the headers, which divides one box between two panes. —
+  [ADR-0361](adr/0361-a-column-is-resized-by-asking.md)
 - ~~**A pinned `affix` is not pushed out by the next one.**~~ **It is, 2026-09-17**,
   without knowing its sibling: an affix stays inside the box it is in, which is
   CSS's rule for `sticky`, so a section's header leaves with its section. The same

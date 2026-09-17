@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -76,6 +79,8 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 /// @param onSelect   the selection the user asked for, whole
 /// @param selection  how many rows may be chosen at once
 /// @param rowHeight  a row's height in logical pixels, or zero to build every row
+/// @param onResize   asked for a column's new width in pixels when a resizable
+///                   column's grip is dragged, or null
 /// @param attributes `id` and `class`, exactly as on the primitives
 public record Table<T>(
         List<T> items,
@@ -87,6 +92,7 @@ public record Table<T>(
         Consumer<Set<String>> onSelect,
         Selection selection,
         double rowHeight,
+        @Nullable BiConsumer<String, Double> onResize,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Table<T>> {
 
@@ -101,7 +107,7 @@ public record Table<T>(
 
     /// A table over `items` with `columns`, choosing one row at a time.
     public Table(List<T> items, Function<T, String> identity, List<Column<T>> columns) {
-        this(items, identity, columns, null, null, Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
+        this(items, identity, columns, null, null, Set.of(), null, Selection.SINGLE, 0, null, Attributes.NONE);
     }
 
     /// This table sorted by `sort`, and `onSort` told what a header click means.
@@ -112,12 +118,13 @@ public record Table<T>(
     /// have to restate.
     public Table<T> sorted(Sort sort, Consumer<Sort> onSort) {
         return new Table<>(
-                items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, attributes);
+                items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, onResize, attributes);
     }
 
     /// This table with `values` selected and `onSelect` told what was asked for.
     public Table<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
-        return new Table<>(items, identity, columns, sort, onSort, values, onSelect, selection, rowHeight, attributes);
+        return new Table<>(
+                items, identity, columns, sort, onSort, values, onSelect, selection, rowHeight, onResize, attributes);
     }
 
     /// The same, for the caller that holds one value.
@@ -130,9 +137,17 @@ public record Table<T>(
                                 chosen.isEmpty() ? null : chosen.iterator().next()));
     }
 
+    /// This table's resizable columns asking `listener` for a new width, in
+    /// pixels, as their grips are dragged (ADR-0361).
+    public Table<T> resized(BiConsumer<String, Double> listener) {
+        return new Table<>(
+                items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, listener, attributes);
+    }
+
     /// This table with a different selection model.
     public Table<T> selection(Selection value) {
-        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, value, rowHeight, attributes);
+        return new Table<>(
+                items, identity, columns, sort, onSort, selected, onSelect, value, rowHeight, onResize, attributes);
     }
 
     /// This table building only the rows its viewport can see — `list`'s
@@ -141,7 +156,8 @@ public record Table<T>(
     /// The header is **not** part of the window and never was: it is outside the
     /// list entirely, so it is built on every frame and costs one row.
     public Table<T> virtualized(double height) {
-        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, selection, height, attributes);
+        return new Table<>(
+                items, identity, columns, sort, onSort, selected, onSelect, selection, height, onResize, attributes);
     }
 
     @Override
@@ -167,7 +183,7 @@ public record Table<T>(
         // box it is in, gives them up when the table itself has gone (ADR-0360).
         // At rest the affix is where the header was, so nothing moves.
         parts.add(new Affix(
-                List.of(new TableHead(columns, sort, this::askForSort), new TableRule()),
+                List.of(new TableHead(columns, sort, this::askForSort, this::askForWidth), new TableRule()),
                 Edge.TOP,
                 0,
                 Attributes.NONE));
@@ -218,6 +234,12 @@ public record Table<T>(
     }
 
     /// Turns "this header was clicked" into "this is what the sort becomes".
+    private void askForWidth(String column, double width) {
+        if (onResize != null) {
+            onResize.accept(column, width);
+        }
+    }
+
     private void askForSort(String column) {
         if (onSort != null) {
             onSort.accept(Sort.next(sort, column));
@@ -226,7 +248,8 @@ public record Table<T>(
 
     @Override
     public Table<T> withAttributes(Attributes value) {
-        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, value);
+        return new Table<>(
+                items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, onResize, value);
     }
 
     @Override

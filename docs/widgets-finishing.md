@@ -27,7 +27,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| Column resizing | drag a header edge | — | open |
+| Column resizing | drag a header edge | 0361 | done |
 | Sticky header | the header stays while the rows scroll | 0360 | done |
 | Cell focus | arrow keys between cells | — | answered: §10's table is a grid of rows; a spreadsheet is another widget (ADR-0214) |
 | Horizontal virtualization | columns off screen are not built | — | answered: pays past about fifty columns, past where a table is the right widget (ADR-0214) |
@@ -115,3 +115,13 @@ can be reversed:
 - `widgets` `core/affix/AffixState` clamps its travel; `AffixSlot` passes the
   container. `panel/table/Table` wraps its head and rule in an `Affix`.
 - Tests: `AffixTest` "inside a section"; `TableStickyHeaderTest`.
+
+### Table column resizing
+
+- `widgets` `panel/table/Column#resizable`, `Table#resized`; `TableHead.Resize`,
+  `TableHead.MINIMUM_WIDTH`, `TableHeader` answers the anchor and is `Measured`;
+  new `TableHeaderCell` and `TableGrip`. `controls.css`: `table-grip`, and
+  `table-header` without `overflow: hidden`.
+- Tests: `TableResizeTest`.
+- `example` `ui/Collections` — the Name column is resizable; `gallery-collections`
+  re-blessed.
