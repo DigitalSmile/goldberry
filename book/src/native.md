@@ -227,10 +227,11 @@ its export list.
 
 ~~**No CI job.**~~ **Built** ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)):
 every `showcase.yml` leg installs GraalVM Community, builds the image, runs it for
-three frames and uploads it; a push publishes the three to GitHub Packages as
-`goldberry-showcase-native`. Linux builds from the checked-in trace; macOS and
-Windows trace headlessly first, and those traces are not reviewed. Neither task is
-wired into `build`, still, because a local build has no GraalVM to count on.
+three frames and uploads it; on a `v*` tag the three go on the tag's GitHub
+Release ([ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)),
+and the workflow runs only on a tag or by hand. Linux builds from the checked-in
+trace; macOS and Windows trace first, and those traces are not reviewed. Neither
+task is wired into `build`, still, because a local build has no GraalVM to count on.
 
 **No image of the toolkit on its own.** `:core` and `:widgets` are libraries; an
 image is a property of an application, and `:example` is the application here.

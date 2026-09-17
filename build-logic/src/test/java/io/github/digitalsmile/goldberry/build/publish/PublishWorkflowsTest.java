@@ -73,22 +73,42 @@ class PublishWorkflowsTest {
     }
 
     @Test
-    @DisplayName("the showcase publishes once, from a push, with a token that can write packages")
-    void showcasePublishes() {
+    @DisplayName("the showcase is a release artifact: built on a tag or by hand, attached to the release")
+    void showcaseIsAReleaseArtifact() {
         var text = Repository.workflow("showcase.yml");
         assertAll(
-                () -> assertTrue(text.contains("packages: write")),
-                () -> assertTrue(text.contains("github.event_name == 'push'")),
-                () -> assertTrue(text.contains("publishShowcasePublicationToGithubPackagesRepository")),
-                () -> assertTrue(text.contains("publishShowcaseNativePublicationToGithubPackagesRepository")));
+                () -> assertTrue(text.contains("tags: ['v*']"), "a v* tag builds it"),
+                () -> assertTrue(text.contains("workflow_dispatch:"), "and so does a manual run"),
+                () -> assertFalse(text.contains("branches:"), "a push to a branch does not"),
+                () -> assertFalse(text.contains("pull_request:"), "nor does a pull request"),
+                () -> assertTrue(text.contains("gh release upload"), "the binaries go on the GitHub Release"),
+                () -> assertTrue(text.contains("startsWith(github.ref, 'refs/tags/v')"),
+                        "and only a tag has a release to attach them to"));
     }
 
     @Test
-    @DisplayName("example.yml stays retired: showcase.yml runs the example's tests instead")
+    @DisplayName("nothing goes to GitHub Packages, and no jlink image is built")
+    void noPackagesAndNoJlink() {
+        var showcase = Repository.workflow("showcase.yml");
+        var example = Repository.read("example/build.gradle");
+        assertAll(
+                () -> assertFalse(showcase.contains("packages: write"), "showcase.yml asks to write packages"),
+                () -> assertFalse(showcase.contains("maven.pkg.github.com")),
+                () -> assertFalse(showcase.contains("showcaseImage") || showcase.contains("jlinkImage")),
+                () -> assertFalse(example.contains("maven-publish"), "the example applies maven-publish"),
+                () -> assertFalse(example.contains("maven.pkg.github.com")),
+                () -> assertFalse(example.contains("jlinkImage")));
+    }
+
+    @Test
+    @DisplayName("example.yml stays retired: the Linux verify leg runs the example's tests instead")
     void exampleIsFolded() {
         assertAll(
                 () -> assertFalse(Repository.exists(".github/workflows/example.yml"),
-                        "example.yml is back; ADR-0335 folded it into showcase.yml"),
-                () -> assertTrue(Repository.workflow("showcase.yml").contains(":example:build")));
+                        "example.yml is back; ADR-0335 folded it into showcase.yml, ADR-0340 into linux.yml"),
+                () -> assertTrue(Repository.workflow("linux.yml").contains(":example:build"),
+                        "linux.yml's verify leg must run the example's tests against the library"),
+                () -> assertFalse(Repository.workflow("showcase.yml").contains(":example:build"),
+                        "showcase.yml runs only on a tag now, so the example's tests cannot live there"));
     }
 }

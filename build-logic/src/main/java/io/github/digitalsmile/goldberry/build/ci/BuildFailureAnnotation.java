@@ -15,8 +15,8 @@ import java.util.Optional;
  * Writes a failed build's "What went wrong" as an error annotation on the GitHub
  * Actions run (ADR-0338).
  *
- * <p>The failures {@link TestFailureAnnotations} cannot see: a {@code jlink} that
- * exits non-zero, a native-image link, a CMake configure. The showcase's Windows
+ * <p>The failures {@link TestFailureAnnotations} cannot see: a {@code native-image}
+ * build that exits non-zero, a CMake configure. The showcase's Windows
  * image had failed on every run for a month with nothing public to say why.
  *
  * <p>A flow action rather than {@code buildFinished}, which is deprecated and

@@ -7333,12 +7333,14 @@ manual list to every file under the showcase's resources.
   once; `snapshot.yml` (every push to master) and `release.yml` (every `v*` tag,
   dispatch rehearses) call it. The per-OS workflows lost their `push` trigger,
   because four publishers would leave a snapshot's metadata naming one platform.
-- **The showcase on GitHub Packages.** `showcase.yml` publishes its three images
-  once per push as `goldberry-showcase`, and absorbed `example.yml`'s one unique
-  step, the example's tests against a built library.
-- **The native showcase.** Every leg also builds the GraalVM native image, runs it
-  for three frames and uploads it; a second job publishes the three as
-  `goldberry-showcase-native`. macOS and Windows trace headlessly first. CI pins
+- **The showcase is a release artifact** ([ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)).
+  It was on GitHub Packages twice, as jlink images and native images, on every
+  push; now `showcase.yml` runs on a `v*` tag or by hand, builds the native image
+  only, and attaches the three binaries to the tag's draft GitHub Release. The
+  example's tests against a built library — the step that found bugs — run on
+  `linux.yml`'s linux-x64 verify leg on every push.
+- **The native showcase.** Every leg builds the GraalVM native image, runs it
+  for three frames and uploads it. macOS and Windows trace first. CI pins
   **GraalVM CE 25.3** by GraalVM version (`java-version: '25'` alone resolved
   January's jdk-25.0.2). **Run locally on linux-x64 with 25.3.4.1**: built in under two minutes to a 49 MiB binary — and then died on
   its first frame, because the checked-in trace predated the clipboard upcall

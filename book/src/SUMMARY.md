@@ -349,6 +349,7 @@
 - [ADR-0337 The native showcase is built on every platform](adr/0337-the-native-showcase-is-built-on-every-platform.md)
 - [ADR-0338 A red run says why, in public](adr/0338-a-red-run-says-why-in-public.md)
 - [ADR-0339 A foreign call is registered because it exists, not because a run reached it](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+- [ADR-0340 The showcase is a release artifact, not a package](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
 
 ---
 

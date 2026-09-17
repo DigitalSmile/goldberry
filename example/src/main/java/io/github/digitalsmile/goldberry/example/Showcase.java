@@ -86,7 +86,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// library's (ADR-0023).
 ///
 /// Run it with `./gradlew run`, or build the self-contained image with
-/// `./gradlew :example:showcaseImage` (ADR-0048).
+/// `./gradlew :example:nativeImage` (ADR-0159, ADR-0340).
 public final class Showcase implements Application {
 
     private static final Logger LOG = LoggerFactory.getLogger(Showcase.class);

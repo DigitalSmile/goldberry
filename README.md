@@ -46,9 +46,9 @@ Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
 Versions are calendar versions — `2026.1`, `2026.2`, `2026.2.1` — and every push
 to master publishes a `-SNAPSHOT` of the next one to the Central Portal's snapshot
 repository — `goldberry-bom` for the version, `goldberry` for the toolkit, and
-`goldberry-html` / `goldberry-gpu` when you want them — with the runnable
-showcase, as jlink images and as GraalVM native binaries, on GitHub Packages. Nothing has been
-released yet. [`docs/releasing.md`](docs/releasing.md) has the coordinates and the
+`goldberry-html` / `goldberry-gpu` when you want them. A release tag also
+attaches the showcase, as a GraalVM native binary per platform, to its GitHub
+Release. Nothing has been released yet. [`docs/releasing.md`](docs/releasing.md) has the coordinates and the
 release checklist.
 
 ```sh
@@ -1593,28 +1593,25 @@ matters more than tidiness — GNOME Shell 46 segfaults in its own
 `wl_client_destroy` path when this client disconnects, so an accidental real run
 costs a desktop session (see [Status](book/src/status.md)).
 
-### A self-contained image
+### A self-contained binary
 
-For handing to someone with no JDK, no Gradle and nothing to remember
-([ADR-0048](book/src/adr/0048-the-showcase-ships-as-a-runtime-image.md)):
+For handing to someone with no JDK, no Gradle and nothing to remember: the
+showcase as a GraalVM native image, one file with `libgoldberry` inside it
+([ADR-0159](book/src/adr/0159-a-native-image-carries-its-own-library.md),
+[ADR-0340](book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)).
+It needs a GraalVM to build — `book/src/native.md` has the recipe:
 
 ```sh
-./gradlew :example:showcaseImage
-./example/build/jlink/goldberry-showcase-linux-x64/bin/showcase
+./gradlew :example:nativeImage -Pgraalvm.home=/path/to/graalvm
+./example/build/native/goldberry-showcase-linux-x64
 ```
 
-That is a trimmed JDK from jlink, the application modules, `libgoldberry` and a
-launcher — about 31 MB, and it runs from wherever it is unpacked. The directory
-is named for the host target, so it is `goldberry-showcase-macos-aarch64` on a
-Mac and `…-windows-x64\bin\showcase.bat` on Windows.
-
-CI builds the same image on all three platforms and attaches it to the run: open
-the **Showcase image** workflow, pick a run, and the artifacts are
-`goldberry-showcase-linux-x64.tar.gz`, `-macos-aarch64.tar.gz` and
-`-windows-x64.zip`. Unpack and run `bin/showcase`. (A tarball on the two Unix
-platforms rather than a zip, because the zip format `upload-artifact` writes does
-not carry the executable bit — an image whose `bin/java` cannot be run is not an
-image.)
+Every release tag builds it on all three platforms and attaches
+`goldberry-showcase-native-linux-x64.tar.gz`, `-macos-aarch64.tar.gz` and
+`-windows-x64.exe` to the tag's GitHub Release; a manual run of the **Showcase**
+workflow leaves the same files as the run's artifacts. (A tarball on the two
+Unix platforms rather than a zip, because the zip format `upload-artifact` writes
+does not carry the executable bit.)
 
 **On macOS**, AppKit has to be driven from the process's first thread, so any
 Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for

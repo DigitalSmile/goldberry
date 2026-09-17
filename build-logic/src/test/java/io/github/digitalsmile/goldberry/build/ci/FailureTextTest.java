@@ -13,15 +13,15 @@ class FailureTextTest {
     @Test
     @DisplayName("shows the whole cause chain, outermost first")
     void showsTheChain() {
-        var root = new IllegalStateException("jlink exited with 1");
-        var failure = new RuntimeException("Execution failed for task ':example:showcaseImage'.", root);
+        var root = new IllegalStateException("native-image exited with 1");
+        var failure = new RuntimeException("Execution failed for task ':example:nativeImage'.", root);
 
         var lines = FailureText.of(failure).lines().toList();
 
         assertAll(
-                () -> assertEquals("RuntimeException: Execution failed for task ':example:showcaseImage'.",
+                () -> assertEquals("RuntimeException: Execution failed for task ':example:nativeImage'.",
                         lines.getFirst()),
-                () -> assertEquals("IllegalStateException: jlink exited with 1", lines.get(1)),
+                () -> assertEquals("IllegalStateException: native-image exited with 1", lines.get(1)),
                 () -> assertTrue(lines.get(2).startsWith("    at ")));
     }
 

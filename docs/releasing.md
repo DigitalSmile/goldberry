@@ -3,12 +3,10 @@
 How Goldberry is versioned, published and released. The reasoning is in
 [ADR-0333](../book/src/adr/0333-a-version-is-a-year-and-a-count.md) (versions),
 [ADR-0334](../book/src/adr/0334-central-is-fed-once-per-run.md) (Maven Central) and
-[ADR-0335](../book/src/adr/0335-the-showcase-is-a-package-and-example-yml-is-folded-in.md)
-(the showcase on GitHub Packages),
 [ADR-0336](../book/src/adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
 (the BOM and the umbrella) and
-[ADR-0337](../book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)
-(the native showcase); this page is the checklist.
+[ADR-0340](../book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
+(the native showcase on the GitHub Release); this page is the checklist.
 
 ## Status
 
@@ -19,9 +17,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 | `goldberry-bom` and the `goldberry` umbrella, `html`/`gpu` optional | **built**, resolved by a local consumer build |
 | `snapshot.yml` → `publish.yml` → Central snapshots | **built, never run** — waits on the secrets below |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
-| `showcase.yml` → GitHub Packages, runtime images | **built, never run** — needs nothing but a push |
-| `showcase.yml` → GitHub Packages, GraalVM native images | **built, never run in CI** — see `book/src/status.md` for the local Linux run |
-| `example.yml` | **retired**, folded into `showcase.yml` |
+| `showcase.yml` → native images on the tag's draft GitHub Release | **built, never run on a tag** — the image builds and runs on all three platforms on every manual run |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **not done** — blocks the first release, not snapshots |
 
 ## Versions
@@ -48,8 +44,7 @@ compiled.
 | `goldberry-{common,natives,core,widgets,html,gpu}`, `goldberry-bom`, `goldberry` — `-SNAPSHOT` | `https://central.sonatype.com/repository/maven-snapshots/` | every push to master (`snapshot.yml`) |
 | the same, released | Maven Central | a `v*` tag (`release.yml`) |
 | `goldberry-natives` classifiers `linux-x64`, `linux-aarch64`, `macos-aarch64`, `windows-x64` | beside `goldberry-natives` | with it |
-| `goldberry-showcase` (jlink runtime image) classifiers `linux-x64` / `macos-aarch64` (`.tar.gz`), `windows-x64` (`.zip`) | GitHub Packages, `https://maven.pkg.github.com/DigitalSmile/goldberry` | every push to master and every `v*` tag (`showcase.yml`) |
-| `goldberry-showcase-native` (GraalVM native image) classifiers `linux-x64` / `macos-aarch64` (`.tar.gz`), `windows-x64` (`.exe`) | the same | the same |
+| `goldberry-showcase-native-{linux-x64,macos-aarch64}.tar.gz`, `goldberry-showcase-native-windows-x64.exe` — the showcase as a GraalVM native image | the tag's GitHub Release, created as a draft; also the run's artifacts | a `v*` tag (`showcase.yml`); a manual run builds them as artifacts only |
 
 Consuming it — the BOM for the version, the umbrella for the toolkit, and the
 optional modules by name:
@@ -85,19 +80,22 @@ dependencies {
 </dependencies>
 ```
 
+**The BOM knows versions, not platforms.** A Maven BOM is a version table and
+nothing else: it cannot pick `goldberry-natives::linux-x64` for the machine that
+builds against it, because a POM has no notion of an operating system or an
+architecture. The umbrella `goldberry` depends on the bindings jar
+`goldberry-natives` without a classifier, so the platform's classifier jar is the
+one line an application adds itself — one per platform it ships to, or all four,
+since `NativeLibrary` picks the right one at run time by `os.name` and `os.arch`.
+A Gradle plugin, or Gradle module-metadata variants keyed on OS and architecture,
+could choose for the consumer; neither exists yet (`book/src/TODO.md`, ADR-0336).
+
 A new optional module is one line in `PublishedModules`
 (`new Library("pdf", Inclusion.OPTIONAL)`) plus `id 'goldberry.publish'` in its
 build script; the BOM and the umbrella pick it up.
 
-Fetching a showcase image needs a GitHub token with `read:packages`, even though
-the repository is public — that is how GitHub Packages' Maven registry works:
-
-```sh
-curl -L -u "$GITHUB_USER:$GITHUB_TOKEN" -O \
-  https://maven.pkg.github.com/DigitalSmile/goldberry/io/github/digitalsmile/goldberry-showcase/2026.1/goldberry-showcase-2026.1-linux-x64.tar.gz
-curl -L -u "$GITHUB_USER:$GITHUB_TOKEN" -O \
-  https://maven.pkg.github.com/DigitalSmile/goldberry/io/github/digitalsmile/goldberry-showcase-native/2026.1/goldberry-showcase-native-2026.1-windows-x64.exe
-```
+The showcase binaries are on the GitHub Release of each tag, as plain downloads;
+a manual run of the *Showcase* workflow leaves them as the run's artifacts.
 
 ## One-time setup
 
@@ -126,7 +124,8 @@ Done by a person, once. Nothing here can be checked from the repository.
    pressed through the Portal by hand. Until then a release stops there as a
    validated deployment.
 
-GitHub Packages needs no setup: the workflow's own `GITHUB_TOKEN` writes to it.
+The GitHub Release needs no setup: the workflow's own `GITHUB_TOKEN` creates the
+draft and uploads to it.
 
 Until step 5, snapshot runs rehearse into `mavenLocal` and say so in the run's
 summary instead of failing.
@@ -143,10 +142,12 @@ summary instead of failing.
    git tag -a v2026.1 -m "Goldberry 2026.1"
    git push origin v2026.1
    ```
-   `release.yml` publishes to a Portal deployment; `showcase.yml` publishes the
-   images.
+   `release.yml` publishes to a Portal deployment; `showcase.yml` builds the native
+   images and attaches them to a **draft** GitHub Release for the tag.
 4. **Publish in the Portal** (Deployments → the deployment → *Publish*), unless
    `CENTRAL_AUTO_RELEASE` is on. Central takes a few minutes to an hour to sync.
+   Then **publish the draft GitHub Release**, so the binaries and the artifacts
+   appear together.
 5. **Bump master straight away** — `goldberryVersion=2026.2`. Until then master
    publishes `2026.1-SNAPSHOT`, which Maven orders *below* the release it follows.
 

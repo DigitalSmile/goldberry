@@ -5,6 +5,9 @@ Date: 2026-09-17
 ## Status
 
 Accepted. Puts `book/src/native.md`'s "No CI job" into CI; extends ADR-0335.
+Amended by [ADR-0340](0340-the-showcase-is-a-release-artifact-not-a-package.md):
+the image is built on a `v*` tag or by hand and attached to the GitHub Release,
+not published to GitHub Packages on every push.
 
 ## Context
 

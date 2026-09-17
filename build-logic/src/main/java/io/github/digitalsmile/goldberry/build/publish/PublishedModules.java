@@ -27,8 +27,8 @@ public final class PublishedModules {
 
     /**
      * Everything, in dependency order. {@code :assets} and {@code :weaver} are
-     * build-time tools and {@code :example} is the showcase, which goes to GitHub
-     * Packages as an image instead (ADR-0335).
+     * build-time tools and {@code :example} is the showcase, which ships as a
+     * native image on a GitHub Release instead (ADR-0340).
      */
     public static final List<PublishedModule> ALL = List.of(
             new Library("common", Inclusion.REQUIRED),

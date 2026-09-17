@@ -4,7 +4,11 @@ Date: 2026-09-17
 
 ## Status
 
-Accepted. Extends ADR-0048; retires the workflow ADR-0021 and ADR-0023 describe.
+Accepted, then superseded the same day by [ADR-0340](0340-the-showcase-is-a-release-artifact-not-a-package.md):
+the GitHub Packages publication and the jlink image are gone, and the example's
+tests run on `linux.yml`'s verify leg. What survives of this record is that
+`example.yml` stays retired. Extends ADR-0048; retires the workflow ADR-0021 and
+ADR-0023 describe.
 
 ## Context
 

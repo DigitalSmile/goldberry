@@ -259,6 +259,18 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
+      # The example's own tests -- its goldens, its gallery order, its screen
+      # tests -- need a rasterizer too, and this is the only place they meet a
+      # real library on every push: showcase.yml, which used to run them, builds
+      # the native image on a release tag or by hand now (ADR-0340). One leg is
+      # enough, for the coverage floors' reason.
+      - name: The example's tests, against the library
+        if: matrix.target == 'linux-x64'
+        run: |
+          ./gradlew :example:build --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

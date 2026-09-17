@@ -1421,24 +1421,24 @@ on, which in four cases is the same thing.
   Linux one. The `macos-14` runner's 3 cores are the likeliest place for the build to
   be slow (2.27 GiB peak and 1 min 23 s on 8 Linux threads). —
   [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
-- **A stale Linux trace is found by the showcase run, not before it.** The checked-in
-  reachability metadata went three weeks without an image built from it, and the first
-  one died on the clipboard upcall added in between (refreshed with ADR-0337). The
-  native leg now catches that on the next push, but only as a red run after a full
-  native build; a cheap check that every `Linker.upcallStub` target in `:natives` has a
-  registration would catch it at review time. —
-  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
+- **A stale Linux trace is found by a native build, not before it.** The foreign
+  calls no longer depend on the trace at all — every holder and every upcall owner is
+  registered from the bindings, and `ForeignSurfaceTest` holds the owner list to the
+  sources that call `upcallStub` (ADR-0339). What the trace still carries is
+  reflection and resources, and a screen the run never opened can still lack a
+  reflective registration; with the showcase built only on a tag or by hand
+  (ADR-0340), that is found later than it was, on the release build. —
+  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 - **An application still adds its platform's natives jar by hand.** The `goldberry`
   umbrella cannot pick `goldberry-natives:<v>:linux-x64` for the consumer's platform —
   a POM has no way to — so the BOM lines up its version and the classifier is the
   application's. A Gradle plugin, or module-metadata variants keyed on OS and
   architecture, would close it. —
   [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
-- **Showcase snapshots are never pruned.** Every push to master adds three images to
-  GitHub Packages — six, counting the native binaries — and nothing deletes the old ones; a scheduled
-  `actions/delete-package-versions` is the obvious shape. The images also need a token
-  to download, so they are not yet a public link — a GitHub Release for tagged versions
-  would be. — [ADR-0335](adr/0335-the-showcase-is-a-package-and-example-yml-is-folded-in.md)
+- **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
+  three native images to the tag's draft release with `gh release`; the first `v*` tag
+  is its first run, and a manual dispatch exercises everything but that step. —
+  [ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
 
 ## Answered
 
