@@ -444,6 +444,32 @@ class RuntimeBindingTest {
             assertEquals(1_500_000L, model.bytes);
         }
 
+        /// The string comes from a document, so the refusal has to say which
+        /// action wanted a number and what it was given instead — `For input
+        /// string: "loud"` names neither.
+        @Test
+        @DisplayName("a value the parameter cannot take is refused with the action's name and the value")
+        void valuedRefusedByName() {
+            var model = new Settings();
+            var actions = Models.actions(model);
+
+            var whole = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> actions.resolveValued("app.set-gain").accept("loud"));
+            assertTrue(whole.getMessage().contains("app.set-gain"), whole.getMessage());
+            assertTrue(whole.getMessage().contains("\"loud\""), whole.getMessage());
+            assertTrue(whole.getMessage().contains("whole number"), whole.getMessage());
+
+            var real = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> actions.resolveValued("app.read").accept("fast"));
+            assertTrue(real.getMessage().contains("app.read"), real.getMessage());
+            assertTrue(real.getMessage().contains("\"fast\""), real.getMessage());
+
+            assertEquals(40, model.gain, "a refused action changed nothing");
+            assertEquals(0, model.bytes);
+        }
+
         @Test
         @DisplayName("a boolean parameter is parsed too")
         void valuedBoolean() {

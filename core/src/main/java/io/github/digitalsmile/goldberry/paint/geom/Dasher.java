@@ -123,7 +123,7 @@ public final class Dasher {
                         startY = y;
                     }
                     case Path.Segment.LineTo line -> lineTo(line.x(), line.y());
-                    case Path.Segment.Close ignored -> {
+                    case Path.Segment.Close _ -> {
                         lineTo(startX, startY);
                         penDown = false;
                     }

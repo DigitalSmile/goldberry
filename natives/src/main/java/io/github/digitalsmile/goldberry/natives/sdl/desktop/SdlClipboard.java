@@ -411,8 +411,10 @@ public final class SdlClipboard {
             return List.of();
         }
         var pointers = array.reinterpret(count * ValueLayout.ADDRESS.byteSize());
-        var types = new java.util.ArrayList<String>((int) count);
-        for (var i = 0; i < count; i++) {
+        var types = new java.util.ArrayList<String>(Math.toIntExact(count));
+        // A long counter for a long count. SDL will never report two billion
+        // MIME types, but an int here would wrap rather than stop if it did.
+        for (var i = 0L; i < count; i++) {
             var pointer = pointers.getAtIndex(ValueLayout.ADDRESS, i);
             if (!MemorySegment.NULL.equals(pointer)) {
                 types.add(readCString(pointer));

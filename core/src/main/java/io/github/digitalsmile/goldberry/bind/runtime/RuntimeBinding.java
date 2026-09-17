@@ -851,7 +851,7 @@ final class RuntimeBinding implements BoundModel {
                 if (parser == null) {
                     handle.invokeExact(model);
                 } else {
-                    handle.invokeExact(model, parser.apply(value));
+                    handle.invokeExact(model, argument(value));
                 }
             } catch (RuntimeException | Error e) {
                 throw e;
@@ -864,16 +864,49 @@ final class RuntimeBinding implements BoundModel {
             }
         }
 
+        /// `value` converted for the parameter, with the action's name on the
+        /// refusal when it cannot be.
+        private Object argument(String value) {
+            try {
+                return parser.apply(value);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("the action \"" + name + "\" was given " + e.getMessage(), e);
+            }
+        }
+
         /// The `String` → parameter conversion, or null for a type no action may
         /// take. The same four the weaver emits a `parseXxx` for.
         static Function<String, Object> parser(Class<?> param) {
             return switch (param.getName()) {
                 case "java.lang.String" -> value -> value;
-                case "double", "java.lang.Double" -> Double::valueOf;
-                case "int", "java.lang.Integer" -> Integer::valueOf;
+                case "double", "java.lang.Double" -> Act::real;
+                case "int", "java.lang.Integer" -> Act::whole;
                 case "boolean", "java.lang.Boolean" -> Boolean::valueOf;
                 default -> null;
             };
+        }
+
+        /// `value` as an `int`, or a refusal a document author can act on.
+        ///
+        /// `NumberFormatException` says `For input string: "loud"`, which is true
+        /// and useless: what was typed is in the document, and what the document
+        /// needs to know is that the action wanted a number. The action's own name
+        /// is added where it is known, in [#invoke].
+        private static Object whole(String value) {
+            try {
+                return Integer.valueOf(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("\"" + value + "\" is not a whole number", e);
+            }
+        }
+
+        /// `value` as a `double`, with the same refusal as [#whole].
+        private static Object real(String value) {
+            try {
+                return Double.valueOf(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("\"" + value + "\" is not a number", e);
+            }
         }
     }
 

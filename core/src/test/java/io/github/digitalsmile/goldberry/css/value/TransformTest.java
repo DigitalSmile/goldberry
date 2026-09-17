@@ -243,6 +243,54 @@ class TransformTest {
     }
 
     @Nested
+    @DisplayName("mixing")
+    class Mixing {
+
+        private static Transform.Function translate(double x, double y) {
+            return new Transform.Function.Translate(Transform.Length.px(x), Transform.Length.px(y));
+        }
+
+        /// The shorter list is padded with each missing function's own identity,
+        /// so a scale that one side lacks grows from 1 and a translate from 0 —
+        /// whichever side is the short one.
+        @Test
+        @DisplayName("a function one side lacks grows out of its identity, from either side")
+        void unequalLengthsGrowFromIdentity() {
+            var one = Transform.of(translate(10, 0));
+            var two = Transform.of(translate(20, 0), new Transform.Function.Scale(2, 2));
+
+            assertEquals(
+                    List.of(translate(15, 0), new Transform.Function.Scale(1.5, 1.5)),
+                    one.mix(two, 0.5).functions(),
+                    "the missing scale grows from scale(1)");
+            assertEquals(
+                    List.of(translate(15, 0), new Transform.Function.Scale(1.5, 1.5)),
+                    two.mix(one, 0.5).functions(),
+                    "and shrinks back towards it when the long list is the one animated from");
+        }
+
+        @Test
+        @DisplayName("an empty transform mixes towards a full one from every identity")
+        void fromNothing() {
+            var full = Transform.of(translate(8, 4), new Transform.Function.Rotate(Math.PI));
+
+            assertEquals(
+                    List.of(translate(4, 2), new Transform.Function.Rotate(Math.PI / 2)),
+                    Transform.NONE.mix(full, 0.5).functions());
+        }
+
+        @Test
+        @DisplayName("functions of different kinds at the same index jump rather than blend")
+        void differentKindsJump() {
+            var from = Transform.of(translate(10, 0));
+            var to = Transform.of(new Transform.Function.Scale(2, 2));
+
+            assertSame(from, from.mix(to, 0.25));
+            assertSame(to, from.mix(to, 0.75));
+        }
+    }
+
+    @Nested
     @DisplayName("parsing")
     class Parsing {
 

@@ -61,7 +61,7 @@ public sealed interface NativeLibraryRequirement {
                 System.getProperty(NativeLibrary.LIBRARY_PATH_PROPERTY));
 
         switch (decision) {
-            case Run ignored -> {}
+            case Run _ -> {}
             case Skip(var reason) -> Assumptions.abort(reason);
             case Fail(var reason) -> Assertions.fail(reason);
         }

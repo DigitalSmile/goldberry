@@ -211,8 +211,8 @@ class BindingBenchmark {
         var plain = new New();
         var sink = new long[1];
 
-        old.bindings().resolve("app.clicks").subscribe(v -> sink[0]++);
-        Models.bindings(plain).resolve("app.clicks").subscribe(v -> sink[0]++);
+        old.bindings().resolve("app.clicks").subscribe(_ -> sink[0]++);
+        Models.bindings(plain).resolve("app.clicks").subscribe(_ -> sink[0]++);
         var oldPress = old.actions().resolve("app.click");
         var newPress = Models.actions(plain).resolve("app.click");
 
@@ -445,7 +445,7 @@ class BindingBenchmark {
         var model = new ShowcaseModel();
         var actions = Models.actions(model);
         var click = actions.resolve("app.click");
-        Models.bindings(model).resolve("app.clicks").subscribe(v -> {});
+        Models.bindings(model).resolve("app.clicks").subscribe(_ -> {});
 
         report("ShowcaseModel click, 1 listener", () -> {
             for (var i = 0; i < WRITES; i++) {

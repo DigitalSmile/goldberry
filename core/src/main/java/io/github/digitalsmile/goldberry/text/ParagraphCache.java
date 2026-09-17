@@ -111,9 +111,12 @@ public final class ParagraphCache {
         // rather than the oldest. A frame touches the same paragraphs it touched
         // last frame, so recency is the right thing to keep.
         this.entries = new LinkedHashMap<>(capacity, 0.75f, true) {
+            // `super.size()` and not `size()`: the enclosing cache has a `size()`
+            // of its own, and an unqualified call from inside the map would read
+            // as either until the reader checks which one wins.
             @Override
             protected boolean removeEldestEntry(Map.Entry<Key, Paragraph> eldest) {
-                if (size() <= ParagraphCache.this.capacity) {
+                if (super.size() <= ParagraphCache.this.capacity) {
                     return false;
                 }
                 // **Grow rather than evict something this frame is still using.**
@@ -127,7 +130,7 @@ public final class ParagraphCache {
                 // (ADR-0299).
                 if (requestsThisFrame >= ParagraphCache.this.capacity && ParagraphCache.this.capacity < MAX_CAPACITY) {
                     ParagraphCache.this.capacity = Math.min(MAX_CAPACITY, ParagraphCache.this.capacity * 2);
-                    return size() > ParagraphCache.this.capacity;
+                    return super.size() > ParagraphCache.this.capacity;
                 }
                 return true;
             }

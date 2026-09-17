@@ -30,15 +30,15 @@ public final class Inlines {
             switch (inline) {
                 case Text(var text) -> out.append(text);
                 case Code(var code) -> out.append(code);
-                case Image(var ignoredSrc, var ignoredTitle, var alt) -> out.append(alt);
+                case Image(var _, var _, var alt) -> out.append(alt);
                 case LineBreak(var hard) -> out.append(hard ? '\n' : ' ');
-                case RawHtml ignored -> {}
+                case RawHtml _ -> {}
                 case Emphasis(var children) -> append(out, children);
                 case Strong(var children) -> append(out, children);
                 case Struck(var children) -> append(out, children);
                 case Underlined(var children) -> append(out, children);
-                case Link(var ignoredHref, var ignoredTitle, var ignoredAuto, var children) -> append(out, children);
-                case WikiLink(var ignoredTarget, var children) -> append(out, children);
+                case Link(var _, var _, var _, var children) -> append(out, children);
+                case WikiLink(var _, var children) -> append(out, children);
             }
         }
     }

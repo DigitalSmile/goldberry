@@ -171,7 +171,7 @@ final class MarkdownWidgets {
             case NumberedList(var start, var tight, var items) -> numberedList(start, tight, items);
             case Item item -> item(marker("•"), item);
             case CodeBlock codeBlock -> codeBlock(codeBlock);
-            case ThematicBreak ignored -> new Row(List.of(), classes("md-rule"));
+            case ThematicBreak _ -> new Row(List.of(), classes("md-rule"));
             // The markup as the text it is. A widget renderer with no HTML engine
             // under it has no honest alternative, and showing nothing would lose
             // content the author meant to keep.
@@ -211,11 +211,11 @@ final class MarkdownWidgets {
                 case Strong(var children) -> inlines(out, children, Words.and(marks, "md-strong"));
                 case Struck(var children) -> inlines(out, children, Words.and(marks, "md-struck"));
                 case Underlined(var children) -> inlines(out, children, Words.and(marks, "md-underline"));
-                case Link(var href, var ignoredTitle, var ignoredAuto, var children) ->
+                case Link(var href, var _, var _, var children) ->
                     link(out, href, children, Words.and(marks, "md-link"), onLink);
                 case WikiLink(var target, var children) ->
                     link(out, target, children, Words.and(marks, "md-wikilink"), onWikiLink);
-                case Image(var src, var ignoredTitle, var alt) -> image(out, src, alt, Words.and(marks, "md-image"));
+                case Image(var src, var _, var alt) -> image(out, src, alt, Words.and(marks, "md-image"));
                 case RawHtml(var html) -> out.add(new Words.Fragment(html, Words.and(marks, "md-raw"), true));
                 // **A break ends the token and nothing more, hard or soft.** A
                 // wrapping row breaks where the width runs out, and there is no widget
@@ -224,7 +224,7 @@ final class MarkdownWidgets {
                 // does not play: it would make a hard break look like justified text.
                 // Noted in TODO.md; `html-view` is where a hard break becomes a `<br>`
                 // that means it.
-                case LineBreak ignored -> out.add(Words.Fragment.SEPARATOR);
+                case LineBreak _ -> out.add(Words.Fragment.SEPARATOR);
             }
         }
     }

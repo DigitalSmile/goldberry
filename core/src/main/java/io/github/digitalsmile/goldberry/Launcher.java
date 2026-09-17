@@ -195,18 +195,39 @@ final class Launcher implements Host {
             LogicalSize size = null;
             for (var arg : args == null ? new String[0] : args) {
                 if (arg.startsWith("--frames=")) {
-                    frames = Integer.parseInt(arg.substring("--frames=".length()));
+                    frames = whole(arg, arg.substring("--frames=".length()));
                 } else if (arg.startsWith("--size=")) {
                     // Trailing empties dropped is the behaviour wanted: the
                     // length check below is what rejects `--size=800x` anyway.
                     @SuppressWarnings("StringSplitter")
                     var parts = arg.substring("--size=".length()).split("x");
                     if (parts.length == 2) {
-                        size = new LogicalSize(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]));
+                        size = new LogicalSize(real(arg, parts[0]), real(arg, parts[1]));
                     }
                 }
             }
             return new Options(frames, size);
+        }
+
+        /// `--frames=N`'s `N`, or a refusal that names the flag.
+        ///
+        /// `NumberFormatException` names the text and not the flag it came from,
+        /// and a launcher's argument error is read by whoever typed it.
+        private static int whole(String flag, String text) {
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(flag + " is not a whole number of frames", e);
+            }
+        }
+
+        /// One side of `--size=WxH`, or a refusal that names the flag.
+        private static float real(String flag, String text) {
+            try {
+                return Float.parseFloat(text);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(flag + " is not a width and a height", e);
+            }
         }
     }
 

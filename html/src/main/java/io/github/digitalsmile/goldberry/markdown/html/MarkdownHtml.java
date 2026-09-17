@@ -133,7 +133,7 @@ public final class MarkdownHtml {
             // caller who built one has said nothing about tightness -- so it is written
             // the way the common case is.
             case Item item -> item(out, item, true);
-            case CodeBlock(var language, var ignoredInfo, var code) -> {
+            case CodeBlock(var language, var _, var code) -> {
                 out.append("<pre><code");
                 if (language != null && !language.isBlank()) {
                     out.append(" class=\"language-");
@@ -144,7 +144,7 @@ public final class MarkdownHtml {
                 HtmlEscape.text(out, code);
                 out.append("</code></pre>\n");
             }
-            case ThematicBreak ignored -> out.append("<hr>\n");
+            case ThematicBreak _ -> out.append("<hr>\n");
             // Verbatim, which is the whole point of it: the author wrote markup and
             // asked for markup. An application that does not want that parses with
             // `MarkdownExtension.NO_HTML` and gets escaped text instead.
@@ -248,7 +248,7 @@ public final class MarkdownHtml {
             case Strong(var content) -> wrap(out, "strong", content);
             case Struck(var content) -> wrap(out, "del", content);
             case Underlined(var content) -> wrap(out, "u", content);
-            case Link(var href, var title, var ignored, var content) -> {
+            case Link(var href, var title, var _, var content) -> {
                 out.append("<a href=\"");
                 HtmlEscape.attribute(out, href);
                 out.append('"');

@@ -400,7 +400,7 @@ class ToastTest {
         private double translateY(ElementTree tree, int index) {
             var column = renderer.render(tree);
             for (var function : column.children().get(index).transform().functions()) {
-                if (function instanceof Transform.Function.Translate(var ignored, var y)) {
+                if (function instanceof Transform.Function.Translate(var _, var y)) {
                     return y.value();
                 }
             }

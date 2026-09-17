@@ -653,7 +653,13 @@ public final class ShowcaseModel {
         /// shows the edit too, for the same reason.
         @Action("md.toggle-task")
         public void toggleTask(String index) {
-            var task = Integer.parseInt(index.trim());
+            int task;
+            try {
+                task = Integer.parseInt(index.trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "md.toggle-task takes the task's position in the document, not \"" + index + "\"", e);
+            }
             values.markdownSource = Markdown.toggleTask(values.markdownSource, task);
             values.markdownFollowed = "Ticked task " + task + " — the source on the left changed with it.";
         }

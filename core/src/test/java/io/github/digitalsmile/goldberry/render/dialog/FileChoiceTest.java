@@ -60,7 +60,7 @@ class FileChoiceTest {
     private static String describe(FileChoice choice) {
         return switch (choice) {
             case FileChoice.Chosen chosen -> "chose " + chosen.path();
-            case FileChoice.Cancelled ignored -> "cancelled";
+            case FileChoice.Cancelled _ -> "cancelled";
             case FileChoice.Failed(var message) -> "failed: " + message;
         };
     }

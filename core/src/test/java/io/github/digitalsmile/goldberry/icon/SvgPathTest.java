@@ -51,12 +51,12 @@ class SvgPathTest {
         for (var segment : path.segments()) {
             shape.append(
                     switch (segment) {
-                        case Path.Segment.MoveTo ignored -> 'M';
-                        case Path.Segment.LineTo ignored -> 'L';
-                        case Path.Segment.QuadTo ignored -> 'Q';
-                        case Path.Segment.CubicTo ignored -> 'C';
-                        case Path.Segment.ArcTo ignored -> 'A';
-                        case Path.Segment.Close ignored -> 'Z';
+                        case Path.Segment.MoveTo _ -> 'M';
+                        case Path.Segment.LineTo _ -> 'L';
+                        case Path.Segment.QuadTo _ -> 'Q';
+                        case Path.Segment.CubicTo _ -> 'C';
+                        case Path.Segment.ArcTo _ -> 'A';
+                        case Path.Segment.Close _ -> 'Z';
                     });
         }
         return shape.toString();

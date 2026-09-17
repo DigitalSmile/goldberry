@@ -480,7 +480,7 @@ public final class Element implements BuildContext, StyleElement {
             // markNeedsBuild rather than an immediate rebuild, for the reason
             // setState defers: a property that several widgets watch would
             // otherwise rebuild each of them separately, mid-change.
-            binding = property.subscribe(value -> markNeedsBuild());
+            binding = property.subscribe(_ -> markNeedsBuild());
         }
     }
 
@@ -500,7 +500,7 @@ public final class Element implements BuildContext, StyleElement {
     /// three interfaces rather than one with a nullable method.
     private List<Widget> describe() {
         return switch (widget) {
-            case Widget.Stateful ignored -> List.of(state.build(this));
+            case Widget.Stateful _ -> List.of(state.build(this));
             case Widget.Stateless stateless -> List.of(stateless.build(this));
             case Widget.Leaf leaf -> leaf.children();
             default ->

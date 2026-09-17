@@ -123,16 +123,12 @@ public record Transform(List<Function> functions, Origin origin) {
         var length = Math.max(functions.size(), to.functions.size());
         var mixed = new ArrayList<Function>(length);
         for (var i = 0; i < length; i++) {
-            var from = i < functions.size() ? functions.get(i) : null;
-            var target = i < to.functions.size() ? to.functions.get(i) : null;
             // One side ran out: the missing function is the identity of whatever
             // the other side is, so the value grows out of nothing rather than
-            // out of a different kind of thing.
-            if (from == null) {
-                from = target.identity();
-            } else if (target == null) {
-                target = from.identity();
-            }
+            // out of a different kind of thing. `length` is the longer list's, so
+            // at least one side always has a function at `i` to grow from.
+            var from = i < functions.size() ? functions.get(i) : to.functions.get(i).identity();
+            var target = i < to.functions.size() ? to.functions.get(i) : from.identity();
             if (from.getClass() != target.getClass()) {
                 return t < 0.5 ? this : to;
             }

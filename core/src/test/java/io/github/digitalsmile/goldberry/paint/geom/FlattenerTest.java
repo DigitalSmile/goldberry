@@ -232,7 +232,7 @@ class FlattenerTest {
                     fromX = line.x();
                     fromY = line.y();
                 }
-                case Path.Segment.Close ignored -> {
+                case Path.Segment.Close _ -> {
                     best = Math.min(best, distanceToSegment(x, y, fromX, fromY, startX, startY));
                     fromX = startX;
                     fromY = startY;

@@ -106,7 +106,7 @@ public final class SdlTray implements AutoCloseable {
 
         MemorySegment handle;
         try (var scratch = Arena.ofConfined()) {
-            var surface = surfaceOf(surfaceCalls, scratch, icon);
+            var surface = surfaceOf(surfaceCalls, icon);
             try {
                 handle = trayCalls
                         .createTray()
@@ -187,14 +187,12 @@ public final class SdlTray implements AutoCloseable {
     public void icon(SdlTrayIcon icon) {
         requireOwner();
         requireOpen();
-        try (var scratch = Arena.ofConfined()) {
-            var surface = surfaceOf(surfaceCalls, scratch, icon);
-            try {
-                trayCalls.setTrayIcon().call(tray, surface);
-            } finally {
-                if (!MemorySegment.NULL.equals(surface)) {
-                    surfaceCalls.destroySurface().call(surface);
-                }
+        var surface = surfaceOf(surfaceCalls, icon);
+        try {
+            trayCalls.setTrayIcon().call(tray, surface);
+        } finally {
+            if (!MemorySegment.NULL.equals(surface)) {
+                surfaceCalls.destroySurface().call(surface);
             }
         }
     }
@@ -267,8 +265,7 @@ public final class SdlTray implements AutoCloseable {
     }
 
     /// Wraps an icon's pixels as an `SDL_Surface`, or NULL when there is no icon.
-    private static MemorySegment surfaceOf(SdlSurfaceCalls calls, Arena scratch, SdlTrayIcon icon) {
-
+    private static MemorySegment surfaceOf(SdlSurfaceCalls calls, SdlTrayIcon icon) {
         if (icon == null) {
             return MemorySegment.NULL;
         }

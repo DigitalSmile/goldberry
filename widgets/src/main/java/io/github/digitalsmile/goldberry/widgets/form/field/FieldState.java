@@ -114,7 +114,7 @@ final class FieldState extends State<Field> implements Validated {
             // A property outlives the tree, so a listener left behind keeps this
             // subtree alive and rebuilds something nobody can see -- the same
             // trap `Screen` documents.
-            watching = source.subscribe(value -> revalidate());
+            watching = source.subscribe(_ -> revalidate());
         }
     }
 

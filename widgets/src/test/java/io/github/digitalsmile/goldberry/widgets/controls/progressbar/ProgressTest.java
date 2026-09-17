@@ -268,7 +268,7 @@ class ProgressTest {
         }
 
         private static double translateOf(Box box) {
-            if (box.transform().functions().getFirst() instanceof Transform.Function.Translate(var x, var ignored)) {
+            if (box.transform().functions().getFirst() instanceof Transform.Function.Translate(var x, var _)) {
                 assertTrue(x.percentage(), "the travel is a proportion of the bar itself");
                 return x.value();
             }

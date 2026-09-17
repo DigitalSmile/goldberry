@@ -107,6 +107,16 @@ public final class TimeTicks {
         return DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
     }
 
+    /// How many labels `step` would put on a span of `span` milliseconds.
+    ///
+    /// Rounded up, because a rung that fits four and a half times is read five
+    /// times, and saturated at an int rather than left a double: the only
+    /// question ever asked of it is "more than wanted?", and a span of four
+    /// centuries at one-second rungs answers that at any width.
+    private static int labels(double span, Step step) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.ceil(span / step.approxMillis()));
+    }
+
     /// The labelling of `from…to` at about `target` labels.
     ///
     /// @param from   the first instant on the axis
@@ -132,7 +142,7 @@ public final class TimeTicks {
         // window labelled in hours has two labels and says nothing.
         var chosen = LADDER.getLast();
         for (var step : LADDER) {
-            if (span / step.approxMillis() <= wanted) {
+            if (labels(span, step) <= wanted) {
                 chosen = step;
                 break;
             }
@@ -140,7 +150,7 @@ public final class TimeTicks {
         // Past the top of the ladder, the rung is decades of whatever it takes.
         // A chart of four centuries is not a case worth a special algorithm, and
         // one worth refusing even less.
-        while (span / chosen.approxMillis() > wanted && chosen.unit() == ChronoUnit.YEARS) {
+        while (labels(span, chosen) > wanted && chosen.unit() == ChronoUnit.YEARS) {
             chosen = new Step(ChronoUnit.YEARS, chosen.amount() * 2, chosen.approxMillis() * 2);
         }
 

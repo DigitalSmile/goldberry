@@ -110,13 +110,27 @@ public final class SvgShapes {
                 + "Z";
     }
 
+    /// One number of a point list, or the token and the list it was found in.
+    ///
+    /// `NumberFormatException` says `For input string: "1.2.3"` and nothing about
+    /// which icon's `points` attribute held it — and this runs over 1544 icons at
+    /// build time, where the failing one is the whole question.
+    private static double number(String token, String points) {
+        try {
+            return Double.parseDouble(token);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "\"" + token + "\" in the point list \"" + points + "\" is not a number", e);
+        }
+    }
+
     /// Parses an SVG point list — numbers separated by whitespace, commas, or
     /// both, in any combination.
     public static List<double[]> points(String points) {
         var numbers = new ArrayList<Double>();
         for (var token : points.trim().split("[\\s,]+")) {
             if (!token.isEmpty()) {
-                numbers.add(Double.parseDouble(token));
+                numbers.add(number(token, points));
             }
         }
         var pairs = new ArrayList<double[]>(numbers.size() / 2);

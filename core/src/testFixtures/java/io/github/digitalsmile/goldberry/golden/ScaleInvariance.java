@@ -230,7 +230,17 @@ public final class ScaleInvariance {
                 var b = 0.0;
                 var weight = 0.0;
 
-                for (var sy = (int) Math.floor(top); sy < Math.ceil(bottom); sy++) {
+                // The source rows and columns this output pixel overlaps, as ints
+                // before the loop rather than a double in its condition: an int
+                // counter run against a double bound is the shape of a loop that
+                // never ends, and this one does not need to be read twice to see
+                // that it does.
+                var firstRow = (int) Math.floor(top);
+                var lastRow = (int) Math.ceil(bottom);
+                var firstColumn = (int) Math.floor(left);
+                var lastColumn = (int) Math.ceil(right);
+
+                for (var sy = firstRow; sy < lastRow; sy++) {
                     if (sy < 0 || sy >= source.height()) {
                         continue;
                     }
@@ -238,7 +248,7 @@ public final class ScaleInvariance {
                     if (coverY <= 0) {
                         continue;
                     }
-                    for (var sx = (int) Math.floor(left); sx < Math.ceil(right); sx++) {
+                    for (var sx = firstColumn; sx < lastColumn; sx++) {
                         if (sx < 0 || sx >= source.width()) {
                             continue;
                         }

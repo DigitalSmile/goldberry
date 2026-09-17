@@ -461,7 +461,7 @@ public final class RenderTree implements AutoCloseable {
         return switch (length) {
             case Length.Points points -> points.value();
             case Length.Percent percent -> percent.value() / 100.0 * base;
-            case Length.Keyword ignored -> 0;
+            case Length.Keyword _ -> 0;
         };
     }
 

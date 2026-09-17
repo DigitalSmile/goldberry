@@ -152,12 +152,12 @@ final class GoldberryRuntime {
             return;
         }
         switch (event) {
-            case BackendEvent.FrameDue ignored -> window.paint();
-            case BackendEvent.Exposed ignored -> window.repaint();
+            case BackendEvent.FrameDue _ -> window.paint();
+            case BackendEvent.Exposed _ -> window.repaint();
             case BackendEvent.Resized resized -> window.handleResize(resized.size());
             case BackendEvent.Moved moved -> window.handleMoved(moved.position());
             case BackendEvent.ScaleChanged rescaled -> window.handleScaleChange(rescaled.scale());
-            case BackendEvent.CloseRequested ignored -> window.handleCloseRequest();
+            case BackendEvent.CloseRequested _ -> window.handleCloseRequest();
             case BackendEvent.PointerMoved moved -> window.handlePointerMoved(moved.x(), moved.y(), moved.modifiers());
             case BackendEvent.PointerPressed pressed ->
                 window.handlePointerPressed(
@@ -174,7 +174,7 @@ final class GoldberryRuntime {
                         wheel.ticksX(),
                         wheel.ticksY(),
                         wheel.modifiers());
-            case BackendEvent.PointerExited ignored -> window.handlePointerExited();
+            case BackendEvent.PointerExited _ -> window.handlePointerExited();
             case BackendEvent.FocusChanged focus -> {
                 window.handleFocusChanged(focus.focused());
                 // Told after the flag is set, so a watcher asking "is anything of

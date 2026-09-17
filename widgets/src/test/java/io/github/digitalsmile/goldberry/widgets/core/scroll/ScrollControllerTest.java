@@ -98,7 +98,7 @@ class ScrollControllerTest {
         }
     }
 
-    private static Widget document(ScrollController controller, String markedRow) {
+    private static Widget document(ScrollController controller) {
         var rows = new ArrayList<Widget>();
         for (var i = 0; i < 30; i++) {
             rows.add(new Text("row " + i, Attributes.NONE.id("row" + i)));
@@ -127,7 +127,7 @@ class ScrollControllerTest {
         @DisplayName("a viewport attaches when it is mounted")
         void attaches() {
             var controller = new ScrollController();
-            new Harness(document(controller, null));
+            new Harness(document(controller));
 
             assertTrue(controller.isAttached());
         }
@@ -141,7 +141,7 @@ class ScrollControllerTest {
         @DisplayName("scrollBy moves the viewport, clamped like every other path")
         void scrollByMoves() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller, null));
+            var harness = new Harness(document(controller));
             var before = harness.rowRect("row0").top();
 
             controller.scrollBy(0, 40);
@@ -154,7 +154,7 @@ class ScrollControllerTest {
         @DisplayName("scrollBy cannot run off the end")
         void scrollByClamps() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller, null));
+            var harness = new Harness(document(controller));
 
             controller.scrollBy(0, 10_000);
             harness.frame();
@@ -174,7 +174,7 @@ class ScrollControllerTest {
         @DisplayName("a row below the fold is brought to the near edge")
         void revealsFromBelow() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller, null));
+            var harness = new Harness(document(controller));
             var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
 
             controller.reveal(harness.rowRect("row20"), viewport);
@@ -190,7 +190,7 @@ class ScrollControllerTest {
         @DisplayName("it scrolls the least it can, so the row lands at the edge it came from")
         void minimal() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller, null));
+            var harness = new Harness(document(controller));
 
             controller.reveal(harness.rowRect("row20"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
             harness.frame();
@@ -208,7 +208,7 @@ class ScrollControllerTest {
         @DisplayName("a row already in view does not move anything")
         void alreadyVisible() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller, null));
+            var harness = new Harness(document(controller));
             var before = harness.rowRect("row0").top();
 
             controller.reveal(harness.rowRect("row1"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));

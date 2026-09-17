@@ -76,7 +76,7 @@ public final class Trays {
         var rows = new ArrayList<TrayItem>(widgets.size());
         for (var widget : widgets) {
             switch (widget) {
-                case Separator ignored -> rows.add(TrayItem.separator());
+                case Separator _ -> rows.add(TrayItem.separator());
                 case Item item -> rows.add(rowOf(item));
                 default ->
                     LOG.warn(

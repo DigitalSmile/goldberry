@@ -142,7 +142,7 @@ class ModelWeaverTest {
         @DisplayName("closing twice is a no-op")
         void closingTwice() {
             var model = Model.of(Counter.class);
-            var subscription = model.path("app.clicks").subscribe(v -> { });
+            var subscription = model.path("app.clicks").subscribe(_ -> {});
 
             subscription.close();
             assertDoesNotThrow(subscription::close);
@@ -202,7 +202,7 @@ class ModelWeaverTest {
         void orderIsFieldThenAny() {
             var model = Model.of(Counter.class);
             var order = new ArrayList<String>();
-            model.path("app.clicks").subscribe(v -> order.add("field"));
+            model.path("app.clicks").subscribe(_ -> order.add("field"));
             Models.onRepaint(model.instance(), () -> order.add("frame"));
 
             model.press("app.click");

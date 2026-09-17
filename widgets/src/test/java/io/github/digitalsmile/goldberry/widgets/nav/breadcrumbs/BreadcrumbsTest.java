@@ -67,8 +67,8 @@ class BreadcrumbsTest {
         return row.stream()
                 .map(widget -> switch (widget) {
                     case Crumb crumb -> crumb.label();
-                    case CrumbSeparator ignored -> ">";
-                    case CrumbOverflow ignored -> "…";
+                    case CrumbSeparator _ -> ">";
+                    case CrumbOverflow _ -> "…";
                     default -> widget.getClass().getSimpleName();
                 })
                 .toList();

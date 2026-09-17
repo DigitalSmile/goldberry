@@ -154,8 +154,8 @@ final class HtmlWidgets {
         return switch (node) {
             case HtmlText text -> !text.isBlank();
             case Element element -> Tags.isInline(element.tag()) && !SKIPPED.contains(element.tag());
-            case Comment ignored -> false;
-            case HtmlDocument ignored -> false;
+            case Comment _ -> false;
+            case HtmlDocument _ -> false;
         };
     }
 
@@ -172,8 +172,8 @@ final class HtmlWidgets {
             case Element element -> element(element);
             // A comment is content the model keeps and a renderer has nothing to do
             // with; blank text between two tags is the author's own line break.
-            case Comment ignored -> null;
-            case HtmlText ignored -> null;
+            case Comment _ -> null;
+            case HtmlText _ -> null;
             case HtmlDocument document -> new Column(blocks(document.children()), classes("html"));
         };
     }
@@ -382,7 +382,7 @@ final class HtmlWidgets {
         void add(HtmlNode node, Set<String> marks) {
             switch (node) {
                 case HtmlText(var text) -> pending.add(new Words.Fragment(text, marks, false));
-                case Comment ignored -> {}
+                case Comment _ -> {}
                 case HtmlDocument document -> document.children().forEach(child -> add(child, marks));
                 case Element element -> element(element, marks);
             }

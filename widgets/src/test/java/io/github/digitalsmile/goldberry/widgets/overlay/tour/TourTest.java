@@ -355,7 +355,7 @@ class TourTest {
         @DisplayName("a tour none of whose targets exist ends rather than showing nothing")
         void endsWhenNothingIsFound() {
             var ended = new boolean[1];
-            var tree = new ElementTree(new Tour(THREE, new StubHost(), () -> ended[0] = true));
+            var _ = new ElementTree(new Tour(THREE, new StubHost(), () -> ended[0] = true));
 
             assertTrue(ended[0], "a tour with no findable targets did not end");
         }

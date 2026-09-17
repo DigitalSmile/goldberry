@@ -95,7 +95,7 @@ public final class Flattener {
                     x = arc.x();
                     y = arc.y();
                 }
-                case Path.Segment.Close ignored -> {
+                case Path.Segment.Close _ -> {
                     builder.close();
                     x = startX;
                     y = startY;

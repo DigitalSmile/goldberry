@@ -539,7 +539,7 @@ public final class SdlVideo {
     ///
     /// Called after a resize: SDL keeps the old surface alive until asked.
     public void invalidateSurface(SdlWindowHandle window) {
-        var ignored = sdlSurfaceCalls.destroyWindowSurface().call(window.pointer());
+        var _ = sdlSurfaceCalls.destroyWindowSurface().call(window.pointer());
     }
 
     /// Takes the next queued event without waiting.
@@ -569,7 +569,7 @@ public final class SdlVideo {
             var event = arena.allocate(Layouts.SDL_EVENT.layout());
             event.fill((byte) 0);
             event.set(ValueLayout.JAVA_INT, 0, SdlEventType.USER.value());
-            var ignored = sdlEventCalls.pushEvent().call(event);
+            var _ = sdlEventCalls.pushEvent().call(event);
         }
     }
 

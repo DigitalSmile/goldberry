@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 
 import org.junit.jupiter.api.DisplayName;
@@ -202,12 +202,15 @@ class ImmutabilityTest {
     @DisplayName("two widgets carrying handlers are not equal, and that is known")
     void handlersDefeatEquality() {
         DoubleConsumer handler = value -> {};
-        Consumer<String> other = value -> {};
+        DoubleConsumer other = value -> {};
 
         assertEquals(
                 new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, handler),
                 new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, handler),
                 "the same handler must still compare equal");
-        assertTrue(other != null);
+        assertNotEquals(
+                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, handler),
+                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, other),
+                "two handlers that do the same thing are still two handlers");
     }
 }

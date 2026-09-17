@@ -45,6 +45,25 @@ class TimeTicksTest {
         assertEquals(List.of("09:04", "09:06", "09:08", "09:10", "09:12"), labels);
     }
 
+    /// The rung is chosen by how many labels it would produce against how many
+    /// were asked for, and the boundary is inclusive: a span that fits a rung
+    /// exactly takes it, and a span a second longer takes the next one up.
+    @Test
+    @DisplayName("a span that fits a rung exactly takes that rung")
+    void exactFitTakesTheRung() {
+        var labels = labels(utc("2026-03-14T09:00:00Z"), utc("2026-03-14T09:05:00Z"), 5, UTC);
+
+        assertEquals(List.of("09:00", "09:01", "09:02", "09:03", "09:04", "09:05"), labels);
+    }
+
+    @Test
+    @DisplayName("a span a second over the rung takes the next one up")
+    void aHairOverTakesTheNextRung() {
+        var labels = labels(utc("2026-03-14T09:00:00Z"), utc("2026-03-14T09:05:01Z"), 5, UTC);
+
+        assertEquals(List.of("09:00", "09:02", "09:04"), labels);
+    }
+
     @Test
     @DisplayName("a day is labelled in hours, and the hours are round")
     void hours() {

@@ -207,7 +207,7 @@ class TextAreaGutterTest {
         assertNotNull(before);
         var top = before.inset().top();
 
-        box(tree).onPointer(wheel(tree));
+        box(tree).onPointer(wheel());
         render(tree);
 
         assertTrue(state(tree).scrolledBy() > 0, "something scrolled");
@@ -219,7 +219,7 @@ class TextAreaGutterTest {
         assertFalse(top.equals(numbers(tree).inset().top()), "which is not where they started");
     }
 
-    private PointerEvent wheel(ElementTree tree) {
+    private PointerEvent wheel() {
         var event = PointerEvent.wheel(10, 10, 0, 3, null);
         event.localTo(new PointerEvent.Local(10, 10, 140, 400));
         return event;

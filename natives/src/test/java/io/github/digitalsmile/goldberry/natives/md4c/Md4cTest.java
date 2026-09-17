@@ -93,11 +93,11 @@ class Md4cTest {
         var open = new ArrayDeque<Object>();
         for (var event : events) {
             switch (event) {
-                case MarkdownEvent.EnterBlock(var type, var ignored) -> open.push(type);
-                case MarkdownEvent.EnterSpan(var type, var ignored) -> open.push(type);
+                case MarkdownEvent.EnterBlock(var type, var _) -> open.push(type);
+                case MarkdownEvent.EnterSpan(var type, var _) -> open.push(type);
                 case MarkdownEvent.LeaveBlock(var type) -> assertEquals(type, open.pop(), "block closed out of order");
                 case MarkdownEvent.LeaveSpan(var type) -> assertEquals(type, open.pop(), "span closed out of order");
-                case MarkdownEvent.Text(var ignored, var ignoredText) -> {}
+                case MarkdownEvent.Text(var _, var _) -> {}
             }
         }
         assertTrue(open.isEmpty(), "the stream left " + open + " open");
@@ -112,7 +112,7 @@ class Md4cTest {
         void headingLevel() {
             var events = parse("### Third\n");
             var heading = events.stream()
-                    .filter(e -> e instanceof MarkdownEvent.EnterBlock(var type, var ignored) && type == BlockType.H)
+                    .filter(e -> e instanceof MarkdownEvent.EnterBlock(var type, var _) && type == BlockType.H)
                     .findFirst()
                     .orElseThrow();
             assertEquals(
@@ -177,7 +177,7 @@ class Md4cTest {
                     """);
             assertEquals(new BlockDetail.Table(2, 1, 2), detailOf(events, BlockType.TABLE));
             var heads = events.stream()
-                    .filter(e -> e instanceof MarkdownEvent.EnterBlock(var type, var ignored) && type == BlockType.TH)
+                    .filter(e -> e instanceof MarkdownEvent.EnterBlock(var type, var _) && type == BlockType.TH)
                     .map(e -> ((MarkdownEvent.EnterBlock) e).detail())
                     .toList();
             assertEquals(
@@ -205,7 +205,7 @@ class Md4cTest {
         void hrefKeepsItsParts() {
             var events = parse("[a](http://x/?p=1&amp;q=2)\n");
             var link = events.stream()
-                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var ignored) && type == SpanType.A)
+                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var _) && type == SpanType.A)
                     .map(e -> (SpanDetail.Link) ((MarkdownEvent.EnterSpan) e).detail())
                     .findFirst()
                     .orElseThrow();
@@ -226,7 +226,7 @@ class Md4cTest {
         void autolink() {
             var events = parse("see http://example.com now\n");
             var link = events.stream()
-                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var ignored) && type == SpanType.A)
+                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var _) && type == SpanType.A)
                     .map(e -> (SpanDetail.Link) ((MarkdownEvent.EnterSpan) e).detail())
                     .findFirst()
                     .orElseThrow();
@@ -239,7 +239,7 @@ class Md4cTest {
         void absentAttribute() {
             var events = parse("![alt](pic.png)\n");
             var image = events.stream()
-                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var ignored) && type == SpanType.IMG)
+                    .filter(e -> e instanceof MarkdownEvent.EnterSpan(var type, var _) && type == SpanType.IMG)
                     .map(e -> (SpanDetail.Image) ((MarkdownEvent.EnterSpan) e).detail())
                     .findFirst()
                     .orElseThrow();
@@ -304,13 +304,13 @@ class Md4cTest {
             var document = "| a |\n|---|\n| 1 |\n";
             assertTrue(
                     Md4c.get().parse(document, Set.of(MarkdownFlag.TABLES)).stream()
-                            .anyMatch(e -> e instanceof MarkdownEvent.EnterBlock(var type, var ignored)
-                                    && type == BlockType.TABLE),
+                            .anyMatch(e ->
+                                    e instanceof MarkdownEvent.EnterBlock(var type, var _) && type == BlockType.TABLE),
                     "with the flag");
             assertFalse(
                     Md4c.get().parse(document, Set.of()).stream()
-                            .anyMatch(e -> e instanceof MarkdownEvent.EnterBlock(var type, var ignored)
-                                    && type == BlockType.TABLE),
+                            .anyMatch(e ->
+                                    e instanceof MarkdownEvent.EnterBlock(var type, var _) && type == BlockType.TABLE),
                     "and without it, a paragraph full of pipes");
         }
 

@@ -40,7 +40,7 @@ final class Walk {
             // A comment is not read out, and neither is a `script` or a `style`: their
             // content is a program and a stylesheet, and a summary that quoted either
             // would be quoting something nobody wrote to be read.
-            case Comment ignored -> {}
+            case Comment _ -> {}
             case Element element -> {
                 if (Tags.isRawText(element.tag())) {
                     return;

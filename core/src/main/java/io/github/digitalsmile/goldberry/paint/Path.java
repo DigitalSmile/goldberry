@@ -77,10 +77,23 @@ public final class Path {
     private static final byte LARGE_ARC = 0b0001_0000;
     private static final byte SWEEP = 0b0010_0000;
 
-    /// How many coordinates each verb consumes, indexed by verb kind. An arc
-    /// takes five — `rx`, `ry`, `rotation`, `x`, `y` — because its two booleans
-    /// are in the verb byte.
-    private static final int[] COORDINATES = {2, 2, 4, 6, 5, 0};
+    /// How many coordinates a verb consumes. An arc takes five — `rx`, `ry`,
+    /// `rotation`, `x`, `y` — because its two booleans are in the verb byte.
+    ///
+    /// A switch rather than the array it used to be: a verb is masked out of a
+    /// byte, and an array indexed by it has a bound nothing at the index proves.
+    /// A switch over the six verbs has no bound to prove, and its default is the
+    /// same refusal the callers' own switches make.
+    private static int coordinates(byte kind) {
+        return switch (kind) {
+            case MOVE_TO, LINE_TO -> 2;
+            case QUAD_TO -> 4;
+            case CUBIC_TO -> 6;
+            case ARC_TO -> 5;
+            case CLOSE -> 0;
+            default -> throw new IllegalStateException("unknown path verb " + kind);
+        };
+    }
 
     /// A path with nothing in it. Filling or stroking it draws nothing, which is
     /// what a chart with no data should do rather than refusing to paint.
@@ -325,7 +338,7 @@ public final class Path {
                         case CLOSE -> new Segment.Close();
                         default -> throw new IllegalStateException("unknown path verb " + kind);
                     });
-            at += COORDINATES[kind];
+            at += coordinates(kind);
         }
         return List.copyOf(segments);
     }
@@ -360,7 +373,7 @@ public final class Path {
                 case CLOSE -> path.closeSubPath();
                 default -> throw new IllegalStateException("unknown path verb " + kind);
             }
-            at += COORDINATES[kind];
+            at += coordinates(kind);
         }
     }
 

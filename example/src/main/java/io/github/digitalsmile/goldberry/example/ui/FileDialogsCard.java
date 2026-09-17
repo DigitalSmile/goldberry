@@ -155,7 +155,7 @@ public record FileDialogsCard() implements Widget.Stateful {
                                     .map(String::valueOf)
                                     .collect(Collectors.joining(", "))
                             + filter.map(f -> "  (" + f.label() + ")").orElse("");
-                case FileChoice.Cancelled ignored -> "Cancelled — which is not a failure, and leaves no error to show.";
+                case FileChoice.Cancelled _ -> "Cancelled — which is not a failure, and leaves no error to show.";
                 case FileChoice.Failed(var message) -> "The platform could not: " + message;
             };
         }

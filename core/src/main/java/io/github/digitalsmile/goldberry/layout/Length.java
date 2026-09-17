@@ -72,7 +72,7 @@ public sealed interface Length {
         return switch (length) {
             case Points points -> points.value();
             case Percent percent -> percent.value() / 100 * base;
-            case Keyword ignored -> 0;
+            case Keyword _ -> 0;
         };
     }
 

@@ -79,13 +79,13 @@ public final class SdlCursors implements AutoCloseable {
     public void show() {
         // The result is dropped: SDL returns false only when there is no video
         // subsystem, and there is one by the time anything here runs.
-        var ignoredShow = sdlCursorCalls.showCursor().call();
+        var _ = sdlCursorCalls.showCursor().call();
     }
 
     /// Hides the cursor without confining it — what a text editor does while
     /// typing, and what a full-screen player does after a few idle seconds.
     public void hide() {
-        var ignoredHide = sdlCursorCalls.hideCursor().call();
+        var _ = sdlCursorCalls.hideCursor().call();
     }
 
     /// Destroys every cursor created here.

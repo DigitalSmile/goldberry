@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -320,11 +319,11 @@ class SelectPopupTest {
 
     @Test
     @Timeout(20)
-    @DisplayName("the row the value names is the one drawn as selected")
-    void selectedRowIsMarked() {
-        var marked = new ArrayList<String>();
+    @DisplayName("choosing the row the value already names asks for it again rather than toggling it")
+    void choosingTheCurrentValueIsARequest() {
+        var picked = new ArrayList<String>();
         Goldberry.launch(new TestApp(
-                themes(Property.of("dim"), new ArrayList<>()),
+                themes(Property.of("dim"), picked),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
@@ -336,6 +335,6 @@ class SelectPopupTest {
                     });
                 })));
 
-        assertFalse(marked.contains("light"));
+        assertEquals(List.of("dim"), picked, "the handler hears the value once, and it is the one already held");
     }
 }

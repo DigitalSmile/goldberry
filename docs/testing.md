@@ -63,6 +63,23 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **Blocking after triage:** PMD, with a hand-picked ruleset in `config/pmd/ruleset.xml` — PMD's defaults are a style guide, and this codebase's comments are prose and its painters are long because a rasterizer step is long. SpotBugs is not wired: two overlapping bytecode analysers is a second report to triage for the same findings.
 - **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana (`qodana.yaml`, `qodana.yml`) and Codecov (a step in `linux.yml`) are wired and **guarded on their secrets**, so both are silent until connected rather than red until then. §7 is the checklist.
 
+  **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. Nothing is excluded from the suite or the scan.
+
+  **Reading the alerts needs a token, so the scan is reproducible without one.** The code-scanning API refuses anonymous reads even on a public repository and the job log does not list findings. The same CLI and suite run locally in about six minutes:
+
+  ```sh
+  # the bundle CI used: the version is in the job log's "CodeQL/<version>" tool-cache path
+  curl -sSL -o codeql.tar.zst https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.0/codeql-bundle-linux64.tar.zst
+  tar --zstd -xf codeql.tar.zst      # -> ./codeql/codeql
+  rm -rf */build/classes/java        # the tracer must see javac run; a cache hit is an empty database
+  codeql/codeql database create /tmp/gb-db --language=java-kotlin --source-root=. \
+      --command="./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon --no-build-cache"
+  codeql/codeql database analyze /tmp/gb-db codeql/java-queries:codeql-suites/java-security-and-quality.qls \
+      --format=sarif-latest --output=/tmp/gb.sarif
+  ```
+
+  The SARIF's `runs[0].results[]` is what the dashboard shows; filter `locations[0].physicalLocation.artifactLocation.uri` to `git ls-files`, since a local tree also holds `natives/.deps`.
+
 ## 3. Coverage
 
 - **JaCoCo** per module (toolVersion pinned latest for JDK 25 class files) + Gradle `jacoco-report-aggregation` for one project-wide XML/HTML.
@@ -151,7 +168,9 @@ status beside it reads as a description of what exists.
   `:widgets` are ratchets set from measured values.
 - **§1.6 dual-mode CI.** `linux.yml` runs the suite reflectively and again with
   `-Pgoldberry.nativeImage=true`, then uploads the aggregate report.
-- **§2 CodeQL**, nightly and on pull requests (`codeql.yml`).
+- **§2 CodeQL**, nightly and on pull requests (`codeql.yml`), and its first
+  triage: 184 findings read, 4 security and 12 correctness ones fixed, the
+  rest answered in code or on the record (ADR-0341).
 - **§3 PIT**, a `pitest` task per module, running to completion over the logic
   packages: `:core` kills 1597 of 2145 mutations (**74%**) and `:widgets` 1419 of
   1558 (**91%**).

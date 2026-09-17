@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry.assets.svg;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +47,18 @@ class SvgShapesTest {
     void oddPointCountsDropTheRemainder() {
         assertEquals("M1 2", SvgShapes.polyline("1,2,3"));
         assertEquals(1, SvgShapes.points("1,2,3").size());
+    }
+
+    @Test
+    @DisplayName("a token that is not a number is refused by name, with the list it was in")
+    void badTokenIsNamed() {
+        var refused = assertThrows(IllegalArgumentException.class, () -> SvgShapes.points("1,2 x,4"));
+
+        // The build runs this over every icon; a message that says only
+        // `For input string: "x"` sends the reader to grep 1544 files.
+        assertTrue(refused.getMessage().contains("\"x\""), refused.getMessage());
+        assertTrue(refused.getMessage().contains("1,2 x,4"), refused.getMessage());
+        assertInstanceOf(NumberFormatException.class, refused.getCause());
     }
 
     @Test
