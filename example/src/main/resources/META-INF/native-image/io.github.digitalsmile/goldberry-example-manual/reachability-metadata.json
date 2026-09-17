@@ -26,7 +26,11 @@
     "",
     "The showcase's own stylesheet and documents are globbed for the same reason",
     "the toolkit's are (ADR-0160): a screen the trace never opened contributes",
-    "nothing, and the symptom is an image that dies when somebody clicks the tab."
+    "nothing, and the symptom is an image that dies when somebody clicks the tab.",
+    "That happened once more with the canvas screen's five sample images, which",
+    "were neither globbed here nor reached by the trace; DeclaredResourcesTest now",
+    "holds this list to every file under src/main/resources, so a resource added",
+    "without a glob fails the build rather than the image."
   ],
   "resources": [
     {
@@ -43,6 +47,18 @@
     {
       "module": "io.github.digitalsmile.goldberry.example",
       "glob": "io/github/digitalsmile/goldberry/example/ui/*.kdl"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/*.md"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/*.html"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/canvas-sample.*"
     }
   ]
 }

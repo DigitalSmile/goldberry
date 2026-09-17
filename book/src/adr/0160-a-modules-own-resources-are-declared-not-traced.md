@@ -7,6 +7,14 @@ Date: 2026-08-20
 Accepted. Narrows [ADR-0156](0156-the-image-s-metadata-is-traced-not-written.md),
 which said the metadata is traced. Most of it still is; resources are not.
 
+Amended 2026-09-17: the showcase had applied this rule to its stylesheet and its
+`.kdl` documents and not to its Markdown, HTML or the canvas screen's five sample
+images, and a Windows image died on the canvas tab with
+`canvas-sample.qoi is not on the classpath beside CanvasScreen`. The globs cover
+`src/main/resources/…/example/ui/*` now, and `DeclaredResourcesTest` holds the
+manual declaration to every file on disk, so the next undeclared resource fails
+the build rather than the image.
+
 ## Context
 
 ADR-0156 wrote down the cost of tracing before it had been paid:

@@ -7299,8 +7299,11 @@ package and upcall owner from the module listing; `ForeignMetadata` writes the
 the `goldberry-natives` jar under `META-INF/native-image/`. Tested: every holder's
 handle shape is reported, the owners equal the sources that call `upcallStub`, and
 every shape the checked-in trace ever recorded is among the generated ones.
-**Unverified:** that the three screens now open in an image, which needs a GraalVM
-build no machine here has.
+**Verified on Windows by hand:** html and Markdown open. The canvas tab then died on
+a resource instead — `canvas-sample.qoi`, one of five sample images the showcase
+had never declared (ADR-0160's rule, applied to the stylesheet and the documents
+and not to the pictures). Declared now, and `DeclaredResourcesTest` holds the
+manual list to every file under the showcase's resources.
 
 ### Releasing — built, never run
 
