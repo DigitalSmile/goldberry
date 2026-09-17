@@ -139,7 +139,7 @@ Every control renders all of: rest, `:hover`, `:active` (pressed), `:focus-visib
 ### 2.4 Scrolling and scrollbars
 
 - **Overlay auto-hiding scrollbars** by default: 6px thumb → 10px with visible track on hover, accent color while dragging, fade after 800ms idle. `full`-radius thumb.
-- **"Always show scroll bars"** app/user setting swaps to a classic reserved **12px gutter** — components must survive the gutter appearing (layout, not overlay).
+- **"Always show scroll bars"** app/user setting swaps to a classic reserved **12px gutter** — components must survive the gutter appearing (layout, not overlay). Built as `Scrollbars.ALWAYS`, a token stylesheet beside the density ([ADR-0364](../book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
 - Pixel-precise wheel/trackpad deltas with line fallback; track-click pages; keyboard per `scroll` spec in `core-widgets.md`.
 - **Hard edges, no overscroll bounce.** Scroll-chaining: inner scroller consumes until its edge, then chains to the ancestor — but never chains out of a menu or popover.
 - Nested same-axis scrollers are banned in the canon.

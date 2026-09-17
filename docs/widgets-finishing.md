@@ -19,7 +19,7 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | `text-area` scrollbar | §4's "scrollbar beyond" the maximum rows | 0362 | done |
-| Reserved gutter | §2.4's "always show scroll bars", and something to switch it | — | open |
+| Reserved gutter | §2.4's "always show scroll bars", and something to switch it | 0364 | done |
 | A reveal glides | §3.1's `scroll` motion when a row is scrolled into view | 0363 | done |
 | A reveal moves one axis at a time | a wide table revealing a cell | — | open |
 
@@ -142,3 +142,12 @@ can be reversed:
   `ScrollController.reveal` measures ahead of it.
 - Tests: `ScrollControllerTest` "gliding"; `ScrollControllerTest` and the
   example's `ScrollingScreenTest` use a virtual clock.
+
+### Reserved scrollbar gutter
+
+- `widgets` `Scrollbars`, `Controls.stylesheets(theme, density, scrollbars)`,
+  `scrollbars-always.css`; scrollbar tokens in `controls.css`.
+  `core/scroll/ScrollViewport` reads and banks the gutter, `ScrollState.gutter`,
+  `ScrollContent` pads by it.
+- Tests: `ScrollGutterTest`.
+- `example` — `ShowcaseModel.scrollbars`, `app.toggle-scrollbars`, a File menu item.

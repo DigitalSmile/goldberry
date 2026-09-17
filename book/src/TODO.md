@@ -235,13 +235,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
   [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 
-- **The "always show scroll bars" reserved gutter is not built.** §2.4 wants the
-  overlay bar to swap for a classic 12px gutter — "layout, not overlay" — as an
-  app or user setting, and §13 lists it among the accessibility switches. It is a
-  second drawing rather than a flag on the first, and it waits on a settings
-  mechanism that does not exist for reduced motion or density either. The overlay
-  bar itself is built. —
-  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
 - **A scrollbar's thumb stops being proportional on a very long document.** It is
   floored at 24px, so past about four screens the thumb no longer says how much
   is visible — only that there is a lot. The trade every scrollbar makes, named
@@ -265,12 +258,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   view further than a person would have. Nobody has asked for one axis to take
   priority. —
   [ADR-0120](adr/0120-a-widget-scrolls-itself-into-view.md)
-- **The "always show scroll bars" gutter has nothing to switch it.** §2.4 wants a
-  reserved 12px gutter as an app or user setting, and §13 lists it among the
-  accessibility switches. There is no settings mechanism at all — the same
-  absence as reduced motion and density, both of which an application sets
-  directly — so this waits on scrollbars existing rather than on the setting. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - **An `affix` pins on one axis.** All four `edge=` values work and no affix can
   be pinned to two at once — a header that is both sticky at the top and held
   against the left of a horizontally scrolling table is the case, and it needs
@@ -1357,6 +1344,12 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The "always show scroll bars" gutter is not built, and nothing switches
+  it.**~~ **Both, 2026-09-17**, in density's shape rather than a settings
+  mechanism: `Scrollbars.ALWAYS` is a token stylesheet an application passes to
+  `Controls.stylesheets`, and a viewport that finds a gutter pads its content by it
+  and stops fading its bars. —
+  [ADR-0364](adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
 - ~~**A revealed row lands rather than glides.**~~ **It glides, 2026-09-17**, over
   the overlay duration. The offset goes to the target at once and the viewport
   draws the way there on the frame clock, so direct input never waits; a reveal

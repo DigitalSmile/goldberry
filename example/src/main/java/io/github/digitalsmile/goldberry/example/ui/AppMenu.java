@@ -79,6 +79,7 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
                                 .icon(palette)
                                 .accelerator("Ctrl+T"),
                         new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
+                        new Item("Always show scroll bars", actions::toggleScrollbars),
                         new Separator(),
                         new Item("Begin again at Bag End", actions::reset),
                         new Item("Quit", window.quit()).accelerator("Ctrl+Q"));

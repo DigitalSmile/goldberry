@@ -174,6 +174,8 @@ final class ScrollState extends State<Scroll> {
                 this::measured,
                 line,
                 this::lined,
+                gutter,
+                this::guttered,
                 scroll.attributes());
     }
 
@@ -202,6 +204,16 @@ final class ScrollState extends State<Scroll> {
     /// arrives where there is no cascade to ask — the same reason `viewport` and
     /// `content` are here (ADR-0251).
     private double line = ScrollViewport.LINE;
+
+    /// §2.4's reserved gutter, from `--gb-scrollbar-gutter`, banked for the same
+    /// reason [#line] is (ADR-0364).
+    private double gutter;
+
+    private void guttered(double value) {
+        if (value != gutter) {
+            setState(() -> gutter = value);
+        }
+    }
 
     private void lined(double value) {
         if (value == line) {

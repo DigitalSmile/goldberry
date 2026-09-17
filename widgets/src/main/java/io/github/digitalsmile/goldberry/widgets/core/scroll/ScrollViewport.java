@@ -70,6 +70,8 @@ record ScrollViewport(
         java.util.function.BiConsumer<Extent, Extent> onMeasured,
         double line,
         java.util.function.DoubleConsumer onLine,
+        double gutter,
+        java.util.function.DoubleConsumer onGutter,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
@@ -133,6 +135,11 @@ record ScrollViewport(
     /// component-token defaults".
     static final String LINE_TOKEN = "--gb-scroll-line";
 
+    /// §2.4's reserved gutter, in logical pixels: 0 for overlay bars, and the
+    /// width set aside for the bar when "always show scroll bars" is in force
+    /// (ADR-0364).
+    static final String GUTTER_TOKEN = "--gb-scrollbar-gutter";
+
     @Override
     public String cssType() {
         return "scroll";
@@ -151,7 +158,7 @@ record ScrollViewport(
     @Override
     public List<Widget> children() {
         var nodes = new java.util.ArrayList<Widget>(3);
-        nodes.add(new ScrollContent(children, axis, offsetX, offsetY));
+        nodes.add(new ScrollContent(children, axis, offsetX, offsetY, gutter));
         // The bars are **last**, so they paint over the content -- §2.4 calls
         // them overlay scrollbars, and paint order is the whole of what makes
         // them one. They are absolutely positioned by the stylesheet, so being
@@ -232,9 +239,15 @@ record ScrollViewport(
         if (declared != line) {
             onLine.accept(declared);
         }
+        // Banked for `children()`, which has no context, and only when it changed.
+        var reserved = context.length(GUTTER_TOKEN, 0);
+        if (reserved != gutter) {
+            onGutter.accept(reserved);
+        }
         fade.stamp(context.nowMillis());
         glide.stamp(context.nowMillis(), context.reducedMotion());
-        var opacity = fade.opacity();
+        // A reserved gutter is always drawn: §2.4's classic bar does not fade.
+        var opacity = gutter > 0 ? 1 : fade.opacity();
         return Box.of()
                 .children(fadeBars(glided(boxes), opacity).toArray(Box[]::new))
                 .style(style)

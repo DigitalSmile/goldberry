@@ -5,6 +5,8 @@ import java.util.List;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
+import io.github.digitalsmile.goldberry.layout.Insets;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -62,7 +64,9 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param axis     which way the parent viewport moves
 /// @param offsetX  how far it has been scrolled right, in logical pixels
 /// @param offsetY  how far down
-record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, double offsetY)
+/// @param gutter   the width reserved for a bar, added to the content's padding on
+///                 the side the bar is on; 0 for overlay bars (ADR-0364)
+record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, double offsetY, double gutter)
         implements Widget.Leaf, Styled, Paints {
 
     private static final org.slf4j.Logger LOG = Logs.of(ScrollContent.class);
@@ -106,6 +110,16 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
         // stylesheet must not be able to set it back to 1, which is the one
         // declaration that would silently turn this widget into a `column`.
         var style = resolved.flexShrink(0);
+        if (gutter > 0) {
+            // Layout, not overlay: the bar's side of the content is padded by the
+            // gutter, so nothing is drawn under a bar that is always there.
+            var padding = style.padding();
+            style = style.padding(new Insets(
+                    padding.top(),
+                    axis.isVertical() ? add(padding.right(), gutter) : padding.right(),
+                    axis.isHorizontal() ? add(padding.bottom(), gutter) : padding.bottom(),
+                    padding.left()));
+        }
         if (offsetX == 0 && offsetY == 0) {
             // The overwhelmingly common case, and worth the branch: an unscrolled
             // viewport should put no transform on the painter's context at all.
@@ -114,6 +128,14 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
         // Negative, because scrolling *down* moves the content *up*.
         return style.transform(Transform.of(
                 new Transform.Function.Translate(Transform.Length.px(-offsetX), Transform.Length.px(-offsetY))));
+    }
+
+    /// `length` plus `extra` points, when `length` is a number of points; the
+    /// extra alone otherwise, which is what a padding a stylesheet left unset is.
+    private static Length add(Length length, double extra) {
+        return length instanceof Length.Points(var value)
+                ? Length.points((float) (value + extra))
+                : Length.points((float) extra);
     }
 
     /// Says once that a child asking to grow inside a scroller will not.

@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.example.ui.HtmlSample;
 import io.github.digitalsmile.goldberry.example.ui.MarkdownSample;
 import io.github.digitalsmile.goldberry.markdown.Markdown;
 import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.widgets.Scrollbars;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 
 /// Everything the showcase *knows*. Values, and nothing that happens to them.
@@ -363,6 +364,11 @@ public final class ShowcaseModel {
     @Bind(value = "app.density", restyle = true)
     private Density density = Density.REGULAR;
 
+    /// §2.4's "always show scroll bars", which is density's shape: a token
+    /// stylesheet, so it restyles (ADR-0364).
+    @Bind(value = "app.scrollbars", restyle = true)
+    private Scrollbars scrollbars = Scrollbars.OVERLAY;
+
     /// How many chapters have been opened, so a new one gets a name nobody has
     /// used.
     ///
@@ -401,6 +407,10 @@ public final class ShowcaseModel {
 
     public Density density() {
         return density;
+    }
+
+    public Scrollbars scrollbars() {
+        return scrollbars;
     }
 
     public boolean isProseShown() {
@@ -826,6 +836,11 @@ public final class ShowcaseModel {
         @Action("app.toggle-density")
         public void toggleDensity() {
             values.density = values.density == Density.REGULAR ? Density.COMPACT : Density.REGULAR;
+        }
+
+        @Action("app.toggle-scrollbars")
+        public void toggleScrollbars() {
+            values.scrollbars = values.scrollbars == Scrollbars.OVERLAY ? Scrollbars.ALWAYS : Scrollbars.OVERLAY;
         }
 
         // --- the chapters ----------------------------------------------------

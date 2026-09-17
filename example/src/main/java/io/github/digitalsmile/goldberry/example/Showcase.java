@@ -203,7 +203,7 @@ public final class Showcase implements Application {
 
     @Override
     public List<Stylesheet> stylesheets() {
-        var sheets = new ArrayList<>(Controls.stylesheets(model.theme(), model.density()));
+        var sheets = new ArrayList<>(Controls.stylesheets(model.theme(), model.density(), model.scrollbars()));
         // An optional module brings its own rules, and adding them is the
         // application's -- `:widgets` does not know Markdown exists, so
         // `Controls.stylesheets` cannot include these (ADR-0190, ADR-0295). Before

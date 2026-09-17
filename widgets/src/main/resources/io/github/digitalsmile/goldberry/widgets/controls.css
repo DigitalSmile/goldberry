@@ -93,6 +93,14 @@
      derived from it -- a header is a boundary as well as a label, and the four
      pixels are what make it read as one without a second border. */
   --gb-table-header-height: 36px;
+  /* §2.4's two scrollbar shapes. At rest these are the overlay bar's numbers and
+     no gutter; `scrollbars-always.css` swaps them for the classic reserved
+     gutter, which is the "always show scroll bars" setting (ADR-0364). */
+  --gb-scrollbar-gutter: 0px;
+  --gb-scrollbar-size: 10px;
+  --gb-scrollbar-track: transparent;
+  --gb-scroll-thumb-size: 6px;
+  --gb-scroll-thumb-hover-size: 10px;
   --gb-select-height: var(--gb-control-height);
   /* The other half of that row. One token each rather than one shared one, so
      an application can pin a field without moving every dropdown with it. */
@@ -3484,7 +3492,7 @@ scroll-content {
    floating on the content and nothing else. */
 scrollbar {
   position: absolute;
-  background: transparent;
+  background: var(--gb-scrollbar-track);
   transition: background var(--gb-motion-fast);
 }
 
@@ -3498,7 +3506,7 @@ scrollbar.vertical {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 10px;
+  width: var(--gb-scrollbar-size);
   justify-content: flex-start;
   align-items: center;
 }
@@ -3507,7 +3515,7 @@ scrollbar.horizontal {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 10px;
+  height: var(--gb-scrollbar-size);
   justify-content: flex-start;
   align-items: center;
 }
@@ -3526,21 +3534,21 @@ scroll-thumb {
   transition: background var(--gb-motion-fast);
 }
 
-scroll-thumb.vertical { width: 6px }
-scroll-thumb.horizontal { height: 6px }
+scroll-thumb.vertical { width: var(--gb-scroll-thumb-size) }
+scroll-thumb.horizontal { height: var(--gb-scroll-thumb-size) }
 
 /* Widened from the viewport's hover rather than the thumb's, and deliberately:
    a 6px target is hard to point at, so the bar has to grow *before* the pointer
    is on the thumb or it can never be grabbed. §2.4 says "with visible track on
    hover" for the same reason. */
 scroll:hover scrollbar { background: var(--gb-surface-2) }
-scroll:hover scroll-thumb.vertical { width: 10px }
-scroll:hover scroll-thumb.horizontal { height: 10px }
+scroll:hover scroll-thumb.vertical { width: var(--gb-scroll-thumb-hover-size) }
+scroll:hover scroll-thumb.horizontal { height: var(--gb-scroll-thumb-hover-size) }
 
 /* A `text-area` scrolls its own text and draws the same bar (ADR-0362), so it
    widens on the same hover -- the control's rather than a viewport's. */
 text-area:hover scrollbar { background: var(--gb-surface-2) }
-text-area:hover scroll-thumb.vertical { width: 10px }
+text-area:hover scroll-thumb.vertical { width: var(--gb-scroll-thumb-hover-size) }
 
 /* "accent color while dragging". A class and not `:active`, because the thumb is
    moved by the bar around it rather than pressed itself, so the router's

@@ -69,6 +69,13 @@ public final class Controls {
                 .toList();
     }
 
+    /// The same, with §2.4's scrollbar setting after the density (ADR-0364).
+    public static List<Stylesheet> stylesheets(Theme theme, Density density, Scrollbars scrollbars) {
+        Objects.requireNonNull(scrollbars, "scrollbars");
+        return Stream.concat(stylesheets(theme, density).stream(), scrollbars.stylesheets().stream())
+                .toList();
+    }
+
     /// The toolkit's stylesheets at [Density#REGULAR], which is §1.3's default.
     public static List<Stylesheet> stylesheets(Theme theme) {
         return stylesheets(theme, Density.REGULAR);

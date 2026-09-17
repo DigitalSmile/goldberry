@@ -373,6 +373,7 @@
 - [ADR-0361 A column is resized by asking](adr/0361-a-column-is-resized-by-asking.md)
 - [ADR-0362 A text area draws `scroll`'s bar](adr/0362-a-text-area-draws-scrolls-bar.md)
 - [ADR-0363 A programmatic scroll glides, and the offset is already there](adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
+- [ADR-0364 Always-shown scroll bars are a token sheet](adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
 
 ---
 
