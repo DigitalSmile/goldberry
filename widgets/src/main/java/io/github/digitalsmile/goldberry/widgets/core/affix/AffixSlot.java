@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// [AffixContent], one level down, which is what stops a widget that reacts to its
 /// own position from chasing itself ([ADR-0119]).
 record AffixSlot(
-        List<Widget> children, Edge edge, double shift, boolean affixed, Located3 onLocated, Attributes attributes)
+        List<Widget> children, double shiftX, double shiftY, boolean affixed, Located3 onLocated, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Located {
 
     @Override
@@ -49,7 +49,7 @@ record AffixSlot(
 
     @Override
     public List<Widget> children() {
-        return List.of(new AffixContent(children, edge, shift));
+        return List.of(new AffixContent(children, shiftX, shiftY));
     }
 
     @Override

@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// never. It is also what keeps the hole above it the size it was — a margin or
 /// an inset would move the hole too, which is the one thing §1 says must not
 /// happen.
-record AffixContent(List<Widget> children, Edge edge, double shift) implements Widget.Leaf, Styled, Paints {
+record AffixContent(List<Widget> children, double shiftX, double shiftY) implements Widget.Leaf, Styled, Paints {
 
     AffixContent {
         children = List.copyOf(children == null ? List.of() : children);
@@ -30,13 +30,11 @@ record AffixContent(List<Widget> children, Edge edge, double shift) implements W
 
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        if (shift == 0) {
+        if (shiftX == 0 && shiftY == 0) {
             return resolved;
         }
-        var length = Transform.Length.px(shift);
-        var zero = Transform.Length.ZERO;
-        return resolved.transform(Transform.of(new Transform.Function.Translate(
-                edge.isVertical() ? zero : length, edge.isVertical() ? length : zero)));
+        return resolved.transform(Transform.of(
+                new Transform.Function.Translate(Transform.Length.px(shiftX), Transform.Length.px(shiftY))));
     }
 
     @Override

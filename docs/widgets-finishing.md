@@ -53,7 +53,7 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | Pushed out by the next | a sticky header yields to the one after it | 0360 | done |
-| Both axes | pin on a row and a column at once | — | open |
+| Both axes | pin on a row and a column at once, opt-in `edge="top left"` | 0371 | done |
 
 ## Controls
 
@@ -195,3 +195,9 @@ can be reversed:
 
 - `widgets` `core/scroll/ScrollController#reveal(LogicalRect, LogicalRect, ScrollAxis)`.
 - Tests: `ScrollControllerTest` "revealing along one axis".
+
+### Affix on two axes
+
+- `widgets` `core/affix/Affix#cross`, `alsoPinnedTo`; `Edge.parseCross`;
+  `AffixState.shiftFor` per axis; `AffixSlot` and `AffixContent` carry both shifts.
+- Tests: `AffixTwoAxesTest`.

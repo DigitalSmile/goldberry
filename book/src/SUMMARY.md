@@ -380,6 +380,7 @@
 - [ADR-0368 A focus by name reaches the popup it came from](adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
 - [ADR-0369 A knob turns round its dial from its own value](adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
 - [ADR-0370 A reveal can keep to one axis](adr/0370-a-reveal-can-keep-to-one-axis.md)
+- [ADR-0371 An affix pins to one edge per axis](adr/0371-an-affix-pins-to-one-edge-per-axis.md)
 
 ---
 

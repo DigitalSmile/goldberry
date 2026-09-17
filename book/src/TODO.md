@@ -253,12 +253,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   input or to draw something that cannot affect layout, never to decide a size —
   and the scroll view obeys it by construction rather than by check. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **An `affix` pins on one axis.** All four `edge=` values work and no affix can
-  be pinned to two at once — a header that is both sticky at the top and held
-  against the left of a horizontally scrolling table is the case, and it needs
-  two shifts and a rule about which wins. Nobody has asked. —
-  [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
-
 - **Nothing reorders tabs**, and a reorder would need a different animation from
   an arrival: a tab that moves has two positions and nothing to interpolate between
   them, which is ADR-0097's missing geometry again. §5 does not ask for
@@ -1300,6 +1294,10 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**An `affix` pins on one axis.**~~ **On one per axis, 2026-09-17**:
+  `edge="top left"`. There was no rule to write about which wins, because each
+  axis is its own subtraction. —
+  [ADR-0371](adr/0371-an-affix-pins-to-one-edge-per-axis.md)
 - ~~**A reveal moves both axes at once.**~~ **By default, still, 2026-09-17**, and
   a caller that means one axis says so with `reveal(self, clip, axes)`. —
   [ADR-0370](adr/0370-a-reveal-can-keep-to-one-axis.md)

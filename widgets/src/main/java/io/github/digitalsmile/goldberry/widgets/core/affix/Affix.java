@@ -68,6 +68,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param children   what to pin. Several are stacked, as in a `column`
 /// @param edge       which side of the viewport to pin to
 /// @param offset     how far from that edge to sit, in logical pixels
+/// @param cross      an edge on the other axis to pin to as well, or null —
+///                   `edge="top left"` in markup (ADR-0371)
 /// @param onReveal   told where the **hole** is and what clips it, or null for
 ///                   the ordinary case where nobody is asking
 /// @param attributes `id` and `class`, exactly as on the primitives
@@ -77,17 +79,41 @@ public record Affix(
         Edge edge,
         double offset,
         java.util.function.BiConsumer<LogicalRect, LogicalRect> onReveal,
+        Edge cross,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
     public Affix {
         children = List.copyOf(children == null ? List.of() : children);
         edge = edge == null ? Edge.TOP : edge;
+        if (cross != null && cross.isVertical() == edge.isVertical()) {
+            throw new IllegalArgumentException("an affix pins to at most one edge per axis, and " + edge + " and "
+                    + cross + " are on the same one");
+        }
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
+    public Affix(
+            List<Widget> children,
+            Edge edge,
+            double offset,
+            java.util.function.BiConsumer<LogicalRect, LogicalRect> onReveal,
+            Attributes attributes) {
+        this(children, edge, offset, onReveal, null, attributes);
+    }
+
     public Affix(List<Widget> children, Edge edge, double offset, Attributes attributes) {
-        this(children, edge, offset, null, attributes);
+        this(children, edge, offset, null, null, attributes);
+    }
+
+    /// This affix also pinned to an edge on the other axis — a header sticky at
+    /// the top and held against the left of a table that scrolls sideways
+    /// (ADR-0371). Each axis is its own subtraction, so there is nothing for one
+    /// to win over the other.
+    ///
+    /// @throws IllegalArgumentException if `other` is on the same axis as the edge
+    public Affix alsoPinnedTo(Edge other) {
+        return new Affix(children, edge, offset, onReveal, other, attributes);
     }
 
     public Affix(Widget... kids) {
@@ -96,12 +122,12 @@ public record Affix(
 
     /// This affix, telling `listener` where its hole is — see the class note.
     public Affix revealedBy(java.util.function.BiConsumer<LogicalRect, LogicalRect> listener) {
-        return new Affix(children, edge, offset, listener, attributes);
+        return new Affix(children, edge, offset, listener, cross, attributes);
     }
 
     @Override
     public Affix withAttributes(Attributes attributes) {
-        return new Affix(children, edge, offset, onReveal, attributes);
+        return new Affix(children, edge, offset, onReveal, cross, attributes);
     }
 
     @Override
@@ -116,10 +142,13 @@ public record Affix(
 
     /// Builds an `affix` from markup.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var edges = node.stringProperty("edge");
         return new Affix(
                 children,
-                Edge.parse(node.stringProperty("edge")),
+                Edge.parse(edges),
                 node.numberProperty("offset", 0),
+                null,
+                Edge.parseCross(edges),
                 Attributes.of(node));
     }
 }
