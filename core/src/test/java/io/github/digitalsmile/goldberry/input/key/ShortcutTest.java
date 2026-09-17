@@ -291,4 +291,50 @@ class ShortcutTest {
             }
         }
     }
+
+    @org.junit.jupiter.api.Nested
+    @DisplayName("the platform's own modifier")
+    class Primary {
+
+        /// §2.3's accelerator modifier, without the silent remapping the shipped
+        /// `Shortcut` refused — [ADR-0378].
+        @Test
+        @DisplayName("`Cmd` on macOS, `Ctrl` everywhere else")
+        void resolution() {
+            assertEquals(Mod.META, PrimaryModifier.resolve("Mac OS X", null));
+            assertEquals(Mod.CTRL, PrimaryModifier.resolve("Linux", null));
+            assertEquals(Mod.CTRL, PrimaryModifier.resolve("Windows 11", null));
+        }
+
+        @Test
+        @DisplayName("and whatever the property says, for a test and for an application with a reason")
+        void override() {
+            assertEquals(Mod.META, PrimaryModifier.resolve("Linux", "meta"));
+            assertEquals(Mod.CTRL, PrimaryModifier.resolve("Mac OS X", "ctrl"));
+        }
+
+        @Test
+        @DisplayName("`Primary+S` is the same shortcut as the one this desktop would have written")
+        void parsed() {
+            assertEquals(new Shortcut(Key.S, Modifiers.of(PrimaryModifier.current())), Shortcut.of("Primary+S"));
+            // The two other names it goes by, so an accelerator table copied
+            // from somewhere else parses.
+            assertEquals(Shortcut.of("Primary+S"), Shortcut.of("Mod+S"));
+            assertEquals(Shortcut.of("Primary+S"), Shortcut.of("CmdOrCtrl+S"));
+        }
+
+        @Test
+        @DisplayName("and it composes with the modifiers written beside it")
+        void withOthers() {
+            assertEquals(Shortcut.of("Primary+Shift+Z"), Shortcut.primary(Key.Z, Mod.SHIFT));
+        }
+
+        @Test
+        @DisplayName("an explicit `Ctrl` is still `Ctrl`, which is the thing that was being protected")
+        void explicitIsNotTranslated() {
+            // A terminal emulator means the control key, on every platform.
+            assertEquals(Modifiers.of(Mod.CTRL), Shortcut.of("Ctrl+C").modifiers());
+            assertEquals(Modifiers.of(Mod.META), Shortcut.of("Cmd+C").modifiers());
+        }
+    }
 }

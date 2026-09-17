@@ -12,6 +12,9 @@ import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLayout;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditCommand;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditKeys;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditSurface;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -360,59 +363,59 @@ public final class Editor {
         return preedit.isEmpty() ? edit.caret() : edit.caret() + preeditCaret;
     }
 
-    /// The key map — movement, deletion, selection, undo and the clipboard.
+    /// Obeys a key — movement, deletion, selection, undo and the clipboard.
     ///
-    /// Deliberately the same map `text-input` has, key for key, because two
-    /// editors in one toolkit that disagree about what `Ctrl+Shift+Z` does is a
-    /// toolkit with a bug in one of them.
+    /// The map itself is [EditKeys], shared with `text-input` and `text-area`,
+    /// because two editors in one toolkit that disagree about what `Ctrl+Shift+Z`
+    /// does is a toolkit with a bug in one of them ([ADR-0376]). What is left
+    /// here is what this editor can do about each command.
     ///
     /// @return whether the key did something, which is whether to consume it. A
-    ///         key this does not handle is left alone — `Tab` still moves focus,
-    ///         `Escape` still closes what it closes, and `Enter` in a single-line
-    ///         editor still submits.
+    ///         key the map has no meaning for is left alone — `Tab` still moves
+    ///         focus, `Escape` still closes what it closes, and `Enter` in a
+    ///         single-line editor still submits.
     public boolean onKey(KeyEvent event) {
         Objects.requireNonNull(event, "event");
-        if (event.kind() != KeyEvent.Kind.PRESSED) {
+        var command = EditKeys.of(event, multiline ? EditSurface.DOCUMENT : EditSurface.WRAPPED);
+        if (command == null) {
             return false;
         }
-        var modifiers = event.modifiers();
-        var word = modifiers.control();
-        var extend = modifiers.shift();
+        return switch (command) {
+            case EditCommand.Simple simple -> simple(simple);
+            case EditCommand.Move(var motion, var word, var extend) ->
+                switch (motion) {
+                    case LEFT -> move(word ? edit.wordLeft(extend) : edit.left(extend));
+                    case RIGHT -> move(word ? edit.wordRight(extend) : edit.right(extend));
+                    case LINE_START -> move(toLineEdge(true, extend));
+                    case LINE_END -> move(toLineEdge(false, extend));
+                    case DOCUMENT_START -> move(edit.toStart(extend));
+                    case DOCUMENT_END -> move(edit.toEnd(extend));
+                };
+            case EditCommand.MoveLine(var lines, var byPage, var extend) ->
+                verticalBy(byPage ? lines * pageLines() : lines, extend);
+            case EditCommand.Delete(var before, var word) ->
+                !readOnly
+                        && apply(
+                                before
+                                        ? word ? edit.deleteWordBefore() : edit.backspace()
+                                        : word ? edit.deleteWordAfter() : edit.delete(),
+                                deleting());
+            case EditCommand.Type(var text) -> !readOnly && apply(edit.insert(text), EditHistory.Kind.TYPING);
+        };
+    }
 
-        // The accelerators first, so Ctrl+A means "select all" here rather than
-        // reaching the window's shortcut map.
-        if (modifiers.control() && !modifiers.alt()) {
-            var handled =
-                    switch (event.key()) {
-                        case A -> select(edit.selectAll());
-                        case C -> copy();
-                        case X -> !readOnly && cut();
-                        case V -> !readOnly && paste();
-                        case Z -> !readOnly && (modifiers.shift() ? redo() : undo());
-                        case Y -> !readOnly && redo();
-                        default -> false;
-                    };
-            if (handled) {
-                return true;
-            }
+    /// The commands that take no argument, and the read-only refusal they share.
+    private boolean simple(EditCommand.Simple command) {
+        if (readOnly && command.isEdit()) {
+            return false;
         }
-
-        return switch (event.key()) {
-            case LEFT -> move(word ? edit.wordLeft(extend) : edit.left(extend));
-            case RIGHT -> move(word ? edit.wordRight(extend) : edit.right(extend));
-            // `Ctrl` jumps to the ends of the text; plain Home and End are the
-            // ends of the *visual* line, which is a question only the layout can
-            // answer and is why they go through the geometry.
-            case HOME -> move(word ? edit.toStart(extend) : toLineEdge(true, extend));
-            case END -> move(word ? edit.toEnd(extend) : toLineEdge(false, extend));
-            case UP -> verticalBy(-1, extend);
-            case DOWN -> verticalBy(1, extend);
-            case PAGE_UP -> verticalBy(-pageLines(), extend);
-            case PAGE_DOWN -> verticalBy(pageLines(), extend);
-            case BACKSPACE -> !readOnly && apply(word ? edit.deleteWordBefore() : edit.backspace(), deleting());
-            case DELETE -> !readOnly && apply(word ? edit.deleteWordAfter() : edit.delete(), deleting());
-            case ENTER -> multiline && !readOnly && apply(edit.insert("\n"), EditHistory.Kind.TYPING);
-            default -> false;
+        return switch (command) {
+            case SELECT_ALL -> select(edit.selectAll());
+            case COPY -> copy();
+            case CUT -> cut();
+            case PASTE -> paste();
+            case UNDO -> undo();
+            case REDO -> redo();
         };
     }
 

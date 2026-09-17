@@ -26,6 +26,9 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditCommand;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditKeys;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditSurface;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
@@ -263,63 +266,63 @@ record TextAreaBox(
 
     // --- the keyboard ---------------------------------------------------------
 
-    /// §4's editing keys, and the two things a second dimension changes.
+    /// §4's editing keys, through the map all three editors read ([ADR-0376]).
     ///
-    /// **`Enter` is taken here**, which is the one key whose meaning differs from
-    /// `text-input`'s: a multi-line control is where a newline comes from, and a
-    /// form's default button cannot have it. `Escape` still is not — that belongs
-    /// to the dialog around this.
+    /// A `text-area` is [EditSurface#DOCUMENT]: `Up` and `Down` are lines, a page
+    /// is this control's own `rows`, and **`Enter` is taken here** — a multi-line
+    /// control is where a newline comes from, and a form's default button cannot
+    /// have it. `Escape` still is not: that belongs to the dialog around this.
     @Override
     public void onKey(KeyEvent event) {
-        if (disabled || event.kind() != KeyEvent.Kind.PRESSED) {
+        if (disabled) {
             return;
         }
-        var modifiers = event.modifiers();
-        var word = modifiers.control();
-        var extend = modifiers.shift();
-
-        if (modifiers.control() && !modifiers.alt()) {
-            var handled =
-                    switch (event.key()) {
-                        case A -> editor.selectAll();
-                        case C -> editor.copy();
-                        case X -> !readOnly && editor.cut();
-                        case V -> !readOnly && editor.paste();
-                        case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
-                        case Y -> !readOnly && editor.redo();
-                        // Ctrl+Home and Ctrl+End are the whole text, which is what the
-                        // modifier means everywhere it appears on these two keys.
-                        case HOME -> editor.move(AreaEditor.Motion.START, false, extend);
-                        case END -> editor.move(AreaEditor.Motion.END, false, extend);
-                        default -> false;
-                    };
-            if (handled) {
-                event.consume();
-                return;
-            }
+        var command = EditKeys.of(event, EditSurface.DOCUMENT);
+        if (command == null) {
+            return;
         }
-
         var handled =
-                switch (event.key()) {
-                    case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
-                    case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
-                    case UP -> editor.moveLine(-1, extend);
-                    case DOWN -> editor.moveLine(1, extend);
-                    case PAGE_UP -> editor.moveLine(-Math.max(1, rows), extend);
-                    case PAGE_DOWN -> editor.moveLine(Math.max(1, rows), extend);
-                    case HOME -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
-                    case END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
-                    case BACKSPACE -> !readOnly && editor.deleteBefore(word);
-                    case DELETE -> !readOnly && editor.deleteAfter(word);
-                    // The one key that means something here and nothing in a
-                    // `text-input`. Consumed either way when it is taken, so a form's
-                    // default button does not also fire.
-                    case ENTER -> !readOnly && editor.type("\n");
-                    default -> false;
+                switch (command) {
+                    case EditCommand.Simple simple -> simple(simple);
+                    case EditCommand.Move(var motion, var word, var extend) ->
+                        switch (motion) {
+                            case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
+                            case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
+                            case LINE_START -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
+                            case LINE_END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
+                            // `Ctrl+Home` and `Ctrl+End` are the whole text, and
+                            // the word flag is spent saying so: passing it on
+                            // would ask for a word move that has already
+                            // happened.
+                            case DOCUMENT_START -> editor.move(AreaEditor.Motion.START, false, extend);
+                            case DOCUMENT_END -> editor.move(AreaEditor.Motion.END, false, extend);
+                        };
+                    case EditCommand.MoveLine(var lines, var byPage, var extend) ->
+                        editor.moveLine(byPage ? lines * Math.max(1, rows) : lines, extend);
+                    case EditCommand.Delete(var before, var word) ->
+                        !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
+                    // Consumed either way when it is taken, so a form's default
+                    // button does not also fire.
+                    case EditCommand.Type(var text) -> !readOnly && editor.type(text);
                 };
         if (handled) {
             event.consume();
         }
+    }
+
+    /// The accelerators, and the read-only refusal they share.
+    private boolean simple(EditCommand.Simple command) {
+        if (readOnly && command.isEdit()) {
+            return false;
+        }
+        return switch (command) {
+            case SELECT_ALL -> editor.selectAll();
+            case COPY -> editor.copy();
+            case CUT -> editor.cut();
+            case PASTE -> editor.paste();
+            case UNDO -> editor.undo();
+            case REDO -> editor.redo();
+        };
     }
 
     @Override

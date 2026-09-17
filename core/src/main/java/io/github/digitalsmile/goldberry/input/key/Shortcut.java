@@ -44,16 +44,35 @@ public record Shortcut(Key key, Modifiers modifiers) {
         return new Shortcut(key, Modifiers.of(mods));
     }
 
+    /// A key with the desktop's own accelerator modifier — §2.3's platform
+    /// primary, which is `Cmd` on macOS and `Ctrl` everywhere else.
+    ///
+    /// `Shortcut.primary(Key.S)` is Save wherever it runs. Further modifiers are
+    /// added as written: `Shortcut.primary(Key.Z, Mod.SHIFT)` is `Cmd+Shift+Z`
+    /// on macOS and `Ctrl+Shift+Z` elsewhere ([ADR-0378]).
+    public static Shortcut primary(Key key, Mod... mods) {
+        return new Shortcut(key, Modifiers.of(mods).and(PrimaryModifier.current()));
+    }
+
     /// Parses `Ctrl+Shift+S` and friends.
     ///
     /// Case-insensitive, and tolerant about which name a modifier goes by:
     /// `Ctrl`, `Control`, `Cmd`, `Command`, `Super`, `Win`, `Meta`, `Opt` and
     /// `Option` all land where you would expect. The key comes last.
     ///
-    /// **`Cmd` is not translated to `Ctrl` on macOS.** A toolkit that silently
-    /// remapped them would make `Ctrl+C` mean two different things depending on
-    /// where it ran, and an application that wants the platform's own convention
-    /// is better served by asking for it than by having it guessed.
+    /// **`Primary` is the platform's own**, and is the one name that is not a
+    /// key on anybody's keyboard: it resolves to `Cmd` on macOS and to `Ctrl`
+    /// everywhere else, which is what §2.3 asks an accelerator table to be
+    /// written against ([ADR-0378]). `Mod` and `CmdOrCtrl` are accepted as the
+    /// same thing, because those are the two other names it goes by in the wild.
+    ///
+    /// **`Cmd` is still not translated to `Ctrl` on macOS, and `Ctrl` is still
+    /// not translated to `Cmd`.** A toolkit that silently remapped them would
+    /// make `Ctrl+C` mean two different things depending on where it ran, which
+    /// is exactly what a terminal emulator, or an editor with Emacs bindings,
+    /// would be broken by. An application that means the platform's convention
+    /// now has a word for it; one that means the control key still gets the
+    /// control key.
     ///
     /// @throws IllegalArgumentException if the text names no key, names a key
     ///         this toolkit does not have, or ends with a modifier
@@ -74,6 +93,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
                 case "ctrl", "control" -> mods = mods.and(Mod.CTRL);
                 case "alt", "opt", "option" -> mods = mods.and(Mod.ALT);
                 case "meta", "cmd", "command", "super", "win" -> mods = mods.and(Mod.META);
+                case "primary", "mod", "cmdorctrl" -> mods = mods.and(PrimaryModifier.current());
                 default -> {
                     if (key != null) {
                         throw new IllegalArgumentException("\"" + text + "\" names two keys: " + key + " and " + part);
@@ -127,7 +147,9 @@ public record Shortcut(Key key, Modifiers modifiers) {
         }
     }
 
-    /// The shortcut as a menu would print it.
+    /// The shortcut as a menu would print it — with `Cmd` for the fourth
+    /// modifier where the desktop calls it that, which is the same desktop
+    /// [#primary] resolves against.
     @Override
     public String toString() {
         var text = new StringBuilder();
@@ -141,7 +163,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
             text.append("Shift+");
         }
         if (modifiers.meta()) {
-            text.append("Meta+");
+            text.append(PrimaryModifier.current() == Mod.META ? "Cmd+" : "Meta+");
         }
         return text.append(printable(key)).toString();
     }

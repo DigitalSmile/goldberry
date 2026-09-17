@@ -19,6 +19,9 @@ import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditCommand;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditKeys;
+import io.github.digitalsmile.goldberry.text.edit.keys.EditSurface;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
@@ -217,51 +220,60 @@ record TextField(
         return !disabled && !readOnly;
     }
 
+    /// §4's editing keys, through the map all three editors read ([ADR-0376]).
+    ///
+    /// A field is [EditSurface#FIELD]: one line, so `Up` is the start of the text
+    /// rather than a line above it — and it must still be taken, or `Up` would
+    /// walk out of a vertical focus scope from a field somebody is editing.
+    /// `Enter` is not taken at all, because a form's default button needs it.
     @Override
     public void onKey(KeyEvent event) {
-        if (disabled || event.kind() != KeyEvent.Kind.PRESSED) {
+        if (disabled) {
             return;
         }
-        var modifiers = event.modifiers();
-        var word = modifiers.control();
-        var extend = modifiers.shift();
-
-        // The accelerators first: Ctrl+A is "select all" here and must not reach
-        // the window's shortcut map, which is exactly what PointerRouter's
-        // "the focused chain declines it first" ordering is for.
-        if (modifiers.control() && !modifiers.alt()) {
-            var handled =
-                    switch (event.key()) {
-                        case A -> editor.selectAll();
-                        case C -> editor.copy();
-                        case X -> !readOnly && editor.cut();
-                        case V -> !readOnly && editor.paste();
-                        case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
-                        case Y -> !readOnly && editor.redo();
-                        default -> false;
-                    };
-            if (handled) {
-                event.consume();
-                return;
-            }
+        var command = EditKeys.of(event, EditSurface.FIELD);
+        if (command == null) {
+            return;
         }
-
         var handled =
-                switch (event.key()) {
-                    case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
-                    case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
-                    // A single-line field has one line, so Up and Home are the same
-                    // movement -- and Up must still be taken, or it would walk out of a
-                    // vertical focus scope from a field somebody is editing.
-                    case HOME, UP -> editor.move(TextEditor.Motion.START, word, extend);
-                    case END, DOWN -> editor.move(TextEditor.Motion.END, word, extend);
-                    case BACKSPACE -> !readOnly && editor.deleteBefore(word);
-                    case DELETE -> !readOnly && editor.deleteAfter(word);
-                    default -> false;
+                switch (command) {
+                    case EditCommand.Simple simple -> simple(simple);
+                    case EditCommand.Move(var motion, var word, var extend) ->
+                        switch (motion) {
+                            case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
+                            case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
+                            // One line: its start and the text's are the same
+                            // place, and so are its end and the text's.
+                            case LINE_START, DOCUMENT_START -> editor.move(TextEditor.Motion.START, word, extend);
+                            case LINE_END, DOCUMENT_END -> editor.move(TextEditor.Motion.END, word, extend);
+                        };
+                    // Neither can reach a field: `FIELD` is not vertical and takes
+                    // no newline, so the map produces neither.
+                    case EditCommand.MoveLine ignored -> false;
+                    case EditCommand.Type ignored -> false;
+                    case EditCommand.Delete(var before, var word) ->
+                        !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
                 };
         if (handled) {
             event.consume();
         }
+    }
+
+    /// The accelerators. `Ctrl+A` must not reach the window's shortcut map, which
+    /// is exactly what `PointerRouter`'s "the focused chain declines it first"
+    /// ordering is for.
+    private boolean simple(EditCommand.Simple command) {
+        if (readOnly && command.isEdit()) {
+            return false;
+        }
+        return switch (command) {
+            case SELECT_ALL -> editor.selectAll();
+            case COPY -> editor.copy();
+            case CUT -> editor.cut();
+            case PASTE -> editor.paste();
+            case UNDO -> editor.undo();
+            case REDO -> editor.redo();
+        };
     }
 
     /// Committed text — what the user actually typed, after the platform's

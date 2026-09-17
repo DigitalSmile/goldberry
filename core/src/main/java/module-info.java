@@ -188,6 +188,12 @@ module io.github.digitalsmile.goldberry.core {
     // catalogue cannot serve.
     exports io.github.digitalsmile.goldberry.text.edit;
 
+    // The keyboard half of editing, on its own (ADR-0376): the one map all three
+    // editors read, and the commands it produces. Exported for the same reason
+    // the editor is -- an application editing text on a canvas takes its keys
+    // through this -- and separate from the editor because it touches no text.
+    exports io.github.digitalsmile.goldberry.text.edit.keys;
+
     // The font chain -- a face, a sized font, and the fallback list a
     // paragraph is shaped against -- separately from the paragraph itself
     // (ADR-0172). An application picks a font source; it does not lay out a
