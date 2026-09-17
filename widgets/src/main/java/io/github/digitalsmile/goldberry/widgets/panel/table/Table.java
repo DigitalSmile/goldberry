@@ -14,6 +14,8 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.core.affix.Affix;
+import io.github.digitalsmile.goldberry.widgets.core.affix.Edge;
 import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
@@ -50,8 +52,10 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 ///
 /// ```
 /// table                this node
-/// ├── table-head       the header row
-/// │   └── table-header × columns   label, and a caret on the sorted one
+/// ├── affix            the sticky header: pinned while the table is in view
+/// │   ├── table-head   the header row
+/// │   │   └── table-header × columns   label, and a caret on the sorted one
+/// │   └── table-rule   the line under it
 /// └── list             a real `list`, with everything that means
 ///     └── list-row × n
 ///         └── table-cells
@@ -157,9 +161,16 @@ public record Table<T>(
 
     @Override
     public List<Widget> children() {
-        var parts = new ArrayList<Widget>(3);
-        parts.add(new TableHead(columns, sort, this::askForSort));
-        parts.add(new TableRule());
+        var parts = new ArrayList<Widget>(2);
+        // The header and its rule in an affix, so a table on a page that scrolls
+        // keeps its column names in view -- and, because an affix stays inside the
+        // box it is in, gives them up when the table itself has gone (ADR-0360).
+        // At rest the affix is where the header was, so nothing moves.
+        parts.add(new Affix(
+                List.of(new TableHead(columns, sort, this::askForSort), new TableRule()),
+                Edge.TOP,
+                0,
+                Attributes.NONE));
         var rows = new ListView<>(
                 items,
                 identity,

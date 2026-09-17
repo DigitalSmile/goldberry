@@ -64,4 +64,16 @@ public interface Located extends Widget {
     /// scroll view is then pinned to the window, which is what a toolbar at the
     /// top of a page means and costs no branch to say.
     void located(LogicalRect self, LogicalRect clip);
+
+    /// The same, with the painted rectangle of the nearest ancestor that has a
+    /// box of its own — CSS's containing block for `position: sticky`.
+    ///
+    /// An `affix` stays inside it, which is how a section's sticky header gives
+    /// way to the next section's rather than overlapping it (ADR-0360). The
+    /// window's rectangle when there is no such ancestor. The default ignores it,
+    /// so a widget that only needs its own position implements the two-argument
+    /// form and nothing else.
+    default void located(LogicalRect self, LogicalRect clip, LogicalRect container) {
+        located(self, clip);
+    }
 }

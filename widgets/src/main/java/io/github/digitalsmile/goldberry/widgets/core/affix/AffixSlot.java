@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets.core.affix;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.handler.Located;
@@ -23,12 +22,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// [AffixContent], one level down, which is what stops a widget that reacts to its
 /// own position from chasing itself ([ADR-0119]).
 record AffixSlot(
-        List<Widget> children,
-        Edge edge,
-        double shift,
-        boolean affixed,
-        BiConsumer<LogicalRect, LogicalRect> onLocated,
-        Attributes attributes)
+        List<Widget> children, Edge edge, double shift, boolean affixed, Located3 onLocated, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Located {
 
     @Override
@@ -60,7 +54,18 @@ record AffixSlot(
 
     @Override
     public void located(LogicalRect self, LogicalRect clip) {
-        onLocated.accept(self, clip);
+        onLocated.accept(self, clip, clip);
+    }
+
+    @Override
+    public void located(LogicalRect self, LogicalRect clip, LogicalRect container) {
+        onLocated.accept(self, clip, container);
+    }
+
+    /// Told the hole, the viewport, and the box the affix must stay inside.
+    @FunctionalInterface
+    interface Located3 {
+        void accept(LogicalRect self, LogicalRect clip, LogicalRect container);
     }
 
     @Override

@@ -393,10 +393,14 @@ public final class PointerRouter {
     /// Compared by **identity**, which keeps §1.7's idle guarantee intact: an
     /// element that was not rebuilt holds the same widget instance, so a still
     /// window still notifies nobody.
-    private record Location(Widget widget, LogicalRect self, LogicalRect clip) {
+    private record Location(Widget widget, LogicalRect self, LogicalRect clip, LogicalRect container) {
 
         boolean sameAs(Location other) {
-            return other != null && other.widget == widget && other.self.equals(self) && other.clip.equals(clip);
+            return other != null
+                    && other.widget == widget
+                    && other.self.equals(self)
+                    && other.clip.equals(clip)
+                    && other.container.equals(container);
         }
     }
 
@@ -409,11 +413,21 @@ public final class PointerRouter {
     /// that asked ([ADR-0119]).
     private void notifyLocated() {
         java.util.IdentityHashMap<Element, Location> next = null;
+        java.util.IdentityHashMap<Element, HitTest.Region> byElement = null;
         for (var region : regions) {
             if (!(region.owner() instanceof Element element) || !(element.widget() instanceof Located located)) {
                 continue;
             }
-            var location = new Location(element.widget(), paintedRect(region), clipRect(region));
+            if (byElement == null) {
+                byElement = new java.util.IdentityHashMap<>();
+                for (var each : regions) {
+                    if (each.owner() instanceof Element owner) {
+                        byElement.put(owner, each);
+                    }
+                }
+            }
+            var location = new Location(
+                    element.widget(), paintedRect(region), clipRect(region), containerRect(element, byElement));
             if (next == null) {
                 next = new java.util.IdentityHashMap<>();
             }
@@ -421,7 +435,7 @@ public final class PointerRouter {
             if (location.sameAs(locations.get(element))) {
                 continue;
             }
-            located.located(location.self(), location.clip());
+            located.located(location.self(), location.clip(), location.container());
         }
         locations = next == null ? java.util.Map.of() : next;
     }
@@ -437,6 +451,22 @@ public final class PointerRouter {
     /// to be told where they are.
     private LogicalRect paintedRect(HitTest.Region region) {
         return reported(region.painted());
+    }
+
+    /// The painted rectangle of the nearest ancestor of `element` that has a
+    /// region, or the window's when none does (ADR-0360). A composition node has
+    /// no box and so no region, which is why this walks rather than asking the
+    /// parent.
+    private LogicalRect containerRect(Element element, java.util.Map<Element, HitTest.Region> byElement) {
+        var at = element.parent();
+        while (at instanceof Element ancestor) {
+            var region = byElement.get(ancestor);
+            if (region != null) {
+                return paintedRect(region);
+            }
+            at = ancestor.parent();
+        }
+        return reported(windowBounds);
     }
 
     /// What confines `region`, or the window when nothing does.

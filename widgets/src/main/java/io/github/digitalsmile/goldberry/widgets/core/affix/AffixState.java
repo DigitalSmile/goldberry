@@ -24,14 +24,15 @@ final class AffixState extends State<Affix> {
         return new AffixSlot(affix.children(), affix.edge(), shift, affixed, this::located, affix.attributes());
     }
 
-    /// Told where the last frame put this affix and what confines it.
+    /// Told where the last frame put this affix, what clips it, and the box it
+    /// must stay inside.
     ///
     /// The whole of the widget's logic, and it is one subtraction per edge.
     ///
     /// `self` is where the affix **would be** if it did not move, because the
     /// translation is on a child and this is the outer node — which is exactly
     /// what makes the arithmetic stable rather than cumulative.
-    private void located(LogicalRect self, LogicalRect clip) {
+    private void located(LogicalRect self, LogicalRect clip, LogicalRect container) {
         var affix = widget();
         if (affix.onReveal() != null) {
             // The hole's rectangle, which is what `self` is — this is the outer
@@ -60,7 +61,25 @@ final class AffixState extends State<Affix> {
                                 - (clip.left() + clip.size().width() - offset);
                 };
         var lifted = past > 0.5;
-        var wanted = !lifted ? 0 : affix.edge().isNear() ? past : -past;
+        // CSS's sticky rule: the content never leaves its container. How far it
+        // may travel is the room between the hole's far side and the
+        // container's, so a section header is carried out by its own section
+        // when the next one arrives rather than sitting over it (ADR-0360).
+        var room =
+                switch (affix.edge()) {
+                    case TOP ->
+                        container.top()
+                                + container.size().height()
+                                - (self.top() + self.size().height());
+                    case LEFT ->
+                        container.left()
+                                + container.size().width()
+                                - (self.left() + self.size().width());
+                    case BOTTOM -> self.top() - container.top();
+                    case RIGHT -> self.left() - container.left();
+                };
+        var travel = lifted ? Math.min(past, Math.max(0, room)) : 0;
+        var wanted = !lifted ? 0 : affix.edge().isNear() ? travel : -travel;
         if (wanted == shift && lifted == affixed) {
             return;
         }

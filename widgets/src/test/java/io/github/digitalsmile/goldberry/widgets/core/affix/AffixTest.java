@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,6 +111,19 @@ class AffixTest {
             return found.getFirst();
         }
 
+        /// Where every pinned child is drawn, in document order.
+        List<Double> contentTops() {
+            var found = new ArrayList<Double>();
+            render.forEachPlacedBox(placed -> {
+                if (placed.box().owner() instanceof Element element && "affix-content".equals(element.type())) {
+                    var matrix = placed.transform();
+                    var layout = placed.layout();
+                    found.add(matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f());
+                }
+            });
+            return found;
+        }
+
         /// Where the hole is — the outer node, which must not move at all.
         double holeTop() {
             var found = new ArrayList<Double>();
@@ -156,6 +170,67 @@ class AffixTest {
             rows.add(new Text("after " + i));
         }
         return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE);
+    }
+
+    /// Two sections, each a column holding its own header and eight rows.
+    private static Widget sections() {
+        var sections = new ArrayList<Widget>();
+        for (var name : List.of("FIRST", "SECOND")) {
+            var rows = new ArrayList<Widget>();
+            rows.add(new Affix(List.of(new Text(name)), Edge.TOP, 0, Attributes.NONE));
+            for (var i = 0; i < 8; i++) {
+                rows.add(new Text(name.toLowerCase(Locale.ROOT) + " " + i));
+            }
+            sections.add(new Column(rows.toArray(Widget[]::new)));
+        }
+        return new Scroll(List.of(new Column(sections.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE);
+    }
+
+    /// CSS's sticky rule: an affix never leaves the box it is in ([ADR-0360]).
+    @Nested
+    @DisplayName("inside a section")
+    class InsideASection {
+
+        @Test
+        @DisplayName("the next section's header pushes the pinned one out, rather than overlapping it")
+        void pushedOut() {
+            var harness = new Harness(sections());
+            var lineHeight = harness.contentTops().get(1) / 9;
+
+            // Scroll until the second header is two lines below the viewport's top:
+            // the first section's bottom is there too, so its header must sit
+            // directly above that, partly out of view, and not at zero.
+            harness.wheel((float) (7.0 / 3.0));
+            var tops = harness.contentTops();
+            var first = tops.get(0);
+            var second = tops.get(1);
+
+            assertTrue(second > 0, "the second header has not reached the top yet: " + second);
+            assertTrue(first < 0, "the first header was not pushed up: " + first);
+            assertEquals(second - lineHeight, first, 1.5, "the first header sits on the second, not over it");
+        }
+
+        @Test
+        @DisplayName("once its section has gone, the next header is the one pinned at the top")
+        void handsOver() {
+            var harness = new Harness(sections());
+
+            harness.wheel(5);
+            var tops = harness.contentTops();
+
+            assertEquals(0, tops.get(1), 1.0, "the second header is pinned");
+            assertTrue(tops.get(0) < 0, "the first header left with its section");
+        }
+
+        @Test
+        @DisplayName("an affix alone in the scrolled column pins as it always did")
+        void wholeDocumentIsTheContainer() {
+            var harness = new Harness(document());
+
+            harness.wheel(6);
+
+            assertEquals(0, harness.contentTop(), 1.0);
+        }
     }
 
     @Nested

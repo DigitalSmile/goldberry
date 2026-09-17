@@ -279,13 +279,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   absence as reduced motion and density, both of which an application sets
   directly — so this waits on scrollbars existing rather than on the setting. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- **A pinned `affix` is not pushed out by the next one.** A sticky header
-  conventionally gives way when the following section's header reaches it; this
-  one stays pinned until its own subtree has scrolled away entirely, so two
-  headers overlap for the length of the shorter section. Doing better needs an
-  affix to know about its sibling, which is a relationship nothing in the widget
-  tree expresses. —
-  [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
 - **An `affix` pins on one axis.** All four `edge=` values work and no affix can
   be pinned to two at once — a header that is both sticky at the top and held
   against the left of a horizontally scrolling table is the case, and it needs
@@ -404,13 +397,9 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   focused index, and pinning it would keep a row nobody is looking at built for
   ever. —
   [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- **A `table` has no column resizing and no sticky header.** §3's metrics row
-  allows for the first — "column resize: 1:1, like `split-pane`'s drag" — and
-  nothing has asked; the divider would be a `split-pane` between the headers,
-  which is a widget that already exists. The second is `affix`'s job and was left
-  alone deliberately: a pinned affix is not pushed out by the next one, so two
-  tables on one screen would overlap their headers, which is the entry above this
-  one being a blocker for something. —
+- **A `table` has no column resizing.** §3's metrics row allows for it —
+  "column resize: 1:1, like `split-pane`'s drag" — and the divider would be a
+  `split-pane` between the headers, which is a widget that already exists. —
   [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
 - **A `table` focuses rows and not cells.** Right for §10's grid semantics and
   wrong for a spreadsheet, which is a different widget rather than an option on
@@ -1386,6 +1375,11 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A pinned `affix` is not pushed out by the next one.**~~ **It is, 2026-09-17**,
+  without knowing its sibling: an affix stays inside the box it is in, which is
+  CSS's rule for `sticky`, so a section's header leaves with its section. The same
+  change gave `table` a sticky header, which this entry was blocking. —
+  [ADR-0360](adr/0360-an-affix-stays-inside-its-container.md)
 - ~~**A `select`'s *field* is as wide as its current value.**~~ **As wide as its
   widest option, 2026-09-17.** The value cell's preferred width is the widest of
   the option labels and the placeholder, shaped in `render`; a stylesheet's width

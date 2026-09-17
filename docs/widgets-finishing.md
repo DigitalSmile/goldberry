@@ -28,7 +28,7 @@ decided not to build, with the reason in the ADR.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | Column resizing | drag a header edge | — | open |
-| Sticky header | the header stays while the rows scroll | — | open |
+| Sticky header | the header stays while the rows scroll | 0360 | done |
 | Cell focus | arrow keys between cells | — | answered: §10's table is a grid of rows; a spreadsheet is another widget (ADR-0214) |
 | Horizontal virtualization | columns off screen are not built | — | answered: pays past about fifty columns, past where a table is the right widget (ADR-0214) |
 
@@ -52,7 +52,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| Pushed out by the next | a sticky header yields to the one after it | — | open |
+| Pushed out by the next | a sticky header yields to the one after it | 0360 | done |
 | Both axes | pin on a row and a column at once | — | open |
 
 ## Controls
@@ -107,3 +107,11 @@ can be reversed:
 - `widgets` `controls/select/SelectValue` — `widths`, shaped in `render`;
   `SelectField` carries them; `SelectState.widths`.
 - Tests: `SelectWidthTest`. Five `select-*` goldens re-blessed.
+
+### `affix` inside its container, and the table's sticky header
+
+- `core` `input/handler/Located#located(self, clip, container)`;
+  `input/PointerRouter.notifyLocated` finds the nearest ancestor with a region.
+- `widgets` `core/affix/AffixState` clamps its travel; `AffixSlot` passes the
+  container. `panel/table/Table` wraps its head and rule in an `Affix`.
+- Tests: `AffixTest` "inside a section"; `TableStickyHeaderTest`.
