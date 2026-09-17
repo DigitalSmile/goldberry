@@ -44,7 +44,7 @@ decided not to build, with the reason in the ADR.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| Tree-select typeahead | typing inside the open tree list | — | open |
+| Tree-select typeahead | typing inside the open tree list | 0368 | done |
 | Field width | as wide as the widest option, not the current one | 0359 | done |
 | Menubar `Left`/`Right` | move between menus while one is open | 0219 | done before this batch; the spec line was stale |
 
@@ -178,3 +178,9 @@ can be reversed:
   `panel/table/Table`, `panel/tree/Tree`. `controls/option/Suggested`;
   `TextInput.inflate` and `Select.inflate` wrap with it; `Select#withOptions`.
 - Tests: `markup/BoundMarkupTest`.
+
+### Tree-select typeahead
+
+- `core` `Popup#focusById`; `Launcher#focus` tries open popups topmost first.
+- `widgets` `controls/select/SelectState.chosenTreeRow`.
+- Tests: `core` `PopupFocusByIdTest`; `widgets` `SelectTreeTypeaheadTest`.

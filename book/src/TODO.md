@@ -375,15 +375,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   whole row until an author writes `width`. It buys the travelling indicator, and there
   is no third option under flexbox — content-sized cells cannot be travelled between,
   and a zero basis collapses the bar entirely.
-- **A `select tree=#true` has no typeahead.** What
-  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)
-  left: the flat list reads letters on the capture phase now, and a `tree` in the
-  same panel does not. Its rows are nodes rather than options, and matching a
-  prefix against a lazily built hierarchy is a different search from the flat one
-  — it has to decide whether it descends into collapsed branches, and what it
-  means to match a node nobody can see. Nothing has asked for it. —
-  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
-  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - **`SelectList` is in the wrong package.** It now has two callers, which is what
   moved `Option` into a package of its own; it stayed put because the CSS type it
   carries is `select-list`, so moving it renames a type in every stylesheet and
@@ -1320,6 +1311,12 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `select tree=#true` has no typeahead.**~~ **It has the tree's own,
+  2026-09-17.** The design question was answered by ADR-0209 (visible rows only).
+  The defect was elsewhere: a tree moves its typeahead with `host.focus(id)`, and
+  a popup's host asked only the window. Focus by name now tries the open popups,
+  topmost first. —
+  [ADR-0368](adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
 - ~~**A `list` is Java, like `canvas` and like autocomplete.**~~ **A document
   places one, 2026-09-17**, and `table` and `tree` the same way: `bind=` names the
   widget the model built, since its factory is code. Autocomplete names the bound

@@ -356,9 +356,9 @@ final class SelectState extends State<Select> {
         if (!select.isTree()) {
             return new SelectList(rows(), this::typeahead);
         }
-        // A tree gets no typeahead: its rows are nodes rather than options, and
-        // matching a prefix against a lazily built hierarchy is a different
-        // search from the flat one (ADR-0246).
+        // No typeahead of the list's own: the tree has one, over its **visible**
+        // rows (ADR-0209), and a letter that reaches the focused row is handled
+        // there. The list stays out of the capture phase so it does (ADR-0368).
         return new SelectList(java.util.List.of(new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
                 select.tree(), select.resolved(), this::chooseNode)));
     }
@@ -410,6 +410,9 @@ final class SelectState extends State<Select> {
     /// The **first** selected one for a `multiple`, which is the only answer that
     /// is not arbitrary when there are several.
     private String chosenId(Select select) {
+        if (select.isTree()) {
+            return chosenTreeRow(select);
+        }
         var wanted = select.multiple()
                 ? (select.resolvedAll().isEmpty() ? null : select.resolvedAll().getFirst())
                 : select.resolved();
@@ -423,6 +426,26 @@ final class SelectState extends State<Select> {
                     return "select-option-" + index;
                 }
                 index++;
+            }
+        }
+        return null;
+    }
+
+    /// The tree row the chosen node is drawn as, when it is a root and so is on
+    /// screen when the list opens; null otherwise, which lets the popup focus its
+    /// first row (ADR-0368).
+    ///
+    /// Without it a tree select opened on its first row whatever it held, so the
+    /// tree's typeahead — which moves from the focused row — started from the top
+    /// rather than from the value, and `Down` did too.
+    private static String chosenTreeRow(Select select) {
+        var wanted = select.resolved();
+        if (wanted == null) {
+            return null;
+        }
+        for (var root : select.tree()) {
+            if (root.id().equals(wanted)) {
+                return "tree-" + wanted;
             }
         }
         return null;

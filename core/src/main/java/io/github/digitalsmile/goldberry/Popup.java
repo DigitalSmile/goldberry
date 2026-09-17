@@ -415,6 +415,15 @@ public final class Popup implements AutoCloseable {
         this.focusId = id;
     }
 
+    /// Focuses the node in this popup's tree carrying `id`, now, if there is one.
+    ///
+    /// What [Host#focus] asks each open popup before the window (ADR-0368): a
+    /// widget in a popup is built with the window's host, and a focus request by
+    /// name from inside it has to be able to land in the tree it came from.
+    boolean focusById(String id, boolean fromKeyboard) {
+        return router.focusById(id, fromKeyboard);
+    }
+
     /// Whether this popup takes the keyboard when it opens. On by default.
     ///
     /// **Off for a popup that hangs off something the user is typing in.** A

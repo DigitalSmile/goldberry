@@ -1555,6 +1555,17 @@ final class Launcher implements Host {
 
     @Override
     public boolean focus(String id, boolean fromKeyboard) {
+        // The open popups first, topmost first, then the window. A widget inside
+        // a popup is built with this host, so its own request by name -- a tree's
+        // typeahead moving to a row, a select's list -- has to be able to reach
+        // the popup's router rather than only the window's (ADR-0368). Topmost
+        // wins for the reason a key goes to it.
+        for (var i = popups.size() - 1; i >= 0; i--) {
+            var popup = popups.get(i);
+            if (popup.isOpen() && popup.focusById(id, fromKeyboard)) {
+                return true;
+            }
+        }
         return router.focusById(id, fromKeyboard);
     }
 

@@ -377,6 +377,7 @@
 - [ADR-0365 An overflowing tab strip pages from its ends](adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
 - [ADR-0366 A kept tab is hidden, not removed](adr/0366-a-kept-tab-is-hidden-not-removed.md)
 - [ADR-0367 A document places a list it cannot describe](adr/0367-a-document-places-a-list-it-cannot-describe.md)
+- [ADR-0368 A focus by name reaches the popup it came from](adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
 
 ---
 
