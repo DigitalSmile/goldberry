@@ -32,9 +32,9 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | **done** (one golden blessed, reviewed as an image diff) |
 | 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends; C6, C12, C13 | **done** |
 | 4b | H3–H7 the html module; W9–W15 and §11.5's parity sweep | **done** |
-| 4c | C14 | **done**. N4–N7 and the §4 tail in progress |
-| 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
-| 6 | §7 dead code and duplication; §8 the prose | open |
+| 4c | C14, N4–N7 and the §4 tail | **done** (the native ABI is 12; the library was rebuilt and the suite re-run against it) |
+| 5 | §6 and §11 — the tests | §11.5 and the `EventLoop` clock seam **done**; §11.1–11.3 running for `:core` and `:widgets` |
+| 6 | §7 dead code and duplication; §8 the prose | §8 **done**; §7 running |
 
 ## 1. `:core`
 
@@ -103,11 +103,11 @@ two`. |
 | N1 | **done** | `transformMethod` with a `MethodTransform` hands each element on and replaces only the body, where the four-argument `withMethod` carried the name, descriptor and flags and nothing else. `MethodAttributesTest` reads the **woven bytes**, which is what `NativeImageComplianceTest.annotationRetention` could not. |
 | N2 | **done** | A method is rebuilt only if it contains a write the weaver replaces; everything else is copied verbatim, frames included. And the weaver runs with the module's classes and their compile classpath on it. `UntouchedMethodsTest` fingerprints who wrote a method last by its Code attribute order. |
 | N3 | **done** | `rewired()` answers for a woven model too, and a `goldberry$set$…` call counts as a write — the mirror case the review does not name: recompiling only the model re-wove it with private setters for an `IllegalAccessError` at the first click. `IncrementalWeaveTest`. **Latent until B2 landed**; the two are merged together on purpose. |
-| N4 | open | |
-| N5 | open | |
-| N6 | open | |
-| N7 | open | |
-| §4 tail | open | dead members, needless `assumeTrue`, and the doc counts in `book/src/native.md` |
+| N4 | **done** | Three `.calls` packages were missing, not two — `desktop.calls` is the third and **stays out**, because `PortalSettings` binds libdbus in a static initialiser and build-time initialising it bakes the build machine's D-Bus into the image. `NativeImagePropertiesTest` reads the **shipped resource** against `ForeignSurface.holderClassNames()`. |
+| N5 | **done** | Four symbols gone; the list is 246 where it was 250. `ExportListTest` asserts set equality in both directions, composing Yoga's 26 length setters the way `StyleCalls` does, and fails if its own scan finds fewer than 200 bindings — so a dead regex fails loudly rather than agreeing with everything. |
+| N6 | **done** | The shim reports all three structs field by field, plus the `WEBP_DEMUX_ABI_VERSION` row `WebpCalls` claimed the probe would notice. **The hand-counted numbers were not wrong**, only unverified — the fix is about who does the arithmetic. `LayoutVerificationTest` verifies 36 layouts where it verified 33. |
+| N7 | **done** | `SdlSubsystem` gets a `nativeName()`, the registry folds the eight bits in, and the shim reports them. The `@CsvSource` of literals is replaced by `everyBitIsRegistered`, which is the step a *new* subsystem is actually forgotten at. |
+| §4 tail | **done** | Six members with no caller deleted; two needless `assumeTrue` guards gone (they bypassed ADR-0016); a dozen comments corrected. **One was not a comment problem**: `YogaNode.free()` closed the measure arena *before* `nodeFree`, so Yoga briefly held a measure function whose upcall stub had been unmapped. The comment already described the right order. **ABI 11 → 12.** |
 
 ## 5. Build, CI and example
 
@@ -130,14 +130,14 @@ two`. |
 
 | Item | State | What landed |
 |------|-------|-------------|
-| §6 should not run under `check` | open | |
-| §6 asserts nothing | open | |
+| §6 should not run under `check` | **mostly done** | `FrameBudgetTest` is tagged `benchmark`, with the counting pair it is owed named at the tag. `EventLoop` now reads an injectable clock and `EventLoopTimerTest` runs on one — which removes a known wall-clock flake. `TooltipTest`'s sleeps are **kept**: what they measure is the loop's own timer, and its own comment says a test that measured it with itself would pass whatever it did. |
+| §6 asserts nothing | **done** | Eight sites, each now asserting what its own name says. |
 | §6 duplicated scaffolding | open | |
 | §7 dead code | **mostly done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The `:widgets` half waits for the agent in that module. |
 | §7 duplication | open | |
-| §8 contradicts the code | open | |
-| §8 stale doc comments | open | |
-| §8 comments on the wrong member | open | |
+| §8 contradicts the code | **done** | README, NOTICE, THIRD-PARTY-NOTICES, releasing.md, TODO.md, design-system.md, applications.md, the example's counts, `gpu/module-info`, `book/src/native.md` (246 symbols, six upcalls) and `book/src/weaving.md`. `DecisionLogTest` now answers the ADR-status question the review answered by reading 397 files. |
+| §8 stale doc comments | **done** | Ten more, plus `Paragraph.layout()` losing `@Nullable` and the dead null branches behind it in `Editor`, `DocumentLines` and `TextDocument`. `Clip.java` claimed `bl_context_save` is not exported; ADR-0193 exported it. |
+| §8 comments on the wrong member | **done** | A dozen, with the members they had left undocumented now documented. Two were not misplacements: `Hud` carried the same doc comment twice, and `TreeRow` had a truncated `@param` list in front of prose that belongs before the full one. |
 | §11.1 the five habits | open | |
 | §11.2 parameterized merges | open | |
 | §11.3 fragile assertions | open | |
