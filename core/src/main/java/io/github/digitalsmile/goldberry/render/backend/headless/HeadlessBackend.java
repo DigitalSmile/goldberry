@@ -3,12 +3,12 @@ package io.github.digitalsmile.goldberry.render.backend.headless;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
@@ -60,7 +60,11 @@ public final class HeadlessBackend implements Backend {
     private final Thread uiThread;
 
     private final List<HeadlessWindow> windows = new ArrayList<>();
-    private final Queue<BackendEvent> pending = new ArrayDeque<>();
+
+    /// What the next pump will deliver. A deque rather than a queue because a
+    /// sink that throws puts the rest of its batch back at the **front** —
+    /// see [#requeue].
+    private final Deque<BackendEvent> pending = new ArrayDeque<>();
 
     /// Set by [#wakeup()], which is the one thing another thread may call, so it
     /// is the one piece of state that has to be safe to touch from anywhere.
@@ -320,7 +324,8 @@ public final class HeadlessBackend implements Backend {
         while (!pending.isEmpty()) {
             batch.add(pending.poll());
         }
-        for (var event : batch) {
+        for (var index = 0; index < batch.size(); index++) {
+            var event = batch.get(index);
             // A frame request is satisfied by its event being delivered, so a
             // repaint asked for inside the handler survives into the next pump.
             if (event instanceof BackendEvent.FrameDue frame && frame.window() instanceof HeadlessWindow window) {
@@ -331,9 +336,43 @@ public final class HeadlessBackend implements Backend {
             if (event instanceof BackendEvent.Resized resized && resized.window() instanceof HeadlessWindow window) {
                 window.resizeDelivered();
             }
-            sink.accept(event);
+            try {
+                sink.accept(event);
+            } catch (RuntimeException | Error e) {
+                requeue(batch.subList(index + 1, batch.size()));
+                throw e;
+            }
         }
         return batch.size();
+    }
+
+    /// Puts back what a sink that threw never saw.
+    ///
+    /// [EventSink] promises that the events already delivered stay delivered and
+    /// **the rest wait for the next pump**, and draining the queue into a batch
+    /// is what made that a promise this backend could break: the batch is out of
+    /// the queue before the first `accept`, so a handler that fails on the
+    /// second of five used to take the other three with it. What goes that way
+    /// is a pointer release that leaves a button held down, or a
+    /// `FileDropCompleted` that leaves a drag open — the events whose job is to
+    /// end something.
+    ///
+    /// At the **front**, in order: they were queued before whatever the failing
+    /// handler managed to post on its way out, and they are still older than it.
+    ///
+    /// The event that threw is not among them. The sink saw it and did not cope,
+    /// and offering it again would hand the same event to the same handler on
+    /// every pump for as long as the caller kept pumping.
+    ///
+    /// Their side effects have not been applied — [#pumpEvents] applies those
+    /// per event, immediately before handing it over — so they arrive next time
+    /// exactly as they would have this time.
+    ///
+    /// @param undelivered the tail of the batch, oldest first
+    private void requeue(List<BackendEvent> undelivered) {
+        for (var index = undelivered.size() - 1; index >= 0; index--) {
+            pending.addFirst(undelivered.get(index));
+        }
     }
 
     @Override

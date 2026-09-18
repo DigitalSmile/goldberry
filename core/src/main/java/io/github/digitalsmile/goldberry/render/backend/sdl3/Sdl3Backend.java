@@ -128,6 +128,12 @@ public final class Sdl3Backend implements Backend {
     /// again, on this thread, from inside the paint it would restart.
     private boolean inWatch;
 
+    /// What a sink that threw never saw, waiting for the next pump.
+    ///
+    /// Empty except between a failed delivery and the pump after it, which is
+    /// the whole of its life: see [#deliver].
+    private final List<BackendEvent> undelivered = new ArrayList<>();
+
     /// Why a Wayland window here will have no decorations, when it will not.
     ///
     /// Worked out once at start-up, because it is a property of the machine rather
@@ -571,9 +577,15 @@ public final class Sdl3Backend implements Backend {
                 hasEvent = video.pollEvent(eventBuffer);
             }
 
-            for (var event : translated) {
-                sink.accept(event);
+            // Ahead of what just arrived, because they arrived before it: a sink
+            // that threw during an earlier pump is the only way there is
+            // anything here. See [#undelivered].
+            if (!undelivered.isEmpty()) {
+                translated.addAll(0, undelivered);
+                undelivered.clear();
             }
+
+            var delivered = deliver(sink, translated);
 
             // Frames AFTER the events that caused them.
             //
@@ -587,10 +599,39 @@ public final class Sdl3Backend implements Backend {
             // Requests made while handling a FrameDue are deliberately left for
             // the next pump: draining until empty here would let a
             // self-scheduling animation hold the loop and starve input.
-            return dialogAnswers + translated.size() + emitDueFrames(sink);
+            return dialogAnswers + delivered + emitDueFrames(sink);
         } finally {
             activeSink = null;
         }
+    }
+
+    /// Hands `events` to the sink one at a time, keeping what a throw left over.
+    ///
+    /// [EventSink] promises that the events already delivered stay delivered and
+    /// **the rest wait for the next pump**, and this is the only place they
+    /// could wait. They were taken off SDL's queue and translated during this
+    /// pump, so the platform has already forgotten them: either the backend
+    /// holds them or nobody does, and what is lost that way is a pointer release
+    /// that leaves a button held down or a `FileDropCompleted` that leaves a
+    /// drag open — the events whose whole job is to end something.
+    ///
+    /// The one that threw is not kept. The sink saw it and did not cope, and
+    /// offering it again would hand the same event to the same handler on every
+    /// pump for as long as the caller kept pumping.
+    ///
+    /// @param sink   where the events go
+    /// @param events what to deliver, oldest first
+    /// @return how many were delivered, which is all of them unless this throws
+    private int deliver(EventSink sink, List<BackendEvent> events) {
+        for (var index = 0; index < events.size(); index++) {
+            try {
+                sink.accept(events.get(index));
+            } catch (RuntimeException | Error e) {
+                undelivered.addAll(events.subList(index + 1, events.size()));
+                throw e;
+            }
+        }
+        return events.size();
     }
 
     /// The timeout to hand `SDL_WaitEventTimeout`, or zero to poll instead.
@@ -667,10 +708,7 @@ public final class Sdl3Backend implements Backend {
             return 0;
         }
         pacer.frameEmitted(now);
-        for (var event : frames) {
-            sink.accept(event);
-        }
-        return frames.size();
+        return deliver(sink, frames);
     }
 
     /// Installs the watch that keeps frames coming during a resize drag.
@@ -721,9 +759,11 @@ public final class Sdl3Backend implements Backend {
         try {
             var translated = new ArrayList<BackendEvent>(1);
             translate(type, event.windowId(), translated);
-            for (var backendEvent : translated) {
-                activeSink.accept(backendEvent);
-            }
+            // Through the same delivery as the pump's, so a handler that throws
+            // in here loses no more than it would out there -- the exception is
+            // swallowed below, and what it did not reach keeps its place in the
+            // queue rather than going down with it.
+            deliver(activeSink, translated);
             emitDueFrames(activeSink);
         } catch (RuntimeException e) {
             // The alternative is an exception unwinding into the platform's own
@@ -1178,6 +1218,7 @@ public final class Sdl3Backend implements Backend {
             window.close();
         }
         windowsById.clear();
+        undelivered.clear();
         // Before SDL_Quit, and for the same reason the watch is: a tray holds
         // upcall stubs the shell can still call, and the arena holding them is
         // released by closing the tray.
@@ -1282,6 +1323,10 @@ public final class Sdl3Backend implements Backend {
 
     void forget(Sdl3Window window) {
         windowsById.remove(window.handleId());
+        // A window that has gone is not owed the events it never received. The
+        // ordinary pump has no such list to clean, because it translates and
+        // delivers inside one call; this one can outlive the window in it.
+        undelivered.removeIf(event -> event.window() == window);
     }
 
     void requireUiThread() {

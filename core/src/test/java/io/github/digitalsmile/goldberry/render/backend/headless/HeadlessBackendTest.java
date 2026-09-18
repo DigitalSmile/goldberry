@@ -271,9 +271,48 @@ class HeadlessBackendTest {
         assertEquals(1, backend.pendingEventCount(), "the new event waits for the next pump");
     }
 
+    /// **The half of this test's own name that was never asserted.**
+    /// [io.github.digitalsmile.goldberry.render.event.EventSink]
+    /// says the events already delivered stay delivered and *the rest wait for
+    /// the next pump*; this asserted the throw and stopped there, and neither
+    /// backend kept the rest. Draining into a batch is what made it possible to
+    /// lose them — the queue is empty before the first `accept`, so a handler
+    /// that failed on the first of two took the second with it, and the second
+    /// here is the close request. That is the shape of the loss: the events that
+    /// end something are the ones nothing downstream can reconstruct.
     @Test
     @DisplayName("a throwing sink propagates and leaves the rest queued")
     void throwingSinkPropagates() {
+        var window = (HeadlessWindow) backend.createWindow(SPEC);
+        window.expose();
+        window.requestClose();
+
+        var seen = new ArrayList<BackendEvent>();
+        assertThrows(
+                IllegalStateException.class,
+                () -> backend.pumpEvents(
+                        event -> {
+                            seen.add(event);
+                            throw new IllegalStateException("handler failed");
+                        },
+                        Duration.ZERO));
+
+        assertEquals(1, seen.size(), "the pump carried on past a sink that threw");
+        assertInstanceOf(BackendEvent.Exposed.class, seen.getFirst());
+        assertEquals(1, backend.pendingEventCount(), "the close request went down with the expose");
+
+        // Delivered rather than merely counted, and delivered once.
+        var next = new ArrayList<BackendEvent>();
+        assertEquals(1, backend.pumpEvents(next::add, Duration.ZERO));
+        assertInstanceOf(BackendEvent.CloseRequested.class, next.getFirst());
+        // The event that threw is not among them: this sink saw it, and a
+        // handler that fails on every delivery would fail on every pump.
+        assertEquals(0, backend.pendingEventCount());
+    }
+
+    @Test
+    @DisplayName("what a failed pump kept is still older than what the failing handler posted")
+    void theRemainderKeepsItsPlace() {
         var window = (HeadlessWindow) backend.createWindow(SPEC);
         window.expose();
         window.requestClose();
@@ -282,9 +321,22 @@ class HeadlessBackendTest {
                 IllegalStateException.class,
                 () -> backend.pumpEvents(
                         event -> {
+                            // On its way out, as a handler that fails part-way
+                            // through a repaint would.
+                            window.requestFrame();
                             throw new IllegalStateException("handler failed");
                         },
                         Duration.ZERO));
+
+        var next = new ArrayList<BackendEvent>();
+        backend.pumpEvents(next::add, Duration.ZERO);
+
+        assertEquals(2, next.size());
+        // Order is the contract's, not the queue's convenience: the close was
+        // asked for before the frame was, and a close delivered after the frame
+        // it should have cancelled is a frame drawn into a closing window.
+        assertInstanceOf(BackendEvent.CloseRequested.class, next.getFirst());
+        assertInstanceOf(BackendEvent.FrameDue.class, next.get(1));
     }
 
     @Test

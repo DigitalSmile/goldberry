@@ -2,9 +2,11 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Modifier;
@@ -385,6 +387,58 @@ class Sdl3EventPathTest {
             assertFalse(
                     events.stream().anyMatch(BackendEvent.PointerWheel.class::isInstance),
                     () -> "a wheel event for no window reached the sink: " + names(events));
+        });
+    }
+
+    /// **The contract's hardest case, and the reason it is a contract rather
+    /// than a convention.**
+    /// [io.github.digitalsmile.goldberry.render.event.EventSink]
+    /// promises that a sink which throws leaves the rest of the batch for the
+    /// next pump, and by the time this backend is delivering, those events are
+    /// out of SDL's queue and translated — the platform has forgotten them, so
+    /// either the backend is holding them or nothing is. Here the release is the
+    /// one behind the throw, which is exactly the event a router needs to stop
+    /// treating a button as held.
+    @Test
+    @DisplayName("what a throwing sink never saw comes back on the next pump, not out of SDL")
+    void aThrowingSinkKeepsTheRest() {
+        withBackend((backend, window) -> {
+            push(buffer -> buffer.writeMouseMotion(id(window), 10f, 10f));
+            push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_UP, id(window), 12f, 12f, 1, 1));
+
+            var seen = new ArrayList<BackendEvent>();
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> backend.pumpEvents(
+                            event -> {
+                                seen.add(event);
+                                throw new IllegalStateException("handler failed");
+                            },
+                            Duration.ofMillis(50)));
+
+            assertEquals(1, seen.size(), "the pump carried on past a sink that threw");
+            assertInstanceOf(BackendEvent.PointerMoved.class, seen.getFirst());
+
+            // Nothing is pushed before this one: the release is not on SDL's
+            // queue any more, so anything that arrives was kept by the backend.
+            var next = new ArrayList<BackendEvent>();
+            backend.pumpEvents(next::add, Duration.ofMillis(50));
+
+            assertEquals(
+                    1,
+                    count(next, BackendEvent.PointerReleased.class),
+                    () -> "the release did not survive the throw: " + names(next));
+            // And it is not offered a third time, nor is the motion that threw.
+            var after = new ArrayList<BackendEvent>();
+            backend.pumpEvents(after::add, Duration.ofMillis(20));
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerReleased.class),
+                    () -> names(after).toString());
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerMoved.class),
+                    () -> names(after).toString());
         });
     }
 
