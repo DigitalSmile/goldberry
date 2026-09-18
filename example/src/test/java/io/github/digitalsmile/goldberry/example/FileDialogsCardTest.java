@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,19 @@ class FileDialogsCardTest {
         host = new TourTestHost(List.of());
         tree = new ElementTree(new FileDialogsCard(), host);
         render();
+    }
+
+    /// Closed, because a `Fonts` holds native faces.
+    ///
+    /// It was created in `render()` and never released: a suite that renders a
+    /// card in every test opened one set of faces per test and closed none of
+    /// them (the 2026-09-18 review, §6).
+    @AfterEach
+    void tearDown() {
+        if (fonts != null) {
+            fonts.close();
+            fonts = null;
+        }
     }
 
     private void render() {

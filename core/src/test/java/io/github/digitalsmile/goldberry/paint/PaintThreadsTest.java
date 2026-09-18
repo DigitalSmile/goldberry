@@ -86,14 +86,19 @@ class PaintThreadsTest {
     void forSurfaceUsesThePolicy() {
         var size = new PhysicalSize(1920, 1080);
 
-        // No property is set in the test JVM, so the two must agree. If one is
-        // ever set for a test run, this asserts nothing rather than failing.
-        var configured = System.getProperty(PaintThreads.PROPERTY);
-        if (configured == null) {
-            assertEquals(
-                    PaintThreads.resolve(
-                            1920L * 1080, UNSET, Runtime.getRuntime().availableProcessors()),
-                    PaintThreads.forSurface(size));
-        }
+        // Asserted whatever the property says, rather than only when it says
+        // nothing. This used to read the property and skip the assertion if one
+        // was set — so the one run where somebody *had* set it, which is the run
+        // where the two could actually disagree, was the run that checked
+        // nothing (the 2026-09-18 review, §11.3).
+        var raw = System.getProperty(PaintThreads.PROPERTY);
+        var configured = raw == null || raw.isBlank() ? UNSET : Integer.parseInt(raw.trim());
+
+        assertEquals(
+                PaintThreads.resolve(
+                        1920L * 1080, configured, Runtime.getRuntime().availableProcessors()),
+                PaintThreads.forSurface(size),
+                () -> "the ambient answer disagrees with the policy it is supposed to be, with " + PaintThreads.PROPERTY
+                        + "=" + raw);
     }
 }
