@@ -163,7 +163,11 @@ public final class CssTokenizer {
         if (isDigit(c)) {
             return numeric(startLine, startColumn);
         }
-        if (isIdentStart(c) || c == '\\') {
+        // A backslash starts a name only when it starts a *valid* escape. One at
+        // the end of a line does not: the spec calls that a parse error and a
+        // delim, and treating it as a name start handed consumeName() a
+        // character it could not consume, so the tokenizer stood still for ever.
+        if (isIdentStart(c) || startsEscape()) {
             return identLike(startLine, startColumn);
         }
 
@@ -385,10 +389,20 @@ public final class CssTokenizer {
             advance();
         }
         var code = Integer.parseInt(hex.toString(), 16);
-        if (code == 0 || code > Character.MAX_CODE_POINT || Character.isSurrogate((char) code)) {
+        if (code == 0 || isSurrogate(code) || code > Character.MAX_CODE_POINT) {
             return String.valueOf(REPLACEMENT);
         }
         return new String(Character.toChars(code));
+    }
+
+    /// Whether `code` is a surrogate code point.
+    ///
+    /// [Character#isSurrogate(char)] cannot answer this: narrowing to `char`
+    /// first keeps only the low sixteen bits, so a legal supplementary escape
+    /// such as `\1D800` — a musical symbol — arrived looking like U+D800 and was
+    /// replaced.
+    private static boolean isSurrogate(int code) {
+        return code >= Character.MIN_SURROGATE && code <= Character.MAX_SURROGATE;
     }
 
     private boolean atEnd() {
