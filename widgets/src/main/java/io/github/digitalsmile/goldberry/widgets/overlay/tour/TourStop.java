@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -180,33 +181,13 @@ record TourStop(
     /// Where the cut-out is **right now**: between the stop it is leaving and the
     /// one it is arriving at, on §3.1's `base`.
     ///
-    /// §3.1's tour row asks for the cut-out to "`translate`+size" between stops,
-    /// and both halves fall out of interpolating the rectangle: a target that
-    /// moves and changes size does both at once, and doing it as one rectangle is
-    /// what keeps the ring and the veil's hole agreeing with each other on every
-    /// frame.
-    ///
-    /// This is a `Phase` and not a `transition` for the reason [Phase] itself
-    /// gives: a cut-out's rectangle is computed from an anchor the cascade has
-    /// never seen, so there are no two styles to interpolate between
-    /// ([ADR-0269]).
+    /// [Lit] does the arithmetic, and [TourVeil] asks it the same question for the
+    /// hole — which is what keeps the ring, the card and the hole agreeing with each
+    /// other on every frame. `target` is this node's own and never null, so the
+    /// rectangle never is either; the fallback says so to the compiler rather than
+    /// standing for a case that can happen.
     private LogicalRect litRectAt(double now) {
-        if (travel == null || cameFrom == null) {
-            return target;
-        }
-        var t = travel.progressAt(now);
-        if (t >= 1) {
-            return target;
-        }
-        return LogicalRect.of(
-                lerp(cameFrom.left(), target.left(), t),
-                lerp(cameFrom.top(), target.top(), t),
-                lerp(cameFrom.size().width(), target.size().width(), t),
-                lerp(cameFrom.size().height(), target.size().height(), t));
-    }
-
-    private static float lerp(double from, double to, double t) {
-        return (float) (from + (to - from) * t);
+        return Objects.requireNonNullElse(Lit.rectAt(cameFrom, target, travel, now), target);
     }
 
     /// §1.7's overlay curve on the card: `opacity` 0→1 with a 4px rise.

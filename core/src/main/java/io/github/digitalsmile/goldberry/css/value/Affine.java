@@ -203,18 +203,14 @@ public record Affine(double a, double b, double c, double d, double e, double f)
         /// This decomposition `t` of the way to `to`.
         public Decomposed mix(Decomposed to, double t) {
             return new Decomposed(
-                    lerp(translateX, to.translateX, t),
-                    lerp(translateY, to.translateY, t),
-                    lerp(scaleX, to.scaleX, t),
-                    lerp(scaleY, to.scaleY, t),
-                    lerp(skew, to.skew, t),
+                    Interpolate.lerp(translateX, to.translateX, t),
+                    Interpolate.lerp(translateY, to.translateY, t),
+                    Interpolate.lerp(scaleX, to.scaleX, t),
+                    Interpolate.lerp(scaleY, to.scaleY, t),
+                    Interpolate.lerp(skew, to.skew, t),
                     // The short way round, so a transition from 350° to 10°
                     // travels 20° rather than 340°.
-                    lerp(rotation, rotation + shortestTurn(to.rotation - rotation), t));
-        }
-
-        private static double lerp(double from, double to, double t) {
-            return from + (to - from) * t;
+                    Interpolate.lerp(rotation, rotation + shortestTurn(to.rotation - rotation), t));
         }
 
         private static double shortestTurn(double delta) {

@@ -151,10 +151,10 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
             to = new Shadow(from.offsetX, from.offsetY, from.blur, from.spread, from.argb & 0x00FFFFFF);
         }
         return new Shadow(
-                lerp(from.offsetX, to.offsetX, t),
-                lerp(from.offsetY, to.offsetY, t),
-                lerp(from.blur, to.blur, t),
-                lerp(from.spread, to.spread, t),
+                Interpolate.lerp(from.offsetX, to.offsetX, t),
+                Interpolate.lerp(from.offsetY, to.offsetY, t),
+                Interpolate.lerp(from.blur, to.blur, t),
+                Interpolate.lerp(from.spread, to.spread, t),
                 CssColor.mix(from.argb, to.argb, t));
     }
 
@@ -292,10 +292,6 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
             return Math.max(0, depth - 1);
         }
         return depth;
-    }
-
-    private static double lerp(double from, double to, double t) {
-        return from + (to - from) * t;
     }
 
     private static double finite(double value, String name) {
