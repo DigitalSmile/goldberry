@@ -771,8 +771,12 @@ class ScrollTest {
             var before = harness.contentTop();
 
             // Press on the thumb itself -- which must *not* jump -- then drag.
+            // Two pixels from its top rather than at its centre: a press at the
+            // exact centre is the one place a bar that recentres the thumb under
+            // the pointer behaves correctly, so it is the one press this cannot
+            // be written with (`dragKeepsTheGrab`).
             var thumb = harness.thumb();
-            harness.pressAt(195, thumb.top() + thumb.height() / 2);
+            harness.pressAt(195, thumb.top() + 2);
             assertEquals(
                     before, harness.contentTop(), 0.5, "grabbing the thumb moved the content before the drag began");
 
@@ -781,6 +785,44 @@ class ScrollTest {
             assertTrue(harness.contentTop() < before - 20, "the drag moved " + (before - harness.contentTop()));
 
             harness.release(195, 60);
+        }
+
+        @Test
+        @DisplayName("a thumb grabbed away from its centre keeps the grab, and does not jump")
+        void dragKeepsTheGrab() {
+            var harness = new Harness(tallContent());
+            harness.frame();
+
+            // How far there is to scroll, measured rather than computed: the
+            // content's height is the test font's business.
+            var top = harness.contentTop();
+            harness.press(Key.END);
+            var overflow = top - harness.contentTop();
+            harness.press(Key.HOME);
+
+            // Away from both ends, because the clamp at either end hides this:
+            // an offset thrown past the top or the bottom comes back as the top
+            // or the bottom, which is where it already was.
+            harness.wheel(2);
+            var before = harness.contentTop();
+            var thumb = harness.thumb();
+            assertTrue(thumb.top() > 4, "the thumb should be off the top of the track, and it is at " + thumb.top());
+
+            // Grabbed two pixels from the thumb's top and moved one pixel down.
+            // The content must follow by one pixel of travel -- and not by the
+            // half thumb a bar that recentres the thumb under the pointer would
+            // move it, which is what `ScrollBar`'s first `MOVED` used to do.
+            harness.pressAt(195, thumb.top() + 2);
+            harness.moveTo(195, thumb.top() + 3);
+
+            var travel = VIEWPORT_HEIGHT - thumb.height();
+            assertEquals(
+                    before - overflow / travel,
+                    harness.contentTop(),
+                    1.0,
+                    "a one-pixel drag moved " + (before - harness.contentTop()));
+
+            harness.release(195, thumb.top() + 3);
         }
     }
 
