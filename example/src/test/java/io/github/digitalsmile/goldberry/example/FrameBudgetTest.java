@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
@@ -63,8 +64,25 @@ import io.github.digitalsmile.goldberry.widgets.Widgets;
 ///   costs what the second one costs, and that number is a small multiple of the
 ///   box-building alone. This is what the 10 ms failure would have tripped.
 ///
-/// Run `./gradlew :example:test --tests '*FrameBudgetTest*' -i` to read the
+/// ## Why it is tagged `benchmark` and does not run under `check`
+///
+/// Because every assertion in it is a **clock**, and `docs/testing.md` §1.5 says
+/// a cost is guarded by a count and never by one. Its own history is the
+/// argument: the style row reads 3.6 ms on an idle machine and 20 ms under a
+/// parallel Gradle, on the same commit. A budget that fails for what else the
+/// machine was doing is a budget people learn to re-run rather than read, and a
+/// gate nobody believes is worse than no gate — which is the whole of ADR-0031.
+///
+/// So it runs in the benchmark lane, nightly and by hand, where its table is
+/// read rather than its assertions. What `check` should grow instead is the pair
+/// `TextAreaKeystrokeCostTest` is to `TextAreaFrameBenchmark`: the same
+/// scenarios asserted in **counts** — elements built, styles resolved,
+/// paragraphs shaped, rectangles damaged — which are the same numbers on every
+/// machine. That is not written yet, and this comment is the reason it is owed.
+///
+/// Run `./gradlew :example:benchmark --tests '*FrameBudgetTest*' -i` to read the
 /// table; it is printed whether or not the assertions hold.
+@Tag("benchmark")
 class FrameBudgetTest {
 
     /// Resolutions worth having a number for: a small laptop, a common desktop,

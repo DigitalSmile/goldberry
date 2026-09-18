@@ -48,6 +48,24 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **A cost is guarded by a count, never by a clock.** `TextAreaKeystrokeCostTest` is the pair to that benchmark and runs in `check`: it asserts that typing into a 500 kB note shapes and draws about what typing into a 2 kB note does — in characters, which is the same number on every machine. A wall-clock budget is not; `FrameBudgetTest`'s style row reads 3.6 ms alone and 20 ms under a parallel Gradle.
 - **A keystroke in a preview:** `:html`'s `MarkdownFrameBenchmark` types into a 2 kB, a 50 kB and a 500 kB note bound to a `markdown-view` inside a `scroll`, and reports build / style / layout / raster per keystroke. It carries a **control row** — md4c timed on its own, which is the same code whatever the view does — so two runs whose parse times disagree are two runs on two differently loaded machines and their other rows should not be compared. The numbers it took are in [ADR-0389](../book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md); what it measures is asserted as *counts* by `BlockReuseTest` — blocks built, blocks kept, paragraphs shaped — because a count says the same thing under a parallel build and a millisecond does not (§0.5).
 - **`BindingBenchmark`** (`:example`) prices the binding schema before and after ADR-0125, and its last row times the showcase's own `app.click` through the registry. It runs nightly only, so the two names it resolves are resolved under `check` by `ShowcaseActionsTest.theRoadsClickCounts` — a benchmark's scaffolding is not exempt from `check`, only its measurement is ([ADR-0397](../book/src/adr/0397-a-benchmarks-names-are-resolved-under-check.md)).
+- **The whole inventory**, because a benchmark nobody knows about is a measurement nobody re-runs. Every one is a JUnit class tagged `benchmark`, run by `./gradlew benchmark` (or `:<module>:benchmark`) and never by `check`:
+
+  | Benchmark | Module | What it prices |
+  |---|---|---|
+  | `PaintBenchmark` | `:core` | Painting a frame, and what Blend2D's workers do to it |
+  | `TextBenchmark` | `:core` | The text path — shaping, the paragraph cache, wrapping |
+  | `FrameBenchmark` | `:widgets` | A frame of a real widget tree, split by stage |
+  | `TextAreaFrameBenchmark` | `:widgets` | One keystroke into a 2 kB, a 50 kB and a 500 kB note (ADR-0388) |
+  | `MarkdownFrameBenchmark` | `:html` | The same keystroke through a `markdown-view`, with an md4c control row (ADR-0389) |
+  | `BindingSchemeBenchmark` | `:weaver` | The two ways of binding a model, against each other |
+  | `BindingCodegenBenchmark` | `:weaver` | Whether a jar should generate its binding rather than reflect |
+  | `DowncallBenchmark` | `:natives` | One foreign call, held both ways |
+  | `ModifierPollBenchmark` | `:natives` | The per-event modifier poll |
+  | `BindingBenchmark` | `:example` | The binding schema before and after ADR-0125, and the showcase's own names |
+  | `FrameBudgetTest` | `:example` | A frame of the real application, stage by stage and resolution by resolution |
+
+  `FrameBudgetTest` joined this table on 2026-09-18 rather than being written for it. It asserted per-stage wall-clock budgets under `check` — against the rule three paragraphs up, and against its own history: 3.6 ms for the style row alone and 20 ms for the same row under a parallel Gradle. What `check` is owed in its place is the counting pair, the way `TextAreaKeystrokeCostTest` is the pair to `TextAreaFrameBenchmark`; the class doc says so at the tag.
+
 - **JMH is wired on `:core`**, where the hot seams that are pure logic live. `CascadeBenchmark` resolves one element against a six-rule sheet: **0.476 ± 0.067 µs/op**. It is a source set (`src/jmh`) with forks, warm-up and a blackhole, so the number is not an artifact of the JIT specialising the loop away — which is what JMH adds over the `benchmark` task, and the only reason to run both.
 
 ### 1.6 Dual-mode & native-image lanes
