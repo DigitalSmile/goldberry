@@ -28,10 +28,10 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 /// of that depends on the font having outlines.
 ///
 /// What it cannot check is the shaping itself — ligatures, kerning, contextual
-/// forms — because those need a real font. Goldberry bundles none yet
-/// (`licenses/` is still placeholders), so that check waits for one rather than
-/// depending on whatever happens to be installed on the machine running the
-/// tests.
+/// forms — because those need a real font. The toolkit bundles fonts now —
+/// `:assets` fetches them and `:core` and `:emoji` compile them in — but
+/// `:natives` depends on neither of those and must not, so a shaping test with
+/// outlines in it belongs above this module rather than here.
 class ShapingTest {
 
     @BeforeAll

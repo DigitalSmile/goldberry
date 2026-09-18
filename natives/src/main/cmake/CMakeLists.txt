@@ -273,7 +273,7 @@ endif()
 
 # --- The download phase must be audible (ADR-0029) ---------------------------
 #
-# FetchContent clones five repositories totalling roughly 330 MB. Left to its
+# FetchContent clones seven repositories totalling roughly 330 MB. Left to its
 # defaults that is several silent minutes: FETCHCONTENT_QUIET swallows the
 # populate step's output, and git without --progress writes nothing at all when
 # stdout is not a terminal -- which it never is under Gradle's Exec. The build
@@ -622,9 +622,11 @@ endforeach()
 # ============================================================================
 # The one artifact
 #
-# goldberry_shim.c holds two things and nothing else: the ABI probe, and the
-# layout table that ADR-0010 makes the safety argument for hand-written
-# bindings. Everything else crosses the boundary through FFM downcalls.
+# goldberry_shim.c holds only what cannot live on the Java side, which its own
+# header lists: the ABI probe, the layout table that ADR-0010 makes the safety
+# argument for hand-written bindings, the capability word, the measure-callback
+# probe, and Markdown's encoded event stream. Everything else crosses the
+# boundary through FFM downcalls.
 # ============================================================================
 add_library(goldberry SHARED goldberry_shim.c)
 

@@ -378,15 +378,6 @@ public final class ModelWeaver {
 
     // --- reading what the author declared ------------------------------------
 
-    /// The internal name of `bytes` if it is a `@Model`, and null otherwise.
-    ///
-    /// The cheap first pass [WeaverMain] does over a whole tree, so that the
-    /// second one can refuse a model extending a model.
-    public static String modelName(byte[] bytes) {
-        var model = ClassFile.of().parse(bytes);
-        return isModel(model) ? model.thisClass().asInternalName() : null;
-    }
-
     /// What `bytes` contributes to the second pass, or null if it is not a model.
     ///
     /// The rewired fields only: a `Property` field is already observable and no

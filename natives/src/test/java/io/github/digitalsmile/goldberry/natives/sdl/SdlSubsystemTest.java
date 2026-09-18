@@ -9,28 +9,27 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import io.github.digitalsmile.goldberry.natives.layout.NativeConstant;
+import io.github.digitalsmile.goldberry.natives.layout.NativeConstants;
 
 class SdlSubsystemTest {
 
-    /// The literals are SDL's, from the `SDL_INIT_*` defines in
-    /// `SDL3/SDL_init.h`. Asserting them here means a mistyped bit shows up as a
-    /// failure rather than as a subsystem that silently never initializes.
+    /// This test used to hold a second copy of the eight `SDL_INIT_*` literals
+    /// and assert that it equalled the first. Two hand-written copies agreeing
+    /// says nothing about SDL: both were typed from the same header on the same
+    /// afternoon and would have been wrong together. The value is checked against
+    /// the compiled SDL now, by `goldberry_shim.c`'s constant rows, and what is
+    /// left here is the step a *new* subsystem is forgotten at — being in the
+    /// registry at all.
     @ParameterizedTest
-    @CsvSource({
-        "AUDIO,    0x00000010",
-        "VIDEO,    0x00000020",
-        "JOYSTICK, 0x00000200",
-        "HAPTIC,   0x00001000",
-        "GAMEPAD,  0x00002000",
-        "EVENTS,   0x00004000",
-        "SENSOR,   0x00008000",
-        "CAMERA,   0x00010000",
-    })
-    @DisplayName("bits match SDL_INIT_*")
-    void bitsMatchSdl(SdlSubsystem subsystem, int expected) {
-        assertEquals(expected, subsystem.bit());
+    @EnumSource(SdlSubsystem.class)
+    @DisplayName("every subsystem's bit is one the compiled library checks")
+    void everyBitIsRegistered(SdlSubsystem subsystem) {
+        assertTrue(
+                NativeConstants.registry().contains(new NativeConstant(subsystem.nativeName(), subsystem.bit())),
+                () -> subsystem.nativeName() + " is hard-coded in Java and verified by nothing");
     }
 
     @ParameterizedTest

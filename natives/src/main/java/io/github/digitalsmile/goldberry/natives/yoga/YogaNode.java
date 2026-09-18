@@ -598,14 +598,17 @@ public final class YogaNode implements AutoCloseable {
         }
         children.clear();
 
+        freed = true;
+        yoga.nodeFree(pointer);
         if (measure != null) {
             // After the node is gone nothing can call the stub, which is the
-            // only moment closing its arena is safe.
+            // only moment closing its arena is safe. The close used to run
+            // *before* `nodeFree`, with this comment above it: for the window
+            // between the two lines Yoga held a measure function whose upcall
+            // stub had been unmapped.
             measure.close();
             measure = null;
         }
-        freed = true;
-        yoga.nodeFree(pointer);
         if (config != null) {
             config.nodeFreed();
         }

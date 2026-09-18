@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.webp.calls.WebpCalls;
 
 /// The WebP decoder, as one call that hands back pixels Java owns —
@@ -253,11 +254,11 @@ public final class Webp {
             // The decoder points at these bytes and copies nothing, so they must
             // outlive it — which the arena is what guarantees.
             var data = copyIn(arena, bytes);
-            var webpData = arena.allocate(WEBP_DATA_BYTES);
-            webpData.set(ValueLayout.ADDRESS, 0, data);
-            webpData.set(ValueLayout.JAVA_LONG, 8, bytes.remaining());
+            var webpData = arena.allocate(Layouts.WEBP_DATA.byteSize());
+            webpData.set(ValueLayout.ADDRESS, Layouts.WEBP_DATA.offsetOf("bytes"), data);
+            webpData.set(ValueLayout.JAVA_LONG, Layouts.WEBP_DATA.offsetOf("size"), bytes.remaining());
 
-            var options = arena.allocate(ANIM_OPTIONS_BYTES);
+            var options = arena.allocate(Layouts.WEBP_ANIM_DECODER_OPTIONS.byteSize());
             options.fill((byte) 0);
             if (calls.animOptionsInit().call(options, WebpCalls.DEMUX_ABI_VERSION) == 0) {
                 return null;
@@ -267,14 +268,14 @@ public final class Webp {
                 return null;
             }
             try {
-                var info = arena.allocate(ANIM_INFO_BYTES);
+                var info = arena.allocate(Layouts.WEBP_ANIM_INFO.byteSize());
                 info.fill((byte) 0);
                 if (calls.animGetInfo().call(decoder, info) == 0) {
                     return null;
                 }
-                var width = info.get(ValueLayout.JAVA_INT, 0);
-                var height = info.get(ValueLayout.JAVA_INT, 4);
-                var loopCount = info.get(ValueLayout.JAVA_INT, 8);
+                var width = info.get(ValueLayout.JAVA_INT, Layouts.WEBP_ANIM_INFO.offsetOf("canvas_width"));
+                var height = info.get(ValueLayout.JAVA_INT, Layouts.WEBP_ANIM_INFO.offsetOf("canvas_height"));
+                var loopCount = info.get(ValueLayout.JAVA_INT, Layouts.WEBP_ANIM_INFO.offsetOf("loop_count"));
                 if (width <= 0 || height <= 0) {
                     return null;
                 }
@@ -360,16 +361,6 @@ public final class Webp {
             return loopCount;
         }
     }
-
-    /// `sizeof(WebPData)`: a pointer and a `size_t`.
-    private static final long WEBP_DATA_BYTES = 16;
-
-    /// `sizeof(WebPAnimDecoderOptions)`: a colour mode, a flag and seven words of
-    /// padding upstream reserved for later use.
-    private static final long ANIM_OPTIONS_BYTES = 4 + 4 + 7 * 4L;
-
-    /// `sizeof(WebPAnimInfo)`: five `uint32` fields and four of padding.
-    private static final long ANIM_INFO_BYTES = 9 * 4L;
 
     /// `bytes` in a confined segment libwebp can read.
     ///

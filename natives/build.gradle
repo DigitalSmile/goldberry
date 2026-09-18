@@ -94,7 +94,7 @@ def installDir = layout.buildDirectory.dir("native/${hostTarget.id}/install")
 ext.hostNativeLibrary = installDir.map { it.dir('lib').file(hostTarget.library) }
 ext.hostNativeTargetId = hostTarget.id
 
-// Where FetchContent clones the five upstreams -- roughly 330 MB, and several
+// Where FetchContent clones the seven upstreams -- roughly 330 MB, and several
 // minutes on a cold cache (ADR-0038).
 //
 // Deliberately OUTSIDE build/: `./gradlew clean` would otherwise discard every
@@ -568,7 +568,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // installed at all -- checkToolchain runs first and reports it properly.
     commandLine([cmakeExecutable?.absolutePath ?: 'cmake'] + configureArguments)
 
-    // The first configure clones five repositories and prints nothing useful
+    // The first configure clones seven repositories and prints nothing useful
     // while it does. Say so before the silence rather than after it -- being
     // told "this takes minutes" is the difference between waiting and killing
     // the build (ADR-0038).
@@ -578,7 +578,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             logger.lifecycle("""\
                 Goldberry: first native configure for ${hostTarget.id}.
 
-                Cloning Blend2D, AsmJit, Yoga, HarfBuzz and SDL3 into
+                Cloning Blend2D, AsmJit, Yoga, HarfBuzz, SDL3, md4c and libwebp into
                   ${cache}
                 -- about 330 MB, typically a few minutes on a warm connection.
 

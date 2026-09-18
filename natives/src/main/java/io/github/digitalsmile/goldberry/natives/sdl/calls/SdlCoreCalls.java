@@ -388,9 +388,11 @@ public record SdlCoreCalls(
     /// no `mod` field where its keyboard events do. Read at the moment an event
     /// is translated, which is inside the same pump that produced it.
     ///
-    /// Returns `SDL_Keymod`, a `Uint16` — the layout table’s "Uint16" scalar row
-    /// is what says so, and binding it as `JAVA_INT` would read two bytes of
-    /// whatever follows it in the return register.
+    /// Returns `SDL_Keymod`, a `Uint16` — SDL's own typedef is what says so, and
+    /// binding it as `JAVA_INT` would read two bytes of whatever follows it in
+    /// the return register. The layout table has no row for it, and does not need
+    /// one: it carries the widths of C's own types, and `Uint16` is SDL's name
+    /// for `short`, whose row is there.
     ///
     /// `short SDL_GetModState(void)`
     public static final class GetModState {

@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -14,6 +15,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.webp.calls.WebpCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 
 /// The registry of C constants the Java side hard-codes.
@@ -83,6 +85,18 @@ public final class NativeConstants {
         for (var value : Md4cEnum.all()) {
             constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
+        // The subsystems `SDL_Init` takes. A mask rather than an enumeration, so
+        // every bit is hard-coded on the Java side, and a wrong one asks SDL for
+        // a subsystem that does not exist: `SDL_Init` returns true having started
+        // nothing, and the failure surfaces as a window that never appears.
+        for (var subsystem : SdlSubsystem.values()) {
+            constants.add(new NativeConstant(subsystem.nativeName(), subsystem.bit()));
+        }
+        // Not an enumerator but a version number, and one that travels on every
+        // call to libwebp's two `…Internal` entry points. A pinned libwebp that
+        // bumps it refuses every animation, and a refusal is indistinguishable
+        // from "these bytes are not one" (ADR-0385).
+        constants.add(new NativeConstant("WEBP_DEMUX_ABI_VERSION", WebpCalls.DEMUX_ABI_VERSION));
         return List.copyOf(constants);
     }
 }

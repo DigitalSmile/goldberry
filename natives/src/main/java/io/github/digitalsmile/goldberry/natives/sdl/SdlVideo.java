@@ -775,16 +775,6 @@ public final class SdlVideo {
     // every call and — worse — meant the shape was decided at run time from the
     // arguments rather than at compile time from the constant (ADR-0161).
 
-    /// An SdlException raised on the way out of a call is SDL's answer, not a
-    /// broken binding, and is rethrown untouched — which is what the old
-    /// `invokeWithArguments` helper did and for the same reason.
-    private static RuntimeException failure(String name, Throwable cause) {
-        if (cause instanceof SdlException sdl) {
-            return sdl;
-        }
-        return new IllegalStateException(name + "() failed", cause);
-    }
-
     /// SDL's own drawing surface, borrowed.
     ///
     /// `pixels` is SDL's memory, not a copy. It stops being valid when the window
@@ -815,10 +805,5 @@ public final class SdlVideo {
                 throw new IllegalArgumentException("negative size " + width + "x" + height);
             }
         }
-    }
-
-    /// The event arms Goldberry reads, for callers that want the list.
-    public static List<SdlEventType> handledEvents() {
-        return List.of(SdlEventType.values());
     }
 }

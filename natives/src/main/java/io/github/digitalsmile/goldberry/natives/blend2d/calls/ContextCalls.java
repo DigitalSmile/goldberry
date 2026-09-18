@@ -20,10 +20,8 @@ public record ContextCalls(
         ContextInitAs contextInitAs,
         ContextEnd contextEnd,
         ContextDestroy contextDestroy,
-        ContextFlush contextFlush,
         ContextApplyTransformOp contextApplyTransformOp,
         ContextSetCompOp contextSetCompOp,
-        ContextClearAll contextClearAll,
         ContextFillAllRgba32 contextFillAllRgba32,
         ContextFillRectDRgba32 contextFillRectDRgba32,
         ContextFillGlyphRunDRgba32 contextFillGlyphRunDRgba32,
@@ -52,10 +50,8 @@ public record ContextCalls(
                 new ContextInitAs(lookup),
                 new ContextEnd(lookup),
                 new ContextDestroy(lookup),
-                new ContextFlush(lookup),
                 new ContextApplyTransformOp(lookup),
                 new ContextSetCompOp(lookup),
-                new ContextClearAll(lookup),
                 new ContextFillAllRgba32(lookup),
                 new ContextFillRectDRgba32(lookup),
                 new ContextFillGlyphRunDRgba32(lookup),
@@ -160,33 +156,6 @@ public record ContextCalls(
         }
     }
 
-    /// Waits for queued work without ending the context.
-    ///
-    /// `int bl_context_flush(void*, int)`
-    public static final class ContextFlush {
-
-        private static final MethodHandle FD_bl_context_flush =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
-
-        private final MemorySegment address;
-
-        ContextFlush(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "bl_context_flush");
-        }
-
-        /// Calls `bl_context_flush`.
-        ///
-        /// @param context the context to flush
-        /// @param flags a `BLContextFlushFlags`; `SYNC` waits for the workers
-        public int call(MemorySegment context, int flags) {
-            try {
-                return (int) FD_bl_context_flush.invokeExact(address, context, flags);
-            } catch (Throwable t) {
-                throw Downcalls.failure("bl_context_flush", t);
-            }
-        }
-    }
-
     /// Applies one transform operation to the context’s matrix.
     ///
     /// One entry point for every kind of transform, because that is the shape
@@ -241,34 +210,6 @@ public record ContextCalls(
                 return (int) FD_bl_context_set_comp_op.invokeExact(address, context, compOp);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_set_comp_op", t);
-            }
-        }
-    }
-
-    /// Clears the whole clip region to transparent black, replacing rather than
-    /// blending — which is why filling with a translucent colour twice does not
-    /// darken it.
-    ///
-    /// `int bl_context_clear_all(void*)`
-    public static final class ContextClearAll {
-
-        private static final MethodHandle FD_bl_context_clear_all =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
-
-        private final MemorySegment address;
-
-        ContextClearAll(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "bl_context_clear_all");
-        }
-
-        /// Calls `bl_context_clear_all`.
-        ///
-        /// @param context the context to clear
-        public int call(MemorySegment context) {
-            try {
-                return (int) FD_bl_context_clear_all.invokeExact(address, context);
-            } catch (Throwable t) {
-                throw Downcalls.failure("bl_context_clear_all", t);
             }
         }
     }

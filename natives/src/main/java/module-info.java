@@ -2,11 +2,12 @@
 /// HarfBuzz and SDL3 (ADR-0010), plus the thin owning wrappers
 /// around them.
 ///
-/// This module exports nothing yet, and that is the point. Per
-/// `docs/ARCHITECTURE.md` §3.1, raw `MemorySegment` must never escape this
-/// module; the module graph -- not a naming convention -- is what enforces it.
-/// When M0 lands, the exports added here will be the wrapper packages only, and
-/// the binding packages will stay unexported.
+/// This module exports the wrapper packages and nothing else, which is the
+/// point. Per `docs/ARCHITECTURE.md` §3.1, raw `MemorySegment` must never escape
+/// this module; the module graph -- not a naming convention -- is what enforces
+/// it. Every `…calls` package stays unexported, twelve of the wrapper packages
+/// are exported to one named reader each, and `ExportedSurfaceTest` is what holds
+/// the descriptor below to that description rather than this comment.
 ///
 /// This is also the module named in `--enable-native-access` (JEP 472): Java 25
 /// warns on restricted native access from the unnamed module, and a later
