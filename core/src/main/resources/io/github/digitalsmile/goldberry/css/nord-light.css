@@ -249,6 +249,21 @@
   --gb-chart-7: #cb6443;   /* nord12 orange */
   --gb-chart-8: #0d9999;   /* nord7 teal */
 
+  /* --- a QR code (ADR-0391) -----------------------------------------------
+     Near-black on white, and **identical in the dark theme**. A QR code is not
+     a themed surface: the specification's module convention is dark on light,
+     plenty of phone scanners will not read an inverted code, and a sign-in
+     screen that stopped scanning at night would be a theme deciding whether an
+     application works. So these two are the one pair of tokens in the sheet
+     that a theme does not get a vote on, and an application that knows its
+     scanner is happy inverted can still say so per node.
+
+     Near-black rather than black for §1.2's reason everywhere else: the
+     contrast a scanner needs is met at 15.9:1 and pure black buys nothing but
+     glare. */
+  --gb-qr-ink: #1a1a1a;
+  --gb-qr-paper: #ffffff;
+
   /* The hue, and the hue at a lightness that can carry text. See nord-dark for
      the whole argument; what matters here is that **`--gb-danger-fill` is the
      same value in both files and `--gb-accent-fill` is not**. `--nord11` is a

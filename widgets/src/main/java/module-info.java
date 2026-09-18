@@ -70,6 +70,15 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.core.canvas;
     exports io.github.digitalsmile.goldberry.widgets.core.image;
 
+    /// §1's `qr-code` (`docs/gaps.md` G47, ADR-0391). A package of its own
+    /// beside `image` for the same reason every widget has one: the cache that
+    /// makes a rebuild free and the device-pixel arithmetic that keeps a module
+    /// whole are parts, and a part is not constructible from outside
+    /// (ADR-0065). The **encoder** is not here at all — it is
+    /// [io.github.digitalsmile.goldberry.qr.QrEncoder] in `:core`, beside the
+    /// image codecs, because a specification is not a widget.
+    exports io.github.digitalsmile.goldberry.widgets.core.qrcode;
+
     /// `docs/core-widgets.md` §11's data widgets, built on `canvas` and the
     /// theme palette rather than on a chart engine (`content-widgets.md` §3).
     /// `sparkline` is the first and the smallest — no axes, no legend.

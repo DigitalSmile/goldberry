@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Gradient;
 import io.github.digitalsmile.goldberry.paint.Path;
 import io.github.digitalsmile.goldberry.paint.Stroke;
+import io.github.digitalsmile.goldberry.qr.Level;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -42,6 +43,7 @@ import io.github.digitalsmile.goldberry.widgets.core.canvas.Input;
 import io.github.digitalsmile.goldberry.widgets.core.image.Fit;
 import io.github.digitalsmile.goldberry.widgets.core.image.ImageSource;
 import io.github.digitalsmile.goldberry.widgets.core.image.ImageView;
+import io.github.digitalsmile.goldberry.widgets.core.qrcode.QrCode;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -355,6 +357,14 @@ public record CanvasScreen() implements Widget.Stateful {
 
         /// The sample the image card loads through the widget rather than a painter.
         private static final ImageSource SAMPLE = ImageSource.resource(CanvasScreen.class, "canvas-sample.jpg");
+
+        /// What the three codes on the card carry.
+        ///
+        /// A real link rather than a `tg://login?token=…`, because a sign-in
+        /// token is a credential and a showcase screenshot is published: the
+        /// gap this widget closes is Telegram's, and the demonstration is the
+        /// other half of it — "open this on your phone".
+        private static final String SHARE_LINK = "https://goldberry.example/open/showcase";
 
         private static Attributes id(String id, String... classes) {
             return new Attributes(id, Set.of(classes), id);
@@ -800,6 +810,20 @@ public record CanvasScreen() implements Widget.Stateful {
                                             + " virtual thread and draws it contained, covering, filling"
                                             + " and at its natural size. The first three boxes are square,"
                                             + " so each fit is visible by what it leaves out.")),
+                            captioned(
+                                    "A code for a phone",
+                                    id("qr-card"),
+                                    new Row(
+                                            List.of(
+                                                    new QrCode(SHARE_LINK, Level.L, 4, id("qr-low")),
+                                                    new QrCode(SHARE_LINK, Level.M, 4, id("qr-medium")),
+                                                    new QrCode(SHARE_LINK, Level.H, 4, id("qr-high"))),
+                                            id("qr-row")),
+                                    caption("The same link at error correction L, M and H. The third is a"
+                                            + " denser code for the same forty characters, because a"
+                                            + " quarter of it is parity — and all three are drawn with"
+                                            + " whole device pixels a module at every display scale, which"
+                                            + " is what a phone camera needs. Point one at it.")),
                             captioned(
                                     "Rendered with no window",
                                     id("rendered-card"),
