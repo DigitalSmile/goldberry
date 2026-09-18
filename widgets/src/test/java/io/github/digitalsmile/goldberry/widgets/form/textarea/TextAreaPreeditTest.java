@@ -158,6 +158,29 @@ class TextAreaPreeditTest {
         assertEquals(2, box(tree).composing().clauseEnd());
     }
 
+    /// `text-input`'s bug, in this control's own copy of the same six lines: the
+    /// early return compared the composition, the caret and the clause's start
+    /// and not its extent, so an input method growing the clause it is converting
+    /// — `Shift+Right`, and neither the text nor the start moves — was told
+    /// nothing had changed. Driven through the editor seam, because a
+    /// `PreeditEvent` derives its caret from the clause's own end and the two
+    /// cannot be told apart there.
+    @Test
+    @DisplayName("growing the clause without moving its start moves the highlight")
+    void resizesTheClause() {
+        var tree = mounted(new TextArea("", null));
+        box(tree).editor().compose("にほんご", 0, 0, 2);
+        render(tree);
+        assertEquals(2, box(tree).composing().clauseEnd());
+
+        var changed = box(tree).editor().compose("にほんご", 0, 0, 3);
+        render(tree);
+
+        assertTrue(changed, "an unchanged answer leaves the event unconsumed");
+        assertEquals(0, box(tree).composing().clauseStart());
+        assertEquals(3, box(tree).composing().clauseEnd(), "the clause covers the character just taken in");
+    }
+
     @Test
     @DisplayName("a composition hides a selection, because it replaces one when it commits")
     void compositionHidesTheSelection() {

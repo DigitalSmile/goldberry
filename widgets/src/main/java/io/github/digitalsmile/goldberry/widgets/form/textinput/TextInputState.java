@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Preedit;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -112,16 +113,10 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// It is *displayed* inside the text — spliced at the caret in [#build], so
     /// the characters after it move along as they do in every native field — and
     /// that splice is the only place it appears.
-    private String preedit = "";
-
-    /// Where the caret sits inside [#preedit], as a char offset.
-    private int preeditCaret;
-
-    /// The clause the input method is converting, within [#preedit]; -1 when the
-    /// platform reports none.
-    private int preeditClauseStart = -1;
-
-    private int preeditClauseEnd = -1;
+    ///
+    /// A [Preedit] rather than the four fields it holds: `text-area` needs the
+    /// same four and kept its own, and the pair drifted.
+    private final Preedit preedit = new Preedit();
 
     @Override
     protected void initState() {
@@ -205,9 +200,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // else would clear it: the empty TEXT_EDITING goes to whatever has focus,
         // which by then is something else.
         if (!focused || input.disabled() || input.readOnly() || input.password()) {
-            preedit = "";
-            preeditClauseStart = -1;
-            preeditClauseEnd = -1;
+            preedit.clear();
         }
 
         var displayed = mask.displayed(edit);
@@ -218,13 +211,9 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             // where every native field puts it, because an input method walks a
             // caret through the string it is assembling.
             var at = displayed.caret();
-            shown = new StringBuilder(shown).insert(at, preedit).toString();
-            displayed = new TextEdit(shown, at + preeditCaret, at + preeditCaret);
-            composing = new Composing(
-                    at,
-                    at + preedit.length(),
-                    preeditClauseStart < 0 ? -1 : at + preeditClauseStart,
-                    preeditClauseEnd < 0 ? -1 : at + preeditClauseEnd);
+            shown = new StringBuilder(shown).insert(at, preedit.text()).toString();
+            displayed = new TextEdit(shown, at + preedit.caret(), at + preedit.caret());
+            composing = preedit.composingAt(at);
         }
 
         // The placeholder is what an *empty* field shows, and a field being
@@ -420,7 +409,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     @Override
-    public boolean compose(String text, int caret, int clauseStart, int clauseEnd) {
+    public boolean compose(String text, int caret, int clauseStart, int clauseLength) {
         var input = widget();
         if (input.disabled() || input.readOnly() || input.password()) {
             // A `password` refuses -- see [TextEditor#compose]. The candidate
@@ -428,17 +417,14 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             // masked field that composed would put the password beside itself.
             return false;
         }
-        var clamped = Math.clamp(caret, 0, text.length());
-        var end = clauseStart < 0 ? -1 : Math.clamp(clauseStart + Math.max(0, clauseEnd), 0, text.length());
-        if (preedit.equals(text) && preeditCaret == clamped && preeditClauseStart == clauseStart) {
+        // Every part of the composition, the clause's extent included: an input
+        // method that resizes the clause it is converting without moving its
+        // start is drawing something different, and the comparison that left the
+        // extent out answered that nothing had happened ([Preedit]).
+        if (!preedit.wouldChange(text, caret, clauseStart, clauseLength)) {
             return !text.isEmpty();
         }
-        setState(() -> {
-            preedit = text;
-            preeditCaret = clamped;
-            preeditClauseStart = clauseStart;
-            preeditClauseEnd = end;
-        });
+        setState(() -> preedit.set(text, caret, clauseStart, clauseLength));
         // A composition moving is the caret moving, and a caret that blinked out
         // mid-composition is one the user cannot find.
         solid();
@@ -450,12 +436,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (preedit.isEmpty()) {
             return false;
         }
-        setState(() -> {
-            preedit = "";
-            preeditCaret = 0;
-            preeditClauseStart = -1;
-            preeditClauseEnd = -1;
-        });
+        setState(preedit::clear);
         return true;
     }
 
@@ -490,7 +471,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// there is one.
     private int displayCaret() {
         var at = mask.display(edit.caret());
-        return preedit.isEmpty() ? at : at + preeditCaret;
+        return preedit.isEmpty() ? at : at + preedit.caret();
     }
 
     @Override

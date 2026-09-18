@@ -187,6 +187,47 @@ class TextInputPreeditTest {
         assertTrue(highlight(tree).visible());
     }
 
+    /// The bug this caught: `compose` compared the composition, the caret and the
+    /// clause's *start*, and not how much of the composition the clause covered.
+    /// An input method that takes in the next character with `Shift+Right` —
+    /// which is how a Japanese IME grows the clause it is converting — moves
+    /// neither the text nor the start, so the field answered that nothing had
+    /// happened and went on highlighting the clause before last.
+    ///
+    /// Driven through the editor seam rather than through a `PreeditEvent`,
+    /// because the event derives its caret from the clause's own end: the two
+    /// move together there, and what the seam promises is four independent
+    /// numbers ([TextEditor#compose]).
+    @Test
+    @DisplayName("growing the clause without moving its start moves the highlight")
+    void resizesTheClause() {
+        var tree = mounted(new TextInput());
+        field(tree).editor().compose("にほんご", 0, 0, 2);
+        render(tree);
+        assertEquals(2, field(tree).composing().clauseEnd());
+
+        var changed = field(tree).editor().compose("にほんご", 0, 0, 3);
+        render(tree);
+
+        assertTrue(changed, "an unchanged answer here is an unconsumed event, which leaves the key to the field");
+        assertEquals(0, field(tree).composing().clauseStart(), "the clause still begins where it began");
+        assertEquals(3, field(tree).composing().clauseEnd(), "and now covers the character the user just took in");
+    }
+
+    @Test
+    @DisplayName("and shrinking it back is a change too")
+    void shrinksTheClause() {
+        var tree = mounted(new TextInput());
+        field(tree).editor().compose("にほんご", 0, 0, 3);
+        render(tree);
+
+        var changed = field(tree).editor().compose("にほんご", 0, 0, 1);
+        render(tree);
+
+        assertTrue(changed);
+        assertEquals(1, field(tree).composing().clauseEnd());
+    }
+
     @Test
     @DisplayName("no clause reported is a composition underlined and not highlighted")
     void noClauseNoHighlight() {
