@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.html.view.HtmlView;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -272,6 +273,19 @@ class SelectionTest {
         assertEquals(1, washed.size(), "one word, so one rectangle");
         assertEquals(link.left(), washed.getFirst().left(), 0.5);
         assertEquals(link.width(), washed.getFirst().width(), 0.5, "the whole of it, which is what a reader sees");
+    }
+
+    @Test
+    @DisplayName("inline content after a block is a block of its own, not the tail of the one above")
+    void inlineAfterABlock() {
+        // An HTML page rather than a note, because this is `html-view`'s fold: it
+        // announced one block boundary for a whole run of nodes, so the words after the
+        // `p` inherited the paragraph's block. What a copy says is where that shows --
+        // a space where the document means a newline, and a triple-click on either one
+        // taking both.
+        mount(HtmlView.of("<div><p>one</p>two</div>"));
+
+        assertEquals("one\ntwo", state().text(), "a browser draws two lines and a copy keeps the break");
     }
 
     @Test

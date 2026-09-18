@@ -127,7 +127,6 @@ final class HtmlWidgets {
     private List<Widget> blocks(List<HtmlNode> nodes) {
         var widgets = new ArrayList<Widget>(nodes.size());
         var run = new Prose();
-        minter.block();
         for (var node : nodes) {
             if (isInline(node)) {
                 run.add(node, Set.of());
@@ -158,7 +157,20 @@ final class HtmlWidgets {
         };
     }
 
+    /// The run so far as the paragraph nobody wrote, if it holds anything.
+    ///
+    /// **The block boundary is announced here and not once at the top of [#blocks]**,
+    /// because where it is announced decides which block the words land in. An implicit
+    /// paragraph can be the *last* thing in a parent — `<div><p>one</p>two</div>` — and
+    /// a boundary declared before the `p` was folded is one the `p` has already taken:
+    /// the trailing words were minted into the paragraph above them, so a copy joined
+    /// the two with a space where the document means a newline and a triple-click on
+    /// either took both (ADR-0301).
     private void flush(Prose run, List<Widget> widgets) {
+        if (run.isEmpty()) {
+            return;
+        }
+        minter.block();
         var line = run.take();
         if (!line.isEmpty()) {
             widgets.add(new Row(line, classes("html-prose")));
@@ -473,6 +485,13 @@ final class HtmlWidgets {
             pending.add(new Words.Node(
                     new Button(label, null, press, false, Attributes.NONE.classes(classes.toArray(String[]::new))),
                     label));
+        }
+
+        /// Whether nothing has been put in it — asked before a block is opened for it,
+        /// because a run holding nothing is not a paragraph and must not take a
+        /// boundary the block after it needs.
+        boolean isEmpty() {
+            return pending.isEmpty();
         }
 
         /// Everything built so far, and this builder is empty again.
