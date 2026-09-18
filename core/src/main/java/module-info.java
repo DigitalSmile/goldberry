@@ -187,6 +187,14 @@ module io.github.digitalsmile.goldberry.core {
     // catalogue cannot serve.
     exports io.github.digitalsmile.goldberry.text.edit;
 
+    // A long text shaped one hard line at a time (ADR-0388). Its own package
+    // beside the paragraph it is built out of, because it answers a different
+    // question: a paragraph is a label, and this is a document somebody is
+    // typing into. Exported for the same reason `text.edit` is -- an
+    // application editing text on a `canvas` needs it, and `text-area` is only
+    // the first caller.
+    exports io.github.digitalsmile.goldberry.text.document;
+
     // The font chain -- a face, a sized font, and the fallback list a
     // paragraph is shaped against -- separately from the paragraph itself
     // (ADR-0172). An application picks a font source; it does not lay out a

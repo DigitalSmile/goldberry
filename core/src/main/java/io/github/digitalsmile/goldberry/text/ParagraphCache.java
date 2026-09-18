@@ -91,6 +91,19 @@ public final class ParagraphCache {
     private long hits;
     private long misses;
 
+    /// How many characters have been through the shaper, over every miss.
+    ///
+    /// [#misses] counts *paragraphs*, and a paragraph is a word in one control
+    /// and half a megabyte in another. Between those two a keystroke into a long
+    /// note misses the cache exactly once either way, so the miss count says
+    /// nothing at all about what the frame cost — which is how `docs/gaps.md`
+    /// G44 stayed invisible to every counter this class had ([ADR-0388]).
+    ///
+    /// This is the number that moves when a control re-shapes something it did
+    /// not need to, and it is a **count**: a test can assert on it, where it
+    /// could not assert on the milliseconds behind it.
+    private long shapedCharacters;
+
     /// How many paragraphs this cache will hold before evicting.
     ///
     /// Mutable since ADR-0299, and read by the eviction hook below on every put —
@@ -177,6 +190,7 @@ public final class ParagraphCache {
         // `LinkedHashMap` promises nothing about.
         var shaped = Paragraph.of(font, text);
         misses++;
+        shapedCharacters += text.length();
         entries.put(key, shaped);
         return shaped;
     }
@@ -247,6 +261,11 @@ public final class ParagraphCache {
     /// this cache, evictions included.
     public long misses() {
         return misses;
+    }
+
+    /// How many characters those misses shaped. See the field's note.
+    public long shapedCharacters() {
+        return shapedCharacters;
     }
 
     /// Forgets everything. The paragraphs themselves need no closing — they hold

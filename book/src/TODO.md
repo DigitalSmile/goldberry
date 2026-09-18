@@ -939,6 +939,27 @@ on, which in four cases is the same thing.
 
 ## Rendering and performance
 
+- **Opening a long note still shapes all of it, on the frame that opens it.** A
+  keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
+  costs now, because the text is shaped one hard line at a time and only the rows
+  on screen are drawn. The first frame is not: 499 079 characters, 78 to 95 ms
+  across runs on this machine, and again whenever the cascade resolves a
+  different face. It is irreducible in
+  the shape the control has — how far the content scrolls is a fact about every
+  line, and nothing knows a line's height without shaping it — so closing it
+  means shaping the lines below the fold **off** the frame and filling in the
+  scroll range as they arrive, which is a different control and a different
+  promise about what the scrollbar means. Nobody has reported it: the downstream
+  editor's complaint was the keystroke, and `TextAreaFrameBenchmark` is where the
+  number would have to come from first (ADR-0045). —
+  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md)
+- **`Editor` still shapes its whole text.** The `canvas` editing seam from
+  ADR-0285 holds one `Paragraph` over everything it is given, which is what
+  `text-area` did until ADR-0388. `TextDocument` is exported and is the obvious
+  second caller. Nothing has measured an `Editor` over a document, so nothing has
+  earned the change. —
+  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md),
+  [ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
 - **What is still asserted only at 1x, now that the goldens are not.** Every one of
   the 106 golden images is drawn again at 2x and 1.5x and checked for being the same
   picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same

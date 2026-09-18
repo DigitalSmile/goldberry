@@ -23,8 +23,8 @@ import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.text.Paragraph;
-import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.text.document.DocumentLines;
+import io.github.digitalsmile.goldberry.text.document.TextDocument;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
@@ -60,6 +60,35 @@ import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 /// ├── text-caret       the insertion point
 /// └── text-area-gutter the number column's fill and rule, when there is one
 /// ```
+///
+/// ## Only the rows on screen are shaped and drawn
+///
+/// A paragraph is shaped and measured whole, which is right for a label and
+/// wrong for a document. A `text-area` is the one control in this catalog whose
+/// text can be half a megabyte, and every keystroke makes a different string —
+/// so a note held in one paragraph was re-shaped from the beginning on every
+/// keystroke. That is `docs/gaps.md` G44.
+///
+/// Two things changed, and between them everything here is bounded by the
+/// window rather than by the note ([ADR-0388]):
+///
+/// - **The geometry** — where the lines break, where the caret is, what a click
+///   hits, how tall the content is — comes from a [TextDocument], which shapes
+///   one hard line at a time and re-shapes only the line an edit touched.
+/// - **The glyphs** are one paragraph of the rows in view, taken as a slice of
+///   the text between two line starts. Greedy wrapping restarts at every line
+///   start, so re-wrapping that slice at the same width gives back exactly the
+///   rows the document said.
+///
+/// One box for the text and not one per row, and that is not tidiness: Yoga
+/// rounds every box it places onto the pixel grid, so a box per row would put
+/// each row at its own rounded offset while the rows *inside* a wrapped line
+/// stayed exact. The numbers are placed from the same origin for the same
+/// reason — one rounding, shared, is what keeps them from drifting.
+///
+/// What the `text-value` node is still for is the cascade: it resolves the ink,
+/// the `white-space` and the `.placeholder` rule, and this node draws with them.
+/// See [Value#carrier].
 ///
 /// ## The line numbers are drawn here, and that is deliberate
 ///
@@ -379,7 +408,10 @@ record TextAreaBox(
         for (var i = 0; i < maxRows; i++) {
             parts.add(new Highlight(wash));
         }
-        parts.add(new Value(display, placeholder));
+        // A carrier rather than the text: this node draws the visible lines
+        // itself, and what it needs from `text-value` is the ink the cascade
+        // resolved there ([ADR-0388]).
+        parts.add(Value.carrier(placeholder));
         parts.add(new Caret(focused && caretShown && !edit.hasSelection()));
         // And [#maxRows] underlines after them, for the highlights' reason: a
         // composition can wrap, and a run of wrapped text is not a rectangle.
@@ -433,21 +465,15 @@ record TextAreaBox(
     ///
     /// One while the placeholder is showing: a line number belongs to the
     /// document, and the placeholder is not one.
-    private int hardLines() {
-        if (placeholder) {
-            return 1;
-        }
-        var count = 1;
-        for (var i = 0; i < display.length(); i++) {
-            if (display.charAt(i) == '\n') {
-                count++;
-            }
-        }
-        return count;
+    ///
+    /// The document counted them when it split itself, so this is a field read
+    /// rather than the scan over the whole text it used to be ([ADR-0388]).
+    private int hardLines(TextDocument document) {
+        return placeholder ? 1 : document.hardLineCount();
     }
 
-    /// The gutter's whole contents, as one paragraph with one line per **visual**
-    /// line the text occupies.
+    /// The gutter's contents for the rows on screen, as one paragraph with one
+    /// line per **visual** line.
     ///
     /// A hard line contributes its number; every line it wrapped into contributes
     /// an empty one. So `"1\n2\n\n\n3"` is a three-line document whose second
@@ -459,49 +485,64 @@ record TextAreaBox(
     /// the control is right until the first line that wraps and wrong for every
     /// line below it, because nothing outside knows where the wrap fell.
     ///
-    /// **Every** line, not only the visible ones, so the paragraph can be
-    /// scrolled by exactly the offset the text is — the control clips, and the
-    /// lines above and below cost a string each.
-    private String gutterText(List<TextLine> lines) {
-        if (!gutter || lines.isEmpty()) {
+    /// **Only the rows in view**, which is the one thing ADR-0388 changed here:
+    /// numbering a ten-thousand-line note built a fifty-kilobyte string and
+    /// shaped it again whenever the line count moved, to draw forty numbers. The
+    /// paragraph starts at the first visible row rather than at the top of the
+    /// document, at the same origin the text does, so it still scrolls with the
+    /// text by construction.
+    ///
+    /// @param first the first visual row in view
+    /// @param last  the last, inclusive
+    private String gutterText(DocumentLines lines, int first, int last) {
+        if (!gutter) {
             return "";
         }
         var out = new StringBuilder();
-        var number = 0;
-        for (var i = 0; i < lines.size(); i++) {
-            if (i > 0) {
+        for (var i = first; i <= last; i++) {
+            if (i > first) {
                 out.append('\n');
             }
-            // The first visual line is line one; every other one starts a **hard**
-            // line only when the character before it is a newline. A wrap starts
-            // inside the text, so this is the whole of the distinction.
-            if (i == 0 || isHardBreak(lines.get(i).start())) {
-                out.append(++number);
+            // A row carries a number only where a hard line began. A row a wrap
+            // produced carries nothing, which is what puts the next number
+            // beside the line it belongs to.
+            var k = lines.hardLineOf(i);
+            if (lines.firstVisualOf(k) == i) {
+                out.append(k + 1);
             }
         }
         return out.toString();
     }
 
-    /// Whether the character before `offset` is a newline — which is what makes
-    /// the line starting there a **hard** one rather than a wrap.
-    private boolean isHardBreak(int offset) {
-        return offset > 0 && offset <= display.length() && display.charAt(offset - 1) == '\n';
-    }
-
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var padding = AreaPadding.of(style);
-        var paragraph = context.paragraph(style, display);
+        var font = context.font(style);
+        // One paragraph per hard line, re-using last frame's for every line the
+        // edit did not touch. The shaper is the renderer's cache, so a line this
+        // control has drawn before is not shaped again even when the document
+        // around it was rebuilt ([ADR-0388]).
+        var document = editor.shaped(display, font, line -> context.paragraph(style, line));
         // The gutter's width is decided before the text is laid out, because the
         // text wraps at what is left over — which is why it is computed from the
         // document's line count rather than from the layout it is about to cause
         // ([ADR-0331]).
-        var gutterWidth = gutterWidth(style, context, hardLines());
-        var offset = editor.laidOut(paragraph, padding, gutterWidth, style.textAlign());
+        var gutterWidth = gutterWidth(style, context, hardLines(document));
+        var offset = editor.laidOut(document, padding, gutterWidth, style.textAlign());
 
-        var lineHeight = paragraph.font().lineHeight();
+        var lineHeight = font.lineHeight();
         var width = editor.contentWidth();
-        var lines = paragraph.layout(width).lines();
+        var lines = document.lines(width);
+
+        // The rows on screen, and one more for the row a partial scroll shows
+        // half of. Everything below is drawn for these and for nothing else.
+        var firstVisual = lineHeight > 0 ? (int) Math.floor(offset / lineHeight) : 0;
+        firstVisual = Math.clamp(firstVisual, 0, Math.max(0, lines.size() - 1));
+        var lastVisual = Math.min(lines.size() - 1, firstVisual + Math.max(1, maxRows));
+        // Where the window is drawn: the first visible row's own top, less how
+        // far the content has scrolled. The glyphs and the numbers are both
+        // placed from this, so the one rounding Yoga does is shared.
+        var windowTop = firstVisual * lineHeight - offset;
 
         var boxes = new ArrayList<Box>(children.size());
         // In the padding box's coordinates, not the border box's: `ContainingBlock`
@@ -516,7 +557,7 @@ record TextAreaBox(
         var drawWash = composing.hasClause() || (!composing.isActive() && edit.hasSelection());
         var align = style.textAlign();
         var rects = drawWash
-                ? spanRects(paragraph, lines, washStart, washEnd, offset, lineHeight, align, width)
+                ? spanRects(document, lines, washStart, washEnd, offset, lineHeight, align, width)
                 : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < rects.size()) {
@@ -530,9 +571,18 @@ record TextAreaBox(
             }
         }
 
-        boxes.add(children.get(maxRows)
+        // The text: the rows on screen, as one paragraph — a slice of the
+        // document between two line starts, which re-wraps to exactly the rows
+        // the document said it would ([ADR-0388]). `text-value` resolved the ink
+        // and the flow and drew nothing, which is what [Value#carrier] is for.
+        var value = children.get(maxRows).text();
+        var ink = value == null ? style.color() : value.argb();
+        var flow = value == null ? style.textFlow() : value.flow();
+        var visible = display.substring(
+                lines.get(firstVisual).start(), lines.get(lastVisual).end());
+        boxes.add(Box.text(context.paragraph(style, visible), ink, flow)
                 .position(Position.ABSOLUTE)
-                .inset(leftTop(gutterWidth, -offset))
+                .inset(leftTop(gutterWidth, windowTop))
                 // A definite width, because an absolutely positioned box has no
                 // parent width to wrap against -- and it is the same number the
                 // caret was measured against, which is what keeps the two from
@@ -545,7 +595,7 @@ record TextAreaBox(
                 .size(Double.isFinite(width) ? Length.points((float) width) : Length.UNDEFINED, Length.UNDEFINED));
 
         var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
-        var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth, align, width);
+        var caret = caretRect(document, lines, offset, lineHeight, caretWidth, align, width);
         boxes.add(children.get(maxRows + 1)
                 .position(Position.ABSOLUTE)
                 .inset(leftTop(gutterWidth + caret.x(), caret.y()))
@@ -555,7 +605,7 @@ record TextAreaBox(
         // glyphs -- a mark on them rather than a wash behind them. Each sits on
         // the foot of its own line.
         var composed = composing.isActive()
-                ? spanRects(paragraph, lines, composing.start(), composing.end(), offset, lineHeight, align, width)
+                ? spanRects(document, lines, composing.start(), composing.end(), offset, lineHeight, align, width)
                 : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < composed.size()) {
@@ -573,21 +623,22 @@ record TextAreaBox(
         if (gutter) {
             strip = strip(children.get(gutterIndex()), style, padding, gutterWidth);
 
-            var numbers = gutterText(lines);
+            var numbers = gutterText(lines, firstVisual, lastVisual);
             if (!numbers.isEmpty()) {
                 var gap = context.length(GUTTER_GAP_TOKEN, GUTTER_GAP);
-                var ink = context.color(GUTTER_COLOR_TOKEN, context.color("--gb-text-muted", style.color()));
+                var numberInk = context.color(GUTTER_COLOR_TOKEN, context.color("--gb-text-muted", style.color()));
                 // Right-aligned against a box one gap narrower than the column, so
                 // every number ends the same distance from the text — and never
                 // wrapped, whatever `white-space` the cascade resolved for the
                 // control, because a line number that wrapped would be nonsense.
-                var flow = new TextFlow(WhiteSpace.NOWRAP, TextOverflow.CLIP, TextAlign.END, TextDecoration.NONE);
+                var numberFlow = new TextFlow(WhiteSpace.NOWRAP, TextOverflow.CLIP, TextAlign.END, TextDecoration.NONE);
                 var column = Math.max(1, gutterWidth - gap);
-                boxes.add(Box.text(context.paragraph(style, numbers), ink, flow)
+                boxes.add(Box.text(context.paragraph(style, numbers), numberInk, numberFlow)
                         .position(Position.ABSOLUTE)
-                        // The **same** offset the text is drawn at, which is what
-                        // makes the two scroll together rather than nearly.
-                        .inset(leftTop(0, -offset))
+                        // The **same** origin the text is drawn at, which is what
+                        // makes the two scroll together rather than nearly — one
+                        // number, rounded once, for both.
+                        .inset(leftTop(0, windowTop))
                         .size(Length.points((float) column), Length.UNDEFINED));
             }
         }
@@ -692,9 +743,13 @@ record TextAreaBox(
     /// A run of wrapped text is not a rectangle, which is the whole of what a
     /// second dimension costs the selection — and the reason `Paragraph`'s two
     /// measurements take a **line's** range rather than an offset.
+    /// Walked from the line the span **starts** on rather than from the top of
+    /// the document, and stopped at the line it ends on: a selection near the
+    /// end of a long note used to cost a walk over every line above it
+    /// ([ADR-0388]).
     private List<Rect> spanRects(
-            Paragraph paragraph,
-            List<TextLine> lines,
+            TextDocument document,
+            DocumentLines lines,
             int start,
             int end,
             double offset,
@@ -708,17 +763,20 @@ record TextAreaBox(
         }
         var from = Math.clamp(start, 0, display.length());
         var to = Math.clamp(end, 0, display.length());
-        for (var i = 0; i < lines.size() && rects.size() < maxRows; i++) {
+        for (var i = lines.indexOf(from); i < lines.size() && rects.size() < maxRows; i++) {
             var line = lines.get(i);
+            if (line.start() >= to) {
+                break;
+            }
             var left = Math.max(from, line.start());
             var right = Math.min(to, line.end());
             if (left >= right) {
                 continue;
             }
             rects.add(new Rect(
-                    align.indentOf(line.width(), width) + paragraph.widthBetween(line.start(), left),
+                    align.indentOf(line.width(), width) + document.widthBetween(line.start(), left),
                     i * lineHeight - offset,
-                    Math.max(1, paragraph.widthBetween(left, right))));
+                    Math.max(1, document.widthBetween(left, right))));
         }
         return rects;
     }
@@ -730,8 +788,8 @@ record TextAreaBox(
     /// the start of the next, and somebody who has just pressed `Right` means the
     /// next.
     private Rect caretRect(
-            Paragraph paragraph,
-            List<TextLine> lines,
+            TextDocument document,
+            DocumentLines lines,
             double offset,
             double lineHeight,
             double caretWidth,
@@ -739,20 +797,16 @@ record TextAreaBox(
             double width) {
 
         var at = Math.clamp(edit.caret(), 0, display.length());
-        var index = 0;
-        for (var i = 0; i < lines.size(); i++) {
-            if (lines.get(i).start() <= at) {
-                index = i;
-            }
-        }
+        // Asked of the document rather than walked for, which is the same answer
+        // and does not read a line the caret is nowhere near ([ADR-0388]).
+        var index = lines.indexOf(at);
         var line = lines.isEmpty() ? null : lines.get(index);
         // The line's own indent, because the paint gave each line its own share of
         // the slack — a caret measured from the paragraph's origin drifts by half of
         // it under `center` and by all of it under `end` ([ADR-0324]).
         var x = line == null
                 ? align.indentOf(0, width)
-                : align.indentOf(line.width(), width)
-                        + paragraph.widthBetween(line.start(), Math.max(at, line.start()));
+                : align.indentOf(line.width(), width) + document.widthBetween(line.start(), Math.max(at, line.start()));
         return new Rect(x, index * lineHeight - offset, caretWidth);
     }
 
