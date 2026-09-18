@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.paint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -81,14 +82,14 @@ class PaintThreadsTest {
     void forSurfaceUsesThePolicy() {
         var size = new PhysicalSize(1920, 1080);
 
-        // No property is set in the test JVM, so the two must agree. If one is
-        // ever set for a test run, this asserts nothing rather than failing.
+        // No property is set in the test JVM, so the two must agree. A run that
+        // sets one is aborted rather than quietly passing, because a test that
+        // asserts nothing is indistinguishable from one that holds.
         var configured = System.getProperty(PaintThreads.PROPERTY);
-        if (configured == null) {
-            assertEquals(
-                    PaintThreads.resolve(
-                            1920L * 1080, UNSET, Runtime.getRuntime().availableProcessors()),
-                    PaintThreads.forSurface(size));
-        }
+        assumeTrue(configured == null, () -> PaintThreads.PROPERTY + " is set to " + configured);
+
+        assertEquals(
+                PaintThreads.resolve(1920L * 1080, UNSET, Runtime.getRuntime().availableProcessors()),
+                PaintThreads.forSurface(size));
     }
 }

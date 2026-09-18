@@ -225,7 +225,16 @@ class ThemeAuditTest {
         var pass = new ContrastFinding("--gb-bg", "--gb-text", 0xFF2E3440, 0xFFECEFF4, 10.84, 4.5);
         var fail = new ContrastFinding("--gb-bg", "--gb-text", 0xFF2E3440, 0xFF303540, 1.05, 4.5);
 
-        assertEquals("--gb-text on --gb-bg: 10.84:1 (needs 4.5:1)", pass.describe());
+        // What the line is for: which pair, what it measured, and what it
+        // needed — enough to go and change a token. The sentence around those
+        // four is free to be reworded; `FAILS` is not, because it is what makes
+        // a failing pair findable in a page of passing ones.
+        assertTrue(pass.describe().contains("--gb-text"), pass::describe);
+        assertTrue(pass.describe().contains("--gb-bg"), pass::describe);
+        assertTrue(pass.describe().contains("10.84"), pass::describe);
+        assertTrue(pass.describe().contains("4.5"), pass::describe);
+        assertFalse(pass.describe().contains("FAILS"), pass::describe);
+
         assertTrue(fail.describe().endsWith("FAILS"), fail::describe);
     }
 

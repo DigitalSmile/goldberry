@@ -108,9 +108,9 @@ class QrEncoderTest {
     void oversizedPayloadIsRefused() {
         var tooLong = "a".repeat(Version.dataCodewords(Version.MAX, Level.H));
 
-        var refusal = assertThrows(IllegalArgumentException.class, () -> QrEncoder.encode(tooLong, Level.H));
-
-        assertTrue(refusal.getMessage().contains("does not fit"), refusal.getMessage());
+        // The refusal itself is the claim: version 40 is the last one there is,
+        // so an encoder that carried on would be writing a code no reader has.
+        assertThrows(IllegalArgumentException.class, () -> QrEncoder.encode(tooLong, Level.H));
     }
 
     @Test

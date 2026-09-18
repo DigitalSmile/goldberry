@@ -393,12 +393,16 @@ class RenderTreeTest {
         }
 
         @Test
-        @DisplayName("closing twice is harmless")
+        @DisplayName("closing twice is harmless, and still closed after it")
         void closedTwice() {
             var tree = RenderTree.create();
             tree.update(target.frame(), sized(10, 10));
             tree.close();
             tree.close();
+
+            // The second close must be a no-op and not a reopening: `closed`
+            // above is what every other method is guarded by.
+            assertThrows(IllegalStateException.class, () -> tree.update(target.frame(), sized(10, 10)));
         }
 
         @Test

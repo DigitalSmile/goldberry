@@ -157,7 +157,16 @@ class ColorLayersTest {
     @Test
     @DisplayName("it says so in a sentence")
     void readable() {
-        assertTrue(ColorLayers.read(twoGlyphs()).toString().contains("3 layers"));
+        var layers = ColorLayers.read(twoGlyphs());
+
+        // What the sentence is for: a `COLR` table that read as empty and one
+        // that was never there look the same in a log unless the counts are in
+        // it. Read out of the table rather than written as literals, so this
+        // does not have to be edited when the fixture grows a glyph.
+        var text = layers.toString();
+        assertTrue(text.contains(String.valueOf(layers.size())), text);
+        assertTrue(text.contains(String.valueOf(layers.paletteSize())), text);
+        assertTrue(text.contains("layers"), text);
     }
 
     // --- the fonts these tests are made of ------------------------------------

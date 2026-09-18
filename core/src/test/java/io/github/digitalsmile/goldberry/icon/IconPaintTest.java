@@ -13,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.paint.Path;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
@@ -158,10 +159,15 @@ class IconPaintTest {
     void unknownIconIsRefusedByName() {
         var thrown = assertThrows(NoSuchElementException.class, () -> Icon.bundled("no-such-icon", 24));
 
+        // The name the caller typed, and how many icons there actually are --
+        // which is what tells "wrong name" apart from "the icon table did not
+        // load". Read out of the set rather than matched as any digit at all,
+        // which a stack trace would have satisfied.
         assertTrue(thrown.getMessage().contains("no-such-icon"), thrown::getMessage);
-        // The count is in the message so a caller can tell "wrong name" from
-        // "the icon table did not load".
-        assertTrue(thrown.getMessage().matches("(?s).*\\d+.*"), thrown::getMessage);
+        assertTrue(
+                thrown.getMessage()
+                        .contains(String.valueOf(BundledAssets.iconNames().size())),
+                thrown::getMessage);
     }
 
     @ParameterizedTest

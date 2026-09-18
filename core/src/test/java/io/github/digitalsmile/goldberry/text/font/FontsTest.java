@@ -163,6 +163,11 @@ class FontsTest {
         void idempotent() {
             fonts.close();
             fonts.close();
+
+            // Not "it does not throw": the second close must also leave the book
+            // closed, which is what a guard written to make the call a no-op
+            // would get wrong by flipping the flag back.
+            assertTrue(fonts.isClosed());
         }
 
         @Test

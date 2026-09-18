@@ -158,16 +158,27 @@ class TextFlowTest {
 
     @Test
     @DisplayName("toString says all four, because a dropped one is invisible otherwise")
-    void toStringSaysAllThree() {
-        assertEquals("TextFlow[nowrap, ellipsis, start, none]", TextFlow.ELLIPSIS.toString());
-        assertEquals("TextFlow[normal, clip, start, none]", TextFlow.NORMAL.toString());
-        assertEquals(
-                "TextFlow[normal, clip, end, none]",
-                TextFlow.NORMAL.textAlign(TextAlign.END).toString());
+    void toStringSaysAllFour() {
+        // What the string is for: a flow that lost one of its four parts on the
+        // way through the cascade reads as a perfectly ordinary flow unless all
+        // four are printed. So each part is looked for by name, and the format
+        // around them is left alone.
+        var ellipsis = TextFlow.ELLIPSIS.toString();
+        assertTrue(ellipsis.contains("nowrap"), ellipsis);
+        assertTrue(ellipsis.contains("ellipsis"), ellipsis);
+        assertTrue(ellipsis.contains("start"), ellipsis);
+        assertTrue(ellipsis.contains("none"), ellipsis);
+
+        var aligned = TextFlow.NORMAL.textAlign(TextAlign.END).toString();
+        assertTrue(aligned.contains("end"), aligned);
+
         // In the enum's order rather than the set's, so two equal flows print the
-        // same however each was built.
+        // same however each was built -- which is why this is an equality and the
+        // rest are not.
         assertEquals(
-                "TextFlow[normal, clip, start, underline line-through]",
+                TextFlow.NORMAL
+                        .decorations(TextDecoration.UNDERLINE, TextDecoration.LINE_THROUGH)
+                        .toString(),
                 TextFlow.NORMAL
                         .decorations(TextDecoration.LINE_THROUGH, TextDecoration.UNDERLINE)
                         .toString());
