@@ -149,8 +149,9 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     ///
     /// @param words where the minter is, so a skipped block's entries are kept
     /// @param tasks how many task boxes have been numbered
-    /// @param wiring which handlers the view has, because a link with none is drawn
-    ///        inert and is a different widget
+    /// @param wiring what the view has been given, because a link with no handler is
+    ///        drawn inert and is a different widget, and a picture is whatever this
+    ///        build's [ImageSource] answered — see [MarkdownWiring#signature()]
     private record Mark(WordMinter.Mark words, int tasks, int wiring) {}
 
     @Override
