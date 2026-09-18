@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.render.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -85,6 +86,54 @@ class EventLoopTimerTest {
                 java.util.List.of("kept"),
                 fired,
                 "the cancelled one was still in the list when the loop woke for the other");
+    }
+
+    /// The 2026-09-18 review's C14.
+    ///
+    /// `isPending()` was `!cancelled`, and `fireDueTimers` removes a timer from
+    /// the list without telling it anything — so a timer that had *fired*
+    /// answered "still going to fire", for ever. A caller holding one to decide
+    /// whether to schedule another was told to wait for something that had
+    /// already happened.
+    @Test
+    @Timeout(10)
+    @DisplayName("a timer that has fired is no longer pending")
+    void firedIsNotPending() {
+        withAWindow();
+        var pendingInside = new ArrayList<Boolean>();
+        var handle = new EventLoop.Timer[1];
+
+        handle[0] = loop.after(Duration.ofMillis(5), () -> {
+            // Asked from inside its own action: it is firing, not waiting.
+            pendingInside.add(handle[0].isPending());
+            loop.stop();
+        });
+        assertTrue(handle[0].isPending(), "a timer that has not fired is pending");
+
+        loop.run(event -> {});
+
+        assertEquals(List.of(false), pendingInside);
+        assertFalse(handle[0].isPending(), "a timer that has fired is not going to fire again");
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("cancelling a timer that already fired changes nothing and does not throw")
+    void cancelAfterFiring() {
+        withAWindow();
+        var fired = new ArrayList<String>();
+        var handle = new EventLoop.Timer[1];
+
+        handle[0] = loop.after(Duration.ofMillis(5), () -> {
+            fired.add("once");
+            loop.stop();
+        });
+        loop.run(event -> {});
+
+        handle[0].cancel();
+
+        assertEquals(List.of("once"), fired);
+        assertFalse(handle[0].isPending());
     }
 
     @Test

@@ -157,7 +157,7 @@ public final class EventLoop implements AutoCloseable {
         var now = System.nanoTime();
         var earliest = Long.MAX_VALUE;
         for (var timer : timers) {
-            if (!timer.cancelled) {
+            if (timer.isPending()) {
                 earliest = Math.min(earliest, timer.dueNanos);
             }
         }
@@ -187,7 +187,7 @@ public final class EventLoop implements AutoCloseable {
         var due = new ArrayList<Timer>();
         for (var iterator = timers.iterator(); iterator.hasNext(); ) {
             var timer = iterator.next();
-            if (timer.cancelled) {
+            if (timer.state != Timer.State.PENDING) {
                 iterator.remove();
             } else if (timer.dueNanos <= now) {
                 iterator.remove();
@@ -196,9 +196,16 @@ public final class EventLoop implements AutoCloseable {
         }
         due.sort(Comparator.comparingLong(timer -> timer.dueNanos));
         for (var timer : due) {
-            if (!timer.cancelled) {
-                timer.action.run();
+            // Cancelled *by an earlier timer in this same batch* -- the reason
+            // this is re-read rather than assumed from the loop above.
+            if (timer.state != Timer.State.PENDING) {
+                continue;
             }
+            // Marked before the action rather than after it, so a handler asking
+            // `isPending()` about its own timer is told the truth: it is firing,
+            // not waiting.
+            timer.state = Timer.State.FIRED;
+            timer.action.run();
         }
     }
 
@@ -209,9 +216,22 @@ public final class EventLoop implements AutoCloseable {
     /// every pointer move.
     public static final class Timer {
 
+        /// Pending, and then one of the two ways of being over.
+        ///
+        /// A `boolean cancelled` stood here, and [#isPending()] was `!cancelled`
+        /// — so a timer that had *fired* answered "still going to fire", for ever
+        /// (the 2026-09-18 review, C14). `fireDueTimers` removes it from the list
+        /// without telling it anything, which is why the timer has to know for
+        /// itself.
+        private enum State {
+            PENDING,
+            FIRED,
+            CANCELLED
+        }
+
         private final long dueNanos;
         private final Runnable action;
-        private boolean cancelled;
+        private State state = State.PENDING;
 
         /// Package-private rather than private, so that a test fixture in this
         /// package can hand one out for a fake event loop — the same privilege
@@ -223,14 +243,23 @@ public final class EventLoop implements AutoCloseable {
             this.action = action;
         }
 
-        /// Stops it firing. Idempotent, and harmless after it already has.
+        /// Stops it firing. Idempotent, and harmless after it already has — a
+        /// timer that has fired stays fired rather than becoming cancelled,
+        /// because cancelling something that already happened is not a thing that
+        /// happened.
         public void cancel() {
-            cancelled = true;
+            if (state == State.PENDING) {
+                state = State.CANCELLED;
+            }
         }
 
         /// Whether it is still going to fire.
+        ///
+        /// False once it has fired and false once it is cancelled: those are the
+        /// two ways of not being going to fire, and a caller asking this question
+        /// wants one answer for both.
         public boolean isPending() {
-            return !cancelled;
+            return state == State.PENDING;
         }
     }
 
