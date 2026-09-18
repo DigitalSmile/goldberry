@@ -7,12 +7,9 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 
@@ -29,6 +26,14 @@ import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 /// fields, so the compiler inserts four bytes before `source` to align it. A
 /// layout that counted by hand would read the dropped path out of the middle of a
 /// pointer — which does not crash, it just hands back nonsense.
+///
+/// **No native library, and therefore no skip.** Every offset here is read off
+/// the Java [Layouts] declaration and every byte is written into an arena, so
+/// nothing in this file loads `libgoldberry`. It used to open with
+/// `assumeTrue(NativeLibrary.isAvailable())` anyway, which skipped the whole
+/// class on a machine with no superbuild and — because it was an assumption
+/// rather than [io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement]
+/// — skipped it silently in CI too (ADR-0016).
 class SdlDropEventTest {
 
     private static final long TYPE = Layouts.SDL_COMMON_EVENT.offsetOf("type");
@@ -36,11 +41,6 @@ class SdlDropEventTest {
     private static final long DROP_Y = Layouts.SDL_DROP_EVENT.offsetOf("y");
     private static final long DROP_SOURCE = Layouts.SDL_DROP_EVENT.offsetOf("source");
     private static final long DROP_DATA = Layouts.SDL_DROP_EVENT.offsetOf("data");
-
-    @BeforeAll
-    static void requireLibrary() {
-        Assumptions.assumeTrue(NativeLibrary.isAvailable(), "no libgoldberry to read struct offsets from");
-    }
 
     @Test
     @DisplayName("a dropped file's name and position read back exactly")

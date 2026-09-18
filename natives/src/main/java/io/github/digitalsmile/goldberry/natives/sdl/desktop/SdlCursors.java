@@ -90,19 +90,19 @@ public final class SdlCursors implements AutoCloseable {
 
     /// Destroys every cursor created here.
     ///
-    /// Idempotent, and resets to SDL's default first: destroying the cursor that
-    /// is currently set leaves SDL pointing at freed memory, which it documents
-    /// and which nothing else here would notice.
+    /// Idempotent. It used to set the default cursor first, on the grounds that
+    /// destroying the one currently shown would leave SDL pointing at freed
+    /// memory — which was true of SDL 2 and is not true of SDL 3:
+    /// `SDL_DestroyCursor` says in as many words that it reverts to the default
+    /// cursor if the one being destroyed is active. So the reset was a call into
+    /// SDL to prevent something SDL already prevents, made at shutdown, in an
+    /// order that mattered.
     @Override
     public void close() {
         if (closed) {
             return;
         }
         closed = true;
-        var fallback = cursors.get(SdlSystemCursor.DEFAULT);
-        if (fallback != null && current != null && current != SdlSystemCursor.DEFAULT) {
-            setCursor(fallback);
-        }
         for (var entry : cursors.entrySet()) {
             if (!MemorySegment.NULL.equals(entry.getValue())) {
                 sdlCursorCalls.destroyCursor().call(entry.getValue());

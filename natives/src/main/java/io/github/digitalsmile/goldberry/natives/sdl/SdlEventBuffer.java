@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
@@ -428,9 +427,5 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// The size SDL is entitled to write, for the assertion in [SdlVideo].
     static long byteSize() {
         return Layouts.SDL_EVENT.byteSize();
-    }
-
-    static MemoryLayout layout() {
-        return Layouts.SDL_EVENT.layout();
     }
 }

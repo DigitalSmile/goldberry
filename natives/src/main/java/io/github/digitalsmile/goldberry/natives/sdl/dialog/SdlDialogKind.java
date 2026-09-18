@@ -21,9 +21,4 @@ public enum SdlDialogKind {
     public boolean takesFilters() {
         return this != OPEN_FOLDER;
     }
-
-    /// Whether SDL takes `allow_many` for this kind.
-    public boolean takesAllowMany() {
-        return this != SAVE_FILE;
-    }
 }

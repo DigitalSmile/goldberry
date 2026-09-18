@@ -5,14 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.foreign.ValueLayout;
 
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
@@ -25,6 +22,14 @@ import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 /// checked against the compiled C, so writing a field at the offset the layout
 /// names and reading it back through the accessor proves the accessor reads the
 /// arm it claims to.
+///
+/// **No native library, and therefore no skip.** Nothing here loads
+/// `libgoldberry`: the offsets are the Java declaration's and the bytes are an
+/// arena's. The `assumeTrue(NativeLibrary.isAvailable())` this used to open with
+/// skipped the class wherever the superbuild had not run, and skipped it in CI
+/// as well, because an assumption is not
+/// [io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement]
+/// (ADR-0016).
 class SdlEventBufferTest {
 
     private static final long WHEEL_X = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");
@@ -33,11 +38,6 @@ class SdlEventBufferTest {
     private static final long WHEEL_MOUSE_X = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
     private static final long WHEEL_MOUSE_Y = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_y");
     private static final long TYPE = Layouts.SDL_COMMON_EVENT.offsetOf("type");
-
-    @BeforeAll
-    static void requireLibrary() {
-        Assumptions.assumeTrue(NativeLibrary.isAvailable(), "no libgoldberry to read struct offsets from");
-    }
 
     /// Fills the buffer with a wheel event and hands it back.
     private static void writeWheel(SdlEventBuffer buffer, float x, float y, int direction) {

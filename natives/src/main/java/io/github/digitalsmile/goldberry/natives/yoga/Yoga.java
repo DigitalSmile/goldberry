@@ -392,15 +392,4 @@ final class Yoga {
         }
         return pointer;
     }
-
-    /// A failed downcall.
-    ///
-    /// Yoga has no error channel: its C API returns void almost everywhere and
-    /// aborts on a violated precondition rather than reporting one. So anything
-    /// caught here is a broken binding — a [Downcalls] constant that does not
-    /// match the C prototype — not a Yoga error, and the message says so rather
-    /// than blaming the caller.
-    private static IllegalStateException failure(String name, Throwable cause) {
-        return new IllegalStateException(name + "() failed", cause);
-    }
 }
