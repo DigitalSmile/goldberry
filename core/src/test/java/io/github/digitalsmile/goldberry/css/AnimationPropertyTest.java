@@ -63,6 +63,33 @@ class AnimationPropertyTest {
                 resolve("animation: pulse 1s").entries().getFirst());
     }
 
+    /// The one place a unitless number and a `<time>` collide.
+    ///
+    /// `milliseconds` accepts a unitless zero, which is right for `transition` —
+    /// `0` has no duration to be wrong about, and `transition` has no count for it
+    /// to be instead. It was asked first here, so the `0` below became the delay
+    /// and the count stayed at its default of one: an animation asked to run no
+    /// times ran once.
+    @Test
+    @DisplayName("a bare 0 is an iteration count, not a time — `animation: spin 1s 0` runs it no times")
+    void aBareZeroIsACount() {
+        var entry = resolve("animation: spin 1s 0").entries().getFirst();
+
+        assertEquals(0, entry.iterations(), "a bare number in this shorthand is the count");
+        assertEquals(1000, entry.durationMillis());
+        assertEquals(0, entry.delayMillis());
+    }
+
+    @Test
+    @DisplayName("and a zero delay still has to say so, which is what a unit is for")
+    void aZeroDelayNeedsItsUnit() {
+        var entry = resolve("animation: spin 1s 0s 3").entries().getFirst();
+
+        assertEquals(1000, entry.durationMillis());
+        assertEquals(0, entry.delayMillis());
+        assertEquals(3, entry.iterations());
+    }
+
     @Test
     @DisplayName("a later longhand changes one part of an animation an earlier rule named — a stagger")
     void longhandsOverlay() {
