@@ -83,6 +83,32 @@ class ItemizerTest {
     }
 
     @Test
+    @DisplayName("a skin tone belongs to its base even when the base is drawn as a glyph on its own")
+    void modifiersJoinAGlyphBase() {
+        // `☝` (U+261D) is Emoji=Yes and Emoji_Presentation=No, so on its own it
+        // is a glyph — but UTS #51 says an `emoji_modifier_sequence` has emoji
+        // presentation whatever its base has. Without that rule the base stayed
+        // in the text run and the swatch after it started a picture run of its
+        // own: a bare skin tone drawn beside a pointing finger (the 2026-09-18
+        // review, C13).
+        var pointing = "☝🏻";
+
+        assertEquals(List.of(new TextRun(0, pointing.length(), Slot.EMOJI)), Itemizer.runs(pointing));
+    }
+
+    @Test
+    @DisplayName("a skin tone after something that cannot take one is still its own run")
+    void aModifierWithNoBaseStandsAlone() {
+        // `❤` is Emoji_Modifier_Base=No, so this is not a sequence — the two are
+        // two clusters, and the heart keeps its text presentation.
+        var runs = Itemizer.runs("❤🏻");
+
+        assertEquals(2, runs.size(), () -> "expected a glyph and a swatch, got " + runs);
+        assertEquals(Slot.TEXT, runs.getFirst().slot());
+        assertEquals(Slot.EMOJI, runs.getLast().slot());
+    }
+
+    @Test
     @DisplayName("U+FE0F asks for the picture, and gets it")
     void theEmojiSelectorRoutes() {
         // A bare heart is Emoji=Yes and Emoji_Presentation=No: Unicode draws it

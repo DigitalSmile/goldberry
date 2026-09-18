@@ -128,6 +128,15 @@ public final class Itemizer {
                 // The author asked for the glyph. Consuming the selector here
                 // would leave it to start a run of its own.
                 return at;
+            } else if (Character.isEmojiModifierBase(first) && Character.isEmojiModifier(next)) {
+                // UTS #51: an `emoji_modifier_sequence` is a base followed by a
+                // skin tone, and the *sequence* has emoji presentation however
+                // the base is presented on its own. `☝` (U+261D) is
+                // `Emoji_Presentation=No`, so without this the base stayed in
+                // the text run and the swatch after it started a picture run of
+                // its own -- a bare skin tone drawn beside a glyph nobody asked
+                // to separate (the 2026-09-18 review, C13).
+                presented = true;
             }
         }
         return presented ? extend(text, end) : at;

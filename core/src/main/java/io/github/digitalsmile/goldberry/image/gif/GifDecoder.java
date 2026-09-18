@@ -224,9 +224,12 @@ public final class GifDecoder {
         var in = bytes.slice().order(ByteOrder.LITTLE_ENDIAN);
         try {
             return read(in);
-        } catch (BufferUnderflowException | IndexOutOfBoundsException e) {
+        } catch (BufferUnderflowException | IndexOutOfBoundsException | ArithmeticException e) {
             // A truncated file, which is an ordinary thing to be handed and not a
-            // bug here. Translated so a caller catches one type.
+            // bug here. Translated so a caller catches one type -- which is the
+            // whole contract, so `ArithmeticException` is here too: the sizes in
+            // a GIF are the file's numbers, and an overflow on them is a
+            // malformed file rather than a defect in this class.
             throw new GifFormatException("this GIF ends in the middle of a block: " + in.limit() + " bytes", e);
         }
     }
@@ -248,7 +251,7 @@ public final class GifDecoder {
         var in = bytes.slice().order(ByteOrder.LITTLE_ENDIAN);
         try {
             return readAll(in);
-        } catch (BufferUnderflowException | IndexOutOfBoundsException e) {
+        } catch (BufferUnderflowException | IndexOutOfBoundsException | ArithmeticException e) {
             throw new GifFormatException("this GIF ends in the middle of a block: " + in.limit() + " bytes", e);
         }
     }
@@ -333,6 +336,11 @@ public final class GifDecoder {
     }
 
     /// The header, up to and including the global colour table.
+    /// The most pixels this decoder will allocate for one image: 256 megapixels,
+    /// a gigabyte of `int[]`. Comfortably above any picture and well below what
+    /// two 16-bit fields can name.
+    private static final long MAX_PIXELS = 256L * 1024 * 1024;
+
     private static Screen header(ByteBuffer in) {
         in.position(6);
         var width = Short.toUnsignedInt(in.getShort());
@@ -343,6 +351,16 @@ public final class GifDecoder {
         if (width <= 0 || height <= 0) {
             throw new GifFormatException(
                     "a GIF's logical screen is " + width + "x" + height + ", which is not a size an image can have");
+        }
+        // Both fields are 16 bits, so a header may legally claim 65535x65535 --
+        // four billion pixels, sixteen gigabytes of `int[]`. `Math.multiplyExact`
+        // below threw `ArithmeticException` for it, which `decode` does not
+        // translate and `Image.decodeGif` therefore does not turn into an
+        // `ImageDecodeException` (the 2026-09-18 review, C12). Refused here, in
+        // the format's own words, rather than as arithmetic.
+        if ((long) width * height > MAX_PIXELS) {
+            throw new GifFormatException("a GIF's logical screen is " + width + "x" + height + ", which is "
+                    + (long) width * height + " pixels: more than this decoder will allocate");
         }
         int[] palette = null;
         if ((packed & 0x80) != 0) {
@@ -396,7 +414,7 @@ public final class GifDecoder {
         // The block length is always 4 in every version of the specification, but
         // skipping by what it says rather than by what it should say costs
         // nothing and survives an extension.
-        in.position(in.position() + Math.max(0, size - 4));
+        skip(in, Math.max(0, size - 4));
         skipSubBlocks(in);
         return new Control((fields >> 2) & 0x07, hundredthsToMillis(hundredths), (fields & 0x01) != 0 ? index : -1);
     }
@@ -595,8 +613,24 @@ public final class GifDecoder {
     private static void skipSubBlocks(ByteBuffer in) {
         var length = Byte.toUnsignedInt(in.get());
         while (length != 0) {
-            in.position(in.position() + length);
+            skip(in, length);
             length = Byte.toUnsignedInt(in.get());
         }
+    }
+
+    /// Moves the cursor on by `count` bytes, or says the file ran out.
+    ///
+    /// `ByteBuffer.position(int)` throws `IllegalArgumentException` past the
+    /// limit, and that is not one of the two types [#decode] translates — so a
+    /// sub-block whose length ran off the end of a truncated file came out of
+    /// `Image.decodeGif` as an `IllegalArgumentException` rather than an
+    /// `ImageDecodeException` (the 2026-09-18 review, C12). Every cursor move
+    /// driven by a number the *file* chose goes through here.
+    private static void skip(ByteBuffer in, int count) {
+        if (count > in.remaining()) {
+            throw new GifFormatException("this GIF ends in the middle of a block: " + count
+                    + " more bytes were named and " + in.remaining() + " are left");
+        }
+        in.position(in.position() + count);
     }
 }
