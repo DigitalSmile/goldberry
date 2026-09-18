@@ -112,7 +112,21 @@ final class SplitPaneState extends State<SplitPane> {
         if (length <= 0) {
             return -1;
         }
-        return resolved() * Math.max(0, length - SplitPaneView.DIVIDER);
+        return resolved() * content();
+    }
+
+    /// How much of the pane the two children actually share, in logical pixels:
+    /// its length less the divider standing between them.
+    ///
+    /// **The fraction is a fraction of this**, and that is the whole of what
+    /// [#clamp] used to get wrong. It held the divider off `firstMin / length`
+    /// while [#firstLength] sized the first pane against `length − DIVIDER`, so
+    /// a pane "at its minimum" came out `firstMin × DIVIDER / length` pixels
+    /// **short** of it — 0.96px of a 48px minimum in a 300px split, and worse
+    /// the narrower the pane gets, which is exactly when a minimum is load
+    /// bearing. Both numbers now mean the same thing.
+    private double content() {
+        return Math.max(0, length - SplitPaneView.DIVIDER);
     }
 
     /// A drag: an offset in logical pixels, from `anchor + drag`.
@@ -196,8 +210,16 @@ final class SplitPaneState extends State<SplitPane> {
             // the only honest answer on the first frame.
             return Math.clamp(fraction, 0.0, 1.0);
         }
-        var lowest = Math.min(split.firstMin() / length, 1.0);
-        var highest = Math.max(1 - split.secondMin() / length, 0.0);
+        var content = content();
+        if (content <= 0) {
+            // A pane no wider than its own divider. There is nothing for a
+            // minimum to be a minimum of, and dividing by it would be infinity.
+            return Math.clamp(fraction, 0.0, 1.0);
+        }
+        // Against the **content** and not the pane, because that is what the
+        // fraction measures — see [#content].
+        var lowest = Math.min(split.firstMin() / content, 1.0);
+        var highest = Math.max(1 - split.secondMin() / content, 0.0);
         if (lowest > highest) {
             // Both minimums cannot be honoured at this size. Splitting the
             // difference is the least surprising thing to do: pinning to one
