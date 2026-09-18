@@ -12,6 +12,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /// Where the labels go on a time axis.
@@ -268,7 +269,12 @@ class TimeTicksTest {
                 "expected about five labels, got " + labelling.values().size());
     }
 
+    /// `TicksTest.isFastEnoughForAFrame`'s reason, for the same search: a clock
+    /// is not a count, so this runs under `./gradlew benchmark`. What `check`
+    /// holds instead is [#theTopOfTheLadder] above, which bounds the *answer* on
+    /// a span of centuries.
     @Test
+    @Tag("benchmark")
     @DisplayName("it is fast enough to run once per axis per frame")
     void aMillisecondWouldBeAThirdOfAFrame() {
         var from = utc("2026-01-01T00:00:00Z");
