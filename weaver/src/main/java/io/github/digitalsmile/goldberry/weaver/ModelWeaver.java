@@ -552,14 +552,53 @@ public final class ModelWeaver {
         // `MethodTransform` hands each method element on unchanged and replaces
         // only the body, so an attribute survives because nobody decided it
         // should.
+        //
+        // And only the methods that have a write to replace. A method handed
+        // straight to `builder.with` is copied out of the original class file
+        // byte for byte; a method that is rebuilt has its stack map frames
+        // regenerated, and regenerating a frame where two of the author's types
+        // meet -- `Base x = flag ? new A() : new B()` -- means resolving both and
+        // asking which one they have in common. So a weaver that rebuilt every
+        // method made every method's frames the weaver's problem, and failed
+        // with "Could not resolve class" on code it had no business touching.
+        // Rebuilding only what is rewritten leaves the rest exactly as javac
+        // verified it.
         return (builder, element) -> {
-            if (element instanceof MethodModel method && method.code().isPresent()) {
+            if (element instanceof MethodModel method && rewrites(method, self, models)) {
                 builder.transformMethod(method, MethodTransform.transformingCode(
                         isInitialiser(method) ? inConstructor : rewrite));
             } else {
                 builder.with(element);
             }
         };
+    }
+
+    /// Whether [#rewriter] would replace anything in `method`.
+    ///
+    /// The same three questions the rewrite itself asks, asked ahead of it so a
+    /// method it would leave alone is never rebuilt. Deliberately including the
+    /// writes that are *refused* — a `putfield` on a model in another package —
+    /// so the refusal still happens where it always did, in the rewrite.
+    private static boolean rewrites(MethodModel method, ClassDesc self, Map<String, Rewired> models) {
+        var code = method.code().orElse(null);
+        if (code == null || models.isEmpty()) {
+            return false;
+        }
+        var sparingOwnFields = isInitialiser(method);
+        for (var element : code) {
+            if (!(element instanceof FieldInstruction instruction)
+                    || instruction.opcode() != Opcode.PUTFIELD) {
+                continue;
+            }
+            var model = models.get(instruction.owner().asInternalName());
+            if (model == null || !model.fields().containsKey(instruction.name().stringValue())) {
+                continue;
+            }
+            if (!(sparingOwnFields && instruction.owner().asSymbol().equals(self))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isInitialiser(MethodModel method) {
