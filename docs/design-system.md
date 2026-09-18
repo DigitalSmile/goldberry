@@ -36,7 +36,7 @@ Rules:
 
 ### 1.4 Typography
 
-Exactly two shipped typefaces — **Inter** (UI) and **JetBrains Mono** (code) — plus the routed emoji slot (`goldberry-emoji`). **No fallback chain**: missing glyphs render `.notdef` by design. All sizes logical px.
+Exactly two shipped typefaces — **Inter** (UI) and **JetBrains Mono** (code) — plus the routed emoji slot (`goldberry-emoji`), which is **routed for real** since ADR-0393: an emoji in a line of prose is split out during itemization and drawn from OpenMoji's colour build. **No fallback chain beyond that**: a missing glyph that is not an emoji renders `.notdef` by design. All sizes logical px.
 
 Inter ships as **four faces**: 400 and 600, each upright and italic. A weight is a face here rather than a variable-font axis (ADR-0066) and an italic is a face for the same reason one step on — Inter's italic is drawn, not slanted ([ADR-0323](../book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)). The tokens below name the two weights; `font-style: italic` is written where emphasis is meant, and `font-style: oblique` is refused because nothing here shears a glyph. **`text-decoration: underline | line-through`** is in the subset too, drawn at the face's own position and thickness ([ADR-0321](../book/src/adr/0321-a-rule-under-text-belongs-to-the-face.md)).
 

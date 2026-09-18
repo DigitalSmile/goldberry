@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.paint;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontFace;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorLayers;
 
 /// A typeface, as the **rasterizer** sees it — `docs/gaps.md` G14.
 ///
@@ -32,11 +33,20 @@ public final class GlyphFace implements AutoCloseable {
     private final String name;
     private final BlendFontFace face;
 
+    /// The face's colour glyphs, read once from the same bytes the rasterizer
+    /// was given.
+    ///
+    /// Here and not in a pen, because it is a property of the **typeface**: one
+    /// face serves every size, and parsing 57,000 layer records per size would be
+    /// the thing ADR-0044 split this type out to stop.
+    private final ColorLayers layers;
+
     private boolean closed;
 
     private GlyphFace(String name, byte[] data) {
         this.name = name;
         this.face = BlendFontFace.fromBytes(data);
+        this.layers = ColorLayers.read(data);
     }
 
     /// Parses a typeface out of a font file's bytes.
@@ -56,6 +66,15 @@ public final class GlyphFace implements AutoCloseable {
         return name;
     }
 
+    /// Whether any glyph in this face is drawn as coloured layers rather than as
+    /// one outline.
+    ///
+    /// True of an emoji face and of nothing else anybody ships, which is why a
+    /// [GlyphPen] asks once and then never pays for it again.
+    public boolean hasColorGlyphs() {
+        return !layers.isEmpty();
+    }
+
     /// Whether it has been closed.
     public boolean isClosed() {
         return closed;
@@ -68,6 +87,12 @@ public final class GlyphFace implements AutoCloseable {
         }
         closed = true;
         face.close();
+    }
+
+    /// The face's colour glyphs, for the pen that draws them. Package-private
+    /// for [#handle()]'s reason.
+    ColorLayers layers() {
+        return layers;
     }
 
     /// The rasterizer's own handle. Package-private, which is the whole point:

@@ -77,6 +77,12 @@ public final class Font implements AutoCloseable {
 
     private boolean closed;
 
+    /// The emoji face at this size, or null when nothing has attached one.
+    ///
+    /// Not final, because the thing that attaches it is the book that opened
+    /// both — see [#emoji(Font)].
+    private @Nullable Font emoji;
+
     /// [#ellipsisWidth()]'s memo. NaN is "not asked yet", which no width can be.
     private double ellipsisWidth = Double.NaN;
 
@@ -151,6 +157,43 @@ public final class Font implements AutoCloseable {
     /// The typeface this font draws with, shared with every other size over it.
     public FontFace face() {
         return face;
+    }
+
+    /// The face emoji in this font's text are shaped with, or null when there is
+    /// none and they will be drawn as `.notdef`.
+    ///
+    /// [io.github.digitalsmile.goldberry.text.Paragraph] asks this once per
+    /// string: a run Unicode says is a picture is shaped here instead, and the
+    /// words on either side are untouched ([ADR-0393]).
+    public @Nullable Font emoji() {
+        return emoji;
+    }
+
+    /// Routes this font's emoji to `value`, and returns this font.
+    ///
+    /// ## Why it is set rather than given
+    ///
+    /// Because the emoji face is a **second font at the same size**, and a
+    /// constructor that took one would have to open it — which is the opposite
+    /// of what [Fonts] does, where every face is opened on first use and an
+    /// application that never draws an emoji never parses two and a half
+    /// megabytes of it. [Fonts] opens both and joins them; nothing else has to
+    /// know.
+    ///
+    /// **This font does not own `value`.** Closing this one leaves it alone,
+    /// exactly as closing a font leaves its face alone: one emoji font serves
+    /// every size's routing at that size, and the book that opened it closes it.
+    ///
+    /// @param value the emoji face at this size, or null to route nothing
+    /// @throws IllegalArgumentException if `value` is this font, which would make
+    ///         shaping recurse
+    public Font emoji(@Nullable Font value) {
+        requireUsable();
+        if (value == this) {
+            throw new IllegalArgumentException("a font cannot be its own emoji face");
+        }
+        this.emoji = value;
+        return this;
     }
 
     private static void requireUsableSize(double size) {

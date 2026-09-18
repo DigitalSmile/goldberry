@@ -17,6 +17,8 @@ import io.github.digitalsmile.goldberry.text.flow.TextDecoration;
 import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.itemize.Itemizer;
+import io.github.digitalsmile.goldberry.text.itemize.Slot;
 
 /// A run of text that knows how to wrap itself, and therefore how to be laid out.
 ///
@@ -39,8 +41,19 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 ///
 /// ## What it does not do yet
 ///
-/// **One direction, one face, one style.** A paragraph is a single run in one
-/// font, measured as prefix sums in **logical** order. Text that needs bidi — any
+/// **One direction, one style — and, since [ADR-0393], up to two faces.** Text
+/// Unicode draws as a picture is shaped in the emoji face when [Font#emoji()]
+/// names one, and everything else in the face the cascade chose. That is the
+/// whole of the itemization `docs/ARCHITECTURE.md` §5 describes: it splits by
+/// **presentation** and not by script, so a paragraph of Han text in a Latin face
+/// is still one run of `.notdef`.
+///
+/// Splitting for emoji does not change what a measurement is. A paragraph is
+/// still measured as prefix sums in **logical** order over one array of
+/// advances; what changed is that the array is now concatenated from up to two
+/// shapings, with the second rescaled into the first's design units.
+///
+/// Text that needs bidi — any
 /// right-to-left character, which `java.text.Bidi.requiresBidi` detects — is
 /// therefore shaped with the direction forced to `LTR`, so the glyphs come back
 /// in the order the measurements assume. Every width, every caret position and
@@ -72,8 +85,27 @@ public final class Paragraph {
     private final Font font;
     private final String text;
 
-    /// The whole paragraph, shaped once, in design units.
+    /// The whole paragraph, shaped once, in **the base font's** design units.
+    ///
+    /// One run even when it took two faces to shape: an emoji run's advances are
+    /// scaled into this font's grid as they are appended, so every measurement
+    /// below stays the prefix sum it has always been ([ADR-0393]).
     private final ShapedRun run;
+
+    /// The pieces [#run] was concatenated from, each with the face that shaped it.
+    ///
+    /// One element for the paragraph that took one face, which is nearly every
+    /// paragraph. More than one only when the text has emoji in it and something
+    /// attached an emoji face to [#font].
+    private final Segment[] segments;
+
+    /// `advanceBeforeGlyph[g]` is the advance, in [#font]'s design units, of every
+    /// glyph before index `g` — the prefix sums [#advanceBefore] is, indexed by
+    /// glyph rather than by text offset.
+    ///
+    /// **Empty unless there is more than one segment.** It exists to place a
+    /// segment's pen inside a line, and a paragraph with one segment never asks.
+    private final int[] advanceBeforeGlyph;
 
     /// `advanceBefore[o]` is the advance, in design units, of every glyph whose
     /// cluster is before text offset `o`. Prefix sums, so the width of any range
@@ -101,7 +133,10 @@ public final class Paragraph {
         // Forced to logical order when the text would otherwise come back
         // visually ordered. Guessed as usual when it would not, so every
         // paragraph the toolkit has ever drawn is shaped exactly as before.
-        this.run = font.shape(text, bidiApproximate ? TextDirection.LTR : null);
+        var direction = bidiApproximate ? TextDirection.LTR : null;
+        this.segments = shapeSegments(font, text, direction);
+        this.run = segments.length == 1 && segments[0].font() == font ? segments[0].run() : concatenate(font, segments);
+        this.advanceBeforeGlyph = segments.length == 1 ? EMPTY_PREFIX : glyphPrefix(run);
 
         var length = text.length();
         this.advanceBefore = new int[length + 1];
@@ -135,6 +170,113 @@ public final class Paragraph {
             glyphBefore[offset] = glyph;
             offset++;
         }
+    }
+
+    /// What [#advanceBeforeGlyph] is when a paragraph has one segment and
+    /// therefore never places a pen inside itself.
+    private static final int[] EMPTY_PREFIX = new int[0];
+
+    /// One stretch of the text, and the face that shaped it.
+    ///
+    /// `run` is that face's **own** shaping, in its **own** design units — which
+    /// is what it has to be to be drawn, because the rasterizer scales a run by
+    /// the face's matrix. The concatenated [#run] holds the same glyphs scaled
+    /// into the base font's grid instead, which is what it has to be to be
+    /// measured. Two representations of one shaping, each in the units of the
+    /// thing that reads it.
+    ///
+    /// @param glyphStart where this segment's glyphs start in the concatenated run
+    /// @param textStart  where its text starts, for rebasing the clusters
+    private record Segment(Font font, ShapedRun run, int glyphStart, int textStart) {}
+
+    /// Shapes `text` by runs, each in the face that should draw it.
+    ///
+    /// One segment and one shaping unless there is an emoji face attached **and**
+    /// the text has emoji in it, so a paragraph of prose costs exactly what it
+    /// cost before this existed: one `Itemizer` pass over the string, which is a
+    /// scan without allocation for text that has no pictures in it.
+    private static Segment[] shapeSegments(Font font, String text, @Nullable TextDirection direction) {
+        var emoji = font.emoji();
+        if (emoji == null || text.isEmpty()) {
+            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
+        }
+        var pieces = Itemizer.runs(text);
+        if (pieces.size() == 1 && pieces.getFirst().slot() == Slot.TEXT) {
+            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
+        }
+
+        var segments = new Segment[pieces.size()];
+        var glyph = 0;
+        for (var i = 0; i < pieces.size(); i++) {
+            var piece = pieces.get(i);
+            var face = piece.slot() == Slot.EMOJI ? emoji : font;
+            // The run is shaped on its own, so a kern across the seam is lost.
+            // That seam is between a word and a picture, where there was never a
+            // kerning pair to lose.
+            var shaped = face.shape(text.subSequence(piece.start(), piece.end()), direction);
+            segments[i] = new Segment(face, shaped, glyph, piece.start());
+            glyph += shaped.length();
+        }
+        return segments;
+    }
+
+    /// The segments as one run, in `base`'s design units and the text's offsets.
+    ///
+    /// Two corrections, both of them the reason this is not an array copy:
+    ///
+    /// - **The clusters are rebased.** Each face shaped a *substring*, so its
+    ///   clusters count from that substring's start and every offset here counts
+    ///   from the paragraph's.
+    /// - **The advances are rescaled.** A design unit is a fraction of an em and
+    ///   the fraction differs per face — Inter is 2048 to the em and OpenMoji is
+    ///   1000 — so appending one face's numbers to another's would make an emoji
+    ///   twice as wide as it is. Every measurement in this class is a prefix sum
+    ///   over this array, and a prefix sum needs one unit.
+    ///
+    /// The rounding is to the nearest design unit, which at 2048 to the em is a
+    /// thousandth of a pixel at any size anybody reads text at.
+    ///
+    /// **The glyph ids in the result belong to two different faces.** Nothing may
+    /// draw from it directly, which is why drawing goes through [#segments].
+    private static ShapedRun concatenate(Font base, Segment[] segments) {
+        var total = 0;
+        for (var segment : segments) {
+            total += segment.run().length();
+        }
+        var glyphIds = new int[total];
+        var clusters = new int[total];
+        var xAdvances = new int[total];
+        var yAdvances = new int[total];
+        var xOffsets = new int[total];
+        var yOffsets = new int[total];
+
+        var at = 0;
+        for (var segment : segments) {
+            var piece = segment.run();
+            var scale = (double) base.unitsPerEm() / segment.font().unitsPerEm();
+            for (var i = 0; i < piece.length(); i++, at++) {
+                glyphIds[at] = piece.glyphId(i);
+                clusters[at] = piece.cluster(i) + segment.textStart();
+                xAdvances[at] = rescaled(piece.xAdvance(i), scale);
+                yAdvances[at] = rescaled(piece.yAdvance(i), scale);
+                xOffsets[at] = rescaled(piece.xOffset(i), scale);
+                yOffsets[at] = rescaled(piece.yOffset(i), scale);
+            }
+        }
+        return new ShapedRun(glyphIds, clusters, xAdvances, yAdvances, xOffsets, yOffsets);
+    }
+
+    private static int rescaled(int designUnits, double scale) {
+        return scale == 1.0 ? designUnits : (int) Math.round(designUnits * scale);
+    }
+
+    /// The advance before each glyph, in the base font's design units.
+    private static int[] glyphPrefix(ShapedRun run) {
+        var prefix = new int[run.length() + 1];
+        for (var i = 0; i < run.length(); i++) {
+            prefix[i + 1] = prefix[i] + run.xAdvance(i);
+        }
+        return prefix;
     }
 
     /// Shapes `text` with `font`, ready to be wrapped.
@@ -328,7 +470,7 @@ public final class Paragraph {
             var baseline = top + ascent + i * lineHeight;
             if (!ellipsis || line.width() <= maxWidth) {
                 var indent = align.indentOf(line.width(), maxWidth);
-                font.draw(frame, x + indent, baseline, run, line.glyphStart(), line.glyphEnd(), argb);
+                drawGlyphs(frame, x + indent, baseline, line.glyphStart(), line.glyphEnd(), argb);
                 decorate(frame, x + indent, baseline, line.width(), argb, flow, rules);
                 continue;
             }
@@ -339,6 +481,38 @@ public final class Paragraph {
             // line — a decorated label whose rule stopped short of its own `…`
             // would read as two words, one of them underlined.
             decorate(frame, x, baseline, maxWidth, argb, flow, rules);
+        }
+    }
+
+    /// Draws glyphs `[from, to)` of the paragraph, each in the face that shaped
+    /// it, with `(x, baseline)` on the baseline.
+    ///
+    /// One call for the paragraph that took one face. For the one that took two,
+    /// a call per segment the range touches, each with its pen moved along by the
+    /// advances of everything before it on this line — which is why
+    /// [#advanceBeforeGlyph] exists at all.
+    private void drawGlyphs(Frame frame, double x, double baseline, int from, int to, int argb) {
+        if (segments.length == 1) {
+            var only = segments[0];
+            only.font().draw(frame, x, baseline, only.run(), from, to, argb);
+            return;
+        }
+        for (var segment : segments) {
+            var start = Math.max(from, segment.glyphStart());
+            var end = Math.min(to, segment.glyphStart() + segment.run().length());
+            if (start >= end) {
+                continue;
+            }
+            var pen = x + font.toLogical(advanceBeforeGlyph[start] - advanceBeforeGlyph[from]);
+            segment.font()
+                    .draw(
+                            frame,
+                            pen,
+                            baseline,
+                            segment.run(),
+                            start - segment.glyphStart(),
+                            end - segment.glyphStart(),
+                            argb);
         }
     }
 
@@ -403,7 +577,7 @@ public final class Paragraph {
         }
 
         if (cut > line.start()) {
-            font.draw(frame, x, baseline, run, line.glyphStart(), glyphBefore[cut], argb);
+            drawGlyphs(frame, x, baseline, line.glyphStart(), glyphBefore[cut], argb);
         }
         font.draw(frame, x + widthOf(line.start(), cut), baseline, TextOverflow.MARK, argb);
     }
@@ -469,9 +643,17 @@ public final class Paragraph {
         return text;
     }
 
-    /// The whole paragraph as one shaped run, in design units.
+    /// The whole paragraph as one shaped run, in the base font's design units.
     ///
     /// A [TextLine]'s glyph range indexes into this.
+    ///
+    /// **Its glyph ids may not all belong to [#font()].** A paragraph with emoji
+    /// in it was shaped by two faces, and this is the two concatenated: the
+    /// advances, offsets and clusters are all in one coordinate system and are
+    /// what every measurement here is built on, but a glyph id is only meaningful
+    /// to the face that produced it. Drawing from this directly would draw the
+    /// emoji face's glyph numbers out of the prose face. [#paint] is what knows
+    /// which is which ([ADR-0393]).
     public ShapedRun glyphs() {
         return run;
     }

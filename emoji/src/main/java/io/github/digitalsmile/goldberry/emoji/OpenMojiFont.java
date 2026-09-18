@@ -5,7 +5,7 @@ import java.io.UncheckedIOException;
 
 import io.github.digitalsmile.goldberry.assets.EmojiFont;
 
-/// OpenMoji's monochrome face, handed to `:core` through the
+/// OpenMoji's colour face, handed to `:core` through the
 /// [EmojiFont] service.
 ///
 /// ## The attribution this carries
@@ -20,9 +20,9 @@ import io.github.digitalsmile.goldberry.assets.EmojiFont;
 /// that sentence as a constant, so an application can put it on screen without
 /// transcribing it.
 ///
-/// The **black** build is what ships, per `docs/ARCHITECTURE.md` §6.2: it is a
-/// fifth of the size of the colour one, and nothing in the toolkit can draw
-/// layered colour outlines yet.
+/// The **COLRv0** build is what ships, per `docs/ARCHITECTURE.md` §6.2. It was
+/// the monochrome one until the toolkit could draw layered outlines; it can now,
+/// so an emoji is a picture rather than a silhouette ([ADR-0393]).
 public final class OpenMojiFont implements EmojiFont {
 
     /// The credit to put on screen, as CC BY-SA asks.
@@ -39,7 +39,7 @@ public final class OpenMojiFont implements EmojiFont {
     /// `LayerInstantiationException` before the first frame, and it is invisible
     /// on a class path, which is why every test passed and the application would
     /// not open ([ADR-0387]).
-    private static final String RESOURCE = "/io/github/digitalsmile/goldberry/emoji/fonts/OpenMoji-black.ttf";
+    private static final String RESOURCE = "/io/github/digitalsmile/goldberry/emoji/fonts/OpenMoji-color.ttf";
 
     /// Required by [java.util.ServiceLoader]: a provider is instantiated by the
     /// module system, which needs a constructor it can call.

@@ -3,8 +3,10 @@ package io.github.digitalsmile.goldberry.paint;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontMetrics;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.text.ShapedRun;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorLayers;
 
 /// A [GlyphFace] at one size, and the thing that actually puts glyphs on a
 /// [Frame] — `docs/gaps.md` G14.
@@ -35,10 +37,14 @@ public final class GlyphPen implements AutoCloseable {
     private final BlendGlyphBuffer glyphs;
     private final double size;
 
+    /// The face's colour glyphs, shared with every other size over it.
+    private final ColorLayers layers;
+
     private boolean closed;
 
     private GlyphPen(GlyphFace face, double size) {
         this.size = size;
+        this.layers = face.layers();
         this.font = BlendFont.on(face.handle(), size);
         try {
             this.glyphs = BlendGlyphBuffer.create();
@@ -128,6 +134,11 @@ public final class GlyphPen implements AutoCloseable {
             return;
         }
 
+        if (!layers.isEmpty()) {
+            drawInColour(frame, x, baseline, run, from, to, argb);
+            return;
+        }
+
         glyphs.clear();
         for (var i = from; i < to; i++) {
             // Straight across, in design units, with no arithmetic in between.
@@ -138,6 +149,65 @@ public final class GlyphPen implements AutoCloseable {
             glyphs.add(run.glyphId(i), run.xOffset(i), run.yOffset(i), run.xAdvance(i), run.yAdvance(i));
         }
         frame.drawGlyphs(x, baseline, font, glyphs, argb);
+    }
+
+    /// The same range, out of a face that has colour glyphs in it.
+    ///
+    /// ## What it costs, and why that is acceptable
+    ///
+    /// One rasterizer call **per layer**, where the plain path above makes one
+    /// call for the whole range. An OpenMoji glyph averages fourteen layers, so a
+    /// reaction bar of ten emoji is a hundred and forty calls rather than ten.
+    ///
+    /// They are not, though, a hundred and forty *passes*: a layer is one small
+    /// glyph, and what the rasterizer does is proportional to the ink. A face
+    /// with no colour in it never reaches this method at all — the check above is
+    /// one field read — so the cost is paid by the text that is actually
+    /// coloured, which is a reaction chip and not a paragraph ([ADR-0393]).
+    ///
+    /// ## Why every placement carries an absolute offset
+    ///
+    /// The pen advances here, in Java, and every glyph is staged with a **zero
+    /// advance** and its position as an offset. That is what lets the buffer be
+    /// flushed between two glyphs without the ones after it losing their place:
+    /// each staged glyph already knows where it goes, so a flush is a flush and
+    /// not a break in the run.
+    private void drawInColour(Frame frame, double x, double baseline, ShapedRun run, int from, int to, int argb) {
+        glyphs.clear();
+        var staged = false;
+        var penX = 0;
+        var penY = 0;
+
+        for (var i = from; i < to; i++) {
+            var record = layers.find(run.glyphId(i));
+            if (record < 0) {
+                glyphs.add(run.glyphId(i), penX + run.xOffset(i), penY + run.yOffset(i), 0, 0);
+                staged = true;
+            } else {
+                if (staged) {
+                    // Drawn before the layers rather than after, so that glyphs
+                    // come out in the order they were shaped in. Two glyphs of one
+                    // run rarely overlap, and when they do -- a mark over a base --
+                    // the one that was shaped second belongs on top.
+                    frame.drawGlyphs(x, baseline, font, glyphs, argb);
+                    glyphs.clear();
+                    staged = false;
+                }
+                var count = layers.layerCount(record);
+                for (var layer = 0; layer < count; layer++) {
+                    glyphs.clear();
+                    glyphs.add(layers.layerGlyph(record, layer), penX + run.xOffset(i), penY + run.yOffset(i), 0, 0);
+                    frame.drawGlyphs(x, baseline, font, glyphs, layers.layerArgb(record, layer, argb));
+                }
+                glyphs.clear();
+            }
+            penX += run.xAdvance(i);
+            penY += run.yAdvance(i);
+        }
+
+        if (staged) {
+            frame.drawGlyphs(x, baseline, font, glyphs, argb);
+        }
     }
 
     /// Whether the pen has been closed.
@@ -158,7 +228,7 @@ public final class GlyphPen implements AutoCloseable {
         }
     }
 
-    private io.github.digitalsmile.goldberry.natives.blend2d.BlendFontMetrics metrics() {
+    private BlendFontMetrics metrics() {
         requireUsable();
         return font.metrics();
     }

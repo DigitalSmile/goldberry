@@ -211,6 +211,19 @@ module io.github.digitalsmile.goldberry.core {
     // line by hand.
     exports io.github.digitalsmile.goldberry.text.font;
 
+    // The OpenType tables the text stack reads for itself -- a face's colour
+    // glyphs, and the directory that finds them (ADR-0393). Exported because a
+    // face's contents are a question an application asks for the same reason it
+    // asks `FaceCoverage` what characters are in one: an emoji picker deciding
+    // whether it can show something in colour.
+    exports io.github.digitalsmile.goldberry.text.font.sfnt;
+
+    // How a string is split into the runs each face shapes -- the emoji slot,
+    // as a value rather than as a promise (ADR-0393). Exported because an
+    // application drawing text on a `canvas` does its own shaping, and doing it
+    // without this would draw the boxes `docs/gaps.md` G49 reported.
+    exports io.github.digitalsmile.goldberry.text.itemize;
+
     // What a line does when it does not fit -- `white-space` and
     // `text-overflow`, and the value that carries them together (ADR-0255).
     // Exported because both are §8 properties an application's stylesheet may

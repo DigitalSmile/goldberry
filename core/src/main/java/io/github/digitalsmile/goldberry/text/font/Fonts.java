@@ -187,8 +187,46 @@ public final class Fonts implements AutoCloseable {
         }
         var usable = face instanceof FontSource source && !opens(source) ? BundledFont.UI : face;
         var quantized = Math.round(size * SIZE_QUANTUM);
-        return fonts.computeIfAbsent(
-                new Key(usable, quantized), key -> Font.on(faceFor(key.face()), key.size() / SIZE_QUANTUM));
+        var key = new Key(usable, quantized);
+        var held = fonts.get(key);
+        if (held != null) {
+            return held;
+        }
+        // The sibling is opened **before** the map is written to, and that is not
+        // a style choice: it is an entry in this same map, and filling one key
+        // from inside another key's `computeIfAbsent` is what `LinkedHashMap`
+        // promises nothing about. Hence the get-then-put rather than the compute
+        // this used to be.
+        var sibling = usable == BundledFont.EMOJI ? null : emojiAt(quantized);
+        var font = Font.on(faceFor(usable), quantized / SIZE_QUANTUM).emoji(sibling);
+        fonts.put(key, font);
+        return font;
+    }
+
+    /// The emoji face at one size, or null when nobody brought it.
+    ///
+    /// **This is where the emoji slot is joined up** — the one place in the
+    /// toolkit that decides a paragraph's pictures have a face to be shaped in
+    /// (ADR-0393). Silent when the artifact is absent: an application that never
+    /// types an emoji should not be told about a font it did not ask for, and
+    /// [io.github.digitalsmile.goldberry.assets.BundledAssets#hasEmojiFont()] is
+    /// how one that cares asks.
+    ///
+    /// The emoji font is an ordinary entry in the same map, so it is opened once
+    /// per size however it was first asked for, and closed with every other font
+    /// in this book.
+    private @Nullable Font emojiAt(long quantized) {
+        if (!BundledAssets.hasEmojiFont()) {
+            return null;
+        }
+        var key = new Key(BundledFont.EMOJI, quantized);
+        var held = fonts.get(key);
+        if (held != null) {
+            return held;
+        }
+        var font = Font.on(faceFor(BundledFont.EMOJI), quantized / SIZE_QUANTUM);
+        fonts.put(key, font);
+        return font;
     }
 
     /// The typeface for one bundled face, opened on first use.

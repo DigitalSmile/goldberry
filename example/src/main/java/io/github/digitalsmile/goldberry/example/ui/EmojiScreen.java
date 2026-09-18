@@ -44,7 +44,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// ## Where the list comes from
 ///
 /// The face's own `cmap`, read by [FaceCoverage] — 1845 characters in OpenMoji's
-/// monochrome build — filtered to the ones whose **default presentation is
+/// colour build — filtered to the ones whose **default presentation is
 /// emoji**, which is 1205 of them. Not a list transcribed into this file: a
 /// transcription is a second copy of the font's contents that goes stale the
 /// first time the pinned version moves.
@@ -74,8 +74,9 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
     /// The size the glyphs are drawn at, in logical pixels.
     ///
     /// 24 rather than the icon sheet's 20: an emoji is a picture rather than a
-    /// stroke, and OpenMoji's monochrome build is drawn with detail that closes
-    /// up below this.
+    /// stroke, and OpenMoji is drawn with detail that closes up below this —
+    /// more so in colour, where a fourteen-layer glyph has fourteen things to
+    /// tell apart.
     static final double GLYPH_SIZE = 24;
 
     @Override
@@ -156,13 +157,28 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             return new Column(List.of(header(query), scrolledSheet()), Attributes.NONE.id("emoji-screen"));
         }
 
+        /// One line of ordinary prose with emoji in it, in **no particular
+        /// font** — [ADR-0393]'s half of this screen.
+        ///
+        /// The sheet below is every emoji drawn through `font-family: OpenMoji`,
+        /// which is an application choosing the face. This is the other thing,
+        /// and it is the one an application actually writes: a sentence in the UI
+        /// face, with the pictures routed out of it by the itemizer and back into
+        /// it at the right place. Nothing here names a font.
+        private Widget routed() {
+            return new Text(
+                    "Routed without naming a font: rolling to eu-2 🎉 at 14:00 👀 — a family 👨‍👩‍👧,"
+                            + " a flag 🇬🇧, and a wave 👋🏽 with its own skin tone.",
+                    Attributes.NONE.id("emoji-routed").classes("screen-note"));
+        }
+
         /// The title, the credit the licence asks for, the field and the count.
         private Widget header(String query) {
             var note = available
-                    ? "OpenMoji's " + all.size() + " emoji, read out of the face's own cmap. A document draws"
-                            + " one by writing it in text and letting font-family: OpenMoji pick the slot."
-                            + " Emoji artwork by OpenMoji (openmoji.org), CC BY-SA 4.0 — the credit this"
-                            + " application owes for adding goldberry-emoji (ADR-0384)."
+                    ? "OpenMoji's " + all.size() + " emoji, read out of the face's own cmap and drawn in"
+                            + " colour from its COLRv0 layers. Emoji artwork by OpenMoji (openmoji.org),"
+                            + " CC BY-SA 4.0 — the credit this application owes for adding goldberry-emoji"
+                            + " (ADR-0384)."
                     : "The emoji face is not on this build's module path. It ships as goldberry-emoji,"
                             + " because CC BY-SA asks for attribution where the work is seen — add the"
                             + " artifact and its credit to draw these (ADR-0384).";
@@ -170,6 +186,7 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     List.of(
                             new Text("Every bundled emoji", Attributes.NONE.classes("screen-title")),
                             new Text(note, Attributes.NONE.classes("screen-note")),
+                            routed(),
                             new Row(
                                     List.of(
                                             TextInput.of(

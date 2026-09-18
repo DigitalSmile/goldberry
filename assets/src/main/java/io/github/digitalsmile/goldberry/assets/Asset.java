@@ -129,10 +129,18 @@ public record Asset(
 
     /// OpenMoji — the emoji slot.
     ///
-    /// The monochrome build is the default per §6.2, and it is also the small
-    /// one: 1.4 MB against 2.5 MB for the COLRv0 colour build and 10 MB for the
-    /// SVG-in-OpenType variants. The colour build is opt-in and not bundled
-    /// until something can draw layered outlines.
+    /// **The COLRv0 build**, which is the one the toolkit can draw: `COLR`
+    /// version 0 is a list of layer glyphs per base glyph and `CPAL` is the
+    /// colours they are filled with, and both are ordinary outlines underneath
+    /// (ADR-0393). The archive holds seven builds and the choice between them is
+    /// a choice of who does the compositing — the two SVG-in-OpenType variants
+    /// are 10 MB and need an SVG renderer inside the font pipeline, and the
+    /// bitmap ones (`CBDT`, `sbix`) are 6 MB of fixed-resolution strikes that
+    /// blur at 150%.
+    ///
+    /// 2.5 MB against 1.4 MB for the monochrome build it replaces. That is the
+    /// price of colour, and it is paid only by an application that adds
+    /// `goldberry-emoji` on purpose (ADR-0384).
     ///
     /// The font archive carries no licence file — only a README — so the CC BY-SA
     /// text is fetched from the repository at the same tag.
@@ -141,7 +149,7 @@ public record Asset(
             "15.0.0",
             "https://github.com/hfg-gmuend/openmoji/releases/download/15.0.0/openmoji-font.zip",
             "9c157abb27203a3e2f13d5e000c8773015e3e373d3da3c263c1ed917cacbb6de",
-            Map.of("OpenMoji-black-glyf/OpenMoji-black-glyf.ttf", "fonts/OpenMoji-black.ttf"),
+            Map.of("OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.ttf", "fonts/OpenMoji-color.ttf"),
             Map.of(),
             "https://raw.githubusercontent.com/hfg-gmuend/openmoji/15.0.0/LICENSE.txt",
             "openmoji.txt");
