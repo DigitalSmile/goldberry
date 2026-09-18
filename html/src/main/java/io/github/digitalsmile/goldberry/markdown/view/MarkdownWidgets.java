@@ -200,7 +200,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             case Quote(var children) -> quote(children);
             case BulletList(var tight, var items) -> bulletList(tight, items);
             case NumberedList(var start, var tight, var items) -> numberedList(start, tight, items);
-            case Item item -> item(marker("•"), item);
+            case Item item -> item("•", item);
             case CodeBlock codeBlock -> codeBlock(codeBlock);
             case ThematicBreak _ -> new Row(List.of(), classes("md-rule"));
             // The markup as the text it is. A widget renderer with no HTML engine
@@ -331,7 +331,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     private Widget bulletList(boolean tight, List<Item> items) {
         var rows = new ArrayList<Widget>(items.size());
         for (var item : items) {
-            rows.add(item(marker("•"), item));
+            rows.add(item("•", item));
         }
         return new Column(rows, classes("md-list", tight ? "tight" : "loose"));
     }
@@ -339,7 +339,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     private Widget numberedList(int start, boolean tight, List<Item> items) {
         var rows = new ArrayList<Widget>(items.size());
         for (var i = 0; i < items.size(); i++) {
-            rows.add(item(marker((start + i) + "."), items.get(i)));
+            rows.add(item((start + i) + ".", items.get(i)));
         }
         return new Column(rows, classes("md-list", tight ? "tight" : "loose"));
     }
@@ -349,11 +349,17 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// A task's mark is the drawn check box rather than the bullet, because a list of
     /// things to do is not a list of bullet points — and that is the one place a
     /// document's *state* shows in the rendering.
-    private Widget item(Widget bullet, Item item) {
+    ///
+    /// **`bullet` is the text and not the widget**, so that a task's bullet is never
+    /// built. Minting a word is not free of consequence — it registers what the word
+    /// says with the selection geometry — so a version of this that took the widget
+    /// and dropped it left a `•` per task in every Ctrl+A and every copy, invisible on
+    /// the screen and in the clipboard of anybody who selected a list of things to do.
+    private Widget item(String bullet, Item item) {
         // The ordinal is assigned **here**, in document order, and it is what
         // `Markdown.toggleTask` counts in the source: the nth task box on the screen
         // is the nth task marker in the text.
-        var mark = item.task() ? taskMark(item.done()) : bullet;
+        var mark = item.task() ? taskMark(item.done()) : marker(bullet);
         var body = new Column(blocks(item.blocks()), classes("md-item-body"));
         return new Row(List.of(mark, body), classes("md-item"));
     }
@@ -365,6 +371,10 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         return new TaskMark(done, handler == null ? null : () -> handler.accept(index));
     }
 
+    /// A marker in the gutter — a bullet or a number — as a **word** of the document,
+    /// which is why nothing may call this for an item that turns out not to want one:
+    /// the word is registered with the selection geometry here, whatever becomes of
+    /// the widget afterwards.
     private Widget marker(String text) {
         minter.block();
         return new Row(List.of(words.whole(text, Set.of())), classes("md-marker"));
