@@ -10,6 +10,10 @@ import io.github.digitalsmile.goldberry.image.Image;
 /// The shared loader's memory: at most one decode per [ImageSource#key()], and a
 /// ceiling on the pixels kept.
 ///
+/// **A source with no key is not remembered at all.** That is [ImageSource.Decoded]:
+/// pixels the application already holds, which have no decode to share and which
+/// this map has no business outliving.
+///
 /// **It holds futures, not images**, so two views asking for one file in the
 /// same frame share one decode rather than racing two. A load that fails is
 /// forgotten when it fails, so a file that appears later is read again.
@@ -41,6 +45,13 @@ final class ImageCache implements ImageLoader {
     @Override
     public CompletableFuture<Image> load(ImageSource source) {
         var key = source.key();
+        if (key == null) {
+            // A source with nothing to remember -- an image the application already
+            // holds. Nothing to decode, so nothing for a second view to share, and
+            // an entry for it would pin an object this cache does not own for as
+            // long as the process runs. See [ImageSource#key()].
+            return runner.apply(source);
+        }
         CompletableFuture<Image> started;
         synchronized (this) {
             var existing = entries.get(key);

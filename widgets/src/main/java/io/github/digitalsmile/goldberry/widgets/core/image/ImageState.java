@@ -95,8 +95,16 @@ final class ImageState extends State<ImageView> {
                     ? wrapped.getCause()
                     : failure;
             var reason = cause == null ? "no image" : String.valueOf(cause.getMessage());
-            if (REPORTED.size() < REPORT_LIMIT && REPORTED.add(variant.source().key())) {
-                LOG.warn("image {} did not load: {}", variant.source().key(), reason);
+            // A source with no key is one the cache never held, so there is nothing
+            // to deduplicate against and nothing shared to name -- `ImageSource.of`
+            // is the only one, and the image it carries is already decoded, so this
+            // branch is reached for it only when a loader was replaced. It is
+            // described by the record instead, which is what `toString` is for.
+            var named = variant.source().key();
+            if (named == null) {
+                LOG.warn("image {} did not load: {}", variant.source(), reason);
+            } else if (REPORTED.size() < REPORT_LIMIT && REPORTED.add(named)) {
+                LOG.warn("image {} did not load: {}", named, reason);
             }
             return new ImageLoad.Failed(reason);
         }

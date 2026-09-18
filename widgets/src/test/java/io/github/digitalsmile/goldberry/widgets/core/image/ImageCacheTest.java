@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.image.Image;
@@ -95,5 +96,45 @@ class ImageCacheTest {
 
         assertTrue(future.isDone());
         assertEquals(1, cache.size());
+    }
+
+    @Nested
+    @DisplayName("an image the application already holds")
+    class AlreadyDecoded {
+
+        private ImageCache passThrough() {
+            return new ImageCache(1 << 20, source -> CompletableFuture.completedFuture(source.load()));
+        }
+
+        /// `Decoded.key()` was `"decoded:" + System.identityHashCode(image)`, and an
+        /// identity hash is not unique — the JVM promises only that it does not
+        /// change, not that no two objects share one. Two application images under
+        /// one key would hand the second view the first one's picture. There is no
+        /// key at all now, so there is nothing for two of them to collide in.
+        @Test
+        @DisplayName("is never confused with another one")
+        void everyImageIsItself() {
+            var cache = passThrough();
+            var first = square(4);
+            var second = square(8);
+
+            assertSame(first, cache.load(ImageSource.of(first)).join());
+            assertSame(second, cache.load(ImageSource.of(second)).join());
+        }
+
+        /// The cache is one map for the process, and an entry in it lives until
+        /// enough other pictures push it out. An `Image` the application made and
+        /// showed once has no business being held there: there is no decode to
+        /// share, because [ImageSource.Decoded#load] hands back what it was given.
+        @Test
+        @DisplayName("is not kept in a cache that outlives the view showing it")
+        void nothingIsPinned() {
+            var cache = passThrough();
+
+            cache.load(ImageSource.of(square(10)));
+
+            assertEquals(0, cache.size(), "an image in hand was remembered");
+            assertEquals(0L, cache.held());
+        }
     }
 }
