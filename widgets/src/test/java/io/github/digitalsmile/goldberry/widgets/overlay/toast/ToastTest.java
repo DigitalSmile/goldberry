@@ -314,6 +314,56 @@ class ToastTest {
         }
     }
 
+    /// The exit is 160ms long and a window can close inside it, which is the one
+    /// window of time this stack used not to survive.
+    @Nested
+    @DisplayName("going away while something is going away")
+    class Unmounting {
+
+        /// **The defect this pins.** `leave` scheduled the removal and threw the
+        /// timer away — `dispose` cancelled `entry.pending`, the *stay*, and there
+        /// was nothing else to cancel. A window unmounted inside the 160ms of a
+        /// dismissal therefore fired `setState` on a disposed state, which throws
+        /// out of the event loop for a toast nobody could still see. `dialog` and
+        /// `message` never had it: their departure holds its timer.
+        @Test
+        @DisplayName("a window closed while a toast is fading leaves no timer behind")
+        void unmountCancelsTheExit() {
+            var tree = stack();
+            // `Duration.ZERO`, so the stack asks for no stay at all and the exit
+            // is the only timer this test can be talking about.
+            toasts.show(new Toast("Copy failed").timeout(Duration.ZERO));
+            tree.flush();
+
+            Described.first(tree, ToastBox.class)
+                    .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
+            tree.flush();
+            assertTrue(Described.first(tree, ToastBox.class).leaving(), "it is not in the window this is about");
+            assertTrue(host.hasPendingTimer(), "nothing was scheduled, so there is nothing to leak");
+
+            tree.unmount();
+
+            assertTrue(host.allTimersCancelled(), "the exit timer outlived the stack that scheduled it");
+        }
+
+        /// The same window, reached the other way: a dismissal rather than a
+        /// timeout, and every toast in the stack rather than one.
+        @Test
+        @DisplayName("clearing and then unmounting gives every exit timer back")
+        void unmountAfterClear() {
+            var tree = stack(3);
+            toasts.show("one");
+            toasts.show("two");
+            tree.flush();
+
+            toasts.clear();
+            tree.flush();
+            tree.unmount();
+
+            assertTrue(host.allTimersCancelled(), "a stack that cleared itself left its exits running");
+        }
+    }
+
     /// §3's "siblings reflow via `translate` base — the one sanctioned movement
     /// effect", and the last thing §7 owed
     /// (ADR-0178).

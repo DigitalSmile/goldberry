@@ -58,6 +58,19 @@ final class ToasterState extends State<Toaster> {
         /// leaving, or for a toast that never expires.
         EventLoop.@Nullable Timer pending;
 
+        /// The timer that takes it out of the stack once the exit has run, or
+        /// null until it starts leaving.
+        ///
+        /// **Held, which it was not.** The stay above was cancelled on unmount
+        /// and this one was not held at all, so a window closed inside the
+        /// 160ms of a dismissal fired `setState` on a state that had been
+        /// disposed — an `IllegalStateException` out of the event loop, from a
+        /// toast nobody could still see. The timer it was missing is the one
+        /// [io.github.digitalsmile.goldberry.widgets.core.Departure]
+        /// holds for `dialog` and `message`; a stack departs once *per entry*
+        /// rather than once, so the field lives here ([ADR-0234]).
+        EventLoop.@Nullable Timer exit;
+
         /// How much of its stay is left, in milliseconds. Counted down rather
         /// than counted up, so a resumed toast gets the time it had left and not
         /// the time it started with.
@@ -134,6 +147,7 @@ final class ToasterState extends State<Toaster> {
         }
         for (var entry : entries) {
             cancel(entry);
+            cancelExit(entry);
         }
         entries.clear();
         waiting.clear();
@@ -230,6 +244,19 @@ final class ToasterState extends State<Toaster> {
         entry.startedAt = Double.NaN;
     }
 
+    /// Gives the exit timer back, which is the only thing that ever holds a
+    /// departing entry.
+    ///
+    /// Separate from [#cancel] rather than folded into it: that one banks the
+    /// remaining stay so the pointer can resume it, and an entry on its way out
+    /// has no stay left to bank. `dispose` is the only caller that wants both.
+    private void cancelExit(Entry entry) {
+        if (entry.exit != null) {
+            entry.exit.cancel();
+            entry.exit = null;
+        }
+    }
+
     /// §7's hover-pause. The clock stops while the pointer is on a toast and
     /// **resumes** rather than restarting: a toast you glanced at should not owe
     /// you another five seconds.
@@ -288,7 +315,10 @@ final class ToasterState extends State<Toaster> {
             remove(entry);
             return;
         }
-        host.after(Duration.ofMillis((long) EXIT_MILLIS), () -> setState(() -> remove(entry)));
+        entry.exit = host.after(Duration.ofMillis((long) EXIT_MILLIS), () -> {
+            entry.exit = null;
+            setState(() -> remove(entry));
+        });
         promote();
     }
 
