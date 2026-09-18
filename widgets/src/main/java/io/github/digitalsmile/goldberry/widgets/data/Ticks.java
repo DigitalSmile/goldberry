@@ -177,7 +177,13 @@ public final class Ticks {
     /// including zero — which is the label a reader looks for first.
     private static double simplicity(int index, int skip, double min, double max, double step) {
         var eps = 1e-10;
-        var remainder = min % step;
+        // A **floor** remainder, always in [0, step). Java's `%` truncates toward
+        // zero, so a negative `min` gave a negative remainder, `remainder < eps`
+        // was true for every one of them, and a labelling that steps straight
+        // over zero -- -7, -2, 3, 8 -- was credited with containing it (the
+        // 2026-09-18 review, W12). R's `%%`, which this scoring is a port of, is
+        // a floor modulus; that is the difference.
+        var remainder = min - Math.floor(min / step) * step;
         var includesZero = (remainder < eps || step - remainder < eps) && min <= 0 && max >= 0;
         return 1 - (double) index / (NICE.length - 1) - skip + (includesZero ? 1 : 0);
     }

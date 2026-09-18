@@ -77,6 +77,40 @@ class TicksTest {
                 "an axis spanning zero should label it: " + labels.values());
     }
 
+    /// The 2026-09-18 review's W12.
+    ///
+    /// The simplicity term pays a whole point for a labelling that *contains*
+    /// zero, and it decided so with `min % step`. Java's `%` truncates toward
+    /// zero, so every negative `min` produced a negative remainder and passed the
+    /// `remainder < eps` test — crediting the point to labellings that step
+    /// straight over zero. R's `%%`, which this scoring is a port of, is a floor
+    /// modulus.
+    ///
+    /// Scoring only, so it moves a choice rather than breaking one: what it
+    /// changes is which candidate wins when two are close, and the guard here is
+    /// that a labelling which does *not* contain zero is not preferred over one
+    /// that does.
+    @Test
+    @DisplayName("a labelling that steps over zero is not credited with containing it")
+    void zeroIsNotCreditedTwice() {
+        // Every candidate this range admits either contains zero or does not, and
+        // the one that does should win — which it could not reliably do while its
+        // rivals were being paid the same point.
+        var labels = Ticks.extended(-7, 23, 4);
+
+        var containsZero = labels.values().stream().anyMatch(v -> Math.abs(v) < 1e-9);
+        assertTrue(containsZero, "an axis spanning zero should label it: " + labels.values());
+
+        // And every value is a whole multiple of the step, which is what the
+        // floor remainder is really asserting about the axis it scored.
+        for (var value : labels.values()) {
+            var remainder = value - Math.floor(value / labels.step()) * labels.step();
+            assertTrue(
+                    remainder < 1e-9 || labels.step() - remainder < 1e-9,
+                    () -> value + " is not a multiple of the step " + labels.step());
+        }
+    }
+
     @Test
     @DisplayName("handles a range that does not start near zero")
     void offsetRanges() {
