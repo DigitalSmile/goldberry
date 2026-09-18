@@ -90,12 +90,27 @@ interface TextEditor {
     /// committed text still arrives, so the field still takes every character; it
     /// simply shows nothing inline.
     ///
-    /// @param text        the composition so far, or `""` when it has ended
-    /// @param caret       where the caret sits inside it, as a char offset
-    /// @param clauseStart where the converting clause begins, or -1 for none
-    /// @param clauseEnd   where it ends, or -1
+    /// ## The clause arrives as a start and a **length**
+    ///
+    /// This argument was called `clauseEnd` and documented as an end, and every
+    /// caller passed
+    /// [io.github.digitalsmile.goldberry.input.event.PreeditEvent#length()] —
+    /// which is a length, because that is what SDL's `SDL_TextEditingEvent`
+    /// carries and what the event translates into chars. Both implementations
+    /// read it as a length too, so the name was the only thing that disagreed,
+    /// and what it cost was a comparison that could not tell one clause from a
+    /// longer one starting in the same place. An **end** is what a painter wants,
+    /// so the conversion happens once, in
+    /// [io.github.digitalsmile.goldberry.widgets.form.parts.Preedit], and
+    /// [io.github.digitalsmile.goldberry.widgets.form.parts.Composing] still
+    /// carries ends.
+    ///
+    /// @param text         the composition so far, or `""` when it has ended
+    /// @param caret        where the caret sits inside it, as a char offset
+    /// @param clauseStart  where the converting clause begins, or -1 for none
+    /// @param clauseLength how many chars of the composition are in that clause
     /// @return whether anything changed, which is whether to consume the event
-    boolean compose(String text, int caret, int clauseStart, int clauseEnd);
+    boolean compose(String text, int caret, int clauseStart, int clauseLength);
 
     /// The line being typed on, in this field's **content** coordinates, or empty
     /// when it is not being typed into.

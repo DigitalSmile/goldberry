@@ -14,6 +14,8 @@ import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
+import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Preedit;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
@@ -97,16 +99,13 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// off once (`docs/gaps.md` G37, [ADR-0331]).
     private double gutterWidth;
 
-    /// What an input method is composing, or `""` when it is not —
+    /// What an input method is composing, or empty when it is not —
     /// `docs/gaps.md` G16. Beside [#edit] and never in it; see
     /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEditor#compose].
-    private String preedit = "";
-
-    private int preeditCaret;
-
-    private int preeditClauseStart = -1;
-
-    private int preeditClauseEnd = -1;
+    ///
+    /// The same [Preedit] `text-input` holds, rather than the four fields each
+    /// control used to keep for itself.
+    private final Preedit preedit = new Preedit();
 
     /// The value the widget last offered, so a change to it can be told from a
     /// constant that has always been there — see
@@ -144,9 +143,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // A composition ends when the control stops being typed into, and nothing
         // else would clear it: the empty TEXT_EDITING goes to whatever has focus.
         if (!focused || area.disabled() || area.readOnly()) {
-            preedit = "";
-            preeditClauseStart = -1;
-            preeditClauseEnd = -1;
+            preedit.clear();
         }
 
         var shown = edit.text();
@@ -156,13 +153,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             // Spliced at the caret, with the caret inside it -- `text-input`'s
             // arrangement, and every native field's (ADR-0292).
             var at = edit.caret();
-            shown = new StringBuilder(shown).insert(at, preedit).toString();
-            displayed = new TextEdit(shown, at + preeditCaret, at + preeditCaret);
-            composing = new Composing(
-                    at,
-                    at + preedit.length(),
-                    preeditClauseStart < 0 ? -1 : at + preeditClauseStart,
-                    preeditClauseEnd < 0 ? -1 : at + preeditClauseEnd);
+            shown = new StringBuilder(shown).insert(at, preedit.text()).toString();
+            displayed = new TextEdit(shown, at + preedit.caret(), at + preedit.caret());
+            composing = preedit.composingAt(at);
         }
 
         var showPlaceholder = edit.isEmpty() && preedit.isEmpty() && !area.placeholder().isEmpty();
@@ -331,7 +324,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // accepted candidate must not draw twice (ADR-0289).
         var wasComposing = clearPreedit();
         var room = room();
-        var insertion = room < 0 ? typed : clip(typed, room);
+        var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
         if (insertion.isEmpty()) {
             return wasComposing;
         }
@@ -339,22 +332,18 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public boolean compose(String text, int caret, int clauseStart, int clauseEnd) {
+    public boolean compose(String text, int caret, int clauseStart, int clauseLength) {
         var area = widget();
         if (area.disabled() || area.readOnly()) {
             return false;
         }
-        var clamped = Math.clamp(caret, 0, text.length());
-        var end = clauseStart < 0 ? -1 : Math.clamp(clauseStart + Math.max(0, clauseEnd), 0, text.length());
-        if (preedit.equals(text) && preeditCaret == clamped && preeditClauseStart == clauseStart) {
+        // `text-input`'s comparison, and now literally it: the clause's extent
+        // counts, or an input method resizing the clause it is converting is
+        // told nothing has changed ([Preedit]).
+        if (!preedit.wouldChange(text, caret, clauseStart, clauseLength)) {
             return !text.isEmpty();
         }
-        setState(() -> {
-            preedit = text;
-            preeditCaret = clamped;
-            preeditClauseStart = clauseStart;
-            preeditClauseEnd = end;
-        });
+        setState(() -> preedit.set(text, caret, clauseStart, clauseLength));
         solid();
         return true;
     }
@@ -364,12 +353,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (preedit.isEmpty()) {
             return false;
         }
-        setState(() -> {
-            preedit = "";
-            preeditCaret = 0;
-            preeditClauseStart = -1;
-            preeditClauseEnd = -1;
-        });
+        setState(preedit::clear);
         return true;
     }
 
@@ -416,7 +400,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// The caret's offset into what is **drawn** — inside the composition while
     /// there is one.
     private int displayCaret() {
-        return preedit.isEmpty() ? edit.caret() : edit.caret() + preeditCaret;
+        return preedit.isEmpty() ? edit.caret() : edit.caret() + preedit.caret();
     }
 
     @Override
@@ -671,7 +655,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // Windows is one document.
         var normalised = pasted.replace("\r\n", "\n").replace('\r', '\n');
         var room = room();
-        var insertion = room < 0 ? normalised : clip(normalised, room);
+        var insertion = room < 0 ? normalised : MaxLength.clip(normalised, room);
         return !insertion.isEmpty() && apply(edit.insert(insertion), EditHistory.Kind.OTHER, true);
     }
 
@@ -832,23 +816,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         return maximum < 0 || candidate.length() <= maximum;
     }
 
+    /// How many more characters will fit, or -1 for no limit — [MaxLength]'s,
+    /// along with the clipping, because `text-input` asks the same two questions
+    /// and each control used to answer them for itself.
     private int room() {
-        var maximum = widget().maxLength();
-        if (maximum < 0) {
-            return -1;
-        }
-        return Math.max(0, maximum - edit.length() + (edit.end() - edit.start()));
-    }
-
-    private static String clip(String text, int room) {
-        if (text.length() <= room) {
-            return text;
-        }
-        if (room <= 0) {
-            return "";
-        }
-        var end = text.offsetByCodePoints(0, text.codePointCount(0, Math.min(room, text.length())));
-        return text.substring(0, Math.min(end, room));
+        return MaxLength.room(widget().maxLength(), edit);
     }
 
     // --- the blink -------------------------------------------------------------

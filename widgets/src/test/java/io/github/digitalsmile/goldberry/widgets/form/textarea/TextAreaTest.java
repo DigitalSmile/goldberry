@@ -447,6 +447,38 @@ class TextAreaTest {
     }
 
     @Nested
+    @DisplayName("limits")
+    class Limits {
+
+        @Test
+        @DisplayName("a paste is clipped to what fits rather than refused whole")
+        void clipsAPaste() {
+            host.clipboardText("Goldberry");
+            var tree = mounted(new TextArea().maxLength(4));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Gold", text(tree));
+        }
+
+        /// `text-input`'s bug, because this control held a copy of the same six
+        /// lines: the clip counted code points and then took `Math.min` of what
+        /// it found and the room it had, which lands back inside the pair it has
+        /// just stepped over. Both copies now call
+        /// [io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength].
+        @Test
+        @DisplayName("a limit falling inside a character keeps whole characters, not half of one")
+        void clipsOnACharacterBoundary() {
+            host.clipboardText("a🎨b");
+            var tree = mounted(new TextArea().maxLength(2));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("a", text(tree), "half a surrogate pair is not a character anybody asked to paste");
+        }
+    }
+
+    @Nested
     @DisplayName("what it shares with `text-input`, and what it does not")
     class Shared {
 

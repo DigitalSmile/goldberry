@@ -81,8 +81,15 @@ interface AreaEditor {
     /// (ADR-0292). There is no masked `text-area`, so the one refusal that
     /// control has does not arise here.
     ///
+    /// `clauseLength` is a **length** and not an end — the platform reports a
+    /// clause that way and every caller passes
+    /// [io.github.digitalsmile.goldberry.input.event.PreeditEvent#length()]. See
+    /// `text-input`'s note; both controls share the
+    /// [io.github.digitalsmile.goldberry.widgets.form.parts.Preedit] that turns
+    /// it into the end a painter wants.
+    ///
     /// @return whether anything changed, which is whether to consume the event
-    boolean compose(String text, int caret, int clauseStart, int clauseEnd);
+    boolean compose(String text, int caret, int clauseStart, int clauseLength);
 
     /// The **line** the caret is on, in this control's content coordinates, or
     /// empty when it is not being typed into.
