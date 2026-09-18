@@ -177,46 +177,20 @@ record ChartSurface(
         return out;
     }
 
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // **The resolved values**, so a `ZERO` chart's axis reaches zero and a
-        // `CONNECT` chart's reaches its interpolated values -- an axis scaled to
-        // the raw series would leave a substituted point off the top of a chart
-        // that is drawing it.
-        var resolved = resolved();
-        // **A log axis only draws what a logarithm has a place for.** Only a
-        // line: a bar and a band are lengths from zero, and zero is not on the
-        // axis at all (ADR-0205).
-        var logarithmic = options.logY() && mode == ChartPlot.Mode.LINE;
-        if (logarithmic) {
-            // **Decided before anything is filtered.** A series with nothing
-            // positive in it cannot have a log axis at all -- `Scale.log` refuses
-            // the domain, and a chart must not turn that into an exception in a
-            // paint pass, because a query can return zeroes. So it falls back to
-            // a linear axis *and keeps its data*: filtering first and falling
-            // back afterwards drew an empty grid, which is the one outcome worse
-            // than either.
-            var anyPositive = false;
-            for (var s = 0; s < resolved.size() && !anyPositive; s++) {
-                if (!shows(s)) {
-                    continue;
-                }
-                for (var value : resolved.get(s).values()) {
-                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value) && value > 0) {
-                        anyPositive = true;
-                        break;
-                    }
-                }
-            }
-            logarithmic = anyPositive;
-        }
-        if (logarithmic) {
-            var positive = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(resolved.size());
-            for (var one : resolved) {
-                positive.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
-            }
-            resolved = positive;
-        }
+    /// What the value axis has to cover, end to end.
+    ///
+    /// @param min the bottom of the axis
+    /// @param max the top
+    private record Domain(double min, double max) {}
+
+    /// The domain `values` asks for: the readings, the thresholds, zero where the
+    /// form needs it, and then the bounds.
+    ///
+    /// A method rather than a stretch of `render` because a log chart has to ask
+    /// it **twice** — once of the positives-only data it would draw and once of
+    /// the data as it came — and answering the first and then falling back would
+    /// mean labelling one and drawing the other.
+    private Domain domain(List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
         var min = Double.POSITIVE_INFINITY;
         var max = Double.NEGATIVE_INFINITY;
         // **Over what is shown**, so isolating a small series rescales the axis
@@ -270,6 +244,64 @@ record ChartSurface(
                 max = upper;
             }
         }
+        return new Domain(min, max);
+    }
+
+    @Override
+    public Box render(ComputedStyle style, List<Box> children, Context context) {
+        // **The resolved values**, so a `ZERO` chart's axis reaches zero and a
+        // `CONNECT` chart's reaches its interpolated values -- an axis scaled to
+        // the raw series would leave a substituted point off the top of a chart
+        // that is drawing it.
+        var resolved = resolved();
+        // **A log axis only draws what a logarithm has a place for.** Only a
+        // line: a bar and a band are lengths from zero, and zero is not on the
+        // axis at all (ADR-0205).
+        var logarithmic = options.logY() && mode == ChartPlot.Mode.LINE;
+        if (logarithmic) {
+            // **Decided before anything is filtered.** A series with nothing
+            // positive in it cannot have a log axis at all -- `Scale.log` refuses
+            // the domain, and a chart must not turn that into an exception in a
+            // paint pass, because a query can return zeroes. So it falls back to
+            // a linear axis *and keeps its data*: filtering first and falling
+            // back afterwards drew an empty grid, which is the one outcome worse
+            // than either.
+            var anyPositive = false;
+            for (var s = 0; s < resolved.size() && !anyPositive; s++) {
+                if (!shows(s)) {
+                    continue;
+                }
+                for (var value : resolved.get(s).values()) {
+                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value) && value > 0) {
+                        anyPositive = true;
+                        break;
+                    }
+                }
+            }
+            logarithmic = anyPositive;
+        }
+        var domain = domain(resolved);
+        if (logarithmic) {
+            var positive = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(resolved.size());
+            for (var one : resolved) {
+                positive.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
+            }
+            // **Filtered only once the whole domain is known to be positive.** A
+            // threshold at zero or a bound that reaches it is as fatal to
+            // `Scale.log` as a series of zeroes, and it arrives after the data
+            // has been read -- so the axis it produces is the thing to ask, not
+            // the readings. Deciding on the readings alone kept the filtered data
+            // under a linear axis, which is the empty grid the note above is
+            // about, punched one reading at a time.
+            var positiveDomain = domain(positive);
+            logarithmic = positiveDomain.min() > 0 && positiveDomain.max() > 0;
+            if (logarithmic) {
+                resolved = positive;
+                domain = positiveDomain;
+            }
+        }
+        var min = domain.min();
+        var max = domain.max();
 
         // The labelling, and the colours, decided here where the cascade is.
         //
@@ -281,14 +313,13 @@ record ChartSurface(
         var labels = new ArrayList<Paragraph>();
         var axisMin = min;
         var axisMax = max;
-        if (logarithmic && min > 0 && max > 0) {
+        if (logarithmic) {
             var ticks = io.github.digitalsmile.goldberry.widgets.data.LogTicks.of(min, max, Y_LABELS);
             for (var value : ticks.values()) {
                 gridValues.add(value);
                 labels.add(context.paragraph(style, ticks.label(value)));
             }
         } else {
-            logarithmic = false;
             var labelling = Ticks.extended(min, max, Y_LABELS);
             for (var value : labelling.values()) {
                 gridValues.add(value);
