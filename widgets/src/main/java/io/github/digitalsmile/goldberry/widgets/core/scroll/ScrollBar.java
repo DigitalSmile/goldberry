@@ -35,10 +35,16 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// A thumb dragged one pixel moves the content by `overflow / (track − thumb)`
 /// pixels, which is more than one. That is not a violation of §1.7's "drags track
 /// the pointer 1:1" — the *thumb* tracks the pointer exactly, and the content is
-/// what it is pointing at. The gesture is a position and not a rate, so it needs
-/// no [Handles#gestureAnchor()]: where the pointer is along the track *is* the
-/// answer, read fresh every event, exactly as a slider reads its value
-/// (ADR-0079).
+/// what it is pointing at.
+///
+/// What the thumb tracks is the pointer's **travel**, so the offset the press
+/// began at is this bar's [Handles#gestureAnchor()] and every move adds the
+/// distance dragged since (ADR-0089). A slider needs none of that, because its
+/// value is where the pointer is along the track and a slider's thumb has no
+/// length worth speaking of (ADR-0079) — a scrollbar's has, and reading the
+/// position here instead gives the same answer wherever on the thumb the grab
+/// landed. That answer is "the thumb's middle is under the pointer", so a thumb
+/// grabbed near its edge jumps by up to half its length on the first move.
 ///
 /// ## A click on the track pages
 ///
@@ -145,16 +151,19 @@ public record ScrollBar(
                 event.consume();
             }
             case MOVED -> {
-                if (!dragging || Double.isNaN(event.dragX())) {
+                var travelled = vertical ? event.dragY() : event.dragX();
+                if (!dragging || Double.isNaN(travelled) || Double.isNaN(event.anchor())) {
                     return;
                 }
-                // Where the pointer is along the track, mapped through the travel
-                // rather than through the whole bar -- the same correction
-                // ADR-0080 made for a slider's track, and wrong here by exactly
-                // half a thumb if it is skipped.
+                // **How far the pointer has come since the grab**, mapped through
+                // the travel rather than through the whole bar -- the same
+                // correction ADR-0080 made for a slider's track. A *position*
+                // read off the track cannot say where on the thumb the grab
+                // landed, so it recentres the thumb under the pointer and throws
+                // a thumb grabbed near its edge by half its length.
                 var travel = viewport - thumbLength();
                 if (travel > 0) {
-                    onScroll.accept((along(event) - thumbLength() / 2) / travel * overflow());
+                    onScroll.accept(event.anchor() + travelled / travel * overflow());
                 }
                 event.consume();
             }
@@ -166,6 +175,15 @@ public record ScrollBar(
             }
             default -> {}
         }
+    }
+
+    /// The offset the viewport was at when the gesture began.
+    ///
+    /// Asked on every press on this bar, a track click included, and harmless
+    /// there: a click that pages does not start a drag, so nothing reads it.
+    @Override
+    public double gestureAnchor() {
+        return offset;
     }
 
     /// Where `event` landed along this bar, in logical pixels from its start.

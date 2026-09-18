@@ -181,6 +181,37 @@ class ChartLogTest {
     }
 
     @Test
+    @DisplayName("a threshold that reaches zero takes the linear axis and the whole series with it")
+    void aThresholdCanEndTheLogAxis() {
+        // The fallback is decided on the readings, and a threshold is part of the
+        // domain -- so a limit at zero refuses `Scale.log` just as a series of
+        // zeroes does, and it arrives after the readings have been read. The
+        // chart used to fall back to linear labelling and keep the
+        // positives-only data it had already filtered, which is the empty grid
+        // the fallback exists to avoid, punched one reading at a time.
+        var withZero = Series.of("rate", 30, 40, 0, 700, 900);
+        var floor = Threshold.at(0, Threshold.Level.INFO);
+
+        assertArrayEquals(
+                pixels(line(withZero).threshold(floor)),
+                pixels(line(withZero).logY().threshold(floor)),
+                "a log chart that cannot have a log axis draws the linear picture, data and all");
+    }
+
+    @Test
+    @DisplayName("a bound that reaches zero does the same")
+    void aBoundCanEndTheLogAxis() {
+        // The other way the domain arrives at zero after the readings have been
+        // read: an axis that is a definition rather than an observation.
+        var withZero = Series.of("rate", 30, 40, 0, 700, 900);
+
+        assertArrayEquals(
+                pixels(line(withZero).axis(0, 1000)),
+                pixels(line(withZero).logY().axis(0, 1000)),
+                "a hard bound at zero is a linear axis, and the readings are not filtered for one");
+    }
+
+    @Test
     @DisplayName("a smooth log line is still smooth, and still cannot overshoot")
     void itComposesWithTheCurve() {
         // The tangents are computed on the pixels the painter is about to draw,

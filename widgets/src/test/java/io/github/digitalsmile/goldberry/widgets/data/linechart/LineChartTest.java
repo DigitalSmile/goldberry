@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,6 +19,7 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -135,6 +137,49 @@ class LineChartTest {
         // One x axis, so the categories are the first series' point names: a
         // second series naming its points differently would be two x axes.
         assertEquals(List.of("0.1", "0.2"), chart.categories());
+    }
+
+    /// The frame `chart` paints, at the size the golden below uses.
+    private static int[] pixels(List<Series> series) {
+        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                #frame { padding: 12px; background: var(--gb-bg) }
+                #plot  { width: 296px; height: 156px }
+                """);
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var tree = new ElementTree(new Column(List.of(new LineChart(series, List.of(), id("plot"))), id("frame")));
+        var target = TestFrames.of(320, 180, 1.0f);
+        try {
+            BoxPainter.paint(target.frame(), renderer.render(tree));
+        } finally {
+            target.end();
+        }
+        var out = new int[320 * 180];
+        for (var y = 0; y < 180; y++) {
+            for (var x = 0; x < 320; x++) {
+                out[y * 320 + x] = target.pixel(x, y);
+            }
+        }
+        return out;
+    }
+
+    @Test
+    @DisplayName("a series shorter than the chart stops where it stops")
+    void oneScaleForEveryLine() {
+        // Each line was scaled to its **own** length, so a series of four
+        // readings on a chart whose longest has seven was stretched across the
+        // whole plot -- while the crosshair, the markers and the bands all place
+        // a point against the longest. There is one x axis, so a series that
+        // stops early must draw exactly as one whose remaining readings are
+        // missing does.
+        var longest = Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36);
+        var stops = Series.of("Installs", 8, 11, 9, 18);
+        var holed = Series.of("Installs", 8, 11, 9, 18, Double.NaN, Double.NaN, Double.NaN);
+
+        assertArrayEquals(
+                pixels(List.of(longest, holed)),
+                pixels(List.of(longest, stops)),
+                "the short series was drawn somewhere other than under the indices it holds");
     }
 
     @Test
