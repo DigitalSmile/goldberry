@@ -4,6 +4,13 @@ Date: 2026-09-13
 
 ## Status
 
+**Corrected by [ADR-0401](0401-the-router-tells-the-living-and-finishes-the-applications-pair.md).**
+The sentence below calling this safe by construction stopped being true: a
+handler can now unmount the element under the pointer within the same dispatch,
+and `State.setState` on an unmounted state throws. The guard ADR-0401 adds is
+narrower than it looks — a disposed widget hears nothing, while the application's
+own `Attributes` hook still finishes the pair it opened.
+
 Accepted. Extends [ADR-0180](0180-the-keyboard-goes-back-where-it-was.md)'s
 rule from the keyboard to the pointer, and closes the hole that left a tooltip
 open over content that no longer existed.

@@ -28,9 +28,10 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | Wave | What | State |
 |------|------|-------|
 | 1 | C1–C3, C22 parsers; W1–W3 tabs and the two editors; H1, H2 markdown; B1–B12 build and CI | **done** except N1–N3, which moved to wave 2 |
-| 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | in progress |
+| 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | the pointer group **done**; the weaver in progress |
 | 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | in progress |
-| 4 | the remaining `:core`, `:widgets`, `:html`, `:natives` rows | open |
+| 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends | in progress |
+| 4b | the remaining `:core`, `:widgets`, `:html`, `:natives` rows | open |
 | 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
 | 6 | §7 dead code and duplication; §8 the prose | open |
 
@@ -44,7 +45,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C4 | open | |
 | C5 | open | |
 | C6 | open | |
-| C7 | open | |
+| C7 | **done** | Narrower than the review prescribed: a widget the router has **disposed** hears nothing; the application's `Attributes` hook still finishes the pair it opened, which ADR-0327 added deliberately. `RehoverTest.theDeadAreNotToldTheyExited` and `anAncestorUnmountedMidDispatchIsSkipped`. [ADR-0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md), which corrects ADR-0303. |
 | C8 | open | |
 | C9 | open | |
 | C10 | open | |
@@ -52,12 +53,12 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C12 | open | |
 | C13 | open | |
 | C14 | open | |
-| C15 | open | |
-| C16 | open | |
+| C15 | **done** | `pointerReleased` cleared the anchor at the *end*, because `dispatch` reads it for the `RELEASED` and `CLICKED`; the no-target return jumped the tail. `endGesture()` is called on both ways out. `GestureAnchorTest.clearedWhenTheReleaseFindsNobody`. Reachable only after a `releasePointer()` mid-drag, since a press captures implicitly. |
+| C16 | **done** | Guarded on `captured == null`, so the shape stays part of what the gesture decided. `CursorTest.leavingTheWindowMidDragKeepsTheShape`. |
 | C17 | open | |
 | C18 | open | |
-| C19 | open | |
-| C20 | open | |
+| C19 | **done** | Each popup's own `dismissedByInput()` is added up, rather than asking whether everything is shut. `PopupLifecycleTest.aDismissalIsNotAClickWhileATooltipIsOpen`, driven through the real launcher and loop. |
+| C20 | **done** | Boxes trace back through their `Element` to the child of the `WindowRoot` they descend from. A box-*less* child shifts placements; a box-*ful* one (a composition) is what overruns the list — and the content itself was assumed to produce exactly one box. `OverlayLayerTest.aBoxlessOverlayPlacesNothing`. |
 | C21 | open | |
 | C22 | **done** | The guard admitted only a *bare* identifier. It is `startsIdentifier() \|\| startsQuotedOrRawString()` now — raw keys are legal KDL 2.0 too, which the entry did not mention. `KdlParserTest$Values.quotedPropertyNames`. |
 
@@ -147,6 +148,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | [0398](../book/src/adr/0398-the-build-declares-what-it-actually-writes.md) | A task declares the files it owns and only those — the weaver's stamp, the prose tasks, PMD's exclusion, `blessGoldens` |
 | [0399](../book/src/adr/0399-a-task-box-is-counted-by-the-parser-that-found-it.md) | `toggleTask` asks md4c where the box is; supersedes one sentence of ADR-0300 |
 | [0400](../book/src/adr/0400-a-clause-is-a-start-and-a-length.md) | A preedit clause is a start and a length; a limit cuts on a grapheme boundary; both live in `form/parts` |
+| [0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md) | The router tells the living, and finishes the application's pair; corrects ADR-0303, extends ADR-0317 |
 
 ## What the review got wrong
 
@@ -169,6 +171,22 @@ more than being quietly corrected.
   the order is not the objection.
 - **H1's frame invites too small a fix.** The four-space indent is one symptom of
   three; a block quote is the same bug and the entry does not mention it.
+- **C7's prescription is too broad.** "`emit()` has no `isMounted()` guard where
+  `mark()` and `notifyFocus` do" is true of the widget handler and false of the
+  `Attributes` hook in the same method. A guard over the whole of `emit` breaks
+  `HoverHookTest` and contradicts ADR-0327 — silently, by dropping an exit the
+  application is waiting for.
+- **`WheelAndCaptureTest:832-844` does not exist.** The file is 369 lines and
+  `releaseOnDescendant` is at 289–301. The other five citations in that paragraph
+  are accurate.
+- **C20's "or throws" needs a box-*ful* overlay.** A child contributing no box
+  shifts the later placements; only one contributing *several* overruns the list.
+  The same mismatch applies to the content itself, which the entry does not
+  mention.
+- **ADR-0080 and ADR-0081 do have a status.** They say `*Accepted, 2026-08-17.*`
+  in italics rather than in a `**Status:**` bullet or a `## Status` section — one
+  of three spellings in use across the log. `DecisionLogTest` now answers the
+  question the review answered by reading 397 files.
 - **W3 is latent through today's only caller.** `PreeditEvent.caret()` is defined
   as the clause end whenever a clause is reported, so the caret comparison caught
   every resize by accident. The contract is still wrong and bites the moment an
