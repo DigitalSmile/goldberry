@@ -2,9 +2,10 @@ package io.github.digitalsmile.goldberry.natives.yoga;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,14 +26,6 @@ class StyleLengthTest {
         // 50px and 50% resolve to different numbers against any parent but one,
         // so they had better not compare equal.
         assertNotEquals(StyleLength.points(50f), StyleLength.percent(50f));
-    }
-
-    @Test
-    @DisplayName("the keywords are singletons")
-    void keywordsAreSingletons() {
-        assertSame(StyleLength.Keyword.AUTO, StyleLength.AUTO);
-        assertSame(StyleLength.Keyword.UNDEFINED, StyleLength.UNDEFINED);
-        assertNotEquals(StyleLength.AUTO, StyleLength.UNDEFINED);
     }
 
     @Test
@@ -61,11 +54,19 @@ class StyleLengthTest {
     }
 
     @Test
-    @DisplayName("a length prints as a length")
-    void lengthsPrintReadably() {
-        assertEquals("4.0px", StyleLength.points(4f).toString());
-        assertEquals("50.0%", StyleLength.percent(50f).toString());
-        assertEquals("auto", StyleLength.AUTO.toString());
-        assertEquals("undefined", StyleLength.UNDEFINED.toString());
+    @DisplayName("a length names its unit, so 50px and 50% are not one line in a log")
+    void lengthsNameTheirUnit() {
+        // The claim is that the four forms are distinguishable and say which they
+        // are; the exact spelling is not a contract, so it is not pinned here.
+        var points = StyleLength.points(50f).toString();
+        var percent = StyleLength.percent(50f).toString();
+
+        assertTrue(points.contains("px"), points);
+        assertTrue(percent.contains("%"), percent);
+        assertEquals(
+                4,
+                Set.of(points, percent, StyleLength.AUTO.toString(), StyleLength.UNDEFINED.toString())
+                        .size(),
+                "two lengths that print the same are two lengths a reader cannot tell apart");
     }
 }

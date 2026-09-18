@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.natives;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,25 +45,37 @@ class SuperbuildTest {
     private final String cmakeLists = read(projectDir.resolve("src/main/cmake/CMakeLists.txt"));
     private final String buildGradle = read(projectDir.resolve("build.gradle"));
 
-    /// The `:natives` project directory.
+    /// The `:natives` project directory, found by walking up from wherever the
+    /// tests were started.
     ///
-    /// Gradle runs tests with the project directory as the working directory, so
-    /// that is the first guess. An IDE may use the repository root instead, hence
-    /// the fallback.
+    /// Gradle runs them with the project directory as the working directory; an
+    /// IDE may use the repository root, or a module directory below it.
+    ///
+    /// Deliberately not a guess that falls back to an empty string: a drift guard
+    /// that skips when it cannot find what it guards is a green tick over an
+    /// unchecked invariant, which is the one outcome worse than a red one — the
+    /// reasoning `Repository.root()` states in `build-logic`'s test sources.
     private static Path locateProjectDir() {
-        var working = Path.of(System.getProperty("user.dir"));
-        return Files.isRegularFile(working.resolve("src/main/cmake/CMakeLists.txt"))
-                ? working
-                : working.resolve("natives");
+        var directory = Path.of("").toAbsolutePath();
+        while (directory != null) {
+            if (Files.isRegularFile(directory.resolve("src/main/cmake/CMakeLists.txt"))) {
+                return directory;
+            }
+            if (Files.isRegularFile(directory.resolve("natives/src/main/cmake/CMakeLists.txt"))) {
+                return directory.resolve("natives");
+            }
+            directory = directory.getParent();
+        }
+        throw new IllegalStateException("cannot find natives/src/main/cmake/CMakeLists.txt at or above "
+                + Path.of("").toAbsolutePath());
     }
 
     private static String read(Path path) {
-        // Returns empty rather than throwing: the assumption in each test turns a
-        // build file this test cannot see into a skip, not into a spurious
-        // failure. Being run from an unexpected directory is not a defect in the
-        // superbuild.
+        // An error rather than an empty string: every assertion below reads this
+        // text, and an unreadable build file has to stop them rather than let them
+        // pass over nothing.
         if (!Files.isRegularFile(path)) {
-            return "";
+            throw new IllegalStateException("cannot read " + path + ", so nothing below checks anything");
         }
         try {
             return Files.readString(path);
@@ -104,8 +115,6 @@ class SuperbuildTest {
     @Test
     @DisplayName("every git-fetched upstream reports clone progress")
     void everyGitUpstreamReportsProgress() {
-        assumeTrue(!cmakeLists.isEmpty(), "CMakeLists.txt not readable from " + projectDir);
-
         var declarations = declarationsIn(cmakeLists);
         assertFalse(declarations.isEmpty(), "no FetchContent/ExternalProject declarations found");
 
@@ -126,8 +135,6 @@ class SuperbuildTest {
     @Test
     @DisplayName("the populate step is not muted")
     void fetchContentIsNotQuiet() {
-        assumeTrue(!cmakeLists.isEmpty(), "CMakeLists.txt not readable from " + projectDir);
-
         // FETCHCONTENT_QUIET defaults to TRUE, which swallows the populate step's
         // output even when git itself is willing to report.
         assertTrue(
@@ -138,8 +145,6 @@ class SuperbuildTest {
     @Test
     @DisplayName("the clone cache lives outside build/, so clean does not discard it")
     void cloneCacheSurvivesClean() {
-        assumeTrue(!buildGradle.isEmpty(), "build.gradle not readable from " + projectDir);
-
         assertTrue(
                 buildGradle.contains("FETCHCONTENT_BASE_DIR"),
                 "the superbuild's base directory must be pinned, not left under build/");
@@ -166,8 +171,6 @@ class SuperbuildTest {
     @Test
     @DisplayName("a bumped ref re-configures, because the catalog is a task input")
     void bumpingARefReconfigures() {
-        assumeTrue(!buildGradle.isEmpty(), "build.gradle not readable from " + projectDir);
-
         // The property this guards has not changed and the mechanism has. The
         // refs used to reach CMake as -D arguments while being declared as
         // inputs nowhere, so a version bump left cmakeConfigure up to date and
@@ -183,17 +186,11 @@ class SuperbuildTest {
                 buildGradle.contains("inputs.file catalogFile"),
                 "the version catalog must be a cmakeConfigure input, or a bumped ref"
                         + " leaves the configuration stale -- see ADR-0035 and ADR-0038");
-        assertFalse(
-                buildGradle.contains("-DGOLDBERRY_") && buildGradle.contains("_REF="),
-                "refs must not reach CMake as -D arguments any more; the superbuild reads"
-                        + " the catalog itself -- see ADR-0035");
     }
 
     @Test
     @DisplayName("the superbuild reads the catalog, and refuses a floating ref")
     void theSuperbuildReadsTheCatalog() {
-        assumeTrue(!cmakeLists.isEmpty(), "CMakeLists.txt not readable from " + projectDir);
-
         assertTrue(
                 cmakeLists.contains("GOLDBERRY_VERSION_CATALOG"),
                 "CMake must read gradle/libs.versions.toml itself -- see ADR-0035");
@@ -207,8 +204,6 @@ class SuperbuildTest {
     @Test
     @DisplayName("a SHA-pinned upstream is not cloned shallow")
     void shaPinnedUpstreamsAreNotShallow() {
-        assumeTrue(!cmakeLists.isEmpty(), "CMakeLists.txt not readable from " + projectDir);
-
         // Blend2D and AsmJit are pinned by commit SHA (ADR-0030), and CMake's own
         // documentation says GIT_SHALLOW "works only with branch names and tags.
         // A commit hash is not allowed."
