@@ -76,6 +76,63 @@ class StyleResolverTest {
             assertEquals("blue", value(resolver(app, base).resolve(element("button")), "color"));
         }
 
+        /// Two sheets in one layer, which is what `TOOLKIT_BASE` actually holds:
+        /// `controls.css`, `MarkdownStyles` and `HtmlStyles` are all in it.
+        ///
+        /// A `Match` carried the rule's index *within its own sheet* as its whole
+        /// source order, so the two sheets' indices were compared against each
+        /// other and an earlier sheet's twelfth rule beat a later sheet's first.
+        /// The padding below is the shape of it: whichever of the two rules sits
+        /// lower in its own file used to win, whatever order the sheets were
+        /// loaded in.
+        @Test
+        @DisplayName("at equal specificity the later sheet in a layer wins, whatever its rules are numbered")
+        void sheetOrderWithinALayer() {
+            var first = sheet(CascadeLayer.TOOLKIT_BASE, """
+                    input { padding: 1px }
+                    input { padding: 2px }
+                    button { color: red }
+                    """);
+            var second = sheet(CascadeLayer.TOOLKIT_BASE, "button { color: blue }");
+
+            assertEquals("blue", value(resolver(first, second).resolve(element("button")), "color"));
+        }
+
+        @Test
+        @DisplayName("and the other way round, so it is the sheets that are ordered and not the rules")
+        void sheetOrderReversed() {
+            var first = sheet(CascadeLayer.TOOLKIT_BASE, "button { color: blue }");
+            var second = sheet(CascadeLayer.TOOLKIT_BASE, """
+                    input { padding: 1px }
+                    input { padding: 2px }
+                    button { color: red }
+                    """);
+
+            assertEquals("red", value(resolver(first, second).resolve(element("button")), "color"));
+        }
+
+        @Test
+        @DisplayName("a sheet's position never outranks the layer above it")
+        void layerBeatsSheetOrder() {
+            // The ordering the sheet index must not disturb: it separates two
+            // sheets *inside* a layer, and a sheet handed over first is still in
+            // whatever layer it declared.
+            var app = sheet(CascadeLayer.APPLICATION, "button { color: blue }");
+            var base = sheet(CascadeLayer.TOOLKIT_BASE, "button { color: red }");
+
+            assertEquals("blue", value(resolver(app, base).resolve(element("button")), "color"));
+            assertEquals("blue", value(resolver(base, app).resolve(element("button")), "color"));
+        }
+
+        @Test
+        @DisplayName("nor the specificity above that")
+        void specificityBeatsSheetOrder() {
+            var first = sheet(CascadeLayer.TOOLKIT_BASE, "button.primary { color: red }");
+            var second = sheet(CascadeLayer.TOOLKIT_BASE, "button { color: blue }");
+
+            assertEquals("red", value(resolver(first, second).resolve(element("button.primary")), "color"));
+        }
+
         @Test
         @DisplayName("specificity beats layer, per §8")
         void specificityBeatsLayer() {

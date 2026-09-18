@@ -91,11 +91,21 @@ public final class StyleResolver {
     private final java.util.Set<Selector.PseudoClass> untypedAncestorStates =
             java.util.EnumSet.noneOf(Selector.PseudoClass.class);
 
-    /// One rule, with the layer it came from — what a bucket holds.
+    /// One rule, with the layer and the sheet it came from — what a bucket holds.
     ///
-    /// The layer travels with the rule because the buckets flatten the sheets
-    /// away, and the cascade needs it back.
-    private record Candidate(StyleRule rule, CascadeLayer layer) {}
+    /// Both travel with the rule because the buckets flatten the sheets away, and
+    /// the cascade needs them back.
+    ///
+    /// **`sheet` is the second of those, and it was missing.** [StyleRule#order]
+    /// is a rule's position *within its own stylesheet*, so two sheets in one
+    /// layer compared their indices against each other: an earlier sheet's rule
+    /// 12 beat a later sheet's rule 0 at equal specificity, and `controls.css`,
+    /// `MarkdownStyles` and `HtmlStyles` all sit in [CascadeLayer#TOOLKIT_BASE].
+    /// The index the resolver was handed the sheets in restores what source order
+    /// means when there is more than one source.
+    ///
+    /// @param sheet the sheet's position in the list this resolver was built from
+    private record Candidate(StyleRule rule, CascadeLayer layer, int sheet) {}
 
     /// Rules whose **rightmost** compound names a type, bucketed by that type.
     ///
@@ -144,9 +154,10 @@ public final class StyleResolver {
     /// in [#untyped] if any of them names none — a rule is a unit and the
     /// cascade has to see it whole, so over-collecting is the only safe error.
     private void indexByType() {
-        for (var sheet : stylesheets) {
+        for (var index = 0; index < stylesheets.size(); index++) {
+            var sheet = stylesheets.get(index);
             for (var rule : sheet.rules()) {
-                var candidate = new Candidate(rule, sheet.layer());
+                var candidate = new Candidate(rule, sheet.layer(), index);
                 var typed = rule.starting() ? startingByType : byType;
                 var everywhere = false;
                 for (var selector : rule.selectors()) {
@@ -457,7 +468,7 @@ public final class StyleResolver {
                 continue;
             }
             for (var declaration : rule.declarations()) {
-                matches.add(new Match(declaration, candidate.layer(), best, rule.order()));
+                matches.add(new Match(declaration, candidate.layer(), best, candidate.sheet(), rule.order()));
             }
         }
 
@@ -500,13 +511,26 @@ public final class StyleResolver {
     /// makes a layer an extension of source order rather than the override
     /// `@layer` provides. A more specific toolkit rule therefore still beats a
     /// vaguer application one, exactly as two rules in one stylesheet would.
+    ///
+    /// **Source order is two numbers, not one.** [Match#order] is
+    /// [StyleRule#order], the rule's index *inside its own stylesheet*, so a layer
+    /// holding more than one sheet had no ordering between them: an earlier
+    /// sheet's rule 12 outranked a later sheet's rule 0 at equal specificity, and
+    /// which sheet a `TOOLKIT_BASE` declaration came from decided it. The sheet
+    /// index goes between layer and rule order, which is exactly where "later
+    /// source wins" belongs — it leaves every layer comparison above it and every
+    /// specificity comparison above that untouched, and it only ever separates two
+    /// rules that were previously separated by the wrong number.
     private static final Comparator<Match> CASCADE = Comparator.<Match, Boolean>comparing(
                     m -> m.declaration().important())
             .thenComparingInt(Match::specificity)
             .thenComparing(Match::layer)
+            .thenComparingInt(Match::sheet)
             .thenComparingInt(Match::order);
 
-    private record Match(Declaration declaration, CascadeLayer layer, int specificity, int order) {}
+    /// @param sheet the sheet's index in this resolver's list — see [Candidate]
+    /// @param order the rule's index inside that sheet
+    private record Match(Declaration declaration, CascadeLayer layer, int specificity, int sheet, int order) {}
 
     /// Replaces every `var()` in `value`.
     ///
