@@ -43,6 +43,22 @@ public enum SdlSubsystem {
         return bit;
     }
 
+    /// The name `goldberry_shim.c` reports this bit under.
+    ///
+    /// Every constant in a binding belongs in
+    /// [io.github.digitalsmile.goldberry.natives.layout.NativeConstants], and
+    /// these did not: they were spelled out here and spelled out a second time in
+    /// `SdlSubsystemTest`, which asserted that one copy equalled the other. Two
+    /// copies of the same guess agreeing says nothing about SDL. The C compiler
+    /// is what says it now.
+    ///
+    /// Mechanical rather than a field, because SDL's names are this enum's names
+    /// with one prefix — a constant that stopped matching would be a constant
+    /// whose row is missing, which the verifier reports by name.
+    public String nativeName() {
+        return "SDL_INIT_" + name();
+    }
+
     /// Folds a set of subsystems into an `SDL_InitFlags` mask.
     public static int mask(Collection<SdlSubsystem> subsystems) {
         var flags = 0;

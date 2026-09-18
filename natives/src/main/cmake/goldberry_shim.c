@@ -927,6 +927,21 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("GOLDBERRY_CAP_SCREENSAVER_INHIBIT", GOLDBERRY_CAP_SCREENSAVER_INHIBIT),
 
     /*
+     * The subsystems SDL_Init takes. A bit mask rather than an enumeration, so
+     * the Java enum spells each value out, and a wrong one is a subsystem that
+     * never initializes and never says so: SDL_Init(0x20) with the wrong 0x20
+     * returns true having started nothing.
+     */
+    GB_CONSTANT("SDL_INIT_AUDIO", SDL_INIT_AUDIO),
+    GB_CONSTANT("SDL_INIT_VIDEO", SDL_INIT_VIDEO),
+    GB_CONSTANT("SDL_INIT_JOYSTICK", SDL_INIT_JOYSTICK),
+    GB_CONSTANT("SDL_INIT_HAPTIC", SDL_INIT_HAPTIC),
+    GB_CONSTANT("SDL_INIT_GAMEPAD", SDL_INIT_GAMEPAD),
+    GB_CONSTANT("SDL_INIT_EVENTS", SDL_INIT_EVENTS),
+    GB_CONSTANT("SDL_INIT_SENSOR", SDL_INIT_SENSOR),
+    GB_CONSTANT("SDL_INIT_CAMERA", SDL_INIT_CAMERA),
+
+    /*
      * libwebp's animation decoder (ADR-0385).
      *
      * The three structs Java allocates and reads by offset. WebPData is a
