@@ -67,4 +67,61 @@ class FaceCoverageTest {
         assertEquals(0, FaceCoverage.codePoints(Arrays.copyOf(font, 40)).length, "a header and nothing else");
         FaceCoverage.codePoints(half);
     }
+
+    /// This class used to walk the table directory itself, and the copy had the
+    /// directory's tag comparison without its `offset + length > limit` check: a
+    /// `cmap` record claiming a table that runs off the end of the file was read
+    /// anyway, out of whatever bytes followed it. It goes through
+    /// [io.github.digitalsmile.goldberry.text.font.sfnt.TableDirectory#table] now,
+    /// which hands back a **slice** that ends where the table says it does.
+    ///
+    /// The face's own bytes with one number changed, so what is under test is the
+    /// check rather than a fixture somebody wrote to fail it.
+    @Test
+    @DisplayName("a cmap record that claims more bytes than the file has is refused")
+    void cmapPastTheEndOfTheFile() {
+        var font = BundledAssets.font(BundledFont.UI);
+        var honest = FaceCoverage.codePoints(font);
+        assertTrue(honest.length > 0, "the face this is measured against has a readable cmap");
+
+        var lying = font.clone();
+        var record = cmapRecord(lying);
+        // The length field of the `cmap` record, four bytes after the offset. The
+        // whole file's length, which from any non-zero offset runs past the end —
+        // and does not overflow, so it is the check that refuses it rather than an
+        // index computation wrapping into a negative number.
+        write32(lying, record + 12, lying.length);
+
+        assertEquals(
+                0,
+                FaceCoverage.codePoints(lying).length,
+                "a table that does not fit in the file was read out of the bytes after it");
+    }
+
+    /// Where the `cmap` record sits in `font`'s table directory.
+    private static int cmapRecord(byte[] font) {
+        var cmap = ('c' << 24) | ('m' << 16) | ('a' << 8) | 'p';
+        var tables = ((font[4] & 0xFF) << 8) | (font[5] & 0xFF);
+        for (var i = 0; i < tables; i++) {
+            var at = 12 + i * 16;
+            if (read32(font, at) == cmap) {
+                return at;
+            }
+        }
+        throw new AssertionError("the bundled UI face has no cmap");
+    }
+
+    private static int read32(byte[] bytes, int at) {
+        return ((bytes[at] & 0xFF) << 24)
+                | ((bytes[at + 1] & 0xFF) << 16)
+                | ((bytes[at + 2] & 0xFF) << 8)
+                | (bytes[at + 3] & 0xFF);
+    }
+
+    private static void write32(byte[] bytes, int at, int value) {
+        bytes[at] = (byte) (value >>> 24);
+        bytes[at + 1] = (byte) (value >>> 16);
+        bytes[at + 2] = (byte) (value >>> 8);
+        bytes[at + 3] = (byte) value;
+    }
 }

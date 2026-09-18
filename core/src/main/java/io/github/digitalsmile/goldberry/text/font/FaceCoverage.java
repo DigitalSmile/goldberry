@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.text.font;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import io.github.digitalsmile.goldberry.text.font.sfnt.TableDirectory;
 
 /// Which characters a font file has glyphs for — its `cmap`, read.
 ///
@@ -38,10 +38,7 @@ import java.util.TreeSet;
 public final class FaceCoverage {
 
     /// The `cmap` table's tag, as the four bytes a font writes it.
-    private static final int CMAP = tag('c', 'm', 'a', 'p');
-
-    /// `ttcf` — a collection, which this does not read.
-    private static final int COLLECTION = tag('t', 't', 'c', 'f');
+    private static final int CMAP = TableDirectory.tag('c', 'm', 'a', 'p');
 
     private FaceCoverage() {}
 
@@ -60,44 +57,38 @@ public final class FaceCoverage {
     /// @param font the face's bytes
     /// @return the code points, ascending
     public static int[] codePoints(byte[] font) {
-        Objects.requireNonNull(font, "font");
+        var cmap = TableDirectory.table(font, CMAP);
+        if (cmap == null) {
+            return new int[0];
+        }
         try {
-            return read(ByteBuffer.wrap(font).order(ByteOrder.BIG_ENDIAN));
+            return read(cmap);
         } catch (RuntimeException e) {
-            // A truncated or malformed file, which is an ordinary thing to be
-            // handed. Every read below is bounds-checked by the buffer, so the
+            // A truncated or malformed subtable, which is an ordinary thing to be
+            // handed. Every read below is bounds-checked by the slice, so the
             // failure arrives here rather than as a wrong answer.
             return new int[0];
         }
     }
 
+    /// Every code point in the `cmap` slice [TableDirectory] handed back.
+    ///
+    /// **A slice and not the whole file**, which is what finding the table through
+    /// [TableDirectory#table] buys: the offsets a subtable record holds are from the
+    /// table's own start, exactly as the specification writes them, and the slice
+    /// ends where the table ends — so a record claiming a subtable past the last
+    /// byte of the `cmap` is refused here rather than read out of whatever follows
+    /// it. This file used to walk the table directory itself, and the copy had the
+    /// directory's tag comparison without its `offset + length > limit` check.
     private static int[] read(ByteBuffer in) {
-        var version = in.getInt(0);
-        if (version == COLLECTION) {
-            // A `.ttc` holds several faces and this API names none of them.
-            return new int[0];
-        }
-        var tables = Short.toUnsignedInt(in.getShort(4));
-        var cmap = -1;
-        for (var i = 0; i < tables; i++) {
-            var record = 12 + i * 16;
-            if (in.getInt(record) == CMAP) {
-                cmap = in.getInt(record + 8);
-                break;
-            }
-        }
-        if (cmap <= 0 || cmap >= in.limit()) {
-            return new int[0];
-        }
-
         // The best subtable rather than the first: a face with emoji has both a
         // format 4 for the BMP and a format 12 for everything, and reading only
         // the first would lose every character above 0xFFFF.
         SortedSet<Integer> found = new TreeSet<>();
-        var subtables = Short.toUnsignedInt(in.getShort(cmap + 2));
+        var subtables = Short.toUnsignedInt(in.getShort(2));
         for (var i = 0; i < subtables; i++) {
-            var record = cmap + 4 + i * 8;
-            var offset = cmap + in.getInt(record + 4);
+            var record = 4 + i * 8;
+            var offset = in.getInt(record + 4);
             if (offset < 0 || offset + 4 > in.limit()) {
                 continue;
             }
@@ -183,9 +174,5 @@ public final class FaceCoverage {
                 found.add(code);
             }
         }
-    }
-
-    private static int tag(char a, char b, char c, char d) {
-        return (a << 24) | (b << 16) | (c << 8) | d;
     }
 }
