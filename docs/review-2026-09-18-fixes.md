@@ -133,8 +133,8 @@ two`. |
 | §6 should not run under `check` | **mostly done** | `FrameBudgetTest` is tagged `benchmark`, with the counting pair it is owed named at the tag. `EventLoop` now reads an injectable clock and `EventLoopTimerTest` runs on one — which removes a known wall-clock flake. `TooltipTest`'s sleeps are **kept**: what they measure is the loop's own timer, and its own comment says a test that measured it with itself would pass whatever it did. |
 | §6 asserts nothing | **done** | Eight sites, each now asserting what its own name says. |
 | §6 duplicated scaffolding | open | |
-| §7 dead code | **mostly done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The `:widgets` half waits for the agent in that module. |
-| §7 duplication | open | |
+| §7 dead code | **done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The rest followed: the four caller-less members, `DonutChart`'s unreachable guard, `WordGeometry`'s `size == 0` branch and the parameter it read, and `SelectableDocument.document`. **Nothing on the list turned out to still have a caller**, and `QrCache.encodings` is **kept** — identity cannot answer "did the encoder run", because `matrix()` returns the race winner either way, and `BlockMemo.kept()`/`built()` is the same pattern in `:html`. |
+| §7 duplication | **done** | ~390 lines of triplicated chart wither become ~120 on a self-typed `ChartSpec`. `lerp` lifted where the copies were byte-identical (`css.value`), and the two tour copies turned out to be a duplicated *method* rather than a duplicated `lerp` — both now `Lit`. `FaceCoverage` goes through `TableDirectory.table`, which buys the bounds check it lacked. `HtmlWidgets.SKIPPED` is `Tags.isMetadata`. **`mix` in three is not duplication**: one is a documented one-line facade over `Oklch.mix`, one is an unrelated byte blend in `:example`. |
 | §8 contradicts the code | **done** | README, NOTICE, THIRD-PARTY-NOTICES, releasing.md, TODO.md, design-system.md, applications.md, the example's counts, `gpu/module-info`, `book/src/native.md` (246 symbols, six upcalls) and `book/src/weaving.md`. `DecisionLogTest` now answers the ADR-status question the review answered by reading 397 files. |
 | §8 stale doc comments | **done** | Ten more, plus `Paragraph.layout()` losing `@Nullable` and the dead null branches behind it in `Editor`, `DocumentLines` and `TextDocument`. `Clip.java` claimed `bl_context_save` is not exported; ADR-0193 exported it. |
 | §8 comments on the wrong member | **done** | A dozen, with the members they had left undocumented now documented. Two were not misplacements: `Hud` carried the same doc comment twice, and `TreeRow` had a truncated `@param` list in front of prose that belongs before the full one. |
@@ -267,6 +267,16 @@ more than being quietly corrected.
 - **H7's fix has a price the entry does not mention.** Identity in the signature
   rebuilds the *whole* note when the source is replaced, not only the blocks
   holding pictures.
+- **`UiExecutor.drain` is the model, not a defect.** The entry pairs it with
+  `Sdl3FileDialogs.deliverPending` as suppressing failures; it collects every
+  one, logs each, and throws with the first as cause and the rest as
+  `addSuppressed`. Only `Sdl3FileDialogs` needed fixing, and it was fixed into
+  that shape.
+- **The `BarChart` entry is incomplete and partly mis-framed.** `curve` and
+  `logY` never lied — `BarChart.curve`'s own doc said a bar ignores it, and
+  `ChartCurveTest.barsHaveNoCurve` asserts it in pixels. `markers` and `times`
+  did. And `markers` is ignored by `area-chart` too, which the entry does not
+  say.
 - **W3 is latent through today's only caller.** `PreeditEvent.caret()` is defined
   as the clause end whenever a clause is reported, so the caret comparison caught
   every resize by accident. The contract is still wrong and bites the moment an
