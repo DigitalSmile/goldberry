@@ -69,6 +69,45 @@ class StyleLintTest {
             assertEquals("left", findings.getFirst().value());
         }
 
+        /// The declaration a lint that asks "what won?" cannot see.
+        ///
+        /// This resolved the probe and looked the property up in the result, so a
+        /// declaration that **lost** the cascade was checked against the
+        /// *winner's* value: `align-items: left` under a later `align-items:
+        /// center` came back as `center`, which the engine takes, and the bad line
+        /// was never reported. The comment saying an overridden rule reached the
+        /// `winning == null` branch was simply false — the property is in the
+        /// result either way, with somebody else's value in it.
+        @Test
+        @DisplayName("a declaration that lost the cascade is still reported, against its own value")
+        void anOverriddenDeclarationIsCheckedOnItsOwnValue() {
+            var findings = dead("""
+                    row { align-items: left }
+                    row { align-items: center }
+                    """);
+
+            assertEquals(1, findings.size(), () -> findings.toString());
+            assertEquals("align-items", findings.getFirst().property());
+            assertEquals("left", findings.getFirst().value());
+            assertEquals(1, findings.getFirst().line(), "the line the bad declaration is written on");
+        }
+
+        /// The same fault the other way up, which is what the author actually saw:
+        /// the winner's bad value reported twice, once at a line that reads
+        /// `align-items: center` and is perfectly fine.
+        @Test
+        @DisplayName("and a good declaration under a bad one is not reported at the good one's line")
+        void aGoodDeclarationUnderABadOneIsQuiet() {
+            var findings = dead("""
+                    row { align-items: center }
+                    row { align-items: left }
+                    """);
+
+            assertEquals(1, findings.size(), () -> findings.toString());
+            assertEquals(2, findings.getFirst().line());
+            assertEquals("left", findings.getFirst().value());
+        }
+
         @Test
         @DisplayName("a declaration the engine applies is not reported")
         void goodDeclarationsAreQuiet() {

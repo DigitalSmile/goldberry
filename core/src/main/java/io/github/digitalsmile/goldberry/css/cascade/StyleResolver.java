@@ -380,6 +380,29 @@ public final class StyleResolver {
         return customPropertiesFor(element, null);
     }
 
+    /// One written value, with its `var()`s resolved as they would be on
+    /// `element` — **whether or not the declaration it came from wins**.
+    ///
+    /// [#resolve] answers "what does this element end up with", and that is the
+    /// wrong question for a reader checking declarations rather than elements. A
+    /// lint that asks it gets the winner's value back for a property some other
+    /// rule won, which both hides a bad losing declaration and reports the
+    /// winner's mistake at the loser's line.
+    ///
+    /// Nothing is cascaded here: the custom properties are the element's, because
+    /// that is what a `var()` in any rule about it would see, and the value is the
+    /// one that was written.
+    ///
+    /// @return the substituted tokens, or null when a `var()` in them resolves to
+    ///         nothing — which is the same "invalid at computed-value time" that
+    ///         drops the declaration inside [#resolve], reported there and not
+    ///         again here
+    public @Nullable List<Token> substitutedFor(StyleElement element, List<Token> value) {
+        Objects.requireNonNull(element, "element");
+        Objects.requireNonNull(value, "value");
+        return substitute(value, customPropertiesFor(element), new HashSet<>());
+    }
+
     /// One custom property's value, with any `var()` in it resolved.
     ///
     /// For the one reader outside the cascade: a widget that needs a value the
