@@ -32,6 +32,10 @@ import io.github.digitalsmile.goldberry.paint.overflow.Overrun;
 /// - **A box that was placed rather than flowed.** An absolute child is put
 ///   where its insets say — a tab's underline is pinned across the bottom of its
 ///   header and a popover's arrow hangs off its panel.
+/// - **Three more, and they are geometric rather than structural**, so they live
+///   in [io.github.digitalsmile.goldberry.paint.overflow.Overrun#between]
+///   where both rectangles are: a container with no size, a child that starts
+///   outside its container, and a pixel or two ([ADR-0394]).
 final class OverflowWatch {
 
     private OverflowWatch() {}

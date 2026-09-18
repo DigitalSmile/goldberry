@@ -315,7 +315,7 @@ public final class Popup implements AutoCloseable {
         } finally {
             onClosed.run();
         }
-        LOG.debug("popup closed");
+        LOG.trace("popup closed");
     }
 
     /// One frame of this popup, painted by the same renderer as its owner.

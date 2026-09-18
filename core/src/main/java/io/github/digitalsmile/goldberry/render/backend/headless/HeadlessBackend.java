@@ -226,7 +226,7 @@ public final class HeadlessBackend implements Backend {
 
         var popup = new HeadlessPopup(this, parent, spec, scale);
         windows.add(popup);
-        LOG.debug("created headless {} popup {} at {}", spec.kind(), spec.size(), spec.position());
+        LOG.trace("created headless {} popup {} at {}", spec.kind(), spec.size(), spec.position());
         return Optional.of(popup);
     }
 

@@ -1358,7 +1358,7 @@ final class Launcher implements Host {
             // Optional on its own (ADR-0102).
             tree.unmount();
             render.close();
-            LOG.info("this platform has no popup windows; a {} will have to be an overlay", spec.kind());
+            LOG.trace("this platform has no popup windows; a {} will have to be an overlay", spec.kind());
             return java.util.Optional.empty();
         }
 

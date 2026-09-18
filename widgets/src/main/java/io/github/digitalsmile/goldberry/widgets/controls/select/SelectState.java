@@ -292,7 +292,7 @@ final class SelectState extends State<Select> {
             // falling back to an in-window overlay, because the overlay would be
             // clipped to the window and §3 asks for this list specifically to
             // escape it (ADR-0102). Saying so is more use than nothing happening.
-            LOG.info("this platform has no popup windows, so a select cannot open its list");
+            LOG.trace("this platform has no popup windows, so a select cannot open its list");
             return;
         }
         // The row that is already chosen, so `Down` moves from the value rather

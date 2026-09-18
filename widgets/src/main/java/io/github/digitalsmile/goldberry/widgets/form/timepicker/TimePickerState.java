@@ -156,7 +156,7 @@ final class TimePickerState extends State<TimePicker> implements PickerField.Pic
         var opened = host.attachedPopup(
                 columns(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
         if (opened.isEmpty()) {
-            LOG.info("this platform has no popup windows, so a time-picker cannot open its wheels");
+            LOG.trace("this platform has no popup windows, so a time-picker cannot open its wheels");
             return false;
         }
         setState(() -> wheels = opened.get().lightDismiss(true).takesFocus(false));

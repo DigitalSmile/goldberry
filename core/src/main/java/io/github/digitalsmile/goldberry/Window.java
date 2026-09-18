@@ -417,7 +417,7 @@ public final class Window implements AutoCloseable {
         if (window instanceof BackendPopup) {
             // A popup opens and closes as often as a menu is used; at INFO it
             // would be the only thing in an application's log.
-            LOG.debug("popup closed");
+            LOG.trace("popup closed");
         } else {
             LOG.info("window \"{}\" closed", window.title());
         }
@@ -562,7 +562,7 @@ public final class Window implements AutoCloseable {
             }
         } else {
             if (cached == null || !cached.size().equals(size)) {
-                LOG.debug("allocating a {} frame buffer", size);
+                LOG.trace("allocating a {} frame buffer", size);
                 cached = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
             }
             target = cached;
@@ -671,7 +671,7 @@ public final class Window implements AutoCloseable {
             // end the event loop mid-resize.
             var current = window.isOpen() ? window.physicalSize() : frameSize;
             if (!current.equals(frameSize)) {
-                LOG.debug("dropped a {} frame: the window became {} while it was painted", frameSize, current);
+                LOG.trace("dropped a {} frame: the window became {} while it was painted", frameSize, current);
                 // A frame nobody saw. Banked by the next one, which is the frame
                 // whose interval contains the gap this left ([ADR-0271]) — and
                 // it is asked for on the line below, so there will be one.
@@ -684,7 +684,7 @@ public final class Window implements AutoCloseable {
     }
 
     void handleResize(LogicalSize size) {
-        LOG.debug("window resized to {} -> {}", size, window.physicalSize());
+        LOG.trace("window resized to {} -> {}", size, window.physicalSize());
         // The buffer is NOT dropped here. paint() reallocates when the size no
         // longer matches, which is the same test one step later -- and dropping
         // it eagerly means a multi-megabyte allocation for every resize event a

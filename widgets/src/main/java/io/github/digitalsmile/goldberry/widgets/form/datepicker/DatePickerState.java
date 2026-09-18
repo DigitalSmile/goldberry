@@ -205,7 +205,7 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
         var opened = host.attachedPopup(
                 calendar(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
         if (opened.isEmpty()) {
-            LOG.info("this platform has no popup windows, so a date-picker cannot open its calendar");
+            LOG.trace("this platform has no popup windows, so a date-picker cannot open its calendar");
             return false;
         }
         setState(() -> grid = opened.get().lightDismiss(true).takesFocus(false));

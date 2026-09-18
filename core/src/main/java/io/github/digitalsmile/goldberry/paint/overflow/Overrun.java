@@ -28,20 +28,54 @@ public record Overrun(String container, String child, float overrunX, float over
     /// The overrun of `child` inside `parent`, or null when it fits.
     ///
     /// Both rectangles are in the **parent's** coordinates, which is what Yoga
-    /// reports. A fractional overrun of less than a tenth of a pixel is not one:
-    /// a percentage width and a rounded layout disagree in the last digit on
-    /// almost every frame, and a diagnostic that fires on those says nothing.
+    /// reports.
+    ///
+    /// ## Three things that are not an overrun
+    ///
+    /// Each of these was measured rather than supposed. Running the showcase's
+    /// whole suite produced 688 reports; 665 of them were one of these, and the
+    /// 23 that were left were real ([ADR-0394]).
+    ///
+    /// **A container with no size.** A `0 × 0` box is an anchor that placed
+    /// children hang off, not a box anything could fit inside — every child
+    /// overruns it by its own whole size. A slider's ticks are the case: they sit
+    /// around a zero-width mark.
+    ///
+    /// **A child that starts outside.** Flow never produces a negative offset: a
+    /// flowed child begins at its container's content origin. A child at `-6` was
+    /// *put* there by insets or a margin, which is the same "placed rather than
+    /// flowed" exemption [#between]'s caller already makes for an absolute box.
+    /// A slider's thumb is centred across a four-pixel groove and hangs six
+    /// pixels out of it on both sides by design.
+    ///
+    /// **A pixel or two.** Layout is rounded onto the device pixel grid and a
+    /// line box may be shorter than the face's natural leading — CSS allows
+    /// `line-height` tighter than the text in it, and text that overhangs its
+    /// line box is the normal consequence rather than a defect. The measured
+    /// distribution has a cliff exactly there: 385 reports overran by more than
+    /// one pixel and only 23 by more than two.
     public static Overrun between(String container, String child, LogicalRect parent, LogicalRect box) {
+        if (parent.size().width() <= 0 || parent.size().height() <= 0) {
+            return null;
+        }
+        if (box.left() < 0 || box.top() < 0) {
+            return null;
+        }
         var x = box.right() - parent.size().width();
         var y = box.bottom() - parent.size().height();
-        if (x < TOLERANCE && y < TOLERANCE) {
+        if (x <= TOLERANCE && y <= TOLERANCE) {
             return null;
         }
         return new Overrun(container, child, Math.max(0, x), Math.max(0, y));
     }
 
     /// How far past an edge is still "fits", in logical pixels.
-    private static final float TOLERANCE = 0.1f;
+    ///
+    /// Two, and the third paragraph above is where the number comes from. It is
+    /// not a tuning knob: what this diagnostic exists to catch is a control
+    /// pushed off the edge of a window, which is tens of pixels, and what it kept
+    /// catching instead was arithmetic.
+    private static final float TOLERANCE = 2.0f;
 
     /// One line, naming both boxes and the distance.
     @Override

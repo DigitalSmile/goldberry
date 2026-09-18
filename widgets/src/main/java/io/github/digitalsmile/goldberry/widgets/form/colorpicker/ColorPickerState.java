@@ -201,7 +201,7 @@ final class ColorPickerState extends State<ColorPicker> implements PickerField.P
         var opened = host.attachedPopup(
                 board(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
         if (opened.isEmpty()) {
-            LOG.info("this platform has no popup windows, so a color-picker cannot open its board");
+            LOG.trace("this platform has no popup windows, so a color-picker cannot open its board");
             return false;
         }
         setState(() -> board = opened.get().lightDismiss(true).takesFocus(false));

@@ -142,13 +142,30 @@ final class ScrollState extends State<Scroll> {
     }
 
     /// Whether this viewport is inside another one **on the same axis**, which
-    /// `docs/core-widgets.md` §2.4 rules out.
+    /// `docs/core-widgets.md` §2.4 discourages.
     ///
     /// Nothing enforced it, and chaining means a nested pair behaves reasonably
-    /// rather than badly — so the ban cost nothing and the author heard nothing.
+    /// rather than badly — so the rule cost nothing and the author heard nothing.
     /// This is the diagnostic, and it is deliberately *only* a diagnostic: the
     /// arrangement still works, because refusing to build it would turn a design
     /// rule into a crash.
+    ///
+    /// ## Why it is `debug` and not `warn`
+    ///
+    /// Because it was firing on the arrangement its own advice describes
+    /// ([ADR-0394]). The showcase's `scroll.tall-list` is a virtual list given a
+    /// height of 256 px and told not to grow, inside the gallery's viewport —
+    /// which is "give the inner box a size and let the outer one scroll", done.
+    /// It is also what every chat window, console and settings page is, and the
+    /// engine's behaviour in it is defined rather than accidental: the inner one
+    /// takes the wheel until it reaches its edge.
+    ///
+    /// What §2.4 is actually about is an inner viewport with **no size of its
+    /// own** on the scrolling axis, which grows to its content and leaves the
+    /// wheel ambiguous. Telling those two apart needs the inner box's resolved
+    /// height, and this runs in `build`, before the cascade has resolved
+    /// anything. So the message stays, at a level that does not claim something
+    /// is broken, and the sharper rule waits for a layout-time signal.
     ///
     /// [BuildContext#findAncestorState] is the whole implementation. It exists
     /// for `scrollIntoView` and answers this question with nothing added — which
@@ -157,11 +174,11 @@ final class ScrollState extends State<Scroll> {
     private void warnIfNestedOnTheSameAxis(BuildContext context) {
         context.findAncestorState(ScrollState.class).ifPresent(outer -> {
             if (outer.widget().axis() == widget().axis() && REPORTED_NESTING.add(widget().axis())) {
-                LOG.warn(
-                        "a {} `scroll` is inside another one; §2.4 rules that out, and the inner"
+                LOG.debug(
+                        "a {} `scroll` is inside another one; §2.4 discourages that, and the inner"
                                 + " one takes the wheel until it reaches its edge. Give the inner"
-                                + " box a size and let the outer one scroll, or make them"
-                                + " different axes.",
+                                + " box a size of its own and let the outer one scroll, or make"
+                                + " them different axes.",
                         widget().axis().toString().toLowerCase(java.util.Locale.ROOT));
             }
         });

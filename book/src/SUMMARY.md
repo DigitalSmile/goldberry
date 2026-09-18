@@ -404,6 +404,7 @@
 - [ADR-0391 A QR code is a specification and a grid of squares](adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md)
 - [ADR-0392 A timeline opens at its end and keeps the reader's line](adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md)
 - [ADR-0393 An emoji is routed by the text and drawn in layers](adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md)
+- [ADR-0394 A diagnostic that fires on everything says nothing](adr/0394-a-diagnostic-that-fires-on-everything-says-nothing.md)
 
 ---
 

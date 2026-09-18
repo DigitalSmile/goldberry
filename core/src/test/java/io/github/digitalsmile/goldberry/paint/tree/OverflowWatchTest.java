@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.paint.tree;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -144,6 +145,48 @@ class OverflowWatchTest {
             assertEquals(
                     null,
                     Overrun.between("a", "b", LogicalRect.of(0, 0, 100, 100), LogicalRect.of(0, 0, 100.05f, 100)));
+        }
+
+        @Test
+        @DisplayName("nor is a pixel or two, which is what layout rounding and a tight line box produce")
+        void aPixelOrTwo() {
+            // Measured rather than supposed: of 688 reports from the showcase's
+            // own suite, 385 overran by more than a pixel and only 23 by more
+            // than two. The cliff is there because layout is rounded onto the
+            // device pixel grid and a line box may be shorter than the face's
+            // natural leading ([ADR-0394]).
+            assertEquals(
+                    null, Overrun.between("a", "b", LogicalRect.of(0, 0, 100, 100), LogicalRect.of(0, 0, 102, 102)));
+            assertNotNull(
+                    Overrun.between("a", "b", LogicalRect.of(0, 0, 100, 100), LogicalRect.of(0, 0, 102.5f, 100)),
+                    "past two pixels it is reported again");
+        }
+
+        @Test
+        @DisplayName("a container with no size cannot be overrun, because nothing could fit in it")
+        void aZeroSizedContainer() {
+            // A slider's ticks hang off a zero-width mark. Every one of them
+            // overruns it by its own whole width, which says nothing at all.
+            assertEquals(
+                    null,
+                    Overrun.between(
+                            "a box", "`slider-tick`", LogicalRect.of(133, 0, 0, 0), LogicalRect.of(-1, -2, 2, 4)));
+            assertEquals(null, Overrun.between("a", "b", LogicalRect.of(0, 0, 100, 0), LogicalRect.of(0, 0, 50, 20)));
+        }
+
+        @Test
+        @DisplayName("a child that starts outside was placed there, not flowed there")
+        void aChildPlacedOutside() {
+            // Flow never produces a negative offset — a flowed child begins at
+            // its container's content origin. A slider's thumb is centred across
+            // a four-pixel groove and hangs six pixels out of it on both sides.
+            assertEquals(
+                    null,
+                    Overrun.between(
+                            "`slider-groove`",
+                            "`slider-thumb`",
+                            LogicalRect.of(0, 14, 266, 4),
+                            LogicalRect.of(100, -6, 16, 16)));
         }
 
         @Test

@@ -489,13 +489,13 @@ public final class Sdl3Backend implements Backend {
             // tests run against. The caller falls back to the in-window overlay
             // layer and is clipped to the window, which is a worse menu and not a
             // failure (ADR-0102).
-            LOG.debug("the {} video driver has no popup windows", Sdl.get().videoDriver());
+            LOG.trace("the {} video driver has no popup windows", Sdl.get().videoDriver());
             return Optional.empty();
         }
 
         var popup = new Sdl3Popup(this, handle.get(), parent, spec.kind(), spec.position());
         windowsById.put(handle.get().id(), popup);
-        LOG.debug(
+        LOG.trace(
                 "created SDL popup {} {} at {} on window {} flags={}",
                 handle.get().id(),
                 spec.size(),
@@ -624,7 +624,7 @@ public final class Sdl3Backend implements Backend {
         try {
             resizeWatch = SdlEventWatch.install(this::drawDuringModalLoop);
         } catch (UnsatisfiedLinkError | SdlException e) {
-            LOG.debug("no event watch, so a resize drag on Windows or macOS will not" + " redraw until it ends", e);
+            LOG.trace("no event watch, so a resize drag on Windows or macOS will not" + " redraw until it ends", e);
         }
     }
 
