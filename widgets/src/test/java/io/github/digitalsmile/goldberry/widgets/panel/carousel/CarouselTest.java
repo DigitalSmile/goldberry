@@ -71,6 +71,15 @@ class CarouselTest {
             return !scheduled.isEmpty();
         }
 
+        /// How many timers this has handed out altogether.
+        ///
+        /// The count, and not [#pending()], is what tells a countdown that was
+        /// **kept** from one that was thrown away and started again: both leave
+        /// something waiting to fire, and only the second one never arrives.
+        int handedOut() {
+            return handed.size();
+        }
+
         /// Fires the most recently scheduled action, as the loop would.
         void fire() {
             if (scheduled.isEmpty()) {
@@ -401,6 +410,62 @@ class CarouselTest {
             new ElementTree(carousel(0, true, Duration.ofSeconds(5), 1), host);
 
             assertFalse(host.pending());
+        }
+
+        /// **The defect this pins.** `build` called `schedule`, and `schedule`
+        /// begins by cancelling — so every rebuild threw the countdown away and
+        /// started a fresh `interval`. A parent that rebuilds more often than
+        /// the interval is not exotic: a clock in a status bar, a progress bar,
+        /// a window that rebuilds as the pointer moves. Any of them postponed
+        /// the advance indefinitely and the carousel sat on its first slide for
+        /// ever, with a timer always pending and never arriving — which is why
+        /// every test above, each of which fires the timer by hand, passed.
+        @Test
+        @DisplayName("a parent rebuilding faster than the interval does not postpone the advance")
+        void rebuildingDoesNotPostponeTheAdvance() {
+            var tree = rotating(3, true);
+            assertTrue(host.pending());
+
+            // Ten frames of somebody else's state changing. A fresh description
+            // each time, because that is what a parent's build hands down.
+            for (var frame = 0; frame < 10; frame++) {
+                tree.update(carousel(0, true, Duration.ofSeconds(5), 3));
+                tree.flush();
+            }
+
+            assertEquals(1, host.handedOut(), "each rebuild cancelled the countdown and started a new one");
+            host.fire();
+            tree.flush();
+            assertEquals(1, view(tree).index(), "the advance the first frame asked for never arrived");
+        }
+
+        /// The other half of the same rule: a **move** does start the interval
+        /// again, because a reader who has just been shown a slide has been
+        /// looking at it for no time at all.
+        @Test
+        @DisplayName("a slide change starts the interval again")
+        void aMoveRestartsTheInterval() {
+            var tree = rotating(3, true);
+
+            key(tree, Key.RIGHT);
+
+            assertEquals(1, view(tree).index());
+            assertEquals(2, host.handedOut(), "the new slide is being shown on the old slide's clock");
+        }
+
+        /// The cancel branch of the same decision: every reason to stop that
+        /// arrives through the *description* rather than through a pointer has
+        /// only the build to arrive on.
+        @Test
+        @DisplayName("a rebuild that turns the interval off stops the rotation")
+        void aRebuildCanStopIt() {
+            var tree = rotating(3, true);
+            assertTrue(host.pending());
+
+            tree.update(carousel(0, true, null, 3));
+            tree.flush();
+
+            assertTrue(host.allCancelled(), "the description stopped rotating and the timer did not");
         }
 
         /// The other leak a widget can cause: a timer outliving the tree that
