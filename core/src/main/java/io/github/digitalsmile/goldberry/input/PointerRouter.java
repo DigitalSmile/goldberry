@@ -991,11 +991,20 @@ public final class PointerRouter {
         var originY = pressOriginY;
         pressOriginX = Float.NaN;
         pressOriginY = Float.NaN;
-        // Deliberately *not* cleared here. The release and the click are the last
-        // two events of the gesture and both are dispatched below, and a knob
-        // reads its anchor on the release to decide whether the drag moved at
-        // all. Cleared after them, beside the point origins it belongs with.
+        // Deliberately *not* cleared beside them. The release and the click are
+        // the last two events of the gesture and both are dispatched below, and a
+        // knob reads its anchor on the release to decide whether the drag moved
+        // at all -- from the field, which `dispatch` reads for every event it
+        // sends. So it is cleared after them, on **both** ways out of here.
         if (target == null) {
+            // Nobody to tell, and the gesture is over all the same. Returning
+            // without this left the anchor and the press's modifiers behind, so
+            // the next MOVED carried the anchor of a button nobody is holding --
+            // where `PointerEvent.anchor()` promises NaN when none is. A widget
+            // that let go of the capture mid-drag and a release over nothing is
+            // the sequence: the press recorded an anchor and no event will ever
+            // spend it.
+            endGesture();
             return;
         }
         dispatch(new PointerEvent(
@@ -1016,6 +1025,16 @@ public final class PointerRouter {
             dispatch(new PointerEvent(
                     PointerEvent.Kind.CLICKED, x, y, button, clickCount, originX, originY, modifiers, wasPressed));
         }
+        endGesture();
+    }
+
+    /// Forgets what the press sampled, now that the last event of the gesture has
+    /// been sent.
+    ///
+    /// The anchor and the modifiers outlive the release and the click on purpose
+    /// — both events carry them — so they are dropped here rather than beside the
+    /// point origins, which are read into locals instead.
+    private void endGesture() {
         pressOriginValue = Double.NaN;
         pressOriginModifiers = Modifiers.NONE;
     }
