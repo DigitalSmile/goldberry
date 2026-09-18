@@ -49,10 +49,11 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 ///
 /// ## What this cannot do, said out loud
 ///
-/// - **An image is its alt text.** There is no `img` widget in the catalog and
-///   fetching anything is the application's (ADR-0190) — the same limit
-///   `markdown-view` has, and the one thing on this list that an `img` widget would
-///   close rather than an engine.
+/// - **Nothing here fetches an image.** An `<img>` is drawn as a [Picture] when the
+///   application's [ImageSource] can find its `src`, and is its alt text when it
+///   cannot — which is the line ADR-0190 and ADR-0300 drew and not a missing widget:
+///   no file is opened and no socket, so a page full of remote images shows what its
+///   author wrote for a reader who cannot see them.
 /// - **A line is a row of words, not a shaped run.** Mixed faces on one line are one
 ///   `text` widget per word, so justification and hyphenation are not available. This
 ///   is the one that *is* litehtml's, and it is why ADR-0298 leaves the engine open
@@ -425,7 +426,7 @@ final class HtmlWidgets {
                 // TODO.md.
                 case "br" -> pending.add(Words.Fragment.SEPARATOR);
                 case "wbr" -> {}
-                // The alt text, which is what an alt text is for.
+                // The picture, or the alt text when nobody can say where the picture is.
                 case "img" -> image(element, own);
                 case "a" -> anchor(element, own);
                 default -> {
