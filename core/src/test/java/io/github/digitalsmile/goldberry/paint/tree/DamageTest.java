@@ -18,6 +18,7 @@ import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.Painter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 
@@ -98,6 +99,51 @@ class DamageTest {
             var area = damage.stream().mapToInt(r -> r.width() * r.height()).sum();
             assertTrue(area < 200 * 200 / 2, () -> "damaged " + area + " of 40000 pixels for one 50x20 box");
         }
+    }
+
+    /// The 2026-09-18 review's §7.
+    ///
+    /// A painter is the one piece of a box whose *contents* the comparison cannot
+    /// see, and it was not compared at all — so a `canvas`, a `sparkline`, a chart
+    /// surface or a colour plane whose painter had changed was called unchanged,
+    /// and the node kept last frame's pixels.
+    @Test
+    @DisplayName("a box whose painter changed is damaged, because nothing here can see what it draws")
+    void thePainterChanged() {
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), painted((frame, size) -> {}));
+            render.damage(target.frame());
+
+            render.update(target.frame(), painted((frame, size) -> {}));
+            var damage = render.damage(target.frame());
+
+            assertTrue(covers(damage, 25, 10), "a second painter draws a second picture");
+        }
+    }
+
+    @Test
+    @DisplayName("a box whose painter is the same object is not damaged")
+    void theSamePainter() {
+        Painter painter = (frame, size) -> {};
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), painted(painter));
+            render.damage(target.frame());
+
+            render.update(target.frame(), painted(painter));
+
+            assertTrue(
+                    render.damage(target.frame()).isEmpty(),
+                    "a widget that holds its painter rather than writing one inline uploads nothing");
+        }
+    }
+
+    private static Box painted(Painter painter) {
+        return Box.filled(0xFF000000)
+                .size(Length.points(200), Length.points(200))
+                .direction(FlexDirection.COLUMN)
+                .children(Box.filled(0xFFFF0000)
+                        .size(Length.points(50), Length.points(20))
+                        .painting(painter));
     }
 
     @Test

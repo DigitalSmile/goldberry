@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.paint.tree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
@@ -686,9 +687,24 @@ public final class RenderObject implements AutoCloseable {
                 && a.flexBasis().equals(b.flexBasis())
                 && a.position() == b.position()
                 && a.inset().equals(b.inset())
-                && java.util.Objects.equals(a.text(), b.text())
-                && java.util.Objects.equals(a.icon(), b.icon())
-                && java.util.Objects.equals(a.mark(), b.mark());
+                && Objects.equals(a.text(), b.text())
+                && Objects.equals(a.icon(), b.icon())
+                && Objects.equals(a.mark(), b.mark())
+                // The painter, which was missing and is the one piece of a box
+                // whose *contents* this class cannot see. A `canvas`, a
+                // `sparkline`, a chart surface and a colour plane all draw
+                // through one, and a box whose painter changed was called
+                // unchanged: the node kept last frame's pixels and, in a promoted
+                // layer, was not even re-rastered (the 2026-09-18 review, §7).
+                //
+                // Compared by identity, because a `Painter` is a lambda and there
+                // is nothing else to compare. The consequence is worth stating:
+                // a widget that mints a fresh painter on every build is damaged
+                // on every build. That is the safe answer -- a new lambda may
+                // close over new data, and this class has no way to know it does
+                // not -- and a widget that wants otherwise holds its painter
+                // rather than writing it inline.
+                && Objects.equals(a.painting(), b.painting());
     }
 
     /// Frees this node and everything under it.

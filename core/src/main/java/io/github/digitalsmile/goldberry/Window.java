@@ -575,9 +575,13 @@ public final class Window implements AutoCloseable {
         // to promise about. The fallback buffer is *this* window's -- allocated
         // here, reused here, and disturbed by nothing between frames -- so it
         // retains by construction, whatever the backend says about its own.
-        partialRepaint = (borrowed.isEmpty() || window.retainsFrameContents())
-                && target == lastTarget
-                && target.size().equals(size);
+        //
+        // Two conjuncts, not three. `target.size().equals(size)` stood here and
+        // is always true by the time it is read: the borrowed branch above
+        // *reassigns* `size` to the buffer's own, and the cached branch allocates
+        // a new buffer whenever the sizes disagree. A condition that cannot be
+        // false says nothing about the frame (the 2026-09-18 review, §7).
+        partialRepaint = (borrowed.isEmpty() || window.retainsFrameContents()) && target == lastTarget;
         lastTarget = target;
 
         var allocated = traced ? System.nanoTime() : 0L;

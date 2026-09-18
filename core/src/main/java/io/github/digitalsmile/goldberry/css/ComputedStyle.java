@@ -2036,10 +2036,12 @@ public record ComputedStyle(
             }
             var token = part.getFirst();
             if (token.is(TokenType.IDENT) || token.is(TokenType.STRING)) {
-                var name = token.text();
                 // `Inter, sans-serif` and `"JetBrains Mono", monospace` both stop
-                // at the first name; a trailing comma belongs to the list syntax.
-                return Optional.of(name.endsWith(",") ? name.substring(0, name.length() - 1) : name);
+                // at the first name. No comma to strip: the tokenizer emits one as
+                // a `COMMA` of its own, so an IDENT or a STRING never carries a
+                // trailing one and the strip that stood here could not fire (the
+                // 2026-09-18 review, §7).
+                return Optional.of(token.text());
             }
         }
         return Optional.empty();
