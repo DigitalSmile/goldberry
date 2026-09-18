@@ -42,6 +42,20 @@ class SplitPaneTest {
     /// divider is out of it.
     private static final float LENGTH = 300;
 
+    /// What the two children actually share — the length less the divider
+    /// standing between them.
+    ///
+    /// **The position is a fraction of this**, which is the thing the clamp used
+    /// to disagree with: it held the divider off `firstMin / LENGTH` while the
+    /// first pane was sized against `LENGTH - DIVIDER`, so a pane at its
+    /// minimum came out a little under it. Every fraction below is written
+    /// against this number so the two cannot drift apart again.
+    private static final float CONTENT = LENGTH - SplitPaneView.DIVIDER;
+
+    /// The lowest fraction the default minimum allows at [#LENGTH] — where a
+    /// drag to the near edge stops.
+    private static final double LOWEST = SplitPane.DEFAULT_MINIMUM / CONTENT;
+
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
@@ -320,8 +334,51 @@ class SplitPaneTest {
 
             drag(tree, -1000, false);
 
-            // 48 points of 300 is 0.16.
-            assertEquals(SplitPane.DEFAULT_MINIMUM / LENGTH, view(tree).position(), 1e-6);
+            // 48 points of the 294 the two children share.
+            assertEquals(LOWEST, view(tree).position(), 1e-6);
+        }
+
+        /// **The defect this pins, and the reason it needed a second test.**
+        ///
+        /// The minimum is a number of *pixels* — `SplitPane.DEFAULT_MINIMUM` is
+        /// 48 of them — and the clamp turned it into a fraction by dividing by
+        /// the pane's whole length, while the first pane was sized against the
+        /// length **less the divider**. So a pane "at its minimum" was
+        /// `firstMin × DIVIDER / length` pixels short of it: a hair here, and
+        /// proportionally worse the narrower the pane, which is precisely when a
+        /// minimum is the thing holding a sidebar usable.
+        ///
+        /// [#minimums] above cannot see any of that. It asserts the **fraction**,
+        /// which is whatever the clamp said it was — so it agreed with the bug by
+        /// construction. This asserts the width, which is what a minimum is.
+        @Test
+        @DisplayName("a pane stopped at its minimum is that many pixels wide")
+        void minimumIsAWidth() {
+            var tree = measured(split(0.5));
+
+            drag(tree, -1000, false);
+
+            assertEquals(
+                    SplitPane.DEFAULT_MINIMUM,
+                    view(tree).firstLength(),
+                    1e-6,
+                    "the first pane is short of the minimum it was supposed to stop at");
+        }
+
+        /// And the far pane, which is the same arithmetic from the other end:
+        /// what is left over after the first pane and the divider.
+        @Test
+        @DisplayName("and the second pane is, going the other way")
+        void otherMinimumIsAWidth() {
+            var tree = measured(split(0.5));
+
+            drag(tree, 1000, false);
+
+            assertEquals(
+                    SplitPane.DEFAULT_MINIMUM,
+                    CONTENT - view(tree).firstLength(),
+                    1e-6,
+                    "the second pane is short of the minimum it was supposed to stop at");
         }
 
         @Test
@@ -331,7 +388,7 @@ class SplitPaneTest {
 
             drag(tree, 1000, false);
 
-            assertEquals(1 - SplitPane.DEFAULT_MINIMUM / LENGTH, view(tree).position(), 1e-6);
+            assertEquals(1 - LOWEST, view(tree).position(), 1e-6);
         }
 
         /// A vertical split drags on the other axis, and must ignore the one it
@@ -417,10 +474,10 @@ class SplitPaneTest {
             var tree = measured(split(0.5));
 
             key(tree, Key.HOME);
-            assertEquals(SplitPane.DEFAULT_MINIMUM / LENGTH, view(tree).position(), 1e-6);
+            assertEquals(LOWEST, view(tree).position(), 1e-6);
 
             key(tree, Key.END);
-            assertEquals(1 - SplitPane.DEFAULT_MINIMUM / LENGTH, view(tree).position(), 1e-6);
+            assertEquals(1 - LOWEST, view(tree).position(), 1e-6);
         }
     }
 
@@ -462,7 +519,7 @@ class SplitPaneTest {
 
             drag(tree, -1000, false);
 
-            assertEquals(SplitPane.DEFAULT_MINIMUM / LENGTH, view(tree).position(), 1e-6);
+            assertEquals(LOWEST, view(tree).position(), 1e-6);
         }
 
         @Test

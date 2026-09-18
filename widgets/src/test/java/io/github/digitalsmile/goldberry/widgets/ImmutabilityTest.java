@@ -41,29 +41,19 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 class ImmutabilityTest {
 
     /// Every widget the catalog registers, built the way markup builds it.
+    ///
+    /// **Every one of them, which it was not.** This walked
+    /// `Primitives.builtInTypes() + Controls.controlTypes()` — 24 names of the 72
+    /// the build registers — so a `dialog`, a `wizard`, a `table` or a `menu`
+    /// could have grown a mutable field and this would have said nothing. The
+    /// list is the **inflater's** now ([CatalogMarkup]), which is the one the
+    /// build generates, so a widget cannot be registered and left unswept.
     private static List<Widget> catalog() {
-        var inflater = Widgets.inflater();
         var widgets = new ArrayList<Widget>();
-        for (var type : allTypes()) {
-            var markup =
-                    switch (type) {
-                        case "text", "link", "button", "badge", "chip" -> type + " \"x\"";
-                        case "radio" -> "radio value=\"x\" \"X\"";
-                        case "option" -> "option value=\"x\" \"X\"";
-                        case "image" -> "image src=\"x.png\" alt=\"x\"";
-                        default -> type;
-                    };
-            widgets.add(inflater.inflate(
-                    io.github.digitalsmile.goldberry.kdl.KdlParser.parse(markup).getFirst()));
+        for (var type : CatalogMarkup.types()) {
+            widgets.add(CatalogMarkup.inflate(type, ""));
         }
         return widgets;
-    }
-
-    private static List<String> allTypes() {
-        var all = new ArrayList<>(io.github.digitalsmile.goldberry.widgets.core.Primitives.builtInTypes());
-        all.addAll(Controls.controlTypes());
-        all.remove("radio-group");
-        return all;
     }
 
     /// A record is shallowly immutable by construction; a non-record widget is a

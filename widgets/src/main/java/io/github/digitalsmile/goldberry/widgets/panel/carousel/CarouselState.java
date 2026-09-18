@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
+import java.time.Duration;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -24,6 +26,19 @@ final class CarouselState extends State<Carousel> {
     /// because "pause" then means "do not schedule the next" and needs no second
     /// mechanism to suspend.
     private EventLoop.Timer pending;
+
+    /// The slide [#pending] was scheduled for, or `-1` when nothing is.
+    ///
+    /// This is what lets a build tell a **move** from a parent that simply
+    /// rebuilt. Without it `build` cancelled and restarted the interval every
+    /// time it ran, so a carousel inside anything that rebuilds on a clock — a
+    /// status bar, a progress bar, a window that follows the pointer — had its
+    /// advance pushed back before it could ever arrive and never rotated at all.
+    private int scheduledFor = -1;
+
+    /// The interval [#pending] was scheduled with, so a description that changes
+    /// it is honoured rather than waited out.
+    private Duration scheduledInterval;
 
     /// The window this is being built into, captured for the timer.
     private Host host;
@@ -96,10 +111,10 @@ final class CarouselState extends State<Carousel> {
         host = context.host().orElse(null);
         var carousel = widget();
         var current = resolved();
-        // Rescheduled on every build, which is also every slide change: the timer
-        // is one-shot, so this is what keeps it going, and a carousel that has
-        // stopped rotating for any reason simply does not get a new one.
-        schedule();
+        // Kept going rather than restarted: the timer is one-shot, so a build is
+        // what puts the next one out, but a build is *not* a reason to start the
+        // interval again -- see [#keepRotating].
+        keepRotating();
         return new CarouselView(
                 current,
                 carousel.count(),
@@ -241,11 +256,42 @@ final class CarouselState extends State<Carousel> {
                 && (widget().loop() || resolved() < widget().count() - 1);
     }
 
+    /// What `build` asks for: something is coming, and whatever is already
+    /// coming is left alone.
+    ///
+    /// **The defect this closes.** `build` used to call [#schedule], which
+    /// begins with a `cancel`, so every rebuild threw the countdown away and
+    /// started a fresh `interval`. A parent that rebuilds more often than the
+    /// interval — a clock in the status bar is enough, and so is a window that
+    /// rebuilds on pointer movement — therefore postponed the advance
+    /// indefinitely, and the carousel sat on its first slide for ever.
+    ///
+    /// Telling a *move* from a plain rebuild is what [#scheduledFor] is for. A
+    /// slide change does restart the interval, because a reader who pressed
+    /// `Next` has been looking at this slide for no time at all — and it has to
+    /// be decided here rather than in [#set], which runs before the new index is
+    /// visible to a **controlled** carousel.
+    private void keepRotating() {
+        if (!shouldRotate()) {
+            // Every reason to stop also arrives this way: `rotates`, the slide
+            // count and `loop` are all the description's, so a parent that turns
+            // the rotation off is obeyed on its next build.
+            cancel();
+            return;
+        }
+        if (pending != null && scheduledFor == resolved() && widget().interval().equals(scheduledInterval)) {
+            return;
+        }
+        schedule();
+    }
+
     private void schedule() {
         cancel();
         if (!shouldRotate()) {
             return;
         }
+        scheduledFor = resolved();
+        scheduledInterval = widget().interval();
         pending = host.after(widget().interval(), () -> {
             pending = null;
             // Checked again on firing, not only on scheduling: the pointer may
@@ -267,5 +313,7 @@ final class CarouselState extends State<Carousel> {
             pending.cancel();
             pending = null;
         }
+        scheduledFor = -1;
+        scheduledInterval = null;
     }
 }

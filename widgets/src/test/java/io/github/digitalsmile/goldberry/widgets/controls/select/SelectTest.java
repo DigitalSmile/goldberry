@@ -1043,6 +1043,63 @@ class SelectTest {
             assertEquals(List.of(), changes);
         }
 
+        /// **The defect this pins.** Typing a name in full is how a keyboard
+        /// reaches a value a pointer reaches by clicking, and it was the one way
+        /// that did not work.
+        ///
+        /// `settle` lumped an exact match in with the refusal above, on a
+        /// comment that claimed "a match is already the committed value, or is
+        /// about to be reported by whatever chose it". Neither half is true:
+        /// typing selects nothing — §3 says a user typing is narrowing, not
+        /// choosing, and [SelectState#typed] is careful about it — so a user who
+        /// typed `Light` into a combobox holding `dark` and tabbed away watched
+        /// the field spring back to `Dark`, with the application told nothing at
+        /// all.
+        @Test
+        @DisplayName("typing an option's name in full and leaving reports it")
+        void anExactMatchIsAnAnswer() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            editor(tree).onChange().accept("Light");
+            tree.flush();
+
+            field(tree).onFocusWithin(false, true);
+            tree.flush();
+
+            assertEquals(List.of("light"), changes, "the control named a value and reported none");
+        }
+
+        /// By **value** as well as by label, which is the half `settle` already
+        /// looked for and never acted on.
+        @Test
+        @DisplayName("and an option's value names it just as its label does")
+        void anExactValueIsAnAnswer() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            editor(tree).onChange().accept("light");
+            tree.flush();
+
+            field(tree).onFocusWithin(false, true);
+            tree.flush();
+
+            assertEquals(List.of("light"), changes);
+        }
+
+        /// The other half of the same branch, and the one the old comment was
+        /// right about: typing the name of the value already held is not a
+        /// change, so the editor simply goes back to showing the model.
+        @Test
+        @DisplayName("typing the committed value's own name reports nothing")
+        void theCommittedValueIsNotAChange() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            editor(tree).onChange().accept("Dark");
+            tree.flush();
+
+            field(tree).onFocusWithin(false, true);
+            tree.flush();
+
+            assertEquals(List.of(), changes, "restating the value was taken for changing it");
+            assertEquals("Dark", editor(tree).value());
+        }
+
         /// The other reading, which §4's free-text form always is: the
         /// suggestions are a convenience and any value is legal.
         @Test

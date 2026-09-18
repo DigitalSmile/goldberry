@@ -66,7 +66,15 @@ final class SelectState extends State<Select> {
         // moment of the click, because this is the first place the application's
         // answer is visible -- see [#choose]. Cheap and idempotent: a popup whose
         // description has not changed reconciles to nothing.
-        if (isOpen() && (select.multiple() || select.isTree())) {
+        //
+        // **Every mode, which it used to be two of.** The guard read `multiple ||
+        // isTree`, on the reasoning that a single-valued select closes its list
+        // when a row is picked and so has nothing to re-describe. Typing is the
+        // case that reasoning forgets: §3's typeahead moves the selection with
+        // the list still open, and the rows kept the `:checked` the list was
+        // opened with -- so a user typing `n`, `o` down a country list watched
+        // the tick stay on whatever was chosen before and nothing else move.
+        if (isOpen()) {
             list.content(panel());
         }
         return new SelectField(
@@ -198,20 +206,44 @@ final class SelectState extends State<Select> {
             return;
         }
         var typed = typedText;
-        var matches = select.options().stream()
-                .anyMatch(
-                        option -> option.label().equals(typed) || option.value().equals(typed));
-        if (matches || !select.free()) {
-            // A match is already the committed value, or is about to be reported
-            // by whatever chose it; either way the editor goes back to showing
-            // the model rather than a string that happens to agree with it.
+        var match = select.options().stream()
+                .filter(option -> option.label().equals(typed) || option.value().equals(typed))
+                .findFirst()
+                .orElse(null);
+        if (match != null) {
+            // **Reported, which it was not.** This branch used to fall in with
+            // the refusal below on the reasoning that "a match is already the
+            // committed value, or is about to be reported by whatever chose it".
+            // Neither holds: typing selects nothing (see [#typed]), so a user who
+            // types an option's name in full and tabs away has named a value the
+            // control is holding none of. The editor sprang back to the old label
+            // and the application was told nothing -- a keyboard user could not
+            // reach by typing what a pointer reaches by clicking.
+            //
+            // The list goes first, for [#choose]'s reason: an application that
+            // opens something from its `change` handler must not open it behind a
+            // popup window.
+            restore();
+            if (!match.value().equals(select.resolved())) {
+                report(select, match.value());
+            }
+            return;
+        }
+        if (!select.free()) {
+            // §3's refusal: a combobox is a set of values, and text naming none
+            // of them is a mistake rather than a new member.
             restore();
             return;
         }
         setState(() -> typedText = null);
+        report(select, typed);
+    }
+
+    /// Tells the application, if anybody is listening.
+    private static void report(Select select, String value) {
         var onChange = select.onChange();
         if (onChange != null) {
-            onChange.accept(typed);
+            onChange.accept(value);
         }
     }
 

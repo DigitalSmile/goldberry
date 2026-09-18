@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.AfterEach;
@@ -19,6 +21,7 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.GoldberryTestAccess;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
@@ -343,5 +346,71 @@ class SelectLoopTest {
                 "the popup was " + before[0] + " tall and is " + after[0]
                         + " after three rows appeared in it, so they were drawn"
                         + " into a window that had no room for them");
+    }
+
+    /// **The defect this pins.** `build` re-described an open list only for a
+    /// `multiple` or a `tree`, on the reasoning that a single-valued select shuts
+    /// its list the moment a row is picked and so has nothing left to refresh.
+    ///
+    /// §3's typeahead is the case that reasoning forgets: a letter moves the
+    /// selection with the list **still open**, so the rows kept the `:checked`
+    /// they were opened with. A user typing down a list watched the value in the
+    /// closed field change and the tick in the open list stay where it was —
+    /// which is a control disagreeing with itself in the one moment both halves
+    /// are on screen.
+    ///
+    /// Asserted on the popup's own **pixels**, because nothing else in this
+    /// window can tell "the rows were described again" from "the value moved":
+    /// the rows do not move, the popup does not resize, and the only thing that
+    /// changes is which row is drawn as the chosen one.
+    @Test
+    @Timeout(20)
+    @DisplayName("a letter typed into an open list moves the tick and not only the value")
+    void typeaheadRefreshesTheOpenList() {
+        var picked = new ArrayList<String>();
+        var value = Property.of("london");
+        var before = new AtomicReference<byte[]>();
+        var after = new AtomicReference<byte[]>();
+
+        Goldberry.launch(new TestApp(
+                Select.of(
+                                value,
+                                chosen -> {
+                                    picked.add(chosen);
+                                    value.set(chosen);
+                                },
+                                new Option("london", "London"),
+                                new Option("paris", "Paris"))
+                        .withAttributes(Attributes.NONE.id("city")),
+                host -> later(200, () -> {
+                    var field = host.anchor("city").orElseThrow().bounds();
+                    click(main(), field.left() + 20, field.top() + 8);
+                    later(400, () -> {
+                        before.set(pixels(popups().getFirst()));
+                        // At the **popup's** window: a plain select puts the
+                        // keyboard on the row its value names when it opens, and
+                        // the list reads the letter before that row does.
+                        backend.post(new BackendEvent.TextInput(popups().getFirst(), "p"));
+                        later(400, () -> {
+                            after.set(pixels(popups().getFirst()));
+                            Goldberry.stop();
+                        });
+                    });
+                })));
+
+        assertEquals(List.of("paris"), picked, "the letter never reached the typeahead");
+        assertFalse(
+                Arrays.equals(before.get(), after.get()),
+                "the open list drew exactly the same picture after the value moved, so its rows are"
+                        + " still describing the selection the list was opened with");
+    }
+
+    /// A window's last painted frame as bytes, so two of them can be compared —
+    /// see [#typeaheadRefreshesTheOpenList].
+    private static byte[] pixels(HeadlessWindow window) {
+        var frame = window.lastFrame().orElseThrow();
+        var bytes = new byte[frame.pixels().remaining()];
+        frame.pixels().duplicate().get(bytes);
+        return bytes;
     }
 }

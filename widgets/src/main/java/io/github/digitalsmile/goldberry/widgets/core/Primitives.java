@@ -31,6 +31,14 @@ public final class Primitives {
         // `scroll` and not `scroll-content`: the parity test checks the names a
         // document may write, and the content node is one this widget builds
         // for itself.
-        return List.of("text", "link", "row", "column", "panel", "spacer", "scroll", "affix", "canvas", "image");
+        //
+        // `stack` and `qr-code` were missing. Both are `@Markup`-registered and
+        // both live in this package, so a document could write them and nothing
+        // in the parity, chaining or immutability sweeps had ever looked at
+        // them -- a list kept by hand beside a registry the build generates is
+        // a list that falls behind it.
+        return List.of(
+                "text", "link", "row", "column", "panel", "stack", "spacer", "scroll", "affix", "canvas", "image",
+                "qr-code");
     }
 }

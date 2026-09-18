@@ -35,6 +35,11 @@ public record Panel(List<Widget> children, Attributes attributes)
 
     public Panel {
         children = List.copyOf(children == null ? List.of() : children);
+        // As `card` and `group-box` already did. Without it `new Panel(children,
+        // null)` built without complaint and threw from `id()` instead — a null
+        // dereference a frame later, in the cascade, about a widget the stack
+        // trace does not name.
+        attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
     @Override
