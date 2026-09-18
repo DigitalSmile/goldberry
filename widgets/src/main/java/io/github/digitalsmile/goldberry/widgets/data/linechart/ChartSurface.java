@@ -725,6 +725,12 @@ record ChartSurface(
         /// **In index space unless the chart is timed**, in which case the
         /// positions come from the instants and this is not used at all — see
         /// [#xAt].
+        ///
+        /// `points` is the chart's, which is [#points()] — the longest series.
+        /// Never one series' own length: a chart has one x axis, and a shorter
+        /// series scaled to itself is stretched across the whole plot, where it
+        /// disagrees with the crosshair, the markers and every other series about
+        /// which index each pixel is.
         private Scale xScale(PlotGeometry geometry, int points) {
             return Scale.linear(0, Math.max(1, points - 1), geometry.left(), geometry.right());
         }
@@ -797,13 +803,17 @@ record ChartSurface(
         private void paintLines(Frame frame, PlotGeometry geometry) {
             var points = points();
             {
+                // **The chart's scale, not each series'.** One x axis for all of
+                // them, so a series with four readings on a chart whose longest
+                // has seven stops at the four-sevenths mark rather than being
+                // stretched to the right-hand edge.
+                var x = xScale(geometry, points);
                 for (var s = 0; s < series.size(); s++) {
                     if (!shows(s)) {
                         continue;
                     }
                     var resolved = series.get(s);
                     var values = resolved.values();
-                    var x = xScale(geometry, values.size());
                     for (var run : resolved.runs()) {
                         var length = run[1] - run[0];
                         if (length < 2) {
