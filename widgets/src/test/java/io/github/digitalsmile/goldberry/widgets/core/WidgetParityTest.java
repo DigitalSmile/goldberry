@@ -220,6 +220,35 @@ class WidgetParityTest {
         }
     }
 
+    /// ADR-0109's rule, asked of the catalog: a stateful composite builds the
+    /// node that carries its CSS type, and **one** of them. Two nodes of one type
+    /// nested in the cascade take every rule for that type twice — a border drawn
+    /// inside a border, a padding applied at both levels — and neither of them is
+    /// wrong on its own, which is what makes it hard to see.
+    ///
+    /// `BreadcrumbsTest` was the only place this was asserted, for the one widget
+    /// whose author happened to think of it.
+    @ParameterizedTest
+    @MethodSource("builtIns")
+    @DisplayName("every built-in describes exactly one node of its own type")
+    void oneNodeCarriesTheType(String type) {
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse(CatalogMarkup.markup(type, "")).getFirst());
+
+        assertEquals(
+                1,
+                carrying(new ElementTree(widget).root(), type),
+                type + " describes more than one node a `" + type + "` rule matches, so every rule applies twice");
+    }
+
+    private static int carrying(Element element, String type) {
+        var here = element.widget() instanceof Styled styled && type.equals(styled.cssType()) ? 1 : 0;
+        for (var child : element.children()) {
+            here += carrying(child, type);
+        }
+        return here;
+    }
+
     @ParameterizedTest
     @MethodSource("builtIns")
     @DisplayName("every built-in renders to a box")

@@ -89,7 +89,6 @@ class MessageTest {
             var box = Described.first(tree, MessageBox.class);
 
             assertTrue(box.classes().contains("danger"), "classes were " + box.classes());
-            assertEquals("message", box.cssType());
         }
 
         /// A document that says nothing still builds; one that says something

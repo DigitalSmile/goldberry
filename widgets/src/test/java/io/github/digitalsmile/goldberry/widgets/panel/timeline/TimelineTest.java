@@ -62,18 +62,6 @@ class TimelineTest {
     class TheList {
 
         @Test
-        @DisplayName("the list is the styled node, and the composition styles nothing")
-        void theListCarriesTheCssType() {
-            var root = new ElementTree(three().id("log")).root();
-            var painted = root.children().getFirst();
-
-            assertInstanceOf(Timeline.class, root.widget());
-            assertInstanceOf(TimelineList.class, painted.widget());
-            assertEquals("timeline", painted.type());
-            assertEquals("log", painted.id());
-        }
-
-        @Test
         @DisplayName("one entry per event, each a rail beside a side")
         void anEntryIsARailAndASide() {
             var rows = entries(three());

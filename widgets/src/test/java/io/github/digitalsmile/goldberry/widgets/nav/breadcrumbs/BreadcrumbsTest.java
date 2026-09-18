@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -96,20 +95,6 @@ class BreadcrumbsTest {
             // A path is commonly built from a loop, and a loop over nothing is a
             // window that is still loading rather than a bug.
             assertEquals(List.of(), labels(row(new Breadcrumbs())));
-        }
-
-        @Test
-        @DisplayName("the row is the styled node, and the stateful one styles nothing")
-        void theTrailIsWhatCarriesTheCssType() {
-            // ADR-0109: two `breadcrumbs` nodes nested in the cascade would take
-            // every rule twice.
-            var root = new ElementTree(trail(2)).root();
-            var painted = root.children().getFirst();
-
-            assertInstanceOf(Breadcrumbs.class, root.widget());
-            assertInstanceOf(CrumbTrail.class, painted.widget());
-            assertEquals("breadcrumbs", painted.type());
-            assertEquals(1, root.children().size(), "the stateful node builds exactly one styled node");
         }
     }
 

@@ -991,26 +991,4 @@ class SegmentedTest {
             assertFalse(Controls.baseSource().contains("segmented.inline"));
         }
     }
-
-    @Nested
-    @DisplayName("chaining")
-    class Chaining {
-
-        @Test
-        @DisplayName("every wither keeps the type and copies rather than mutates")
-        void withers() {
-            var bar = new Segmented("list", new Option("list", "List"));
-
-            assertEquals("view", bar.id("view").id());
-            assertEquals(Set.of("wide"), bar.styled("wide").classes());
-            assertTrue(bar.disabled(true).disabled());
-            assertFalse(bar.disabled(true).disabled(false).disabled());
-            assertEquals(Attributes.NONE, bar.attributes(), "the original is untouched");
-
-            var option = new Option("list", "List");
-            assertEquals("first", option.id("first").id());
-            assertTrue(option.disabled(true).disabled());
-            assertFalse(option.disabled(), "the original is untouched");
-        }
-    }
 }

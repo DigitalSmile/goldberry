@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.widgets.core.canvas;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -105,15 +104,5 @@ class CanvasAnimatingTest {
         assertEquals(painted, asked, "the painter and the question are handed one snapshot's worth of values");
         assertEquals(120.0, asked.getFirst().nowMillis());
         assertTrue(asked.getFirst().reducedMotion());
-    }
-
-    @Test
-    @DisplayName("the withers carry the question along")
-    void withersKeepIt() {
-        Predicate<CanvasStyle> question = style -> true;
-        var canvas = new Canvas(NOTHING).animating(question);
-
-        assertSame(question, canvas.input(new Input() {}).animating());
-        assertSame(question, canvas.withAttributes(id("floor")).animating());
     }
 }

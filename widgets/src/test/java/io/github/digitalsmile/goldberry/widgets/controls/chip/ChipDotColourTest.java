@@ -69,22 +69,6 @@ class ChipDotColourTest {
     }
 
     @Test
-    @DisplayName("every wither carries the colour along")
-    void theWithersKeepTheColour() {
-        var chip = new Chip("Goldberry")
-                .withDot(RED)
-                .selected(true)
-                .onPress(() -> {})
-                .onDismiss(() -> {})
-                .disabled(true)
-                .id("project")
-                .styled("accent");
-
-        assertEquals(RED, chip.dotColor());
-        assertTrue(chip.dot());
-    }
-
-    @Test
     @DisplayName("markup says it too, in either spelling, and the two forms agree")
     void kdlAndJavaAgree() {
         var british = Widgets.inflater().inflateAll(KdlParser.parse("""

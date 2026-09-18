@@ -367,6 +367,8 @@ class TableTest {
         @DisplayName("the table node carries the id and classes")
         void attributes() {
             var widget = table().id("people").styled("striped");
+            // `table` is a `Bound`, exempt from the parity sweep for the
+            // reason `list` is, so its CSS type is named here and nowhere else.
             assertEquals("table", widget.cssType());
             assertEquals("people", widget.id());
             assertEquals(Set.of("striped"), widget.classes());
