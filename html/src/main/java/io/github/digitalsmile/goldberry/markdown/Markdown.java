@@ -99,11 +99,13 @@ public final class Markdown {
     /// — comes back byte for byte, which is the whole reason this is not
     /// `parse`-then-`write`.
     ///
-    /// **A marker inside a fenced code block is not a task**, and is skipped, because
-    /// it is a program that happens to contain `- [ ]`. An *indented* code block is not
-    /// skipped: telling one from a list continuation needs the block structure this
-    /// deliberately does not build. A document that hits that is a document with a
-    /// four-space-indented `- [ ]` in it, and the escape is a fence.
+    /// **It does not decide for itself what a task is.** Which `- [ ]` in a document
+    /// is a box and which is a program that happens to contain one is md4c's answer,
+    /// asked for by parsing — so a marker in a fenced *or* an indented code block is
+    /// skipped, and one nested under a parent item, or inside a block quote, is
+    /// counted. That is the point rather than an implementation note: an earlier
+    /// version matched the source with a pattern, a pattern cannot see how deep a list
+    /// it is reading, and a note with sub-tasks in it ticked the wrong box.
     ///
     /// @param markdown the source, exactly as the author has it
     /// @param index which task, from zero

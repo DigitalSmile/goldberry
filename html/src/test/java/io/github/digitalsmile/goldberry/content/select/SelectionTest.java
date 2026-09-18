@@ -231,6 +231,25 @@ class SelectionTest {
     }
 
     @Test
+    @DisplayName("a task list copies as its text, with no bullet the reader never saw")
+    void aTaskListHasNoPhantomBullet() {
+        // The fold used to build the bullet before it knew whether the item wanted
+        // one, and throw the widget away for a task -- but the word had already been
+        // registered here by then. Nothing on the screen changed and every Ctrl+A of a
+        // list of things to do came out with a `•` in front of each line.
+        //
+        // The ordinary item is in the document on purpose: its bullet **is** part of
+        // the text, and a fix that dropped that one too would be a different bug.
+        mount(MarkdownView.of("- [ ] milk\n- [x] bread\n- an ordinary bullet\n").id("note"));
+        router.focusById("note", false);
+        var state = state();
+
+        state.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.A, Modifiers.of(Mod.CTRL), false, tree.root()));
+
+        assertEquals("milk\nbread\n•\nan ordinary bullet", state.selectedText());
+    }
+
+    @Test
     @DisplayName("a copy puts the selected text on the clipboard, and nothing when there is none")
     void copies() {
         var clipboard = new Recording();
