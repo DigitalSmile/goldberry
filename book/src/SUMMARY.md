@@ -397,6 +397,7 @@
 - [ADR-0384 The emoji face is an artifact an application opts into](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)
 - [ADR-0385 WebP is written, and animated](adr/0385-webp-is-written-and-animated.md)
 - [ADR-0386 A sheet of emoji is the font's own contents](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md)
+- [ADR-0387 A resource directory is a package](adr/0387-a-resource-directory-is-a-package.md)
 
 ---
 

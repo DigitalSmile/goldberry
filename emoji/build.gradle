@@ -82,7 +82,14 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
 
     classpath = configurations.assetTool
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
-    args assetCache.asFile.absolutePath, assetResources.get().asFile.absolutePath, '--only=openmoji'
+    // Under this module's **own** package, which is not a tidiness choice: a
+    // resource directory is a package to the module system, so a font written to
+    // `…goldberry.assets.fonts` in two modules is one package in two modules and
+    // the application refuses to start (ADR-0387).
+    args assetCache.asFile.absolutePath,
+            assetResources.get().asFile.absolutePath,
+            '--only=openmoji',
+            '--root=io/github/digitalsmile/goldberry/emoji'
 
     inputs.files configurations.assetTool
     outputs.dir assetResources
@@ -109,7 +116,8 @@ tasks.register('vendorLicences', JavaExec) {
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
-            '--only=openmoji'
+            '--only=openmoji',
+            '--root=io/github/digitalsmile/goldberry/emoji'
 }
 
 // ============================================================================

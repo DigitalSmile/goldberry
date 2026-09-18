@@ -30,9 +30,16 @@ public final class OpenMojiFont implements EmojiFont {
             "Emoji artwork by OpenMoji (https://openmoji.org) — the open-source emoji and icon project."
                     + " Licence: CC BY-SA 4.0.";
 
-    /// Where the face sits in this jar. The same path `:core` used to read it
-    /// from, because it is the same asset step that puts it there.
-    private static final String RESOURCE = "/io/github/digitalsmile/goldberry/assets/fonts/OpenMoji-black.ttf";
+    /// Where the face sits in this jar — under **this module's** package, and
+    /// not under `:core`'s.
+    ///
+    /// A resource directory is a package to the module system, so the face's
+    /// first home — `…goldberry.assets.fonts`, beside the faces `:core` still
+    /// ships — made one package exist in two modules. That is a
+    /// `LayerInstantiationException` before the first frame, and it is invisible
+    /// on a class path, which is why every test passed and the application would
+    /// not open ([ADR-0387]).
+    private static final String RESOURCE = "/io/github/digitalsmile/goldberry/emoji/fonts/OpenMoji-black.ttf";
 
     /// Required by [java.util.ServiceLoader]: a provider is instantiated by the
     /// module system, which needs a constructor it can call.

@@ -117,7 +117,15 @@ screen ([ADR-0386](../book/src/adr/0386-a-sheet-of-emoji-is-the-fonts-own-conten
 `:example` is the first application here to opt into an artifact with an
 obligation attached, which is what ADR-0384 asks an application to do.
 
-Two things came back from building it. `Fonts` used to *throw* when a stylesheet
+And one thing it broke. The face's first home was the package `:core` keeps its
+own faces in, which made one package exist in two modules — a
+`LayerInstantiationException` before the first frame, invisible to a suite that
+runs on a class path and fatal to `./gradlew :example:run`. The face lives under
+`:emoji`'s own package now, and `SplitPackageTest` walks the artifacts so the
+next one cannot repeat it
+([ADR-0387](../book/src/adr/0387-a-resource-directory-is-a-package.md)).
+
+Two other things came back from building it. `Fonts` used to *throw* when a stylesheet
 named a family whose face was not on the path, which a render pass cannot
 afford — it falls back with one line in the log now. And the gallery goldens are
 taken with a one-font renderer that ignores `font-family`, so the new screen's

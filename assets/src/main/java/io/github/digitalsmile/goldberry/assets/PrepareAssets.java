@@ -36,12 +36,13 @@ public final class PrepareAssets {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("usage: PrepareAssets <cache-dir> <resource-dir> [<licenses-dir>] [--only=a,b]");
+            System.err.println("usage: PrepareAssets <cache-dir> <resource-dir> [<licenses-dir>]"
+                    + " [--only=a,b] [--root=a/b/c]");
             System.exit(2);
             return;
         }
         var cache = new AssetCache(Path.of(args[0]));
-        var resources = Path.of(args[1]).resolve(RESOURCE_ROOT);
+        var resources = Path.of(args[1]).resolve(root(args));
         var licences = args.length > 2 && !args[2].startsWith("--") ? Path.of(args[2]) : null;
         var wanted = selection(args);
 
@@ -61,6 +62,27 @@ public final class PrepareAssets {
         if (wanted.contains(Asset.LUCIDE.name())) {
             compileIcons(cache.fetch(Asset.LUCIDE), resources);
         }
+    }
+
+    /// Where inside the jar the assets land — [#RESOURCE_ROOT], or the `--root=`
+    /// path.
+    ///
+    /// A module may **not** share a package with another one, and a directory of
+    /// resources is a package to the module system exactly as a directory of
+    /// classes is. `:core` and `:emoji` both writing `…goldberry.assets.fonts`
+    /// therefore produced two modules containing one package, which is a
+    /// `LayerInstantiationException` at start-up and is invisible on a class path
+    /// — so every test passed and the application would not open ([ADR-0387]).
+    ///
+    /// So each module names a root inside its **own** package, and `--root=` is
+    /// how a build script says which.
+    private static String root(String[] args) {
+        for (var argument : args) {
+            if (argument.startsWith("--root=")) {
+                return argument.substring("--root=".length());
+            }
+        }
+        return RESOURCE_ROOT;
     }
 
     /// Which assets to prepare — everything, or the `--only=` list.
