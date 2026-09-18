@@ -2,7 +2,8 @@ package io.github.digitalsmile.goldberry.widget.attr;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -94,16 +95,24 @@ class AccessibleNameTest {
     void theOlderFormIsUnchanged() {
         // Kept so that the four hundred call sites that predate this say `null`
         // by omission rather than by edit.
-        var five = new Attributes("id", java.util.Set.of(), "id", "tip", "menu");
+        var five = new Attributes("id", Set.of(), "id", "tip", "menu");
 
         assertNull(five.name());
         assertEquals("tip", five.tooltip());
     }
 
     @Test
-    @DisplayName("an unnamed attributes value is still the shared NONE")
+    @DisplayName("an unnamed attributes value is the shared NONE rather than a fresh one")
     void noneIsShared() {
-        assertSame(Attributes.NONE, Attributes.NONE);
+        // `assertSame(NONE, NONE)` stood here, which compares a constant with
+        // itself (the 2026-09-18 review, §6). What is worth pinning is that a node
+        // carrying no attributes parses to the same *value* as the constant a
+        // widget defaults to — so the two ways of saying "nothing" agree, and a
+        // parser that started defaulting something would be caught here rather
+        // than in whichever widget noticed first.
+        assertEquals(Attributes.NONE, parse("button \"Go\"").attributes());
         assertNull(Attributes.NONE.name());
+        assertNull(Attributes.NONE.id());
+        assertEquals(Set.of(), Attributes.NONE.classes());
     }
 }

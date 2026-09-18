@@ -61,7 +61,12 @@ class TextRankTest {
             // The whole reason `style=` is checked and `class=` is not: a class is
             // an open vocabulary and a rank is a closed one, so a typo in a rank
             // is a mistake rather than a rule that has not been written yet.
-            var thrown = assertThrows(Exception.class, () -> inflate("text style=\"subtitle\" \"Hello\""));
+            // The type is named. `Exception.class` stood here, which would have
+            // passed on a NullPointerException from the inflater's own scaffolding
+            // (the 2026-09-18 review, §6); 52 sibling sites in this module name
+            // the type they mean.
+            var thrown =
+                    assertThrows(IllegalArgumentException.class, () -> inflate("text style=\"subtitle\" \"Hello\""));
             assertTrue(
                     message(thrown).contains("type rank"),
                     () -> "the error says what the ranks are: " + message(thrown));
