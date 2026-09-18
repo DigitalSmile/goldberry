@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.handler.Anchored;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Located;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
@@ -154,6 +155,11 @@ public final class PointerRouter {
         rehover();
         notifyMeasured();
         notifyLocated();
+        // After the two above, and after the extents in particular: a viewport
+        // told that its content slid under it answers by moving its offset, and
+        // it clamps that move against the sizes `notifyMeasured` has just
+        // delivered (`docs/gaps.md` G48).
+        notifyAnchored();
         // The shape follows the frame and not only the pointer ([ADR-0237]). A
         // control that disables itself under a still pointer resolves
         // `cursor: not-allowed` in the frame it is painted for, and nothing else
@@ -438,6 +444,154 @@ public final class PointerRouter {
             located.located(location.self(), location.clip(), location.container());
         }
         locations = next == null ? java.util.Map.of() : next;
+    }
+
+    /// What each [Anchored] widget's content was anchored to last frame, and
+    /// where inside its part that anchor sat — [#measuredBounds]'s reason again,
+    /// with the addition that the *previous* value is the whole answer here
+    /// rather than merely a way of staying quiet.
+    private java.util.Map<Element, Anchor> anchors = java.util.Map.of();
+
+    /// One node the reader was looking at, and its position inside the part.
+    ///
+    /// **Layout coordinates, not painted ones.** A scroll offset is a transform
+    /// on the part, so subtracting the part's own layout origin cancels it: this
+    /// number changes when something inside the part moved and not when the
+    /// viewport did, which is exactly the distinction the widget cannot make for
+    /// itself.
+    private record Anchor(Element node, double x, double y) {}
+
+    /// Tells every [Anchored] widget how far its content slid under it.
+    ///
+    /// A third walk, for [#notifyLocated]'s reason: the nodes that want a
+    /// difference between two frames are a different and much smaller set than
+    /// the ones that want a size, and a viewport that has not asked to preserve
+    /// its offset returns a null part and is skipped before anything is walked
+    /// (`docs/gaps.md` G48).
+    private void notifyAnchored() {
+        java.util.IdentityHashMap<Element, Anchor> next = null;
+        java.util.IdentityHashMap<Element, HitTest.Region> byElement = null;
+        for (var region : regions) {
+            if (!(region.owner() instanceof Element element) || !(element.widget() instanceof Anchored anchored)) {
+                continue;
+            }
+            var name = anchored.anchorPart();
+            if (name == null) {
+                continue;
+            }
+            var part = partOf(element, name);
+            if (part == null) {
+                continue;
+            }
+            if (byElement == null) {
+                byElement = new java.util.IdentityHashMap<>();
+                for (var each : regions) {
+                    if (each.owner() instanceof Element owner) {
+                        byElement.put(owner, each);
+                    }
+                }
+            }
+            var partRegion = byElement.get(part);
+            if (partRegion == null) {
+                continue;
+            }
+            // The node it had, while it is still there and still moving. It is
+            // re-picked only on a quiet frame: a viewport told to shift corrects
+            // on the next one, and re-picking before that correction lands would
+            // measure it a second time and move the reader twice as far as the
+            // insertion did.
+            var kept = anchors.get(element);
+            var region0 = kept == null ? null : byElement.get(kept.node());
+            var anchor = region0 == null
+                    ? pick(part, paintedRect(region), partRegion, byElement)
+                    : within(kept.node(), region0, partRegion);
+            if (anchor == null) {
+                continue;
+            }
+            if (next == null) {
+                next = new java.util.IdentityHashMap<>();
+            }
+            next.put(element, anchor);
+            if (kept == null || anchor.node() != kept.node()) {
+                continue;
+            }
+            var dx = anchor.x() - kept.x();
+            var dy = anchor.y() - kept.y();
+            if (dx != 0 || dy != 0) {
+                anchored.contentShifted(dx, dy);
+            } else {
+                // Quiet: take the reader's current line, which may be a long way
+                // from whatever was picked when the viewport was first drawn.
+                var fresh = pick(part, paintedRect(region), partRegion, byElement);
+                next.put(element, fresh == null ? anchor : fresh);
+            }
+        }
+        anchors = next == null ? java.util.Map.of() : next;
+    }
+
+    /// A freshly chosen anchor inside `part`, or null when it holds nothing
+    /// visible.
+    private @Nullable Anchor pick(
+            Element part,
+            LogicalRect view,
+            HitTest.Region partRegion,
+            java.util.Map<Element, HitTest.Region> byElement) {
+        var picked = anchorIn(part, view, byElement);
+        return picked == null ? null : within(picked, byElement.get(picked), partRegion);
+    }
+
+    /// Where `node` sits inside the part, in the coordinates layout produced.
+    private static Anchor within(Element node, HitTest.Region region, HitTest.Region partRegion) {
+        return new Anchor(
+                node,
+                region.bounds().left() - partRegion.bounds().left(),
+                region.bounds().top() - partRegion.bounds().top());
+    }
+
+    /// The deepest node inside `node` that begins at or after `view`'s leading
+    /// corner, in document order.
+    ///
+    /// The reader's **first whole line**. A node straddling the corner is not it
+    /// — half of it is off screen — but it is descended into, which is what makes
+    /// one rule cover both `scroll { row … row … }` and the far commoner
+    /// `scroll { column { row … } }`: a wrapper that spans the whole viewport is
+    /// never the anchor, and its first fully visible child is.
+    ///
+    /// Both axes at once and deliberately, so the router needs to know nothing
+    /// about which way the viewport scrolls: children of a vertical one span its
+    /// width and agree about the left edge, children of a horizontal one span its
+    /// height and agree about the top.
+    ///
+    /// **Painted** rectangles here, unlike the offsets that are remembered: which
+    /// node the reader is looking at is a question about the screen.
+    private @Nullable Element anchorIn(
+            Element node, LogicalRect view, java.util.Map<Element, HitTest.Region> byElement) {
+        for (var child : node.children()) {
+            var region = byElement.get(child);
+            if (region == null) {
+                // A composition node has no box of its own, so its children are
+                // this node's as far as document order is concerned.
+                var through = anchorIn(child, view, byElement);
+                if (through != null) {
+                    return through;
+                }
+                continue;
+            }
+            var rect = paintedRect(region);
+            if (rect.bottom() <= view.top() || rect.right() <= view.left()) {
+                // Entirely before the corner: scrolled past, and not what
+                // anybody is reading.
+                continue;
+            }
+            var deeper = anchorIn(child, view, byElement);
+            if (deeper != null) {
+                return deeper;
+            }
+            if (rect.top() >= view.top() && rect.left() >= view.left()) {
+                return child;
+            }
+        }
+        return null;
     }
 
     /// Where `region` was actually painted, which is not where it was laid out

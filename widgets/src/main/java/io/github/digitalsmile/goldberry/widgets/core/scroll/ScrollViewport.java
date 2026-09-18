@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Anchored;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
@@ -65,6 +66,8 @@ record ScrollViewport(
         ScrollFade fade,
         ScrollGlide glide,
         ScrollTarget onScroll,
+        boolean anchored,
+        ScrollShift onShift,
         Boolean draggingVertical,
         java.util.function.BiConsumer<Boolean, Boolean> onDrag,
         java.util.function.BiConsumer<Extent, Extent> onMeasured,
@@ -73,7 +76,7 @@ record ScrollViewport(
         double gutter,
         java.util.function.DoubleConsumer onGutter,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Anchored, Semantics {
 
     /// What one wheel line moves, in logical pixels.
     ///
@@ -201,6 +204,29 @@ record ScrollViewport(
     @Override
     public String localPart() {
         return "scroll-content";
+    }
+
+    /// The same node, and for a related reason: what the router anchors to is
+    /// something *inside* the box that moves, not inside the one that clips.
+    ///
+    /// **Null when nothing asked**, which is what keeps the cost off every other
+    /// viewport in the window: a `scroll` that does not preserve its offset is
+    /// skipped by the router before a subtree is walked
+    /// ([Anchored#anchorPart()]).
+    @Override
+    public @Nullable String anchorPart() {
+        return anchored ? "scroll-content" : null;
+    }
+
+    /// Told that the content slid under this viewport — rows were inserted above
+    /// what the reader was looking at, and the offset has to follow by the same
+    /// distance for the screen to stay still.
+    ///
+    /// Passed straight up. The arithmetic is the state's, because the clamp
+    /// needs the extents and the extents live there (ADR-0392).
+    @Override
+    public void contentShifted(double dx, double dy) {
+        onShift.shiftBy(dx, dy);
     }
 
     /// §1: "keyboard (PgUp/PgDn/Home/End/arrows **when focused**)".
