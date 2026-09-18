@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.motion.Easing;
 import io.github.digitalsmile.goldberry.paint.CanvasStyle;
@@ -241,13 +242,13 @@ public final class TileFloor {
             int row = i / columns;
             var x = GAP + column * (width + GAP);
             var y = GAP + row * (height + GAP);
-            var tile = Rotated.of(
-                    Path.roundRect(x, y, width, height, RADIUS),
-                    x + width / 2,
-                    y + height / 2,
-                    pose.radians(),
-                    0,
-                    pose.offsetY());
+            // Turned about its own middle and then dropped into place, as one
+            // matrix over the path's points. A tile at rest is the identity and
+            // `transformed` hands the path straight back (ADR-0390).
+            var settling = Affine.rotate(pose.radians())
+                    .about(x + width / 2, y + height / 2)
+                    .then(Affine.translate(0, pose.offsetY()));
+            var tile = Path.roundRect(x, y, width, height, RADIUS).transformed(settling);
             var colour = i == swapTile ? CssColor.mix(swapFrom, swapTo, Easing.EASE_ENTER.at(fade)) : glazes[i];
             frame.fillPath(tile, withAlpha(colour, pose.opacity()));
         }

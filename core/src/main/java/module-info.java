@@ -239,11 +239,11 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.render;
     exports io.github.digitalsmile.goldberry.stats;
     // Geometry over a `paint.Path` that the rasterizer does not do for us
-    // (ADR-0278): flattening a curve to straight segments, and cutting a path
-    // into a dash pattern's on runs. Its own package rather than more static
-    // methods on `Path`, because both are algorithms over a value rather than
-    // things the value knows about itself -- and both are worth testing without
-    // a frame.
+    // (ADR-0278): flattening a curve to straight segments, cutting a path into a
+    // dash pattern's on runs, and mapping one through an affine transform
+    // (ADR-0390). Its own package rather than more static methods on `Path`,
+    // because all three are algorithms over a value rather than things the value
+    // knows about itself -- and all three are worth testing without a frame.
     exports io.github.digitalsmile.goldberry.paint.geom;
     // What turns one `box-shadow` into the run of rounded-rectangle fills a
     // rasterizer with no blur can draw (ADR-0310): the band alphas, and the band

@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.paint.geom.Transformer;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 
 /// An immutable outline in logical coordinates — a line, a curve, a ring, a
@@ -341,6 +343,48 @@ public final class Path {
             at += coordinates(kind);
         }
         return List.copyOf(segments);
+    }
+
+    /// This path mapped through `affine`.
+    ///
+    /// The shape is transformed, not the surface it is drawn on: what comes back
+    /// is an ordinary path, in the coordinates it will be drawn at, which a
+    /// painter may fill inside whatever transform the tree has already set. That
+    /// is the difference that matters inside a `canvas`, where the frame's matrix
+    /// already holds the canvas's own position and a painter cannot read it back
+    /// (ADR-0390, `docs/gaps.md` G46).
+    ///
+    /// The identity gives back this very path rather than a copy. An arc stays an
+    /// arc — see [Transformer] for what that costs.
+    public Path transformed(Affine affine) {
+        return Transformer.transform(this, affine);
+    }
+
+    /// This path turned `radians` clockwise about (`cx`, `cy`).
+    ///
+    /// Clockwise because y grows downward, as it does in CSS — see
+    /// [Affine#rotate(double)].
+    public Path rotated(double radians, double cx, double cy) {
+        return transformed(Affine.rotate(radians).about(cx, cy));
+    }
+
+    /// This path moved by (`dx`, `dy`).
+    ///
+    /// [Frame] can place a path at an origin as it draws it, and that is cheaper
+    /// — this is for the case where the moved path is the value wanted: something
+    /// to measure, to hit-test, or to append to another path.
+    public Path translated(double dx, double dy) {
+        return transformed(Affine.translate(dx, dy));
+    }
+
+    /// This path scaled about the origin.
+    ///
+    /// About the origin, because that is the one centre that needs no argument.
+    /// Scaling about anything else is
+    /// `transformed(Affine.scale(sx, sy).about(cx, cy))`, which is what
+    /// `transform-origin` means.
+    public Path scaled(double sx, double sy) {
+        return transformed(Affine.scale(sx, sy));
     }
 
     /// Replays this path's segments onto `path`, **appending** to whatever is

@@ -1,10 +1,13 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
@@ -64,6 +67,23 @@ public final class Frame {
     /// `canvas` painter filling a [Path] runs inside `BoxPainter`, which is
     /// holding one of these for the box's own border.
     private final List<BlendPath> paths = new ArrayList<>();
+
+    /// The transform in force, in logical coordinates, kept in Java.
+    ///
+    /// Blend2D will not hand its matrix back — `bl_context_get_transform` is not
+    /// on the export list, and putting it there would add a symbol to a boundary
+    /// for something the painter already knows. Every change to this frame's
+    /// matrix goes through [#transform] or [#resetTransform()], so mirroring it
+    /// here costs six doubles and is what lets [#concat] compose with what a
+    /// caller cannot see (ADR-0068, ADR-0390).
+    private Affine matrix = Affine.IDENTITY;
+
+    /// The matrices [#save()] pushed, popped by [#restore()].
+    ///
+    /// The rasterizer's own stack holds the same values; this is the Java half of
+    /// it, so that a `canvas` painter which saved, composed and restored leaves
+    /// the mirror agreeing with the context rather than a transform behind.
+    private final Deque<Affine> saved = new ArrayDeque<>();
 
     private int borrowed;
 
@@ -368,7 +388,8 @@ public final class Frame {
     /// sets an absolute matrix per node. That is not a limitation worked around —
     /// it is what lets hit testing invert the same matrix the painter used,
     /// rather than a second one built from the same inputs by different code
-    /// (ADR-0068).
+    /// (ADR-0068). A painter that does not know what it is drawing under — which
+    /// is every `canvas` painter — wants [#concat] instead.
     ///
     /// The display scale is **not** the caller's to apply: it is already on the
     /// context and is composed with this. A frame at 150% given `translate(10, 0)`
@@ -376,13 +397,53 @@ public final class Frame {
     /// every other call on this class behaves.
     public void transform(double a, double b, double c, double d, double e, double f) {
         requireOpen();
+        // The rasterizer checks the six numbers, so its refusal is the one a
+        // caller sees; the mirror is only updated once the call has stood.
         context.transform(a, b, c, d, e, f);
+        matrix = new Affine(a, b, c, d, e, f);
+    }
+
+    /// **Multiplies** the frame's transform by `[a b c d e f]`, in logical
+    /// coordinates.
+    ///
+    /// ```
+    ///   x' = a·x + c·y + e
+    ///   y' = b·x + d·y + f
+    /// ```
+    ///
+    /// The caller's matrix is applied **first**, to the coordinates it draws in,
+    /// and whatever was already in force is applied to the result. So a painter
+    /// may turn a shape without knowing where the thing it is painting into sits.
+    /// That is the difference from [#transform], which replaces: inside a
+    /// `canvas` the matrix already carries the translation that puts the canvas
+    /// on screen, the painter cannot read it back, and replacing it draws at the
+    /// window's corner (ADR-0390, `docs/gaps.md` G46).
+    ///
+    /// **This does not push anything.** [#save()] and [#restore()] are the
+    /// state stack, here as they are for the clip, and a painter that composed
+    /// without saving leaves the frame turned for whatever draws next.
+    ///
+    /// The display scale is not the caller's to apply, exactly as in [#transform]:
+    /// at 150% a concatenated `translate(10, 0)` moves ten logical pixels.
+    ///
+    /// The composition is done in Java rather than by the rasterizer's own
+    /// compose operation. Blend2D has one, but its enumerator is not among the
+    /// constants the layout verifier checks against the compiled library, and
+    /// adding it would mean changing the native build for arithmetic that is six
+    /// multiplies — arithmetic which must agree exactly with what hit testing
+    /// inverts, and therefore has one implementation (ADR-0068).
+    public void concat(double a, double b, double c, double d, double e, double f) {
+        requireOpen();
+        var composed = new Affine(a, b, c, d, e, f).then(matrix);
+        context.transform(composed.a(), composed.b(), composed.c(), composed.d(), composed.e(), composed.f());
+        matrix = composed;
     }
 
     /// Back to untransformed logical coordinates.
     public void resetTransform() {
         requireOpen();
         context.resetTransform();
+        matrix = Affine.IDENTITY;
     }
 
     /// Composites `layer` with its top-left corner at logical `(x, y)`, faded to
@@ -589,12 +650,16 @@ public final class Frame {
     public void save() {
         requireOpen();
         context.save();
+        saved.push(matrix);
     }
 
     /// Pops what [#save()] pushed.
     public void restore() {
         requireOpen();
         context.restore();
+        if (!saved.isEmpty()) {
+            matrix = saved.pop();
+        }
     }
 
     /// Finishes the frame, so the pixels are complete before anything presents
