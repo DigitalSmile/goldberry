@@ -150,9 +150,11 @@ public final class Sdl {
     /// Widened to an int here, because the mask is unsigned and Java's short is
     /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
     /// still be a bug waiting for the day one is added above it.
-    /// `SDL_Keymod` is a `Uint16`, not an int — the layout table's "Uint16"
-    /// scalar row is what says so, and binding it as `JAVA_INT` would read two
-    /// bytes of whatever follows it in the return register.
+    /// `SDL_Keymod` is a `Uint16`, not an int — SDL's own typedef is what says
+    /// so, and binding it as `JAVA_INT` would read two bytes of whatever follows
+    /// it in the return register. There is no scalar row for it: the layout
+    /// table carries the widths of C's own types, and `Uint16` is SDL's name for
+    /// `short`, which is on the table and is what the descriptor uses.
     public int modifierState() {
         return sdlCoreCalls.getModState().call() & 0xFFFF;
     }

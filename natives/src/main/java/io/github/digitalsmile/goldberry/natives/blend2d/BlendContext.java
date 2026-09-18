@@ -329,9 +329,12 @@ public final class BlendContext implements AutoCloseable {
     /// inventing a second here would be a second place for the field order to be
     /// wrong. What crosses is the numbers.
     ///
-    /// **Absolute, not relative.** There is no push and no pop — Blend2D's
-    /// `bl_context_save` and `bl_context_restore` are not exported — so every
-    /// call states the whole transform, and [#resetTransform()] is what a caller
+    /// **Absolute, not relative.** There is no push and no pop *of the
+    /// transform*: `bl_context_save` and `bl_context_restore` are bound —
+    /// [#save()] and [#restore()] are right below — but they save the whole
+    /// context state and are what an application's own painter runs inside
+    /// (ADR-0193), not a transform stack. So every call here states the whole
+    /// transform, and [#resetTransform()] is what a caller
     /// uses to get back to plain scaled user space. The scale is folded in here
     /// rather than left to the caller so that a transform set through this method
     /// is in the same logical coordinates as every other drawing call on the

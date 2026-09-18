@@ -43,9 +43,9 @@ class SdlTextInputAreaTest {
     @Test
     @DisplayName("Java's SDL_TextEditingEvent is the one the library was compiled with")
     void theEditingStructAgrees() {
-        // The probe itself runs over Layouts.registry() in LayoutProbeTest; what
-        // is asserted here is that this struct is *in* that registry, which is
-        // the step a new layout is forgotten at.
+        // The probe itself runs over Layouts.registry() in
+        // LayoutVerificationTest; what is asserted here is that this struct is
+        // *in* that registry, which is the step a new layout is forgotten at.
         assertTrue(
                 Layouts.registry().contains(Layouts.SDL_TEXT_EDITING_EVENT),
                 "a layout outside the registry is a layout nothing checks against C");

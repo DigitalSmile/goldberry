@@ -60,8 +60,6 @@ public enum SdlEventType {
     /// The window manager asked for the window to close.
     WINDOW_CLOSE_REQUESTED(0x210),
 
-    /// The base of the user-defined event range. Goldberry's cross-thread wakeup
-    /// is pushed as one of these.
     /// The pointer moved. `SDL_MouseMotionEvent` carries the position.
     MOUSE_MOTION(0x400),
 
@@ -136,6 +134,8 @@ public enum SdlEventType {
     /// that sent no `DROP_COMPLETE` would otherwise be dropped twice.
     DROP_BEGIN(0x1002),
 
+    /// The base of the user-defined event range. Goldberry's cross-thread wakeup
+    /// is pushed as one of these.
     USER(0x8000);
 
     private final int value;

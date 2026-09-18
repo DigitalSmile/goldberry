@@ -219,11 +219,6 @@ public final class SdlEventBuffer implements AutoCloseable {
         return event.get(ValueLayout.JAVA_BOOLEAN, KEY_REPEAT_OFFSET);
     }
 
-    /// The committed text of a text-input event.
-    ///
-    /// **Copied immediately.** SDL owns the string and it is valid only until
-    /// the next pump, so holding the pointer would be a use-after-free that
-    /// shows up as mojibake rather than a crash.
     /// The dropped file's name, or `""` — `SDL_DropEvent.data`.
     ///
     /// Copied out here rather than handed on as a pointer, for
@@ -251,6 +246,11 @@ public final class SdlEventBuffer implements AutoCloseable {
         return event.get(ValueLayout.JAVA_FLOAT, DROP_Y_OFFSET);
     }
 
+    /// The committed text of a text-input event.
+    ///
+    /// **Copied immediately.** SDL owns the string and it is valid only until
+    /// the next pump, so holding the pointer would be a use-after-free that
+    /// shows up as mojibake rather than a crash.
     public String committedText() {
         var pointer = event.get(ValueLayout.ADDRESS, TEXT_POINTER_OFFSET);
         if (MemorySegment.NULL.equals(pointer)) {

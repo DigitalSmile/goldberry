@@ -17,11 +17,11 @@ public enum BlendTransformOp implements BlendEnum {
     /// six doubles, in the order `matrix(a, b, c, d, e, f)` writes them.
     ///
     /// Replace, not compose, and that is why this is the operation the painter
-    /// uses. Blend2D's `bl_context_save` / `bl_context_restore` are not on the
-    /// export list, so there is no way to push a transform for a subtree and pop
-    /// it afterwards. Assigning an absolute matrix per box needs neither: the
-    /// stack is accumulated in Java, where hit testing can invert it, and each
-    /// box says where it is rather than where it moved to
+    /// uses. `bl_context_save` and `bl_context_restore` are on the export list —
+    /// `BlendContext.save()` is what an application's own painter runs inside —
+    /// but the frame path deliberately does not push and pop the transform with
+    /// them: the stack is accumulated in Java, where hit testing
+    /// can invert it, and each box says where it is rather than where it moved to
     /// (ADR-0068).
     ASSIGN(1, "BL_TRANSFORM_OP_ASSIGN"),
 
