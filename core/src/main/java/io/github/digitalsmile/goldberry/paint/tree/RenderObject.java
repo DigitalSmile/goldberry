@@ -151,14 +151,6 @@ public final class RenderObject implements AutoCloseable {
         return leaf == (box.text() != null) && applied != null && applied.owner() == box.owner();
     }
 
-    /// Puts `box` on the Yoga node, touching only what changed.
-    ///
-    /// Every branch here is a guard, and the guards are the point. Yoga marks a
-    /// node dirty on any `YGNodeStyleSet*` call regardless of whether the value
-    /// differs, so an unguarded version of this method would dirty every node
-    /// every frame and Yoga's layout cache would never hit once — which is the
-    /// same amount of work as throwing the tree away, with the memory management
-    /// of keeping it.
     /// Where this node was laid out, in the toolkit's own geometry.
     ///
     /// The conversion lives here rather than at each caller because this class is
@@ -253,6 +245,14 @@ public final class RenderObject implements AutoCloseable {
                 Affine.IDENTITY, applied.transform(), layout.left(), layout.top(), layout.width(), layout.height()));
     }
 
+    /// Puts `box` on the Yoga node, touching only what changed.
+    ///
+    /// Every branch here is a guard, and the guards are the point. Yoga marks a
+    /// node dirty on any `YGNodeStyleSet*` call regardless of whether the value
+    /// differs, so an unguarded version of this method would dirty every node
+    /// every frame and Yoga's layout cache would never hit once — which is the
+    /// same amount of work as throwing the tree away, with the memory management
+    /// of keeping it.
     void apply(Box box, Insets inset) {
         var previous = applied;
         applied = box;

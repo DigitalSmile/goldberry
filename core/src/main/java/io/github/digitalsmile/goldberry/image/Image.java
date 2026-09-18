@@ -177,12 +177,6 @@ public final class Image {
         return ofArgb(decoded.width(), decoded.height(), decoded.pixels());
     }
 
-    /// Reads a file and decodes it.
-    ///
-    /// @throws UncheckedIOException if the file cannot be read — which is a
-    ///         different failure from its contents not being an image, and is
-    ///         reported as a different type
-    /// @throws ImageDecodeException if the bytes are not an image
     /// Decodes every frame — [ADR-0382].
     ///
     /// **Every image is an animation**, and most are an animation of one frame:
@@ -239,6 +233,12 @@ public final class Image {
         return decodeAnimation(ByteBuffer.wrap(Objects.requireNonNull(bytes, "bytes")));
     }
 
+    /// Reads a file and decodes it.
+    ///
+    /// @throws UncheckedIOException if the file cannot be read — which is a
+    ///         different failure from its contents not being an image, and is
+    ///         reported as a different type
+    /// @throws ImageDecodeException if the bytes are not an image
     public static Image decode(Path file) {
         Objects.requireNonNull(file, "file");
         try {

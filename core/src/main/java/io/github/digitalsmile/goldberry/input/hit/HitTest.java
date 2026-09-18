@@ -119,12 +119,6 @@ public final class HitTest {
             return new Region(owner, Cursor.DEFAULT, left, top, width, height, null);
         }
 
-        /// This rectangle as a plain one, in the window's logical coordinates.
-        ///
-        /// The rectangle **layout** produced, without the owner, the cursor or
-        /// the transform. Not what a popup anchors to: see [#painted()], which
-        /// is the same rectangle for every box nothing transformed and the right
-        /// one for the boxes something did ([ADR-0270]).
         /// Where this box was **painted**, which is not where it was laid out
         /// when something above it was transformed.
         ///
@@ -157,6 +151,12 @@ public final class HitTest {
                     (float) (forward.d() * height));
         }
 
+        /// This rectangle as a plain one, in the window's logical coordinates.
+        ///
+        /// The rectangle **layout** produced, without the owner, the cursor or
+        /// the transform. Not what a popup anchors to: see [#painted()], which
+        /// is the same rectangle for every box nothing transformed and the right
+        /// one for the boxes something did ([ADR-0270]).
         public LogicalRect bounds() {
             return LogicalRect.of(left, top, width, height);
         }

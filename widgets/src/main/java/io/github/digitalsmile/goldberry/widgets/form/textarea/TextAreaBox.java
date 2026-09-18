@@ -421,12 +421,14 @@ record TextAreaBox(
         for (var i = 0; i < maxRows; i++) {
             parts.add(new Underline(focused && composing.isActive()));
         }
-        // The gutter **last**, so it paints over anything that reached its
+        // The gutter after the text, so it paints over anything that reached its
         // column, and appended rather than prepended so the indices every
-        // existing part is placed by do not move. As many numbers as there are
-        // visible lines, for the highlights' reason: a fixed count keeps the
-        // reconciler matching them by position, and one with no line renders
-        // nothing ([ADR-0331]).
+        // existing part is placed by do not move -- which is what [#gutterIndex]
+        // counts. Exactly one node, and it is only the strip: `TextAreaGutter`
+        // draws a fill and its rule, while the numbers themselves are a
+        // paragraph this class paints, because where a hard line ended up is a
+        // fact about the wrap and a column of number nodes would be a frame
+        // behind the text on every keystroke ([ADR-0331]).
         if (gutter) {
             parts.add(new TextAreaGutter());
         }

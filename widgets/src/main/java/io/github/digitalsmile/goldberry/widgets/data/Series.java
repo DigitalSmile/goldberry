@@ -14,9 +14,12 @@ import java.util.Objects;
 /// a rule: `#revenue { --gb-chart-1: … }`, which is the cascade doing it
 /// (ADR-0195).
 ///
-/// The x is the **index**. A time axis is `content-widgets.md` §3.1's
-/// `java.time`-driven stepping and is not built; until it is, a chart says where
-/// the points are evenly spaced and the caller labels them.
+/// **The x is not in here.** A series is values in order, and what they are
+/// plotted against is the chart's: by default the point **index**, evenly
+/// spaced and labelled by the caller, or `content-widgets.md` §3.1's
+/// `java.time` axis when the chart is given one `Instant` per point — at which
+/// point an unscraped stretch is as wide as it was long
+/// (ADR-0203, [TimeAxis]).
 ///
 /// @param name   what the legend calls it — required, because a series nobody
 ///               can name is a line nobody can read

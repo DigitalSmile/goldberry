@@ -78,9 +78,6 @@ public final class DocumentLines extends AbstractList<TextLine> {
         var k = document.hardLineAt(offset);
         var local = offset - document.startOf(k);
         var lines = document.paragraphOf(k).layout(width);
-        if (lines == null) {
-            return visualStarts[k];
-        }
         var within = 0;
         for (var i = 0; i < lines.lines().size(); i++) {
             if (lines.lines().get(i).start() <= local) {
@@ -93,7 +90,7 @@ public final class DocumentLines extends AbstractList<TextLine> {
     /// The line `index` as its own paragraph sees it.
     private TextLine localLine(int k, int within) {
         var lines = document.paragraphOf(k).layout(width);
-        if (lines == null || lines.lines().isEmpty()) {
+        if (lines.lines().isEmpty()) {
             return new TextLine(0, 0, 0, 0, 0);
         }
         return lines.lines().get(Math.clamp(within, 0, lines.lines().size() - 1));

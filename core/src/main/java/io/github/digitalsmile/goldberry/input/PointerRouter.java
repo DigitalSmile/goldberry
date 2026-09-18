@@ -2364,17 +2364,6 @@ public final class PointerRouter {
         return null;
     }
 
-    /// Where `event` happened inside `element`, from the hit-test snapshot.
-    ///
-    /// A linear scan of the regions, once per handler on the chain. The snapshot
-    /// is a per-frame list and pointer events arrive at pointer rates, so this is
-    /// far below anything a frame notices — and a map rebuilt every frame to
-    /// avoid it would cost more than it saved.
-    ///
-    /// Falls back to [PointerEvent.Local#UNKNOWN] for an element that has no
-    /// rectangle, which is a widget poked directly by a test or one whose box has
-    /// not been painted yet. Zero-sized rather than null, so a widget reading
-    /// `fractionX()` gets 0 instead of an exception.
     /// Where the pointer is inside `element`'s content box — its own rectangle
     /// less its padding.
     ///
@@ -2394,6 +2383,17 @@ public final class PointerRouter {
         return PointerEvent.Local.UNKNOWN;
     }
 
+    /// Where `event` happened inside `element`, from the hit-test snapshot.
+    ///
+    /// A linear scan of the regions, once per handler on the chain. The snapshot
+    /// is a per-frame list and pointer events arrive at pointer rates, so this is
+    /// far below anything a frame notices — and a map rebuilt every frame to
+    /// avoid it would cost more than it saved.
+    ///
+    /// Falls back to [PointerEvent.Local#UNKNOWN] for an element that has no
+    /// rectangle, which is a widget poked directly by a test or one whose box has
+    /// not been painted yet. Zero-sized rather than null, so a widget reading
+    /// `fractionX()` gets 0 instead of an exception.
     private PointerEvent.Local localTo(Element element, PointerEvent event) {
         for (var region : regions) {
             if (region.owner() == element) {

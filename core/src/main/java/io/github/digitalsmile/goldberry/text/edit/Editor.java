@@ -495,15 +495,9 @@ public final class Editor {
     public TextLayout layout() {
         var current = layout;
         if (current == null) {
+            // An empty paragraph lays out to one empty line rather than to
+            // none, so the caret has a line to sit on without a fallback here.
             current = paragraph().layout(wrapWidth);
-            if (current == null) {
-                // A paragraph with nothing in it lays out to nothing; a caret
-                // still has to be somewhere, so it is one empty line.
-                current = new TextLayout(
-                        List.of(new io.github.digitalsmile.goldberry.text.TextLine(0, 0, 0, 0, 0)),
-                        0,
-                        font.lineHeight());
-            }
             layout = current;
         }
         return current;

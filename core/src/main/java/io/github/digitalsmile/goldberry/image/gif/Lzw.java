@@ -141,9 +141,11 @@ final class Lzw {
             previous = code;
         }
 
-        // Consume whatever is left of the chain so the caller's buffer is
-        // positioned after the frame, however early the stream stopped being
-        // useful.
+        // Nothing left to do to the caller's buffer: `subBlocks` already walked
+        // the chain to its terminating zero and left `in` after it, so the
+        // position is right however early this loop stopped being able to use
+        // what it read. What is unwritten stays zero -- the background index,
+        // and what every viewer shows for a truncated GIF.
         return out;
     }
 

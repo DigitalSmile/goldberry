@@ -138,7 +138,6 @@ public record Knob(
         this(min, max, value, step, 0, null, onChange, false, Attributes.NONE);
     }
 
-    /// A `0..1` knob, which is what most bindings want.
     /// The shape a knob had before it could be dragged round.
     public Knob(
             double min,
@@ -153,6 +152,7 @@ public record Knob(
         this(min, max, value, step, detents, source, onChange, disabled, false, attributes);
     }
 
+    /// A `0..1` knob, which is what most bindings want.
     public Knob(double value, DoubleConsumer onChange) {
         this(0, 1, value, 0, 0, null, onChange, false, Attributes.NONE);
     }
