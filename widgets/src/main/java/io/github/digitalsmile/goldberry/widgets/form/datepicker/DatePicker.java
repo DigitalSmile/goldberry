@@ -460,6 +460,10 @@ public record DatePicker(
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var format = DateFormat.of(Locale.getDefault(Locale.Category.FORMAT));
         var reported = wiring.valued(node, "change");
+        // **Read once.** `monthOf` wants the same bound to open on, and asking for
+        // it a second time parsed `min=` twice -- so a malformed one was complained
+        // about twice for one attribute, which reads as two mistakes.
+        var min = isoDate(node, "min");
         return new DatePicker(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),
                 wiring.bound(node),
@@ -471,9 +475,9 @@ public record DatePicker(
                 reported == null ? null : value -> reported.accept(format.format(value)),
                 Objects.requireNonNullElse(node.stringProperty("placeholder"), ""),
                 node.booleanProperty("range"),
-                monthOf(node),
+                monthOf(node, min),
                 isoDate(node, "today"),
-                isoDate(node, "min"),
+                min,
                 isoDate(node, "max"),
                 CalendarView.ALL_ALLOWED,
                 format,
@@ -488,7 +492,10 @@ public record DatePicker(
     /// otherwise the month of the epoch — which is visibly wrong rather than
     /// quietly wrong, and is the honest answer for a widget that may not read a
     /// clock. A document that wants this month writes it, or binds a value.
-    private static YearMonth monthOf(KdlNode node) {
+    ///
+    /// @param min what [#inflate] read out of `min=`, handed in rather than read
+    ///        again: parsing it twice complained about a malformed one twice
+    private static YearMonth monthOf(KdlNode node, @Nullable LocalDate min) {
         var written = node.stringProperty("month");
         if (written != null && !written.isEmpty()) {
             try {
@@ -497,7 +504,6 @@ public record DatePicker(
                 LOG.warn("date-picker month=\"{}\" is not an ISO year-month like 2026-09; ignoring it", written);
             }
         }
-        var min = isoDate(node, "min");
         return min != null ? YearMonth.from(min) : YearMonth.from(LocalDate.EPOCH);
     }
 
