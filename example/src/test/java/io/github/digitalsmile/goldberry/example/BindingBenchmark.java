@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.lang.ref.Reference;
 import java.util.Arrays;
 import java.util.function.LongSupplier;
 
@@ -439,12 +440,20 @@ class BindingBenchmark {
         });
     }
 
+    /// The values and the actions are two objects since the actions became a
+    /// nested record (`ShowcaseModel.Actions`), so the click is resolved on the
+    /// record and the count is read off the model — the same pair `Showcase`
+    /// publishes. `ShowcaseActionsTest.theRoadsClickCounts` resolves these two
+    /// names under `check`, because this class does not run there and the last
+    /// rename went a week unseen (ADR-0397).
     @Test
     @DisplayName("the showcase's own model, end to end")
     void showcaseModel() {
         var model = new ShowcaseModel();
-        var actions = Models.actions(model);
-        var click = actions.resolve("app.click");
+        // Held for the whole loop: a registry is a weak window onto its model
+        // (RuntimeBinding), and a record built inline was collected mid-run.
+        var actions = new ShowcaseModel.Actions(model);
+        var click = Models.actions(actions).resolve("app.click");
         Models.bindings(model).resolve("app.clicks").subscribe(_ -> {});
 
         report("ShowcaseModel click, 1 listener", () -> {
@@ -453,6 +462,7 @@ class BindingBenchmark {
             }
             return (Integer) Models.observable(model, "app.clicks").get();
         });
+        Reference.reachabilityFence(actions);
     }
 
     // --- reporting -----------------------------------------------------------

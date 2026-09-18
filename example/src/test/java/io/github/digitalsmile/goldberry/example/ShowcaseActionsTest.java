@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.ref.Reference;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +27,28 @@ class ShowcaseActionsTest {
                         .map(ShowcaseModel.Actions.class::cast)
                         .findFirst()
                         .orElseThrow(() -> new AssertionError("the showcase publishes its actions as a model"));
+    }
+
+    /// The two names `BindingBenchmark.showcaseModel` resolves, resolved here
+    /// under `check`. The benchmark is tagged `benchmark` and runs nightly only,
+    /// so when the actions moved into their own record the name it asked for
+    /// stopped resolving and the lane was red for a week before anybody read it
+    /// (ADR-0397). A count rather than a timing, which is what `check` may
+    /// assert.
+    @Test
+    @DisplayName("the road's click is bound on the actions record and counts on the model")
+    void theRoadsClickCounts() {
+        var model = new ShowcaseModel();
+        var actions = new ShowcaseModel.Actions(model);
+        var click = Models.actions(actions).resolve("app.click");
+        var clicks = Models.observable(model, "app.clicks");
+
+        click.run();
+        click.run();
+
+        assertEquals(2, clicks.get(), "app.click counts on app.clicks, which is what the benchmark times");
+        // A registry is a weak window onto its model; the record must outlive the clicks.
+        Reference.reachabilityFence(actions);
     }
 
     @Test
