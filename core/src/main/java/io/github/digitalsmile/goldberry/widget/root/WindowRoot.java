@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
@@ -14,6 +16,7 @@ import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
+import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
@@ -124,16 +127,18 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
         }
         var entries = overlays.get();
         var boxes = new ArrayList<Box>(children.size());
-        boxes.add(children.getFirst().grow(1));
-        for (var i = 1; i < children.size(); i++) {
-            var entry = entries.get(i - 1);
+        for (var child : children) {
+            var entry = overlayFor(child, entries);
+            if (entry == null) {
+                boxes.add(child.grow(1));
+                continue;
+            }
             // Insets on all four sides is Yoga's "fill"; two sides is a corner.
             // One flag, no second placement path (ADR-0121).
             var inset = entry.isFilling()
                     ? Insets.all(Length.points(0))
                     : entry.corner().insets(entry.margin());
-            boxes.add(children.get(i)
-                    .position(Position.ABSOLUTE)
+            boxes.add(child.position(Position.ABSOLUTE)
                     // Against the **window**, not against the application's
                     // content box. An absolutely positioned child is placed
                     // inside its containing block's padding by default, which is
@@ -146,5 +151,43 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
                     .inset(ContainingBlock.acrossBorderBox(inset, style.padding())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Which overlay a box came from, or null when the application's content did.
+    ///
+    /// **Asked of the box, not of its position in the list.** A child widget and
+    /// a child *box* are not the same count and never were: a hidden node
+    /// contributes none ([ADR-0366]), so does [Widget#nothing()], and a
+    /// composition contributes as many as the boxes it composes. Matching by
+    /// index therefore placed a toast in the corner of the overlay above it the
+    /// moment one of them drew nothing, and walked off the end of the list when
+    /// one of them drew twice.
+    ///
+    /// A box carries the element that produced it — the tag hit testing gets from
+    /// a rectangle back to a node (ADR-0054) — so the honest question is which of
+    /// this node's own children that element is under, and the element tree
+    /// answers it. Child 0 is the content, child *i* is overlay *i-1*, which is
+    /// the order [#children()] builds them in.
+    private @Nullable Overlay overlayFor(Box box, @Nullable List<Overlay> entries) {
+        if (entries == null || entries.isEmpty() || !(box.owner() instanceof Element owner)) {
+            return null;
+        }
+        // Up from whoever painted the box to this node's own child, which is
+        // where the answer is: an overlay that is a composition is several
+        // elements above the box it eventually produced.
+        Element child = null;
+        for (var node = owner; node != null; node = parentOf(node)) {
+            if (node.widget() != this) {
+                child = node;
+                continue;
+            }
+            var index = child == null ? -1 : node.children().indexOf(child);
+            return index >= 1 && index <= entries.size() ? entries.get(index - 1) : null;
+        }
+        return null;
+    }
+
+    private static @Nullable Element parentOf(Element element) {
+        return element.parent() instanceof Element parent ? parent : null;
     }
 }
