@@ -28,10 +28,11 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | Wave | What | State |
 |------|------|-------|
 | 1 | C1–C3, C22 parsers; W1–W3 tabs and the two editors; H1, H2 markdown; B1–B12 build and CI | **done** except N1–N3, which moved to wave 2 |
-| 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | the pointer group **done**; the weaver in progress |
-| 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | in progress |
+| 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | **done** |
+| 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand | **done**; W4–W8 the scrollbar, the ticks and the charts still running |
 | 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends | in progress |
-| 4b | the remaining `:core`, `:widgets`, `:html`, `:natives` rows | open |
+| 4b | H3–H7 the html module; W9–W15 the rest of `:widgets`, with §11.5's parity sweep | in progress |
+| 4c | C6, C12, C13, C14 and N4–N7 | open |
 | 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
 | 6 | §7 dead code and duplication; §8 the prose | open |
 
@@ -42,14 +43,14 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C1 | **done** | The dispatch in `next()` sent *any* backslash into `identLike()`; a `\` that begins no escape is a `<delim-token>` now, per CSS Syntax 3 §4.3.1. It was an **OOM, not a hang** — the loop allocates a token per turn. `CssTokenizerTest$Escapes.backslashNewlineOutsideAString`, bounded at 500 ms. |
 | C2 | **done** | `takeSlashdash()` skipped trivia to end of input and returned `true` regardless, leaving every caller to peek at nothing. It refuses a dangling `/-` with a positioned `KdlSyntaxException`. `KdlParserTest$Comments.danglingSlashdash`, four cases. Only `/-` *inside* a node crashed; a bare `/-` document already threw. |
 | C3 | **done** | `Character.isSurrogate((char) code)` kept the low sixteen bits, so the test was applied to the wrong number. A private `isSurrogate(int)` leaves the spec's three cases exactly. `CssTokenizerTest$Escapes.supplementaryEscape`. |
-| C4 | open | |
-| C5 | open | |
+| C4 | **done** | `Candidate` carries a sheet index beside the layer, and `CASCADE` compares it between layer and rule order — so no layer or specificity comparison can change. `StyleResolverTest.Cascade.sheetOrderWithinALayer` plus three tests pinning what must not move. Fixes `resolveStarting` for free. [ADR-0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md). |
+| C5 | **done** | `StyleResolver.substitutedFor(element, value)` substitutes a written value's `var()`s without cascading, so a loser is checked on its own value at its own line. `anOverriddenDeclarationIsCheckedOnItsOwnValue` (0 findings → 1), `aGoodDeclarationUnderABadOneIsQuiet` (2 → 1). [ADR-0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md). |
 | C6 | open | |
 | C7 | **done** | Narrower than the review prescribed: a widget the router has **disposed** hears nothing; the application's `Attributes` hook still finishes the pair it opened, which ADR-0327 added deliberately. `RehoverTest.theDeadAreNotToldTheyExited` and `anAncestorUnmountedMidDispatchIsSkipped`. [ADR-0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md), which corrects ADR-0303. |
 | C8 | open | |
 | C9 | open | |
-| C10 | open | |
-| C11 | open | |
+| C10 | **done** | `bounds` gained a four-argument overload taking the matrix to start from; the three-argument one stays `Affine.IDENTITY` and stays the layer path's, which is what it was written for. `DamageTest.underATransformedAncestor` and `aTransformThatChanged`. |
+| C11 | **done** | `caretMoved()` invalidates, and only while something is composing — with no composition the shaping does not depend on the caret, and unconditional invalidation would reshape on every keystroke of a held arrow key. Three tests in `EditorPreeditTest`. The review misses `verticalBy`, which does it too. |
 | C12 | open | |
 | C13 | open | |
 | C14 | open | |
@@ -59,7 +60,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C18 | open | |
 | C19 | **done** | Each popup's own `dismissedByInput()` is added up, rather than asking whether everything is shut. `PopupLifecycleTest.aDismissalIsNotAClickWhileATooltipIsOpen`, driven through the real launcher and loop. |
 | C20 | **done** | Boxes trace back through their `Element` to the child of the `WindowRoot` they descend from. A box-*less* child shifts placements; a box-*ful* one (a composition) is what overruns the list — and the content itself was assumed to produce exactly one box. `OverlayLayerTest.aBoxlessOverlayPlacesNothing`. |
-| C21 | open | |
+| C21 | **done** | The `NUMBER` branch moved above the `<time>` one, which is CSS's own reading. `aBareZeroIsACount`, `aZeroDelayNeedsItsUnit`. No shipped sheet writes a bare number there. |
 | C22 | **done** | The guard admitted only a *bare* identifier. It is `startsIdentifier() \|\| startsQuotedOrRawString()` now — raw keys are legal KDL 2.0 too, which the entry did not mention. `KdlParserTest$Values.quotedPropertyNames`. |
 
 ## 2. `:widgets`
@@ -98,9 +99,9 @@ the build, then the cascade and the charts, then the tests, then the prose.
 
 | # | State | What landed |
 |---|-------|-------------|
-| N1 | open | |
-| N2 | open | |
-| N3 | open | |
+| N1 | **done** | `transformMethod` with a `MethodTransform` hands each element on and replaces only the body, where the four-argument `withMethod` carried the name, descriptor and flags and nothing else. `MethodAttributesTest` reads the **woven bytes**, which is what `NativeImageComplianceTest.annotationRetention` could not. |
+| N2 | **done** | A method is rebuilt only if it contains a write the weaver replaces; everything else is copied verbatim, frames included. And the weaver runs with the module's classes and their compile classpath on it. `UntouchedMethodsTest` fingerprints who wrote a method last by its Code attribute order. |
+| N3 | **done** | `rewired()` answers for a woven model too, and a `goldberry$set$…` call counts as a write — the mirror case the review does not name: recompiling only the model re-wove it with private setters for an `IllegalAccessError` at the first click. `IncrementalWeaveTest`. **Latent until B2 landed**; the two are merged together on purpose. |
 | N4 | open | |
 | N5 | open | |
 | N6 | open | |
@@ -149,6 +150,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | [0399](../book/src/adr/0399-a-task-box-is-counted-by-the-parser-that-found-it.md) | `toggleTask` asks md4c where the box is; supersedes one sentence of ADR-0300 |
 | [0400](../book/src/adr/0400-a-clause-is-a-start-and-a-length.md) | A preedit clause is a start and a length; a limit cuts on a grapheme boundary; both live in `form/parts` |
 | [0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md) | The router tells the living, and finishes the application's pair; corrects ADR-0303, extends ADR-0317 |
+| [0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md) | A sheet carries its index; the cascade compares it between layer and rule order, and the lint reads the loser's own value |
 
 ## What the review got wrong
 
@@ -187,6 +189,18 @@ more than being quietly corrected.
   in italics rather than in a `**Status:**` bullet or a `## Status` section — one
   of three spellings in use across the log. `DecisionLogTest` now answers the
   question the review answered by reading 397 files.
+- **C11 misses `verticalBy`.** `Up`, `Down`, `PageUp` and `PageDown` move the
+  caret without invalidating, exactly as `pointerAt`, `move` and `caretTo` do.
+- **N3 was unreachable through Gradle until B2 landed.** While the weave task
+  declared javac's directory as its own output, `compileJava` re-ran on every
+  build and the weaver always met a fully unwoven tree. The mixed tree N3
+  describes becomes the normal case the moment the stamp change merges, which is
+  why the two are on master together.
+- **N3 has a second half the review does not name.** Recompiling only the *model*
+  leaves the woven sibling's `putfield` already gone, so a weaver counting only
+  `putfield`s concludes nobody writes to the model and re-weaves it with private
+  setters — an `IllegalAccessError` at the first click, from a build that changed
+  neither class's source.
 - **W3 is latent through today's only caller.** `PreeditEvent.caret()` is defined
   as the clause end whenever a clause is reported, so the caret comparison caught
   every resize by accident. The contract is still wrong and bites the moment an

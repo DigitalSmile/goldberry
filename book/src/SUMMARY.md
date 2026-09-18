@@ -412,6 +412,7 @@
 - [ADR-0399 A task box is counted by the parser that found it](adr/0399-a-task-box-is-counted-by-the-parser-that-found-it.md)
 - [ADR-0400 A clause is a start and a length](adr/0400-a-clause-is-a-start-and-a-length.md)
 - [ADR-0401 The router tells the living, and finishes the application's pair](adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md)
+- [ADR-0402 A sheet has a position in its layer](adr/0402-a-sheet-has-a-position-in-its-layer.md)
 
 ---
 
