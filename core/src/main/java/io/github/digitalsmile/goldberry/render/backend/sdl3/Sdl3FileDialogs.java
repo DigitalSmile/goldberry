@@ -104,7 +104,17 @@ final class Sdl3FileDialogs implements FileDialogs {
     /// the answers after it in the same batch are still delivered, because one
     /// broken handler must not lose a second dialog's result.
     ///
+    /// **And neither must it lose a second handler's failure.** This used to keep
+    /// the first exception and drop the rest on the floor: two broken handlers in
+    /// one pump reported as one, and the second bug was invisible until the first
+    /// was fixed. Each is logged as it happens and the ones after the first are
+    /// attached to it as suppressed — which is
+    /// [io.github.digitalsmile.goldberry.render.event.UiExecutor#drain]'s
+    /// arrangement, arrived at for the same reason, and the reason a caller that
+    /// prints a stack trace sees all of them.
+    ///
     /// @return how many were delivered
+    /// @throws RuntimeException the first consumer's failure, carrying the rest
     int deliverPending() {
         var delivered = 0;
         RuntimeException failure = null;
@@ -119,7 +129,17 @@ final class Sdl3FileDialogs implements FileDialogs {
             try {
                 answer.run();
             } catch (RuntimeException e) {
-                failure = failure == null ? e : failure;
+                // Logged as well as carried: the throw below names the first, and a
+                // caller that swallows it should not be able to swallow the others
+                // silently as well.
+                LOG.error("a file dialog's consumer failed", e);
+                if (failure == null) {
+                    failure = e;
+                } else if (failure != e) {
+                    // A handler that rethrows one cached exception object would
+                    // otherwise make it its own suppressed cause, which throws.
+                    failure.addSuppressed(e);
+                }
             }
         }
         if (failure != null) {
@@ -134,7 +154,12 @@ final class Sdl3FileDialogs implements FileDialogs {
         return !answers.isEmpty();
     }
 
-    private void queue(Consumer<FileChoice> onChoice, FileChoice choice) {
+    /// Parks an answer for the next pump, and wakes the loop.
+    ///
+    /// Package-private rather than private only so that a test can drive the
+    /// delivery path: the platform's own dialog cannot be opened under the dummy
+    /// video driver, and [#deliverPending] is where the reporting rule lives.
+    void queue(Consumer<FileChoice> onChoice, FileChoice choice) {
         answers.add(() -> onChoice.accept(choice));
         // Enqueue, then wake: the other way round races, and a dialog answered
         // while the loop is parked for a second would sit there until something
