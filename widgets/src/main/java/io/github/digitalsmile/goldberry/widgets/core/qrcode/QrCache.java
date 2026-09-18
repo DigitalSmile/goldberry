@@ -42,6 +42,13 @@ final class QrCache {
 
     /// How many codes have been encoded and kept. Read by the test that asserts
     /// a rebuild does not re-encode, and by nothing else.
+    ///
+    /// **Which is the point, and not a smell.** What this class is for is *work
+    /// that did not happen*, and a count is the only shape that has — identity
+    /// cannot answer it, because [#matrix] hands back the winner of a race and so
+    /// returns the same instance whether or not it encoded. `docs/testing.md` §4
+    /// asks for exactly this rather than a timing, and `BlockMemo.kept()` in
+    /// `:html` is the same counter kept for the same reason.
     private static int encodings;
 
     private QrCache() {}
