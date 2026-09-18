@@ -163,7 +163,11 @@ public final class CssTokenizer {
         if (isDigit(c)) {
             return numeric(startLine, startColumn);
         }
-        if (isIdentStart(c) || c == '\\') {
+        // A backslash starts a name only when it starts a *valid* escape. One at
+        // the end of a line does not: the spec calls that a parse error and a
+        // delim, and treating it as a name start handed consumeName() a
+        // character it could not consume, so the tokenizer stood still for ever.
+        if (isIdentStart(c) || startsEscape()) {
             return identLike(startLine, startColumn);
         }
 

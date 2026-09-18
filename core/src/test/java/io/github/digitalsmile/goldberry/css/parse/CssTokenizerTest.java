@@ -3,8 +3,10 @@ package io.github.digitalsmile.goldberry.css.parse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -267,6 +269,21 @@ class CssTokenizerTest {
         void outOfRangeEscape() {
             assertEquals("�", only("\\0 ").text());
             assertEquals("�", only("\\D800 ").text());
+        }
+
+        @Test
+        @DisplayName("a backslash before a newline is a delim, and the scan moves past it")
+        void backslashNewlineOutsideAString() {
+            // Caught a tokenizer that could not advance: a "\" before a newline
+            // begins no valid escape, so consumeName() returned an empty name
+            // without moving and run() looped for ever. A stylesheet with this in
+            // it used to wedge the hot-reload thread, so the bound is the point
+            // of the test.
+            var tokens = assertTimeoutPreemptively(Duration.ofMillis(500), () -> significant("a \\\nb"));
+            assertEquals(3, tokens.size(), () -> "expected three tokens, got " + tokens);
+            assertEquals("a", tokens.get(0).text());
+            assertTrue(tokens.get(1).isDelim('\\'));
+            assertEquals("b", tokens.get(2).text());
         }
     }
 
