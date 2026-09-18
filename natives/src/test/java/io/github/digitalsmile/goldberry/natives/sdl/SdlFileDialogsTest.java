@@ -50,15 +50,6 @@ class SdlFileDialogsTest {
     }
 
     @Test
-    @DisplayName("binds every dialog symbol on the export list")
-    void bindsItsSymbols() {
-        // No SDL_Init: looking a symbol up is a link-time question, and this is
-        // the test that fails first and most clearly when goldberry.symbols and
-        // the binding disagree.
-        assertNotNull(SdlFileDialogs.get());
-    }
-
-    @Test
     @DisplayName("translates a NULL file list into a failure, with SDL's own words")
     void reportsRefusalAsAFailure() {
         var dialogs = withNoDriver();

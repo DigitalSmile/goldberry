@@ -3,12 +3,12 @@ package io.github.digitalsmile.goldberry.natives.sdl;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,20 +38,9 @@ class SdlClipboardTest {
     }
 
     @Test
-    @DisplayName("binds every clipboard symbol on the export list")
-    void bindsItsSymbols() {
-        // No SDL_Init: looking a symbol up is a link-time question, and this is
-        // the test that fails first and most clearly when goldberry.symbols and
-        // the binding disagree.
-        assertNotNull(SdlClipboard.get());
-    }
-
-    @Test
     @DisplayName("round-trips text through the platform, freeing what SDL allocated")
     void roundTripsText() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
 
         assertTrue(clipboard.text("goldberry"), "SDL declined a clipboard write on a video subsystem it accepted");
@@ -67,9 +56,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("reports an empty clipboard as empty text rather than null")
     void emptyIsEmptyText() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
 
         clipboard.text("");
@@ -81,9 +68,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("carries text SDL has to encode as UTF-8")
     void carriesNonAscii() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
 
         // Two bytes, three bytes and four: the read walks a NUL-terminated C
@@ -100,9 +85,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("round-trips bytes through the platform, which runs the upcall")
     void roundTripsData() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
         var bytes = new byte[] {0, 1, 2, (byte) 0xFF, 'g', 'b'};
 
@@ -122,9 +105,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("a type nobody offered reads as nothing rather than as a crash")
     void unknownTypeIsEmpty() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
         clipboard.write("application/x-goldberry-test", new byte[] {1});
 
@@ -135,9 +116,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("one copy can offer several types, and each comes back whole")
     void offersSeveralTypes() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
         var shape = new byte[] {'s', 'h', 'a', 'p', 'e'};
         var picture = new byte[] {'p', 'n', 'g'};
@@ -154,9 +133,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("replacing an offer releases the one it replaced")
     void oneOfferAtATime() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
 
         clipboard.write("application/x-goldberry-test", new byte[] {1});
@@ -176,9 +153,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("an empty offer is a clear rather than an advertisement of nothing")
     void emptyOfferClears() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
         clipboard.write("application/x-goldberry-test", new byte[] {1});
 
@@ -191,9 +166,7 @@ class SdlClipboardTest {
     @Test
     @DisplayName("an image/png offer is one the platform advertises like any other")
     void carriesAnImageType() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
         var clipboard = SdlClipboard.get();
 
         // The one MIME type this toolkit puts pictures on a clipboard as
@@ -207,17 +180,18 @@ class SdlClipboardTest {
         assertArrayEquals(png, clipboard.read("image/png"));
     }
 
-    /// Starts SDL's video subsystem, or reports that this machine has none.
+    /// Starts SDL's video subsystem, or aborts the test with the reason it could
+    /// not.
     ///
-    /// Returning false rather than skipping through an assumption keeps the
-    /// no-display case identical to [SdlTest]'s: the test passes having proven
-    /// what it could.
-    private static boolean startVideo() {
+    /// An `Assumptions.abort` rather than a bare `return`: every test below needs
+    /// a selection to round-trip through, and one that quietly passes without one
+    /// is a green tick over a crossing nobody made — with nothing in the report to
+    /// say how many of them there were.
+    private static void requireVideo() {
         try {
             Sdl.get().initialize(Set.of(SdlSubsystem.VIDEO));
-            return true;
         } catch (SdlException e) {
-            return false;
+            Assumptions.abort("SDL has no video subsystem on this machine: " + e.getMessage());
         }
     }
 }

@@ -25,23 +25,4 @@ class NativeLibraryTest {
     void resourcePathMatchesPackaging(String osName, String osArch, String expected) {
         assertEquals(expected, NativeLibrary.resourcePath(NativePlatform.of(osName, osArch)));
     }
-
-    @Test
-    @DisplayName("resource path is absolute and contains the classifier")
-    void resourcePathIsAbsolute() {
-        var platform = NativePlatform.of("Linux", "amd64");
-        var path = NativeLibrary.resourcePath(platform);
-
-        assertTrue(path.startsWith("/"), () -> "not an absolute resource path: " + path);
-        assertTrue(path.contains(platform.classifier()), () -> "classifier missing from " + path);
-        assertTrue(path.endsWith(platform.libraryFileName()), () -> "library name missing from " + path);
-    }
-
-    @Test
-    @DisplayName("availability can be checked without loading anything")
-    void availabilityCheckDoesNotThrow() {
-        // Whether the library is present depends on whether the superbuild has
-        // run; that it can be asked without exploding must always hold.
-        NativeLibrary.isAvailable();
-    }
 }

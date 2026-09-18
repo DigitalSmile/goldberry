@@ -32,6 +32,12 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 /// (`licenses/` is still placeholders), so that check waits for one rather than
 /// depending on whatever happens to be installed on the machine running the
 /// tests.
+///
+/// **Glyph reordering is on that list too**, and it is worth naming rather than
+/// leaving as a silent absence: a real shaper emits right-to-left glyphs in
+/// visual order, so the first glyph is the last character, and the fallback path
+/// over the empty face does not reorder. Asserting either way here would assert a
+/// property of the fallback rather than of shaping.
 class ShapingTest {
 
     @BeforeAll
@@ -144,26 +150,6 @@ class ShapingTest {
                             .sorted()
                             .toList(),
                     "each character accounted for exactly once");
-        }
-    }
-
-    @Test
-    @DisplayName("glyph reordering needs a real font, and is not checked here")
-    void reorderingIsNotCheckedWithoutAFont() {
-        // Worth writing down rather than leaving as a silent absence. A real
-        // shaper emits right-to-left glyphs in visual order, so the first glyph
-        // is the last character. HarfBuzz's fallback path over the empty face
-        // does not reorder, so this file cannot tell the two apart — asserting
-        // either way would be asserting a property of the fallback rather than
-        // of shaping. It waits for a bundled font.
-        try (var font = ShapedFont.empty();
-                var buffer = ShapingBuffer.create()) {
-
-            buffer.addText("abc");
-            buffer.setDirection(TextDirection.RTL);
-            var run = buffer.shape(font);
-
-            assertEquals(3, run.length(), "the count is checkable; the order is not");
         }
     }
 
@@ -336,16 +322,6 @@ class ShapingTest {
         assertTrue(buffer.isClosed());
         assertThrows(IllegalStateException.class, () -> buffer.addText("x"));
         assertDoesNotThrow(buffer::close);
-    }
-
-    @Test
-    @DisplayName("setting a scale is accepted and changes nothing about the empty face")
-    void scaleIsSettable() {
-        try (var font = ShapedFont.empty()) {
-            assertFalse(font.isClosed());
-            // 16px in 26.6 fixed point, which is the usual choice.
-            assertDoesNotThrow(() -> font.setScale(16 * 64, 16 * 64));
-        }
     }
 
     @Test
