@@ -350,6 +350,27 @@ class HtmlTest {
         }
 
         @Test
+        @DisplayName("a section ends the cell and the row it interrupts, and is their sibling")
+        void sectionsEndCells() {
+            // The bug this caught: only a cell or a row ended a cell, so the `tbody`
+            // opened **inside** the last header cell and took the rest of the table
+            // with it -- a head holding the body, which is what HTML's own "in cell"
+            // mode closes a cell to avoid. The row's rule below it could never run
+            // either, because the cell in front of it never closed.
+            var table = onlyElement("<table><thead><tr><th>a<th>b<tbody><tr><td>1</table>");
+
+            assertEquals(List.of("thead", "tbody"), tags(table.children()));
+            var head = assertInstanceOf(Element.class, table.children().getFirst());
+            assertEquals(2, head.find("th").size());
+            assertTrue(head.find("tbody").isEmpty(), "a body is a section's sibling, not a cell's content");
+            assertEquals(
+                    1,
+                    assertInstanceOf(Element.class, table.children().get(1))
+                            .find("td")
+                            .size());
+        }
+
+        @Test
         @DisplayName("a definition list's terms and definitions close each other")
         void definitions() {
             var dl = onlyElement("<dl><dt>Term<dd>Meaning<dt>Other</dl>");
