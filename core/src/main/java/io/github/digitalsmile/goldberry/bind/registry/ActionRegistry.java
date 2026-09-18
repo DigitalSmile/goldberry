@@ -80,9 +80,20 @@ public final class ActionRegistry {
         return this;
     }
 
-    /// Replaces a binding, or adds it if there is none.
+    /// Replaces a binding, or adds it if there is none — **whichever kind it
+    /// was**.
+    ///
+    /// A name is bound once across both maps, which is what `bind` enforces, so
+    /// rebinding has to clear the other one. Removing only from `byName` left a
+    /// valued binding of the same name in place, and [#resolveValued(String)]
+    /// looks there first: the registry went on answering the consumer this call
+    /// had just replaced. The `Consumer` overload below had always removed its
+    /// counterpart; this one had not (the 2026-09-18 review, C6).
     public ActionRegistry rebind(String name, Runnable action) {
-        byName.put(Objects.requireNonNull(name, "name"), Objects.requireNonNull(action, "action"));
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(action, "action");
+        valuedByName.remove(name);
+        byName.put(name, action);
         return this;
     }
 
