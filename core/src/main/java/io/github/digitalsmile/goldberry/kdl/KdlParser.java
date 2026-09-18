@@ -16,7 +16,9 @@ import org.jspecify.annotations.Nullable;
 ///
 /// ## What is supported
 ///
-/// Nodes with arguments, properties and children; bare and quoted identifiers;
+/// Nodes with arguments, properties and children; bare, quoted and raw-string
+/// identifiers, wherever KDL 2.0 allows one — a node name and a property name
+/// alike, so `"my key"=1` is a property;
 /// quoted strings with escapes; raw strings (`#"…"#`); numbers in decimal, hex,
 /// octal and binary with `_` separators; the `#true` / `#false` / `#null` /
 /// `#inf` / `#-inf` / `#nan` keywords; `//` and nesting `/* */` comments; the
@@ -188,9 +190,11 @@ public final class KdlParser {
 
     private Entry entry() {
         refuseTypeAnnotation();
-        // A property key is an identifier; an argument may be an identifier-
-        // shaped string too, so which one this is only becomes clear at the "=".
-        if (startsIdentifier() && !startsNumber() && peek() != '#') {
+        // A property key is any KDL string: bare, quoted or raw. An argument may
+        // be a quoted or raw string too, so which one this is only becomes clear
+        // at the "=" -- and if there is none, the position is rewound and the
+        // same text read again as a value.
+        if (startsIdentifier() || startsQuotedOrRawString()) {
             var startIndex = index;
             var startLine = line;
             var startColumn = column;
@@ -419,9 +423,7 @@ public final class KdlParser {
         if (peek() == '"') {
             return quotedString();
         }
-        if (peek() == '#'
-                && index + 1 < source.length()
-                && (source.charAt(index + 1) == '"' || source.charAt(index + 1) == '#')) {
+        if (startsRawString()) {
             return rawString();
         }
         if (!startsIdentifier()) {
@@ -447,6 +449,22 @@ public final class KdlParser {
         // A bare identifier may not look like a number: "1abc" is an error, not
         // a name.
         return !startsNumber();
+    }
+
+    /// Whether a quoted `"…"` or raw `#"…"#` string begins here.
+    ///
+    /// Both are identifiers in KDL 2.0 — which is how a node or a property may
+    /// be named `"my key"` — and neither is a bare identifier, so
+    /// [#startsIdentifier()] says no to both.
+    private boolean startsQuotedOrRawString() {
+        return !atEnd() && (peek() == '"' || startsRawString());
+    }
+
+    private boolean startsRawString() {
+        return !atEnd()
+                && peek() == '#'
+                && index + 1 < source.length()
+                && (source.charAt(index + 1) == '"' || source.charAt(index + 1) == '#');
     }
 
     private boolean startsNumber() {

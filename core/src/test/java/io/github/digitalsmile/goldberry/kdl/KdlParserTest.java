@@ -187,6 +187,27 @@ class KdlParserTest {
         }
 
         @Test
+        @DisplayName("a quoted or raw-string property name is allowed too")
+        void quotedPropertyNames() {
+            // Caught a property key that had to be a bare identifier: `"my key"=1`
+            // is legal KDL 2.0 and the class doc promised quoted identifiers, but
+            // only node names were given one -- a quoted key was read as an
+            // argument and then refused at the "=".
+            var node = one("""
+                    a "my key"=1 #"raw key"#=2 plain=3
+                    """);
+            assertEquals(1, number(node.property("my key").orElseThrow()));
+            assertEquals(2, number(node.property("raw key").orElseThrow()));
+            assertEquals(3, number(node.property("plain").orElseThrow()));
+            assertTrue(node.arguments().isEmpty());
+
+            // A string key is not a licence for any value on the left: "1=2" is
+            // still the error it was.
+            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse("a 1=2"));
+            assertTrue(thrown.getMessage().contains("must be an identifier"));
+        }
+
+        @Test
         @DisplayName("asInt refuses a number that is not whole")
         void asInt() {
             var whole = (KdlValue.Num) one("a x=720").property("x").orElseThrow();
