@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.form.timepicker;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Locale;
 
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -74,7 +75,17 @@ final class TimeColumnsState extends State<TimeColumns> implements TimeColumnsBo
             cells.add(new TimeCell(
                     // Two digits always, because a column whose rows were "9" and
                     // "10" would jump about as it turned.
-                    String.format("%02d", value),
+                    //
+                    // **In [Locale#ROOT]**, and for `Slider#text()`'s reason rather
+                    // than for tidiness: `%02d` under the *default* locale writes
+                    // the digits of that locale's numbering system, so a machine set
+                    // to `ar-EG-u-nu-arab` or `hi-IN-u-nu-deva` draws a wheel of
+                    // Arabic-Indic or Devanagari digits and the golden taken on it
+                    // is a pixel diff nobody can reproduce elsewhere. A wheel is
+                    // a *clock face* — the one place a number is the same glyph in
+                    // every locale — and a picker that wants its own numerals asks
+                    // for them through the format, which is the application's.
+                    String.format(Locale.ROOT, "%02d", value),
                     value,
                     offset == 0,
                     offset == 0 && column == index,
