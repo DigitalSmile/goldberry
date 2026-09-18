@@ -912,14 +912,20 @@ public final class Sdl3Backend implements Backend {
                     eventBuffer.clickCount(),
                     Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
+            // Through the same reconciliation as the motion, the buttons and the
+            // drops: a wheel carries a pointer position, and a position is only
+            // meaningful once its space is settled. It is the wheel arm's own
+            // fields that go in -- SDL puts the wheel's position somewhere else
+            // in the event than the motion's.
+            var at = inTheWindowsOwnSpace(window, eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY());
             // The buffer has already undone SDL's "natural scrolling" inversion.
             // What is left is the sign convention: SDL's y is positive *away from
             // the user*, and the SPI's is positive *down the document*, which is
             // CSS's and every scroll view's. One negation, at the boundary, once.
             out.add(new BackendEvent.PointerWheel(
                     window,
-                    eventBuffer.wheelPointerX(),
-                    eventBuffer.wheelPointerY(),
+                    at[0],
+                    at[1],
                     eventBuffer.wheelX(),
                     -eventBuffer.wheelY(),
                     // Negated on the same axis and for the same reason as the

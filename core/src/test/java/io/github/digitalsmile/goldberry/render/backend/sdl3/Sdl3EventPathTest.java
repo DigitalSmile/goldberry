@@ -311,6 +311,46 @@ class Sdl3EventPathTest {
         });
     }
 
+    /// **The arm the reconciliation was never wired into.** A wheel carries a
+    /// pointer position exactly as a motion and a button do, and
+    /// [Sdl3Backend#inTheWindowsOwnSpace] says every window's coordinates are
+    /// settled before they leave the backend (ADR-0211) — but this one arm read
+    /// its position straight out of the event. A scroll over a macOS popup
+    /// therefore arrived in the *owner's* space, and stale, so the router looked
+    /// for a scrollable under a pointer that was never there.
+    ///
+    /// The inside-the-window half is `wheelReachesTheSink` above, which asserts
+    /// the position arrives untouched — the reconciliation must not move a
+    /// coordinate that was already right.
+    @Test
+    @DisplayName("a wheel outside its window is re-read from the desktop, like every other pointer event")
+    void wheelCoordinatesAreReconciled() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), 0f, 1f, SdlWheelDirection.NORMAL, 5000f, 5000f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            // The deltas are a property of the gesture and not of the space it
+            // happened in, so they cross unchanged either way.
+            assertEquals(-1f, wheel.deltaY());
+
+            var origin = window.position();
+            if (origin.isEmpty()) {
+                // The documented fallback, asserted rather than skipped, as for
+                // the motion above.
+                assertEquals(5000f, wheel.x());
+                assertEquals(5000f, wheel.y());
+                return;
+            }
+            var pointer = Sdl.get().globalPointer();
+            assertEquals(pointer[0] - origin.get().x(), wheel.x(), 1f);
+            assertEquals(pointer[1] - origin.get().y(), wheel.y(), 1f);
+            assertNotEquals(5000f, wheel.x(), "the wheel kept coordinates from another space");
+        });
+    }
+
     @Test
     @DisplayName("a press and a release in different spaces are both reconciled")
     void aPressAndAReleaseAreReconciledAlike() {
