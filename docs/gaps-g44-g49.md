@@ -17,7 +17,7 @@ Status legend: **done** means the code, tests and ADR have landed.
 | G44  | a `text-area` style pass that does not grow with its text | — | in progress |
 | G45  | a `markdown-view` that restyles only the block that changed | — | in progress |
 | G46  | a canvas transform that composes with the one it is painted under | [0390](../book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md) | done |
-| G47  | a `qr-code` widget | — | in progress |
+| G47  | a `qr-code` widget | [0391](../book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md) | done |
 | G48  | a viewport that opens at its end and stays put | [0392](../book/src/adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md) | done |
 | G49  | emoji that are pictures rather than boxes | [0393](../book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md) | done |
 
@@ -93,3 +93,22 @@ the text, and the face that shipped had no colour in it.
   a whole number of pixels tall on purpose — Yoga snaps positions to the pixel grid, so the anchor is
   exact whatever the heights are but a neighbouring row can land a rounded pixel away.
 - Showcase: a `Console` card on the Navigation screen, and `gallery-navigation.png` re-blessed.
+
+### G47 — a QR code
+
+- `core` `qr/`: the encoder, eleven files and no dependency — `Mode`, `Version`, `Segment`, `Bits`,
+  `GaloisField`, `ReedSolomon`, `Grid`, `Penalty`, `QrMatrix`, `QrEncoder`, `Level`. Beside the image
+  codecs, for the image codecs' reason: it is a specification with one right answer.
+- `widgets` `core/qrcode/`: `QrCode` (`@Markup("qr-code")`), `QrModules` (the painter) and `QrCache`.
+  `--gb-qr-ink` and `--gb-qr-paper` are the **same values in both themes**, because many phone scanners
+  will not read an inverted code.
+- **Verified against libqrencode and libzbar**, called through their own ABIs from a throwaway harness —
+  2117 payloads compared module for module and every one decoded back. It found two real defects: the
+  data placement must step over the timing column, and the level-H block count was wrong from version 32.
+  26 libqrencode matrices are committed as a test resource.
+- Snapping is quantized **twice, logical first**. The device-pixel rule alone fails ADR-0157's scale
+  invariance — the code grows by a quarter on a retina display.
+- The modules are a `Path` and not `fillRect`s: `fillRect` takes floats, and at 150% a float round trip
+  lands a module edge at 152.000004 and draws one off-colour pixel.
+- Tests: 64, across `core` `qr/` (5 classes) and `widgets` `core/qrcode/` (3).
+- Showcase: a card on the Canvas screen with one link at L, M and H.

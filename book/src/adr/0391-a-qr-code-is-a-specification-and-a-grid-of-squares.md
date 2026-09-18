@@ -105,10 +105,14 @@ nothing but a value.**
   Blend2D dutifully draws as one pixel of `#1b1b1b` beside a run of `#1a1a1a`.
   `Path` carries doubles, whose round trip is off by a part in 10¹⁴ and lands on
   the pixel Blend2D would have chosen anyway. Setting the frame's transform to
-  `1 / factor` and working in whole device pixels was the first attempt and is
-  not available: `Frame.transform` *replaces* the transform rather than composing
-  with it (ADR-0068), and what it would replace is the translation to the box's
-  own corner.
+  `1 / factor` and working in whole device pixels was the first attempt, and it
+  was not available: `Frame.transform` *replaces* the transform rather than
+  composing with it (ADR-0068), and what it would replace is the translation to
+  the box's own corner. [ADR-0390](0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)
+  landed `Frame.concat` the same day, from the same batch of gaps, which makes it
+  available now. The path stays: it is verified down to the decoded module, and a
+  composed transform would be a second way of being right rather than a better
+  one.
 - A box with no room for one **logical** pixel per module draws **nothing**. A
   21-module code in sixteen pixels is a grey square, and drawing it would be
   claiming a scanner could read it. Logical rather than device for the reason

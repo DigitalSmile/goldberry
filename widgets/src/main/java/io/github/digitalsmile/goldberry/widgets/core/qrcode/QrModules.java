@@ -52,9 +52,13 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 /// Blend2D would have picked anyway.
 ///
 /// Setting the frame's transform to `1 / factor` and drawing in whole device
-/// pixels would be the obvious answer and is not available: [Frame#transform]
-/// *replaces* the transform rather than composing with it (ADR-0068), and what
-/// it would replace is the translation to this box's own corner.
+/// pixels would be the obvious answer. It was unreachable when this was written
+/// -- [Frame#transform] *replaces* the transform rather than composing with it
+/// (ADR-0068), and what it would replace is the translation to this box's own
+/// corner -- and [Frame#concat] closed that on the same day ([ADR-0390]). This
+/// still draws a path, because the path is verified down to the decoded module
+/// and a composed transform would be a second way to be right rather than a
+/// better one.
 ///
 /// The corner has to be on the pixel grid for any of this to be worth anything,
 /// and it is: layout runs with Yoga's point scale factor set to the display

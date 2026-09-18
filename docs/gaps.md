@@ -145,7 +145,7 @@ a rule.
 | [G44](#g44) | A `text-area` style pass that does not grow with its text | a preview budget on a long note | high |
 | [G45](#g45) | A `markdown-view` that restyles only the block that changed | the same budget, worse | high |
 | ~~[G46](#g46)~~ | ~~A canvas transform that composes with the one it is painted under~~ | **closed** — ADR-0390 | done |
-| [G47](#g47) | A `qr-code` widget | sign-in by QR, share links, device invites | high |
+| ~~[G47](#g47)~~ | ~~A `qr-code` widget~~ | **closed** — ADR-0391 | done |
 | ~~[G48](#g48)~~ | ~~A viewport that opens at its end, and stays put when rows are added above~~ | **closed** — ADR-0392 | done |
 | ~~[G49](#g49)~~ | ~~Emoji render as boxes~~ | **closed** — ADR-0393 | done |
 
@@ -2263,7 +2263,7 @@ closed-form 2×2 SVD and flips `sweep` under a mirroring matrix. No golden image
 
 <a id="g47"></a>
 
-### G47 — a `qr-code` widget
+### G47 — a `qr-code` widget — **closed**
 
 **What Tessera needs.** Telegram's sign-in by QR code ([docs/chat.md](chat.md) §7.6). TDLib hands the client a
 `tg://login?token=…` link and renews it about every thirty seconds until a phone scans one. The connect
@@ -2311,6 +2311,30 @@ qr-code value="tg://login?token=…" level="M" quiet-zone=4
 `ConnectAccountDialog.qrCode` and nowhere else. The token is not printed. The stopgap is deleted in the commit
 that takes the widget. Nothing is lost while it stands, because the check that would produce the payload
 needs TDLib (CH7), which is not built either.
+
+**Closed — [ADR-0391](../book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md).**
+The proposed API, near enough as written: a `qr-code` leaf in `widgets.core.qrcode` with `value=`,
+`level=` and `quiet-zone=`, the two tokens identical in both themes so a dark theme cannot invert a code
+a scanner then refuses, a `FIGURE` named by `name=` and never by the payload, and a cache so a rebuild
+with an unchanged payload returns the same matrix rather than re-encoding it.
+
+The encoder is `io.github.digitalsmile.goldberry.qr` in `:core`, beside the image codecs and depending on
+nothing: numeric, alphanumeric and byte modes, all forty versions, Reed–Solomon over GF(256), the eight
+masks scored by §7.8.3's four rules, and the format and version BCH bits.
+
+**It was checked against other people's encoders, and that is what makes it worth having.** 2117 payloads
+were encoded and compared module for module with libqrencode, and every one of them was rendered and read
+back by libzbar. The comparison found **two real defects that no self-referential test could have**: the
+data placement has to step *over* the timing column, and the level-H block count was off by one from
+version 32 up. The published worked examples, all 32 format strings, all 34 version patterns and 26 whole
+libqrencode matrices are committed as vectors.
+
+**The module snapping is quantized twice, logical first.** The obvious rule — the largest whole number of
+*device* pixels per module — passes every crispness test and fails ADR-0157's scale invariance: a 108 px
+box of 37 modules takes 2 device pixels a module at 100% and 5 at 200%, so the code grew by a quarter on
+a retina display. Largest whole *logical* pixel, then multiplied by the scale and floored, is whole device
+pixels at every scale **and** the same size on the box at every scale. A box with no room for one logical
+pixel a module draws nothing, because a grey square is a claim that a phone could read it.
 
 <a id="g48"></a>
 

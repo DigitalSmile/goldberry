@@ -399,6 +399,7 @@
 - [ADR-0386 A sheet of emoji is the font's own contents](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md)
 - [ADR-0387 A resource directory is a package](adr/0387-a-resource-directory-is-a-package.md)
 - [ADR-0390 A turned shape is a path, and the frame can compose](adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)
+- [ADR-0391 A QR code is a specification and a grid of squares](adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md)
 - [ADR-0392 A timeline opens at its end and keeps the reader's line](adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md)
 - [ADR-0393 An emoji is routed by the text and drawn in layers](adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md)
 
