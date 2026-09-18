@@ -45,7 +45,15 @@ class DensityTest {
     /// segments and its segments stretch to it. A density that moved every other
     /// control and left a toolbar's segmented control 32 high would be the exact
     /// divergence this list exists to catch.
-    private static final List<String> SIZED = List.of("button", "checkbox", "radio", "segmented");
+    ///
+    /// **All eight of them, which it was four of.** The list named `button`,
+    /// `checkbox`, `radio` and `segmented` and stopped there, while
+    /// `controls.css` resolves `--gb-control-height` for `toggle`, `slider`,
+    /// `select` and `text-input` as well — so exactly the divergence the note
+    /// above says this test exists to prevent could have happened in half the
+    /// controls it is about, and the two tests below would have passed.
+    private static final List<String> SIZED =
+            List.of("button", "checkbox", "radio", "segmented", "toggle", "slider", "select", "text-input");
 
     @Nested
     @DisplayName("the tokens")

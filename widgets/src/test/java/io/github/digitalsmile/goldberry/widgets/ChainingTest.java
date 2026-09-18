@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +20,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
-import io.github.digitalsmile.goldberry.widgets.core.Primitives;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -124,23 +124,54 @@ class ChainingTest {
     /// Every widget the catalog registers implements the contract, so "chainable"
     /// is a property of the catalog rather than of the widgets somebody
     /// remembered. A control added without it fails here.
+    ///
+    /// **Over the whole catalog, which it was not.** This walked
+    /// `Primitives.builtInTypes() + Controls.controlTypes()` — 24 names of the 72
+    /// the build registers — so every widget under `form`, `panel`, `menu`,
+    /// `nav`, `overlay` and `data` was outside it. The list is
+    /// [CatalogMarkup#types()] now, which is the inflater's own, so a widget
+    /// cannot be registered and left unswept.
     @Test
     @DisplayName("every registered widget is chainable")
     void everyWidgetIsAttributed() {
-        var inflater = Widgets.inflater();
-        for (var type : names()) {
-            var markup =
-                    switch (type) {
-                        case "text", "link", "button", "badge", "chip" -> type + " \"x\"";
-                        case "radio" -> "radio value=\"x\" \"X\"";
-                        case "option" -> "option value=\"x\" \"X\"";
-                        case "image" -> "image src=\"x.png\" alt=\"x\"";
-                        default -> type;
-                    };
-            Widget widget = inflater.inflate(KdlParser.parse(markup).getFirst());
+        var unchainable = new ArrayList<String>();
+        for (var type : CatalogMarkup.types()) {
+            Widget widget = CatalogMarkup.inflate(type, "");
+            if (!(widget instanceof Attributed<?>) && !NOT_CHAINABLE.contains(type)) {
+                unchainable.add(type + " (" + widget.getClass().getSimpleName() + ")");
+            }
+        }
+
+        assertTrue(
+                unchainable.isEmpty(),
+                () -> "these widgets cannot be chained, because they do not implement Attributed: " + unchainable
+                        + ". Implement it, or say here why the widget is not one.");
+    }
+
+    /// The two the widened sweep found, and the only names it is allowed to skip.
+    ///
+    /// `series` and `point` are a chart's **data** rather than nodes an author
+    /// styles: they inflate to `ChartSeries` and `ChartPoint`, which carry
+    /// numbers and a name and implement none of [Attributed]. So a document may
+    /// write `series id="cpu"` and the id goes nowhere — the one place in the
+    /// catalog where markup accepts an attribute and drops it.
+    ///
+    /// Recorded here rather than fixed: both live under `data/`, which is
+    /// somebody else's to change, and a chart's series is a real question about
+    /// whether a value that is not drawn on its own should carry an id at all.
+    private static final Set<String> NOT_CHAINABLE = Set.of("series", "point");
+
+    /// An exemption that has stopped naming a widget is a line nobody will
+    /// notice is dead, and one that has quietly started passing is a rule that
+    /// could be enforced and is not.
+    @Test
+    @DisplayName("the exemptions still name registered widgets, and still need exempting")
+    void theExemptionsAreLive() {
+        for (var type : NOT_CHAINABLE) {
+            assertTrue(CatalogMarkup.types().contains(type), type + " is exempted and is not registered");
             assertTrue(
-                    widget instanceof Attributed<?>,
-                    () -> type + " cannot be chained: it does not implement Attributed");
+                    !(CatalogMarkup.inflate(type, "") instanceof Attributed<?>),
+                    type + " is chainable now; take it out of the exemptions");
         }
     }
 
@@ -163,12 +194,5 @@ class ChainingTest {
     void startsFromNone() {
         assertEquals(Attributes.NONE, new Button("Save").attributes());
         assertEquals("save", new Button("Save").id("save").id());
-    }
-
-    private static List<String> names() {
-        var all = new java.util.ArrayList<>(Primitives.builtInTypes());
-        all.addAll(Controls.controlTypes());
-        all.remove("radio-group");
-        return all;
     }
 }
