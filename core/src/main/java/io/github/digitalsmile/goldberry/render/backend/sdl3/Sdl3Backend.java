@@ -137,7 +137,26 @@ public final class Sdl3Backend implements Backend {
     private Optional<String> undecoratedWarning = Optional.empty();
     private boolean undecoratedWarningLogged;
 
-    private boolean closed;
+    /// Whether [#close()] has run. **Volatile because it is the one field here
+    /// with a reader off the UI thread**: [#wakeup()] is the SPI's single
+    /// thread-safe call, and [#drawDuringModalLoop] runs on whichever thread
+    /// pushed the event that triggered the watch.
+    ///
+    /// Plain, there was no happens-before between the write in `close()` and
+    /// either read, so a background thread could go on seeing `false` for
+    /// arbitrarily long after SDL had quit and push onto a queue that no longer
+    /// existed. Volatile gives the write a release and each read an acquire, so
+    /// a `wakeup()` that starts after `close()` set the flag sees it set — and
+    /// sees, in the bargain, everything `close()` did before setting it.
+    ///
+    /// What is left is a `wakeup()` already past its own read when the flag is
+    /// written, and no flag can order that: it is two threads calling the
+    /// backend at the same instant. It is harmless here because of where the
+    /// write sits — `close()` sets the flag *first* and reaches `Sdl.quit()`
+    /// only after taking down the watch, every window, every tray and the
+    /// cursors, so a push that slipped through lands on a queue that is still
+    /// there.
+    private volatile boolean closed;
 
     /// Initializes SDL's video subsystem.
     ///
@@ -1127,7 +1146,9 @@ public final class Sdl3Backend implements Backend {
     @Override
     public void wakeup() {
         // No requireUiThread: SDL's event queue takes its own lock, and this is
-        // the one call the SPI promises is safe from anywhere.
+        // the one call the SPI promises is safe from anywhere. Which makes this
+        // the only off-thread read of `closed`, and the reason it is volatile --
+        // see the field.
         if (!closed) {
             video.pushWakeup();
         }

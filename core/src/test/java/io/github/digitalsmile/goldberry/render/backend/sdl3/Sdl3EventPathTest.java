@@ -3,12 +3,15 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -345,23 +348,68 @@ class Sdl3EventPathTest {
         });
     }
 
+    /// **The one call the SPI lets another thread make, against the one field
+    /// that says whether there is anything left to call into.**
+    ///
+    /// `wakeup()` reads `closed` and `close()` writes it, on different threads,
+    /// and the field was plain: nothing in the memory model obliged the reader
+    /// ever to see the write, so a background thread could keep pushing wakeups
+    /// into an SDL that had quit. A race is not something a test can lose on
+    /// demand, so this asserts both halves of what the fix is — the behaviour
+    /// another thread sees after close, and the declaration that makes it
+    /// visible at all, which is the half a tidy-up would silently drop.
+    @Test
+    @DisplayName("a wakeup from another thread after close pushes nothing, and the flag saying so is volatile")
+    void wakeupAfterCloseTouchesNothing() throws Exception {
+        var backend = openBackend();
+        backend.createWindow(WindowSpec.of("wakeup", SIZE));
+        backend.close();
+
+        var failure = new AtomicReference<Throwable>();
+        var other = new Thread(
+                () -> {
+                    try {
+                        backend.wakeup();
+                    } catch (Throwable t) {
+                        failure.set(t);
+                    }
+                },
+                "not-the-ui-thread");
+        other.start();
+        other.join();
+
+        assertNull(failure.get(), () -> "wakeup after close reached SDL: " + failure.get());
+        assertTrue(
+                Modifier.isVolatile(Sdl3Backend.class.getDeclaredField("closed").getModifiers()),
+                "closed is read off the UI thread by wakeup(), so a plain field leaves the"
+                        + " write in close() free never to be seen there");
+    }
+
     // --- the machinery ------------------------------------------------------
 
     /// Runs `body` against a backend with a window, under the dummy video driver.
+    private static void withBackend(java.util.function.BiConsumer<Sdl3Backend, Sdl3Window> body) {
+        try (var backend = openBackend()) {
+            var window = (Sdl3Window) backend.createWindow(WindowSpec.of("events", SIZE));
+            body.accept(backend, window);
+        }
+    }
+
+    /// Opens an unpaced backend on the dummy video driver, for a test that
+    /// closes it itself.
     ///
     /// The driver and the frame rate are set as system properties because that is
-    /// where the backend reads them, and restored afterwards because the test JVM
-    /// is shared. Pacing is turned off explicitly: a paced loop holds frames back
-    /// until the display could want them, which is correct and would make
-    /// "was a frame emitted?" a question about timing.
-    private static void withBackend(java.util.function.BiConsumer<Sdl3Backend, Sdl3Window> body) {
+    /// where the backend reads them, and restored as soon as it has because the
+    /// test JVM is shared. Pacing is turned off explicitly: a paced loop holds
+    /// frames back until the display could want them, which is correct and would
+    /// make "was a frame emitted?" a question about timing.
+    private static Sdl3Backend openBackend() {
         var driver = System.getProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
         var rate = System.getProperty("goldberry.frame.rate");
         System.setProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY, "dummy");
         System.setProperty("goldberry.frame.rate", "0");
-        try (var backend = new Sdl3Backend()) {
-            var window = (Sdl3Window) backend.createWindow(WindowSpec.of("events", SIZE));
-            body.accept(backend, window);
+        try {
+            return new Sdl3Backend();
         } finally {
             restore(Sdl3Backend.VIDEO_DRIVER_PROPERTY, driver);
             restore("goldberry.frame.rate", rate);
