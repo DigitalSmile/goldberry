@@ -127,18 +127,35 @@ class SelectionTest {
         element.children().forEach(child -> collectWords(child, found));
     }
 
+    /// The first word that wraps something instead of drawing text — a link's button.
+    private Word wrappingWord() {
+        var found = new ArrayList<Word>();
+        collectWrappers(tree.root(), found);
+        assertFalse(found.isEmpty(), "the document should hold a word wrapping a control");
+        return found.getFirst();
+    }
+
+    private static void collectWrappers(Element element, List<Word> found) {
+        if (element.widget() instanceof Word word && word.child() != null) {
+            found.add(word);
+        }
+        element.children().forEach(child -> collectWrappers(child, found));
+    }
+
     /// The middle of the `index`th word, in the window's coordinates — which is where
     /// a reader would put the pointer.
     private LogicalRect rectOf(int index) {
-        var regions = HitTest.capture(render);
-        var words = words();
-        var word = words.get(index);
-        for (var region : regions) {
+        return rectOf(words().get(index));
+    }
+
+    /// Where the last frame painted `word`.
+    private LogicalRect rectOf(Word word) {
+        for (var region : HitTest.capture(render)) {
             if (region.owner() instanceof Element element && element.widget() == word) {
                 return region.painted();
             }
         }
-        throw new AssertionError("word " + index + " was never painted");
+        throw new AssertionError("the word '" + word.text() + "' was never painted");
     }
 
     private void press(LogicalRect rect, int clickCount) {
@@ -214,6 +231,47 @@ class SelectionTest {
         press(rectOf(2), 3);
 
         assertEquals("The quick brown fox", state().selectedText(), "the paragraph, and not the document");
+    }
+
+    @Test
+    @DisplayName("a selection that ends inside a link washes as much of it as it covers")
+    void aSelectionIntoALinkWashesIt() {
+        // The bug this caught: a link is a `button` inside a `Word`, so that word draws
+        // no text and never hands the geometry a shaped paragraph. Every offset in it
+        // answered the box's left edge, which made the two ends of a link the same
+        // place -- a selection reaching into one washed none of it, while the text it
+        // copied said it had.
+        mount(MarkdownView.of("Read the [help](/x) first.\n").onLink(href -> {}).id("note"));
+        var link = rectOf(wrappingWord());
+
+        press(rectOf(1), 1);
+        moveTo(link);
+        release(link);
+
+        var selected = state().selectedText();
+        assertTrue(selected.endsWith(" he"), "the copy reaches halfway into the label: " + selected);
+        var washed = state().washed();
+        assertFalse(washed.isEmpty(), "a drag into a link should wash the part of it that is selected");
+        var last = washed.getLast();
+        assertEquals(link.left(), last.left(), 0.5, "the wash over a link begins where the link does");
+        assertTrue(
+                last.width() > link.width() * 0.3 && last.width() < link.width() * 0.7,
+                "a caret in the middle of the label washes about half the box, not " + last.width());
+    }
+
+    @Test
+    @DisplayName("and a double-click on a link highlights the whole of it")
+    void doubleClickTakesAWholeLink() {
+        mount(MarkdownView.of("Read the [help](/x) first.\n").onLink(href -> {}).id("note"));
+        var link = rectOf(wrappingWord());
+
+        press(link, 2);
+
+        assertEquals("help", state().selectedText());
+        var washed = state().washed();
+        assertEquals(1, washed.size(), "one word, so one rectangle");
+        assertEquals(link.left(), washed.getFirst().left(), 0.5);
+        assertEquals(link.width(), washed.getFirst().width(), 0.5, "the whole of it, which is what a reader sees");
     }
 
     @Test

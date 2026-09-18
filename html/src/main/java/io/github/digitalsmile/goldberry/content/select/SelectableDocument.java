@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -44,9 +45,13 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// - **`Ctrl+C`** copies what is selected, with the separators the document implies:
 ///   a space between words, a newline between blocks. **`Ctrl+A`** takes the lot and
 ///   **`Escape`** lets it go.
-/// - A link and an image are **part of the selection** — their words are in it and
-///   their rectangles are washed — because a selection that skipped them would copy
-///   "Read first." out of "Read the help first."
+/// - A link and an image are **part of the selection** — their boxes are washed and a
+///   link's label is in what is copied — because a selection that skipped them would
+///   copy "Read first." out of "Read the help first." An image contributes no text,
+///   which is what a browser puts on the clipboard for one. Neither is shaped by a
+///   word, so a caret *inside* one is a proportion of its box rather than a character
+///   boundary ([WordGeometry]); the ends are exact, which is what a double-click and a
+///   drag across one need.
 /// - It is **not an editor**. There is no caret, nothing blinks, and nothing can be
 ///   typed: what a reader can do to a document here is read it, take a copy of part
 ///   of it, and follow what it points at.
@@ -250,6 +255,17 @@ public record SelectableDocument(Object document, Fold fold) implements Widget.S
         /// clipboard.
         String selectedText() {
             return geometry.text(selection.anchor(), selection.focus());
+        }
+
+        /// The rectangles the wash covers, in window coordinates — the same list
+        /// [SelectionLayer] paints, for a test that cannot read a painter's fills.
+        ///
+        /// Worth asserting separately from the text because the two answer different
+        /// questions: what a copy takes comes from the entries, and what a reader sees
+        /// highlighted comes from the geometry. A link had the first and not the
+        /// second.
+        List<LogicalRect> washed() {
+            return geometry.rectangles(selection.anchor(), selection.focus());
         }
     }
 
