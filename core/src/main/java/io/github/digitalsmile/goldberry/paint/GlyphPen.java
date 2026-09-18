@@ -180,7 +180,10 @@ public final class GlyphPen implements AutoCloseable {
 
         for (var i = from; i < to; i++) {
             var record = layers.find(run.glyphId(i));
-            if (record < 0) {
+            // A record claiming no layers at all is legal and says nothing, so
+            // the glyph is drawn as the outline it also is. Skipping it instead
+            // would drop a character because a font table was empty.
+            if (record < 0 || layers.layerCount(record) == 0) {
                 glyphs.add(run.glyphId(i), penX + run.xOffset(i), penY + run.yOffset(i), 0, 0);
                 staged = true;
             } else {

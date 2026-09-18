@@ -184,6 +184,13 @@ public final class Font implements AutoCloseable {
     /// exactly as closing a font leaves its face alone: one emoji font serves
     /// every size's routing at that size, and the book that opened it closes it.
     ///
+    /// **Set it before anything is shaped.** A
+    /// [io.github.digitalsmile.goldberry.text.Paragraph] routes when it is built
+    /// and is then held by a cache keyed on this font's identity, so a font given
+    /// an emoji face after a string has been shaped through it keeps the boxes
+    /// for that string. [Fonts] sets it at the moment a font is opened, which is
+    /// why nothing that goes through a window ever meets this.
+    ///
     /// @param value the emoji face at this size, or null to route nothing
     /// @throws IllegalArgumentException if `value` is this font, which would make
     ///         shaping recurse
