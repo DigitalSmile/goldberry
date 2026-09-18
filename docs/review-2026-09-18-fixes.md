@@ -29,10 +29,10 @@ the build, then the cascade and the charts, then the tests, then the prose.
 |------|------|-------|
 | 1 | C1–C3, C22 parsers; W1–W3 tabs and the two editors; H1, H2 markdown; B1–B12 build and CI | **done** except N1–N3, which moved to wave 2 |
 | 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | **done** |
-| 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand | **done**; W4–W8 the scrollbar, the ticks and the charts still running |
-| 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends | in progress |
+| 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | **done** (one golden blessed, reviewed as an image diff) |
+| 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends; C6, C12, C13 | **done** |
 | 4b | H3–H7 the html module; W9–W15 the rest of `:widgets`, with §11.5's parity sweep | in progress |
-| 4c | C6, C12, C13, C14 and N4–N7 | open |
+| 4c | C14 and N4–N7 | open |
 | 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
 | 6 | §7 dead code and duplication; §8 the prose | open |
 
@@ -45,19 +45,19 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C3 | **done** | `Character.isSurrogate((char) code)` kept the low sixteen bits, so the test was applied to the wrong number. A private `isSurrogate(int)` leaves the spec's three cases exactly. `CssTokenizerTest$Escapes.supplementaryEscape`. |
 | C4 | **done** | `Candidate` carries a sheet index beside the layer, and `CASCADE` compares it between layer and rule order — so no layer or specificity comparison can change. `StyleResolverTest.Cascade.sheetOrderWithinALayer` plus three tests pinning what must not move. Fixes `resolveStarting` for free. [ADR-0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md). |
 | C5 | **done** | `StyleResolver.substitutedFor(element, value)` substitutes a written value's `var()`s without cascading, so a loser is checked on its own value at its own line. `anOverriddenDeclarationIsCheckedOnItsOwnValue` (0 findings → 1), `aGoodDeclarationUnderABadOneIsQuiet` (2 → 1). [ADR-0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md). |
-| C6 | open | |
+| C6 | **done** | `rebind(String, Runnable)` removes the valued binding of the same name, which the `Consumer` overload always did. `ActionRegistryTest` is new — `:core` had no test for the class — and three of its assertions fail without the fix. |
 | C7 | **done** | Narrower than the review prescribed: a widget the router has **disposed** hears nothing; the application's `Attributes` hook still finishes the pair it opened, which ADR-0327 added deliberately. `RehoverTest.theDeadAreNotToldTheyExited` and `anAncestorUnmountedMidDispatchIsSkipped`. [ADR-0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md), which corrects ADR-0303. |
-| C8 | open | |
-| C9 | open | |
+| C8 | **done** | The nanosecond-to-millisecond crossing truncated a sub-millisecond remainder to zero, which the branch below read as "poll". `waitMillis` ceils and caps, pinned as arithmetic because "did it spin?" is a stopwatch question. [ADR-0403](../book/src/adr/0403-the-events-a-failed-handler-never-saw-wait-for-the-next-pump.md). |
+| C9 | **done** | Both "not a directory" and "a directory I cannot read" are `Optional.empty()`, which the comment beside the throw already claimed. `WaylandDecorationsTest.ReadingTheDirectory` makes a real unreadable directory. |
 | C10 | **done** | `bounds` gained a four-argument overload taking the matrix to start from; the three-argument one stays `Affine.IDENTITY` and stays the layer path's, which is what it was written for. `DamageTest.underATransformedAncestor` and `aTransformThatChanged`. |
 | C11 | **done** | `caretMoved()` invalidates, and only while something is composing — with no composition the shaping does not depend on the caret, and unconditional invalidation would reshape on every keystroke of a held arrow key. Three tests in `EditorPreeditTest`. The review misses `verticalBy`, which does it too. |
-| C12 | open | |
-| C13 | open | |
+| C12 | **done** | Refused at the roots — a bounded `skip` that says how many bytes were named and how many are left, and a pixel ceiling stated in the format's own words — with `ArithmeticException` added to the translation net. `GifDecoderTest` is new; six assertions fail without it. |
+| C13 | **done** | UTS #51: an `emoji_modifier_sequence` has emoji presentation whatever its base has on its own. Two tests in `ItemizerTest`, plus the counterweight — a modifier after a base that cannot take one is still its own run. |
 | C14 | open | |
 | C15 | **done** | `pointerReleased` cleared the anchor at the *end*, because `dispatch` reads it for the `RELEASED` and `CLICKED`; the no-target return jumped the tail. `endGesture()` is called on both ways out. `GestureAnchorTest.clearedWhenTheReleaseFindsNobody`. Reachable only after a `releasePointer()` mid-drag, since a press captures implicitly. |
 | C16 | **done** | Guarded on `captured == null`, so the shape stays part of what the gesture decided. `CursorTest.leavingTheWindowMidDragKeepsTheShape`. |
-| C17 | open | |
-| C18 | open | |
+| C17 | **done** | `volatile`, with what it does and does not order written on the field. **Two** off-thread readers, not the one the review names: `drawDuringModalLoop` is the second. `Sdl3EventPathTest.wakeupAfterCloseTouchesNothing` also asserts the declaration, which is the half a tidy-up would drop. |
+| C18 | **done** | The wheel's own position fields go through `inTheWindowsOwnSpace` like motion, buttons and drops. Verified failing first: `expected: <-352.0> but was: <5000.0>`. |
 | C19 | **done** | Each popup's own `dismissedByInput()` is added up, rather than asking whether everything is shut. `PopupLifecycleTest.aDismissalIsNotAClickWhileATooltipIsOpen`, driven through the real launcher and loop. |
 | C20 | **done** | Boxes trace back through their `Element` to the child of the `WindowRoot` they descend from. A box-*less* child shifts placements; a box-*ful* one (a composition) is what overruns the list — and the content itself was assumed to produce exactly one box. `OverlayLayerTest.aBoxlessOverlayPlacesNothing`. |
 | C21 | **done** | The `NUMBER` branch moved above the `<time>` one, which is CSS's own reading. `aBareZeroIsACount`, `aZeroDelayNeedsItsUnit`. No shipped sheet writes a bare number there. |
@@ -70,11 +70,11 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | W1 | **done** | `pendingReveal` is written in `build()`, not `select()`: a strip does not decide its own selection, so a bound value, `Ctrl+Tab` and an application list change all arrive as a rebuild. `TabRevealTest`, three tests. Note ADR-0120's "exactly one header per build carries the callback" is no longer true (ADR-0372/0377). |
 | W2 | **done** | The cut moves back to a `BreakIterator.getCharacterInstance()` boundary — the same class a caret steps with. Lifted to `form/parts/MaxLength`. `MaxLengthTest` (9), plus paste cases in both controls. [ADR-0400](../book/src/adr/0400-a-clause-is-a-start-and-a-length.md). |
 | W3 | **done** | `clauseEnd` is `clauseLength` throughout: SDL puts a length in the struct and both implementations always computed `start + length`. Lifted to `form/parts/Preedit`. Latent through today's only caller — `PreeditEvent.caret()` *is* the clause end — so the tests drive the seam directly. [ADR-0400](../book/src/adr/0400-a-clause-is-a-start-and-a-length.md). |
-| W4 | open | |
-| W5 | open | |
-| W6 | open | |
-| W7 | open | |
-| W8 | open | |
+| W4 | **done** | The first `MOVED` read a position, which cannot encode where on the thumb the grab landed. It anchors the gesture now, as `SplitDivider` and `TableGrip` do. Invisible from **any** press at either end of travel, so the test grabs mid-travel. |
+| W5 | **done** | `powers()` returns the powers on the axis and `every()` strides through those. `SPIKY` at 5 gets **four** labels, not five — four whole decades beat the 1-5 subdivision under the documented tie rule, which is the rule working. |
+| W6 | **done** | `ZonedDateTime.plus` adds a date unit to the local date and a time unit to the instant, so days survived DST and hours did not. Both step a `LocalDateTime` and resolve into the zone, skipping a step that lands in a spring-forward gap. |
+| W7 | **done** | One scale, built once from `points()` outside the series loop. `LineChartTest.oneScaleForEveryLine`. |
+| W8 | **done** | The domain is asked twice — of the positives-only data and of the data as it came — so filtering happens only once the whole domain is known positive. |
 | W9 | open | |
 | W10 | open | |
 | W11 | open | |
@@ -151,6 +151,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | [0400](../book/src/adr/0400-a-clause-is-a-start-and-a-length.md) | A preedit clause is a start and a length; a limit cuts on a grapheme boundary; both live in `form/parts` |
 | [0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md) | The router tells the living, and finishes the application's pair; corrects ADR-0303, extends ADR-0317 |
 | [0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md) | A sheet carries its index; the cascade compares it between layer and rule order, and the lint reads the loser's own value |
+| [0403](../book/src/adr/0403-the-events-a-failed-handler-never-saw-wait-for-the-next-pump.md) | The code moves to the `EventSink` contract rather than the contract to the code; with C8, C9 and C17 recorded beside it |
 
 ## What the review got wrong
 
@@ -201,6 +202,23 @@ more than being quietly corrected.
   `putfield`s concludes nobody writes to the model and re-weaves it with private
   setters — an `IllegalAccessError` at the first click, from a build that changed
   neither class's source.
+- **The `EventSink` entry presumes its conclusion.** It frames the contract as
+  false; the contract is the part worth keeping. The argument that the SDL events
+  "have already been pulled out of the platform queue" does not show they are
+  unrecoverable — it shows the backend is the only place they can wait.
+- **C17 names one off-thread reader and there are two.** `drawDuringModalLoop`
+  is the second, and the class doc three lines above the field says so.
+- **W5's `SPIKY` gets four labels, not five.** Once the decade count is right, 3…30000
+  has four decades against a target of five, and the documented "nearest, coarser
+  wins a tie" rule prefers four whole decades to the eight the 1-5 subdivision
+  would give. The golden to bless has four.
+- **W4 is invisible from any press at either end of travel**, because the bad
+  offset clamps back to where the view already was — a second reason `ScrollTest`
+  never caught it.
+- **Several line numbers in §6 do not resolve.** `HeadlessBackendTest.java:717-731`
+  (the test is at 274–288), `EventSink.java:729` (the file is 18 lines), and
+  `WheelAndCaptureTest:832-844` (369 lines). The findings behind them are all
+  real; only the citations are off.
 - **W3 is latent through today's only caller.** `PreeditEvent.caret()` is defined
   as the clause end whenever a clause is reported, so the caret comparison caught
   every resize by accident. The contract is still wrong and bites the moment an
