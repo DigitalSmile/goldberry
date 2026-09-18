@@ -12,12 +12,21 @@ import io.github.digitalsmile.goldberry.css.value.Affine;
 ///
 /// Blend2D has `bl_context_clip_to_rect_d` and `bl_context_restore_clipping`, and
 /// the second of those goes back to **the whole surface** — not to whatever clip
-/// was in force before. `bl_context_save` / `bl_context_restore` are not on the
-/// export list, so there is no clip *stack* down there to push onto. A nested
-/// scroll view therefore cannot be expressed by clipping twice and unclipping
-/// once: the inner viewport ending would take the outer one's clip off with it,
-/// and the rest of the outer scroller's content would paint over everything
-/// beside it.
+/// was in force before. A nested scroll view therefore cannot be expressed by
+/// clipping twice and unclipping once: the inner viewport ending would take the
+/// outer one's clip off with it, and the rest of the outer scroller's content
+/// would paint over everything beside it.
+///
+/// `bl_context_save` / `bl_context_restore` *are* on the export list, and they
+/// would give a stack to push onto — but they arrived later and for a different
+/// job. They are the second clip depth a `canvas` needs, where an application's
+/// own painter runs inside whatever clip the tree already has and is not trusted
+/// to unset what it set ([ADR-0193], and `BoxPainter` is where they are used).
+/// Using a native save/restore pair for *every* clip in the tree would put the
+/// whole stack across the boundary, one pair per box, where what the painter
+/// needs is one rectangle it has already intersected. (This paragraph said the
+/// pair was not exported at all, which was true when it was written and stopped
+/// being true with ADR-0193 — the 2026-09-18 review, §8.)
 ///
 /// So the stack lives here. The painter accumulates the intersection on the way
 /// down, and every change is `resetClip()` followed by one `clipTo` of the
