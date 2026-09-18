@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -60,11 +61,42 @@ public final class EventLoop implements AutoCloseable {
     private final UiExecutor ui;
     private final ExecutorService background;
 
+    /// Where "now" comes from, in nanoseconds on an arbitrary origin — the same
+    /// contract as [System#nanoTime()], which is what it is.
+    ///
+    /// **A seam, and it exists for the suite.** Every delay in the toolkit that a
+    /// widget can see goes through [#after]: a tooltip's dwell, a hover-hold, a
+    /// menu's safe triangle, a toast's stay. A test that wants to know what
+    /// happens after one of them had no way to ask but to *sleep* — and about
+    /// thirty of them did, adding seconds of real time to `check` and proving
+    /// absence by waiting (the 2026-09-18 review, §6). With a clock to move, a
+    /// test moves it and calls [Backend#wakeup()]: the pump returns, the timers
+    /// come due, and the answer arrives in a millisecond of wall time rather than
+    /// the second the widget asked for.
+    ///
+    /// `nanoTime` in production, and the field is read nowhere else — `Duration`s
+    /// are still `Duration`s and nothing in this class does arithmetic on a wall
+    /// clock.
+    private final LongSupplier clock;
+
     private volatile boolean running;
     private boolean closed;
 
     public EventLoop(Backend backend) {
+        this(backend, System::nanoTime);
+    }
+
+    /// An event loop whose clock is somebody else's, for a test that would
+    /// otherwise have to sleep.
+    ///
+    /// Package-private rather than public, for the reason
+    /// [io.github.digitalsmile.goldberry.render.event.EventLoop.Timer]'s
+    /// constructor is: a scheduling internal does not belong in the toolkit's API
+    /// for the sake of a test helper, and `TestClock` in this package is how a
+    /// test reaches it.
+    EventLoop(Backend backend, LongSupplier clock) {
         this.backend = Objects.requireNonNull(backend, "backend");
+        this.clock = Objects.requireNonNull(clock, "clock");
         this.ui = new UiExecutor(backend::wakeup);
         this.background = Executors.newVirtualThreadPerTaskExecutor();
     }
@@ -140,7 +172,7 @@ public final class EventLoop implements AutoCloseable {
         ui.requireUiThread();
         Objects.requireNonNull(delay, "delay");
         Objects.requireNonNull(action, "action");
-        var timer = new Timer(System.nanoTime() + Math.max(0L, delay.toNanos()), action);
+        var timer = new Timer(clock.getAsLong() + Math.max(0L, delay.toNanos()), action);
         timers.add(timer);
         // The loop may be parked in `pumpEvents` with a timeout longer than this
         // delay -- which is the ordinary case, since the heartbeat is a second.
@@ -154,7 +186,7 @@ public final class EventLoop implements AutoCloseable {
         if (timers.isEmpty()) {
             return IDLE_TIMEOUT;
         }
-        var now = System.nanoTime();
+        var now = clock.getAsLong();
         var earliest = Long.MAX_VALUE;
         for (var timer : timers) {
             if (timer.isPending()) {
@@ -183,7 +215,7 @@ public final class EventLoop implements AutoCloseable {
         if (timers.isEmpty()) {
             return;
         }
-        var now = System.nanoTime();
+        var now = clock.getAsLong();
         var due = new ArrayList<Timer>();
         for (var iterator = timers.iterator(); iterator.hasNext(); ) {
             var timer = iterator.next();

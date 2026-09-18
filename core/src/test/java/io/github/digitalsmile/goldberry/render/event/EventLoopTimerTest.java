@@ -24,15 +24,26 @@ import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 /// The delays here are milliseconds rather than the 400 a tooltip uses: what is
 /// being tested is the ordering and the cancellation, and both are the same at
 /// any duration.
+///
+/// **On a clock this test owns.** The loop reads its `now` from a seam, and
+/// [TestClock] is the other side of it, so "ten milliseconds later" is a value
+/// this class assigns rather than a wait it hopes for. `bothOverdueAtOnce` is
+/// why: it slept 25 ms to make two timers overdue at once, and failed under a
+/// loaded machine — a wall-clock test of scheduling has the same problem the
+/// scheduling has (the 2026-09-18 review, §6). Moving the clock and calling
+/// `wakeup()` is the pair: the first changes what the loop will conclude, the
+/// second ends the pump it is parked in so it is asked.
 class EventLoopTimerTest {
 
     private HeadlessBackend backend;
+    private TestClock clock;
     private EventLoop loop;
 
     @BeforeEach
     void setUp() {
         backend = new HeadlessBackend();
-        loop = new EventLoop(backend);
+        clock = new TestClock();
+        loop = clock.loopOver(backend);
     }
 
     @AfterEach
@@ -58,9 +69,10 @@ class EventLoopTimerTest {
             fired.add(Thread.currentThread() == uiThread ? "ui" : "elsewhere");
             loop.stop();
         });
+        clock.advance(Duration.ofMillis(5));
         loop.run(event -> {});
 
-        assertEquals(java.util.List.of("ui"), fired);
+        assertEquals(List.of("ui"), fired);
     }
 
     /// The one thing a caller ever does with the handle: a hover that ends before
@@ -78,14 +90,13 @@ class EventLoopTimerTest {
             loop.stop();
         });
         cancelled.cancel();
+        clock.advance(Duration.ofMillis(20));
         assertFalse(cancelled.isPending());
 
         loop.run(event -> {});
 
         assertEquals(
-                java.util.List.of("kept"),
-                fired,
-                "the cancelled one was still in the list when the loop woke for the other");
+                List.of("kept"), fired, "the cancelled one was still in the list when the loop woke for the other");
     }
 
     /// The 2026-09-18 review's C14.
@@ -109,6 +120,7 @@ class EventLoopTimerTest {
             loop.stop();
         });
         assertTrue(handle[0].isPending(), "a timer that has not fired is pending");
+        clock.advance(Duration.ofMillis(5));
 
         loop.run(event -> {});
 
@@ -128,6 +140,7 @@ class EventLoopTimerTest {
             fired.add("once");
             loop.stop();
         });
+        clock.advance(Duration.ofMillis(5));
         loop.run(event -> {});
 
         handle[0].cancel();
@@ -148,10 +161,11 @@ class EventLoopTimerTest {
             loop.stop();
         });
         loop.after(Duration.ofMillis(5), () -> fired.add("early"));
+        clock.advance(Duration.ofMillis(30));
 
         loop.run(event -> {});
 
-        assertEquals(java.util.List.of("early", "late"), fired);
+        assertEquals(List.of("early", "late"), fired);
     }
 
     /// The same rule when the loop was asleep past both: a pump that overslept
@@ -161,7 +175,7 @@ class EventLoopTimerTest {
     @Test
     @Timeout(10)
     @DisplayName("two timers both overdue at one wake-up still fire in due order")
-    void bothOverdueAtOnce() throws InterruptedException {
+    void bothOverdueAtOnce() {
         withAWindow();
         var fired = new ArrayList<String>();
 
@@ -170,11 +184,36 @@ class EventLoopTimerTest {
             loop.stop();
         });
         loop.after(Duration.ofMillis(1), () -> fired.add("early"));
-        Thread.sleep(25);
+        // Past both, exactly — where a `Thread.sleep(25)` was only *probably*
+        // past both, and on a loaded machine sometimes past neither in time.
+        clock.advance(Duration.ofMillis(25));
 
         loop.run(event -> {});
 
-        assertEquals(java.util.List.of("early", "late"), fired);
+        assertEquals(List.of("early", "late"), fired);
+    }
+
+    /// The seam itself: a delay the loop has not reached is a delay nothing has
+    /// fired, however long the test has been running.
+    @Test
+    @Timeout(10)
+    @DisplayName("a timer whose delay has not elapsed on this clock does not fire")
+    void theClockIsTheOnlyTime() {
+        withAWindow();
+        var fired = new ArrayList<String>();
+
+        loop.after(Duration.ofSeconds(30), () -> fired.add("thirty seconds"));
+        loop.after(Duration.ofMillis(1), () -> {
+            fired.add("one millisecond");
+            loop.stop();
+        });
+        clock.advance(Duration.ofMillis(2));
+
+        loop.run(event -> {});
+
+        // Proving an absence without waiting for it, which is the whole point:
+        // the half-minute timer is not late, it is *not due*.
+        assertEquals(List.of("one millisecond"), fired);
     }
 
     /// A timer's action scheduling another is the ordinary case — a tooltip
@@ -193,10 +232,14 @@ class EventLoopTimerTest {
                 fired.add("second");
                 loop.stop();
             });
+            // From inside the action, because that is when the second timer
+            // comes into existence. The loop is between pumps here, so moving
+            // the clock needs no wakeup to be noticed.
+            clock.advance(Duration.ofMillis(5));
         });
         loop.run(event -> {});
 
-        assertEquals(java.util.List.of("first", "second"), fired);
+        assertEquals(List.of("first", "second"), fired);
     }
 
     @Test
