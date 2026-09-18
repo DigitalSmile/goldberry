@@ -31,8 +31,8 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | **done** |
 | 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | **done** (one golden blessed, reviewed as an image diff) |
 | 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends; C6, C12, C13 | **done** |
-| 4b | H3–H7 the html module; W9–W15 the rest of `:widgets`, with §11.5's parity sweep | in progress |
-| 4c | C14 and N4–N7 | open |
+| 4b | H3–H7 the html module | **done**. W9–W15 and §11.5's parity sweep still running |
+| 4c | C14 | **done**. N4–N7 and the §4 tail in progress |
 | 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
 | 6 | §7 dead code and duplication; §8 the prose | open |
 
@@ -53,7 +53,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | C11 | **done** | `caretMoved()` invalidates, and only while something is composing — with no composition the shaping does not depend on the caret, and unconditional invalidation would reshape on every keystroke of a held arrow key. Three tests in `EditorPreeditTest`. The review misses `verticalBy`, which does it too. |
 | C12 | **done** | Refused at the roots — a bounded `skip` that says how many bytes were named and how many are left, and a pixel ceiling stated in the format's own words — with `ArithmeticException` added to the translation net. `GifDecoderTest` is new; six assertions fail without it. |
 | C13 | **done** | UTS #51: an `emoji_modifier_sequence` has emoji presentation whatever its base has on its own. Two tests in `ItemizerTest`, plus the counterweight — a modifier after a base that cannot take one is still its own run. |
-| C14 | open | |
+| C14 | **done** | Three states — pending, fired, cancelled — rather than one boolean, marked **before** the action so a handler asking about its own timer is told it is firing. `EventLoopTimerTest.firedIsNotPending` and `cancelAfterFiring`. |
 | C15 | **done** | `pointerReleased` cleared the anchor at the *end*, because `dispatch` reads it for the `RELEASED` and `CLICKED`; the no-target return jumped the tail. `endGesture()` is called on both ways out. `GestureAnchorTest.clearedWhenTheReleaseFindsNobody`. Reachable only after a `releasePointer()` mid-drag, since a press captures implicitly. |
 | C16 | **done** | Guarded on `captured == null`, so the shape stays part of what the gesture decided. `CursorTest.leavingTheWindowMidDragKeepsTheShape`. |
 | C17 | **done** | `volatile`, with what it does and does not order written on the field. **Two** off-thread readers, not the one the review names: `drawDuringModalLoop` is the second. `Sdl3EventPathTest.wakeupAfterCloseTouchesNothing` also asserts the declaration, which is the half a tidy-up would drop. |
@@ -89,11 +89,12 @@ the build, then the cascade and the charts, then the tests, then the prose.
 |---|-------|-------------|
 | H1 | **done** | Asks md4c for `task_mark_offset` rather than re-deriving the position with a pattern; converted from UTF-8 bytes to UTF-16 units. `TasksTest.NESTED` covers a four-space sub-task, a quoted box and a fenced one. [ADR-0399](../book/src/adr/0399-a-task-box-is-counted-by-the-parser-that-found-it.md). |
 | H2 | **done** | `marker()` mints a word as a side effect; `item` now calls it only on the branch that keeps it. `SelectionTest.aTaskListHasNoPhantomBullet`. |
-| H3 | open | |
-| H4 | open | |
-| H5 | open | |
-| H6 | open | |
-| H7 | open | |
+| H3 | **done** | Not `xOf` itself: a `Word` wrapping a child returns early from `render` and never reaches `WordGeometry.shaped`, so its paragraph stayed null. Such a word is measured **across its own rectangle** — exact at the ends, proportional between. Two tests in `SelectionTest`. The copied *text* was already right; only the wash was missing. |
+| H4 | **done** | The block boundary moved from the top of `blocks()` into `flush`, guarded by a new `Prose.isEmpty()`. `SelectionTest.inlineAfterABlock`: `<div><p>one</p>two</div>` copies as `one
+two`. |
+| H5 | **done** | The Living Standard's "in cell" mode: a section closes an open cell. `caption`/`col`/`colgroup` are not in this parser's tables, and `table` is excluded because a nested table is legal. `HtmlTest.ImpliedCloses.sectionsEndCells`. |
+| H6 | **done** | **The spec and this model disagree and the model won.** "In body" treats a stray `<tr>` as a parse error and drops the tag; `Element`'s own rule is that nothing is dropped for being unknown, and the fold draws a stray `p` in a list where it is. `HtmlViewTest.Builds.rowWithNoTable`. |
+| H7 | **done** | The `ImageSource`'s identity is in the signature — one `identityHashCode` per **build**, not per block, because `signature()` is a field read. Stated price: replacing the source rebuilds the whole note once, and a source that answers differently without being replaced is not noticed. All three of the review's missing `BlockReuseTest` paths are written. |
 
 ## 4. `:natives` and `:weaver`
 
@@ -132,7 +133,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | §6 should not run under `check` | open | |
 | §6 asserts nothing | open | |
 | §6 duplicated scaffolding | open | |
-| §7 dead code | open | |
+| §7 dead code | **mostly done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The `:widgets` half waits for the agent in that module. |
 | §7 duplication | open | |
 | §8 contradicts the code | open | |
 | §8 stale doc comments | open | |
@@ -219,6 +220,19 @@ more than being quietly corrected.
   (the test is at 274–288), `EventSink.java:729` (the file is 18 lines), and
   `WheelAndCaptureTest:832-844` (369 lines). The findings behind them are all
   real; only the citations are off.
+- **H3 is not located where the entry says.** Nothing at
+  `WordGeometry.java:316-326` is wrong on its own; the defect is that a
+  child-bearing `Word` never reaches `shaped`, and the fix has to decide what an
+  unshaped word means. The copied *text* of a double-clicked link was already
+  right — only the wash was missing — and an image was never affected, carrying
+  no text.
+- **H6 asks for something the HTML spec does not do.** "In body" treats a stray
+  `<tr>` as a parse error and drops the tag. `Element`'s rule that nothing is
+  dropped for being unknown is the repository's, not the standard's, and it is
+  the one followed here.
+- **H7's fix has a price the entry does not mention.** Identity in the signature
+  rebuilds the *whole* note when the source is replaced, not only the blocks
+  holding pictures.
 - **W3 is latent through today's only caller.** `PreeditEvent.caret()` is defined
   as the clause end whenever a clause is reported, so the caret comparison caught
   every resize by accident. The contract is still wrong and bites the moment an
