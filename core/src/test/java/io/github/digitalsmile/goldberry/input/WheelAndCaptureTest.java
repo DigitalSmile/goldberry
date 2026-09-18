@@ -289,15 +289,17 @@ class WheelAndCaptureTest {
         @Test
         @DisplayName("releasing on a child counts as a click on the parent that was pressed")
         void releaseOnDescendant() {
-            // Pressing a button's own label and releasing on its padding is one
-            // click, not none.
-            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            // Pressing a button's own padding and letting go on its label is one
+            // click, not none -- and it is a click on the **button**, not on the
+            // label the release happened to land on. The press and the release
+            // are on different nodes here, which is what this has to say and what
+            // `bubbles` cannot: that one presses and releases the same node.
+            router.pointerPressed(80, 80, PointerEvent.Button.PRIMARY, 1);
             log.clear();
             router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
 
-            assertTrue(
-                    log.contains("outer:CLICKED at 30.0,30.0"),
-                    () -> "the click should bubble to the ancestor too: " + log);
+            var clicks = log.stream().filter(entry -> entry.contains("CLICKED")).toList();
+            assertEquals(List.of("outer:CLICKED at 30.0,30.0"), clicks, () -> "log was " + log);
         }
 
         @Test
