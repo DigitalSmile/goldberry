@@ -175,6 +175,13 @@ module io.github.digitalsmile.goldberry.core {
     // through `Image` to do it.
     exports io.github.digitalsmile.goldberry.image.gif;
 
+    // The QR encoder, ISO/IEC 18004 (`docs/gaps.md` G47, ADR-0391). Beside the
+    // codecs and for their reason: a specification with one right answer, small
+    // enough that owning it costs less than linking it, and nothing in it names
+    // a widget. An application that wants a code in a PNG rather than on screen
+    // reaches this directly.
+    exports io.github.digitalsmile.goldberry.qr;
+
     // Rendering a scene without a window (ADR-0284): a painter or a whole widget
     // tree into an `image.Image`. Its own package rather than part of `render`,
     // because `render` is the backend SPI underneath everything and this composes

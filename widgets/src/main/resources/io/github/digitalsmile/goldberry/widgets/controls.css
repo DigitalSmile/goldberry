@@ -4119,6 +4119,28 @@ image-alt {
   text-align: center;
 }
 
+/* --------------------------------------------------------------- qr-code --
+ *
+ * §1's `qr-code`. A code has no natural size in pixels -- it has a size in
+ * *modules*, and how big a module should be is a question about the screen it is
+ * on -- so this sheet answers it once and an application overrides it with
+ * `width` and `height` like anything else. 160px at 100% is about six device
+ * pixels a module for a version 4 code, which is more than any phone camera
+ * needs and small enough to sit in a dialog beside a paragraph.
+ *
+ * Square, because a QR code is. `flex-shrink: 0` for `image`'s reason: a code
+ * squeezed by a narrow row is a code with fewer pixels a module, and below one
+ * it draws nothing at all.
+ *
+ * The two colour tokens are in the **theme** rather than here, and are the same
+ * in both themes on purpose (ADR-0391).
+ */
+qr-code {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
 /* ------------------------------------------------------------------ card --
  *
  * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens", and

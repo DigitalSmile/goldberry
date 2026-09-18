@@ -220,6 +220,21 @@
   --gb-chart-7: #d9704f;   /* nord12 orange */
   --gb-chart-8: #06a7a7;   /* nord7 teal */
 
+  /* --- a QR code (ADR-0391) -----------------------------------------------
+     Near-black on white, and **identical in the dark theme**. A QR code is not
+     a themed surface: the specification's module convention is dark on light,
+     plenty of phone scanners will not read an inverted code, and a sign-in
+     screen that stopped scanning at night would be a theme deciding whether an
+     application works. So these two are the one pair of tokens in the sheet
+     that a theme does not get a vote on, and an application that knows its
+     scanner is happy inverted can still say so per node.
+
+     Near-black rather than black for §1.2's reason everywhere else: the
+     contrast a scanner needs is met at 15.9:1 and pure black buys nothing but
+     glare. */
+  --gb-qr-ink: #1a1a1a;
+  --gb-qr-paper: #ffffff;
+
   /* A semantic hue, and **the same hue at a lightness that can carry text**.
      They are two tokens because they answer two questions: `--gb-danger` is what
      danger *is*, and is what a label, an icon or a border is drawn in;

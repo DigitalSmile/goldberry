@@ -509,6 +509,21 @@ image.framed {
   outline: 1px solid var(--gb-border);
 }
 
+/* The QR card: three codes side by side, small enough that a wall card holds
+   all three. 108px is four device pixels a module for the L code at 100% and
+   eight at 200% — the point of the card is that the number changes and the
+   module stays whole, so a size that divides evenly at one scale and not at the
+   other is the honest one to show it at. */
+#qr-row {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+#qr-row qr-code {
+  width: 108px;
+  height: 108px;
+}
+
 /* --- Navigation ------------------------------------------------------------ */
 
 /* The demo strip fills what its card leaves it, so its panel is a panel rather
