@@ -162,6 +162,30 @@ class GestureAnchorTest {
         assertEquals(List.of("MOVED anchor NaN gesture none"), log);
     }
 
+    /// The same rule down the path that skips the dispatch, and the bug this
+    /// test caught: the early return for "nobody to tell" jumped over the two
+    /// lines that end the gesture, so the anchor of a button nobody is holding
+    /// rode along on every hover afterwards — which is exactly what
+    /// [PointerEvent#anchor()] promises never happens.
+    @Test
+    @DisplayName("a release with nobody to tell still ends the gesture")
+    void clearedWhenTheReleaseFindsNobody() {
+        var router = routerOver(new Node("node", 42));
+        var shift = new Modifiers(true, false, false, false);
+
+        router.pointerPressed(30, 40, PointerEvent.Button.PRIMARY, 1, shift);
+        // A widget that decided its gesture was over and let go of the capture,
+        // and a button that then came up over nothing -- which is the only way a
+        // release has no target at all, because a press captures.
+        router.releasePointer();
+        router.pointerReleased(500, 500, PointerEvent.Button.PRIMARY, 1);
+        log.clear();
+
+        router.pointerMoved(50, 50);
+
+        assertEquals(List.of("MOVED anchor NaN gesture none"), log);
+    }
+
     /// The whole reason the modifiers are the gesture's rather than the event's.
     ///
     /// The press was made with Shift down and every event after it says so — even

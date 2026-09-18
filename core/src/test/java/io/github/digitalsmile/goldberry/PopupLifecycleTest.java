@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Timeout;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
@@ -147,6 +149,30 @@ class PopupLifecycleTest {
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style);
+        }
+    }
+
+    /// A root that fills the window and writes down the presses that reach it.
+    ///
+    /// What a press *not* being a click looks like from below: the watcher takes
+    /// the press before the router sees it, so a dismissal never arrives here.
+    private record Watcher(List<String> presses) implements Widget.Leaf, Styled, Paints, Handles {
+
+        @Override
+        public String cssType() {
+            return "plate";
+        }
+
+        @Override
+        public void onPointer(PointerEvent event) {
+            if (event.kind() == PointerEvent.Kind.PRESSED) {
+                presses.add(event.kind() + " at " + event.x() + "," + event.y());
+            }
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).grow(1);
         }
     }
 
@@ -444,6 +470,48 @@ class PopupLifecycleTest {
                 host -> {}));
 
         assertTrue(stillOpen[0], "the focus went to the popup, not out of the application");
+    }
+
+    /// **What the press did, not what is left open.** A dismissal is a press that
+    /// put something away, and the launcher was asking instead whether everything
+    /// was shut afterwards — a question a `lightDismiss(false)` popup answers no
+    /// to for as long as it is up, whatever the press did.
+    ///
+    /// A tooltip is that popup, and it is open over exactly the control a menu is
+    /// most often dismissed by: the pointer rests on the button, the tooltip
+    /// appears, the user presses to close the menu, and the press closed the menu
+    /// *and* pressed the button — the double activation [ADR-0141] describes,
+    /// with a tooltip as the reason it came back.
+    @Test
+    @Timeout(20)
+    @DisplayName("a press that closed a menu is a dismissal, tooltip or no tooltip")
+    void aDismissalIsNotAClickWhileATooltipIsOpen() {
+        var presses = new ArrayList<String>();
+        var menu = new Popup[1];
+        var tooltip = new Popup[1];
+        Goldberry.launch(
+                new TestApp(
+                        new Watcher(presses),
+                        // Two turns, so the window has painted once and the router
+                        // has a rectangle to route the press to — without that
+                        // there would be nothing under it to press and the
+                        // assertion would hold for the wrong reason.
+                        host -> afterTurns(host, 2, () -> {
+                            tooltip[0] = host.popup(new Plate("tip"), LogicalPoint.of(220, 20), LogicalSize.of(80, 24))
+                                    .orElseThrow()
+                                    .lightDismiss(false);
+                            menu[0] = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                    .orElseThrow();
+                            backend.post(new BackendEvent.PointerPressed(ownerWindow(), 10, 10, 1, 1, 0));
+                            afterTurns(host, 2, Goldberry::stop);
+                        }),
+                        // The tooltip refuses input, so nothing else will close it
+                        // and the loop would wait for its window.
+                        host -> tooltip[0].close()),
+                new String[] {"--frames=400"});
+
+        assertFalse(menu[0].isOpen(), "the press below a menu still closes it");
+        assertEquals(List.of(), presses, "a press that put a menu away must not also press what it landed on");
     }
 
     @Test

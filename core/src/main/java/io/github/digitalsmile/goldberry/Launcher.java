@@ -1132,12 +1132,20 @@ final class Launcher implements Host {
         if (popups.isEmpty()) {
             return false;
         }
-        var wasOpen = popups.stream().anyMatch(Popup::isOpen);
+        // Each popup's own answer, added up. The question is "did this press put
+        // something away", and it was asked as "is everything shut now" —
+        // which a `lightDismiss(false)` popup answers no to for as long as it is
+        // open, whatever the press did. A tooltip is exactly that, and a tooltip
+        // is open over precisely the control a menu is most likely to be
+        // dismissed by: the press closed the menu and was then let through as a
+        // click on the button under it, which is the double activation
+        // [ADR-0141] describes.
+        var dismissed = false;
         for (var popup : List.copyOf(popups)) {
-            popup.dismissedByInput();
+            dismissed |= popup.dismissedByInput();
         }
         popups.removeIf(popup -> !popup.isOpen());
-        return wasOpen && popups.stream().noneMatch(Popup::isOpen);
+        return dismissed;
     }
 
     /// The reverse of the build order, and the ordering is the reason this class

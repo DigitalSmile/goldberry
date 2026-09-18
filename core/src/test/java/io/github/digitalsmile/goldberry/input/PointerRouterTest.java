@@ -163,19 +163,29 @@ class PointerRouterTest {
         }
 
         @Test
-        @DisplayName("a node disabled while hovered loses the state")
+        @DisplayName("a node disabled while hovered loses the state, without the pointer moving")
         void disabledWhileHovered() {
-            // The real sequence: a button disables itself in its own press
-            // handler, with the pointer still over it. Only *setting* is
-            // suppressed, so the next move clears what was already there.
+            // The real sequence, and the pointer stands still through all of it:
+            // a button disables itself in its own press handler while the user
+            // is still over it. `updateHover` returns early when the element
+            // under the pointer has not changed, so the frame is what re-asks
+            // ([ADR-0237]) -- and this test used to take the pointer out of the
+            // window and bring it back, which is the one case that was never in
+            // doubt.
             router.pointerMoved(30, 30);
             assertTrue(inner.hasState(PseudoClass.HOVER));
+            log.clear();
 
             innerWidget.disabled = true;
-            router.pointerExited();
-            router.pointerMoved(30, 30);
+            router.updateRegions(
+                    List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
 
             assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER), "the chain above it is not disabled and still hovers");
+            // And nothing was told anything: nothing entered or exited, because
+            // the pointer has not moved and the element under it is the one that
+            // was there.
+            assertEquals(List.of(), log);
         }
 
         @Test

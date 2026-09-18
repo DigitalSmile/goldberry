@@ -255,6 +255,39 @@ class HoverHookTest {
         assertEquals(List.of("enter", "exit"), log);
     }
 
+    /// Where the line is, once [ADR-0317]'s rule reached this walk: the widget's
+    /// own `onPointer` is **not** called on a node that has left the tree — its
+    /// state is disposed and `setState` throws — while the hook beside it still
+    /// runs, because that one is the application's half of a pair it opened on
+    /// the enter and nothing else will close it.
+    @Test
+    @DisplayName("an unmounted node's hook runs and its widget's own handler does not")
+    void theHookOutlivesTheWidgetsHandler() {
+        var button = new Button(
+                "left",
+                log,
+                Attributes.NONE
+                        .id("left")
+                        .onPointerEnter(() -> log.add("enter"))
+                        .onPointerExit(() -> log.add("exit")));
+        mount(new Plain(
+                "window",
+                List.of(
+                        new Plain("row", List.of(button, new Plain("right")), Attributes.NONE.id("row")),
+                        new Plain("outside")),
+                Attributes.NONE.id("window")));
+
+        router.pointerMoved(10, 50);
+        log.clear();
+
+        tree.update(new Plain("window", new Plain("outside")));
+        tree.flush();
+        router.updateRegions(List.of(
+                HitTest.Region.of(find("window"), 0, 0, 100, 100), HitTest.Region.of(find("outside"), 50, 0, 50, 100)));
+
+        assertEquals(List.of("exit"), log, "the hook is owed an exit; the disposed widget is not");
+    }
+
     @Test
     @DisplayName("a hook is carried through every wither on Attributes")
     void withersKeepTheHooks() {

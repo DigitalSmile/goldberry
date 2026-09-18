@@ -209,6 +209,34 @@ class OverlayLayerTest {
                         + " cannot be swapped");
     }
 
+    /// An overlay that draws nothing is a real one: a toast between appearances,
+    /// a HUD a preference turns off, a `Widget.nothing()` standing in for either.
+    /// It contributes no box, and the placements used to be matched to the boxes
+    /// by index — so the one after it was placed in *its* corner, and one box too
+    /// few in the other direction walked off the end of the list.
+    @Test
+    @DisplayName("an overlay with nothing to draw does not take the corner of the next one")
+    void aBoxlessOverlayPlacesNothing() {
+        var overlays = Property.<List<Overlay>>of(List.of());
+        var tree = new ElementTree(new WindowRoot(new Marker("app"), overlays));
+        var renderer = renderer("app { width: 100px } hud { width: 40px }");
+        attach(overlays, Widget.nothing(), Corner.TOP_START);
+        attach(overlays, new Marker("hud"), Corner.BOTTOM_END);
+        tree.flush();
+
+        var box = renderer.render(tree);
+
+        assertEquals(2, box.children().size(), "three children, and one of them draws nothing");
+        var hud = box.children().get(1);
+        assertEquals(Position.ABSOLUTE, hud.position());
+        // Its own corner, not the empty overlay's: the box is matched to the
+        // overlay that produced it rather than to the overlay at its index.
+        assertEquals(Length.points(Overlay.WINDOW_MARGIN), hud.inset().bottom());
+        assertEquals(Length.points(Overlay.WINDOW_MARGIN), hud.inset().right());
+        assertEquals(Length.UNDEFINED, hud.inset().top());
+        assertEquals(Length.UNDEFINED, hud.inset().left());
+    }
+
     @Test
     @DisplayName("each corner pins the two edges it touches and leaves the other two alone")
     void cornerInsets() {
