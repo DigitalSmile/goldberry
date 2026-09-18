@@ -902,7 +902,16 @@ public final class PointerRouter {
     public void pointerExited() {
         pointerAt(Float.NaN, Float.NaN);
         updateHover(null, Float.NaN, Float.NaN);
-        setCursor(Cursor.DEFAULT);
+        // **The shape is a capture's, for as long as the capture lasts.** This
+        // reached around [#updateCursor]'s freeze and there is no way back: a
+        // pointer that comes back into the window is a `MOVED`, `updateCursor`
+        // declines it while something holds the pointer, and so a drag that
+        // overshot an edge kept the arrow it was given out there until the button
+        // came up. A drag that leaves the window is the same gesture as the one
+        // that left it, which is why capture itself survives this.
+        if (captured == null) {
+            setCursor(Cursor.DEFAULT);
+        }
     }
 
     /// Remembers where the pointer is, for [#updateRegions].

@@ -420,6 +420,31 @@ class CursorTest {
                     "a disabled control kept the darkening that says it is being pressed");
         }
 
+        /// The other way round the freeze, and the bug this test caught: the
+        /// shape was reset on the way out of the window and `updateCursor`
+        /// declines to recompute it on the way back in, so a drag that overshot
+        /// an edge finished with the arrow.
+        @Test
+        @DisplayName("a drag that leaves the window and comes back keeps the shape it started with")
+        void leavingTheWindowMidDragKeepsTheShape() {
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            seen.clear();
+
+            router.pointerExited();
+            router.pointerMoved(30, 30);
+
+            // Capture survives leaving the window — a drag that overshoots an
+            // edge is one gesture — and the shape is part of what it decided
+            // when it started.
+            assertEquals(Cursor.POINTER, router.cursor());
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+            assertEquals(
+                    Cursor.POINTER, router.cursor(), "and the release recomputes it from what is under the pointer");
+        }
+
         @Test
         @DisplayName("a repaint during a drag does not thaw the frozen shape")
         void captureStillWins() {
