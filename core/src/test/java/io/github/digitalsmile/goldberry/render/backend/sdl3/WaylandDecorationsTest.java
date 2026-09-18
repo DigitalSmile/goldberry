@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Optional;
 
@@ -402,6 +405,67 @@ class WaylandDecorationsTest {
         void reportsNoDirectoryWhenNoneExist() {
             assertTrue(WaylandDecorations.pluginFiles(null, "amd64", directory -> Optional.empty())
                     .isEmpty());
+        }
+    }
+
+    /// The lister that reads the real filesystem — the one place in this class
+    /// that can fail rather than merely not know.
+    @Nested
+    @DisplayName("reading a candidate directory")
+    class ReadingTheDirectory {
+
+        @Test
+        @DisplayName("a directory answers with its file names, in a fixed order")
+        void listsWhatIsThere(@TempDir Path temp) throws IOException {
+            Files.writeString(temp.resolve(GTK), "");
+            Files.writeString(temp.resolve(CAIRO), "");
+
+            // Sorted rather than in readdir order: the verdict does not care,
+            // but a message quoting the listing would read differently on two
+            // machines with the same plugins installed.
+            assertEquals(Optional.of(List.of(CAIRO, GTK)), WaylandDecorations.listDirectory(temp));
+        }
+
+        @Test
+        @DisplayName("something that is not a directory is not an answer")
+        void aFileIsNoAnswer(@TempDir Path temp) throws IOException {
+            var file = Files.writeString(temp.resolve("plugins-1"), "");
+
+            assertAll(
+                    () -> assertTrue(WaylandDecorations.listDirectory(file).isEmpty()),
+                    () -> assertTrue(WaylandDecorations.listDirectory(temp.resolve("absent"))
+                            .isEmpty()));
+        }
+
+        /// **The crash.** A plugin directory that exists and will not open threw
+        /// an `UncheckedIOException` out of a lister that the [Sdl3Backend]
+        /// constructor calls for a *diagnostic*. That constructor catches
+        /// `SdlException` and `UnsatisfiedLinkError` and neither of those, so an
+        /// unreadable `/usr/lib/.../libdecor/plugins-1` took the application
+        /// down with SDL still initialized and the event buffer still open —
+        /// over a question about whether the titlebar would be drawn.
+        @Test
+        @DisplayName("a directory that cannot be read is not an answer either, and not a crash")
+        void anUnreadableDirectoryIsNoAnswer(@TempDir Path temp) throws IOException {
+            // Windows has no mode bits to take away, and root ignores the ones
+            // it has. Neither can be made to reproduce the bug, and a directory
+            // that turned out to be readable would assert the opposite of the
+            // point rather than nothing at all.
+            assumeTrue(
+                    FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+                    "no POSIX permissions here, so no unreadable directory to make");
+
+            var unreadable = Files.createDirectory(temp.resolve("plugins-1"));
+            Files.writeString(unreadable.resolve(CAIRO), "");
+            Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("-wx------"));
+            try {
+                assumeTrue(!Files.isReadable(unreadable), "this user reads a directory with no read bit");
+
+                assertEquals(Optional.empty(), WaylandDecorations.listDirectory(unreadable));
+            } finally {
+                // Put it back, or the temp directory cannot be cleaned up.
+                Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("rwx------"));
+            }
         }
     }
 }
