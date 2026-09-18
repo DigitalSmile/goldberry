@@ -2124,8 +2124,42 @@ public final class PointerRouter {
         return null;
     }
 
+    /// Tells one element that the pointer arrived at it or left it.
+    ///
+    /// **A widget that has left the tree is not told.** That is [ADR-0317]'s rule
+    /// — "a router does not talk to the dead" — reaching the third and last place
+    /// the router speaks to an element it is holding: [#mark] has had the check
+    /// from the beginning and [#notifyFocus] was given it when a closing dialog
+    /// took the window down, and this is the same hole one field along.
+    ///
+    /// [ADR-0303] called the situation safe by construction, on the grounds that
+    /// `Element.markNeedsBuild` is a no-op on an unmounted element. It is a
+    /// no-op, and nothing reaches it: `State.setState` throws one line earlier,
+    /// by its own contract, because an unmounted `setState` is normally a
+    /// callback that outlived its widget. So an `EXITED` delivered to a node that
+    /// the press before it removed — a screen that drops its hover preview in
+    /// `onPointer` is the shape of it — took the frame down with an
+    /// `IllegalStateException`. An unmounted element has been disposed: its
+    /// state's `dispose` has run and its bindings are closed, so there is nobody
+    /// left to tell, and the one thing a final `EXITED` could have been for is
+    /// where `dispose` already is.
+    ///
+    /// **The [Attributes] hook still runs**, which is the line between the two
+    /// halves and not an exception to the rule. `onPointerExit` is the
+    /// application's own half of a pair it opened on `onPointerEnter` — a
+    /// hover-hold timer, a preview it asked for — held on a widget *value* rather
+    /// than in element state, and nothing disposes it. Dropping it would leave
+    /// every enter unmatched exactly when the node goes away, which is the case
+    /// [ADR-0327] added it for.
+    ///
+    /// Asked here rather than at the call sites, and **per element at the moment
+    /// of telling** rather than once per move. A chain is told one element at a
+    /// time and a handler is free to rebuild: the element under the pointer may
+    /// have been unmounted by the press that moved it, or by the handler running
+    /// two elements earlier in this very loop, and only a read taken now covers
+    /// both.
     private static void emit(Element element, PointerEvent.Kind kind, float x, float y) {
-        if (element.widget() instanceof Handles handles) {
+        if (element.isMounted() && element.widget() instanceof Handles handles) {
             handles.onPointer(new PointerEvent(kind, x, y, null, 0, element));
         }
         hook(element, kind);
