@@ -31,7 +31,7 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | 2 | N1–N3 the weaver; C7, C15, C16, C19, C20 — the pointer, the popups and the overlays | **done** |
 | 3 | C4, C5, C10, C11, C21 — cascade, lint, damage, editing, the animation shorthand; W4–W8 — the scrollbar, the ticks and the charts | **done** (one golden blessed, reviewed as an image diff) |
 | 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends; C6, C12, C13 | **done** |
-| 4b | H3–H7 the html module | **done**. W9–W15 and §11.5's parity sweep still running |
+| 4b | H3–H7 the html module; W9–W15 and §11.5's parity sweep | **done** |
 | 4c | C14 | **done**. N4–N7 and the §4 tail in progress |
 | 5 | §6 and §11 — the tests: what should not run under `check`, what asserts nothing, the parity sweep of §11.5 | open |
 | 6 | §7 dead code and duplication; §8 the prose | open |
@@ -75,13 +75,13 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | W6 | **done** | `ZonedDateTime.plus` adds a date unit to the local date and a time unit to the instant, so days survived DST and hours did not. Both step a `LocalDateTime` and resolve into the zone, skipping a step that lands in a spring-forward gap. |
 | W7 | **done** | One scale, built once from `points()` outside the series loop. `LineChartTest.oneScaleForEveryLine`. |
 | W8 | **done** | The domain is asked twice — of the positives-only data and of the data as it came — so filtering happens only once the whole domain is known positive. |
-| W9 | open | |
-| W10 | open | |
-| W11 | open | |
-| W12 | open | |
-| W13 | open | |
-| W14 | open | |
-| W15 | open | |
+| W9 | **done** | The entry holds its exit timer and `dispose()` cancels it. **Not** routed through `Departure`: that is a per-state singleton and a toaster departs once *per entry*; its continuation must run inside a `setState` because it reflows the survivors; and a toast reads no reduced-motion flag at all. `ToastTest.Unmounting`. |
+| W10 | **done** | The state remembers which slide the pending timer was scheduled for, and whether the interval changed — decided in `build`, because for a **controlled** carousel the new index is not visible until the application has rebuilt. `TimedHost.handedOut()` is what tells a kept countdown from a restarted one; `pending()` is true either way, which is why every existing test passed. |
+| W11 | **done** | Both the sizing and the clamp read one `content()` = `length − DIVIDER`. The old `minimums` asserted the fraction the clamp produced, so it agreed with the bug by construction; the new tests assert the **width**. |
+| W12 | **done** | A floor remainder, `min − floor(min / step) × step`. Java's `%` truncates toward zero, so every negative `min` passed the test and a labelling stepping straight over zero was credited with it. `TicksTest.zeroIsNotCreditedTwice`. |
+| W13 | **done** | The open-list guard is just `isOpen()` — `list.content()` is idempotent, so the other modes are unaffected. The blur now reports an exact match through `onChange` after `restore()`. Pinned in `SelectLoopTest` through the real launcher, because a `TestHost` opens no popups and there is no seam below the running app. |
+| W14 | **done** | `stack` and `qr-code` are in `builtInTypes()` — and the sweeps that read it now read the whole registry instead (§11.5). |
+| W15 | **done** | `Panel`'s compact constructor defaults a null `attributes` to `NONE`, as `Card` and `GroupBox` already did. The failure was an NPE from `id()` a frame later, inside the cascade, naming nothing useful. `PanelTest` is new. |
 
 ## 3. `:html`
 
@@ -141,7 +141,7 @@ two`. |
 | §11.1 the five habits | open | |
 | §11.2 parameterized merges | open | |
 | §11.3 fragile assertions | open | |
-| §11.5 the parity sweep | open | |
+| §11.5 the parity sweep | **done** | A test-scope `CatalogMarkup` exposes `Widgets.inflater().registered()` and a table of the *arguments* the §13 widgets refuse to exist without. Parity, immutability and chaining all read it. `WidgetParityTest` went from 40 tests to **203**. `DensityTest.SIZED` names all eight controls resolving `--gb-control-height`. |
 
 ## Records written
 
@@ -153,6 +153,40 @@ two`. |
 | [0401](../book/src/adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md) | The router tells the living, and finishes the application's pair; corrects ADR-0303, extends ADR-0317 |
 | [0402](../book/src/adr/0402-a-sheet-has-a-position-in-its-layer.md) | A sheet carries its index; the cascade compares it between layer and rule order, and the lint reads the loser's own value |
 | [0403](../book/src/adr/0403-the-events-a-failed-handler-never-saw-wait-for-the-next-pump.md) | The code moves to the `EventSink` contract rather than the contract to the code; with C8, C9 and C17 recorded beside it |
+| [0404](../book/src/adr/0404-a-memo-sees-the-source-a-picture-came-from.md) | An image source's identity is in the memo's signature; an unshaped word is measured across its rectangle; a stray `<tr>` keeps its cells |
+
+## What the sweeps found, and what is now owed
+
+The widened sweeps of §11.5 turned up four things the review did not name. Each
+is recorded here rather than fixed quietly, and the two exemptions are **live** —
+each sweep has a `theExemptionsAreLive` test, so an exemption cannot go stale or
+start passing without anyone noticing.
+
+- **`series` and `point` accept `id=` and `class=` and throw them away.**
+  `ChartSeries` and `ChartPoint` have a CSS type and paint, and implement none of
+  `Attributed` — the only place in the catalogue where markup takes an attribute
+  and drops it. Exempted by name in `ChainingTest.NOT_CHAINABLE` and
+  `WidgetParityTest.NO_ATTRIBUTES`, with the reasoning written out. **Owed: make
+  them `Attributed`, or refuse the attributes at inflation.**
+- **Parity's own walk was wrong, not `dialog`.** `styledNode` took the *first*
+  styled node, which for a `dialog` is the `dialog-scrim` it wraps itself in —
+  correct while the sweep covered ten primitives, a false failure over the whole
+  catalogue. It looks for the node carrying the type now.
+- **Six registered names describe no node at all**: `action` and `page` (a
+  dialog's button and a wizard's step, drawn by their owner), `marker` (a chart
+  annotation drawn on an axis), and `list`/`table`/`tree`, which inflate to
+  `Bound` and deliberately describe `Widget.nothing()` until a model is bound.
+  Exempt from parity with a written reason; still swept by chaining and
+  immutability, which they pass.
+- **`statistic` throws a bare `NullPointerException: label`** where every sibling
+  raises a §13 `IllegalArgumentException` naming what is missing. **Owed: one
+  line.**
+
+And one the `:widgets` agent found next to W11: **`SplitPaneState.offsetOf()` and
+`dragTo()` still convert pixels through `length`** while the fraction now
+measures the content, leaving the drag anchor up to ~6 px × fraction out of step
+with where the divider is drawn. It is a different defect from W11 and was left
+alone rather than widening that change. **Owed: a review entry of its own.**
 
 ## What the review got wrong
 

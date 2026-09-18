@@ -414,6 +414,7 @@
 - [ADR-0401 The router tells the living, and finishes the application's pair](adr/0401-the-router-tells-the-living-and-finishes-the-applications-pair.md)
 - [ADR-0402 A sheet has a position in its layer](adr/0402-a-sheet-has-a-position-in-its-layer.md)
 - [ADR-0403 The events a failed handler never saw wait for the next pump](adr/0403-the-events-a-failed-handler-never-saw-wait-for-the-next-pump.md)
+- [ADR-0404 A memo sees the source a picture came from](adr/0404-a-memo-sees-the-source-a-picture-came-from.md)
 
 ---
 
