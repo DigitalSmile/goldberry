@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -17,17 +18,27 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.content.ImageSource;
+import io.github.digitalsmile.goldberry.content.image.Picture;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.image.Image;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownView;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 
 /// What a keystroke costs a rendered document, as a **count** — `docs/gaps.md` G45
 /// and [ADR-0389].
@@ -53,6 +64,7 @@ class BlockReuseTest {
     private TestFrames.Target target;
     private WidgetRenderer renderer;
     private ElementTree tree;
+    private PointerRouter router;
     private Property<String> source;
 
     @BeforeEach
@@ -65,7 +77,19 @@ class BlockReuseTest {
         render = RenderTree.create();
         target = TestFrames.of(420, 600, 1.0f, 0);
         source = Property.of(note(BLOCKS, -1));
-        tree = new ElementTree(MarkdownView.following(source).id("note"));
+        mount(MarkdownView.following(source).id("note"));
+    }
+
+    /// A tree holding `view`, wired to a router and taken through one frame.
+    ///
+    /// The router is here because two of the invalidation paths below are only visible
+    /// to a **reader**: what a task box reports and which handler a link calls are
+    /// answered by pressing them.
+    private void mount(Widget view) {
+        tree = new ElementTree(view);
+        router = new PointerRouter();
+        router.focusRoot(tree.root());
+        router.windowBounds(LogicalRect.of(0, 0, 420, 600));
         frame();
     }
 
@@ -97,10 +121,12 @@ class BlockReuseTest {
         return text.toString();
     }
 
-    /// One frame of the loop a window runs.
+    /// One frame of the loop a window runs, including the capture a press is routed
+    /// through.
     private void frame() {
         tree.flush();
         render.update(target.frame(), renderer.render(tree));
+        router.updateRegions(HitTest.capture(render));
     }
 
     private SelectableDocument.DocumentState state() {
@@ -271,6 +297,139 @@ class BlockReuseTest {
         frame();
 
         assertEquals(expected(BLOCKS, 2), state().text());
+    }
+
+    @Test
+    @DisplayName("a picture landing after a kept block is this build's picture, not the memo's")
+    void aPictureLandsAfterAKeptBlock() {
+        var sea = swatch(0xFF112233);
+        var sky = swatch(0xFF445566);
+        ImageSource nothing = src -> null;
+        ImageSource found = src -> sea;
+        source.set(note(BLOCKS, -1) + "![a picture](sea.png)\n");
+        mount(MarkdownView.following(source).images(nothing).id("note"));
+
+        assertTrue(pictures().isEmpty(), "an application with nothing for that src draws the alt text");
+
+        // A source that answers. A block that drew alt text is one the fold will not
+        // vouch for (`BlockMemo.Fold.keep`), so the picture arrives -- and the note is
+        // built again, because a different source is a different document and this is
+        // where it says so.
+        tree.update(MarkdownView.following(source).images(found).id("note"));
+        frame();
+
+        assertEquals(1, pictures().size());
+        assertSame(sea, pictures().getFirst().image());
+        assertEquals(0, state().memo().kept(), "a view given a different source rebuilds, once");
+
+        // And then it settles: the same source again keeps every block of the note,
+        // which is what makes the identity in the signature affordable.
+        tree.update(MarkdownView.following(source).images(found).id("note"));
+        frame();
+
+        assertEquals(BLOCKS + 1, state().memo().kept(), "the same source on the next build is the same document");
+
+        // The bug this caught: the signature was four presence bits, so a **different**
+        // source looked like the same document, the memo handed back the block it had,
+        // and the note kept drawing the old picture for ever.
+        tree.update(MarkdownView.following(source).images(src -> sky).id("note"));
+        frame();
+
+        assertEquals(1, pictures().size());
+        assertSame(sky, pictures().getFirst().image(), "a swapped ImageSource is a swapped picture");
+    }
+
+    @Test
+    @DisplayName("a task box built after a kept one goes on counting where that block left off")
+    void tasksAreResumedAfterAKeptBlock() {
+        // Two lists with a paragraph between them, so that each task is a top-level
+        // block of its own and the edit is in the middle of them. `tasksSeen` is what
+        // the fold carries across a block it skipped: a box whose ordinal reset would
+        // toggle the wrong line of the source (ADR-0300).
+        var pressed = new ArrayList<Integer>();
+        source.set("- [ ] one\n\nBetween them.\n\n- [ ] two\n");
+        mount(MarkdownView.following(source).onTask(pressed::add).id("note"));
+
+        source.set("- [ ] one\n\nBetween them, edited.\n\n- [ ] two\n");
+        frame();
+
+        assertEquals(1, state().memo().built(), "the paragraph changed and nothing else");
+        assertEquals(2, state().memo().kept());
+        pressTaskBoxes();
+        assertEquals(List.of(0, 1), pressed, "the second box is the second task, however many blocks were skipped");
+    }
+
+    @Test
+    @DisplayName("a memoised link calls the handler the view has now")
+    void aKeptLinkCallsTheNewHandler() {
+        // The indirection ADR-0389 put in: an application that writes `onLink(this::open)`
+        // in its own build hands the view a new object every frame, and a button built
+        // three keystrokes ago would otherwise call the first one it ever saw.
+        var first = new ArrayList<String>();
+        var second = new ArrayList<String>();
+        source.set(note(BLOCKS, -1) + "[go](https://example.com/a)\n");
+        mount(MarkdownView.following(source).onLink(first::add).id("note"));
+
+        tree.update(MarkdownView.following(source).onLink(second::add).id("note"));
+        frame();
+
+        assertEquals(BLOCKS + 1, state().memo().kept(), "a handler that is a different object is the same note");
+        buttons().getFirst().onPress().run();
+
+        assertEquals(List.of(), first, "the object the button was built with is a keystroke old");
+        assertEquals(List.of("https://example.com/a"), second);
+    }
+
+    /// A 2x2 image, built rather than decoded: this is about the memo, not the codec.
+    private static Image swatch(int argb) {
+        return Image.ofArgb(2, 2, new int[] {argb, argb, argb, argb});
+    }
+
+    private List<Picture> pictures() {
+        return widgets(Picture.class);
+    }
+
+    private List<Button> buttons() {
+        return widgets(Button.class);
+    }
+
+    private <W> List<W> widgets(Class<W> kind) {
+        var found = new ArrayList<Element>();
+        collectElements(tree.root(), found);
+        return found.stream()
+                .map(Element::widget)
+                .filter(kind::isInstance)
+                .map(kind::cast)
+                .toList();
+    }
+
+    private static void collectElements(Element element, List<Element> found) {
+        found.add(element);
+        element.children().forEach(child -> collectElements(child, found));
+    }
+
+    /// Presses every check box in the document, top to bottom, the way a reader does.
+    ///
+    /// Through the router and the hit-test capture rather than by calling the widget,
+    /// because `task-mark` is `markdown-view`'s own and what it reports is only visible
+    /// from outside it as a press (`docs/testing.md` §4).
+    private void pressTaskBoxes() {
+        var boxes = new ArrayList<LogicalRect>();
+        for (var region : HitTest.capture(render)) {
+            if (region.owner() instanceof Element element
+                    && element.widget() instanceof Styled styled
+                    && "task-mark".equals(styled.cssType())) {
+                boxes.add(region.painted());
+            }
+        }
+        assertFalse(boxes.isEmpty(), "the note should have drawn its check boxes");
+        boxes.sort(Comparator.comparingDouble(LogicalRect::top));
+        for (var box : boxes) {
+            var x = box.left() + box.width() / 2;
+            var y = box.top() + box.height() / 2;
+            router.pointerPressed(x, y, PointerEvent.Button.PRIMARY, 1);
+            router.pointerReleased(x, y, PointerEvent.Button.PRIMARY, 1);
+        }
     }
 
     /// The note as a copy of all of it reads: a space between two words, a newline

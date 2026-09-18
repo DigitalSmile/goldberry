@@ -49,10 +49,11 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 ///
 /// ## What this cannot do, said out loud
 ///
-/// - **An image is its alt text.** There is no `img` widget in the catalog and
-///   fetching anything is the application's (ADR-0190) — the same limit
-///   `markdown-view` has, and the one thing on this list that an `img` widget would
-///   close rather than an engine.
+/// - **Nothing here fetches an image.** An `<img>` is drawn as a [Picture] when the
+///   application's [ImageSource] can find its `src`, and is its alt text when it
+///   cannot — which is the line ADR-0190 and ADR-0300 drew and not a missing widget:
+///   no file is opened and no socket, so a page full of remote images shows what its
+///   author wrote for a reader who cannot see them.
 /// - **A line is a row of words, not a shaped run.** Mixed faces on one line are one
 ///   `text` widget per word, so justification and hyphenation are not available. This
 ///   is the one that *is* litehtml's, and it is why ADR-0298 leaves the engine open
@@ -127,7 +128,6 @@ final class HtmlWidgets {
     private List<Widget> blocks(List<HtmlNode> nodes) {
         var widgets = new ArrayList<Widget>(nodes.size());
         var run = new Prose();
-        minter.block();
         for (var node : nodes) {
             if (isInline(node)) {
                 run.add(node, Set.of());
@@ -158,7 +158,20 @@ final class HtmlWidgets {
         };
     }
 
+    /// The run so far as the paragraph nobody wrote, if it holds anything.
+    ///
+    /// **The block boundary is announced here and not once at the top of [#blocks]**,
+    /// because where it is announced decides which block the words land in. An implicit
+    /// paragraph can be the *last* thing in a parent — `<div><p>one</p>two</div>` — and
+    /// a boundary declared before the `p` was folded is one the `p` has already taken:
+    /// the trailing words were minted into the paragraph above them, so a copy joined
+    /// the two with a space where the document means a newline and a triple-click on
+    /// either took both (ADR-0301).
     private void flush(Prose run, List<Widget> widgets) {
+        if (run.isEmpty()) {
+            return;
+        }
+        minter.block();
         var line = run.take();
         if (!line.isEmpty()) {
             widgets.add(new Row(line, classes("html-prose")));
@@ -194,7 +207,16 @@ final class HtmlWidgets {
             case "pre" -> preformatted(element);
             case "hr" -> new Row(List.of(), classesOf(element, "html-rule"));
             case "table" -> table(element);
-            case "thead", "tbody", "tfoot", "tr" -> new Column(rows(element), classesOf(element, "html-table"));
+            case "thead", "tbody", "tfoot" -> new Column(rows(element), classesOf(element, "html-table"));
+            // **A row with no table above it is still a row.** It reaches here only
+            // when nothing folded it as part of one, and [#rows] matches `tr` and
+            // sections and a `caption` — so a `tr` handed to it answered with no rows
+            // at all and the cells went nowhere. HTML's own "in body" mode drops the
+            // `<tr>` tag and keeps what is inside it; the model here keeps both
+            // ([Element]), and the fold's rule for anything in the wrong place —
+            // a stray paragraph in a list, a tag nobody has heard of — is to draw it
+            // where it is.
+            case "tr" -> row(element);
             case "td", "th" -> cell(element);
             default -> new Column(blocks(element.children()), classesOf(element, "html-block"));
         };
@@ -404,7 +426,7 @@ final class HtmlWidgets {
                 // TODO.md.
                 case "br" -> pending.add(Words.Fragment.SEPARATOR);
                 case "wbr" -> {}
-                // The alt text, which is what an alt text is for.
+                // The picture, or the alt text when nobody can say where the picture is.
                 case "img" -> image(element, own);
                 case "a" -> anchor(element, own);
                 default -> {
@@ -473,6 +495,13 @@ final class HtmlWidgets {
             pending.add(new Words.Node(
                     new Button(label, null, press, false, Attributes.NONE.classes(classes.toArray(String[]::new))),
                     label));
+        }
+
+        /// Whether nothing has been put in it — asked before a block is opened for it,
+        /// because a run holding nothing is not a paragraph and must not take a
+        /// boundary the block after it needs.
+        boolean isEmpty() {
+            return pending.isEmpty();
         }
 
         /// Everything built so far, and this builder is empty again.

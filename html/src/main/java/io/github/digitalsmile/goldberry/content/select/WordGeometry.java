@@ -303,11 +303,21 @@ public final class WordGeometry {
     /// [Paragraph#offsetAt] is the text stack's own answer — the same arithmetic a
     /// caret in a `text-input` uses — so a selection lands between the glyphs a reader
     /// sees rather than at a proportion of the box.
+    ///
+    /// **A word that drew a child has no paragraph of its own**, and then the box is
+    /// all there is — see [#across].
     private static int offsetIn(Entry entry, double x) {
         var rect = entry.rect;
-        var paragraph = entry.paragraph;
-        if (rect == null || paragraph == null) {
+        if (rect == null) {
             return 0;
+        }
+        var paragraph = entry.paragraph;
+        if (paragraph == null) {
+            var length = entry.text.length();
+            if (length == 0 || rect.width() <= 0) {
+                return 0;
+            }
+            return Math.clamp(Math.round((x - rect.left()) / rect.width() * length), 0, length);
         }
         return paragraph.offsetAt(0, entry.text.length(), x - rect.left());
     }
@@ -320,9 +330,33 @@ public final class WordGeometry {
         }
         var paragraph = entry.paragraph;
         if (paragraph == null) {
-            return rect.left();
+            return across(entry, rect, offset);
         }
         return rect.left() + paragraph.widthBetween(0, Math.min(offset, entry.text.length()));
+    }
+
+    /// An offset inside a word that **drew something instead of text**, as a
+    /// proportion of the box it landed in.
+    ///
+    /// A link is a `button` and an image a `picture` ([Word]), so those words never
+    /// reach [#shaped] and have no paragraph to measure against: the label is shaped by
+    /// the control, in the control's own style, and nothing hands that paragraph back
+    /// here. Answering `rect.left()` for every offset — which this did — makes the two
+    /// ends of a link the same place, so a selection ending inside one washes nothing
+    /// of it and a double-click on one highlights nothing at all.
+    ///
+    /// Proportional rather than exact, and deliberately: the *ends* are what a reader
+    /// can see are right — offset zero is the left edge and the last offset is the
+    /// right one, which is the whole of a double-click and of a drag across a link —
+    /// and a caret halfway through a label lands within a glyph of where it belongs.
+    /// An image carries no text (a copy of one is nothing), so its every offset is its
+    /// left edge and a selection either covers the box or does not.
+    private static double across(Entry entry, LogicalRect rect, int offset) {
+        var length = entry.text.length();
+        if (length == 0) {
+            return rect.left();
+        }
+        return rect.left() + rect.width() * (double) Math.clamp(offset, 0, length) / length;
     }
 
     /// The rectangles a selection covers, in window coordinates.

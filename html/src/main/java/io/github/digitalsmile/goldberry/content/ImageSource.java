@@ -30,6 +30,15 @@ import io.github.digitalsmile.goldberry.image.Image;
 /// (ADR-0283), so it can be held in a map for as long as the application likes and
 /// handed to a widget that is rebuilt every frame.
 ///
+/// ## Hold one, rather than minting one inside `build`
+///
+/// A view remembers which source it drew a block with, because what a source answers
+/// is what the block *is*: a picture it found is kept for as long as the block is, so
+/// a **different** source has to rebuild it (ADR-0389). A new lambda every frame is
+/// therefore a new document every frame, and a note that re-parses on every keystroke
+/// gives up its block reuse. The field in the example above is the shape to copy —
+/// which is what an application would write anyway, since the cache lives there.
+///
 /// ## Answering "no" is normal
 ///
 /// A source returns null for anything it does not have, and the view draws the alt

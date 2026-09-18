@@ -234,6 +234,21 @@ class HtmlViewTest {
         }
 
         @Test
+        @DisplayName("a row with no table round it as a row, cells and all")
+        void rowWithNoTable() {
+            // The bug this caught: a stray `tr` was folded by asking for its **rows**,
+            // which match `tr`, a section and a `caption` — so a row answered with none
+            // of them and every cell in it was dropped. Nothing in this model is
+            // dropped for being in the wrong place (`Element`), and a browser keeps the
+            // text too.
+            var elements = mount("<tr><td>a</td><td>b</td></tr>");
+
+            assertEquals(1, withClass(elements, "html-row").size());
+            assertEquals(2, withClass(elements, "html-cell").size());
+            assertEquals(List.of("a", "b"), wordsOf(elements));
+        }
+
+        @Test
         @DisplayName("a caption above its rows")
         void caption() {
             var elements = mount("<table><caption>Faces</caption><tr><td>a</td></tr></table>");

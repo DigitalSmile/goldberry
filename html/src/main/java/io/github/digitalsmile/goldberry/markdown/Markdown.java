@@ -27,9 +27,13 @@ import io.github.digitalsmile.goldberry.markdown.model.Document;
 ///
 /// **Not an HTML renderer.** Markdown *to* HTML is
 /// [io.github.digitalsmile.goldberry.markdown.html.MarkdownHtml], which is a text
-/// transform with no window under it. HTML *in* — an `html-view` with litehtml behind
-/// it — is a gap and says so: it needs a native paint surface the export list does
-/// not have yet (`book/src/TODO.md`).
+/// transform with no window under it. HTML *in* is
+/// [io.github.digitalsmile.goldberry.html.view.HtmlView]
+/// — a parser and a fold over the same words and the same cascade, with no engine
+/// under it either (ADR-0298). What is still open is what an engine would buy, which
+/// is real inline layout; and a raw `<div>` *inside* a Markdown document is drawn as
+/// the markup it is, because a `html_block` is one of md4c's blocks and not a second
+/// parse (`book/src/TODO.md`).
 ///
 /// **Not a resolver.** A link's href and a wiki link's target are strings. Whether
 /// one may be followed, what a relative path is relative to, and which note

@@ -153,8 +153,15 @@ final class HtmlParser {
     /// - **An `li` is ended by the next `li`** — the list above.
     /// - **A `dt` or `dd` is ended by either**, for the same reason in a definition
     ///   list.
-    /// - **A cell is ended by the next cell or the next row**, and a row by the next
-    ///   row, which is how every hand-written table in a changelog is laid out.
+    /// - **A cell is ended by the next cell, the next row or a section**, and a row by
+    ///   the next row or a section, which is how every hand-written table in a
+    ///   changelog is laid out. The section is the half that was missing: HTML's own
+    ///   "in cell" mode closes an open cell for any of `td`, `th`, `tr`, `thead`,
+    ///   `tbody`, `tfoot`, `caption`, `col` and `colgroup`, and without it
+    ///   `<thead><tr><th>a<th>b<tbody>` put the whole body **inside** the last header
+    ///   cell — and the row's own rule below could never run, because the cell above it
+    ///   never closed. A `table` is deliberately not in the list: a table inside a cell
+    ///   is a nested table, which is legal and meant.
     /// - **A section is ended by the next section**, so a `tfoot` after a `tbody` is a
     ///   sibling.
     /// - **An `option` is ended by the next one.** A `select` is not something this
@@ -165,7 +172,7 @@ final class HtmlParser {
             case "p" -> Tags.isBlock(starting);
             case "li" -> "li".equals(starting);
             case "dt", "dd" -> "dt".equals(starting) || "dd".equals(starting);
-            case "td", "th" -> CELLS.contains(starting) || "tr".equals(starting);
+            case "td", "th" -> CELLS.contains(starting) || "tr".equals(starting) || SECTIONS.contains(starting);
             case "tr" -> "tr".equals(starting) || SECTIONS.contains(starting);
             case "thead", "tbody", "tfoot" -> SECTIONS.contains(starting);
             case "option" -> "option".equals(starting) || "optgroup".equals(starting);

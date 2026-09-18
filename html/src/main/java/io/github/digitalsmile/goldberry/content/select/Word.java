@@ -40,6 +40,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// selection copies, and the child draws itself. The box it adds carries no padding,
 /// no gap and no size of its own.
 ///
+/// Such a word shapes nothing, so the geometry never hears from [WordGeometry#shaped]
+/// about it: the label belongs to the control and is shaped in the control's style.
+/// Where a caret inside one falls is then a proportion of the box it landed in, which
+/// the geometry works out for itself — the ends of it are exact either way, and those
+/// are what a double-click and a drag across a link are made of.
+///
 /// @param text what it says — the label of the child, when there is one
 /// @param attributes the classes the fold put on it, which is what `markdown.css` and
 ///        `html.css` style
