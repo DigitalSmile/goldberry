@@ -567,12 +567,30 @@ public final class RenderTree implements AutoCloseable {
     ///
     /// Returns null when the subtree covers nothing, which is a zero-sized node
     /// and not an error.
+    ///
+    /// **Untransformed**, which is what a layer wants and only a layer: the
+    /// subtree is rasterized into its own coordinates and it is the *blit* that
+    /// carries the matrix. A caller measuring where a node is on screen wants
+    /// [#bounds(RenderObject, double, double, Affine)] and its own accumulated
+    /// transform.
     private @Nullable Bounds bounds(RenderObject object, double left, double top) {
+        return bounds(object, left, top, Affine.IDENTITY);
+    }
+
+    /// The same rectangle, mapped through `transform`.
+    ///
+    /// @param transform this node's **own** accumulated matrix — its ancestors'
+    ///                  composed with its own, which is what [#compose] returns
+    ///                  for it. Passed as the root's matrix rather than composed
+    ///                  again inside, because composing a box's transform needs
+    ///                  the position it was written at and that has already been
+    ///                  done by the caller that has it
+    private @Nullable Bounds bounds(RenderObject object, double left, double top, Affine transform) {
         var box = new double[] {
             Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
             Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
         };
-        accumulate(object, left, top, Affine.IDENTITY, box, true);
+        accumulate(object, left, top, transform, box, true);
 
         if (box[0] > box[2] || box[1] > box[3]) {
             return null;
@@ -829,7 +847,15 @@ public final class RenderTree implements AutoCloseable {
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
-        var now = toPhysical(bounds(object, left, top), frame);
+        // **Through `transform`**, which is this node's own matrix and its
+        // ancestors'. Measured with `Affine.IDENTITY` -- which is what the
+        // untransformed `bounds` does -- every node under a scrolled content or a
+        // transformed ancestor was damaged at its *layout* position: the rectangle
+        // repainted was somewhere the node is not, so the place it actually draws
+        // kept last frame's pixels and the place it does not got uploaded for
+        // nothing. The children already received the composed matrix; the node
+        // itself did not.
+        var now = toPhysical(bounds(object, left, top, transform), frame);
         var before = object.lastRect();
         object.rememberRect(now);
 
