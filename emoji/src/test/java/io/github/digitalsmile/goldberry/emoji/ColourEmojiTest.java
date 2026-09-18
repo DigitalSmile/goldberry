@@ -113,6 +113,35 @@ class ColourEmojiTest {
     }
 
     @Test
+    @DisplayName("an emoji measures the width the emoji face gives it, and not that width halved")
+    void theRescaleIsRight() {
+        RendererRequirement.enforce();
+
+        // The one arithmetic mistake this design can make. Inter is 2048 design
+        // units to the em and OpenMoji is 1024, so appending one face's advances
+        // to the other's without rescaling them makes every emoji come out at
+        // half its width — which is a *plausible* number, and would show up as
+        // text that overlaps a picture rather than as anything obviously broken.
+        try (var uiFace = FontFace.bundled(BundledFont.UI);
+                var emojiFace = FontFace.bundled(BundledFont.EMOJI);
+                var plain = Font.on(uiFace, 14);
+                var emoji = Font.on(emojiFace, 14)) {
+
+            plain.emoji(emoji);
+            var prose =
+                    Paragraph.of(plain, "hi").layout(Paragraph.UNCONSTRAINED).width();
+            var both =
+                    Paragraph.of(plain, "hi🎉").layout(Paragraph.UNCONSTRAINED).width();
+
+            assertEquals(
+                    emoji.widthOf("🎉"),
+                    both - prose,
+                    0.05,
+                    "the emoji's share of the line is what the emoji face says it is");
+        }
+    }
+
+    @Test
     @DisplayName("text with no emoji in it is shaped exactly as it was before any of this")
     void proseIsUntouched() {
         RendererRequirement.enforce();

@@ -92,8 +92,10 @@ measurement a prefix sum — and now builds that one array out of two shapings.
 
 The subtlety that makes this work is **units**. A design unit is a fraction of
 an em and the fraction differs per face: Inter is 2048 to the em and OpenMoji is
-1000. Appending one face's advances to the other's would make an emoji twice the
-width it is. So the paragraph holds two representations of the same shaping:
+1024. Appending one face's advances to the other's would make an emoji half the
+width it is — and half a width is a plausible number, which is exactly what
+makes it dangerous. `ColourEmojiTest.theRescaleIsRight` asserts the sum
+directly. So the paragraph holds two representations of the same shaping:
 
 - the **concatenated run**, rescaled into the base font's design units with the
   clusters rebased onto the paragraph's offsets, which everything measures
@@ -171,10 +173,17 @@ pen's javadoc says so. Batching layers by colour is the optimisation if it ever
 shows; it costs the ordering guarantee, which is why it is not taken now.
 
 **An emoji is as tall as the emoji face makes it**, and the line box is the base
-font's. OpenMoji at the prose size fits inside Inter's line box, so nothing
-overflows today; a face whose ascent is taller would. Scaling the emoji face to
-match the base face's em box is the fix, and it is a separate decision because it
-is a typographic judgement rather than a defect.
+font's. Measured at 14 logical pixels: Inter ascends 13.563 and OpenMoji ascends
+14.287, so an emoji reaches about three quarters of a pixel **above** the line
+box it sits in, and its natural line height is 18.047 against Inter's 16.939.
+
+That is not a defect and it is what a browser does too — CSS takes the line box
+from the primary font and lets a fallback overhang — but it is not what an
+earlier draft of this record claimed, which was that it fits. A box that clips
+to its content will clip that sliver on its first line. Scaling the emoji face so
+its ascent matches the base face's is the alternative, and it is a separate
+decision because it trades an overhang for emoji that are visibly smaller than
+the text around them, which is a typographic judgement rather than a fix.
 
 **Kerning across the seam is lost.** Each run is shaped alone, so a kerning pair
 spanning the boundary between a word and a picture is not applied. There was

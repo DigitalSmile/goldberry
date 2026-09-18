@@ -45,7 +45,7 @@ the text, and the face that shipped had no colour in it.
   *before* the map is written to.
 - `core` `text/Paragraph`: segments. One measurement over up to two shapings,
   with the emoji face's advances rescaled into the base font's design units —
-  Inter is 2048 to the em and OpenMoji is 1000, and a prefix sum needs one unit.
+  Inter is 2048 to the em and OpenMoji is 1024, and a prefix sum needs one unit.
 - `assets` `Asset.OPENMOJI` and `emoji` `OpenMojiFont`: the COLRv0 build,
   2.5 MB against the monochrome build's 1.4 MB.
 - `example` `ui/EmojiScreen`: a line of prose with emoji in it, in **no named

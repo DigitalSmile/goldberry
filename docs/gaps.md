@@ -2415,7 +2415,7 @@ U+FE0E decide presentation, U+200D holds a family together so the face can ligat
 sequences and keycaps belong to the emoji they follow, and the `#` of `🎉#ship` is a hashtag rather than a
 keycap. `Paragraph` shapes each run in its own face and concatenates one measurement out of the two, with
 the emoji face's advances **rescaled** into the base font's design units — Inter is 2048 to the em and
-OpenMoji is 1000, and a prefix sum needs one unit. A paragraph with no emoji in it takes the path it took
+OpenMoji is 1024, and a prefix sum needs one unit. A paragraph with no emoji in it takes the path it took
 before, allocating nothing.
 
 **Nothing could have drawn it in colour anyway**, because what shipped was OpenMoji's monochrome build —
