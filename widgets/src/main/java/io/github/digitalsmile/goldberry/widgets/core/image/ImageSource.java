@@ -135,12 +135,41 @@ public sealed interface ImageSource {
                     ? anchor.getResourceAsStream(name)
                     : Objects.requireNonNull(loader).getResourceAsStream(name)) {
                 if (in == null) {
-                    throw new UncheckedIOException(new IOException("no image resource \"" + name + "\" at " + key()));
+                    throw new UncheckedIOException(new IOException(absent()));
                 }
                 return Image.decode(in.readAllBytes());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        }
+
+        /// Why there was no stream — and the two answers are very different.
+        ///
+        /// A resource inside a named module is **encapsulated**: a file in a
+        /// package of one module is invisible to another unless the package is
+        /// `opens`, and `exports` does not do it because it governs types rather
+        /// than bytes. The reading happens *here*, in the toolkit's module, so an
+        /// application that opened its package to `…goldberry.core` — enough for
+        /// a stylesheet — still gets nothing for an image.
+        ///
+        /// Saying "no image resource" for that case sends somebody looking for a
+        /// file that is sitting right where they put it, which is what happened
+        /// to the showcase ([ADR-0395]).
+        /// [io.github.digitalsmile.goldberry.css.Stylesheet#resource] had already
+        /// learned to tell the two apart; this is the same message for pixels.
+        private String absent() {
+            var here = ImageSource.class.getModule();
+            if (anchor != null
+                    && anchor.getModule().isNamed()
+                    && !anchor.getModule().isOpen(anchor.getPackageName(), here)) {
+
+                return "the image resource \"" + name + "\" at " + key() + " is encapsulated: module "
+                        + anchor.getModule().getName() + " does not open " + anchor.getPackageName()
+                        + " to " + here.getName() + ", and JPMS encapsulates resources as well as"
+                        + " classes. Add `opens " + anchor.getPackageName() + " to " + here.getName()
+                        + ";` to its module-info — the file itself may well be there.";
+            }
+            return "no image resource \"" + name + "\" at " + key();
         }
     }
 

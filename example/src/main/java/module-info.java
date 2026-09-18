@@ -45,8 +45,14 @@ module io.github.digitalsmile.goldberry.example {
     /// package of a named module is invisible to other modules unless the package
     /// is open, and `exports` is not enough — it governs types, not bytes. So an
     /// application that keeps its stylesheet and its markup beside its code opens
-    /// the package to whoever loads them, which is exactly one module
+    /// the package to whoever loads them
     /// (ADR-0093).
+    ///
+    /// **"Whoever loads them" is more than one module**, which this file used to
+    /// say was exactly one. A stylesheet is read by `:core`; an `image` is read
+    /// by `:widgets`, from its own module. A package opened only to `:core`
+    /// therefore holds a picture nothing can see, and the failure reads as a
+    /// missing file rather than as an encapsulated one ([ADR-0395]).
     ///
     /// Qualified rather than a bare `opens`, because the toolkit is the only
     /// thing that needs to read these and an unqualified open would hand the
@@ -60,7 +66,14 @@ module io.github.digitalsmile.goldberry.example {
     /// (ADR-0155).
     opens io.github.digitalsmile.goldberry.example to io.github.digitalsmile.goldberry.core;
 
-    /// And the same for the panes' documents — one `opens` per package that
-    /// keeps a resource, which is the granularity JPMS works at.
-    opens io.github.digitalsmile.goldberry.example.ui to io.github.digitalsmile.goldberry.core;
+    /// And the same for the panes' documents and the Canvas screen's sample
+    /// image — one `opens` per package that keeps a resource, which is the
+    /// granularity JPMS works at.
+    ///
+    /// Two modules here rather than one: `canvas-sample.jpg` sits beside these
+    /// classes and is read by an `image` widget, which is `:widgets`' code
+    /// ([ADR-0395]).
+    opens io.github.digitalsmile.goldberry.example.ui to
+            io.github.digitalsmile.goldberry.core,
+            io.github.digitalsmile.goldberry.widgets;
 }

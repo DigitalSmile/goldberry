@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.core.image;
 
+import java.util.Set;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -93,10 +95,41 @@ final class ImageState extends State<ImageView> {
                     ? wrapped.getCause()
                     : failure;
             var reason = cause == null ? "no image" : String.valueOf(cause.getMessage());
-            LOG.warn("image {} did not load: {}", variant.source().key(), reason);
+            if (REPORTED.size() < REPORT_LIMIT && REPORTED.add(variant.source().key())) {
+                LOG.warn("image {} did not load: {}", variant.source().key(), reason);
+            }
             return new ImageLoad.Failed(reason);
         }
         return new ImageLoad.Ready(image, variant.scale());
+    }
+
+    /// The sources whose failure has been reported.
+    ///
+    /// One picture shown four ways is four views, four loads and — before this —
+    /// four identical lines about one missing file. `OverflowLog`'s argument and
+    /// `OverflowLog`'s answer: a bounded set of what has already been said
+    /// ([ADR-0395]).
+    ///
+    /// Keyed on the **source**, not the view, because that is what failed. The
+    /// reason cannot differ between two views of one key: they share a cache
+    /// entry.
+    private static final Set<String> REPORTED = ConcurrentHashMap.newKeySet();
+
+    /// How many distinct failures are remembered before the deduplication gives
+    /// up and lets them all through — `OverflowLog`'s cap, for its reason.
+    private static final int REPORT_LIMIT = 256;
+
+    /// Forgets what has been reported, for a test that loads the same broken
+    /// source twice. `OverflowLog.forget`'s reason exactly.
+    static void forgetReported() {
+        REPORTED.clear();
+    }
+
+    /// Whether anything has been reported, for the test — there is no appender on
+    /// the classpath to read the log back from, so the set is what an assertion
+    /// can see.
+    static int reportedCount() {
+        return REPORTED.size();
     }
 
     private void repaint() {

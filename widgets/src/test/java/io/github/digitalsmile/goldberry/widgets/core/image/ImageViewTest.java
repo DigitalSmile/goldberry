@@ -113,6 +113,27 @@ class ImageViewTest {
 
             assertEquals(Set.of("error"), part(tree).classes());
         }
+
+        @Test
+        @DisplayName("one broken source shown four ways is said once, not four times")
+        void oneFailureIsSaidOnce(@TempDir Path directory) {
+            // The Canvas screen draws one sample at four `fit` values, so a
+            // source that cannot be read produced four identical lines about one
+            // file ([ADR-0395]).
+            ImageState.forgetReported();
+            var source = ImageSource.file(directory.resolve("nothing.png"));
+
+            for (var fit = 0; fit < 4; fit++) {
+                var _ = new ElementTree(new ImageView(source, "Nothing " + fit).loader(ImageLoader.immediate()));
+            }
+            assertEquals(1, ImageState.reportedCount(), "four views, one source, one line");
+
+            // A *different* source is a different thing to say.
+            var _ = new ElementTree(new ImageView(ImageSource.file(directory.resolve("other.png")), "Other")
+                    .loader(ImageLoader.immediate()));
+            assertEquals(2, ImageState.reportedCount());
+            ImageState.forgetReported();
+        }
     }
 
     @Nested
