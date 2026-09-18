@@ -408,6 +408,9 @@
 - [ADR-0395 A resource is opened to whoever reads it](adr/0395-a-resource-is-opened-to-whoever-reads-it.md)
 - [ADR-0396 A test presses the same modifier on every desktop](adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)
 - [ADR-0397 A benchmark's names are resolved under check](adr/0397-a-benchmarks-names-are-resolved-under-check.md)
+- [ADR-0398 The build declares what it actually writes](adr/0398-the-build-declares-what-it-actually-writes.md)
+- [ADR-0399 A task box is counted by the parser that found it](adr/0399-a-task-box-is-counted-by-the-parser-that-found-it.md)
+- [ADR-0400 A clause is a start and a length](adr/0400-a-clause-is-a-start-and-a-length.md)
 
 ---
 

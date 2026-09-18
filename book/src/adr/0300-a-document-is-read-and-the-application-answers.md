@@ -8,6 +8,13 @@ Accepted. Makes both content views **interactive** — links a reader can press,
 images that are drawn, task boxes that tick — and draws the line in the same place
 every other record about the toolkit's edges draws it.
 
+**One sentence below is superseded by [ADR-0399](0399-a-task-box-is-counted-by-the-parser-that-found-it.md):**
+"`toggleTask` is a scan, not a parse-and-write". The one-character edit it argues
+for is kept and is the part that matters; the *scan* is gone. The risk this record
+named in the next paragraph — "two counters must agree: md4c's, walking the model,
+and a regex, walking the source" — is exactly the bug that arrived, and the answer
+was to stop having two.
+
 Builds on [ADR-0298](0298-html-is-a-document-and-not-an-engine.md), which put a
 `button.link` where an HTML anchor was and left the Markdown view's links as
 colour; this finishes the job in both directions. Text selection is **not** here,
