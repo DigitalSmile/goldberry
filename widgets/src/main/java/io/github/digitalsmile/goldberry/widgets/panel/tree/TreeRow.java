@@ -37,18 +37,13 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// both keys are the row's rather than the tree's: only the row knows whether it
 /// is open.
 ///
-/// @param node       the model row this draws
-/// @param depth      how many levels down it sits
-/// @param expanded   whether its children are showing
-/// @param selectable whether it may be chosen — false for a parent in a
-///                   leaf-only tree (§3's `checkable`)
-/// @param selected   whether it is the chosen row
 /// ## The three keys that are the tree's rather than the row's
 ///
 /// `Home`, `End` and `*` all need to know about rows this one cannot see — the
 /// first and last of the whole flattened list, and every sibling of this one — so
 /// each is a callback the tree hands down, in the shape [#onOut] already had
 /// (ADR-0209).
+///
 /// Type-to-select is the same, and arrives as [TextEvent] rather than a key for
 /// `select`'s reason: what a typeahead wants is what was *typed*, and one
 /// character can take several keys.

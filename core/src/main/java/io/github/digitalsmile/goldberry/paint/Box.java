@@ -520,12 +520,6 @@ public record Box(
                 elevated, overflow, text, value, mark, painting, children, owner);
     }
 
-    /// A box that is one indicator — a checkbox's tick, a radio's dot.
-    ///
-    /// Unlike [#icon(Icon, int)] this does **not** size the box: a [Mark] is
-    /// drawn to fill whatever rectangle it is given, and the design system puts
-    /// that number — a 16px glyph (§3) — in a stylesheet where an application can
-    /// override it.
     /// A box that draws whatever `value` draws — §1's `canvas`.
     ///
     /// The painter is handed the frame translated to this box's content corner
@@ -537,6 +531,12 @@ public record Box(
                 elevated, overflow, text, icon, mark, value, children, owner);
     }
 
+    /// A box that is one indicator — a checkbox's tick, a radio's dot.
+    ///
+    /// Unlike [#icon(Icon, int)] this does **not** size the box: a [Mark] is
+    /// drawn to fill whatever rectangle it is given, and the design system puts
+    /// that number — a 16px glyph (§3) — in a stylesheet where an application can
+    /// override it.
     public Box mark(Mark value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
@@ -838,21 +838,6 @@ public record Box(
                 owner);
     }
 
-    /// This box with every property a [ComputedStyle] carries applied to it.
-    ///
-    /// The join between the CSS engine and the two rendering engines, and the
-    /// reason §8's property split is worth stating as an invariant: the layout
-    /// half of the style lands on the fields Yoga reads, and the paint half on
-    /// the ones Blend2D does. Nothing here interprets a string.
-    ///
-    /// `text`, `mark` and `children` are **not** taken from the style — a
-    /// stylesheet decides how a node looks, not what it contains. But
-    /// [ComputedStyle#color] does reach all three, because that is what `color`
-    /// means.
-    ///
-    /// [ComputedStyle#opacity] is **not** applied here either, and that is
-    /// deliberate rather than an omission: it belongs to the subtree, not to this
-    /// box, so the painter accumulates it down the tree and calls [#fade(double)].
     /// What happens to a child that does not fit — CSS's `overflow`.
     ///
     /// Two engines read one keyword. **Yoga** reads it for sizing: a box whose
@@ -872,6 +857,21 @@ public record Box(
                 elevated, Objects.requireNonNull(value, "overflow"), text, icon, mark, painting, children, owner);
     }
 
+    /// This box with every property a [ComputedStyle] carries applied to it.
+    ///
+    /// The join between the CSS engine and the two rendering engines, and the
+    /// reason §8's property split is worth stating as an invariant: the layout
+    /// half of the style lands on the fields Yoga reads, and the paint half on
+    /// the ones Blend2D does. Nothing here interprets a string.
+    ///
+    /// `text`, `mark` and `children` are **not** taken from the style — a
+    /// stylesheet decides how a node looks, not what it contains. But
+    /// [ComputedStyle#color] does reach all three, because that is what `color`
+    /// means.
+    ///
+    /// [ComputedStyle#opacity] is **not** applied here either, and that is
+    /// deliberate rather than an omission: it belongs to the subtree, not to this
+    /// box, so the painter accumulates it down the tree and calls [#fade(double)].
     /// Applying it here would fade a parent and leave its children at full
     /// strength.
     public Box style(ComputedStyle style) {

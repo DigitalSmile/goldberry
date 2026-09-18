@@ -362,25 +362,6 @@ public record ComputedStyle(
         return style;
     }
 
-    /// [#INITIAL] with every inherited property taken from `parent`.
-    ///
-    /// The whole of the inherited half, in one place, so that adding a property
-    /// to it is one edit rather than one per call site. What is deliberately
-    /// **not** here:
-    ///
-    /// - **`cursor`**, which CSS does inherit. Goldberry inherits it through the
-    ///   stack of painted rectangles instead — hit testing reads it off whichever
-    ///   box the pointer is over, because what the cursor should be is a question
-    ///   about what is on screen
-    ///   (ADR-0057).
-    ///   Inheriting it here as well would be a second mechanism for one property,
-    ///   and the two would disagree the first time a box was styled without an
-    ///   element behind it.
-    /// - **`opacity`**, which CSS does not inherit — its *effect* does, and the
-    ///   painter accumulates it down the box tree
-    ///   (ADR-0064).
-    ///   Inheriting the value here would then apply it once per level per
-    ///   ancestor: a label under a control at 45% would be drawn at 20%.
     /// Whether a child would resolve identically against `other` as against
     /// this — that is, whether the two agree on every **inherited** property.
     ///
@@ -406,6 +387,25 @@ public record ComputedStyle(
                 && textDecoration.equals(other.textDecoration);
     }
 
+    /// [#INITIAL] with every inherited property taken from `parent`.
+    ///
+    /// The whole of the inherited half, in one place, so that adding a property
+    /// to it is one edit rather than one per call site. What is deliberately
+    /// **not** here:
+    ///
+    /// - **`cursor`**, which CSS does inherit. Goldberry inherits it through the
+    ///   stack of painted rectangles instead — hit testing reads it off whichever
+    ///   box the pointer is over, because what the cursor should be is a question
+    ///   about what is on screen
+    ///   (ADR-0057).
+    ///   Inheriting it here as well would be a second mechanism for one property,
+    ///   and the two would disagree the first time a box was styled without an
+    ///   element behind it.
+    /// - **`opacity`**, which CSS does not inherit — its *effect* does, and the
+    ///   painter accumulates it down the box tree
+    ///   (ADR-0064).
+    ///   Inheriting the value here would then apply it once per level per
+    ///   ancestor: a label under a control at 45% would be drawn at 20%.
     private ComputedStyle inheritingFrom(ComputedStyle parent) {
         // `transition` is deliberately absent: CSS does not inherit it, and a
         // panel that faded its background must not make every label inside it

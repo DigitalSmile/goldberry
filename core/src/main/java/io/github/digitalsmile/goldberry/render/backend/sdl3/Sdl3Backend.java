@@ -1138,8 +1138,6 @@ public final class Sdl3Backend implements Backend {
         }
     }
 
-    /// The session's clipboard, through SDL.
-    ///
     @Override
     public Optional<BackendTray> createTray(TraySpec spec) {
         requireUiThread();
@@ -1173,6 +1171,8 @@ public final class Sdl3Backend implements Backend {
         trays.remove(tray);
     }
 
+    /// The session's clipboard, through SDL.
+    ///
     /// One instance, held rather than made per call: what it holds is four
     /// symbol addresses, and looking them up again per copy would be four hash
     /// lookups to do the same thing (ADR-0161).

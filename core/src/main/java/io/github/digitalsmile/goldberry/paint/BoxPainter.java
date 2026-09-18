@@ -495,16 +495,6 @@ public final class BoxPainter {
         frame.strokePath(x, y, path, mark.thickness(), BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
     }
 
-    /// One box, where it ended up, and what moves it.
-    ///
-    /// @param box       the box, with every ancestor's `opacity` already applied
-    ///                  to its colours
-    /// @param layout    its **absolute** rectangle in logical coordinates, before
-    ///                  any transform — which is what CSS means by a transform:
-    ///                  layout runs first and the matrix moves the result
-    /// @param transform every ancestor's transform and its own, composed, in the
-    ///                  frame's coordinates; [Affine#IDENTITY] for the
-    ///                  overwhelming majority of boxes
     /// A padding edge in pixels.
     ///
     /// Percentages are resolved against `base`, which is CSS's rule for padding —
@@ -585,6 +575,16 @@ public final class BoxPainter {
         }
     }
 
+    /// One box, where it ended up, and what moves it.
+    ///
+    /// @param box       the box, with every ancestor's `opacity` already applied
+    ///                  to its colours
+    /// @param layout    its **absolute** rectangle in logical coordinates, before
+    ///                  any transform — which is what CSS means by a transform:
+    ///                  layout runs first and the matrix moves the result
+    /// @param transform every ancestor's transform and its own, composed, in the
+    ///                  frame's coordinates; [Affine#IDENTITY] for the
+    ///                  overwhelming majority of boxes
     /// @param clip what an `overflow` above this box confines it to, or
     ///             [Clip#NONE] when nothing does — which is every box in a tree
     ///             with no scroll view in it

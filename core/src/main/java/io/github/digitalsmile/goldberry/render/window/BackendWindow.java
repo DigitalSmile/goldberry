@@ -134,17 +134,6 @@ public interface BackendWindow extends AutoCloseable {
         return Optional.empty();
     }
 
-    /// The part of this window's display that a window may usefully occupy — the
-    /// full bounds less whatever the desktop reserves for a taskbar, a dock or a
-    /// panel, in the desktop's logical coordinates.
-    ///
-    /// **What flip and shift are computed against** (`docs/core-widgets.md` §7:
-    /// "placement with flip/shift when near edges"). Not the display's size: a
-    /// menu placed against the screen's bottom edge opens underneath the taskbar,
-    /// and the difference between the two rectangles is exactly that taskbar.
-    ///
-    /// Empty when the platform will not say, which some drivers genuinely will
-    /// not — see [#position()] for what a caller does about it.
     /// How many times a second the display this window is on refreshes, or **0**
     /// if the platform will not say.
     ///
@@ -160,6 +149,17 @@ public interface BackendWindow extends AutoCloseable {
         return 0f;
     }
 
+    /// The part of this window's display that a window may usefully occupy — the
+    /// full bounds less whatever the desktop reserves for a taskbar, a dock or a
+    /// panel, in the desktop's logical coordinates.
+    ///
+    /// **What flip and shift are computed against** (`docs/core-widgets.md` §7:
+    /// "placement with flip/shift when near edges"). Not the display's size: a
+    /// menu placed against the screen's bottom edge opens underneath the taskbar,
+    /// and the difference between the two rectangles is exactly that taskbar.
+    ///
+    /// Empty when the platform will not say, which some drivers genuinely will
+    /// not — see [#position()] for what a caller does about it.
     default Optional<LogicalRect> workArea() {
         return Optional.empty();
     }

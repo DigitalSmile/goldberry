@@ -135,20 +135,18 @@ public record Hud(List<Reading> readings, Attributes attributes)
         return new Hud(readings, value);
     }
 
-    /// One part per reading.
+    /// One part per reading, plus the line that says what the numbers are.
     ///
     /// Parts rather than one text run with separators in it, because each is a
     /// different measurement and a stylesheet should be able to say so — dim the
     /// units, colour a paint time that has run out of budget. A single paragraph
     /// could carry none of that (ADR-0065).
-    /// One part per reading, plus the line that says what the numbers are.
     ///
     /// The caption exists because every number here is a **mean over the last
     /// sixty frames** and nothing said so: `paint 2.1 ms` reads as "this frame"
     /// and is not, which makes a spike look like a plateau and a plateau look
     /// like a spike
     /// (ADR-0150).
-    ///
     @Override
     public List<Widget> children() {
         var parts = new java.util.ArrayList<Widget>(readings.size() + 1);

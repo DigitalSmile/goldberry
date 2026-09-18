@@ -98,10 +98,6 @@ public interface Handles extends Widget {
     /// A key went down or came up, on the focused node and then its ancestors.
     default void onKey(KeyEvent event) {}
 
-    /// Committed text reached the focused node.
-    ///
-    /// A widget that wants what the user typed wants this, not [#onKey]: one
-    /// character can take several keys (§7.1).
     /// Committed text, on the way **down** to the focused node ([ADR-0246]).
     ///
     /// The mirror of [#onKeyCapture], and it exists for one reason: a `select`
@@ -114,6 +110,10 @@ public interface Handles extends Widget {
     /// them that disagree. This is the consumer.
     default void onTextCapture(TextEvent event) {}
 
+    /// Committed text reached the focused node.
+    ///
+    /// A widget that wants what the user typed wants this, not [#onKey]: one
+    /// character can take several keys (§7.1).
     default void onText(TextEvent event) {}
 
     /// The composition an input method is assembling, before the user has

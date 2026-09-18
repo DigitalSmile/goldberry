@@ -62,7 +62,6 @@ public final class KeyEvent {
         return repeat;
     }
 
-    /// The focused node this was aimed at, or null if nothing had focus.
     /// How big the widget about to handle this was when it was last painted.
     ///
     /// A key event carries no position, and for most controls that is the whole
@@ -86,6 +85,7 @@ public final class KeyEvent {
         this.part = part == null ? this.bounds : part;
     }
 
+    /// The focused node this was aimed at, or null if nothing had focus.
     public Element target() {
         return target;
     }

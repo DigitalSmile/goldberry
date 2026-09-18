@@ -179,6 +179,8 @@ public final class HeadlessBackend implements Backend {
         return window;
     }
 
+    private final HeadlessFileDialogs fileDialogs = new HeadlessFileDialogs();
+
     /// The desktop this backend pretends to have — what
     /// [BackendWindow#workArea()]
     /// answers with.
@@ -188,8 +190,6 @@ public final class HeadlessBackend implements Backend {
     /// the reservation is there so that a test which confuses the work area with
     /// the display's full size fails, which is the mistake the two rectangles
     /// exist to tell apart.
-    private final HeadlessFileDialogs fileDialogs = new HeadlessFileDialogs();
-
     private LogicalRect workArea = LogicalRect.of(0, 0, 1920, 1040);
 
     /// The work area every window on this backend reports.

@@ -211,25 +211,6 @@ final class ScrollState extends State<Scroll> {
                 scroll.attributes());
     }
 
-    /// Told what the last frame produced, by the router that holds the painted
-    /// rectangles.
-    ///
-    /// ## Why this rebuilds, and why that terminates
-    ///
-    /// A thumb's length is drawn from these, so they have to reach a `build` —
-    /// and nothing else would take them there. The obvious worry is the loop:
-    /// a measurement causes a rebuild, which causes a frame, which produces a
-    /// measurement.
-    ///
-    /// It terminates because **nothing this rebuild draws can change what was
-    /// measured**. The bars are absolutely positioned, so they take no space from
-    /// the content and none from the viewport; the second frame measures exactly
-    /// what the first did, the router sees no change and notifies nobody
-    /// ([ADR-0117]). One extra frame when a window resizes, and none after it.
-    ///
-    /// The guard here is belt to the router's braces. It is cheap, and the thing
-    /// it protects against — a scroll view repainting forever — is expensive
-    /// enough to be worth two comparisons.
     /// What one wheel line moves, from `--gb-scroll-line` or its default.
     ///
     /// Held here because the widget is a value rebuilt every frame and the wheel
@@ -254,6 +235,25 @@ final class ScrollState extends State<Scroll> {
         setState(() -> line = value);
     }
 
+    /// Told what the last frame produced, by the router that holds the painted
+    /// rectangles.
+    ///
+    /// ## Why this rebuilds, and why that terminates
+    ///
+    /// A thumb's length is drawn from these, so they have to reach a `build` —
+    /// and nothing else would take them there. The obvious worry is the loop:
+    /// a measurement causes a rebuild, which causes a frame, which produces a
+    /// measurement.
+    ///
+    /// It terminates because **nothing this rebuild draws can change what was
+    /// measured**. The bars are absolutely positioned, so they take no space from
+    /// the content and none from the viewport; the second frame measures exactly
+    /// what the first did, the router sees no change and notifies nobody
+    /// ([ADR-0117]). One extra frame when a window resizes, and none after it.
+    ///
+    /// The guard here is belt to the router's braces. It is cheap, and the thing
+    /// it protects against — a scroll view repainting forever — is expensive
+    /// enough to be worth two comparisons.
     private void measured(Extent bounds, Extent part) {
         if (bounds.equals(viewport) && part.equals(content)) {
             return;
