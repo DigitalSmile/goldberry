@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
+import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -411,7 +412,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // from drawing twice, once underlined and once committed (ADR-0289).
         var wasComposing = clearPreedit();
         var room = room();
-        var insertion = room < 0 ? typed : clip(typed, room);
+        var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
         if (insertion.isEmpty()) {
             return wasComposing;
         }
@@ -666,7 +667,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // the copied cell had a trailing newline is the worse outcome.
         var flattened = pasted.replaceAll("\\s*\\R\\s*", " ").replace('\t', ' ');
         var room = room();
-        var insertion = room < 0 ? flattened : clip(flattened, room);
+        var insertion = room < 0 ? flattened : MaxLength.clip(flattened, room);
         if (insertion.isEmpty()) {
             return false;
         }
@@ -716,29 +717,11 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     /// How many more characters will fit, or -1 for no limit.
+    ///
+    /// [MaxLength]'s, along with the clipping: `text-area` asks exactly the same
+    /// two questions and had its own copy of both answers.
     private int room() {
-        var maximum = widget().maxLength();
-        if (maximum < 0) {
-            return -1;
-        }
-        // What the selection would free up counts as room: typing over a full
-        // field's selection must work.
-        return Math.max(0, maximum - edit.length() + (edit.end() - edit.start()));
-    }
-
-    /// `text` cut to at most `room` characters, never through a cluster.
-    private static String clip(String text, int room) {
-        if (text.length() <= room) {
-            return text;
-        }
-        if (room <= 0) {
-            return "";
-        }
-        // offsetByCodePoints from the front rather than a substring, so a limit
-        // that falls inside a surrogate pair drops the whole character rather
-        // than leaving half of one.
-        var end = text.offsetByCodePoints(0, text.codePointCount(0, Math.min(room, text.length())));
-        return text.substring(0, Math.min(end, room));
+        return MaxLength.room(widget().maxLength(), edit);
     }
 
     // --- the blink ------------------------------------------------------------

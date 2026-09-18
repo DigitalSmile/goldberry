@@ -498,6 +498,22 @@ class TextInputTest {
             assertEquals("Gold", text(tree));
         }
 
+        /// The clip used to count code points from the front and then take
+        /// `Math.min` of the offset it found and the room it had, which puts the
+        /// answer back inside the pair it has just stepped over. The field then
+        /// held a lone high surrogate: not a character, `.notdef` on screen, and
+        /// a broken string in the application's own `change` handler.
+        @Test
+        @DisplayName("a limit falling inside a character keeps whole characters, not half of one")
+        void clipsOnACharacterBoundary() {
+            host.clipboardText("a🎨b");
+            var tree = mounted(new TextInput().maxLength(2));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("a", text(tree), "the palette needs two chars and there is one, so it is not taken at all");
+        }
+
         @Test
         @DisplayName("typing over a full field's selection works")
         void selectionMakesRoom() {

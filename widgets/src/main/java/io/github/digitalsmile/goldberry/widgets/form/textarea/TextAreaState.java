@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
+import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
 import io.github.digitalsmile.goldberry.text.edit.EditHistory;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
@@ -331,7 +332,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // accepted candidate must not draw twice (ADR-0289).
         var wasComposing = clearPreedit();
         var room = room();
-        var insertion = room < 0 ? typed : clip(typed, room);
+        var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
         if (insertion.isEmpty()) {
             return wasComposing;
         }
@@ -671,7 +672,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // Windows is one document.
         var normalised = pasted.replace("\r\n", "\n").replace('\r', '\n');
         var room = room();
-        var insertion = room < 0 ? normalised : clip(normalised, room);
+        var insertion = room < 0 ? normalised : MaxLength.clip(normalised, room);
         return !insertion.isEmpty() && apply(edit.insert(insertion), EditHistory.Kind.OTHER, true);
     }
 
@@ -832,23 +833,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         return maximum < 0 || candidate.length() <= maximum;
     }
 
+    /// How many more characters will fit, or -1 for no limit — [MaxLength]'s,
+    /// along with the clipping, because `text-input` asks the same two questions
+    /// and each control used to answer them for itself.
     private int room() {
-        var maximum = widget().maxLength();
-        if (maximum < 0) {
-            return -1;
-        }
-        return Math.max(0, maximum - edit.length() + (edit.end() - edit.start()));
-    }
-
-    private static String clip(String text, int room) {
-        if (text.length() <= room) {
-            return text;
-        }
-        if (room <= 0) {
-            return "";
-        }
-        var end = text.offsetByCodePoints(0, text.codePointCount(0, Math.min(room, text.length())));
-        return text.substring(0, Math.min(end, room));
+        return MaxLength.room(widget().maxLength(), edit);
     }
 
     // --- the blink -------------------------------------------------------------
