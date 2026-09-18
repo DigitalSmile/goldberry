@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 ///
 /// ## What is in markup and what is not
 ///
-/// The bar and four of the seven screens' walls are here because every value in
+/// The bar and four of the thirteen screens' walls are here because every value in
 /// them flows through `bind=` and every gesture through `change=`: they need no
 /// Java at all, and a designer can move a card or rename a class in them without
 /// a compiler.

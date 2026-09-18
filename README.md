@@ -27,16 +27,14 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > threads, Yoga lays out a tree behind the boundary, HarfBuzz-shaped text takes
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
-> halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and eight controls — `button`, a tri-state `checkbox`, a
-> `toggle` you can drag, a `slider` (and its vertical `fader`, with tick marks, a
-> value readout and a decibel taper), `radio` / `radio-group`, which is one Tab
-> stop with arrow keys inside it, and a `progress` bar and a `spinner` that
-> animate on the frame clock — all drawn to
-> the design system's metrics with rounded corners, a real focus ring, the §1.4
-> type scale in two real weights, a `regular`/`compact` density that no widget
-> mentions, CSS transitions on a frame clock and golden images — so three
-> controls are still to come: `knob`, `select` and `badge`.
+> halves of §9 — an `action` to call and a value to `bind` to. The catalogue is
+> **72 widgets** behind 74 markup names — every §3 control including `knob`,
+> `select` and `badge`, §4's fields, §5's containers, the whole `scroll` family,
+> §6's navigation, §7's overlays and the chart family — all drawn to the design
+> system's metrics with rounded corners, a real focus ring, the §1.4 type scale
+> in two real weights, a `regular`/`compact` density that no widget mentions,
+> CSS transitions on a frame clock and golden images. What is not built is the
+> GPU milestone, the AccessKit bridge and nine of the eleven content modules.
 > See [Status](book/src/status.md) for what works, and [TODO](book/src/TODO.md) for what does not yet.
 
 ## Quick start
@@ -74,7 +72,7 @@ toolchain is found even from a Gradle daemon that an IDE started with a bare
 
 
 **The first native build downloads about 330 MB** — Blend2D, AsmJit, Yoga,
-HarfBuzz and SDL3, cloned by the superbuild — which typically takes a few
+HarfBuzz, SDL3, md4c and libwebp, cloned by the superbuild — which typically takes a few
 minutes. Compiling them afterwards is comparatively quick, around a minute on a
 recent laptop. Git reports its progress as it goes, so a configure step that
 looks idle for a long time is a slow connection rather than a stuck build
@@ -185,9 +183,13 @@ different pixel grid.
 ## Text
 
 **HarfBuzz** shapes, **Blend2D** draws, and `Font` is what holds the two
-together. Inter, JetBrains Mono and OpenMoji ship inside `goldberry-core`, so
-text renders identically on every machine without asking what fonts are
-installed ([ADR-0033](book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
+together. Inter and JetBrains Mono ship inside `goldberry-core`, so text renders
+identically on every machine without asking what fonts are installed
+([ADR-0033](book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
+OpenMoji ships in `goldberry-emoji` rather than in the core, because CC BY-SA
+wants its attribution where the work is seen — an application opts into the
+face by putting that module on its path
+([ADR-0384](book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
 
 ```java
 try (var face = FontFace.bundled(BundledFont.UI);     // parsed once
@@ -240,10 +242,15 @@ points draws the text 128× too wide and reports no error at all. `Font` exists 
 make that unrepresentable
 ([ADR-0034](book/src/adr/0034-one-size-and-the-design-unit-crossing.md)).
 
+Fallback between the UI and the emoji face is built: the itemizer splits a line
+into text and emoji runs, and a paragraph measures one line over up to two
+shapings
+([ADR-0393](book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md)).
+
 Not yet: bidirectional runs — right-to-left text is shaped in logical order and
 therefore drawn mirrored, which is an approximation that says so rather than a
 crash ([ADR-0218](book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md))
-— fallback between the UI and emoji faces, and style runs within a paragraph.
+— and style runs within a paragraph.
 
 ## Editing text
 

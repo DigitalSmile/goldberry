@@ -184,9 +184,11 @@ public final class Hello implements Application {
     }
 
     @Override public void start(Host host) {
-        // Native resources are opened here and closed in stop(): a widget is a
-        // value that gets rebuilt and thrown away, so nothing with a close()
-        // belongs in a build method.
+        // Anything the window owns for its whole life is made here and released
+        // in stop(): a widget is a value that gets rebuilt and thrown away, so
+        // nothing that costs money to build belongs in a build method. An icon
+        // is parsed from the bundled set and scaled to one size, which is work
+        // to do once rather than per frame.
         icons = Icons.strict().bind("plus", Icon.bundled("plus", 16));
         host.shortcut("Ctrl+T", actions::toggleTheme);
     }
@@ -263,8 +265,13 @@ are two lists that will not: the showcase shipped for one commit with `actions`
 missing from the inflater and present in `models()`, so every test passed and the
 window threw `no action named "app.toggle-theme" is bound` on the first frame.
 
-`icons` is the one registry that cannot be derived: an `Icon` owns native memory
-and has to be closed, so markup may *name* one and must never build one.
+`icons` is the one registry that cannot be derived: an `Icon` is parsed from the
+icon set and built scaled to one size, so `icon="plus"` in a document reloaded on
+every keystroke would re-parse and re-scale one per reload. Markup may *name* an
+icon and must never build one. (It used to be a stronger rule — an icon held a
+`BlendPath`, a native allocation, and had to be closed exactly once. Since
+[ADR-0277](adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md) an `Icon` is an immutable value whose
+`close()` does nothing, so the cost is work rather than a leak.)
 
 Widget names need no registration at all. Every module on the path that ships
 widgets announces itself, so `Widgets.inflater` already knows `button` and

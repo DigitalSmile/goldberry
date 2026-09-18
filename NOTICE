@@ -18,6 +18,8 @@ code is present in every binary artifact Goldberry distributes:
   SDL3           Zlib license      https://www.libsdl.org
   Yoga           MIT license       https://www.yogalayout.dev
   HarfBuzz       MIT license       https://harfbuzz.github.io
+  md4c           MIT license       https://github.com/mity/md4c
+  libwebp        BSD-3-Clause      https://github.com/webmproject/libwebp
 
 The following assets are embedded in goldberry-core:
 

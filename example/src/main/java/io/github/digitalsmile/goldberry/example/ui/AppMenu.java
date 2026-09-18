@@ -42,17 +42,30 @@ import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 /// @param palette   the icon on Switch the light
 public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palette) {
 
-    /// The four things a menu row can ask for that a view model cannot answer.
+    /// The six things a menu row can ask for that a view model cannot answer.
     ///
-    /// A record of [Runnable]s rather than four parameters, because they arrive
-    /// together, they are all the window's, and a five-argument constructor of
-    /// identical types is one nobody can call correctly twice.
+    /// A record of [Runnable]s rather than six parameters, because they arrive
+    /// together and they are all the window's. Six positional arguments of one
+    /// type is exactly the shape nobody can call correctly twice, which is why
+    /// `AppMenuTest` presses every row and asserts *which* handler ran: a slot
+    /// swapped with its neighbour is a test failure rather than a menu that
+    /// quietly opens the wrong thing. That is not hypothetical — Help ▸ Take the
+    /// tour selected a screen and Help ▸ About opened the unsaved-changes dialog
+    /// until the 2026-09-18 review read the rows against their names.
     ///
     /// @param openDialog what File ▸ Unsaved changes… opens
-    /// @param toggleHud  what View's frame-rate row toggles
+    /// @param toggleHud  what Help's frame-rate row toggles
     /// @param raiseToast what Edit ▸ Send word raises
+    /// @param startTour  what Help ▸ Take the tour starts
+    /// @param about      what Help ▸ About Goldberry opens
     /// @param quit       what File ▸ Quit does
-    public record Handlers(Runnable openDialog, Runnable toggleHud, Runnable raiseToast, Runnable quit) {}
+    public record Handlers(
+            Runnable openDialog,
+            Runnable toggleHud,
+            Runnable raiseToast,
+            Runnable startTour,
+            Runnable about,
+            Runnable quit) {}
 
     /// The bar itself.
     ///
@@ -128,7 +141,7 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
                                 .accelerator("Ctrl+F")
                                 .checked(hudShown),
                         new Separator(),
-                        new Item("Take the tour", () -> actions.pickScreen("navigation")),
-                        new Item("About Goldberry", window.openDialog()));
+                        new Item("Take the tour", window.startTour()),
+                        new Item("About Goldberry", window.about()));
     }
 }

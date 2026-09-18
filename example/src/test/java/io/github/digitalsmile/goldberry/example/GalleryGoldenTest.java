@@ -111,7 +111,10 @@ class GalleryGoldenTest {
                 inflater,
                 plus,
                 () -> {},
-                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus));
+                new AppMenu(
+                        actions,
+                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
+                        plus));
 
         // **Through the shipped `Offscreen`** (ADR-0284), which is the same
         // sequence this method used to spell out for itself: mount, lay out, feed

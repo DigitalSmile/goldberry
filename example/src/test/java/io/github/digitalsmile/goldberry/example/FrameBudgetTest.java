@@ -232,7 +232,10 @@ class FrameBudgetTest {
                 inflater,
                 plus,
                 () -> {},
-                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus)));
+                new AppMenu(
+                        actions,
+                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
+                        plus)));
     }
 
     private WidgetRenderer rendererFor() {

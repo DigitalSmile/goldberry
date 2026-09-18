@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's nine screens are named in one place
+/// gallery's thirteen screens are named in one place
 /// (ADR-0221,
 /// ADR-0222).
 ///
@@ -142,18 +142,54 @@ class ShowcaseShellTest {
 
     // --- the menu bar --------------------------------------------------------
 
-    private AppMenu menu(AtomicInteger dialogs, AtomicInteger huds, AtomicInteger toasts, AtomicInteger quits) {
+    /// One counter per window command, so a test can press a row and ask which
+    /// handler ran.
+    ///
+    /// Six [Runnable]s of one type is exactly the shape a positional slip hides
+    /// in — Help ▸ Take the tour selected a screen and Help ▸ About opened the
+    /// unsaved-changes dialog until the 2026-09-18 review read the rows against
+    /// their names. So the counters are named and every row is pressed.
+    private record Presses(
+            AtomicInteger dialogs,
+            AtomicInteger huds,
+            AtomicInteger toasts,
+            AtomicInteger tours,
+            AtomicInteger abouts,
+            AtomicInteger quits) {
+
+        Presses() {
+            this(
+                    new AtomicInteger(),
+                    new AtomicInteger(),
+                    new AtomicInteger(),
+                    new AtomicInteger(),
+                    new AtomicInteger(),
+                    new AtomicInteger());
+        }
+
+        AppMenu.Handlers handlers() {
+            return new AppMenu.Handlers(
+                    dialogs::incrementAndGet,
+                    huds::incrementAndGet,
+                    toasts::incrementAndGet,
+                    tours::incrementAndGet,
+                    abouts::incrementAndGet,
+                    quits::incrementAndGet);
+        }
+
+        /// What every counter reads, in the order the record declares them.
+        List<Integer> counts() {
+            return List.of(dialogs.get(), huds.get(), toasts.get(), tours.get(), abouts.get(), quits.get());
+        }
+    }
+
+    private AppMenu menu(Presses presses) {
         var model = showcase.models().stream()
                 .filter(ShowcaseModel.Actions.class::isInstance)
                 .map(ShowcaseModel.Actions.class::cast)
                 .findFirst()
                 .orElseThrow();
-        return new AppMenu(
-                model,
-                new AppMenu.Handlers(
-                        dialogs::incrementAndGet, huds::incrementAndGet,
-                        toasts::incrementAndGet, quits::incrementAndGet),
-                null);
+        return new AppMenu(model, presses.handlers(), null);
     }
 
     private static List<Item> itemsOf(MenuBar bar) {
@@ -166,8 +202,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the bar is File, Edit and Help, and every one of them has a submenu")
     void theBarIsThree() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                .bar(false);
+        var bar = menu(new Presses()).bar(false);
 
         var titles = itemsOf(bar).stream().map(Item::label).toList();
         assertEquals(List.of("File", "Edit", "Help"), titles);
@@ -177,38 +212,57 @@ class ShowcaseShellTest {
     }
 
     @Test
-    @DisplayName("the window's four commands are reachable from the bar and nowhere else")
+    @DisplayName("the window's six commands are reachable from the bar and nowhere else")
     void theWindowCommandsAreWired() {
-        var dialogs = new AtomicInteger();
-        var huds = new AtomicInteger();
-        var toasts = new AtomicInteger();
-        var quits = new AtomicInteger();
-        var bar = menu(dialogs, huds, toasts, quits).bar(false);
+        var presses = new Presses();
+        var bar = menu(presses).bar(false);
 
         // Pressed by label rather than by position, so inserting a row above one
         // of them does not silently move which command this asserts.
         press(bar, "Unsaved changes…");
         press(bar, "Frame rate");
         press(bar, "Send word");
+        press(bar, "Take the tour");
+        press(bar, "About Goldberry");
         press(bar, "Quit");
 
-        assertEquals(1, dialogs.get(), "File ▸ Unsaved changes… opens no dialog");
-        assertEquals(1, huds.get(), "Help ▸ Frame rate floats no HUD");
-        assertEquals(1, toasts.get(), "Edit ▸ Send word raises no toast");
-        assertEquals(1, quits.get(), "File ▸ Quit closes nothing");
+        assertEquals(1, presses.dialogs().get(), "File ▸ Unsaved changes… opens no dialog");
+        assertEquals(1, presses.huds().get(), "Help ▸ Frame rate floats no HUD");
+        assertEquals(1, presses.toasts().get(), "Edit ▸ Send word raises no toast");
+        assertEquals(1, presses.tours().get(), "Help ▸ Take the tour starts no tour");
+        assertEquals(1, presses.abouts().get(), "Help ▸ About Goldberry opens no about box");
+        assertEquals(1, presses.quits().get(), "File ▸ Quit closes nothing");
+    }
+
+    /// The test the review's B8 asked for: not "a handler ran" but "*this* handler
+    /// ran and no other".
+    ///
+    /// Six positional [Runnable]s of one type cannot be checked any other way, and
+    /// the two rows below were wrong for as long as nothing did check — Take the
+    /// tour called `pickScreen("navigation")`, which is the first line of a tour
+    /// and not a tour, and About Goldberry opened the `Turn back?` dialog.
+    @Test
+    @DisplayName("every Help row runs its own handler and nobody else's")
+    void eachRowRunsItsOwnHandler() {
+        assertEquals(List.of(0, 0, 0, 1, 0, 0), pressedAlone("Take the tour"));
+        assertEquals(List.of(0, 0, 0, 0, 1, 0), pressedAlone("About Goldberry"));
+        assertEquals(List.of(0, 1, 0, 0, 0, 0), pressedAlone("Frame rate"));
+        assertEquals(List.of(1, 0, 0, 0, 0, 0), pressedAlone("Unsaved changes…"));
+        assertEquals(List.of(0, 0, 1, 0, 0, 0), pressedAlone("Send word"));
+        assertEquals(List.of(0, 0, 0, 0, 0, 1), pressedAlone("Quit"));
+    }
+
+    private List<Integer> pressedAlone(String label) {
+        var presses = new Presses();
+        press(menu(presses).bar(false), label);
+        return presses.counts();
     }
 
     @Test
     @DisplayName("the frame-rate row draws a tick when the HUD is up, and none when it is not")
     void theHudRowIsCheckable() {
-        var off = row(
-                menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                        .bar(false),
-                "Frame rate");
-        var on = row(
-                menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                        .bar(true),
-                "Frame rate");
+        var off = row(menu(new Presses()).bar(false), "Frame rate");
+        var on = row(menu(new Presses()).bar(true), "Frame rate");
 
         assertTrue(off.isCheckable(), "a HUD is a state you are in, not a step you take");
         assertEquals(Boolean.FALSE, off.checked());
@@ -218,8 +272,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("Edit ▸ Go to has a row per screen, off the gallery's own list")
     void goToFollowsTheGallery() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                .bar(false);
+        var bar = menu(new Presses()).bar(false);
 
         var goTo = row(bar, "Go to");
         var names = goTo.submenu().stream()
@@ -237,8 +290,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the destructive rows are last, behind a rule")
     void theDestructiveRowsAreFenced() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                .bar(false);
+        var bar = menu(new Presses()).bar(false);
 
         var file = itemsOf(bar).getFirst().submenu();
         var quit = file.getLast();
@@ -261,8 +313,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("a command the model cannot answer is disabled rather than absent")
     void oneRowIsHonestlyDisabled() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
-                .bar(false);
+        var bar = menu(new Presses()).bar(false);
 
         assertTrue(row(bar, "Press on").disabled());
         assertFalse(row(bar, "Turn back").disabled());
@@ -295,13 +346,7 @@ class ShowcaseShellTest {
                             .bind("palette", plus)
                             .bind("plus", plus),
                     showcase.models().toArray());
-            var screen = new Screen(
-                    model,
-                    actions,
-                    inflater,
-                    plus,
-                    () -> {},
-                    menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger()));
+            var screen = new Screen(model, actions, inflater, plus, () -> {}, menu(new Presses()));
 
             // `#root` and not the tree's root: `Screen` is stateful, so the
             // element at the top is the widget and the column it builds is under

@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A tab strip demonstrating itself, inside the tab strip that is showing it.
 ///
-/// Nested on purpose. The gallery's own strip is *fixed* — seven screens, none of
+/// Nested on purpose. The gallery's own strip is *fixed* — thirteen screens, none of
 /// them closable — and this one is everything a strip can be that the gallery's is
 /// not: chapters that can be closed, a `+` that opens the next stage of the road,
 /// and a tab coloured after what it holds.

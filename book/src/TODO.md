@@ -885,9 +885,9 @@ on, which in four cases is the same thing.
   earned the change. —
   [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md),
   [ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
-- **What is still asserted only at 1x, now that the goldens are not.** Every one of
-  the the golden corpus — about 245 images now is drawn again at 2x and 1.5x and checked for being the same
-  picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
+- **What is still asserted only at 1x, now that the goldens are not.** Every image in
+  the golden corpus — about 245 of them now — is drawn again at 2x and 1.5x and checked
+  for being the same picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
   without a golden behind them — so the whole widget catalog, text included, is now
   covered against the logical-against-physical family ADR-0157 found. **Four classes
   of direct pixel assertion are not**, and two of them are deliberate:
@@ -3161,9 +3161,13 @@ out of it is usually worth more than the fact that it is fixed.
   shaped in **logical** order and therefore drawn mirrored, because HarfBuzz returns
   those glyphs in visual order and prefix sums taken in logical order would otherwise
   measure the wrong ones (it was refused outright until ADR-0218, which cost a window
-  every time somebody pasted Arabic into a field) — and font fallback between the UI and
-  emoji slots, which makes a paragraph several runs rather than one. —
+  every time somebody pasted Arabic into a field). Font fallback between the UI and
+  emoji slots — the thing that makes a paragraph several runs rather than one — **is
+  built**: the itemizer splits emoji out by UTS #51's sequence rules and a paragraph
+  takes one measurement over up to two shapings, with the emoji face's advances
+  rescaled into the base font's design units. —
   [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
+  [ADR-0393](adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md),
   [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
 - ~~**The paragraph cache is a one-entry memo.**~~ **Both caches exist, and the numbers
   say why.** `ParagraphCache` holds shaped paragraphs keyed by `(font, text)`; the width

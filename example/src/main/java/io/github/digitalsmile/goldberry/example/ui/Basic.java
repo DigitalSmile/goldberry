@@ -53,8 +53,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// @param cards what `basic.kdl` built, inflated once by [Screen]
 /// @param plus  the icon on the primary button — handed in, because a widget is a
-///              value that is rebuilt and thrown away and an `Icon` owns native
-///              memory that must be closed exactly once (ADR-0043)
+///              value that is rebuilt and thrown away and an `Icon` is parsed and
+///              scaled once, at the size it is drawn at (ADR-0043, ADR-0277)
 public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry cards, Icon plus)
         implements Widget.Stateless {
 

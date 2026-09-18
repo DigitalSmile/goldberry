@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /// The whole window, in three bands: a **menu bar**, a **bar**, and a **gallery**
-/// of seven screens under them.
+/// of thirteen screens under them.
 ///
 /// ```text
     /// ┌──────────────────────────────────┐
@@ -29,14 +29,14 @@ import java.util.Map;
     /// ├──────────────────────────────────┤
     /// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
     /// ├──────────────────────────────────┤
-    /// │ Basic │ Panels │ … │ Canvas      │  #gallery — ten screens
+    /// │ Basic │ Panels │ … │ Motion      │  #gallery — thirteen screens
     /// │ ┌────────┐ ┌────────┐            │
     /// │ │  card  │ │  card  │  a masonry │
     /// │ └────────┘ └────────┘            │
     /// └──────────────────────────────────┘
     /// ```
 ///
-/// ## Why ten screens and not twelve
+/// ## Why the screens are questions and not widget families
 ///
 /// Because twelve was one screen per *widget family* and nobody reads a gallery
 /// that way. `Controls`, `Values` and `Text` were three tabs you had to visit in
@@ -62,7 +62,7 @@ import java.util.Map;
 /// screen rather than of the window.
 ///
 /// @param model    the state every screen reads
-/// @param inflater what turns the four documents into widgets
+/// @param inflater what turns the seven documents into widgets
 /// @param plus     the icon on [Basic]'s primary button
 /// @param menu     File, Edit and Help. Built here rather than handed over
 ///                 finished, because the frame-rate row's tick follows
@@ -82,13 +82,14 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// the one the eighth tab named. A gallery with two orders in it is a gallery
     /// that disagrees with itself (ADR-0110).
     ///
-    /// **Eleven**, and the eleventh has no digit — `Ctrl+0` is the tenth and a
-    /// keyboard has no eleventh digit. That was written here as a *limit* while
-    /// the gallery had ten screens, and it is not one: `GalleryOrderTest` has
-    /// always asserted "ten digits, however many screens there are", and
-    /// `Showcase.screenShortcuts` has always bound what it can and stopped. So
-    /// `icons` is reached by the strip, by the arrow keys inside it, and by
-    /// Edit ▸ Go to — three ways, none of them a digit ([ADR-0307]).
+    /// **Thirteen, and ten of them have a digit** — `Ctrl+0` is the tenth and a
+    /// keyboard has no eleventh digit. That was once written here as a *limit* on
+    /// how many screens the gallery could hold, and it is not one:
+    /// `GalleryOrderTest` has always asserted "ten digits, however many screens
+    /// there are", and `Showcase.screenShortcuts` has always bound what it can and
+    /// stopped. So `icons`, `emoji` and `motion` are reached by the strip, by the
+    /// arrow keys inside it, and by Edit ▸ Go to — three ways, none of them a
+    /// digit ([ADR-0307]).
     ///
     /// The rule that *is* load-bearing is the one below it: the strip and this
     /// list must name the same screens, because a screen in one and not the other
@@ -248,7 +249,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             var model = widget().model();
             var actions = widget().actions();
 
-            // The gallery: one strip, nine screens, none of them closable. It is
+            // The gallery: one strip, thirteen screens, none of them closable. It is
             // bound like every other control -- `Ctrl+1`... , the Edit menu and
             // the strip itself are three ways to set one property rather than
             // three copies of a selection. Through `inGalleryOrder`, so the order

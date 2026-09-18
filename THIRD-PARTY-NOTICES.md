@@ -6,12 +6,12 @@ third-party software and assets that carry their own licences, listed here.
 Every entry has a corresponding file in [`licenses/`](licenses/).
 `./gradlew checkLicenses` verifies that this document and that directory agree.
 
-> **Status.** None of these are bundled yet — no native library has been built
-> and no font or icon set has been vendored. This document is the disclosure
-> framework, written ahead of the assets so that adding one is a deliberate act
-> with a licence entry attached rather than something noticed at release time.
-> Each file in `licenses/` carries a `NOT-VENDORED` marker until its verbatim
-> upstream text is copied in.
+> **Status.** All of these are bundled. The superbuild links seven upstreams into
+> `libgoldberry`, the fonts and the icon set are compiled into the published jars,
+> and every file in `licenses/` holds the verbatim upstream text copied from the
+> revision actually vendored — the `NOT-VENDORED` markers this document was
+> written around are gone (`docs/releasing.md`, 2026-09-17).
+> `./gradlew checkLicenses -Pgoldberry.releaseCheck=true` is what says so.
 
 ## Statically linked into `libgoldberry`
 
@@ -53,8 +53,9 @@ own `THIRD-PARTY-NOTICES`. It is compiled **into `libgoldberry`** rather than
 into a native of that module's own — one MIT C file of tens of kilobytes, against
 the four CI legs a second superbuild would cost — so it is redistributed in the
 same artifact as the four above and is disclosed beside them
-([ADR-0294](book/src/adr/0294-a-parser-crosses-the-boundary-once.md)). litehtml,
-when `html-view` is built, gets both a library and a notice file of its own.
+([ADR-0294](book/src/adr/0294-a-parser-crosses-the-boundary-once.md)). `html-view`
+was built without an engine under it — the HTML parser is Java — so no second
+native library and no second notice file were needed after all.
 
 ## Embedded in the published jars
 
@@ -104,7 +105,7 @@ for completeness, not obligation.
 |---|---|---|
 | JUnit 5/6 | EPL 2.0 | Tests |
 | Gradle | Apache 2.0 | Build |
-| CMake, Ninja, Meson | BSD 3-Clause / Apache 2.0 | Native build |
+| CMake, Ninja | BSD 3-Clause / Apache 2.0 | Native build |
 
 ## Adding a dependency
 

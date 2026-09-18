@@ -39,7 +39,7 @@ module io.github.digitalsmile.goldberry.example {
     requires io.github.digitalsmile.goldberry.emoji;
     requires org.slf4j;
 
-    /// So the toolkit can read `showcase.css` and `badges.kdl`.
+    /// So the toolkit can read `showcase.css` and the seven KDL documents.
     ///
     /// JPMS encapsulates **resources** as well as classes: a file inside a
     /// package of a named module is invisible to other modules unless the package

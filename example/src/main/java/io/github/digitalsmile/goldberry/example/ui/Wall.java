@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// What every screen in the gallery **is**: a heading, a line of prose, and a
 /// wall of cards.
 ///
-/// One shape for seven screens, and the reason it is a type rather than a
+/// One shape for the gallery's walls, and the reason it is a type rather than a
 /// convention is that it was a convention first and four of the screens drifted
 /// off it — one had its heading inside the wall, one had no prose, two disagreed
 /// about whether the caption was `.caption` or `.prose`. A screen that is a

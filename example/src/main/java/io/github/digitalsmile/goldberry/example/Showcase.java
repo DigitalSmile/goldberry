@@ -114,6 +114,10 @@ public final class Showcase implements Application {
     /// and which this application has no reason to demonstrate.
     private @Nullable Overlay open;
 
+    /// The about box, while it is showing. Null when it is not, and kept apart
+    /// from [#open] so that `Ctrl+O` and Help ▸ About do not close each other.
+    private @Nullable Overlay about;
+
     /// §7's toast stack, attached once and raised through for ever after.
     ///
     /// A field rather than something reached through the tree, which is the whole
@@ -229,9 +233,12 @@ public final class Showcase implements Application {
         // Two models and one icon registry, and that is the whole of the wiring.
         // The paths and the action names come off the models themselves; the node
         // names come from every widget module on the path (ADR-0131, ADR-0132).
-        // Icons stay explicit because one owns native memory: markup may name an
-        // icon and must not be able to build one, or a document reloaded on every
-        // keystroke would leak one per reload (ADR-0043).
+        // Icons stay explicit because building one costs: an icon is parsed from
+        // the bundled set and scaled to the size it is drawn at. Markup may name
+        // an icon and must not be able to build one, or a document reloaded on
+        // every keystroke would re-parse one per reload (ADR-0043). It was a
+        // harder rule before ADR-0277, when an icon held a native path and had
+        // to be closed exactly once.
         screen = new Screen(
                 model,
                 actions,
@@ -257,6 +264,8 @@ public final class Showcase implements Application {
                                 this::openDialog,
                                 this::toggleHud,
                                 this::raiseToast,
+                                this::startTour,
+                                this::openAbout,
                                 () -> host.window().close()),
                         paletteIcon));
 
@@ -517,6 +526,37 @@ public final class Showcase implements Application {
         }
     }
 
+    /// **About Goldberry** — what this window is running.
+    ///
+    /// A dialog of its own rather than a row that reopened the unsaved-changes
+    /// one, which is what Help ▸ About did until the 2026-09-18 review pressed it.
+    /// One dismissive action, because an about box asks nothing.
+    private void openAbout() {
+        if (about != null && about.isAttached()) {
+            return;
+        }
+        about = Dialogs.show(
+                host,
+                new Dialog(
+                                "About Goldberry",
+                                List.of(
+                                        new Text("Goldberry " + Goldberry.version() + " — a desktop UI toolkit"
+                                                + " for Java, rasterized on the CPU by Blend2D, laid out by"
+                                                + " Yoga and shaped by HarfBuzz."),
+                                        new DialogAction("Close", DialogAction.Role.DISMISSIVE, this::aboutClosed)),
+                                Attributes.NONE)
+                        .id("about-goldberry"));
+    }
+
+    /// Takes the about box away. Its own handler rather than [#answered], because
+    /// closing an about box is not an answer and must not write the status line.
+    private void aboutClosed() {
+        if (about != null) {
+            about.remove();
+            about = null;
+        }
+    }
+
     /// Starts §5's `tour` over the Navigation screen.
     ///
     /// The application's rather than the screen's, because starting one needs a
@@ -559,8 +599,9 @@ public final class Showcase implements Application {
                                 new Stop(
                                         "gallery",
                                         "The gallery strip",
-                                        "Seven screens, and a Ctrl+digit for each — which is what"
-                                                + " going from twelve screens to seven bought."))));
+                                        "Thirteen screens, and a Ctrl+digit for the first ten."
+                                                + " The last three are reached by the strip, its arrow"
+                                                + " keys, or Edit ▸ Go to."))));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.

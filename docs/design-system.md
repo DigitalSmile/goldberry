@@ -103,7 +103,7 @@ Lucide, 24×24 grid, 2px stroke. Display sizes **16 / 20 / 24**, tinted by `colo
 - **Interpolation:** colors in **OKLCH** (no gray dead zones, matches the ramp utility); lengths linear; transforms interpolated per component.
 - **Entering = `@starting-style`.** An element's first styled frame starts no transition, so a window does not fade every control in as it opens, unless a `@starting-style` rule matches it. Then its declared transitions run from that style. `button[float]` enters this way ([ADR-0352](../book/src/adr/0352-an-element-enters-from-its-starting-style.md)).
 - **Authored = `@keyframes`.** A named sequence run by `animation`, with CSS's delay, iteration, direction and fill, on the same frame clock and whitelist, beneath transitions. For applications: rule 4 below still keeps the toolkit's own sheets free of loops, and reduced motion drops keyframe animations entirely ([ADR-0353](../book/src/adr/0353-a-stylesheet-may-name-keyframes.md)).
-- **Explicit = the `Animation` API.** `AnimationController` (forward/reverse/repeat/stagger) on the same frame clock — used internally by indeterminate progress, spinner, toast reflow, and available to apps for `canvas` work; also drives Lottie in `goldberry-vector`.
+- **Explicit = asking the host for frames.** There is no `AnimationController`. ADR-0081 refused a per-element controller for `spinner` and indeterminate progress — a loop that never ends has nothing to remember, and a controller would put two spinners permanently out of phase — and ADR-0178 refused one for a toast's reflow, where the interruption turned out to be three lines of arithmetic. What survived both refusals is `Departure`, which owns a timer and an ordering rather than a value or a clock, and `isAnimating()`, by which a widget asks the frame clock to keep coming. An application animating a `canvas` does the same thing.
 - **Enter/exit lifecycle.** Overlays (menu, popover, tooltip, dialog, toast) run `opening → open → closing → removed`: the element stays mounted through `closing`, **input is disabled the instant closing starts** (no ghost clicks), removal fires on animation end. Interruptions reverse from current progress, never restart.
 - **Frame-rate independent and testable.** Animations are functions of the frame timestamp, not frame counts; the headless backend uses a virtual clock (`clock.advance(160)`), so golden-image tests can snapshot any mid-animation frame deterministically. The frame loop is fully idle when no animation is active — no polling, no battery cost.
 
@@ -112,9 +112,9 @@ Lucide, 24×24 grid, 2px stroke. Display sizes **16 / 20 / 24**, tinted by `colo
 1. **Input feedback is instant.** Press states apply in 0ms (release fades out in `fast`); drags (slider, knob, fader, splitter, scroll) track the pointer 1:1 — animation never lags input.
 2. **Exits are faster than enters.** Every exit uses a shorter duration and `ease-exit`.
 3. **Focus is never delayed.** The focus ring appears instantly; only its disappearance may fade.
-4. **Nothing loops** except explicit continuous indicators (indeterminate progress, spinner) and Lottie content.
+4. **Nothing loops** except explicit continuous indicators (indeterminate progress, spinner) — and, when `goldberry-vector` lands (`content-widgets.md` §7), Lottie content.
 5. **Motion is meaning** — enter/exit, state confirmation, spatial continuity; never idle decoration.
-6. **`prefers-reduced-motion`:** all transitions collapse to 0ms; `@keyframes` animations do not run; loops become opacity pulses; Lottie renders its final frame; programmatic scroll jumps.
+6. **`prefers-reduced-motion`:** all transitions collapse to 0ms; `@keyframes` animations do not run; loops become opacity pulses; programmatic scroll jumps. Lottie, when it arrives, renders its final frame.
 
 ---
 

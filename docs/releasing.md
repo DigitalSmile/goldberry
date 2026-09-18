@@ -14,7 +14,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 |---|---|
 | Calendar versions, resolved in Gradle | **built**, tested (`CalendarVersionTest`, `BuildVersionTest`) |
 | `goldberry.publish` — POMs, sources, javadoc, signing, classifier jars | **built**, rehearsed locally into a throwaway repository |
-| `goldberry-bom` and the `goldberry` umbrella, `html`/`gpu` optional | **built**, resolved by a local consumer build |
+| `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu` optional | **built**, resolved by a local consumer build |
 | `snapshot.yml` → `publish.yml` → Central snapshots | **built, never run** — waits on the secrets below |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
@@ -41,7 +41,7 @@ compiled.
 
 | What | Where | When |
 |---|---|---|
-| `goldberry-{common,natives,core,widgets,html,gpu}`, `goldberry-bom`, `goldberry` — `-SNAPSHOT` | `https://central.sonatype.com/repository/maven-snapshots/` | every push to master (`snapshot.yml`) |
+| `goldberry-{common,natives,core,widgets,html,emoji,gpu}`, `goldberry-bom`, `goldberry` — `-SNAPSHOT` | `https://central.sonatype.com/repository/maven-snapshots/` | every push to master (`snapshot.yml`) |
 | the same, released | Maven Central | a `v*` tag (`release.yml`) |
 | `goldberry-natives` classifiers `linux-x64`, `linux-aarch64`, `macos-aarch64`, `windows-x64` | beside `goldberry-natives` | with it |
 | `goldberry-showcase-native-{linux-x64,macos-aarch64}.tar.gz`, `goldberry-showcase-native-windows-x64.exe` — the showcase as a GraalVM native image | the tag's GitHub Release, created as a draft; also the run's artifacts | a `v*` tag (`showcase.yml`); a manual run builds them as artifacts only |
