@@ -205,7 +205,7 @@ public record Transform(List<Function> functions, Origin origin) {
     }
 
     /// The point a transform is applied about — CSS's `transform-origin`.
-    public record Origin(Length x, @Nullable Length y) {
+    public record Origin(Length x, Length y) {
 
         /// `50% 50%`, CSS's default and the reason a scaled control grows from
         /// its middle instead of its top-left corner.
@@ -215,6 +215,10 @@ public record Transform(List<Function> functions, Origin origin) {
         public static final Origin TOP_LEFT = new Origin(Length.ZERO, Length.ZERO);
 
         public Origin {
+            // Both required. `y` carried `@Nullable` beside a `requireNonNull`
+            // for it in the same record, which is two statements that cannot both
+            // be true -- and the nullable half was the one nothing relied on (the
+            // 2026-09-18 review, §7).
             Objects.requireNonNull(x, "x");
             Objects.requireNonNull(y, "y");
         }

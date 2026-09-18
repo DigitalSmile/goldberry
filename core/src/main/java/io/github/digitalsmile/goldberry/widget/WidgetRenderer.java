@@ -549,7 +549,17 @@ public final class WidgetRenderer {
         // styled while something moved". The cascade behind it runs only when a
         // sheet has a starting rule and one matches (ADR-0352).
         var entering = self != null && element.firstStyled();
-        if (self != null && (!self.transitions().isEmpty() || !self.animations().isEmpty() || element.isAnimating())) {
+        // `element.widget() instanceof Paints` first, and it is not an
+        // optimisation. A composition node has no box, so `painted` is discarded
+        // a few lines below — but `animations.observe` and `animations.settle`
+        // are not free of consequence: observing the **inherited** style on a node
+        // that paints nothing starts transitions keyed on an ancestor's values,
+        // and `settle` then reports them as animating, which keeps the frame loop
+        // awake for a node that could not draw a frame if it had one (the
+        // 2026-09-18 review, §7).
+        if (element.widget() instanceof Paints
+                && self != null
+                && (!self.transitions().isEmpty() || !self.animations().isEmpty() || element.isAnimating())) {
             var motionBegan = trace == null ? 0L : System.nanoTime();
             var animations = element.animations();
             var target = reducedMotion ? reduced(self) : self;
