@@ -25,8 +25,19 @@ import io.github.digitalsmile.goldberry.text.Paragraph;
 /// | the shaped paragraph | at **render** | [Word#render] |
 /// | the rectangle and its clip | after **layout**, on a change | [Word#located] |
 ///
-/// The index is the word's position in document order and is assigned by the build,
-/// so the three sources agree without any of them knowing about the others.
+/// The entry is the word's identity and is handed out by the build, so the three
+/// sources agree without any of them knowing about the others.
+///
+/// ## Entries belong to a block, not to the document
+///
+/// The words are stored **per block** and flattened afterwards, which looks like a
+/// detail and is the whole of [ADR-0389]. An entry is the identity a word is
+/// reconciled and memoized on, so where it is stored decides what a keystroke costs:
+/// with one flat array, typing a space in the first paragraph gives every word in the
+/// note a new entry and the document is rebuilt, re-measured and re-laid-out from the
+/// cursor down. Held per block, a block that did not change keeps its own entries
+/// however many words appeared above it, and the only thing that moves is the flat
+/// view — which is rebuilt from the blocks and costs a reference copy per word.
 ///
 /// ## It is mutable, and confined to the UI thread
 ///
@@ -73,32 +84,98 @@ public final class WordGeometry {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<>();
+    /// One block's words, in the order the fold minted them.
+    ///
+    /// A class of its own so that the **list** is the thing a block owns: a fold that
+    /// skipped a block it had already built leaves this untouched, and the entries in
+    /// it are the same objects the widgets it kept are still holding.
+    static final class Block {
 
-    /// How many words this build registered — the entries past it are last build's
-    /// and are not visible to anything.
-    private int size;
+        private final List<Entry> words = new ArrayList<>();
+
+        /// How many of them this build registered. Left alone for a block the fold
+        /// did not re-walk, which is what makes skipping one safe.
+        private int size;
+    }
+
+    private final List<Block> blocks = new ArrayList<>();
+
+    /// The words of every block, end to end — what a [Caret] indexes into.
+    ///
+    /// Derived, and rebuilt only when the blocks change shape.
+    private List<Entry> entries = List.of();
+
+    /// How many blocks this build registered or kept.
+    private int blockCount;
 
     /// Whether the document this build described says something different from the
     /// one before it.
     private boolean changed;
 
-    /// Starts a build. Everything after this call re-registers from index zero.
+    /// Whether a block was added, dropped or resized, so the flat view is stale.
+    private boolean reshaped;
+
+    /// Starts a build. Everything after this call re-registers from block zero.
     void beginBuild() {
-        size = 0;
+        blockCount = 0;
         changed = false;
+        reshaped = false;
     }
 
-    /// Registers the `index`th word of the document being built.
+    /// Starts the `index`th block of the document being built, emptying it.
+    ///
+    /// @return the block, so the minter can hold it rather than look it up per word
+    Block beginBlock(int index) {
+        while (blocks.size() <= index) {
+            blocks.add(new Block());
+            changed = true;
+            reshaped = true;
+        }
+        blockCount = Math.max(blockCount, index + 1);
+        var block = blocks.get(index);
+        block.size = 0;
+        return block;
+    }
+
+    /// Keeps blocks `from` up to but not including `through`, exactly as they were.
+    ///
+    /// What a memoized block is: the fold did not mint its words again, so nothing
+    /// here has been told about them and they must not be treated as dropped.
+    ///
+    /// **A kept block is never shortened, and that is what makes this safe.** The tail
+    /// of a block's words is dropped in [#endBuild] when the fold walked it and minted
+    /// fewer than last time, and `size` is only reset by [#beginBlock] — which the
+    /// minter calls and a kept block does not reach. So the entries a kept widget is
+    /// holding are still in the list, in the same order, whoever else moved.
+    ///
+    /// @return false when this geometry no longer holds them, so the fold has to
+    ///         build them after all
+    boolean keepBlocks(int from, int through) {
+        if (through > blocks.size()) {
+            return false;
+        }
+        for (var index = from; index < through; index++) {
+            if (blocks.get(index).size == 0) {
+                // Emptied by a build that walked it and minted nothing: its entries
+                // are gone and the widgets holding them are stale.
+                return false;
+            }
+        }
+        blockCount = Math.max(blockCount, through);
+        return true;
+    }
+
+    /// Registers the `position`th word of `block`.
     ///
     /// @return the entry, so [Word] can hold it rather than look it up per frame
-    Entry word(int index, String text, String prefix, int block) {
-        while (entries.size() <= index) {
-            entries.add(new Entry());
+    Entry word(Block block, int position, String text, String prefix) {
+        while (block.words.size() <= position) {
+            block.words.add(new Entry());
             changed = true;
+            reshaped = true;
         }
-        var entry = entries.get(index);
-        if (!entry.text.equals(text) || !entry.prefix.equals(prefix) || entry.block != block) {
+        var entry = block.words.get(position);
+        if (!entry.text.equals(text) || !entry.prefix.equals(prefix)) {
             // A word that says something different is a different document, and a
             // selection measured against the old one would highlight the wrong
             // characters. Recorded rather than acted on here: what to do about it is
@@ -106,21 +183,48 @@ public final class WordGeometry {
             changed = true;
             entry.text = text;
             entry.prefix = prefix;
-            entry.block = block;
             entry.paragraph = null;
         }
-        size = Math.max(size, index + 1);
+        block.size = Math.max(block.size, position + 1);
         return entry;
     }
 
     /// Ends a build, and says whether the document changed under the selection.
     boolean endBuild() {
-        if (size != entries.size()) {
-            // Shorter than last time: the tail is stale and must not be hit-tested.
-            entries.subList(size, entries.size()).clear();
+        if (blockCount != blocks.size()) {
+            // Fewer blocks than last time: the tail is stale and must not be
+            // hit-tested.
+            blocks.subList(blockCount, blocks.size()).clear();
             changed = true;
+            reshaped = true;
+        }
+        for (var block : blocks) {
+            if (block.size != block.words.size()) {
+                block.words.subList(block.size, block.words.size()).clear();
+                changed = true;
+                reshaped = true;
+            }
+        }
+        if (reshaped) {
+            flatten();
         }
         return changed;
+    }
+
+    /// Lays the blocks' words end to end, and tells each word which block it is in.
+    ///
+    /// The block number is written here rather than at registration because it is a
+    /// fact about the document and not about the block: a block that kept its entries
+    /// may still have moved down the page.
+    private void flatten() {
+        var flat = new ArrayList<Entry>();
+        for (var index = 0; index < blocks.size(); index++) {
+            for (var entry : blocks.get(index).words) {
+                entry.block = index;
+                flat.add(entry);
+            }
+        }
+        entries = flat;
     }
 
     /// The shaped paragraph a word drew with, which is what maps an **x** to a
@@ -137,7 +241,7 @@ public final class WordGeometry {
 
     /// How many words the document has.
     public int size() {
-        return size;
+        return entries.size();
     }
 
     String textOf(int index) {
@@ -150,9 +254,9 @@ public final class WordGeometry {
 
     /// The caret at the end of the document — what `Ctrl+A` selects up to.
     Caret end() {
-        return size == 0
+        return entries.isEmpty()
                 ? Caret.NONE
-                : new Caret(size - 1, entries.get(size - 1).text.length());
+                : new Caret(entries.size() - 1, entries.getLast().text.length());
     }
 
     /// The word and character the pointer is over, or the nearest one.
@@ -166,7 +270,7 @@ public final class WordGeometry {
         Entry nearest = null;
         var nearestIndex = 0;
         var nearestDistance = Double.MAX_VALUE;
-        for (var index = 0; index < size; index++) {
+        for (var index = 0; index < entries.size(); index++) {
             var entry = entries.get(index);
             var rect = entry.rect;
             if (rect == null || (entry.clip != null && !contains(entry.clip, x, y))) {
@@ -234,7 +338,7 @@ public final class WordGeometry {
         var start = from.min(to);
         var end = from.max(to);
         var rectangles = new ArrayList<LogicalRect>();
-        for (var index = start.word(); index <= end.word() && index < size; index++) {
+        for (var index = start.word(); index <= end.word() && index < entries.size(); index++) {
             var entry = entries.get(index);
             var rect = entry.rect;
             if (rect == null) {
@@ -294,7 +398,7 @@ public final class WordGeometry {
         var start = from.min(to);
         var end = from.max(to);
         var text = new StringBuilder();
-        for (var index = start.word(); index <= end.word() && index < size; index++) {
+        for (var index = start.word(); index <= end.word() && index < entries.size(); index++) {
             var entry = entries.get(index);
             if (index > start.word()) {
                 text.append(entry.prefix);
@@ -311,7 +415,7 @@ public final class WordGeometry {
 
     /// The whole of the word at `caret`, for a double-click.
     Caret[] wordAt(Caret caret) {
-        if (caret.isNone() || caret.word() >= size) {
+        if (caret.isNone() || caret.word() >= entries.size()) {
             return new Caret[] {Caret.NONE, Caret.NONE};
         }
         return new Caret[] {
@@ -324,7 +428,7 @@ public final class WordGeometry {
     /// gave the same block number to, which is one paragraph, heading, cell or line of
     /// a fence.
     Caret[] blockAt(Caret caret) {
-        if (caret.isNone() || caret.word() >= size) {
+        if (caret.isNone() || caret.word() >= entries.size()) {
             return new Caret[] {Caret.NONE, Caret.NONE};
         }
         var block = blockOf(caret.word());
@@ -333,7 +437,7 @@ public final class WordGeometry {
             first--;
         }
         var last = caret.word();
-        while (last + 1 < size && blockOf(last + 1) == block) {
+        while (last + 1 < entries.size() && blockOf(last + 1) == block) {
             last++;
         }
         return new Caret[] {new Caret(first, 0), new Caret(last, textOf(last).length())};

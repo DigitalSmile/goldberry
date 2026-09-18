@@ -5,14 +5,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.content.ImageSource;
 import io.github.digitalsmile.goldberry.content.image.Picture;
 import io.github.digitalsmile.goldberry.content.inline.Words;
-import io.github.digitalsmile.goldberry.content.select.WordGeometry;
+import io.github.digitalsmile.goldberry.content.select.BlockMemo;
 import io.github.digitalsmile.goldberry.content.select.WordMinter;
 import io.github.digitalsmile.goldberry.markdown.model.Block;
 import io.github.digitalsmile.goldberry.markdown.model.BulletList;
@@ -86,7 +85,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 ///   meaning "start a new line here"; the HTML writer emits the `<br>` it deserves.
 ///
 /// All four are in `book/src/TODO.md` rather than only here.
-final class MarkdownWidgets {
+final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     /// The `md-word` / `md-token` namespace, which is all this fold and
     /// `html-view`'s disagree about — see [Words]. Per fold rather than static since
@@ -97,20 +96,10 @@ final class MarkdownWidgets {
     /// Where the blocks are, which only the fold knows — see [WordMinter].
     private final WordMinter minter;
 
-    /// What a link hands its href to, or null for a document whose links are drawn
-    /// and inert.
-    private final @Nullable Consumer<String> onLink;
-
-    /// The same for a `[[wiki link]]`, which hands over its **target** rather than an
-    /// href: what a target names is a thing in the application's own collection,
-    /// which is the reason the extension exists at all (ADR-0295).
-    private final @Nullable Consumer<String> onWikiLink;
-
-    /// Where an image's source comes from, or null for a document that draws alt text.
-    private final @Nullable ImageSource images;
-
-    /// What a task's check box reports when it is pressed — the ordinal below.
-    private final @Nullable IntConsumer onTask;
+    /// What a link, a task box and an image reach the application through — one
+    /// object for the life of the view, so a block built three keystrokes ago still
+    /// presses the handler the application is holding now ([MarkdownWiring]).
+    private final MarkdownWiring wiring;
 
     /// How many task items this fold has built, which is the **index** the next one
     /// reports.
@@ -119,19 +108,18 @@ final class MarkdownWidgets {
     /// it is safe is that a fold is one walk of one document by one object: the
     /// counter is created with it and thrown away with it. It is also why this class
     /// stopped being static — see [MarkdownView#build].
+    ///
+    /// It is in [#mark()] too, because a fold that skipped a block has to carry on
+    /// counting from where that block left off.
     private int tasksSeen;
 
-    MarkdownWidgets(
-            @Nullable Consumer<String> onLink,
-            @Nullable Consumer<String> onWikiLink,
-            @Nullable ImageSource images,
-            @Nullable IntConsumer onTask,
-            WordGeometry geometry) {
-        this.onLink = onLink;
-        this.onWikiLink = onWikiLink;
-        this.images = images;
-        this.onTask = onTask;
-        this.minter = new WordMinter(geometry);
+    /// Whether the block being built drew alt text for an image the application could
+    /// not find yet — see [BlockMemo.Fold#keep()].
+    private boolean imageMissing;
+
+    MarkdownWidgets(MarkdownWiring wiring, WordMinter minter) {
+        this.wiring = wiring;
+        this.minter = minter;
         this.words = Words.prefixed("md", minter);
     }
 
@@ -140,14 +128,57 @@ final class MarkdownWidgets {
     /// `attributes` is the view's own — an `id` and classes from a KDL document or
     /// from Java — merged with `markdown`, which is the class every rule in the
     /// stylesheet hangs off.
-    Widget document(Document document, Attributes attributes, Widget overlay) {
+    ///
+    /// The top-level blocks go through `memo`, which is the whole of [ADR-0389]: a
+    /// paragraph nobody typed in gets the **same widget instance** it had last frame,
+    /// and `Element.update` stops at an identical description rather than walking
+    /// under it.
+    Widget document(Document document, Attributes attributes, Widget overlay, BlockMemo memo) {
         // The overlay first, because paint order is document order and the wash goes
         // behind the words (ADR-0301). It is absolutely positioned, so it is in no
         // column and takes no gap.
         var children = new ArrayList<Widget>();
         children.add(overlay);
-        children.addAll(blocks(document.blocks()));
+        children.addAll(memo.blocks(document.blocks(), this));
         return new Column(children, with(attributes, "markdown"));
+    }
+
+    // --- what the memo asks -----------------------------------------------------
+
+    /// Where this fold is standing, which is three counters and no more.
+    ///
+    /// @param words where the minter is, so a skipped block's entries are kept
+    /// @param tasks how many task boxes have been numbered
+    /// @param wiring which handlers the view has, because a link with none is drawn
+    ///        inert and is a different widget
+    private record Mark(WordMinter.Mark words, int tasks, int wiring) {}
+
+    @Override
+    public Widget build(Block source) {
+        imageMissing = false;
+        return block(source);
+    }
+
+    @Override
+    public boolean keep() {
+        return !imageMissing;
+    }
+
+    @Override
+    public Object mark() {
+        return new Mark(minter.mark(), tasksSeen, wiring.signature());
+    }
+
+    @Override
+    public boolean canResume(Object mark) {
+        return mark instanceof Mark(var words, var _, var _) && minter.canResume(words);
+    }
+
+    @Override
+    public void resume(Object mark) {
+        var resumed = (Mark) mark;
+        minter.resume(resumed.words());
+        tasksSeen = resumed.tasks();
     }
 
     private List<Widget> blocks(List<? extends Block> blocks) {
@@ -212,9 +243,9 @@ final class MarkdownWidgets {
                 case Struck(var children) -> inlines(out, children, Words.and(marks, "md-struck"));
                 case Underlined(var children) -> inlines(out, children, Words.and(marks, "md-underline"));
                 case Link(var href, var _, var _, var children) ->
-                    link(out, href, children, Words.and(marks, "md-link"), onLink);
+                    link(out, href, children, Words.and(marks, "md-link"), wiring.links());
                 case WikiLink(var target, var children) ->
-                    link(out, target, children, Words.and(marks, "md-wikilink"), onWikiLink);
+                    link(out, target, children, Words.and(marks, "md-wikilink"), wiring.wikiLinks());
                 case Image(var src, var _, var alt) -> image(out, src, alt, Words.and(marks, "md-image"));
                 case RawHtml(var html) -> out.add(new Words.Fragment(html, Words.and(marks, "md-raw"), true));
                 // **A break ends the token and nothing more, hard or soft.** A
@@ -266,7 +297,13 @@ final class MarkdownWidgets {
     /// An image: the picture when the application can find it, the alt text when it
     /// cannot.
     private void image(List<Words.Piece> out, String src, String alt, Set<String> marks) {
-        var image = images == null ? null : images.image(src);
+        var image = wiring.image(src);
+        if (image == null) {
+            // **Noted, so the memo does not keep this block.** An `ImageSource` answers
+            // null while it loads and the picture arrives on a later frame (ADR-0300),
+            // and a block handed back unbuilt would never ask again.
+            imageMissing = true;
+        }
         if (image != null) {
             // Nothing for a copy, which is what a browser puts on the clipboard for an
             // image: the alt text is what a reader who cannot see it is told, not what
@@ -324,7 +361,7 @@ final class MarkdownWidgets {
     /// A task's check box, pressable when the view was told what a press means.
     private Widget taskMark(boolean done) {
         var index = tasksSeen++;
-        var handler = onTask;
+        var handler = wiring.tasks();
         return new TaskMark(done, handler == null ? null : () -> handler.accept(index));
     }
 

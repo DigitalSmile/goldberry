@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.content.select;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 import org.jspecify.annotations.Nullable;
 
@@ -57,10 +56,25 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// @param document what the view resolved this build, compared between builds so that
 ///        a selection is dropped when the text underneath it changes
-/// @param fold what turns the geometry and the overlay into the document's widgets —
-///        the view's own, because only it knows whether this is Markdown or HTML
-public record SelectableDocument(Object document, BiFunction<WordGeometry, Widget, Widget> fold)
-        implements Widget.Stateful {
+/// @param fold what turns the minter, the memo and the overlay into the document's
+///        widgets — the view's own, because only it knows whether this is Markdown or
+///        HTML
+public record SelectableDocument(Object document, Fold fold) implements Widget.Stateful {
+
+    /// What a view does with the three things this state owns.
+    ///
+    /// A named interface rather than a `BiFunction` since [ADR-0389] put a third thing
+    /// in it: the memo, which is what a view hands its unchanged blocks back from.
+    @FunctionalInterface
+    public interface Fold {
+
+        /// The document, as widgets.
+        ///
+        /// @param minter where the words come from, fresh for this build
+        /// @param memo what the last build made, kept across them
+        /// @param overlay the selection's wash, which goes first
+        Widget apply(WordMinter minter, BlockMemo memo, Widget overlay);
+    }
 
     public SelectableDocument {
         Objects.requireNonNull(document, "document");
@@ -76,6 +90,11 @@ public record SelectableDocument(Object document, BiFunction<WordGeometry, Widge
 
         private final WordGeometry geometry = new WordGeometry();
 
+        /// What the last build made, so this one can hand back the blocks nobody
+        /// touched ([ADR-0389]). Beside the geometry because the two are one thing:
+        /// a memoized block's words report into entries this geometry owns.
+        private final BlockMemo memo = new BlockMemo();
+
         private final Selection selection = new Selection();
 
         /// Whether a press is still down, so a `MOVED` is a drag rather than a hover.
@@ -87,7 +106,11 @@ public record SelectableDocument(Object document, BiFunction<WordGeometry, Widge
             // order, which is what makes an index mean the same thing to the fold, the
             // geometry and the selection.
             geometry.beginBuild();
-            var content = widget().fold().apply(geometry, new SelectionLayer(selection, geometry));
+            // The minter is this build's and the memo is not: one walk mints one
+            // document's words, and what survives is the widgets and the entries they
+            // report into.
+            var content =
+                    widget().fold().apply(new WordMinter(geometry), memo, new SelectionLayer(selection, geometry));
             if (geometry.endBuild()) {
                 // The document says something different from the one the selection was
                 // measured against. Keeping it would highlight whatever is now at those
@@ -208,6 +231,19 @@ public record SelectableDocument(Object document, BiFunction<WordGeometry, Widge
 
         boolean hasSelection() {
             return !selection.isEmpty();
+        }
+
+        /// The whole document as a copy would take it — what `Ctrl+A` and then
+        /// `Ctrl+C` produce, for a test with no window to press them in.
+        String text() {
+            return geometry.text(new Caret(0, 0), geometry.end());
+        }
+
+        /// What the last build kept and what it built — for a test, which is where a
+        /// claim about reuse belongs: it is a **count**, and a count says the same
+        /// thing on a loaded machine as on an idle one.
+        BlockMemo memo() {
+            return memo;
         }
 
         /// What is selected, for a test and for a caller that wants it without the

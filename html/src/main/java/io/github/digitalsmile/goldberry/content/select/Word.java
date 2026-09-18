@@ -40,23 +40,20 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// selection copies, and the child draws itself. The box it adds carries no padding,
 /// no gap and no size of its own.
 ///
-/// @param index this word's position in document order, which is how the geometry,
-///        the fold and the selection agree about which word is which
 /// @param text what it says — the label of the child, when there is one
 /// @param attributes the classes the fold put on it, which is what `markdown.css` and
 ///        `html.css` style
 /// @param entry where this word reports to
 /// @param child what to draw instead of the text, or null for an ordinary word
 public record Word(
-        int index,
         String text,
         Attributes attributes,
         WordGeometry.Entry entry,
         @Nullable Widget child) implements Widget.Leaf, Styled, Paints, Located {
 
     /// An ordinary word.
-    public Word(int index, String text, Attributes attributes, WordGeometry.Entry entry) {
-        this(index, text, attributes, entry, null);
+    public Word(String text, Attributes attributes, WordGeometry.Entry entry) {
+        this(text, attributes, entry, null);
     }
 
     @Override
@@ -76,10 +73,14 @@ public record Word(
 
     @Override
     public Object key() {
-        // Keyed by position in the document, so that a rebuild matches each word to
-        // the element that reported its rectangle rather than to whatever happens to
-        // be at the same place in the tree.
-        return index;
+        // **Keyed by the entry it reports to**, which is the identity that survives a
+        // word appearing above it: the entries belong to the block (ADR-0389), so a
+        // paragraph that did not change keeps the same ones however far down the page
+        // it has moved. Keyed by position in the document, as it was until then, a
+        // space typed into the first paragraph renumbered every word in the note and
+        // the element tree matched each one to its neighbour's element -- which is a
+        // re-measure and a re-layout of everything below the cursor.
+        return entry;
     }
 
     @Override
