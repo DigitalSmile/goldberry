@@ -159,9 +159,38 @@ this — see below.
 
 Classes with neither marker are not rewritten — not even re-serialised, unless
 they assign to some model's `@Bind` field. Reads are
-left alone: `getfield` is already the fastest thing that could happen. And
-weaving is idempotent, so running it twice over the same tree writes nothing the
-second time.
+left alone: `getfield` is already the fastest thing that could happen.
+
+**And within a class it rewrites, it rebuilds only the methods it has to.** A
+method is rebuilt if and only if it contains a write the weaver replaces;
+everything else is copied out of the original class file byte for byte, stack-map
+frames included. That is not tidiness. Rebuilding a method means regenerating its
+frames, and a frame where two of the author's types meet — `Base x = b ? new A()
+: new B()` — is only computable by resolving both and asking what they have in
+common. A weaver that rebuilt every method would have to resolve every class the
+module was compiled against, to weave a method with nothing in it for the weaver.
+
+**A rewritten method keeps what javac wrote beside its code.** `Signature`, both
+annotation attributes, `MethodParameters` and `Exceptions` survive — on the model
+and on any class that writes to one. This is what lets the reflective binder
+(ADR-0155) keep working on a class that happens to have been woven, and it is
+asserted against the **woven bytes** by `MethodAttributesTest` rather than against
+whatever is on the test classpath.
+
+Weaving is idempotent in the sense that matters: a pass over a tree that changed
+nothing rewrites no model and writes no class file. It is not a no-op — the
+catalog half rewrites its `GoldberryCatalog` and its service entry every run,
+because that half is a generator rather than a rewriter and comparing its output
+to decide would cost more than writing it.
+
+**And it is safe on a half-recompiled tree**, which is what an incremental build
+hands it. A woven class is still recognised as a model on a later pass; a write
+the weaver already turned into a setter call still counts as a write; and a model
+gains package-private setters when a writer outside its nest appears. Each of
+those three was a real defect: without the first, a recompiled sibling's writes
+were left unrewritten and the build was green with dead bindings; without the
+second, recompiling only the model re-wove it with private setters its sibling
+could no longer reach, for an `IllegalAccessError` at the first click.
 
 ## The two halves
 
@@ -213,13 +242,22 @@ dependencies { goldberryWeaver "io.github.digitalsmile:goldberry-weaver:$goldber
 
 def weave = tasks.register('weaveModels', JavaExec) {
     dependsOn tasks.compileJava
-    classpath = configurations.goldberryWeaver
-    mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
     def classes = tasks.compileJava.flatMap { it.destinationDirectory }
+    // The weaver FIRST, then the classes it is weaving and everything they were
+    // compiled against: regenerating a stack-map frame means resolving the
+    // author's own types. The weaver's own jar alone is not enough.
+    classpath = files(configurations.goldberryWeaver, classes, sourceSets.main.compileClasspath)
+    mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
     argumentProviders.add({ [classes.get().asFile.absolutePath] } as CommandLineArgumentProvider)
     inputs.dir(classes)
-    outputs.dir(classes)
-    outputs.upToDateWhen { false }      // in place, and idempotent
+    // A stamp, NOT `outputs.dir(classes)`. Declaring javac's own directory as
+    // this task's output tells Gradle that two tasks write to one place, and
+    // Gradle answers an overlapping output by throwing away the compiler's
+    // incremental state -- every build then fully recompiles the module and
+    // everything downstream of it (ADR-0398).
+    outputs.file(layout.buildDirectory.file('tmp/weaveModels/stamp'))
+    outputs.upToDateWhen { false }      // in place, and cheap on a settled tree
+    doLast { layout.buildDirectory.file('tmp/weaveModels/stamp').get().asFile.text = 'woven' }
 }
 tasks.named('classes') { dependsOn weave }
 ```
@@ -282,8 +320,17 @@ is a program that post-processes classes.
 ### Any other build, or none
 
 ```
-java -jar goldberry-weaver.jar target/classes
+java -cp goldberry-weaver.jar:target/classes:<compile classpath> \
+     io.github.digitalsmile.goldberry.weaver.WeaverMain target/classes
 ```
+
+**The classpath is not optional**, which the shorter `java -jar` line this page
+used to show quietly implied it was. The weaver regenerates stack-map frames for
+the methods it rewrites, and a frame where two of your types meet at a
+control-flow join is only computable by loading both — so the weaver has to be
+able to see the classes it is weaving and everything they were compiled against.
+Without them, such a method fails with `Could not resolve class`, and there is
+nothing the author of that method can do about it.
 
 It prints one line per class it wove, exits 0, and exits 1 with a message naming
 the member when it refuses a model.
