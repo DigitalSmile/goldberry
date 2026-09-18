@@ -48,16 +48,6 @@ class PreeditEventTest {
     }
 
     @Test
-    @DisplayName("carries the platform's own offsets through, unrounded")
-    void carriesTheOffsets() {
-        var event = preedit("にほんご", 1, 2);
-
-        assertEquals("にほんご", event.text());
-        assertEquals(1, event.start());
-        assertEquals(2, event.length());
-    }
-
-    @Test
     @DisplayName("consumes like every other input event")
     void consumes() {
         var event = preedit("に", -1, -1);

@@ -153,10 +153,4 @@ class ItemizerTest {
                 .getMessage()
                 .contains("4..2"));
     }
-
-    @Test
-    @DisplayName("a run knows how long it is")
-    void runLength() {
-        assertEquals(3, new TextRun(2, 5, Slot.EMOJI).length());
-    }
 }

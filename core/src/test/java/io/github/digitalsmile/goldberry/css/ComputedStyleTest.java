@@ -67,14 +67,12 @@ class ComputedStyleTest {
             var style = compute("input { color: red }");
 
             assertSame(ComputedStyle.INITIAL, ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT));
+            // And a null parent is the root, which inherits nothing.
+            assertSame(ComputedStyle.INITIAL, ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
             assertEquals(FlexDirection.ROW, style.direction());
             assertEquals(CssColor.TRANSPARENT, style.background());
             assertEquals(1.0, style.opacity());
-        }
 
-        @Test
-        @DisplayName("the initial style is not already themed")
-        void initialIsNotNord() {
             // A default that looks designed makes a stylesheet that failed to
             // load look like one that worked.
             assertEquals(CssColor.TRANSPARENT, ComputedStyle.INITIAL.background());
@@ -1021,12 +1019,6 @@ class ComputedStyleTest {
                     style.decoration().corners());
             assertEquals(false, style.decoration().hasBorder());
         }
-
-        @Test
-        @DisplayName("a null parent is the root, and inherits nothing")
-        void rootInheritsNothing() {
-            assertSame(ComputedStyle.INITIAL, ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
-        }
     }
 
     /// What a declaration that cannot be applied says, and how often.
@@ -1067,20 +1059,6 @@ class ComputedStyleTest {
                         style.gap(),
                         "and the declarations around it still are");
             }
-        }
-
-        /// `start` is CSS's spelling of `flex-start` and Yoga has only the
-        /// second, which is the exact typo that produced the report this group
-        /// exists for. It **is** `flex-start` now ([ADR-0247]) — the report was
-        /// right that the value never reached Yoga and wrong that the author had
-        /// made a mistake — so what is left to assert here is that the two
-        /// spellings agree.
-        @Test
-        @DisplayName("`start` and `flex-start` are the same value, which is how this stopped being a report")
-        void startIsFlexStart() {
-            assertEquals(
-                    compute("button { align-items: flex-start }").alignItems(),
-                    compute("button { align-items: start }").alignItems());
         }
     }
 

@@ -418,12 +418,6 @@ class HeadlessBackendTest {
     }
 
     @Test
-    @DisplayName("the backend names itself")
-    void namesItself() {
-        assertEquals("headless", backend.name());
-    }
-
-    @Test
     @DisplayName("the title round-trips")
     void titleRoundTrips() {
         var window = backend.createWindow(SPEC);

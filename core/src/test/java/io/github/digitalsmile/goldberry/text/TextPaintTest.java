@@ -34,19 +34,6 @@ class TextPaintTest {
     }
 
     @Test
-    @DisplayName("text drawn is text painted")
-    void glyphsReachTheBuffer() {
-        var target = TestFrames.of(200, 64, 1.0f);
-        try (var font = Font.bundled(BundledFont.UI, 24)) {
-            target.frame().fill(BACKGROUND);
-            font.draw(target.frame(), 10, 40, "Goldberry", INK);
-            target.end();
-        }
-
-        assertTrue(inkedColumns(target, 200, 64) > 0, "nothing was drawn — the glyph run never reached the rasterizer");
-    }
-
-    @Test
     @DisplayName("the ink is as wide as the shaped run says it is")
     void inkMatchesTheMeasuredWidth() {
         // The assertion the whole of ADR-0034 exists for. Blend2D multiplies

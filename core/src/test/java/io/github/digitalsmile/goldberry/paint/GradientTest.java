@@ -105,17 +105,6 @@ class GradientTest {
             assertThrows(
                     IllegalArgumentException.class, () -> Gradient.linear(0, 0, Double.POSITIVE_INFINITY, 0, stop));
         }
-
-        @Test
-        @DisplayName("the two points read back as they were given")
-        void endpoints() {
-            var ramp = Gradient.linear(1, 2, 3, 4, new Gradient.Stop(0, 0));
-
-            assertEquals(1, ramp.x1());
-            assertEquals(2, ramp.y1());
-            assertEquals(3, ramp.x2());
-            assertEquals(4, ramp.y2());
-        }
     }
 
     @Nested

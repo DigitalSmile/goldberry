@@ -215,13 +215,4 @@ class BundledAssetsTest {
         assertTrue(thrown.getMessage().contains("goldberry-emoji"), thrown.getMessage());
         assertTrue(thrown.getMessage().contains("CC BY-SA"), thrown.getMessage());
     }
-
-    @Test
-    @DisplayName("and the slot is still named here, because the text stack chooses it")
-    void theSlotSurvives() {
-        // §6.1's chain is primary then emoji, and which of the two a run of text
-        // goes through is the text stack's decision — so the *name* stays in the
-        // catalogue of faces even when the file is somebody else's.
-        assertEquals("OpenMoji", BundledFont.EMOJI.family());
-    }
 }

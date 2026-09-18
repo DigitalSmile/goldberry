@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.text.edit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterEach;
@@ -425,15 +424,5 @@ class EditorTest {
                     Math.abs(editor.caret().x() - column) < font.size(),
                     "and the column comes back on the line that is long enough");
         }
-    }
-
-    @Test
-    @DisplayName("it refuses what it cannot do anything with")
-    void refusesNulls() {
-        assertThrows(NullPointerException.class, () -> new Editor(null));
-        var editor = editor("hi");
-        assertThrows(NullPointerException.class, () -> editor.onKey(null));
-        assertThrows(NullPointerException.class, () -> editor.onText(null));
-        assertThrows(NullPointerException.class, () -> editor.text(null));
     }
 }

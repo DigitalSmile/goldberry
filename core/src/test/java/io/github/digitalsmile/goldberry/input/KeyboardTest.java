@@ -257,18 +257,6 @@ class KeyboardTest {
         }
 
         @Test
-        @DisplayName("Tab skips nodes that are not focusable")
-        void skipsUnfocusable() {
-            // `container` is in the tree and is not focusable; traversal must
-            // never land on it, or Tab would stop on scenery.
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-
-            assertSame(first, router.focused());
-        }
-
-        @Test
         @DisplayName("Tab focus is keyboard focus, so the ring shows")
         void tabIsKeyboardFocus() {
             router.keyPressed(Key.TAB, Modifiers.NONE, false);

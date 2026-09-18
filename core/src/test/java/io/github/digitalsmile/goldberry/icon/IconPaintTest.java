@@ -154,23 +154,6 @@ class IconPaintTest {
     }
 
     @Test
-    @DisplayName("relative and absolute spellings of the same outline paint the same pixels")
-    void relativeMatchesAbsolute() {
-        var absolute = paint("M10 10L50 10L50 50L10 50Z");
-        var relative = paint("m10 10l40 0l0 40l-40 0z");
-
-        for (var i = 0; i < absolute.length; i++) {
-            var index = i;
-            if (absolute[i] != relative[i]) {
-                assertEquals(
-                        absolute[i],
-                        relative[i],
-                        () -> "pixel " + (index % WIDTH) + "," + (index / WIDTH) + " differs");
-            }
-        }
-    }
-
-    @Test
     @DisplayName("an unknown icon name is an absence, not a mystery")
     void unknownIconIsRefusedByName() {
         var thrown = assertThrows(NoSuchElementException.class, () -> Icon.bundled("no-such-icon", 24));

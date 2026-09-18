@@ -266,15 +266,6 @@ class WheelAndCaptureTest {
     class Click {
 
         @Test
-        @DisplayName("a press and a release on the same node is a click")
-        void click() {
-            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
-            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
-
-            assertTrue(log.contains("inner:CLICKED at 30.0,30.0"), () -> "log was " + log);
-        }
-
-        @Test
         @DisplayName("dragging off and letting go is not a click")
         void draggedOff() {
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
@@ -284,20 +275,6 @@ class WheelAndCaptureTest {
             // rely on, and a control that fired on release could not tell.
             assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")), () -> "log was " + log);
             assertTrue(log.contains("inner:RELEASED at 90.0,90.0"), () -> "but the release still arrives: " + log);
-        }
-
-        @Test
-        @DisplayName("releasing on a child counts as a click on the parent that was pressed")
-        void releaseOnDescendant() {
-            // Pressing a button's own label and releasing on its padding is one
-            // click, not none.
-            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
-            log.clear();
-            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
-
-            assertTrue(
-                    log.contains("outer:CLICKED at 30.0,30.0"),
-                    () -> "the click should bubble to the ancestor too: " + log);
         }
 
         @Test

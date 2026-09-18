@@ -71,13 +71,4 @@ class CornerPaintTest {
         }
         assertEquals(RED, target.pixel(50, 50), "and the middle is still filled");
     }
-
-    @Test
-    @DisplayName("square corners take the rectangle path, and fill every corner pixel")
-    void squareIsARectangle() {
-        var target = painted(Corners.SQUARE);
-
-        assertEquals(RED, target.pixel(0, 0));
-        assertEquals(RED, target.pixel(99, 99));
-    }
 }

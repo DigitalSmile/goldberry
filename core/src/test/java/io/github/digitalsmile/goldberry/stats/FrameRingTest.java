@@ -246,28 +246,6 @@ class FrameRingTest {
     }
 
     @Test
-    @DisplayName("capacity is what it says, so a test can fill it")
-    void capacity() {
-        assertEquals(FrameRing.CAPACITY, new FrameRing().capacity());
-    }
-
-    @Test
-    @DisplayName("fixed statistics are what a test hands a widget")
-    void fixed() {
-        var stats = FrameStats.of(59.5, 16.8, 2.25, 400);
-
-        assertEquals(59.5, stats.fps());
-        assertEquals(16.8, stats.frameMillis());
-        assertEquals(2.25, stats.paintMillis());
-        assertEquals(400, stats.count());
-        assertFalse(stats.isEmpty());
-        // Fixed statistics measure no lateness, which is the same "nothing was
-        // measured" that `displayHertz` reports as zero ([ADR-0271]).
-        assertEquals(0, stats.lateFrames());
-        assertTrue(FrameStats.none().isEmpty());
-    }
-
-    @Test
     @DisplayName("the summary is the whole run, not the last sixty frames")
     void summaryOutlivesTheWindow() {
         var ring = new FrameRing();

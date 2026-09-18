@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widget.attr;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -98,12 +97,5 @@ class AccessibleNameTest {
 
         assertNull(five.name());
         assertEquals("tip", five.tooltip());
-    }
-
-    @Test
-    @DisplayName("an unnamed attributes value is still the shared NONE")
-    void noneIsShared() {
-        assertSame(Attributes.NONE, Attributes.NONE);
-        assertNull(Attributes.NONE.name());
     }
 }

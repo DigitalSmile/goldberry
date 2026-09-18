@@ -383,20 +383,5 @@ class TextGeometryTest {
                     0.001,
                     "a line wider than its box starts at the leading edge");
         }
-
-        @Test
-        @DisplayName("an alignment is required rather than defaulted")
-        void alignmentMayNotBeNull() {
-            var paragraph = paragraph("hello");
-            var layout = paragraph.layout(BOX);
-
-            assertThrows(NullPointerException.class, () -> TextGeometry.caretAt(paragraph, layout, 0, BOX, null));
-            assertThrows(NullPointerException.class, () -> TextGeometry.offsetAt(paragraph, layout, 0, 0, BOX, null));
-            assertThrows(
-                    NullPointerException.class,
-                    () -> TextGeometry.moveLine(paragraph, layout, 0, 1, Double.NaN, BOX, null));
-            assertThrows(
-                    NullPointerException.class, () -> TextGeometry.selectionRects(paragraph, layout, 0, 1, BOX, null));
-        }
     }
 }

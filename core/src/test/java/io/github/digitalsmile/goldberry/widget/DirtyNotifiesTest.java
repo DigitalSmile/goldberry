@@ -2,8 +2,6 @@ package io.github.digitalsmile.goldberry.widget;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -110,19 +108,6 @@ class DirtyNotifiesTest {
             // §1.7's idle frame loop. A tree that asked for a frame because it
             // had been flushed would never stop being flushed.
             assertEquals(0, asked[0]);
-        }
-
-        @Test
-        @DisplayName("a tree with no listener still works")
-        void listenerIsOptional() {
-            // Every test in the suite builds a tree without one, and a popup or a
-            // measuring pass may genuinely have nothing to paint into.
-            var tree = new ElementTree(new Counter("n"));
-            tree.flush();
-
-            stateOf(tree).bump();
-
-            assertEquals(List.of(), List.of());
         }
     }
 }

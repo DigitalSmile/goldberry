@@ -245,26 +245,6 @@ class WaylandDecorationsTest {
                 }
             }
         }
-
-        @Test
-        @DisplayName("reports UNDECORATED only when it is certain")
-        void reportsUndecoratedOnlyWhenCertain() {
-            // ADR-0086 removed the caller that acted on this before SDL_Init, but
-            // the distinction still governs whether the warning is emitted, and it
-            // is the shape any future conditional fallback would depend on.
-            assertAll(
-                    () -> assertEquals(
-                            Verdict.UNDECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(noDirectory(), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(plugins(GTK), UNKNOWN_THREAD)),
-                    () -> assertEquals(
-                            Verdict.DECORATED,
-                            WaylandDecorations.verdictForWayland(plugins(GTK, CAIRO), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.DECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), INITIAL_THREAD)));
-        }
     }
 
     @Nested

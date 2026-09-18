@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.text.flow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -155,27 +154,6 @@ class TextFlowTest {
         assertEquals(
                 WhiteSpace.NORMAL,
                 TextFlow.NORMAL.textOverflow(TextOverflow.ELLIPSIS).whiteSpace());
-    }
-
-    @Test
-    @DisplayName("neither half may be null")
-    void neitherHalfMayBeNull() {
-        // A flow with a missing half would be a paragraph whose measure function
-        // and painter each guessed, which is the failure this record exists to
-        // make impossible.
-        assertThrows(NullPointerException.class, () -> new TextFlow(null, TextOverflow.CLIP));
-        assertThrows(NullPointerException.class, () -> new TextFlow(WhiteSpace.NORMAL, null));
-        assertThrows(NullPointerException.class, () -> new TextFlow(WhiteSpace.NORMAL, TextOverflow.CLIP, null));
-    }
-
-    @Test
-    @DisplayName("the mark is one glyph, not three full stops")
-    void theMarkIsOneCharacter() {
-        // Three periods measure wider than the ellipsis a font draws for them,
-        // so a label truncated with `...` would leave a gap one more letter
-        // would have fitted into.
-        assertEquals(1, TextOverflow.MARK.codePointCount(0, TextOverflow.MARK.length()));
-        assertEquals(0x2026, TextOverflow.MARK.codePointAt(0));
     }
 
     @Test

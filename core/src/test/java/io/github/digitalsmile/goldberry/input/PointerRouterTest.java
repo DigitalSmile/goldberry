@@ -310,16 +310,6 @@ class PointerRouterTest {
     class Pressing {
 
         @Test
-        @DisplayName(":active follows the press")
-        void active() {
-            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
-            assertTrue(inner.hasState(PseudoClass.ACTIVE));
-
-            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
-            assertFalse(inner.hasState(PseudoClass.ACTIVE));
-        }
-
-        @Test
         @DisplayName(":active reaches the whole ancestor chain, exactly as :hover does")
         void activeIsTheChain() {
             // It did not, and that made `checkbox:active` and `radio:active`

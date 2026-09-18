@@ -260,7 +260,6 @@ class ShadowRampTest {
             // 150% paints the same bands at 1.5x the size rather than half again
             // as many of them, which is what makes a shadow survive
             // `ScaleInvariance`.
-            assertEquals(ShadowRamp.bandCount(12), ShadowRamp.bandCount(12));
             assertEquals(12, ShadowRamp.bandCount(11.2));
         }
     }

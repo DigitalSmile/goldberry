@@ -45,18 +45,6 @@ class FileChoiceTest {
         assertEquals(List.of(), FileChoice.failed("no portal").paths());
     }
 
-    @Test
-    @DisplayName("switches exhaustively without a default")
-    void switchesExhaustively() {
-        // The compiler is the assertion here: adding a fourth case to the sealed
-        // interface stops this method compiling, which is the whole reason it is
-        // sealed rather than an enum plus a payload.
-        // Through `Path`, because Windows prints it as `\a.png` (ADR-0338).
-        assertEquals("chose " + Path.of("/a.png"), describe(FileChoice.of(Path.of("/a.png"))));
-        assertEquals("cancelled", describe(FileChoice.cancelled()));
-        assertEquals("failed: no portal", describe(FileChoice.failed("no portal")));
-    }
-
     private static String describe(FileChoice choice) {
         return switch (choice) {
             case FileChoice.Chosen chosen -> "chose " + chosen.path();

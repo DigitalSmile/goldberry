@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.css.lint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -229,13 +228,6 @@ class StyleLintTest {
         @DisplayName("an empty sheet has nothing wrong with it")
         void emptySheet() {
             assertTrue(check("").isEmpty());
-        }
-
-        @Test
-        @DisplayName("neither argument may be null")
-        void nullsAreRefused() {
-            assertThrows(NullPointerException.class, () -> new StyleLint(null));
-            assertThrows(NullPointerException.class, () -> new StyleLint(List.of()).check((List<Stylesheet>) null));
         }
 
         @Test

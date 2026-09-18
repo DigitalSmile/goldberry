@@ -45,10 +45,4 @@ class GoldberryTest {
                 () -> assertFalse("2026.0".matches(pattern)),
                 () -> assertFalse("2026".matches(pattern)));
     }
-
-    @Test
-    @DisplayName("version() is stable across calls")
-    void versionIsStable() {
-        assertTrue(Goldberry.version().equals(Goldberry.version()));
-    }
 }
