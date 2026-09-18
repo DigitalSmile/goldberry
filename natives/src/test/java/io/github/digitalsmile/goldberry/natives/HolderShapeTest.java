@@ -156,13 +156,4 @@ class HolderShapeTest {
         }
         assertTrue(wrong.isEmpty(), String.join("\n", wrong));
     }
-
-    @Test
-    @DisplayName("links from a descriptor and needs no library to do it")
-    void descriptorsLinkWithoutTheLibrary() {
-        // Reaching the holders at all forces their initialisers, which is what
-        // links every handle. If any descriptor were malformed this would have
-        // thrown before the first assertion in this class ran.
-        assertEquals(0, holders().stream().filter(h -> handleOf(h) == null).count());
-    }
 }

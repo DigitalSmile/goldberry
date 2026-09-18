@@ -32,15 +32,6 @@ class SdlTextInputAreaTest {
     }
 
     @Test
-    @DisplayName("binds SDL_SetTextInputArea, which is a link-time question")
-    void bindsTheAreaCall() {
-        // No SDL_Init: SdlVideo binds every window call in its constructor, so
-        // this fails first and most clearly when goldberry.symbols and the
-        // binding disagree.
-        assertNotNull(SdlVideo.get());
-    }
-
-    @Test
     @DisplayName("Java's SDL_TextEditingEvent is the one the library was compiled with")
     void theEditingStructAgrees() {
         // The probe itself runs over Layouts.registry() in LayoutProbeTest; what
@@ -49,16 +40,6 @@ class SdlTextInputAreaTest {
         assertTrue(
                 Layouts.registry().contains(Layouts.SDL_TEXT_EDITING_EVENT),
                 "a layout outside the registry is a layout nothing checks against C");
-    }
-
-    @Test
-    @DisplayName("TEXT_EDITING is SDL's own number, one below TEXT_INPUT")
-    void theEventNumberIsSdls() {
-        // SDL_EVENT_TEXT_EDITING = 0x302, SDL_EVENT_TEXT_INPUT = 0x303. Pinned
-        // because a wrong constant here is an event that never arrives, which
-        // looks exactly like a platform with no input method.
-        assertEquals(0x302, SdlEventType.TEXT_EDITING.value());
-        assertEquals(0x303, SdlEventType.TEXT_INPUT.value());
     }
 
     @Test

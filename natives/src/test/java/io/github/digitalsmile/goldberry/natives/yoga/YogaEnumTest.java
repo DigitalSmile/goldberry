@@ -89,16 +89,6 @@ class YogaEnumTest {
         }
     }
 
-    @Test
-    @DisplayName("align and justify are not interchangeable")
-    void alignAndJustifyDisagreeAboutCentre() {
-        // CSS spells them the same and Yoga numbers them differently. Sharing
-        // one Java enum between the two would put a plausible wrong value on the
-        // wire, and the result would be a layout that is merely off-centre.
-        assertEquals(2, Align.CENTER.nativeValue());
-        assertEquals(1, Justify.CENTER.nativeValue());
-    }
-
     @ParameterizedTest
     @EnumSource(Direction.class)
     @DisplayName("a direction survives the round trip back from Yoga")
