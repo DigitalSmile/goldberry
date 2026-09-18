@@ -1,12 +1,18 @@
 package io.github.digitalsmile.goldberry.text.itemize;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /// Which face draws what — [ADR-0393]'s half that needs no font at all.
 ///
@@ -15,10 +21,40 @@ import org.junit.jupiter.api.Test;
 /// *sequence* correctly, which is where a naive per-code-point split goes wrong.
 class ItemizerTest {
 
-    @Test
-    @DisplayName("prose is one run, and the face it names is the text face")
-    void proseIsOneRun() {
-        assertEquals(List.of(new TextRun(0, 11, Slot.TEXT)), Itemizer.runs("hello there"));
+    /// The strings that must come out as **one** run over their whole length,
+    /// and the face each one lands in — the shape a per-code-point split gets
+    /// wrong. The first column says what the case is for, so a failure names it.
+    static Stream<Arguments> wholeStrings() {
+        return Stream.of(
+                arguments("prose is one run, and the face it names is the text face", "hello there", Slot.TEXT),
+                // A flag is two regional indicators that the font draws as one
+                // picture, and it can only do that if handed both at once.
+                arguments(
+                        "two emoji side by side are one run, so the face can ligate them",
+                        "\uD83C\uDDEC\uD83C\uDDE7",
+                        Slot.EMOJI),
+                arguments(
+                        "a joined family is one run and not three people",
+                        "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67",
+                        Slot.EMOJI),
+                arguments("a skin tone belongs to the emoji before it", "\uD83D\uDC4B\uD83C\uDFFD", Slot.EMOJI),
+                // A bare heart is Emoji=Yes and Emoji_Presentation=No: Unicode
+                // draws it as a glyph unless asked otherwise, and U+FE0F asks.
+                arguments("U+FE0F asks for the picture, and gets it", "\u2764\uFE0F", Slot.EMOJI),
+                arguments("U+FE0E asks for the glyph, and the emoji face never sees it", "\u2764\uFE0E", Slot.TEXT),
+                arguments(
+                        "a bare heart stays in the prose face, because Unicode says it is a glyph",
+                        "\u2764",
+                        Slot.TEXT),
+                arguments("a keycap is three code points and one picture", "1\uFE0F\u20E3", Slot.EMOJI),
+                arguments("but a digit on its own is a digit", "14:00 is", Slot.TEXT));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("wholeStrings")
+    @DisplayName("a string that is one run comes out as one run, in the face Unicode names")
+    void oneRun(String what, String text, Slot slot) {
+        assertEquals(List.of(new TextRun(0, text.length(), slot)), Itemizer.runs(text), what);
     }
 
     @Test
@@ -56,72 +92,6 @@ class ItemizerTest {
     }
 
     @Test
-    @DisplayName("two emoji side by side are one run, so the face can ligate them")
-    void adjacentEmojiShareARun() {
-        // A flag is two regional indicators that the font draws as one picture,
-        // and it can only do that if it is handed both at once.
-        var runs = Itemizer.runs("🇬🇧");
-
-        assertEquals(1, runs.size());
-        assertEquals(Slot.EMOJI, runs.getFirst().slot());
-    }
-
-    @Test
-    @DisplayName("a joined family is one run and not three people")
-    void zeroWidthJoinerHoldsAClusterTogether() {
-        var family = "👨‍👩‍👧";
-        var runs = Itemizer.runs(family);
-
-        assertEquals(List.of(new TextRun(0, family.length(), Slot.EMOJI)), runs);
-    }
-
-    @Test
-    @DisplayName("a skin tone belongs to the emoji before it")
-    void modifiersJoinTheirBase() {
-        var wave = "👋🏽";
-        assertEquals(List.of(new TextRun(0, wave.length(), Slot.EMOJI)), Itemizer.runs(wave));
-    }
-
-    @Test
-    @DisplayName("U+FE0F asks for the picture, and gets it")
-    void theEmojiSelectorRoutes() {
-        // A bare heart is Emoji=Yes and Emoji_Presentation=No: Unicode draws it
-        // as a glyph unless asked otherwise, and this is the asking.
-        var runs = Itemizer.runs("❤️");
-
-        assertEquals(1, runs.size());
-        assertEquals(Slot.EMOJI, runs.getFirst().slot());
-    }
-
-    @Test
-    @DisplayName("U+FE0E asks for the glyph, and the emoji face never sees it")
-    void theTextSelectorDoesNotRoute() {
-        var runs = Itemizer.runs("❤︎");
-
-        assertEquals(1, runs.size());
-        assertEquals(Slot.TEXT, runs.getFirst().slot(), "the author asked for the text form");
-    }
-
-    @Test
-    @DisplayName("a bare heart stays in the prose face, because Unicode says it is a glyph")
-    void defaultTextPresentationStays() {
-        assertEquals(List.of(new TextRun(0, 1, Slot.TEXT)), Itemizer.runs("❤"));
-    }
-
-    @Test
-    @DisplayName("a keycap is three code points and one picture")
-    void keycapsAreWhole() {
-        var keycap = "1️⃣";
-        assertEquals(List.of(new TextRun(0, keycap.length(), Slot.EMOJI)), Itemizer.runs(keycap));
-    }
-
-    @Test
-    @DisplayName("but a digit on its own is a digit")
-    void aBareDigitIsText() {
-        assertEquals(List.of(new TextRun(0, 8, Slot.TEXT)), Itemizer.runs("14:00 is"));
-    }
-
-    @Test
     @DisplayName("a hash before a word is a hashtag, not a keycap")
     void aHashIsNotSwallowed() {
         // `#` is Emoji_Component, so an itemizer that extended a cluster over
@@ -148,9 +118,10 @@ class ItemizerTest {
     @Test
     @DisplayName("a run cannot end before it starts")
     void aBackwardsRunIsRefused() {
-        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(
-                        IllegalArgumentException.class, () -> new TextRun(4, 2, Slot.TEXT))
-                .getMessage()
-                .contains("4..2"));
+        var refusal = assertThrows(IllegalArgumentException.class, () -> new TextRun(4, 2, Slot.TEXT));
+
+        // The two offsets and not the sentence around them: what a caller needs
+        // is which pair was transposed.
+        assertTrue(refusal.getMessage().contains("4..2"), refusal.getMessage());
     }
 }

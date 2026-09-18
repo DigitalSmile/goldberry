@@ -1,12 +1,16 @@
 package io.github.digitalsmile.goldberry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Duration;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /// How long a focus-lost is disbelieved for, and why it can be told.
 ///
@@ -28,49 +32,34 @@ class FocusSettleTest {
         System.clearProperty(Launcher.SETTLE_PROPERTY);
     }
 
-    @Test
-    @DisplayName("60 ms unless something says otherwise")
-    void theDefault() {
-        System.clearProperty(Launcher.SETTLE_PROPERTY);
-
-        assertEquals(Duration.ofMillis(60), Launcher.focusSettle());
+    /// What the property is set to and the delay it becomes — `null` in the
+    /// second column for the property unset.
+    ///
+    /// A minute of a menu floating over the application the user switched to is
+    /// not a tuning flag, it is a bug being configured in, so the ceiling is two
+    /// seconds. A malformed flag falls back to the default rather than stopping
+    /// an application starting, which is the rule `goldberry.frame.rate` already
+    /// follows.
+    static Stream<Arguments> settings() {
+        return Stream.of(
+                arguments("60 ms unless something says otherwise", null, Duration.ofMillis(60)),
+                arguments("a driver that delivers the pair slowly can be given longer", "250", Duration.ofMillis(250)),
+                arguments("zero is clamped, because a delay of none is the bug", "0", Duration.ofMillis(1)),
+                arguments("and so is a negative", "-40", Duration.ofMillis(1)),
+                arguments("two seconds is as far as this goes", "60000", Duration.ofSeconds(2)),
+                arguments("nonsense is ignored rather than fatal", "soon", Duration.ofMillis(60)));
     }
 
-    @Test
-    @DisplayName("a driver that delivers the pair slowly can be given longer")
-    void theOverride() {
-        System.setProperty(Launcher.SETTLE_PROPERTY, "250");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("settings")
+    @DisplayName("the delay is 60 ms unless told otherwise, clamped between 1 ms and two seconds")
+    void focusSettle(String what, String property, Duration expected) {
+        if (property == null) {
+            System.clearProperty(Launcher.SETTLE_PROPERTY);
+        } else {
+            System.setProperty(Launcher.SETTLE_PROPERTY, property);
+        }
 
-        assertEquals(Duration.ofMillis(250), Launcher.focusSettle());
-    }
-
-    @Test
-    @DisplayName("zero and negative are clamped, because a delay of none is the bug")
-    void zeroIsClamped() {
-        System.setProperty(Launcher.SETTLE_PROPERTY, "0");
-        assertEquals(Duration.ofMillis(1), Launcher.focusSettle());
-
-        System.setProperty(Launcher.SETTLE_PROPERTY, "-40");
-        assertEquals(Duration.ofMillis(1), Launcher.focusSettle());
-    }
-
-    @Test
-    @DisplayName("a menu that hangs about for two seconds is as far as this goes")
-    void theCeiling() {
-        System.setProperty(Launcher.SETTLE_PROPERTY, "60000");
-
-        // A minute of a menu floating over the application the user switched to
-        // is not a tuning flag, it is a bug being configured in.
-        assertEquals(Duration.ofSeconds(2), Launcher.focusSettle());
-    }
-
-    @Test
-    @DisplayName("nonsense is ignored rather than fatal")
-    void nonsense() {
-        System.setProperty(Launcher.SETTLE_PROPERTY, "soon");
-
-        // A malformed tuning flag must not stop an application starting, which is
-        // the rule `goldberry.frame.rate` already follows.
-        assertEquals(Duration.ofMillis(60), Launcher.focusSettle());
+        assertEquals(expected, Launcher.focusSettle(), what);
     }
 }

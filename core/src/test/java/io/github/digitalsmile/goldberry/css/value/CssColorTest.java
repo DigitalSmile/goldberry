@@ -24,37 +24,26 @@ class CssColorTest {
 
     @ParameterizedTest
     @CsvSource({
+        // six digits are opaque
         "'#000000', 0xFF000000",
         "'#ffffff', 0xFFFFFFFF",
         "'#2e3440', 0xFF2E3440",
         "'#88c0d0', 0xFF88C0D0",
+        // three digits double each digit rather than shifting: #abc is #aabbcc
+        // and not #0a0b0c, which would silently darken every short-form colour
+        // in a stylesheet
+        "'#abc', 0xFFAABBCC",
+        "'#fff', 0xFFFFFFFF",
+        // eight digits move the alpha from last to first: CSS writes #rrggbbaa
+        // and the packed form is 0xAARRGGBB
+        "'#88c0d080', 0x8088C0D0",
+        "'#ff000000', 0x00FF0000",
+        // and four are the short form with an alpha on the end
+        "'#abc8', 0x88AABBCC",
     })
-    @DisplayName("six-digit hex is opaque")
-    void sixDigitHex(String css, long expected) {
+    @DisplayName("hex in three, four, six and eight digits")
+    void hex(String css, long expected) {
         assertEquals((int) expected, parse(css));
-    }
-
-    @Test
-    @DisplayName("three-digit hex doubles each digit rather than shifting")
-    void threeDigitHex() {
-        // #abc is #aabbcc, not #0a0b0c -- a shift would silently darken every
-        // short-form colour in a stylesheet.
-        assertEquals(0xFFAABBCC, parse("#abc"));
-        assertEquals(0xFFFFFFFF, parse("#fff"));
-    }
-
-    @Test
-    @DisplayName("eight-digit hex moves the alpha from last to first")
-    void eightDigitHex() {
-        // CSS writes #rrggbbaa; the packed form is 0xAARRGGBB.
-        assertEquals(0x8088C0D0, parse("#88c0d080"));
-        assertEquals(0x00FF0000, parse("#ff000000"));
-    }
-
-    @Test
-    @DisplayName("four-digit hex is the short form with alpha")
-    void fourDigitHex() {
-        assertEquals(0x88AABBCC, parse("#abc8"));
     }
 
     @ParameterizedTest

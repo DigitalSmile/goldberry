@@ -5,13 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
@@ -84,38 +91,38 @@ class ComputedStyleTest {
     @DisplayName("a shorthand with a function in it")
     class Functions {
 
-        @Test
-        @DisplayName("keeps the spaces inside the function's own parentheses")
-        void borderWithRgba() {
-            // The bug this pins was live and silent: the splitter broke a
-            // shorthand on *any* whitespace, so `rgba(255, 255, 255, 0.2)`
-            // became four fragments, none of them a colour, and the whole
-            // `border` was dropped with a warning nobody was reading.
-            var style = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
-
-            assertTrue(style.decoration().hasBorder());
-        }
-
-        @Test
-        @DisplayName("and the same value written without spaces means the same thing")
-        void spacingDoesNotMatter() {
-            var spaced = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
-            var tight = compute("button { border: 1px solid rgba(255,255,255,0.2) }");
-
-            assertEquals(tight.decoration(), spaced.decoration());
-        }
-
-        @Test
-        @DisplayName("a token that is what a card's edge actually resolves to")
-        void theCardEdge() {
-            // `--gb-border-strong`, through a custom property, which is how it
-            // reaches the shorthand in the real stylesheet -- an alpha over
-            // whatever is underneath is the only way to say "lighter than its
-            // own surface" in a subset with no colour functions (ADR-0166).
-            var style = compute(
-                    "window { --edge: rgba(255, 255, 255, 0.20) }" + " button { border: 1px solid var(--edge) }");
+        /// The bug this pins was live and silent: the splitter broke a shorthand
+        /// on *any* whitespace, so `rgba(255, 255, 255, 0.2)` became four
+        /// fragments, none of them a colour, and the whole `border` was dropped
+        /// with a warning nobody was reading.
+        ///
+        /// Three spellings of one edge, each compared against the tight form
+        /// rather than merely asked whether it has *a* border — the third goes
+        /// through a custom property, which is how `--gb-border-strong` reaches
+        /// the shorthand in the real stylesheet: an alpha over whatever is
+        /// underneath is the only way to say "lighter than its own surface" in a
+        /// subset with no colour functions ([ADR-0166]).
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("spellings")
+        @DisplayName("the spaces inside the function's own parentheses survive, however it is written")
+        void aFunctionSurvivesTheSplitter(String what, String css) {
+            var style = compute(css);
 
             assertTrue(style.decoration().hasBorder(), "a raised thing is told apart by its edge, and it had none");
+            assertEquals(
+                    compute("button { border: 1px solid rgba(255,255,255,0.2) }")
+                            .decoration(),
+                    style.decoration(),
+                    what);
+        }
+
+        static Stream<Arguments> spellings() {
+            return Stream.of(
+                    arguments("written with spaces", "button { border: 1px solid rgba(255, 255, 255, 0.2) }"),
+                    arguments("written without them", "button { border: 1px solid rgba(255,255,255,0.2) }"),
+                    arguments(
+                            "a token that is what a card's edge actually resolves to",
+                            "window { --edge: rgba(255, 255, 255, 0.20) } button { border: 1px solid var(--edge) }"));
         }
     }
 
@@ -469,20 +476,62 @@ class ComputedStyleTest {
             assertEquals(0xFFFF0000, style.color());
         }
 
-        @Test
-        @DisplayName("a keyword that is not in the enum is dropped")
-        void badKeyword() {
-            assertEquals(
-                    ComputedStyle.INITIAL.direction(),
-                    compute("button { flex-direction: sideways }").direction());
+        /// Every way a declaration can be unreadable, and the one thing they all
+        /// do: leave the property exactly where `INITIAL` had it. Read out of
+        /// `INITIAL` rather than written as a literal, so the table says "the
+        /// value did not move" and not "the value is square".
+        ///
+        /// A shorthand is dropped **whole**: half of one is harder to see than
+        /// none of it, because two edges move and two do not, which reads as a
+        /// layout bug rather than a typo ([ADR-0216] for the corner half).
+        static Stream<Arguments> unreadable() {
+            return Stream.of(
+                    arguments("a keyword that is not in the enum", "flex-direction: sideways", direction()),
+                    arguments("a negative flex-grow", "flex-grow: -1", flexGrow()),
+                    arguments("a padding shorthand with one bad part", "padding: 8px nonsense", padding()),
+                    arguments("five values, which is no shorthand CSS has", "padding: 1px 2px 3px 4px 5px", padding()),
+                    arguments("a corner shorthand with one bad part", "border-radius: 7px nonsense", corners()),
+                    arguments("five corners", "border-radius: 1px 2px 3px 4px 5px", corners()),
+                    arguments("a limit that is not a length", "max-width: banana", limits()),
+                    arguments("a white-space keyword the subset has not got", "white-space: pre-wrap", whiteSpace()),
+                    arguments("a text-overflow keyword the subset has not got", "text-overflow: fade", textOverflow()));
         }
 
-        @Test
-        @DisplayName("a negative flex-grow is dropped")
-        void negativeFlexGrow() {
-            assertEquals(
-                    ComputedStyle.INITIAL.flexGrow(),
-                    compute("button { flex-grow: -1 }").flexGrow());
+        private static Function<ComputedStyle, Object> direction() {
+            return ComputedStyle::direction;
+        }
+
+        private static Function<ComputedStyle, Object> flexGrow() {
+            return ComputedStyle::flexGrow;
+        }
+
+        private static Function<ComputedStyle, Object> padding() {
+            return ComputedStyle::padding;
+        }
+
+        private static Function<ComputedStyle, Object> corners() {
+            return style -> style.decoration().corners();
+        }
+
+        private static Function<ComputedStyle, Object> limits() {
+            return ComputedStyle::limits;
+        }
+
+        private static Function<ComputedStyle, Object> whiteSpace() {
+            return ComputedStyle::whiteSpace;
+        }
+
+        private static Function<ComputedStyle, Object> textOverflow() {
+            return ComputedStyle::textOverflow;
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("unreadable")
+        @DisplayName("a value the engine cannot read leaves its property at the initial")
+        void rubbishLeavesTheInitial(String what, String declaration, Function<ComputedStyle, Object> property) {
+            var style = compute("button { " + declaration + " }");
+
+            assertEquals(property.apply(ComputedStyle.INITIAL), property.apply(style), what);
         }
     }
 
@@ -523,41 +572,25 @@ class ComputedStyleTest {
     @DisplayName("padding")
     class Padding {
 
-        @Test
-        @DisplayName("one value is every edge")
-        void one() {
+        /// CSS's 1-to-4 expansion, in CSS's order and not a reading order: two
+        /// orders for one concept is how a padding lands on the wrong pair of
+        /// edges. `0 12px` is in the table because it is the form every control
+        /// is written in — a button that could state only one value could not
+        /// state its own metric.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            // declaration, top, right, bottom, left
+            "padding: 12px,            12, 12, 12, 12",
+            "padding: 0 12px,          0, 12, 0, 12",
+            "padding: 1px 2px 3px,     1, 2, 3, 2",
+            "padding: 1px 2px 3px 4px, 1, 2, 3, 4",
+        })
+        @DisplayName(
+                "one value is every edge, two are vertical then horizontal, three name the fourth, four go clockwise")
+        void expansion(String declaration, float top, float right, float bottom, float left) {
             assertEquals(
-                    Insets.all(Length.points(12)),
-                    compute("button { padding: 12px }").padding());
-        }
-
-        @Test
-        @DisplayName("two values are vertical then horizontal")
-        void two() {
-            // The form a control is written in: `padding: 0 12px` is the button's
-            // own metric, and supporting only one value would mean no control
-            // could state it.
-            assertEquals(
-                    new Insets(Length.points(0), Length.points(12), Length.points(0), Length.points(12)),
-                    compute("button { padding: 0 12px }").padding());
-        }
-
-        @Test
-        @DisplayName("three values give the bottom its own, and the sides share")
-        void three() {
-            assertEquals(
-                    new Insets(Length.points(1), Length.points(2), Length.points(3), Length.points(2)),
-                    compute("button { padding: 1px 2px 3px }").padding());
-        }
-
-        @Test
-        @DisplayName("four values run clockwise from the top, as CSS does")
-        void four() {
-            // CSS's order, not a reading order. Two orders for one concept is how
-            // a padding lands on the wrong pair of edges.
-            assertEquals(
-                    new Insets(Length.points(1), Length.points(2), Length.points(3), Length.points(4)),
-                    compute("button { padding: 1px 2px 3px 4px }").padding());
+                    new Insets(Length.points(top), Length.points(right), Length.points(bottom), Length.points(left)),
+                    compute("button { " + declaration + " }").padding());
         }
 
         @Test
@@ -568,24 +601,6 @@ class ComputedStyleTest {
             assertEquals(
                     new Insets(Length.points(4), Length.points(4), Length.points(4), Length.points(16)),
                     style.padding());
-        }
-
-        @Test
-        @DisplayName("a shorthand with one bad part is dropped whole")
-        void partiallyBad() {
-            // Half a shorthand is harder to see than none of it: two edges would
-            // move and two would not, which reads as a layout bug.
-            assertEquals(
-                    ComputedStyle.INITIAL.padding(),
-                    compute("button { padding: 8px nonsense }").padding());
-        }
-
-        @Test
-        @DisplayName("five values are not a shorthand CSS has")
-        void tooMany() {
-            assertEquals(
-                    ComputedStyle.INITIAL.padding(),
-                    compute("button { padding: 1px 2px 3px 4px 5px }").padding());
         }
     }
 
@@ -601,39 +616,21 @@ class ComputedStyleTest {
                     .corners();
         }
 
-        @Test
-        @DisplayName("one value is every corner, which is every radius the system pins")
-        void one() {
-            assertEquals(Corners.all(8), corners("8px"));
-        }
-
-        @Test
-        @DisplayName("two values are the two diagonals")
-        void two() {
-            assertEquals(new Corners(4, 12, 4, 12), corners("4px 12px"));
-        }
-
-        @Test
-        @DisplayName("three values name the fourth as the opposite of the second")
-        void three() {
-            assertEquals(new Corners(1, 2, 3, 2), corners("1px 2px 3px"));
-        }
-
-        @Test
-        @DisplayName("four values run clockwise from the top-left, as CSS does")
-        void four() {
-            // `group-box-title`'s own declaration: the frame's radius less its
-            // border on top, square where the body carries on underneath.
-            assertEquals(new Corners(7, 7, 0, 0), corners("7px 7px 0 0"));
-        }
-
-        @Test
-        @DisplayName("a shorthand with one bad part is dropped whole")
-        void partiallyBad() {
-            // `padding`'s rule, for `padding`'s reason: two corners rounded and
-            // two not, from a typo, reads as a drawing bug rather than a bad value.
-            assertEquals(Corners.SQUARE, corners("7px nonsense"));
-            assertEquals(Corners.SQUARE, corners("1px 2px 3px 4px 5px"));
+        /// The same 1-to-4 expansion `padding` has, clockwise from the top-left.
+        /// `7px 7px 0 0` is `group-box-title`'s own declaration — the frame's
+        /// radius less its border on top, square where the body carries on
+        /// underneath — and `8px` is every radius the design system pins.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            // value, top-left, top-right, bottom-right, bottom-left
+            "8px,         8, 8, 8, 8",
+            "4px 12px,    4, 12, 4, 12",
+            "1px 2px 3px, 1, 2, 3, 2",
+            "7px 7px 0 0, 7, 7, 0, 0",
+        })
+        @DisplayName("one value is every corner, two are the diagonals, three name the fourth, four go clockwise")
+        void expansion(String value, float topLeft, float topRight, float bottomRight, float bottomLeft) {
+            assertEquals(new Corners(topLeft, topRight, bottomRight, bottomLeft), corners(value));
         }
 
         @Test
@@ -1121,14 +1118,6 @@ class ComputedStyleTest {
             assertEquals(Length.UNDEFINED, style.limits().minHeight());
             assertFalse(style.limits().isNone());
         }
-
-        @Test
-        @DisplayName("a value that is not a length is dropped, like every other")
-        void rubbishIsDropped() {
-            assertEquals(
-                    ComputedStyle.INITIAL.limits(),
-                    compute("button { max-width: banana }").limits());
-        }
     }
 
     @Nested
@@ -1154,16 +1143,6 @@ class ComputedStyleTest {
             assertEquals(WhiteSpace.NOWRAP, style.whiteSpace());
             assertEquals(TextOverflow.ELLIPSIS, style.textOverflow());
             assertEquals(TextFlow.ELLIPSIS, style.textFlow());
-        }
-
-        @Test
-        @DisplayName("a value the keyword is not is dropped, like every other")
-        void rubbishIsDropped() {
-            assertEquals(
-                    WhiteSpace.NORMAL,
-                    compute("button { white-space: pre-wrap }").whiteSpace());
-            assertEquals(
-                    TextOverflow.CLIP, compute("button { text-overflow: fade }").textOverflow());
         }
 
         @Test

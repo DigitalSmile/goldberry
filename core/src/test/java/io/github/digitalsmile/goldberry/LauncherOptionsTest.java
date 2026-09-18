@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
@@ -63,23 +65,16 @@ class LauncherOptionsTest {
         assertNull(Launcher.Options.of(new String[] {"--size=800x"}).size());
     }
 
-    @Test
-    @DisplayName("a frame count that is not a number is refused by the flag's name")
-    void framesRefusedByName() {
-        var refused =
-                assertThrows(IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {"--frames=ten"}));
+    /// The flag as it was typed, which is what a reader has to go and correct —
+    /// not the sentence around it, and not `NumberFormatException`'s own message,
+    /// which names the fragment and not the flag it came from.
+    @ParameterizedTest
+    @ValueSource(strings = {"--frames=ten", "--size=widexhigh"})
+    @DisplayName("a flag whose value is not a number is refused by the flag's own name")
+    void refusedByName(String flag) {
+        var refused = assertThrows(IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {flag}));
 
-        assertTrue(refused.getMessage().contains("--frames=ten"), refused.getMessage());
-        assertInstanceOf(NumberFormatException.class, refused.getCause());
-    }
-
-    @Test
-    @DisplayName("a size that is not two numbers is refused by the flag's name")
-    void sizeRefusedByName() {
-        var refused = assertThrows(
-                IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {"--size=widexhigh"}));
-
-        assertTrue(refused.getMessage().contains("--size=widexhigh"), refused.getMessage());
+        assertTrue(refused.getMessage().contains(flag), refused.getMessage());
         assertInstanceOf(NumberFormatException.class, refused.getCause());
     }
 }

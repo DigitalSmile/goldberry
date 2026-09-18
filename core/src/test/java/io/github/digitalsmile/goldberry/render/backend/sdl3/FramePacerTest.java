@@ -3,12 +3,17 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Duration;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /// The pacer's decisions, without a display.
 ///
@@ -311,45 +316,36 @@ class FramePacerTest {
     @DisplayName("configuration")
     class Configuration {
 
-        @Test
-        @DisplayName("no property means unpaced")
-        void absentPropertyIsUnpaced() {
-            withRate(null, () -> assertFalse(FramePacer.fromProperties().isPacing()));
+        /// What the property is set to, and the interval it becomes — `null` in
+        /// the second column for the property unset, and in the third for a
+        /// value that leaves the loop unpaced rather than stalled. A malformed
+        /// tuning flag must not stop a window opening, so nonsense is in the
+        /// same column as zero.
+        static Stream<Arguments> rates() {
+            return Stream.of(
+                    arguments("no property means unpaced", null, null),
+                    arguments("a rate becomes an interval", "60", SIXTY_HZ),
+                    arguments("a fractional rate is honoured", "59.96", (long) (1_000_000_000L / 59.96)),
+                    arguments("zero is unpaced rather than a stalled loop", "0", null),
+                    arguments("and so is a negative rate", "-30", null),
+                    arguments("a word is ignored rather than fatal", "sixty", null),
+                    arguments("and so is whitespace", "  ", null));
         }
 
-        @Test
-        @DisplayName("a rate becomes an interval")
-        void aRateBecomesAnInterval() {
-            withRate("60", () -> {
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("rates")
+        @DisplayName("a readable positive rate is an interval, and everything else is unpaced")
+        void fromProperties(String what, String rate, Long interval) {
+            withRate(rate, () -> {
                 var pacer = FramePacer.fromProperties();
-                assertTrue(pacer.isPacing());
-                assertEquals(SIXTY_HZ, pacer.interval().toNanos());
+
+                if (interval == null) {
+                    assertFalse(pacer.isPacing(), what);
+                } else {
+                    assertTrue(pacer.isPacing(), what);
+                    assertEquals(interval, pacer.interval().toNanos(), what);
+                }
             });
-        }
-
-        @Test
-        @DisplayName("a fractional rate is honoured")
-        void aFractionalRateIsHonoured() {
-            withRate("59.96", () -> {
-                var pacer = FramePacer.fromProperties();
-                assertTrue(pacer.isPacing());
-                assertEquals((long) (1_000_000_000L / 59.96), pacer.interval().toNanos());
-            });
-        }
-
-        @Test
-        @DisplayName("zero and negative rates mean unpaced rather than a stalled loop")
-        void zeroAndNegativeRatesAreUnpaced() {
-            withRate("0", () -> assertFalse(FramePacer.fromProperties().isPacing()));
-            withRate("-30", () -> assertFalse(FramePacer.fromProperties().isPacing()));
-        }
-
-        @Test
-        @DisplayName("nonsense is ignored rather than fatal")
-        void nonsenseIsIgnored() {
-            // A malformed tuning flag must not stop a window opening.
-            withRate("sixty", () -> assertFalse(FramePacer.fromProperties().isPacing()));
-            withRate("  ", () -> assertFalse(FramePacer.fromProperties().isPacing()));
         }
 
         private void withRate(String value, Runnable body) {

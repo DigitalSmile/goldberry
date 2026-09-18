@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Affine;
@@ -129,38 +131,25 @@ class ClipTest {
     @DisplayName("painting")
     class Painting {
 
-        @Test
-        @DisplayName("hidden overflow cuts the content off at the viewport")
-        void hiddenClips() {
-            BoxPainter.paint(target.frame(), viewport(Overflow.HIDDEN));
+        /// Over the whole enum, so a fourth `overflow` has to be classified here
+        /// before it can paint anything. `visible` is CSS's default and spills;
+        /// `scroll` sizes exactly as `hidden` does, the two differing only above
+        /// the layout engine, where a widget decides whether to offer bars.
+        @ParameterizedTest
+        @EnumSource(Overflow.class)
+        @DisplayName("hidden and scroll cut the content off at the viewport, and visible lets it spill")
+        void overflowClipsOrSpills(Overflow overflow) {
+            BoxPainter.paint(target.frame(), viewport(overflow));
             target.end();
 
             assertEquals(0xFFFF0000, target.pixel(25, 25), "inside the viewport");
-            assertEquals(0xFFFF0000, target.pixel(25, 49), "the last row inside it");
-            assertEquals(0, target.alphaAt(25, 50), "the first row past it is untouched");
-            assertEquals(0, target.alphaAt(25, 150), "and so is everything below");
-        }
-
-        @Test
-        @DisplayName("visible overflow lets it spill, which is CSS's default")
-        void visibleSpills() {
-            BoxPainter.paint(target.frame(), viewport(Overflow.VISIBLE));
-            target.end();
-
-            assertEquals(0xFFFF0000, target.pixel(25, 25), "inside");
-            assertEquals(0xFFFF0000, target.pixel(25, 150), "and well past the viewport");
-        }
-
-        /// `scroll` sizes exactly as `hidden` does; the two differ only above the
-        /// layout engine, where a widget decides whether to offer bars.
-        @Test
-        @DisplayName("scroll clips exactly as hidden does")
-        void scrollClipsToo() {
-            BoxPainter.paint(target.frame(), viewport(Overflow.SCROLL));
-            target.end();
-
-            assertEquals(0xFFFF0000, target.pixel(25, 25));
-            assertEquals(0, target.alphaAt(25, 50));
+            if (overflow == Overflow.VISIBLE) {
+                assertEquals(0xFFFF0000, target.pixel(25, 150), "and well past the viewport");
+            } else {
+                assertEquals(0xFFFF0000, target.pixel(25, 49), "the last row inside it");
+                assertEquals(0, target.alphaAt(25, 50), "the first row past it is untouched");
+                assertEquals(0, target.alphaAt(25, 150), "and so is everything below");
+            }
         }
 
         /// The failure Blend2D's flat `resetClip` invites: the clip must come off

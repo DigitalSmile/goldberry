@@ -1,11 +1,15 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.render.window.IconImage;
 
@@ -24,25 +28,29 @@ class WindowIconOrderTest {
         return images.stream().map(image -> image.size().width()).toList();
     }
 
-    @Test
-    @DisplayName("the smallest size that is at least 48 goes first, whatever order they came in")
-    void smallestThatFits() {
-        var ordered = Sdl3Window.baseFirst(List.of(square(256), square(16), square(64), square(32), square(48)));
-
-        assertEquals(List.of(48, 256, 16, 64, 32), widths(ordered));
+    /// The sizes as they came in, and the order they must leave in. The rest of
+    /// the list keeps the order it arrived in, which is why the expected column
+    /// is the whole list and not just its head.
+    static Stream<Arguments> orderings() {
+        return Stream.of(
+                arguments(
+                        "the smallest size that is at least 48 goes first, whatever order they came in",
+                        List.of(256, 16, 64, 32, 48),
+                        List.of(48, 256, 16, 64, 32)),
+                arguments(
+                        "with nothing that large, the largest there is goes first",
+                        List.of(16, 32, 24),
+                        List.of(32, 16, 24)),
+                arguments("one size is its own base", List.of(128), List.of(128)));
     }
 
-    @Test
-    @DisplayName("with nothing that large, the largest there is goes first")
-    void largestWhenNoneFits() {
-        var ordered = Sdl3Window.baseFirst(List.of(square(16), square(32), square(24)));
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("orderings")
+    @DisplayName("the base is the smallest size that is at least 48, or the largest there is")
+    void baseFirst(String what, List<Integer> given, List<Integer> expected) {
+        var ordered = Sdl3Window.baseFirst(
+                given.stream().map(WindowIconOrderTest::square).toList());
 
-        assertEquals(List.of(32, 16, 24), widths(ordered));
-    }
-
-    @Test
-    @DisplayName("one size is its own base")
-    void one() {
-        assertEquals(List.of(128), widths(Sdl3Window.baseFirst(List.of(square(128)))));
+        assertEquals(expected, widths(ordered), what);
     }
 }

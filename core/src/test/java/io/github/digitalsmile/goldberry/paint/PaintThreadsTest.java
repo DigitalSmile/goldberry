@@ -8,7 +8,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
@@ -26,18 +25,14 @@ class PaintThreadsTest {
         "3, 2",
         "4, 3",
         "5, 4",
+        "6, 4",
         "8, 4", // capped: eight workers measured worse than four at every size
+        "12, 4",
         "64, 4",
     })
     @DisplayName("the automatic count leaves the UI thread a core, caps at four, and never picks one")
     void automaticCount(int processors, int expected) {
         assertEquals(expected, PaintThreads.automatic(processors));
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {1, 2, 3, 4, 6, 8, 12, 64})
-    @DisplayName("the automatic count is never exactly one, on any machine")
-    void neverAsksForASingleWorker(int processors) {
         // The finding this whole policy turns on: a single worker pays for the
         // command queue and gets no parallelism back, so it is worse than
         // painting synchronously. No core count may produce it.

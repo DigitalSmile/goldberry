@@ -13,6 +13,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -147,57 +149,28 @@ class ShadowTest {
     @DisplayName("what it refuses")
     class Refusals {
 
-        @Test
-        @DisplayName("one length is not a shadow")
-        void tooFewLengths() {
-            assertNull(parse("4px black"));
-        }
-
-        @Test
-        @DisplayName("five lengths are not a shadow either")
-        void tooManyLengths() {
-            assertNull(parse("1px 2px 3px 4px 5px black"));
-        }
-
-        @Test
-        @DisplayName("no colour, because there is no `currentColor` to fall back on")
-        void noColour() {
-            // CSS's default here is `currentColor`, which §8's subset does not
-            // have. Guessing black would paint a hard black halo where an author
-            // meant a tinted one, so the declaration is dropped and logged.
-            assertNull(parse("0 2px 8px"));
-        }
-
-        @Test
-        @DisplayName("a negative blur radius")
-        void negativeBlur() {
-            assertNull(parse("0 2px -8px black"));
-        }
-
-        @Test
-        @DisplayName("`inset`, which is a different drawing")
-        void inset() {
-            assertNull(parse("inset 0 2px 8px black"));
-        }
-
-        @Test
-        @DisplayName("a percentage, for `border-radius`'s reason")
-        void percentage() {
-            // A percentage offset means "of this box's size", and a box has no
-            // size until Yoga has run — long after the cascade.
-            assertNull(parse("0 10% 8px black"));
-        }
-
-        @Test
-        @DisplayName("two colours")
-        void twoColours() {
-            assertNull(parse("0 2px 8px black red"));
-        }
-
-        @Test
-        @DisplayName("nonsense")
-        void nonsense() {
-            assertNull(parse("lift-off"));
+        /// Every value that is not a shadow, and why each one is not.
+        ///
+        /// A missing colour is refused rather than defaulted because CSS's
+        /// default here is `currentColor`, which §8's subset does not have:
+        /// guessing black would paint a hard black halo where an author meant a
+        /// tinted one, so the declaration is dropped and logged. A percentage
+        /// goes for `border-radius`'s reason — it means "of this box's size", and
+        /// a box has no size until Yoga has run, long after the cascade.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            "one length,                                    4px black",
+            "five lengths,                                  1px 2px 3px 4px 5px black",
+            "no colour and no currentColor to fall back on, 0 2px 8px",
+            "a negative blur radius,                        0 2px -8px black",
+            "`inset` - a different drawing entirely,        inset 0 2px 8px black",
+            "a percentage the cascade cannot resolve,       0 10% 8px black",
+            "two colours,                                   0 2px 8px black red",
+            "nonsense,                                      lift-off",
+        })
+        @DisplayName("a value that is not a shadow is refused rather than half-read")
+        void refused(String why, String value) {
+            assertNull(parse(value), why);
         }
     }
 
