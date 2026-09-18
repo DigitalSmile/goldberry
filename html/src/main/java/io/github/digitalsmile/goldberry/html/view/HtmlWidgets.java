@@ -78,11 +78,6 @@ final class HtmlWidgets {
     /// Where the blocks are, which only the fold knows — see [WordMinter].
     private final WordMinter minter;
 
-    /// The elements whose content is a program, a stylesheet or metadata: nothing to
-    /// draw. `head` is here rather than in [Tags#isRawText] because it is ordinary
-    /// markup that simply is not content.
-    private static final Set<String> SKIPPED = Set.of("head", "title", "script", "style", "meta", "link", "base");
-
     /// The inline elements whose own whitespace is content, so a fragment of one is
     /// atomic: `a  b` inside them is two spaces somebody typed.
     private static final Set<String> CODE = Set.of("code", "kbd", "samp", "var");
@@ -152,7 +147,7 @@ final class HtmlWidgets {
     private static boolean isInline(HtmlNode node) {
         return switch (node) {
             case HtmlText text -> !text.isBlank();
-            case Element element -> Tags.isInline(element.tag()) && !SKIPPED.contains(element.tag());
+            case Element element -> Tags.isInline(element.tag()) && !Tags.isMetadata(element.tag());
             case Comment _ -> false;
             case HtmlDocument _ -> false;
         };
@@ -179,7 +174,7 @@ final class HtmlWidgets {
 
     private @Nullable Widget element(Element element) {
         var tag = element.tag();
-        if (SKIPPED.contains(tag)) {
+        if (Tags.isMetadata(tag)) {
             return null;
         }
         if (Tags.headingLevel(tag) > 0) {
@@ -389,7 +384,7 @@ final class HtmlWidgets {
 
         private void element(Element element, Set<String> marks) {
             var tag = element.tag();
-            if (SKIPPED.contains(tag)) {
+            if (Tags.isMetadata(tag)) {
                 return;
             }
             var own = Words.and(marks, "html-" + tag);
