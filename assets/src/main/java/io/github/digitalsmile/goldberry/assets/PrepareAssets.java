@@ -76,7 +76,11 @@ public final class PrepareAssets {
     ///
     /// So each module names a root inside its **own** package, and `--root=` is
     /// how a build script says which.
-    private static String root(String[] args) {
+    /// Package-private rather than private, so the test in this package can ask
+    /// it directly: `main` reads a command line and then downloads 90 MB, which
+    /// is not a thing a test can drive (the 2026-09-18 review, §6 — `:assets` had
+    /// no test naming either of these).
+    static String root(String[] args) {
         for (var argument : args) {
             if (argument.startsWith("--root=")) {
                 return argument.substring("--root=".length());
@@ -92,7 +96,8 @@ public final class PrepareAssets {
     /// carries an attribution obligation is an artifact an application opts into
     /// ([ADR-0384]). The selection is by name so that a build script says which
     /// assets it means rather than an index into a list.
-    private static java.util.Set<String> selection(String[] args) {
+    /// Package-private for [#root(String[])]'s reason.
+    static java.util.Set<String> selection(String[] args) {
         for (var argument : args) {
             if (argument.startsWith("--only=")) {
                 var names = java.util.Set.of(argument.substring("--only=".length()).split(","));
