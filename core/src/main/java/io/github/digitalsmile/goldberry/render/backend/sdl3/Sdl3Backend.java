@@ -128,6 +128,12 @@ public final class Sdl3Backend implements Backend {
     /// again, on this thread, from inside the paint it would restart.
     private boolean inWatch;
 
+    /// What a sink that threw never saw, waiting for the next pump.
+    ///
+    /// Empty except between a failed delivery and the pump after it, which is
+    /// the whole of its life: see [#deliver].
+    private final List<BackendEvent> undelivered = new ArrayList<>();
+
     /// Why a Wayland window here will have no decorations, when it will not.
     ///
     /// Worked out once at start-up, because it is a property of the machine rather
@@ -137,7 +143,26 @@ public final class Sdl3Backend implements Backend {
     private Optional<String> undecoratedWarning = Optional.empty();
     private boolean undecoratedWarningLogged;
 
-    private boolean closed;
+    /// Whether [#close()] has run. **Volatile because it is the one field here
+    /// with a reader off the UI thread**: [#wakeup()] is the SPI's single
+    /// thread-safe call, and [#drawDuringModalLoop] runs on whichever thread
+    /// pushed the event that triggered the watch.
+    ///
+    /// Plain, there was no happens-before between the write in `close()` and
+    /// either read, so a background thread could go on seeing `false` for
+    /// arbitrarily long after SDL had quit and push onto a queue that no longer
+    /// existed. Volatile gives the write a release and each read an acquire, so
+    /// a `wakeup()` that starts after `close()` set the flag sees it set — and
+    /// sees, in the bargain, everything `close()` did before setting it.
+    ///
+    /// What is left is a `wakeup()` already past its own read when the flag is
+    /// written, and no flag can order that: it is two threads calling the
+    /// backend at the same instant. It is harmless here because of where the
+    /// write sits — `close()` sets the flag *first* and reaches `Sdl.quit()`
+    /// only after taking down the watch, every window, every tray and the
+    /// cursors, so a push that slipped through lands on a queue that is still
+    /// there.
+    private volatile boolean closed;
 
     /// Initializes SDL's video subsystem.
     ///
@@ -539,24 +564,28 @@ public final class Sdl3Backend implements Backend {
 
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
-        var millis = (int) Math.min(wait.toMillis(), Integer.MAX_VALUE);
+        var millis = waitMillis(wait);
 
         // Published for the event watch, which runs *inside* the calls below --
         // including the ones the platform makes for itself during a resize drag,
         // when they do not return for as long as the drag lasts (ADR-0060).
         activeSink = sink;
         try {
-            var hasEvent = (wait.isZero() || millis == 0)
-                    ? video.pollEvent(eventBuffer)
-                    : video.waitEvent(eventBuffer, millis);
+            var hasEvent = millis == 0 ? video.pollEvent(eventBuffer) : video.waitEvent(eventBuffer, millis);
             while (hasEvent) {
                 translate(eventBuffer.type(), eventBuffer.windowId(), translated);
                 hasEvent = video.pollEvent(eventBuffer);
             }
 
-            for (var event : translated) {
-                sink.accept(event);
+            // Ahead of what just arrived, because they arrived before it: a sink
+            // that threw during an earlier pump is the only way there is
+            // anything here. See [#undelivered].
+            if (!undelivered.isEmpty()) {
+                translated.addAll(0, undelivered);
+                undelivered.clear();
             }
+
+            var delivered = deliver(sink, translated);
 
             // Frames AFTER the events that caused them.
             //
@@ -570,10 +599,80 @@ public final class Sdl3Backend implements Backend {
             // Requests made while handling a FrameDue are deliberately left for
             // the next pump: draining until empty here would let a
             // self-scheduling animation hold the loop and starve input.
-            return dialogAnswers + translated.size() + emitDueFrames(sink);
+            return dialogAnswers + delivered + emitDueFrames(sink);
         } finally {
             activeSink = null;
         }
+    }
+
+    /// Hands `events` to the sink one at a time, keeping what a throw left over.
+    ///
+    /// [EventSink] promises that the events already delivered stay delivered and
+    /// **the rest wait for the next pump**, and this is the only place they
+    /// could wait. They were taken off SDL's queue and translated during this
+    /// pump, so the platform has already forgotten them: either the backend
+    /// holds them or nobody does, and what is lost that way is a pointer release
+    /// that leaves a button held down or a `FileDropCompleted` that leaves a
+    /// drag open — the events whose whole job is to end something.
+    ///
+    /// The one that threw is not kept. The sink saw it and did not cope, and
+    /// offering it again would hand the same event to the same handler on every
+    /// pump for as long as the caller kept pumping.
+    ///
+    /// @param sink   where the events go
+    /// @param events what to deliver, oldest first
+    /// @return how many were delivered, which is all of them unless this throws
+    private int deliver(EventSink sink, List<BackendEvent> events) {
+        for (var index = 0; index < events.size(); index++) {
+            try {
+                sink.accept(events.get(index));
+            } catch (RuntimeException | Error e) {
+                undelivered.addAll(events.subList(index + 1, events.size()));
+                throw e;
+            }
+        }
+        return events.size();
+    }
+
+    /// The timeout to hand `SDL_WaitEventTimeout`, or zero to poll instead.
+    ///
+    /// SDL counts in whole milliseconds and the pump decides in nanoseconds, so
+    /// a wait shorter than a millisecond has nowhere to truncate to but zero —
+    /// and zero is `SDL_PollEvent`, which returns at once. **The pacer produces
+    /// exactly that wait on the way out of every frame it holds back:** the
+    /// remainder of a 16.6 ms interval spends its last millisecond there, the
+    /// pump returns having delivered nothing, the loop in
+    /// [io.github.digitalsmile.goldberry.render.event.EventLoop]
+    /// comes straight back round, and it spins at whatever an empty pump
+    /// costs until the frame comes due. A backstop meant to save two frames in
+    /// five was burning a core for the privilege, and only once the display's
+    /// own rate was adopted — which is to say, on every machine.
+    ///
+    /// So a wait that is not zero waits, and the rounding goes **up**: a frame
+    /// handed over up to a millisecond late is one frame slightly late, which is
+    /// what the pacer is for, while a frame handed over after a millisecond of
+    /// spinning costs the same lateness and a busy core with it.
+    ///
+    /// Only a genuinely zero wait polls, which is what [#pumpEvents]' contract
+    /// promises for a zero timeout and what a pending dialog answer asks for.
+    ///
+    /// @param wait what this pump decided to wait for
+    /// @return whole milliseconds for `SDL_WaitEventTimeout`, or 0 to poll
+    static int waitMillis(Duration wait) {
+        if (wait.isZero() || wait.isNegative()) {
+            return 0;
+        }
+        var seconds = wait.getSeconds();
+        if (seconds >= Integer.MAX_VALUE / 1000) {
+            // Longer than SDL can be asked to wait. Waiting less is harmless --
+            // the pump returns with nothing and the caller comes back.
+            return Integer.MAX_VALUE;
+        }
+        // Ceiling rather than truncation, so a wait that is not a whole number
+        // of milliseconds still covers the interval it was asked for instead of
+        // returning early and being asked again for the remainder.
+        var millis = seconds * 1000 + (wait.getNano() + 999_999) / 1_000_000;
+        return (int) Math.min(millis, Integer.MAX_VALUE);
     }
 
     /// Hands over a frame for every window that asked for one and may have it now.
@@ -609,10 +708,7 @@ public final class Sdl3Backend implements Backend {
             return 0;
         }
         pacer.frameEmitted(now);
-        for (var event : frames) {
-            sink.accept(event);
-        }
-        return frames.size();
+        return deliver(sink, frames);
     }
 
     /// Installs the watch that keeps frames coming during a resize drag.
@@ -663,9 +759,11 @@ public final class Sdl3Backend implements Backend {
         try {
             var translated = new ArrayList<BackendEvent>(1);
             translate(type, event.windowId(), translated);
-            for (var backendEvent : translated) {
-                activeSink.accept(backendEvent);
-            }
+            // Through the same delivery as the pump's, so a handler that throws
+            // in here loses no more than it would out there -- the exception is
+            // swallowed below, and what it did not reach keeps its place in the
+            // queue rather than going down with it.
+            deliver(activeSink, translated);
             emitDueFrames(activeSink);
         } catch (RuntimeException e) {
             // The alternative is an exception unwinding into the platform's own
@@ -854,14 +952,20 @@ public final class Sdl3Backend implements Backend {
                     eventBuffer.clickCount(),
                     Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
+            // Through the same reconciliation as the motion, the buttons and the
+            // drops: a wheel carries a pointer position, and a position is only
+            // meaningful once its space is settled. It is the wheel arm's own
+            // fields that go in -- SDL puts the wheel's position somewhere else
+            // in the event than the motion's.
+            var at = inTheWindowsOwnSpace(window, eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY());
             // The buffer has already undone SDL's "natural scrolling" inversion.
             // What is left is the sign convention: SDL's y is positive *away from
             // the user*, and the SPI's is positive *down the document*, which is
             // CSS's and every scroll view's. One negation, at the boundary, once.
             out.add(new BackendEvent.PointerWheel(
                     window,
-                    eventBuffer.wheelPointerX(),
-                    eventBuffer.wheelPointerY(),
+                    at[0],
+                    at[1],
                     eventBuffer.wheelX(),
                     -eventBuffer.wheelY(),
                     // Negated on the same axis and for the same reason as the
@@ -1088,7 +1192,9 @@ public final class Sdl3Backend implements Backend {
     @Override
     public void wakeup() {
         // No requireUiThread: SDL's event queue takes its own lock, and this is
-        // the one call the SPI promises is safe from anywhere.
+        // the one call the SPI promises is safe from anywhere. Which makes this
+        // the only off-thread read of `closed`, and the reason it is volatile --
+        // see the field.
         if (!closed) {
             video.pushWakeup();
         }
@@ -1112,6 +1218,7 @@ public final class Sdl3Backend implements Backend {
             window.close();
         }
         windowsById.clear();
+        undelivered.clear();
         // Before SDL_Quit, and for the same reason the watch is: a tray holds
         // upcall stubs the shell can still call, and the arena holding them is
         // released by closing the tray.
@@ -1216,6 +1323,10 @@ public final class Sdl3Backend implements Backend {
 
     void forget(Sdl3Window window) {
         windowsById.remove(window.handleId());
+        // A window that has gone is not owed the events it never received. The
+        // ordinary pump has no such list to clean, because it translates and
+        // delivers inside one call; this one can outlive the window in it.
+        undelivered.removeIf(event -> event.window() == window);
     }
 
     void requireUiThread() {

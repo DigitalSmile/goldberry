@@ -2,13 +2,18 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -308,6 +313,46 @@ class Sdl3EventPathTest {
         });
     }
 
+    /// **The arm the reconciliation was never wired into.** A wheel carries a
+    /// pointer position exactly as a motion and a button do, and
+    /// [Sdl3Backend#inTheWindowsOwnSpace] says every window's coordinates are
+    /// settled before they leave the backend (ADR-0211) — but this one arm read
+    /// its position straight out of the event. A scroll over a macOS popup
+    /// therefore arrived in the *owner's* space, and stale, so the router looked
+    /// for a scrollable under a pointer that was never there.
+    ///
+    /// The inside-the-window half is `wheelReachesTheSink` above, which asserts
+    /// the position arrives untouched — the reconciliation must not move a
+    /// coordinate that was already right.
+    @Test
+    @DisplayName("a wheel outside its window is re-read from the desktop, like every other pointer event")
+    void wheelCoordinatesAreReconciled() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), 0f, 1f, SdlWheelDirection.NORMAL, 5000f, 5000f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            // The deltas are a property of the gesture and not of the space it
+            // happened in, so they cross unchanged either way.
+            assertEquals(-1f, wheel.deltaY());
+
+            var origin = window.position();
+            if (origin.isEmpty()) {
+                // The documented fallback, asserted rather than skipped, as for
+                // the motion above.
+                assertEquals(5000f, wheel.x());
+                assertEquals(5000f, wheel.y());
+                return;
+            }
+            var pointer = Sdl.get().globalPointer();
+            assertEquals(pointer[0] - origin.get().x(), wheel.x(), 1f);
+            assertEquals(pointer[1] - origin.get().y(), wheel.y(), 1f);
+            assertNotEquals(5000f, wheel.x(), "the wheel kept coordinates from another space");
+        });
+    }
+
     @Test
     @DisplayName("a press and a release in different spaces are both reconciled")
     void aPressAndAReleaseAreReconciledAlike() {
@@ -345,23 +390,120 @@ class Sdl3EventPathTest {
         });
     }
 
+    /// **The contract's hardest case, and the reason it is a contract rather
+    /// than a convention.**
+    /// [io.github.digitalsmile.goldberry.render.event.EventSink]
+    /// promises that a sink which throws leaves the rest of the batch for the
+    /// next pump, and by the time this backend is delivering, those events are
+    /// out of SDL's queue and translated — the platform has forgotten them, so
+    /// either the backend is holding them or nothing is. Here the release is the
+    /// one behind the throw, which is exactly the event a router needs to stop
+    /// treating a button as held.
+    @Test
+    @DisplayName("what a throwing sink never saw comes back on the next pump, not out of SDL")
+    void aThrowingSinkKeepsTheRest() {
+        withBackend((backend, window) -> {
+            push(buffer -> buffer.writeMouseMotion(id(window), 10f, 10f));
+            push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_UP, id(window), 12f, 12f, 1, 1));
+
+            var seen = new ArrayList<BackendEvent>();
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> backend.pumpEvents(
+                            event -> {
+                                seen.add(event);
+                                throw new IllegalStateException("handler failed");
+                            },
+                            Duration.ofMillis(50)));
+
+            assertEquals(1, seen.size(), "the pump carried on past a sink that threw");
+            assertInstanceOf(BackendEvent.PointerMoved.class, seen.getFirst());
+
+            // Nothing is pushed before this one: the release is not on SDL's
+            // queue any more, so anything that arrives was kept by the backend.
+            var next = new ArrayList<BackendEvent>();
+            backend.pumpEvents(next::add, Duration.ofMillis(50));
+
+            assertEquals(
+                    1,
+                    count(next, BackendEvent.PointerReleased.class),
+                    () -> "the release did not survive the throw: " + names(next));
+            // And it is not offered a third time, nor is the motion that threw.
+            var after = new ArrayList<BackendEvent>();
+            backend.pumpEvents(after::add, Duration.ofMillis(20));
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerReleased.class),
+                    () -> names(after).toString());
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerMoved.class),
+                    () -> names(after).toString());
+        });
+    }
+
+    /// **The one call the SPI lets another thread make, against the one field
+    /// that says whether there is anything left to call into.**
+    ///
+    /// `wakeup()` reads `closed` and `close()` writes it, on different threads,
+    /// and the field was plain: nothing in the memory model obliged the reader
+    /// ever to see the write, so a background thread could keep pushing wakeups
+    /// into an SDL that had quit. A race is not something a test can lose on
+    /// demand, so this asserts both halves of what the fix is — the behaviour
+    /// another thread sees after close, and the declaration that makes it
+    /// visible at all, which is the half a tidy-up would silently drop.
+    @Test
+    @DisplayName("a wakeup from another thread after close pushes nothing, and the flag saying so is volatile")
+    void wakeupAfterCloseTouchesNothing() throws Exception {
+        var backend = openBackend();
+        backend.createWindow(WindowSpec.of("wakeup", SIZE));
+        backend.close();
+
+        var failure = new AtomicReference<Throwable>();
+        var other = new Thread(
+                () -> {
+                    try {
+                        backend.wakeup();
+                    } catch (Throwable t) {
+                        failure.set(t);
+                    }
+                },
+                "not-the-ui-thread");
+        other.start();
+        other.join();
+
+        assertNull(failure.get(), () -> "wakeup after close reached SDL: " + failure.get());
+        assertTrue(
+                Modifier.isVolatile(Sdl3Backend.class.getDeclaredField("closed").getModifiers()),
+                "closed is read off the UI thread by wakeup(), so a plain field leaves the"
+                        + " write in close() free never to be seen there");
+    }
+
     // --- the machinery ------------------------------------------------------
 
     /// Runs `body` against a backend with a window, under the dummy video driver.
+    private static void withBackend(java.util.function.BiConsumer<Sdl3Backend, Sdl3Window> body) {
+        try (var backend = openBackend()) {
+            var window = (Sdl3Window) backend.createWindow(WindowSpec.of("events", SIZE));
+            body.accept(backend, window);
+        }
+    }
+
+    /// Opens an unpaced backend on the dummy video driver, for a test that
+    /// closes it itself.
     ///
     /// The driver and the frame rate are set as system properties because that is
-    /// where the backend reads them, and restored afterwards because the test JVM
-    /// is shared. Pacing is turned off explicitly: a paced loop holds frames back
-    /// until the display could want them, which is correct and would make
-    /// "was a frame emitted?" a question about timing.
-    private static void withBackend(java.util.function.BiConsumer<Sdl3Backend, Sdl3Window> body) {
+    /// where the backend reads them, and restored as soon as it has because the
+    /// test JVM is shared. Pacing is turned off explicitly: a paced loop holds
+    /// frames back until the display could want them, which is correct and would
+    /// make "was a frame emitted?" a question about timing.
+    private static Sdl3Backend openBackend() {
         var driver = System.getProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
         var rate = System.getProperty("goldberry.frame.rate");
         System.setProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY, "dummy");
         System.setProperty("goldberry.frame.rate", "0");
-        try (var backend = new Sdl3Backend()) {
-            var window = (Sdl3Window) backend.createWindow(WindowSpec.of("events", SIZE));
-            body.accept(backend, window);
+        try {
+            return new Sdl3Backend();
         } finally {
             restore(Sdl3Backend.VIDEO_DRIVER_PROPERTY, driver);
             restore("goldberry.frame.rate", rate);

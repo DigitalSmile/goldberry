@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -284,7 +283,24 @@ final class WaylandDecorations {
         };
     }
 
-    private static Optional<List<String>> listDirectory(Path directory) {
+    /// The real-filesystem lister behind [#diagnose(String)].
+    ///
+    /// **Empty for every way of not finding out**, which is one more way than it
+    /// looks: the path is not a directory, or it is one and this process may not
+    /// read it — a plugin directory root-owned as `0700`, a mount that went away
+    /// between the two calls, a container's `/usr` shadowed by something
+    /// hostile. The verdict reads empty as `UNKNOWN` and stays quiet, which is
+    /// the documented answer for "no plugin directory could be located".
+    ///
+    /// It used to throw an `UncheckedIOException` on the second of those, out of
+    /// a lister called from the [Sdl3Backend] constructor, which catches
+    /// `SdlException` and `UnsatisfiedLinkError` and neither of those. SDL was
+    /// left initialized and the event buffer unclosed, and the application died
+    /// on a *diagnostic* for a cosmetic problem it might not even have had.
+    ///
+    /// @param directory a candidate plugin directory
+    /// @return its file names, or empty for a directory this cannot read
+    static Optional<List<String>> listDirectory(Path directory) {
         if (!Files.isDirectory(directory)) {
             return Optional.empty();
         }
@@ -292,8 +308,9 @@ final class WaylandDecorations {
             return Optional.of(
                     entries.map(path -> path.getFileName().toString()).sorted().toList());
         } catch (IOException e) {
-            // A directory that exists and cannot be read is not knowledge either.
-            throw new UncheckedIOException(e);
+            // A directory that exists and cannot be read is not knowledge
+            // either, and "not knowledge" is what empty means here.
+            return Optional.empty();
         }
     }
 
