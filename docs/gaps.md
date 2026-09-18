@@ -1939,7 +1939,7 @@ standing in.
 **Why it is not Tessera's.** A face has to reach the cascade, `Paragraph` layout, the text-input caret and
 the rasterizer's glyph cache together, and all four are Goldberry's. A canvas *could* load the bytes with
 `Font.of(byte[], size)` and draw a title itself, but a title that does not select, wrap or follow
-`font-size` like every other label is a second text stack.Cfif 
+`font-size` like every other label is a second text stack.Cfif
 
 **Proposed API.**
 

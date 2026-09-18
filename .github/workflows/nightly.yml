@@ -10,6 +10,13 @@
 # analysis. Those gate every PR in linux.yml, macos.yml and windows.yml, and a
 # check that only runs at night is one nobody associates with the change that
 # broke it.
+#
+# There was a third job here until the 2026-09-18 review (B5): a `coverage` job
+# that ran the suite reflectively, ran it woven, and aggregated the report --
+# which is what linux.yml's `java` job already does on every push, step for step.
+# Its comment described a scale sweep it did not run and could not have, because
+# `-Pgoldberry.skipNative=true` builds no rasterizer and every golden skips. A
+# nightly copy of a per-PR gate is the thing the paragraph above says not to do.
 name: Nightly
 
 on:
@@ -138,36 +145,4 @@ jobs:
         with:
           name: jmh
           path: core/build/results/jmh
-          if-no-files-found: ignore
-
-  # §1.3's scale sweep, run wide. Every golden is redrawn at 2x and 1.5x on every
-  # PR already; what this adds is the whole suite on one machine in one place, so
-  # a scale-dependent regression has a single log to read rather than three.
-  coverage:
-    name: Coverage, both binding modes
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: Reflective
-        run: ./gradlew test -Pgoldberry.skipNative=true --no-daemon
-
-      - name: Woven
-        run: ./gradlew test -Pgoldberry.skipNative=true -Pgoldberry.nativeImage=true --no-daemon
-
-      # One report over both exec files: a line is uncovered only if neither mode
-      # reached it (§3).
-      - name: Aggregate
-        run: ./gradlew testCodeCoverageReport -Pgoldberry.skipNative=true --no-daemon
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-nightly
-          path: build/reports/jacoco/testCodeCoverageReport
           if-no-files-found: ignore

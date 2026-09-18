@@ -305,11 +305,13 @@ spotless {
         endWithNewline()
     }
 
-    format 'markdown', {
-        target 'docs/**/*.md', 'book/src/**/*.md', '*.md'
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
+    // The markdown step is NOT here. A module's spotless targets are resolved
+    // relative to that module's directory, and no module has a `docs/` or a
+    // `book/src/` -- so these globs matched nothing in every module that applied
+    // them, and the root, which does have those directories, applies no Java
+    // conventions. Every markdown file in the repository went unformatted for as
+    // long as the step existed (the 2026-09-18 review, B6). It lives in
+    // `goldberry.markdown`, which the root applies.
 }
 
 // ============================================================================
@@ -326,7 +328,7 @@ spotless {
 // saying so.
 // ============================================================================
 pmd {
-    toolVersion = '7.19.0'
+    toolVersion = catalog.findVersion('pmd').get().requiredVersion
     ruleSetFiles = files(rootProject.file('config/pmd/ruleset.xml'))
     // Otherwise PMD runs its own default set *as well as* the one above.
     ruleSets = []
@@ -341,6 +343,27 @@ pmd {
 // people learn to silence.
 tasks.matching { it.name in ['pmdTest', 'pmdTestFixtures'] }.configureEach {
     enabled = false
+}
+
+// And not `module-info.java`, which PMD cannot read.
+//
+// Its Java grammar takes at most ONE modifier on a `requires` directive, and
+// every module here declares `requires transitive static org.jspecify` -- both
+// modifiers, which the JLS has allowed in either order since Java 9. PMD 7.19
+// and 7.20 both stop at the second one:
+//
+//   ParseException ... Encountered <IDENTIFIER: "org">.
+//   Was expecting one of: ";" ... "." ...
+//
+// So every module descriptor in the project was reported as an error and
+// analysed by nothing, which is a report a reader learns to scroll past (the
+// 2026-09-18 review, B7 -- whose suggested `requires static transitive` was
+// tried and fails the same way, because the order is not what PMD objects to).
+// Excluded on purpose instead: a module descriptor has no resource to leak and
+// no loop to build a string in, so the ruleset has nothing to say about it, and
+// an explicit exclusion says that where a stack trace did not.
+tasks.withType(Pmd).configureEach {
+    exclude '**/module-info.java'
 }
 
 // ============================================================================
@@ -487,7 +510,7 @@ configurations {
 
 dependencies {
     pitest "org.pitest:pitest-command-line:${catalog.findVersion('pitest').get().requiredVersion}"
-    pitest 'org.pitest:pitest-junit5-plugin:1.2.3'
+    pitest "org.pitest:pitest-junit5-plugin:${catalog.findVersion('pitestJunit5').get().requiredVersion}"
 }
 
 tasks.register('pitest', JavaExec) {

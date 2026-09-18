@@ -163,3 +163,91 @@ tasks.register('blessGoldens') {
                 'an image that changed and should not have is the only thing this cannot tell you.')
     }
 }
+
+// ============================================================================
+// The prose, formatted (docs/testing.md §2, B6 of the 2026-09-18 review)
+//
+// `docs/`, `book/` and the notices at the top level are read as often as the
+// code, and what a diff shows and nobody meant is trailing whitespace and a
+// missing final newline. Spotless does exactly this for Java; for markdown it
+// cannot, twice over:
+//
+//   * a spotless `target` glob resolves against the project that declares it,
+//     so the `format 'markdown'` step that used to sit in
+//     `goldberry.java-conventions` resolved `docs/**` against each module's own
+//     directory and matched nothing -- the step existed for months and had never
+//     touched a file;
+//   * spotless refuses a target outside its project directory, so no module can
+//     reach these files either; and the root cannot apply the convention plugin,
+//     because that puts build-logic's classpath under every module and :core's
+//     versioned `me.champeau.jmh` request then refuses to resolve (the note in
+//     `goldberry.java-conventions` beside the CI annotations says the same).
+//
+// So the root does it itself. Two tasks, the same shape as `checkLicenses`
+// above: one says what is wrong, one fixes it.
+// ============================================================================
+def markdownSources = { ->
+    fileTree(projectDir) {
+        include 'docs/**/*.md', 'book/**/*.md', '*.md'
+        // Fetched, generated, or a working tree that is not this one.
+        exclude 'natives/.deps/**', '**/build/**', '.claude/**'
+    }
+}
+
+/// What `formatMarkdown` would change, as a list of files.
+static def markdownOffences(FileTree files) {
+    def offenders = []
+    files.each { file ->
+        def text = file.getText('UTF-8')
+        if (text != normalizedMarkdown(text)) {
+            offenders << file
+        }
+    }
+    return offenders
+}
+
+/// Trailing whitespace gone from every line, and exactly one final newline.
+/// Nothing else: reflowing prose would fight the way these files are written.
+static String normalizedMarkdown(String text) {
+    def body = text.readLines().collect { it.replaceAll(/[ \t]+$/, '') }.join('\n')
+    return body.isEmpty() ? '' : body.stripTrailing() + '\n'
+}
+
+tasks.register('checkMarkdown') {
+    group = 'verification'
+    description = 'Fails on trailing whitespace or a missing final newline in the prose.'
+
+    def files = markdownSources()
+    inputs.files(files).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def offenders = markdownOffences(files)
+        if (!offenders.isEmpty()) {
+            throw new GradleException(
+                    "${offenders.size()} markdown file(s) are not formatted. " +
+                            "Run `./gradlew formatMarkdown`:\n  " +
+                            offenders.collect { relativePath(it) }.join('\n  '))
+        }
+    }
+}
+
+tasks.register('formatMarkdown') {
+    group = 'formatting'
+    description = 'Trims trailing whitespace and ends every markdown file with one newline.'
+
+    def files = markdownSources()
+
+    doLast {
+        def changed = 0
+        files.each { file ->
+            def text = file.getText('UTF-8')
+            def formatted = normalizedMarkdown(text)
+            if (text != formatted) {
+                file.setText(formatted, 'UTF-8')
+                changed++
+            }
+        }
+        logger.lifecycle(changed == 0 ? 'The prose was already formatted.' : "Formatted ${changed} markdown file(s).")
+    }
+}

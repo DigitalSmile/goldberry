@@ -3280,4 +3280,3 @@ out of it is usually worth more than the fact that it is fixed.
   `LinuxDependenciesTest` asserts it against the packages the workflows install — the
   invariant that broke. —
   [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
-

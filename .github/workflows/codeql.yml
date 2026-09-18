@@ -1,8 +1,9 @@
 # CodeQL — docs/testing.md §2's security half.
 #
-# Nightly and on pull requests, not on every push: a CodeQL database is built by
+# Weekly and on pull requests, not on every push: a CodeQL database is built by
 # compiling the project, so it costs a full build, and the findings it produces
-# are not the kind that change between two commits an hour apart.
+# are not the kind that change between two commits an hour apart. The cron below
+# is a Monday, which is what this header used to call nightly.
 #
 # `-Pgoldberry.skipNative=true` for the reason the `java` job in linux.yml uses
 # it: CodeQL analyses Java, the CMake superbuild produces a shared library it

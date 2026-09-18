@@ -55,7 +55,7 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build checkLicenses -Pgoldberry.skipNative=true --no-daemon
+      - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
 
       # docs/testing.md §1.6: the suite runs in BOTH binding modes on every PR.
       #

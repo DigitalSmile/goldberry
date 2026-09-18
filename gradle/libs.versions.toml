@@ -27,12 +27,18 @@ errorprone = "5.1.1"
 errorproneCore = "2.50.0"
 nullaway = "0.14.1"
 jspecify = "1.0.1"
-pitestPlugin = "1.15.0"
 # The Gradle plugin and the SpotBugs tool version independently: 6.5.11 is the
 # plugin, 4.10.4 is the analyser it runs.
 spotbugsPlugin = "6.5.11"
 spotbugs = "4.10.4"
+# PIT runs through its own command line rather than `gradle-pitest-plugin`, so
+# there is no plugin version here to go with it -- the `pitestPlugin` entry that
+# used to sit above was read by nothing (the 2026-09-18 review, B12).
 pitest = "1.20.5"
+pitestJunit5 = "1.2.3"
+# The analyser the conventions plugin runs. In the catalog like every other tool
+# version, rather than a literal in the plugin.
+pmd = "7.19.0"
 jmhPlugin = "0.7.3"
 jmh = "1.37"
 

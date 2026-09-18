@@ -94,6 +94,21 @@ For a Java-only build with no native toolchain:
 Tests that need real native code skip when no library is loadable, so this stays
 green — it just verifies less.
 
+The properties the build reads, in one place:
+
+| Property | What it does |
+|---|---|
+| `-Pgoldberry.skipNative=true` | Builds no native library. Everything that needs a rasterizer skips |
+| `-Dgoldberry.native.library=<path>` | Runs the tests against a library built somewhere else |
+| `-Dgoldberry.native.required=true` | Turns those skips into failures, which is what CI's native legs pass |
+| `-Pgoldberry.allowDegradedPlatform=true` | Builds the library without the desktop-integration headers, on a machine that has none. The library it produces reports no capabilities |
+| `-Pgoldberry.depsDir=<path>` | Where the superbuild's upstream checkouts live, instead of `natives/.deps/<target>` |
+| `-Pgoldberry.nativeImage=true` | Weaves `@Bind` and `@Action` into the compiled classes, which is what a native image runs |
+| `-Pgoldberry.lenient` | Turns Error Prone off. For **triage** — enumerating a checker's findings needs the compile to finish — and never for a green build |
+| `-Pgoldberry.nullaway=warn` | Demotes NullAway from error to warning, for adopting a package |
+| `-Pgoldberry.golden.update=true` | What `blessGoldens` passes: rewrites the reference images from what the code draws |
+| `-Pgoldberry.example.frames=N`, `-Pgoldberry.example.size=WxH` | Runs the showcase for N frames, at a size, and exits. How the gallery is driven headlessly |
+
 Released artifacts are built on native runners per platform, so a locally built
 library is for development only. To check a library built somewhere else — a CI
 artifact, a colleague's build — point the tests at it instead of building one:

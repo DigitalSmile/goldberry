@@ -62,12 +62,16 @@ jobs:
         if: steps.gate.outputs.connected == 'true'
         run: ./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon
 
+      # No `--baseline`. A baseline names a SARIF report of findings already
+      # accepted, and this repository has none -- `qodana.sarif.json` was named
+      # here and has never existed, so the first connected run would have failed
+      # on a missing file rather than reported anything (the 2026-09-18 review,
+      # B11). When there is a first run to baseline against, its report is
+      # committed and the flag comes back with it.
       - uses: JetBrains/qodana-action@v2024.3
         if: steps.gate.outputs.connected == 'true'
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
-        with:
-          args: --baseline,qodana.sarif.json
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.gate.outputs.connected == 'true'
