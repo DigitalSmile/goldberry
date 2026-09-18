@@ -269,7 +269,7 @@ public final class TextDocument {
         for (var k = 0; k < hard.length; k++) {
             var layout = shaped[k].layout(width);
             // A hard line always occupies at least one visual line, blank or not.
-            visual[k + 1] = visual[k] + (layout == null ? 1 : Math.max(1, layout.lineCount()));
+            visual[k + 1] = visual[k] + Math.max(1, layout.lineCount());
         }
         var built = new DocumentLines(this, width, visual);
         lines = built;

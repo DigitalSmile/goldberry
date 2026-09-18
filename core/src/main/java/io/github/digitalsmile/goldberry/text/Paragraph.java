@@ -323,9 +323,16 @@ public final class Paragraph {
     /// overflows on a line of its own, because hyphenation and mid-word breaking
     /// are decisions a style should make rather than a layout engine.
     ///
+    /// **Always a layout, and always at least one line.** Text with nothing in
+    /// it breaks into a single empty line rather than into none: a blank line
+    /// takes a line's height, and a caret in an empty editor still has to be
+    /// somewhere. Callers therefore need no null branch — the one failure this
+    /// has is a NaN width, which throws, because a NaN would wrap every line to
+    /// nothing and report it as a successful layout.
+    ///
     /// @param maxWidth the width to fit in, or [#UNCONSTRAINED] for one line per
     ///                 explicit newline and no wrapping at all
-    public @Nullable TextLayout layout(double maxWidth) {
+    public TextLayout layout(double maxWidth) {
         if (Double.isNaN(maxWidth)) {
             throw new IllegalArgumentException(
                     "a NaN width would wrap every line to nothing; pass Paragraph.UNCONSTRAINED"
