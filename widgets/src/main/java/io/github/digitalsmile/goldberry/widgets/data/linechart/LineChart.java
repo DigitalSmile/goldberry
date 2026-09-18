@@ -81,13 +81,16 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// below zero on its way up
 /// (ADR-0204).
 ///
-/// ## What it does not have yet
+/// ## Under the line
 ///
-/// A **gradient fill**, which is the one thing in `charts.md` §3.1 that needs a
-/// symbol the native export list does not carry — see `TODO.md` — `charts.md` §3.1 is the list. The
-/// x is the point
-/// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
-/// and is not built.
+/// [#fill] puts a flat wash or a fade beneath the data — `charts.md` §3.1's
+/// last unbuilt row, and the one that cost a widening of the native surface
+/// before a single pixel of it could be drawn: Blend2D has gradients and the
+/// export list did not
+/// (ADR-0207).
+/// The default is no fill at all, so a chart nobody asked keeps exactly the
+/// picture it had — see
+/// [io.github.digitalsmile.goldberry.widgets.data.Fill].
 ///
 /// **No dual y-axis, ever.** Two measures at different scales are two charts, or
 /// one indexed to a common base; a second y-scale is the most reliable way to

@@ -35,12 +35,18 @@ final class CarouselState extends State<Carousel> {
     /// would put a build on every pointer move across the widget.
     private boolean hovered;
 
-    /// Whether the strip or one of the carousel's own controls has focus.
+    /// Whether the keyboard is anywhere in this carousel — the strip, the
+    /// carousel's own controls, or a widget inside a slide.
     ///
-    /// Not focus *anywhere inside*, which is what §5 asks for: the cascade has no
-    /// `:focus-within` and nothing tells a widget that focus landed in its
-    /// subtree, so focus on a button inside a slide does not stop the rotation.
-    /// Written down in `TODO.md` rather than papered over.
+    /// §5's "on focus anywhere inside", and the third of the three brakes. Two
+    /// different questions arrive at [#focus]: [CarouselView] is focusable
+    /// itself and answers `onFocusChanged`, while a button inside a slide is not
+    /// that node at all and reaches here through
+    /// [io.github.digitalsmile.goldberry.input.handler.Handles#onFocusWithin],
+    /// which reports the subtree gaining or losing the keyboard as a whole. So a
+    /// carousel is told that somebody tabbed into a slide and told nothing about
+    /// the moves they make once they are in there — and somebody who has tabbed
+    /// into a slide is exactly somebody reading it ([ADR-0165]).
     private boolean focused;
 
     /// What the last frame said about the motion preference.

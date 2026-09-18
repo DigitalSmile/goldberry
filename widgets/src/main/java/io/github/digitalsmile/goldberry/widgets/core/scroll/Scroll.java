@@ -50,12 +50,25 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// reason exactly: a stateful widget that was also styled would put two `scroll`
 /// nodes in the cascade, one inside the other, and every rule would apply twice.
 ///
-/// ## What it does not do yet
+/// ## What grew around it
 ///
-/// It has no scrollbars, `scrollIntoView` or track-click paging, and it does not
-/// chain to an ancestor at its edge. Those are named in `book/src/TODO.md` with
-/// what each is waiting on; what is here is the viewport, which is what the three
-/// pieces of blocked work actually needed.
+/// The viewport shipped on its own, and the four things §2.4 asks of a scroller
+/// have since been built on top of it — none of them on this record, which is
+/// why the list is worth having in one place:
+///
+/// - **Scrollbars** are [ScrollBar], drawn over the content or in a reserved
+///   gutter as the application's `Scrollbars` setting says
+///   (ADR-0117, ADR-0364).
+/// - **A click on the track pages**, by a whole viewport, towards the side of
+///   the thumb the click landed on — [ScrollBar] again.
+/// - **`scrollIntoView`** is [ScrollController], and an API rather than a node
+///   on purpose: a wrapper widget is a box, and a box in a flex row changes how
+///   everything in that row is sized
+///   (ADR-0120).
+/// - **It chains at its edge.** A wheel is consumed only when it actually moved
+///   something, so a further scroll at the top of a list bubbles and an ancestor
+///   takes it — got from the router's ordinary bubble path rather than from
+///   anything here knowing an ancestor exists ([ScrollViewport]).
 ///
 /// ## A timeline opens at its end
 ///

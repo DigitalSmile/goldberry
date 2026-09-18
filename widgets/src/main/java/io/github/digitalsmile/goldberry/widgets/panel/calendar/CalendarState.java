@@ -233,8 +233,12 @@ final class CalendarState extends State<CalendarView> implements CalendarBox.Cal
             }
         }
         // The roving day is not in the shown grid, which can only happen between
-        // a move and the build that follows it. Moving by six days either way is
-        // the same answer the loop would have given.
+        // a move and the build that follows it. The fallback is cruder than the
+        // loop and deliberately so: `Home` goes back to the ISO Monday and `End`
+        // stays where it is. That is `DayOfWeek`'s week rather than the locale's,
+        // so in a locale whose week opens on Sunday it is the wrong edge -- one
+        // frame of a wrong answer for a day that is about to be re-gridded, after
+        // which the loop above is reachable again and answers properly.
         return rove(start ? roving.minusDays(roving.getDayOfWeek().getValue() - 1L) : roving);
     }
 

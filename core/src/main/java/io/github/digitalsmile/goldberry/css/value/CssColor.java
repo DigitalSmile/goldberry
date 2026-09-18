@@ -89,7 +89,12 @@ public final class CssColor {
     }
 
     /// Parses a colour written the way a stylesheet writes one — `#3b4252`,
-    /// `rgb(59 66 82)`, `oklch(…)`, a named colour.
+    /// `rgb(59 66 82)`, `rgba(…)`, `transparent`, a named colour.
+    ///
+    /// **Not `oklch(…)`.** OKLCH is the space colours are *mixed* in ([#mix]),
+    /// and there is no syntax for writing one: every colour in the toolkit's own
+    /// stylesheets is a hex or an `rgb()`, and a space a value cannot be
+    /// expressed in is one the parser has no reason to carry.
     ///
     /// For the values that arrive as a **string** rather than as a parsed
     /// declaration: an attribute in a markup document, or an application handing
