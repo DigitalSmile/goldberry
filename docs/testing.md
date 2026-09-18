@@ -20,6 +20,7 @@ Pure-logic modules with exact assertions: CSS tokenizer/parser/cascade/specifici
 The `headless` backend renders to `BLImage` and pumps synthetic events through the normal dispatch path — no display server anywhere.
 - **Semantics queries, not pixel poking** — roles exist now (§1.7), so `byRole` is a helper over `Described` rather than a subsystem. Tests still find widgets by type and id; converting them is mechanical and has not been done, because a rewrite of every test in the catalog is its own change.
 - **Virtual clock:** `clock.advance(160)` steps animations deterministically; tests assert mid-transition frames, enter/exit lifecycle states (`closing` disables input), and reduced-motion collapse.
+- **One primary modifier:** every test task runs with `-Dgoldberry.input.primary=ctrl`, so a test that presses `Ctrl+C` is the same test on a macOS runner, where the toolkit itself would answer `Cmd+C` (ADR-0378). `PrimaryModifierTest` holds the pin; what macOS resolves to is `ShortcutTest`'s business, through the pure `resolve(osName, override)` ([ADR-0396](../book/src/adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)).
 - Focus-order tests walk Tab/arrow traversal per the `core-widgets.md` keyboard maps.
 - Capture UIs test against synthetic sources (color-bar camera, sine/noise/sweep mic) — no hardware in CI.
 

@@ -406,6 +406,7 @@
 - [ADR-0393 An emoji is routed by the text and drawn in layers](adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md)
 - [ADR-0394 A diagnostic that fires on everything says nothing](adr/0394-a-diagnostic-that-fires-on-everything-says-nothing.md)
 - [ADR-0395 A resource is opened to whoever reads it](adr/0395-a-resource-is-opened-to-whoever-reads-it.md)
+- [ADR-0396 A test presses the same modifier on every desktop](adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)
 
 ---
 

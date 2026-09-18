@@ -165,6 +165,17 @@ tasks.withType(Test).configureEach {
         events 'failed', 'skipped'
         exceptionFormat = 'full'
     }
+
+    // A test that presses Ctrl is the same test on every desktop (ADR-0396).
+    // The toolkit's editing accelerators are on the platform primary modifier
+    // (ADR-0378) -- Cmd on macOS, Ctrl elsewhere -- and PrimaryModifier reads
+    // os.name once, so the suite's `Modifiers.of(Mod.CTRL)` keystrokes stop
+    // answering on a macOS runner: Snapshot #15 lost 25 tests to exactly that.
+    // The override PrimaryModifier exists "for a test" is set here for every
+    // test task, and PrimaryModifierTest holds it in place. What macOS itself
+    // resolves to is covered by ShortcutTest through the pure resolve(os,
+    // override) half, which needs no macOS to run.
+    systemProperty 'goldberry.input.primary', 'ctrl'
 }
 
 // On a GitHub Actions runner, every failed test and the build's own failure also
