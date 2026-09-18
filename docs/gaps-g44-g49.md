@@ -15,7 +15,7 @@ Status legend: **done** means the code, tests and ADR have landed.
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
 | G44  | a `text-area` style pass that does not grow with its text | — | in progress |
-| G45  | a `markdown-view` that restyles only the block that changed | — | in progress |
+| G45  | a `markdown-view` that restyles only the block that changed | [0389](../book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md) | done |
 | G46  | a canvas transform that composes with the one it is painted under | [0390](../book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md) | done |
 | G47  | a `qr-code` widget | [0391](../book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md) | done |
 | G48  | a viewport that opens at its end and stays put | [0392](../book/src/adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md) | done |
@@ -112,3 +112,26 @@ the text, and the face that shipped had no colour in it.
   lands a module edge at 152.000004 and draws one off-colour pixel.
 - Tests: 64, across `core` `qr/` (5 classes) and `widgets` `core/qrcode/` (3).
 - Showcase: a card on the Canvas screen with one link at L, M and H.
+
+### G45 — a block nobody typed in
+
+**The reproduction found a pathology the entry had not seen.** Typing a *letter* was never the expensive
+case; typing a **space** was — 72 / 82 ms of layout at 50 kB against 5 ms for a letter, and one keystroke
+in six in English prose is a space.
+
+- `html` `content/select/Word`, `WordGeometry`, `WordMinter`: a word's geometry entry is keyed on its
+  **block**, not numbered against the document. Renumbering on every space is what matched each element
+  to its neighbour's, re-shaped every paragraph below the caret and had Yoga re-measure the tail.
+- `html` `content/select/BlockMemo` (not exported): the *same widget instance* for a top-level block
+  whose source is `equals` and whose fold mark matches, so ADR-0315's `next == previous` guard fires and
+  the element tree never walks under it.
+- `html` `markdown/view/MarkdownWiring`: handlers press through a stable indirection, so `onLink(this::open)`
+  written inside a build does not defeat reuse *and* a reused button still calls the current handler. A
+  block whose image has not arrived yet is refused by `keep()`.
+- **No new public API.** No `MarkdownView.of(next, previous)`, no `Block.sourceRange()`.
+- Tests: `html` `content/select/BlockReuseTest` (5), asserting **counts** — blocks built, blocks kept,
+  identical `Widget` *and* `Element` instances, paragraphs shaped — and no wall-clock anywhere.
+- Benchmark: `html` `markdown/view/MarkdownFrameBenchmark`, with md4c timed alongside as a control.
+- 500 kB is **still outside the budget**, and the ADR says why: style and layout there are O(document) by
+  construction over 106,509 elements. Lazy building inside the `scroll` is the only thing left, and it is
+  its own entry.

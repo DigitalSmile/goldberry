@@ -143,7 +143,7 @@ a rule.
 | ~~[G42](#g42)~~ | ~~Hand a URL to the desktop~~ | **closed** — ADR-0346 | done |
 | ~~[G43](#g43)~~ | ~~`text-area`'s gutter strip does not reach its padding~~ | **closed** — ADR-0350 | done |
 | [G44](#g44) | A `text-area` style pass that does not grow with its text | a preview budget on a long note | high |
-| [G45](#g45) | A `markdown-view` that restyles only the block that changed | the same budget, worse | high |
+| ~~[G45](#g45)~~ | ~~A `markdown-view` that restyles only the block that changed~~ | **closed** — ADR-0389 | done |
 | ~~[G46](#g46)~~ | ~~A canvas transform that composes with the one it is painted under~~ | **closed** — ADR-0390 | done |
 | ~~[G47](#g47)~~ | ~~A `qr-code` widget~~ | **closed** — ADR-0391 | done |
 | ~~[G48](#g48)~~ | ~~A viewport that opens at its end, and stays put when rows are added above~~ | **closed** — ADR-0392 | done |
@@ -2166,7 +2166,7 @@ check is `./gradlew :tessera-notes:benchmark`, and the edit-mode rows should go 
 
 <a id="g45"></a>
 
-### G45 — `markdown-view` restyles and lays out every block when one changes
+### G45 — `markdown-view` restyles and lays out every block when one changes — **closed**
 
 **Measured.** The same benchmark in **preview** mode: a `markdown-view` over `Markdown.parse(text)`,
 inside a `scroll`, rebuilt with a new `Document` on every keystroke, as its documentation says to. Each
@@ -2206,6 +2206,31 @@ entry if it is wanted.
 
 **What Tessera does meanwhile.** Nothing. [ADR-0053](adr/0053-the-preview-budget-is-measured-in-a-window.md)
 §5 explains why there is no debounce and no cache.
+
+**Closed — [ADR-0389](../book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md).**
+**No new API**, as the entry itself suspected. There is no `MarkdownView.of(next, previous)` and no
+`Block.sourceRange()`: the view keys each block internally, and ADR-0315's rule — re-describing a node
+with the same identity keeps its subtree — does the rest.
+
+**It reproduced, and the reproduction found the actual pathology, which the entry had not seen.** The
+benchmark is committed as `MarkdownFrameBenchmark`, with md4c timed alongside as a *control* so the
+numbers calibrate against machine load. Typing a letter was not the expensive case. Typing a **space**
+was: 72 / 82 ms of layout at 50 kB against 5 ms for a letter, a factor of fifteen, and in English prose
+about one keystroke in six is a space. That is where "the worst is layout" came from.
+
+The cause was that a word's geometry entry was numbered against the **document** rather than against its
+block, so inserting a space renumbered every word below the caret — and every element was then matched
+against its neighbour's, every paragraph below re-shaped, and Yoga asked to re-measure the tail. A word
+is keyed on its entry now, and `BlockMemo` hands back the *same widget instance* for a top-level block
+whose source and fold mark are unchanged.
+
+At 50 kB the frame is inside the 100 ms budget **mean and worst, for both kinds of keystroke** — 17 / 38
+ms against 100 / 123 before, and build fell from 8.7 to 2.1.
+
+**500 kB is still outside it, and that is stated rather than glossed.** Style and layout there are
+O(document) by construction: `WidgetRenderer.render` walks every element and builds a fresh box each
+frame, over 106,509 of them. Building only what is inside the `scroll` is the one thing left that would
+fix it, it is a larger change, and the entry is right that it is a separate one.
 
 <a id="g46"></a>
 
