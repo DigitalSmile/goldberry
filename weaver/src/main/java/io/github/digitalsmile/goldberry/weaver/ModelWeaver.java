@@ -10,6 +10,7 @@ import java.lang.classfile.CodeTransform;
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.Interfaces;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.MethodTransform;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute;
@@ -541,12 +542,20 @@ public final class ModelWeaver {
         // rebuilds each method once and the second pass no longer sees the code
         // elements the first handed on, so every rewrite is quietly lost. This
         // was found by every notification test failing at once.
+        //
+        // `transformMethod` and not `withMethod(name, type, flags, ...)`: the
+        // four-argument door carries over the name, the descriptor and the flags
+        // and *nothing else*, so `Signature`, `RuntimeVisibleAnnotations`,
+        // `MethodParameters` and `Exceptions` were dropped from every method of
+        // every class this transform touched -- which is every method of a woven
+        // model, and every method of every class that writes to one. A
+        // `MethodTransform` hands each method element on unchanged and replaces
+        // only the body, so an attribute survives because nobody decided it
+        // should.
         return (builder, element) -> {
             if (element instanceof MethodModel method && method.code().isPresent()) {
-                builder.withMethod(method.methodName(), method.methodType(),
-                        method.flags().flagsMask(), out -> out.transformCode(
-                                method.code().orElseThrow(),
-                                isInitialiser(method) ? inConstructor : rewrite));
+                builder.transformMethod(method, MethodTransform.transformingCode(
+                        isInitialiser(method) ? inConstructor : rewrite));
             } else {
                 builder.with(element);
             }
