@@ -13,9 +13,9 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 ///
 /// Sealed, so adding a case is a compile error everywhere it is handled rather
 /// than a silently ignored event. That property is the reason this is a sealed
-/// interface and not an enum plus a payload — input events are coming
-/// (`docs/ARCHITECTURE.md` §7), and when they arrive every exhaustive switch
-/// should stop compiling until it says what it does with them.
+/// interface and not an enum plus a payload, and it has already paid twice: the
+/// input events of `docs/ARCHITECTURE.md` §7 arrived, and every exhaustive switch
+/// stopped compiling until it said what it did with them.
 ///
 /// Pointer, wheel and keyboard events are here, split the way §7.1 asks: a key
 /// is a key, and committed text is separate. The cursor travels the other way and

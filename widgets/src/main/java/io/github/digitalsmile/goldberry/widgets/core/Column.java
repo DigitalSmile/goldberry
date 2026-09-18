@@ -69,7 +69,6 @@ public record Column(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `column` from markup.
-    /// Builds a `column` from markup.
     ///
     /// **`accordion=#true` builds something else.** §5 puts that flag here and is
     /// right to — "one section open at a time" is a rule about *siblings*, which

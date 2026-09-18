@@ -4,7 +4,7 @@ import java.util.Locale;
 
 /// A note of about a given size, and a cursor in the middle of it.
 ///
-/// The document [MarkdownFrameBenchmark] and [MarkdownReuseTest] type into. It is
+/// The document [MarkdownFrameBenchmark] types into. It is
 /// deliberately not one long paragraph: a real note is headings, prose, bullets,
 /// fences and quotations, and a benchmark over a single block would measure the
 /// one case where reuse has nothing to reuse.
