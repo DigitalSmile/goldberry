@@ -255,6 +255,23 @@ class KdlParserTest {
         void unterminated() {
             assertThrows(KdlSyntaxException.class, () -> KdlParser.parse("a /* oops"));
         }
+
+        @ParameterizedTest
+        @ValueSource(
+                strings = {
+                    "node /-", // nothing at all after it
+                    "node /-   ", // only whitespace
+                    "node /- // and a comment\n", // trivia that runs to the end
+                    "/-", // not even a node
+                })
+        @DisplayName("a /- with nothing left to comment out is refused, not read past the end")
+        void danglingSlashdash(String markup) {
+            // Caught a missing atEnd() guard: the trivia after "/-" ran to the end
+            // of the input and the next peek() threw StringIndexOutOfBoundsException
+            // -- an unchecked leak from a parser that promises KdlSyntaxException.
+            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse(markup));
+            assertTrue(thrown.line() >= 1, () -> "no position on: " + thrown.getMessage());
+        }
     }
 
     @Nested

@@ -469,14 +469,21 @@ public final class KdlParser {
     }
 
     /// Consumes a `/-` if one is here.
+    ///
+    /// A slashdash must have something to comment out. The trivia after it may
+    /// run to the end of the input, and every caller then looks at what follows,
+    /// so a dangling `/-` is refused here rather than read past the end.
     private boolean takeSlashdash() {
-        if (source.startsWith("/-", index)) {
-            advance();
-            advance();
-            skipTrivia(true);
-            return true;
+        if (!source.startsWith("/-", index)) {
+            return false;
         }
-        return false;
+        advance();
+        advance();
+        skipTrivia(true);
+        if (atEnd()) {
+            throw error("expected something for \"/-\" to comment out, found end of input");
+        }
+        return true;
     }
 
     /// `(type)`, which this subset refuses rather than discards.
