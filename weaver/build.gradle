@@ -52,6 +52,15 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-Xlint:all,-serial' << '-Werror'
 }
 
+// The fixtures under `src/test/java/.../models` stand in for an application's
+// compiled classes, so they have to carry what an application's classes carry.
+// `MethodParameters` is one of the attributes the weaver was dropping, and javac
+// writes it only when asked -- without this there would be no parameter names in
+// the test tree for a test to find missing.
+tasks.named('compileTestJava') {
+    options.compilerArgs << '-parameters'
+}
+
 // Runnable as `java -jar goldberry-weaver.jar <classes-dir>`, which is the
 // integration path for every build system that is not this one. The weaver has
 // no dependencies beyond the JDK, so a plain jar is a complete one -- there is

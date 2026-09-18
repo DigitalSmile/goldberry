@@ -62,6 +62,18 @@ final class Woven {
     ///
     /// @return each input class mapped to its woven form, by name
     static Map<String, Class<?>> group(Class<?>... types) {
+        return define(groupBytes(types), types[0].getClassLoader());
+    }
+
+    /// The same weave, as bytes rather than as loaded classes.
+    ///
+    /// What a test asserting on the *class file* needs — the attributes a method
+    /// kept, the instructions a body ends up with — none of which survives being
+    /// handed to a class loader.
+    ///
+    /// @return each input class mapped to its woven bytes, or to its original
+    ///         bytes when the weaver left it alone
+    static Map<String, byte[]> groupBytes(Class<?>... types) {
         var raw = new LinkedHashMap<String, byte[]>();
         var internal = new LinkedHashMap<String, String>();
         for (var type : types) {
@@ -93,7 +105,7 @@ final class Woven {
             var result = ModelWeaver.weave(bytes, models, open);
             woven.put(name, result == null ? bytes : result);
         });
-        return define(woven, types[0].getClassLoader());
+        return woven;
     }
 
     /// Defines a whole group parent-last, so each of them sees the others.

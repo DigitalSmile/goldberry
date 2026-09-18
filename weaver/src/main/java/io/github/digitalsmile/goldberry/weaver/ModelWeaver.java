@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.weaver;
 
+import java.lang.classfile.AccessFlags;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassElement;
 import java.lang.classfile.ClassFile;
@@ -10,11 +11,13 @@ import java.lang.classfile.CodeTransform;
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.Interfaces;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.MethodTransform;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute;
 import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.classfile.instruction.FieldInstruction;
+import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
@@ -25,6 +28,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -189,7 +193,15 @@ public final class ModelWeaver {
             // file again on the next build that did not recompile -- and weaving
             // twice would add every synthesised member a second time, which is a
             // class file the verifier rejects.
-            return null;
+            //
+            // One thing can still have changed around it, though. A sibling
+            // compiled since may now write to this model from outside its nest,
+            // and the setters this class was given were private because, the last
+            // time it was woven, nothing did (ADR-0137). Widening them is the
+            // whole of the second pass.
+            return reachedFromOutsideTheNest.contains(model.thisClass().asInternalName())
+                    ? openSetters(classFile, model)
+                    : null;
         }
         if (!mine) {
             // Not a model, but it may still assign to one. Rewritten only if it
@@ -255,24 +267,96 @@ public final class ModelWeaver {
                 .andThen(addMembers(model, owner, bounds, woven, actions, open)));
     }
 
+    /// Opens an already-woven model's setters to its package.
+    ///
+    /// The one thing a second pass has to do to a class it has already been
+    /// through. Only the flag changes: the body is handed on as it stands, so
+    /// this is the same class file with one bit cleared per setter.
+    ///
+    /// @return the reopened class, or **null** if no setter was private
+    private static byte[] openSetters(ClassFile classFile, ClassModel model) {
+        var privateSetters = new LinkedHashSet<String>();
+        for (var method : model.methods()) {
+            if (method.methodName().stringValue().startsWith(SETTER_PREFIX)
+                    && method.flags().has(AccessFlag.PRIVATE)) {
+                privateSetters.add(method.methodName().stringValue());
+            }
+        }
+        if (privateSetters.isEmpty()) {
+            return null;
+        }
+        return classFile.transformClass(model, (builder, element) -> {
+            if (element instanceof MethodModel method
+                    && privateSetters.contains(method.methodName().stringValue())) {
+                builder.transformMethod(method, (out, member) -> {
+                    if (member instanceof AccessFlags flags) {
+                        out.withFlags(flags.flagsMask() & ~ClassFile.ACC_PRIVATE);
+                    } else {
+                        out.with(member);
+                    }
+                });
+            } else {
+                builder.with(element);
+            }
+        });
+    }
+
     /// Whether `model` assigns to any woven `@Bind` field.
+    ///
+    /// The `putfield`s only, which is what decides whether there is anything to
+    /// rewrite. A class whose writes were rewritten on an earlier pass has
+    /// nothing left to do and must not be re-serialised for it — see
+    /// [#modelsWrittenBy(byte\[\],Map)], which asks a wider question for a
+    /// different reason.
     private static boolean writesToAModel(ClassModel model, Map<String, Rewired> models) {
         return !modelsWrittenBy(model, models).isEmpty();
     }
 
-    /// Every model `bytes` assigns a `@Bind` field of, by internal name.
+    /// Every model `bytes` writes a `@Bind` field of, by internal name.
     ///
     /// What decides a setter's visibility: a model written to only from inside
     /// its own nest keeps private ones (ADR-0137).
+    ///
+    /// Both forms of the write count. A class javac has just recompiled says so
+    /// with a `putfield`; a class the weaver got to on an earlier build says so
+    /// with a call to the setter, because that is what the weaver turned its
+    /// `putfield` into. Counting only the first meant an incremental build that
+    /// recompiled the model and not the sibling saw nobody writing to it, wove it
+    /// with private setters, and left the sibling calling one it could no longer
+    /// reach — an `IllegalAccessError` at the first click, from a build that
+    /// changed neither class's source.
     public static java.util.Set<String> modelsWrittenBy(byte[] bytes, Map<String, Rewired> models) {
-        return modelsWrittenBy(ClassFile.of().parse(bytes), models);
+        var model = ClassFile.of().parse(bytes);
+        var written = new LinkedHashSet<>(modelsWrittenBy(model, models));
+        if (models.isEmpty()) {
+            return written;
+        }
+        for (var method : model.methods()) {
+            var code = method.code().orElse(null);
+            if (code == null) {
+                continue;
+            }
+            for (var element : code) {
+                if (!(element instanceof InvokeInstruction call)
+                        || !call.name().stringValue().startsWith(SETTER_PREFIX)) {
+                    continue;
+                }
+                var owner = call.owner().asInternalName();
+                var target = models.get(owner);
+                var field = call.name().stringValue().substring(SETTER_PREFIX.length());
+                if (target != null && target.fields().containsKey(field)) {
+                    written.add(owner);
+                }
+            }
+        }
+        return written;
     }
 
     private static java.util.Set<String> modelsWrittenBy(ClassModel model, Map<String, Rewired> models) {
         if (models.isEmpty()) {
             return java.util.Set.of();
         }
-        var written = new java.util.LinkedHashSet<String>();
+        var written = new LinkedHashSet<String>();
         for (var method : model.methods()) {
             var code = method.code().orElse(null);
             if (code == null) {
@@ -307,9 +391,19 @@ public final class ModelWeaver {
     ///
     /// The rewired fields only: a `Property` field is already observable and no
     /// write to it is rewritten, here or anywhere.
+    ///
+    /// A model that has **already been woven** answers too. It is still the same
+    /// model with the same `@Bind` fields — weaving adds members, it takes none
+    /// away — and the question this answers is not "what shall I do to this
+    /// class" but "what does a write to this class mean". Returning null for it
+    /// meant an incremental build that recompiled only a sibling `@Actions` class
+    /// did not know the model beside it was a model at all: the sibling's
+    /// `putfield`s were left as writes, so the values moved and nothing was
+    /// notified, and the model's setters were never opened to the package that
+    /// had started calling them.
     public static Rewired rewired(byte[] bytes) {
         var model = ClassFile.of().parse(bytes);
-        if (!isModel(model) || alreadyWoven(model)) {
+        if (!isModel(model)) {
             return null;
         }
         var owner = model.thisClass().asSymbol();
@@ -541,16 +635,63 @@ public final class ModelWeaver {
         // rebuilds each method once and the second pass no longer sees the code
         // elements the first handed on, so every rewrite is quietly lost. This
         // was found by every notification test failing at once.
+        //
+        // `transformMethod` and not `withMethod(name, type, flags, ...)`: the
+        // four-argument door carries over the name, the descriptor and the flags
+        // and *nothing else*, so `Signature`, `RuntimeVisibleAnnotations`,
+        // `MethodParameters` and `Exceptions` were dropped from every method of
+        // every class this transform touched -- which is every method of a woven
+        // model, and every method of every class that writes to one. A
+        // `MethodTransform` hands each method element on unchanged and replaces
+        // only the body, so an attribute survives because nobody decided it
+        // should.
+        //
+        // And only the methods that have a write to replace. A method handed
+        // straight to `builder.with` is copied out of the original class file
+        // byte for byte; a method that is rebuilt has its stack map frames
+        // regenerated, and regenerating a frame where two of the author's types
+        // meet -- `Base x = flag ? new A() : new B()` -- means resolving both and
+        // asking which one they have in common. So a weaver that rebuilt every
+        // method made every method's frames the weaver's problem, and failed
+        // with "Could not resolve class" on code it had no business touching.
+        // Rebuilding only what is rewritten leaves the rest exactly as javac
+        // verified it.
         return (builder, element) -> {
-            if (element instanceof MethodModel method && method.code().isPresent()) {
-                builder.withMethod(method.methodName(), method.methodType(),
-                        method.flags().flagsMask(), out -> out.transformCode(
-                                method.code().orElseThrow(),
-                                isInitialiser(method) ? inConstructor : rewrite));
+            if (element instanceof MethodModel method && rewrites(method, self, models)) {
+                builder.transformMethod(method, MethodTransform.transformingCode(
+                        isInitialiser(method) ? inConstructor : rewrite));
             } else {
                 builder.with(element);
             }
         };
+    }
+
+    /// Whether [#rewriter] would replace anything in `method`.
+    ///
+    /// The same three questions the rewrite itself asks, asked ahead of it so a
+    /// method it would leave alone is never rebuilt. Deliberately including the
+    /// writes that are *refused* — a `putfield` on a model in another package —
+    /// so the refusal still happens where it always did, in the rewrite.
+    private static boolean rewrites(MethodModel method, ClassDesc self, Map<String, Rewired> models) {
+        var code = method.code().orElse(null);
+        if (code == null || models.isEmpty()) {
+            return false;
+        }
+        var sparingOwnFields = isInitialiser(method);
+        for (var element : code) {
+            if (!(element instanceof FieldInstruction instruction)
+                    || instruction.opcode() != Opcode.PUTFIELD) {
+                continue;
+            }
+            var model = models.get(instruction.owner().asInternalName());
+            if (model == null || !model.fields().containsKey(instruction.name().stringValue())) {
+                continue;
+            }
+            if (!(sparingOwnFields && instruction.owner().asSymbol().equals(self))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isInitialiser(MethodModel method) {

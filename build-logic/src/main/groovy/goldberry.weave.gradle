@@ -70,10 +70,26 @@ def weaveTask = { String taskName, String setName, String compileTask, String fl
         javaLauncher = javaToolchains.launcherFor {
             languageVersion = JavaLanguageVersion.of(javaVersion)
         }
-        classpath = configurations.goldberryWeaver
-        mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
-
         def classesDir = tasks.named(compileTask).flatMap { it.destinationDirectory }
+
+        // The weaver, and then the classes it is about to weave and everything
+        // they were compiled against.
+        //
+        // Not padding: rewriting a method means regenerating its stack map
+        // frames, and a frame where two of the author's types meet
+        // (`Base x = b ? new A() : new B()`) is only computable by resolving
+        // both and asking what they have in common. The class-file API asks a
+        // class hierarchy resolver, the default resolver loads by name, and a
+        // weaver launched with only its own jar cannot load a single class of
+        // the module it is weaving -- so that method failed with
+        // `Could not resolve class`, and there was no way for an application to
+        // work around it.
+        //
+        // The weaver's own entries come first, so `WeaverMain` is the one this
+        // JVM started and not some other copy on a module's compile classpath.
+        classpath = files(configurations.goldberryWeaver, classesDir,
+                sourceSets.named(setName).map { it.compileClasspath })
+        mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
         argumentProviders.add({
             [flag, classesDir.get().asFile.absolutePath]
         } as CommandLineArgumentProvider)
