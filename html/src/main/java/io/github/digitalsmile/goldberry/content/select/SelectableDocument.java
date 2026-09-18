@@ -54,12 +54,19 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///   the router captures on press — so a link is pressed rather than selected from.
 ///   Dragging *through* one is fine, and that is the common case.
 ///
-/// @param document what the view resolved this build, compared between builds so that
-///        a selection is dropped when the text underneath it changes
+/// ## What decides a selection has outlived its document
+///
+/// Not the document. This used to carry the view's resolved `Document` beside the
+/// fold, on the reading that two builds could be compared — and nothing ever read
+/// it, because the comparison that matters is finer than a document: [WordGeometry]
+/// reports whether the **words** this build registered say something different from
+/// the ones the selection was measured against, which is the question asked in
+/// `build` below and the only one an offset into a flat list can be answered by.
+///
 /// @param fold what turns the minter, the memo and the overlay into the document's
 ///        widgets — the view's own, because only it knows whether this is Markdown or
 ///        HTML
-public record SelectableDocument(Object document, Fold fold) implements Widget.Stateful {
+public record SelectableDocument(Fold fold) implements Widget.Stateful {
 
     /// What a view does with the three things this state owns.
     ///
@@ -77,7 +84,6 @@ public record SelectableDocument(Object document, Fold fold) implements Widget.S
     }
 
     public SelectableDocument {
-        Objects.requireNonNull(document, "document");
         Objects.requireNonNull(fold, "fold");
     }
 

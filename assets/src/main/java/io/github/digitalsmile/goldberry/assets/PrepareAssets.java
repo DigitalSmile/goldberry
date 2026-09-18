@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.ZipFile;
 
@@ -202,17 +201,5 @@ public final class PrepareAssets {
             System.out.println("  vendored licenses/" + asset.licenceAs()
                     + " from " + asset.licenceUrl());
         }
-    }
-
-    /// Every resource path this produces, for the test that asserts `:core` and
-    /// the build agree about where they land.
-    public static Map<String, String> producedResources() {
-        var produced = new TreeMap<String, String>();
-        for (var asset : Asset.all()) {
-            asset.extract().forEach((entry, destination) ->
-                    produced.put(destination, asset.name()));
-        }
-        produced.put("icons/lucide.txt", Asset.LUCIDE.name());
-        return produced;
     }
 }

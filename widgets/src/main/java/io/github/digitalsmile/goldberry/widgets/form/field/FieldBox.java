@@ -111,9 +111,4 @@ record FieldBox(
         // here would be the widget overriding what a document asked for.
         return Box.of().style(style).children(children.toArray(Box[]::new));
     }
-
-    /// A field that reports nothing, for a test or a preview.
-    static FieldBox of(String label, List<Widget> children) {
-        return new FieldBox(label, children, false, "", Attributes.NONE, () -> {});
-    }
 }

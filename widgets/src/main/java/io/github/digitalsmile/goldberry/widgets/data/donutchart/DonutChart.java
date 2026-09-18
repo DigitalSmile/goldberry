@@ -156,12 +156,12 @@ public record DonutChart(
             values.add(slice.values().isEmpty() ? 0 : slice.values().getFirst());
             labels.add(slice.name());
         }
-        var parts = new ArrayList<Widget>(2);
-        parts.add(new DonutPlot(values, labels));
-        if (!slices.isEmpty()) {
-            parts.add(new io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend(slices));
-        }
-        return List.copyOf(parts);
+        // A legend unconditionally: a donut with no slices never reaches here,
+        // because a ring of nothing is the message above, and one with slices has
+        // names that only the legend carries.
+        return List.of(
+                new DonutPlot(values, labels),
+                new io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend(slices));
     }
 
     @Override

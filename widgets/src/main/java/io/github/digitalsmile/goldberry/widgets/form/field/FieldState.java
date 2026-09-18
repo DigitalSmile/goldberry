@@ -221,10 +221,4 @@ final class FieldState extends State<Field> implements Validated {
     public String message() {
         return message;
     }
-
-    /// The bound value, for a form assembling what it would submit.
-    @Nullable
-    String currentValue() {
-        return value();
-    }
 }
