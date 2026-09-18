@@ -539,16 +539,14 @@ public final class Sdl3Backend implements Backend {
 
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
-        var millis = (int) Math.min(wait.toMillis(), Integer.MAX_VALUE);
+        var millis = waitMillis(wait);
 
         // Published for the event watch, which runs *inside* the calls below --
         // including the ones the platform makes for itself during a resize drag,
         // when they do not return for as long as the drag lasts (ADR-0060).
         activeSink = sink;
         try {
-            var hasEvent = (wait.isZero() || millis == 0)
-                    ? video.pollEvent(eventBuffer)
-                    : video.waitEvent(eventBuffer, millis);
+            var hasEvent = millis == 0 ? video.pollEvent(eventBuffer) : video.waitEvent(eventBuffer, millis);
             while (hasEvent) {
                 translate(eventBuffer.type(), eventBuffer.windowId(), translated);
                 hasEvent = video.pollEvent(eventBuffer);
@@ -574,6 +572,47 @@ public final class Sdl3Backend implements Backend {
         } finally {
             activeSink = null;
         }
+    }
+
+    /// The timeout to hand `SDL_WaitEventTimeout`, or zero to poll instead.
+    ///
+    /// SDL counts in whole milliseconds and the pump decides in nanoseconds, so
+    /// a wait shorter than a millisecond has nowhere to truncate to but zero —
+    /// and zero is `SDL_PollEvent`, which returns at once. **The pacer produces
+    /// exactly that wait on the way out of every frame it holds back:** the
+    /// remainder of a 16.6 ms interval spends its last millisecond there, the
+    /// pump returns having delivered nothing, the loop in
+    /// [io.github.digitalsmile.goldberry.render.event.EventLoop]
+    /// comes straight back round, and it spins at whatever an empty pump
+    /// costs until the frame comes due. A backstop meant to save two frames in
+    /// five was burning a core for the privilege, and only once the display's
+    /// own rate was adopted — which is to say, on every machine.
+    ///
+    /// So a wait that is not zero waits, and the rounding goes **up**: a frame
+    /// handed over up to a millisecond late is one frame slightly late, which is
+    /// what the pacer is for, while a frame handed over after a millisecond of
+    /// spinning costs the same lateness and a busy core with it.
+    ///
+    /// Only a genuinely zero wait polls, which is what [#pumpEvents]' contract
+    /// promises for a zero timeout and what a pending dialog answer asks for.
+    ///
+    /// @param wait what this pump decided to wait for
+    /// @return whole milliseconds for `SDL_WaitEventTimeout`, or 0 to poll
+    static int waitMillis(Duration wait) {
+        if (wait.isZero() || wait.isNegative()) {
+            return 0;
+        }
+        var seconds = wait.getSeconds();
+        if (seconds >= Integer.MAX_VALUE / 1000) {
+            // Longer than SDL can be asked to wait. Waiting less is harmless --
+            // the pump returns with nothing and the caller comes back.
+            return Integer.MAX_VALUE;
+        }
+        // Ceiling rather than truncation, so a wait that is not a whole number
+        // of milliseconds still covers the interval it was asked for instead of
+        // returning early and being asked again for the remainder.
+        var millis = seconds * 1000 + (wait.getNano() + 999_999) / 1_000_000;
+        return (int) Math.min(millis, Integer.MAX_VALUE);
     }
 
     /// Hands over a frame for every window that asked for one and may have it now.
