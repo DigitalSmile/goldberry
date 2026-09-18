@@ -8,17 +8,23 @@
 /// The shape, because it is not obvious from the class names:
 ///
 /// ```
-/// SelectableDocument   the state: hears the pointer and the keyboard, owns both below
+/// SelectableDocument   the state: hears the pointer and the keyboard, owns all below
 /// ├── SelectionLayer   an absolutely-positioned overlay that paints the highlight
 /// └── (the folded document)
 ///     └── Word …       each one reports where it was laid out
+/// WordMinter           hands out the words of one build, and marks where it is
 /// WordGeometry         where every word is, what it says, and what it is part of
+/// BlockMemo            the widgets the last build made, per block
 /// Caret                a word and a character in it
 /// ```
 ///
 /// The load-bearing decision is that a drag **repaints** rather than rebuilds: the
 /// selection is mutable state the overlay's painter reads, so moving the pointer over
 /// a six-hundred-word page costs one frame's paint rather than one frame's build.
+///
+/// The second one is that a word's entry belongs to its **block** rather than to the
+/// document ([ADR-0389]). That is what makes a block matchable across builds, and
+/// therefore what makes a keystroke in a long note cost the paragraph it landed in.
 ///
 /// `@NullMarked` puts the package under NullAway: every type is non-null unless it
 /// says `@Nullable`, and the build fails on a violation (`docs/testing.md` §2).

@@ -12,7 +12,6 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.content.ImageSource;
 import io.github.digitalsmile.goldberry.content.image.Picture;
 import io.github.digitalsmile.goldberry.content.inline.Words;
-import io.github.digitalsmile.goldberry.content.select.WordGeometry;
 import io.github.digitalsmile.goldberry.content.select.WordMinter;
 import io.github.digitalsmile.goldberry.html.model.Comment;
 import io.github.digitalsmile.goldberry.html.model.Element;
@@ -95,10 +94,10 @@ final class HtmlWidgets {
     /// Where `src` comes from, or null for a view that draws alt text.
     private final @Nullable ImageSource images;
 
-    HtmlWidgets(@Nullable Consumer<String> onLink, @Nullable ImageSource images, WordGeometry geometry) {
+    HtmlWidgets(@Nullable Consumer<String> onLink, @Nullable ImageSource images, WordMinter minter) {
         this.onLink = onLink;
         this.images = images;
-        this.minter = new WordMinter(geometry);
+        this.minter = minter;
         this.words = Words.prefixed("html", minter);
     }
 

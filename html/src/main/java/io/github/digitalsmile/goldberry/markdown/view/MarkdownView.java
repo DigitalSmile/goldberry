@@ -48,8 +48,16 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// (ADR-0062, ADR-0296).
 ///
 /// The parse is not cached, and does not need to be: md4c reads a note in
-/// microseconds ([ADR-0294](../../../../../../../book/src/adr/0294-a-parser-crosses-the-boundary-once.md)),
-/// and what a rebuild costs is the widgets rather than the parsing.
+/// microseconds ([ADR-0294](../../../../../../../book/src/adr/0294-a-parser-crosses-the-boundary-once.md)).
+///
+/// **And the widgets are not rebuilt either.** A keystroke changes one block, so the
+/// view hands back the widget every other block already had and the element tree
+/// stops at an identical description without walking under it
+/// ([ADR-0315], [ADR-0389]). Nothing to switch on and no previous document to hold:
+/// on a 50 kB note a keystroke costs about 2 ms of build, of which md4c is 1. What
+/// it does **not** make cheap is a very large note — the style and layout passes are
+/// over every element in the window whatever this does — so a 500 kB preview is
+/// still slow and `docs/gaps.md` says what would fix it.
 ///
 /// ## It takes a document, and that is the design
 ///
@@ -287,10 +295,15 @@ public record MarkdownView(
         //
         // A fold per build, because it counts the tasks and the words it has seen as
         // it walks (ADR-0300) — and a build is exactly one walk of one document.
-        return new SelectableDocument(
-                document,
-                (geometry, overlay) -> new MarkdownWidgets(onLink, onWikiLink, images, onTask, geometry)
-                        .document(document, attributes, overlay));
+        return new SelectableDocument(document, (minter, memo, overlay) -> {
+            // The wiring is the memo's, not this build's: a block handed back from an
+            // earlier keystroke still has to reach the handler the application is
+            // holding now, and an application that writes `onLink(this::open)` in its
+            // own build hands over a new object every frame ([ADR-0389]).
+            var wiring = memo.<MarkdownWiring>held(MarkdownWiring::new);
+            wiring.of(onLink, onWikiLink, images, onTask);
+            return new MarkdownWidgets(wiring, minter).document(document, attributes, overlay, memo);
+        });
     }
 
     /// Builds a `markdown-view` from markup.

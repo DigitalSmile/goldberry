@@ -81,6 +81,30 @@ The hot path (thousands of draw calls per page) never crosses the FFM boundary.
 
 `markdown-view` = **md4c** (tiny, MIT, CommonMark + tables/strikethrough/task-list extensions) parsing to HTML, rendered by the same litehtml pipeline with the theme master stylesheet. One extra dependency measured in kilobytes; markdown inherits theming, fonts, and golden-image testing for free. Code fences hand off to `goldberry-code` highlighting when that module is present, else render as plain `code` blocks.
 
+> **A keystroke costs the paragraph, not the note**
+> ([ADR-0389](../book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
+> Rebuilding the view with a new `Document` on every keystroke is what §1.3's
+> binding does and what this widget's documentation tells an application to do, so
+> the view matches each top-level block against the one that was in that place
+> last build: a block whose source is unchanged keeps the widget it had, and the
+> element tree stops at an identical description without walking under it
+> ([ADR-0315](../book/src/adr/0315-a-rebuild-is-not-a-restyle.md)). Nothing to
+> switch on, no previous document to hold, and no new API — a 50 kB note takes
+> **2 ms of build for a keystroke, of which md4c is 1**, where it used to take 9.
+>
+> Two things this cannot see, and both do the safe thing. A block holding an
+> image the application has not found yet is built again every frame until the
+> picture arrives, so a late `ImageSource` still lands. And a view that **gains or
+> loses** a handler rebuilds; a view that hands over a *different* handler object
+> saying the same thing — `onLink(this::open)` written inside a build — does not,
+> because a rendered link presses through the view rather than through the object
+> it was built with.
+>
+> What this does **not** fix is a very large note: at 500 kB the style and layout
+> passes still walk the whole document, because both are over every element by
+> construction. Building only what is inside the `scroll` is what would fix that,
+> and it is a decision of its own (`docs/gaps.md`).
+
 ### 1.3 Widget API
 
 ```kdl
