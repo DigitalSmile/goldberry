@@ -41,11 +41,13 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// > violation.
 ///
 /// So `interval` defaults to **off**, and when it is on there are three separate
-/// reasons to stop. Two of them are complete here; the third is not, and it is
-/// stated rather than hidden: focus on a widget **inside a slide** does not pause
-/// the rotation, because the cascade has no `:focus-within` and nothing tells a
-/// widget that focus landed in its subtree. Focus on the strip or on the
-/// carousel's own controls does pause it ([ADR-0165]).
+/// reasons to stop — a pointer over it, focus in it, and a reader who has asked
+/// for less motion. All three are complete. Focus **inside a slide** pauses the
+/// rotation like focus on the strip does: `Handles#onFocusWithin` tells a widget
+/// that focus landed in its subtree, and
+/// [io.github.digitalsmile.goldberry.widgets.panel.carousel.CarouselView#onFocusWithin]
+/// is the whole of it ([ADR-0165]). This paragraph said the opposite until the
+/// 2026-09-18 review read it against the handler.
 ///
 /// ## `loop` is off by default
 ///

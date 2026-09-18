@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -260,10 +261,11 @@ public final class Fonts implements AutoCloseable {
         });
     }
 
-    /// Whether the missing emoji face has been mentioned. One line per process,
-    /// not one per element per frame.
-    private final java.util.concurrent.atomic.AtomicBoolean emojiReported =
-            new java.util.concurrent.atomic.AtomicBoolean();
+    /// Whether the missing emoji face has been mentioned. One line **per
+    /// `Fonts`**, not one per element per frame — an application with two of
+    /// these says it twice, which is the honest reading of an instance field and
+    /// not the "once per process" this comment used to claim.
+    private final AtomicBoolean emojiReported = new AtomicBoolean();
 
     /// Whether a shipped face opens, trying it the first time it is asked about.
     ///

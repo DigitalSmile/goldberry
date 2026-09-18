@@ -2611,7 +2611,7 @@ time-picker picker-toggle {
 }
 
 /* The affordance while the grid is showing. `:checked` on the box is what says
-   so -- see `DatePickerBox`. */
+   so -- see `PickerField`, which is the one node both pickers are built from. */
 date-picker:checked picker-toggle {
   color: var(--gb-accent);
 }

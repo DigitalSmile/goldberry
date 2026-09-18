@@ -43,9 +43,9 @@ import io.github.digitalsmile.goldberry.widgets.panel.calendar.DateSelection;
 ///
 /// ```
 /// date-picker           this node. Stateful, styles nothing, holds the text
-/// └── date-picker       [DatePickerBox] — the styled node: the keys, the popover
+/// └── date-picker       [io.github.digitalsmile.goldberry.widgets.form.parts.PickerField]
 ///     ├── text-input    the field, which is a real `text-input`
-///     └── date-picker-toggle  the affordance that opens the grid
+///     └── picker-toggle the affordance that opens the grid
 /// ```
 ///
 /// The popover holds a [CalendarView], which is §10's widget unchanged — the

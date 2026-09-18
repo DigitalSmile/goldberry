@@ -44,9 +44,12 @@ record TableHeaderCell(Column<?> column, Sort sort, Consumer<String> onSort, Tab
         }
 
         private void measured(double value) {
-            // Kept without a rebuild when nothing is dragging: the anchor is read
-            // on the press, and a rebuild per resize of the window would be a
-            // frame of work for a number nobody has asked for yet.
+            // A rebuild, but only when the number actually moved: `setState` is
+            // what puts a measured width where the next drag's anchor can read
+            // it, and the equality check above is what keeps a window resize from
+            // costing a frame per header per pixel. (This comment used to say the
+            // width was kept "without a rebuild", which is not what the line
+            // below does.)
             if (value != width && isMounted()) {
                 setState(() -> width = value);
             }

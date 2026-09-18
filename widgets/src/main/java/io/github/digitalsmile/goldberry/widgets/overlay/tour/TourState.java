@@ -42,9 +42,11 @@ final class TourState extends State<Tour> {
         var stop = advanceToAFindableStop();
         if (stop == null) {
             // Every remaining stop names something that is not on screen. Ending
-            // is the only honest thing left, and it is deferred out of the build
-            // because removing an overlay mid-build would mutate the tree that is
-            // being described.
+            // is the only honest thing left, and it happens here, synchronously:
+            // `end()` clears the tour's state and the veil this method returns is
+            // the empty one, so the build describes a tour that is already over
+            // rather than one that is about to be. (This comment claimed the end
+            // was deferred out of the build; it never was.)
             end();
             return new TourVeil(null, window);
         }
