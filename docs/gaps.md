@@ -7,7 +7,7 @@ belongs in Goldberry.** Drawing, input, text, windows and platform integration a
 boards, notes, CRDT sync and agents are brd's. When brd hits the line, the answer is an entry here —
 not a workaround that quietly becomes a second toolkit.
 
-Updated 2026-09-17.
+Updated 2026-09-18.
 
 **Every entry on this list is closed or answered again.** Six arrived together —
 the desktop's theme, an italic face and text decorations, a picker inside a popup, a
@@ -39,6 +39,12 @@ decoder, and GIF is nine pages, so the toolkit writes one. G37 could not be a co
 number widgets at all — a widget's children are described before anything is laid out, so
 the numbers would have been a frame behind the text on every keystroke that changed the
 line structure.
+
+**Six more arrived on 2026-09-18, from a notes application and a chat client.** Two of them are
+unlike anything on this list before: G44 and G45 are not missing features but **measurements** — a style
+pass and a layout pass that grow with the size of a document rather than with the size of the change —
+and what they ask for is a cost rather than an API. Working notes for this batch are in
+[gaps-g44-g49.md](gaps-g44-g49.md).
 
 That six could arrive at once is the list's job working rather than failing: §3 says
 a new brd need gets an entry here *before* any code is written in brd, and every one
@@ -136,6 +142,12 @@ a rule.
 | ~~[G41](#g41)~~ | ~~A `canvas` that can ask for its next frame~~ | **closed** — ADR-0348 | done |
 | ~~[G42](#g42)~~ | ~~Hand a URL to the desktop~~ | **closed** — ADR-0346 | done |
 | ~~[G43](#g43)~~ | ~~`text-area`'s gutter strip does not reach its padding~~ | **closed** — ADR-0350 | done |
+| [G44](#g44) | A `text-area` style pass that does not grow with its text | a preview budget on a long note | high |
+| [G45](#g45) | A `markdown-view` that restyles only the block that changed | the same budget, worse | high |
+| ~~[G46](#g46)~~ | ~~A canvas transform that composes with the one it is painted under~~ | **closed** — ADR-0390 | done |
+| [G47](#g47) | A `qr-code` widget | sign-in by QR, share links, device invites | high |
+| ~~[G48](#g48)~~ | ~~A viewport that opens at its end, and stays put when rows are added above~~ | **closed** — ADR-0392 | done |
+| ~~[G49](#g49)~~ | ~~Emoji render as boxes~~ | **closed** — ADR-0393 | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -2119,6 +2131,307 @@ What the reproduction found instead is a real width error next to it: the wrap w
 and ran it under the right padding. It subtracts each edge once now. `TextAreaGutterStripTest` checks
 both on pixels. If Tessera's drift survives a snapshot with this in it, it is a new entry.
 
+
+<a id="g44"></a>
+
+### G44 — `text-area`'s style pass grows with its text
+
+**Measured, not guessed.** In [docs/notes.md](notes.md) N5's benchmark, a window holds one note editor in
+**edit** mode: one `text-area`, gutter on, `class="mono"`, and nothing else. One character is typed per
+frame, and the window's own `FrameStats` report each stage's mean / worst, in ms:
+
+| note | style | build | layout | raster | frame |
+|---|---|---|---|---|---|
+| 2 kB | 2.87 / 4.69 | 0.57 | 0.82 | 0.78 | 7.54 |
+| 50 kB | **12 / 19** | 2.40 | 0.86 | 1.72 | 23 |
+| 500 kB | **186 / 325** | 35 | 15 | 57 | 298 |
+
+The tree is the same size in every row. Only the string in the `text-area` changes, and the style
+span grows with it about linearly. Layout, which you might expect to track the text, stays flat up to
+50 kB. So the cascade, or something it triggers per line or per run (shaping? the gutter's numbers?), is
+doing work in proportion to the text rather than to the one node that changed.
+
+**What it blocks.** Plan E1's *preview < 100 ms* on large notes: a 500 kB note is three times over the
+budget with **no preview on screen at all**, and nothing Tessera does before the frame can change that.
+
+**Why it is not Tessera's.** The pane is the toolkit's `text-area` with the text handed back, which is its
+documented controlled use. There is no declaration that makes styling it cheaper.
+
+**What would fix it.** Whatever makes restyling a `text-area` whose text changed cost the same as
+restyling one whose text did not. No API change is proposed: this is a cost, not a missing feature. The
+check is `./gradlew :tessera-notes:benchmark`, and the edit-mode rows should go flat.
+
+**What Tessera does meanwhile.** Nothing. The numbers are in
+[docs/status](status/phase-e-notes.md#n5--the-preview-budget--2026-09-17).
+
+<a id="g45"></a>
+
+### G45 — `markdown-view` restyles and lays out every block when one changes
+
+**Measured.** The same benchmark in **preview** mode: a `markdown-view` over `Markdown.parse(text)`,
+inside a `scroll`, rebuilt with a new `Document` on every keystroke, as its documentation says to. Each
+cell is mean / worst, in ms:
+
+| note | build | style | layout | raster | frame |
+|---|---|---|---|---|---|
+| 2 kB | 0.92 | 0.96 | 1.73 / 9.78 | 0.88 | 6.67 / 18 |
+| 50 kB | 8.35 | 8.76 | **16 / 73** | 9.29 | 47 / 124 |
+| 500 kB | 137 | 163 | **213 / 1099** | 142 | 755 / 2015 |
+
+md4c accounts for 4 ms of the 50 kB build and 8 ms of the 500 kB one (timed separately), so almost all of
+each row is the view. One keystroke changes one paragraph, yet every stage grows with the whole note.
+That is consistent with every block being a new widget each frame, with nothing to match it to the
+block it replaced. In split mode the two widgets add up: 74 / 151 ms at 50 kB and 1859 / 4897 ms at
+500 kB.
+
+**What it blocks.** The same gate, worse. At 50 kB the **mean** frame is inside 100 ms and the worst frame
+is not, and the worst is layout.
+
+**Why it is not Tessera's.** The document model and the view are both the toolkit's, and matching two
+consecutive `Document`s block by block is a reconciliation question the element tree answers.
+Tessera diffing documents and handing over a patched tree would be a second view.
+
+**Proposed API.** Possibly none: the view could key each block's widget by its position and content hash
+internally, so an unchanged block keeps its element and its layout. If it cannot, then something like:
+
+```java
+/// The same view over `next`, reusing every block whose source range and text are unchanged from the
+/// document this view was last built with.
+MarkdownView MarkdownView.of(Document next, Document previous);
+```
+
+and `Block.sourceRange()` on the model, which md4c's offsets already have. Lazily building off-screen
+blocks inside a `scroll` would take care of 500 kB on its own, but it is a larger change and a separate
+entry if it is wanted.
+
+**What Tessera does meanwhile.** Nothing. [ADR-0053](adr/0053-the-preview-budget-is-measured-in-a-window.md)
+§5 explains why there is no debounce and no cache.
+
+<a id="g46"></a>
+
+### G46 — a canvas transform that composes with the one the canvas is painted under — **closed**
+
+**What Tessera needs.** The landing page's tiles **turn** as they settle: each starts rotated by up to ±8°
+and lands flat. The floor ([ADR-0057](adr/0057-faces-an-icon-and-a-floor-that-settles.md)) drops, fades and
+scales its tiles, and leaves the turn out.
+
+**Why it is not Tessera's.** `Frame.transform(a, b, c, d, e, f)` *replaces* the matrix. Inside a canvas the
+matrix already holds the translation that puts the canvas on screen, and the painter cannot read it back.
+So a painter that wants a rotated rounded rectangle has two options: set a matrix and draw at the window's
+corner, or rewrite the path's coordinates itself. Goldberry's own showcase does the second
+(ADR-0354's `example.motion.Rotated`, forty lines over every `Path.Segment` kind). That is path geometry,
+and a second copy of it in every application that animates a canvas is the kind of second toolkit
+[ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) is about.
+
+**Proposed API.** Either of these closes it:
+
+```java
+/// Multiplies the current transform by `[a b c d e f]` -- composing with whatever the tree set, which a
+/// canvas painter cannot know. Paired with `save()` / `restore()`, which already exist for the clip.
+public void Frame.concat(double a, double b, double c, double d, double e, double f);
+```
+
+or, keeping `Frame` free of a matrix stack as ADR-0068 wants:
+
+```java
+/// This path turned `radians` clockwise about (`cx`, `cy`), then moved by (`dx`, `dy`).
+public Path Path.transformed(double radians, double cx, double cy, double dx, double dy);
+```
+
+The second is `Rotated` promoted from the showcase, which is why it may be the cheaper answer.
+
+**What Tessera does meanwhile.** Nothing. The tiles drop and fade without turning, and `Settle`'s
+documentation says why.
+
+**Closed — [ADR-0390](../book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md).**
+**Both**, because they answer different halves. `Path.transformed(Affine)` — with `rotated`,
+`translated` and `scaled` over it, and `paint.geom.Transformer` under it — turns the *shape*, which is
+what a rotated tile is. `Frame.concat` multiplies the frame's matrix by the caller's instead of replacing
+it, which is what a rotated *image* or a rotated run of text needs, and neither of those is a path.
+
+The matrix type is the cascade's own `css.value.Affine`, not a new one: a second matrix would have to
+agree with the one hit testing already inverts. `Frame` keeps ADR-0068's bargain — the stack it composes
+against is Java-side, mirrored in a field pushed and popped with `save()`/`restore()`, and assigned
+through the `ASSIGN` op already bound. Blend2D's compose op is exported but its *enumerator* is not, and
+adding one means editing the shim and rebuilding the native library for something arithmetic already
+does.
+
+`example.motion.Rotated` is deleted, and deleting it found a defect: it added the angle to an arc's
+`rotation` and left the radii and the `sweep` flag alone, so it was correct for a pure rotation and
+plausibly wrong for anything else. The replacement decomposes the transformed ellipse through a
+closed-form 2×2 SVD and flips `sweep` under a mirroring matrix. No golden image moved.
+
+<a id="g47"></a>
+
+### G47 — a `qr-code` widget
+
+**What Tessera needs.** Telegram's sign-in by QR code ([docs/chat.md](chat.md) §7.6). TDLib hands the client a
+`tg://login?token=…` link and renews it about every thirty seconds until a phone scans one. The connect
+dialog has to **draw that link as a QR code** and redraw it when the link changes. The same need is coming
+from two other directions: a share link or a device invite handed to a phone (plan L), and any "open this on
+your phone" in a Tessera surface.
+
+**Why it is not Tessera's.** A QR code is ISO/IEC 18004: mode selection, Reed–Solomon error correction, eight
+mask patterns scored by a penalty rule, format and version bits, and a quiet zone. Then it is a grid of
+square modules painted crisply at whatever scale the window is at. The encoder is a specification with one
+right answer, like the image codecs the toolkit already owns ([G35a](#closed)), and the grid is painting.
+Neither has anything to do with chat. An application that writes its own is the second toolkit
+[ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) is about, and every other Goldberry application that
+needs one would write it again.
+
+**Proposed API.**
+
+```java
+/// A QR code for `payload`, as UTF-8 bytes, at the smallest version that fits it at `level`.
+///
+/// Sized by the stylesheet like an `image`. Modules are whole device pixels at every scale, so a
+/// scanner never sees a blurred edge, and the quiet zone is part of the widget's box.
+public record QrCode(String payload, Level level, int quietZone, Attributes attributes) implements Widget.Leaf {
+    public enum Level { L, M, Q, H }
+    public QrCode(String payload) { this(payload, Level.M, 4, Attributes.NONE); }
+    public QrCode level(Level value);
+    public QrCode quietZone(int modules);
+}
+```
+
+```kdl
+qr-code value="tg://login?token=…" level="M" quiet-zone=4
+```
+
+- **Colours** from two tokens, `--gb-qr-ink` and `--gb-qr-paper`, which default to near-black on white **in
+  both themes**. Many phone scanners do not read an inverted code, so a dark theme must not flip it.
+- **Semantics**: an image whose accessible name the application sets ("QR code to sign in to Telegram").
+  The payload is not exposed, because while it is valid it is a credential.
+- **A payload that cannot fit** (more than version 40 holds at the chosen level) is a build-time
+  `IllegalArgumentException`, not an empty square.
+- **Rebuilding with a new payload** re-encodes. Rebuilding with the same payload does not, which matters
+  here because the dialog rebuilds on every keystroke in any field.
+
+**What Tessera does meanwhile.** Draws a dashed square labelled *QR code* with a line naming this entry, in
+`ConnectAccountDialog.qrCode` and nowhere else. The token is not printed. The stopgap is deleted in the commit
+that takes the widget. Nothing is lost while it stands, because the check that would produce the payload
+needs TDLib (CH7), which is not built either.
+
+<a id="g48"></a>
+
+### G48 — a viewport that opens at its end, and stays put when rows are added above — **closed**
+
+**What Tessera needs.** A chat timeline ([docs/chat.md](chat.md) §7.2). Three things, and a `scroll` does
+none of them:
+
+1. **Open at the end.** A conversation opens on its newest message. Today a `scroll` opens at offset zero and
+   the newest message is off the bottom of a long conversation.
+2. **Stay at the end while it is there.** A message arriving while you are at the bottom should keep you at
+   the bottom; one arriving while you are reading history should not move you at all.
+3. **Keep the reader's line when rows are added *above*.** Paging older messages in puts content above the
+   viewport, and everything the reader is looking at jumps down by exactly that much.
+
+`ScrollController.scrollBy` is not an answer to any of the three: the content's height is not known when the
+build runs, "am I at the end" is a question about layout, and a scroll issued after the fact is a visible
+jump rather than a viewport that never moved.
+
+**Why it is not Tessera's.** All three are layout facts -- where the content ends, how tall what was inserted
+is -- and only the engine has them at the moment they are needed. Every application with a log, a console or a
+chat wants exactly this; `docs/core-widgets.md` §1 already gives `scroll` "scroll position is retained state
+surviving rebuilds", which is the same class of promise one step short of what a timeline needs.
+
+**Proposed API.**
+
+```java
+/// Where this viewport sits when it is first laid out, and where it stays as content changes.
+///
+/// `START` is today's behaviour. `END` opens at the end and **sticks** there while the viewport is already
+/// at the end -- a message arriving while the reader is at the bottom scrolls; one arriving while they are
+/// reading history does not move them.
+public Scroll anchor(ScrollAnchor value);   // enum ScrollAnchor { START, END }
+
+/// Keeps what is on screen still when content is inserted **above** the viewport: the offset moves by the
+/// height that was added, so the reader's line does not jump. On by default for `END`.
+public Scroll preserveOnPrepend(boolean value);
+```
+
+```kdl
+scroll anchor="end" preserve-on-prepend=#true { … }
+```
+
+**What Tessera does meanwhile.** `RoomView` draws the **last 30 messages** with a *Show earlier* button above
+them, so the newest are on screen because they are the only ones built. That is one constant and one button
+in one file, and it goes when this lands
+([ADR-0059](adr/0059-the-chat-surfaces-are-built-on-a-hub.md)).
+
+**Closed — [ADR-0392](../book/src/adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md).**
+All three, as `anchor="end"` and `preserve-on-prepend`, and the third one needed something that did not
+exist.
+
+"Content arrived **above**" is not a fact any single frame holds: twelve lines added at the top and
+twelve added at the bottom are the same number of pixels, and `Extent`, `Measured` and `Located` all
+report a property of one frame. So the router gained a fourth geometry facility, `Anchored`: it picks the
+first whole row at the viewport's leading edge — the reader's own line — and remembers where that node
+sits **inside the content box**, in layout coordinates. The scroll is a transform on that box, so the
+number cancels: it moves when something inside changed and not when the viewport did, and growth at the
+bottom reports exactly zero rather than something small.
+
+The consequence is stated rather than hidden: it needs **keyed** rows. Children matched by position are
+not the same node after a prepend — element 0 merely describes a different message — so nothing is
+recognised and nothing moves. Recognising a line a frame later is what a key is for.
+
+"At the end" is half a logical pixel, the same figure `ScrollController.Position` has used since it was
+written, and it is a **flag** written when the offset moves on purpose rather than a comparison
+recomputed after the content has already changed. Opening at the end is not a separate case: the flag is
+on before the first layout. The correction bypasses the glide, because a 240 ms slide per logged line is
+not what a console wants. `preserve-on-prepend` is three states and not two, so `.anchor(END)` followed
+by `.preserveOnPrepend(false)` and the reverse order mean the same thing.
+
+<a id="g49"></a>
+
+### G49 — emoji render as boxes — **closed**
+
+**What Tessera needs.** A message's reactions and the emoji people type in them
+([docs/chat.md](chat.md) §7.2). `👀`, `🎉`, `❤️` in a message body, and a reaction chip that is an emoji and a
+count.
+
+**What happens.** They draw as `.notdef` boxes. The toolkit **bundles** the face --
+`BundledFont.EMOJI`, OpenMoji, and `docs/design-system.md` §2 calls it "the routed emoji slot" -- and
+`docs/ARCHITECTURE.md` §5 describes the routing as *"emoji sequences (ZWJ, VS-16, modifiers) detected during
+itemization and routed to the emoji slot"*, planned for M2. So this entry is not asking for a font or a
+decision; it is reporting that the routing is not there yet, with the first application that shows it.
+
+**Why it is not Tessera's.** Itemization is inside the shaper. There is nothing an application can do but pick
+the face for a whole run, which is wrong for `Rolling to eu-2 🎉 at 14:00` and impossible for a reaction chip
+that is an emoji and a number.
+
+**What Tessera does meanwhile.** Two rules, in `MessageRows` and nowhere else: an emoji **Tessera** would have
+chosen is a word instead (`Image`, `File`), and an emoji a **service** sent is drawn as sent, box and all,
+because the alternative is deciding not to show somebody's reaction. The pictures in
+`build/reports/shell/shell-chat-*.png` are the evidence.
+
+**Closed — [ADR-0393](../book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md).**
+Two things were missing and either alone would have left boxes on screen.
+
+**Nothing split the text**, so `text.itemize` is new: `Itemizer.runs(text)` returns consecutive runs
+labelled `TEXT` or `EMOJI`, by UTS #51's rules read out of `java.lang.Character`. What the sequence rules
+add over the per-character properties is where a naive split goes wrong, and each is a test — U+FE0F and
+U+FE0E decide presentation, U+200D holds a family together so the face can ligate it, skin tones and tag
+sequences and keycaps belong to the emoji they follow, and the `#` of `🎉#ship` is a hashtag rather than a
+keycap. `Paragraph` shapes each run in its own face and concatenates one measurement out of the two, with
+the emoji face's advances **rescaled** into the base font's design units — Inter is 2048 to the em and
+OpenMoji is 1000, and a prefix sum needs one unit. A paragraph with no emoji in it takes the path it took
+before, allocating nothing.
+
+**Nothing could have drawn it in colour anyway**, because what shipped was OpenMoji's monochrome build —
+and `Asset.OPENMOJI` said why: the colour build was "not bundled until something can draw layered
+outlines". It can now. `text.font.sfnt.ColorLayers` reads `COLR` version 0 and `CPAL` in Java, `GlyphFace`
+reads them once per typeface rather than per size, and `GlyphPen` draws each layer glyph with its palette
+colour. A COLRv0 layer is an ordinary glyph in the same face, so nothing new rasterizes anything; the
+artifact carries 2.5 MB instead of 1.4, paid only by an application that adds it on purpose.
+
+The routing is joined up in `Fonts`, the per-window book, so it arrives without an application asking:
+every font it hands out gets the emoji face at the same size, opened lazily and closed with the book. A
+build with no `goldberry-emoji` on its path gets exactly what it got before, silently, and
+`BundledAssets.hasEmojiFont()` is still how one that cares asks.
+
+The showcase's emoji sheet is in colour, and it gained a line of ordinary prose with emoji in it that
+**names no font at all** — which is the thing an application actually writes. `MessageRows`' two rules go.
 ---
 
 **Nothing else, and nothing open.** All five of the latest were raised by building something rather

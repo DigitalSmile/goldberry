@@ -18,7 +18,7 @@ Status legend: **done** means the code, tests and ADR have landed.
 | G45  | a `markdown-view` that restyles only the block that changed | — | in progress |
 | G46  | a canvas transform that composes with the one it is painted under | [0390](../book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md) | done |
 | G47  | a `qr-code` widget | — | in progress |
-| G48  | a viewport that opens at its end and stays put | — | in progress |
+| G48  | a viewport that opens at its end and stays put | [0392](../book/src/adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md) | done |
 | G49  | emoji that are pictures rather than boxes | [0393](../book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md) | done |
 
 ## What each one touched
@@ -73,3 +73,23 @@ the text, and the face that shipped had no colour in it.
   plausible wrong shape.
 - Tests: `core` `paint/geom/TransformerTest` (18), `core` `paint/FrameConcatTest`
   (6, on pixels).
+
+### G48 — a timeline
+
+- `core` `input/handler/Anchored`, the **fourth geometry facility** after `Extent`, `Measured` and
+  `Located`, with `PointerRouter.notifyAnchored()` as a third walk. The first three report a property
+  of one frame; this one reports a property of a *pair*, which is the only way to tell twelve lines
+  added above from twelve added below. It remembers where the reader's first whole row sits **inside
+  the content box**, in layout coordinates, so the scroll transform cancels and growth at the bottom
+  reports exactly zero.
+- `widgets` `core/scroll`: `ScrollAnchor`, `ScrollStick` (half a logical pixel, the figure
+  `ScrollController.Position` already used), `ScrollState.shiftBy` — which bypasses the glide, because a
+  240 ms slide per logged line is not what a console wants.
+- `core` `kdl/KdlNode#flagProperty`: `preserve-on-prepend` is three states, not two, because its default
+  depends on `anchor`. `booleanProperty` folds absent into false, which is the wrong answer here.
+- It needs **keyed** rows, and that is written down rather than hidden: children matched by position are
+  not the same node after a prepend.
+- Tests: `widgets` `ScrollTimelineTest` (17), `example` `ConsoleScreenTest` (4). The rows in the test are
+  a whole number of pixels tall on purpose — Yoga snaps positions to the pixel grid, so the anchor is
+  exact whatever the heights are but a neighbouring row can land a rounded pixel away.
+- Showcase: a `Console` card on the Navigation screen, and `gallery-navigation.png` re-blessed.

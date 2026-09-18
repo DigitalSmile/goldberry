@@ -60,3 +60,6 @@ example/run.log
 # run. That is a local cache of *this* machine's last failure, not a fact about
 # the code (docs/testing.md §1.1).
 .jqwik-database
+
+# Claude Code's scratch space: agent worktrees and session state, not the project's.
+.claude/
