@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.paint.tree;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Decoration;
 import io.github.digitalsmile.goldberry.css.value.Shadow;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -238,6 +240,77 @@ class DamageTest {
                         Box.filled(0xFF00FF00)
                                 .size(Length.points(50), Length.points(20))
                                 .decoration(Decoration.NONE.shadow(new Shadow(0, 8, 24, 0, argb))));
+    }
+
+    /// A box drawn somewhere other than where it was laid out, which is every box
+    /// inside a scrolled content and every box under an animating ancestor.
+    ///
+    /// `collectDamage` composed the matrix and handed it to the children, then
+    /// measured the node itself with a `bounds` that walks from `Affine.IDENTITY`
+    /// — so the rectangle uploaded was the node's *layout* position. Both halves
+    /// of that are wrong at once: the place the box actually draws keeps last
+    /// frame's pixels, and a region nothing drew in is uploaded instead.
+    @Test
+    @DisplayName("a box under a transformed ancestor is damaged where it is drawn, not where it was laid out")
+    void underATransformedAncestor() {
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), shifted(0xFFFF0000));
+            render.damage(target.frame());
+
+            render.update(target.frame(), shifted(0xFF0000FF));
+            var damage = render.damage(target.frame());
+
+            assertTrue(covers(damage, 125, 10), "the box is drawn 100px to the right of where it was laid out");
+            assertFalse(covers(damage, 25, 10), "and nothing is drawn where it was laid out");
+        }
+    }
+
+    /// The other half: the transform itself is what changed, which is a scroll.
+    ///
+    /// Measured untransformed, both frames give the same rectangle and the damage
+    /// is the layout position in both — so the content appears at its new offset
+    /// with nothing repainted there.
+    @Test
+    @DisplayName("a content that scrolled is damaged where it was and where it went")
+    void aTransformThatChanged() {
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), scrolledBy(0));
+            render.damage(target.frame());
+
+            render.update(target.frame(), scrolledBy(100));
+            var damage = render.damage(target.frame());
+
+            assertTrue(covers(damage, 25, 10), "the hole the content left behind is not being repainted");
+            assertTrue(covers(damage, 125, 10), "nor is where it scrolled to");
+        }
+    }
+
+    /// A 50x20 box at `argb`, inside a wrapper translated 100px to the right.
+    ///
+    /// The colour is the variable so the geometry never changes between two
+    /// frames: what has to be right is *where* the damage lands, not how big it is.
+    private static Box shifted(int argb) {
+        return Box.filled(0xFF000000)
+                .size(Length.points(200), Length.points(200))
+                .direction(FlexDirection.COLUMN)
+                .children(Box.filled(0xFF000000)
+                        .size(Length.points(50), Length.points(20))
+                        .transform(translateX(100))
+                        .children(Box.filled(argb).size(Length.points(50), Length.points(20))));
+    }
+
+    /// The same wrapper with nothing changing inside it — only its own offset.
+    private static Box scrolledBy(double x) {
+        return Box.filled(0xFF000000)
+                .size(Length.points(200), Length.points(200))
+                .direction(FlexDirection.COLUMN)
+                .children(Box.filled(0xFFFF0000)
+                        .size(Length.points(50), Length.points(20))
+                        .transform(translateX(x)));
+    }
+
+    private static Transform translateX(double points) {
+        return Transform.of(new Transform.Function.Translate(Transform.Length.px(points), Transform.Length.ZERO));
     }
 
     @Test

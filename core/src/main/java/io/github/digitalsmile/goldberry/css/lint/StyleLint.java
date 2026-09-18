@@ -109,9 +109,19 @@ public final class StyleLint {
     /// a declaration only ever reaches the engine through an element that
     /// matches — so a rule whose second selector is the live one would go
     /// unchecked if only the first were built.
+    ///
+    /// **Each declaration against its own value**, and not against the cascade's
+    /// winner for its property. This ran [StyleResolver#resolve] and looked the
+    /// property up in the result, which answers a different question: a
+    /// declaration that lost was checked against the *winning* rule's value and
+    /// reported at the loser's line, so a rule overridden anywhere in the sheets
+    /// in force could be as wrong as it liked and never be reported, while a
+    /// finding that did fire named a line whose value was not the one printed
+    /// beside it. What a lint wants is what the author wrote, with its `var()`s
+    /// resolved as they would be here — which is [StyleResolver#substitutedFor].
     private void checkRule(Selector selector, io.github.digitalsmile.goldberry.css.StyleRule rule, List<Finding> into) {
 
-        var resolved = resolver.resolve(probeFor(selector));
+        var probe = probeFor(selector);
         for (var declaration : rule.declarations()) {
             if (declaration.isCustomProperty()) {
                 // The resolver's, consumed for `var()` substitution before the
@@ -120,16 +130,9 @@ public final class StyleLint {
                 // findings against a healthy tree.
                 continue;
             }
-            var winning = resolved.get(declaration.property());
-            if (winning == null) {
-                // Two ways to get here and neither is this lint's to report.
-                //
-                // Either **another rule won** for this property -- in which case
-                // what the engine did with *this* declaration is not what it did
-                // at all, and the rule that won is checked under its own
-                // selector, which is where the finding belongs.
-                //
-                // Or **substitution failed**: a `var()` naming a token nothing
+            var value = resolver.substitutedFor(probe, declaration.value());
+            if (value == null) {
+                // **Substitution failed**: a `var()` naming a token nothing
                 // defines takes the whole declaration with it. That is already
                 // reported, once, by the resolver -- which is the shape ADR-0243
                 // settled on after the same message became a stream -- and
@@ -137,12 +140,12 @@ public final class StyleLint {
                 // fault, disagreeing with the first the day either changes.
                 continue;
             }
-            if (!ComputedStyle.applies(declaration.property(), winning, CONTEXT)) {
+            if (!ComputedStyle.applies(declaration.property(), value, CONTEXT)) {
                 into.add(new Finding(
                         Finding.Kind.DEAD_DECLARATION,
                         selector.toString(),
                         declaration.property(),
-                        text(winning),
+                        text(value),
                         declaration.line(),
                         declaration.column()));
             }

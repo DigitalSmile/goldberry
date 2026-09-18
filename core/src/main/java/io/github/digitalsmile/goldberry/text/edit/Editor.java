@@ -224,6 +224,7 @@ public final class Editor {
     public Editor caretTo(int offset, boolean extend) {
         edit = edit.caretTo(offset, extend);
         desiredX = Double.NaN;
+        caretMoved();
         return this;
     }
 
@@ -435,6 +436,7 @@ public final class Editor {
             default -> edit.caretTo(offset, extend);
         };
         desiredX = Double.NaN;
+        caretMoved();
         history.endRun();
     }
 
@@ -675,6 +677,7 @@ public final class Editor {
         if (edit.equals(before)) {
             return false;
         }
+        caretMoved();
         history.endRun();
         return true;
     }
@@ -692,6 +695,7 @@ public final class Editor {
         }
         edit = moved;
         desiredX = Double.NaN;
+        caretMoved();
         // A movement ends the typing run, so undo after typing-then-moving takes
         // back the typing and not the whole sentence.
         history.endRun();
@@ -731,6 +735,27 @@ public final class Editor {
     private void invalidate() {
         paragraph = null;
         layout = null;
+    }
+
+    /// Called by everything that moves the caret without changing the text.
+    ///
+    /// **A composition makes that a change to what is drawn.** [#displayText]
+    /// splices the preedit in at `edit.caret()`, so a caret that moved puts it
+    /// somewhere else in the string the paragraph was shaped from — and the cache
+    /// would still hold it spliced at the old offset, which [#caret],
+    /// [#composingRects] and [#composingClauseRects] then measure against. A
+    /// click during a composition, which is exactly what a user does when the
+    /// candidate list covers what they were reading, drew the underline over the
+    /// wrong characters.
+    ///
+    /// Conditional, and not simply [#invalidate]: with nothing being composed the
+    /// shaping does not depend on where the caret is, and throwing it away on
+    /// every arrow key would re-shape the paragraph on every keystroke of a
+    /// held-down key.
+    private void caretMoved() {
+        if (!preedit.isEmpty()) {
+            invalidate();
+        }
     }
 
     @Override

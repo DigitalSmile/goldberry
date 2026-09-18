@@ -187,6 +187,63 @@ class EditorPreeditTest {
         assertTrue(editor.edit().caret() <= 4, "an offset past the document would be an index out of its own text");
     }
 
+    /// The shaping is cached and the composition is spliced into it at
+    /// `edit.caret()`, so **where the caret is is part of what was shaped**.
+    /// Every mover — `caretTo`, `pointerAt`, an arrow key — changed `edit` and
+    /// left the cache alone, so the paragraph went on holding the composition at
+    /// the offset the caret had left.
+    @Test
+    @DisplayName("a caret moved mid-composition takes the composition with it")
+    void movingTheCaretReshapesTheComposition() {
+        var editor = editor("abcd").caretTo(0, false);
+        editor.onPreedit(preedit("XY"));
+        assertEquals("XYabcd", editor.paragraph().text());
+
+        editor.caretTo(4, false);
+
+        assertEquals("abcdXY", editor.displayText());
+        assertEquals(
+                "abcdXY",
+                editor.paragraph().text(),
+                "the shaping the caret and the underline are measured against is a frame behind the caret");
+    }
+
+    @Test
+    @DisplayName("and so does a click, which is what a user does when the candidate list covers the line")
+    void clickingReshapesTheComposition() {
+        var editor = editor("abcd").caretTo(0, false);
+        editor.onPreedit(preedit("XY"));
+        assertEquals("XYabcd", editor.paragraph().text());
+
+        // Far to the right of everything: the end of the document.
+        editor.pointerAt(10_000, 0, false, 1);
+
+        assertEquals(4, editor.edit().caret());
+        assertEquals("abcdXY", editor.paragraph().text());
+    }
+
+    /// What the stale shaping actually looks like: the underline is drawn along
+    /// whatever glyphs happen to sit at the composition's *new* offsets in the
+    /// *old* string, which is neither the composition nor a word.
+    @Test
+    @DisplayName("the underline is where the composition now is, not where the old shaping put those offsets")
+    void theUnderlineFollowsTheComposition() {
+        var atStart = editor("abcd").caretTo(0, false);
+        atStart.onPreedit(preedit("XY"));
+        var before = atStart.composingRects().getFirst();
+
+        var atEnd = editor("abcd").caretTo(4, false);
+        atEnd.onPreedit(preedit("XY"));
+        var expected = atEnd.composingRects().getFirst();
+        assertTrue(
+                expected.left() > before.left(), "a composition at the end starts further right than one at the start");
+
+        atStart.caretTo(4, false);
+
+        assertEquals(expected.left(), atStart.composingRects().getFirst().left(), 0.01);
+        assertEquals(expected.width(), atStart.composingRects().getFirst().width(), 0.01);
+    }
+
     @Test
     @DisplayName("the caret line is the line, not the caret — what a candidate window is kept clear of")
     void caretLineIsTheLine() {

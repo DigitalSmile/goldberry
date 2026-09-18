@@ -2225,6 +2225,20 @@ public record ComputedStyle(
                     return Optional.empty();
                 }
                 var token = part.getFirst();
+                // **A bare number is the iteration count, before it is anything
+                // else.** `animation` is the one shorthand where a unitless number
+                // means something of its own, and [#milliseconds] accepts a
+                // unitless zero -- rightly, for `transition`, which has no count
+                // to confuse it with. Asked first, it swallowed the `0` in
+                // `animation: spin 1s 0` as the delay and set the count to its
+                // default of one, so an animation asked to run no times ran once.
+                if (token.is(TokenType.NUMBER)) {
+                    if (count != null || token.numeric() < 0) {
+                        return Optional.empty();
+                    }
+                    count = token.numeric();
+                    continue;
+                }
                 var time = milliseconds(part);
                 if (time != null) {
                     if (duration == null) {
@@ -2234,13 +2248,6 @@ public record ComputedStyle(
                     } else {
                         return Optional.empty();
                     }
-                    continue;
-                }
-                if (token.is(TokenType.NUMBER)) {
-                    if (count != null || token.numeric() < 0) {
-                        return Optional.empty();
-                    }
-                    count = token.numeric();
                     continue;
                 }
                 if (!token.is(TokenType.IDENT) && !token.is(TokenType.STRING)) {
