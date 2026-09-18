@@ -49,9 +49,10 @@ final class TabsState extends State<Tabs> {
 
     /// The tab that has just been selected and has not yet been shown, or null.
     ///
-    /// A **request**, cleared as soon as it is acted on. A strip that pulled the
-    /// selected tab into view on every frame would take the strip's scrollbar
-    /// away from the user for as long as anything was selected, which is always.
+    /// A **request**, written in [#build] when the selection moves and cleared as
+    /// soon as it is acted on. A strip that pulled the selected tab into view on
+    /// every frame would take the strip's scrollbar away from the user for as
+    /// long as anything was selected, which is always.
     private String pendingReveal;
 
     /// The tabs on screen, in the order they are drawn: the application's, plus
@@ -276,6 +277,16 @@ final class TabsState extends State<Tabs> {
         lastBuilt.keySet().removeIf(value -> !phases.containsKey(value));
 
         var selected = strip.selected();
+        // The selection moving is the one moment a reveal is asked for
+        // ([ADR-0120]). `underlined` is what the *previous* build was told, and
+        // `journey` below is where it moves on, so this has to be read first --
+        // which is also why the request is written here rather than in `select`:
+        // the strip does not decide the selection, it is handed one (ADR-0063),
+        // and a bound value or a keyboard move arrives as a rebuild and nothing
+        // else.
+        if (selected != null && !selected.equals(underlined)) {
+            pendingReveal = selected;
+        }
         // Before the headers are built, because the tab that has just been
         // selected is handed what it is travelling from.
         var journey = journey(selected);
