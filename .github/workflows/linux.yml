@@ -251,11 +251,11 @@ jobs:
       # with the library loaded, and with `-Pgoldberry.skipNative` every test that
       # shapes or paints skips, which halves the figure (ADR-0338). One leg is
       # enough -- coverage does not differ by CPU.
-      - name: Core, widget and Markdown tests, and the golden images
+      - name: Core, widget, Markdown and emoji tests, and the golden images
         env:
-          COVERAGE: ${{ matrix.target == 'linux-x64' && ':core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification :html:jacocoTestCoverageVerification' || '' }}
+          COVERAGE: ${{ matrix.target == 'linux-x64' && ':core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification :html:jacocoTestCoverageVerification :emoji:jacocoTestCoverageVerification' || '' }}
         run: |
-          ./gradlew :core:test :widgets:test :html:test $COVERAGE --no-daemon \
+          ./gradlew :core:test :widgets:test :html:test :emoji:test $COVERAGE --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
@@ -278,5 +278,8 @@ jobs:
           path: |
             core/build/golden-failures
             widgets/build/golden-failures
+            html/build/golden-failures
+            emoji/build/golden-failures
+            example/build/golden-failures
           if-no-files-found: ignore
 

@@ -40,6 +40,20 @@ def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
 tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 
+    // Forwarded to the forked test JVM, exactly as :core, :widgets and :html do.
+    // Without `goldberry.native.required` this module's suite *aborts* every test
+    // when there is no rasterizer, and a job that passes `-Pgoldberry.skipNative`
+    // reports green having asserted nothing -- which is how `ColourEmojiTest` and
+    // `OpenMojiFontTest.emojiNeedTheEmojiFace` ran in no CI lane at all until the
+    // 2026-09-18 review read the workflow (B3).
+    ['goldberry.golden.update', 'goldberry.golden.scales',
+     'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+
     systemProperty 'goldberry.native.library',
             providers.systemProperty('goldberry.native.library')
                     .orElse(hostNativeLibrary.map { it.asFile.absolutePath })

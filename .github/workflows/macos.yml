@@ -109,9 +109,9 @@ jobs:
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      - name: Core, widget and Markdown tests, and the golden images
+      - name: Core, widget, Markdown and emoji tests, and the golden images
         run: |
-          ./gradlew :core:test :widgets:test :html:test --no-daemon \
+          ./gradlew :core:test :widgets:test :html:test :emoji:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
@@ -122,5 +122,7 @@ jobs:
           path: |
             core/build/golden-failures
             widgets/build/golden-failures
+            html/build/golden-failures
+            emoji/build/golden-failures
           if-no-files-found: ignore
 

@@ -78,14 +78,38 @@ def weaveTask = { String taskName, String setName, String compileTask, String fl
             [flag, classesDir.get().asFile.absolutePath]
         } as CommandLineArgumentProvider)
 
-        // In place, so the same directory is both. Gradle therefore never
-        // considers this up to date, which is fine and deliberate: weaving is
-        // idempotent -- a class that already implements `BoundModel` is left
-        // exactly as it is -- so a second run over an unchanged tree writes
-        // nothing at all.
+        // Weaving is IN PLACE: the weaver reads the compiled classes and writes
+        // back into the same directory. That is deliberate -- weaving is
+        // idempotent, a class that already implements `BoundModel` is left
+        // exactly as it is, and a second run over an unchanged tree writes
+        // nothing -- so this task never claims to be up to date.
+        //
+        // What it must NOT do is declare that directory as an OUTPUT. Doing so
+        // told Gradle that two tasks write to one place, and Gradle answers an
+        // overlapping output by throwing away the compiler's incremental state:
+        // every single build then reported
+        //
+        //   Task ':widgets:compileJava' is not up-to-date because:
+        //   Full recompilation is required because no incremental change
+        //   information is available.
+        //
+        // -- for `:widgets`, `:html`, `:example` and everything downstream of
+        // them, on a tree where nothing had changed (the 2026-09-18 review, B2).
+        // A thousand files recompiled per build is a real cost paid for a
+        // declaration that bought nothing: the task already ran unconditionally.
+        //
+        // So the declared output is a stamp instead. It names a file this task
+        // alone owns, which is enough for Gradle to treat the task as a producer
+        // rather than as a second writer into javac's directory.
+        def stamp = layout.buildDirectory.file("tmp/${taskName}/stamp")
         inputs.dir(classesDir).withPathSensitivity(PathSensitivity.RELATIVE)
-        outputs.dir(classesDir)
+        outputs.file(stamp)
         outputs.upToDateWhen { false }
+        doLast {
+            def file = stamp.get().asFile
+            file.parentFile.mkdirs()
+            file.text = "woven ${what.toLowerCase()} at ${System.currentTimeMillis()}"
+        }
     }
 }
 
