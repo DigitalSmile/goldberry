@@ -4,8 +4,9 @@ import java.util.Optional;
 
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.document.TextDocument;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// What [TextAreaBox] tells its state — `text-input`'s seam, with a second
 /// dimension in it.
@@ -118,7 +119,7 @@ interface AreaEditor {
     /// How big the last frame made this control.
     void measured(Extent bounds);
 
-    /// A frame is being described: the wrapped paragraph, the padding the text
+    /// A frame is being described: the shaped document, the padding the text
     /// starts at, and where each line sits in the width it wrapped at.
     ///
     /// The alignment comes down here rather than being asked for later because it
@@ -137,10 +138,28 @@ interface AreaEditor {
     /// comes off both sides and the visible height off both ends, and a stylesheet
     /// may make them differ (`docs/gaps.md` G43, ADR-0350).
     ///
+    /// @param document the text as the frame shaped it, a hard line at a time
+    ///                 ([ADR-0388])
     /// @param padding the control's resolved padding
     /// @param gutter  how wide the line-number column is, or 0 when there is none
     /// @return how far the content is scrolled **up**, in logical pixels
-    double laidOut(Paragraph paragraph, AreaPadding padding, double gutter, TextAlign align);
+    double laidOut(TextDocument document, AreaPadding padding, double gutter, TextAlign align);
+
+    /// The text shaped for this frame, re-using whatever the last frame shaped.
+    ///
+    /// Asked **before** [#laidOut], because the gutter's width is decided from
+    /// the document's line count and the text then wraps at what is left over.
+    ///
+    /// It goes through the editor rather than being built in the box because the
+    /// re-use is the whole point: the previous document is what makes a keystroke
+    /// re-shape one hard line instead of half a megabyte, and only the state
+    /// lives long enough to hold it ([ADR-0388]).
+    ///
+    /// @param text   what is being drawn — the value, or the placeholder
+    /// @param font   the face and size the cascade resolved for this frame
+    /// @param shaper what turns one hard line into glyphs, normally the
+    ///               renderer's paragraph cache
+    TextDocument shaped(String text, Font font, TextDocument.Shaper shaper);
 
     /// The width the text wraps at — this control's width less its padding **and
     /// less its gutter**, from the last frame.

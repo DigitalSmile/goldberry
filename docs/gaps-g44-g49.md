@@ -9,12 +9,12 @@ six are not missing features.** G44 and G45 are measurements — a style pass an
 a layout pass that grow with the size of a document rather than with the size of
 the change — and what they ask for is not an API but a cost.
 
-Status legend: **done** means the code, tests and ADR have landed.
-**in progress** means it is being built now. **open** means not started.
+All six are **done**: the code, the tests, the ADR and the documentation have
+landed for each.
 
 | Item | What it asks for | ADR | Status |
 |------|------------------|-----|--------|
-| G44  | a `text-area` style pass that does not grow with its text | — | in progress |
+| G44  | a `text-area` style pass that does not grow with its text | [0388](../book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md) | done |
 | G45  | a `markdown-view` that restyles only the block that changed | [0389](../book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md) | done |
 | G46  | a canvas transform that composes with the one it is painted under | [0390](../book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md) | done |
 | G47  | a `qr-code` widget | [0391](../book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md) | done |
@@ -135,3 +135,38 @@ in six in English prose is a space.
 - 500 kB is **still outside the budget**, and the ADR says why: style and layout there are O(document) by
   construction over 106,509 elements. Lazy building inside the `scroll` is the only thing left, and it is
   its own entry.
+
+### G44 — a note shaped a line at a time
+
+**The entry's own first suspect was wrong, and ruling it out is half the result.** Restyling a
+`text-area` whose text had *not* changed was already flat — 0.11 ms at 2 kB against 0.38 ms at 500 kB —
+so the cascade was never the term and ADR-0315 holds.
+
+- The cause: `TextAreaBox` handed the **whole note** to the paragraph cache, and every keystroke makes a
+  different string. One keystroke shaped 500,005 characters and drew 524,600. It missed the cache
+  **exactly once** at every size, which is why no counter saw it — `misses()` counts paragraphs, and the
+  paragraph was the document.
+- `core` `text/document/TextDocument` (new, exported) and `DocumentLines`: a long text shaped one **hard
+  line** at a time. Given the previous frame's document it compares the two strings from both ends,
+  widens to whole lines and rebuilds only those. Wrapping was already per hard line, so nothing is lost.
+- `widgets` `form/textarea/TextAreaBox` draws the rows in view as **one** paragraph, in one box — not one
+  box per row, because Yoga rounds each box onto the pixel grid and a box per row moved text sub-pixel
+  and broke four goldens.
+- `core` `text/ParagraphCache#shapedCharacters()`: the counter that can see this.
+- Style at 500 kB: **92 ms → 0.85**. The whole frame: 207 ms → 4.15. A settled frame shapes nothing.
+- What is irreducible is named rather than claimed: opening a note still shapes all of it once, because
+  the scroll range is a fact about every line. Filed in `book/src/TODO.md`.
+- Tests: `widgets` `TextAreaKeystrokeCostTest` (in `check`, asserting **characters** — verified to fail on
+  the commit before the fix) and `core` `text/document/TextDocumentTest` (8).
+- Benchmark: `widgets` `TextAreaFrameBenchmark`.
+
+## What the batch says about the list
+
+Two of the six were measurements, and **both found something other than what they reported**. G44 named
+the cascade; the cost was a cache miss that counted as one miss. G45 named a keystroke; the expensive
+keystroke was a space. Neither would have been found by reading the code the entry pointed at, and both
+entries were nonetheless right that something was wrong. That is the argument for `docs/gaps.md` §3
+asking for a measurement rather than a diagnosis.
+
+The other four were ordinary: an API that did not exist (G46, G47), a promise one step short of what an
+application needed (G48), and a documented capability that had never been wired up (G49).

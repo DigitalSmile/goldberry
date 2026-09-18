@@ -24,9 +24,36 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// own text**, and drawn, so a part that received a password and chose not to
 /// draw it would still have put it in the paragraph cache.
 ///
+/// ## Carrying the ink without the glyphs
+///
+/// A `text-area` holding a document does **not** hand its text here: it draws
+/// one box per visible hard line itself, because a document is shaped a line at
+/// a time and only the lines on screen are drawn ([ADR-0388]). It still needs
+/// the `text-value` node, because that is where the cascade resolves the
+/// colour, the `white-space` and the `.placeholder` rule — so it builds one with
+/// [#carrier], which shapes nothing and reports what the cascade said.
+///
+/// The ink travels back on an **empty paragraph**: [Box.Text] is the only place
+/// a box carries a colour for text, so a box with no text can carry no ink.
+/// Shaping the empty string costs nothing and is one cache entry for the whole
+/// application.
+///
 /// @param text        what to draw, already masked if the field masks
 /// @param placeholder whether `text` is standing in for a value
-public record Value(String text, boolean placeholder) implements Widget.Leaf, Styled, Paints {
+/// @param carrier     whether the parent draws the glyphs and this node exists
+///                    only to answer what the cascade resolved
+public record Value(String text, boolean placeholder, boolean carrier) implements Widget.Leaf, Styled, Paints {
+
+    /// A value that draws its own text — every field but `text-area`.
+    public Value(String text, boolean placeholder) {
+        this(text, placeholder, false);
+    }
+
+    /// A `text-value` that shapes nothing and reports the style its parent draws
+    /// with. See the note on this class.
+    public static Value carrier(boolean placeholder) {
+        return new Value("", placeholder, true);
+    }
 
     @Override
     public String cssType() {
@@ -40,6 +67,13 @@ public record Value(String text, boolean placeholder) implements Widget.Leaf, St
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
+        if (carrier) {
+            // An empty paragraph, purely so the box has somewhere to put the
+            // colour and the flow. The parent replaces the box; what it keeps
+            // is `text().argb()` and `text().flow()`.
+            return Box.text(context.paragraph(style, ""), style.color(), style.textFlow())
+                    .style(style);
+        }
         if (text.isEmpty()) {
             // Not a paragraph of no characters: a measured leaf over an empty
             // string still reports a line's height, so an empty field would stand

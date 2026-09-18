@@ -6,6 +6,9 @@ import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.text.document.DocumentLines;
+import io.github.digitalsmile.goldberry.text.document.TextDocument;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -76,7 +79,13 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private double preferredColumn = Double.NaN;
 
     private Extent bounds = Extent.NONE;
-    private Paragraph paragraph;
+
+    /// The text as the last frame shaped it — one paragraph per hard line, so a
+    /// keystroke re-shapes one of them ([ADR-0388]).
+    ///
+    /// Null until the first render, which is the same "nothing has been measured
+    /// yet" every other field here starts in.
+    private @Nullable TextDocument document;
     private AreaPadding padding = AreaPadding.NONE;
 
     /// How wide the line-number column was on the last frame, or 0 when there is
@@ -263,11 +272,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public boolean moveLine(int lines, boolean extend) {
+        var shaped = document;
         var layout = lines();
-        if (layout.isEmpty() || paragraph == null) {
+        if (layout.isEmpty() || shaped == null) {
             return false;
         }
-        var index = lineIndex(layout, edit.caret());
+        var index = lineIndex(edit.caret());
         var target = Math.clamp(index + lines, 0, layout.size() - 1);
         if (target == index && (lines < 0 ? index == 0 : index == layout.size() - 1)) {
             // Already at the end of the document's lines. `Up` on the first line
@@ -285,10 +295,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // are not indented by the same amount unless they are the same length
         // ([ADR-0324]).
         var column = Double.isNaN(preferredColumn)
-                ? indentOf(layout.get(index)) + paragraph.widthBetween(layout.get(index).start(), edit.caret())
+                ? indentOf(layout.get(index)) + shaped.widthBetween(layout.get(index).start(), edit.caret())
                 : preferredColumn;
         var line = layout.get(target);
-        var offset = paragraph.offsetAt(line.start(), line.end(), column - indentOf(line));
+        var offset = shaped.offsetAt(line.start(), line.end(), column - indentOf(line));
 
         var moved = apply(edit.caretTo(offset, extend), EditHistory.Kind.OTHER, false);
         // Set *after* the apply, which clears it: a run of Up/Down keeps the
@@ -367,7 +377,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// control would push a candidate window a long way from the text.
     @Override
     public Optional<LogicalRect> caretArea() {
-        var shaped = paragraph;
+        var shaped = document;
         if (!focused || shaped == null || widget().disabled() || widget().readOnly()) {
             return Optional.empty();
         }
@@ -376,7 +386,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (layout.isEmpty()) {
             return Optional.empty();
         }
-        var index = lineIndex(layout, displayCaret());
+        var index = lineIndex(displayCaret());
         var line = layout.get(index);
         return Optional.of(LogicalRect.of(
                 // Where the line was *drawn*, not where the paragraph starts: a
@@ -390,13 +400,13 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public double caretOffset() {
-        var shaped = paragraph;
+        var shaped = document;
         var layout = lines();
         if (shaped == null || layout.isEmpty()) {
             return 0;
         }
         var at = displayCaret();
-        var line = layout.get(lineIndex(layout, at));
+        var line = layout.get(lineIndex(at));
         // Relative to [#caretArea]'s left edge, which is the line's own start —
         // so the indent is in the area's origin rather than in this offset, and
         // adding it here would count it twice.
@@ -411,11 +421,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public void pointerAt(double x, double y, boolean extend, int clickCount) {
+        var shaped = document;
         var layout = lines();
-        if (paragraph == null || layout.isEmpty()) {
+        if (shaped == null || layout.isEmpty()) {
             return;
         }
-        var lineHeight = paragraph.font().lineHeight();
+        var lineHeight = shaped.font().lineHeight();
         var row = (int) Math.floor((y - padding.top() + scrollOffset) / lineHeight);
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
         // The press is where the user pressed, so the line's own indent comes off
@@ -423,7 +434,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // The gutter comes off as well as the padding: a click at the left edge of
         // the *text* is a click one gutter's width in from the left edge of the
         // control ([ADR-0331]).
-        var offset = paragraph.offsetAt(line.start(), line.end(), x - padding.left() - gutterWidth - indentOf(line));
+        var offset = shaped.offsetAt(line.start(), line.end(), x - padding.left() - gutterWidth - indentOf(line));
 
         var next = switch (Math.min(clickCount, 3)) {
             // A triple-click is "select the line", and here there really is one.
@@ -447,7 +458,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // and not at the caller: a `mono` area at 13px and a body one at 15px
         // move different distances for the same turn of the wheel, and both of
         // them move a line at a time ([ADR-0314]).
-        var lineHeight = paragraph == null ? 0 : paragraph.font().lineHeight();
+        var lineHeight = document == null ? 0 : document.font().lineHeight();
         if (lineHeight <= 0) {
             return false;
         }
@@ -510,14 +521,23 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, AreaPadding edges, double gutter, TextAlign align) {
-        paragraph = shaped;
+    public TextDocument shaped(String text, Font font, TextDocument.Shaper shaper) {
+        // The previous document is handed back in, which is what makes this
+        // incremental: everything but the hard lines the edit touched keeps the
+        // paragraph it already had, and keeps its wrap with it ([ADR-0388]).
+        var next = TextDocument.of(font, text, document, shaper);
+        document = next;
+        return next;
+    }
+
+    @Override
+    public double laidOut(TextDocument shaped, AreaPadding edges, double gutter, TextAlign align) {
+        document = shaped;
         padding = edges;
         gutterWidth = gutter;
         textAlign = align;
 
         var lineHeight = shaped.font().lineHeight();
-        var layout = lines();
         var offset = scrollOffset;
 
         // The caret is only chased once this control has been touched -- see
@@ -525,7 +545,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // what a reader handed a document expects and what every text box on the
         // web does.
         if (caretMatters) {
-            var caretLine = lineIndex(layout, edit.caret());
+            var caretLine = lineIndex(edit.caret());
             var caretTop = caretLine * lineHeight;
             var visible = visibleRows() * lineHeight;
 
@@ -556,10 +576,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// control here makes.
     private int visibleRows() {
         var area = widget();
-        if (!area.fill() || paragraph == null || bounds.height() <= 0) {
+        if (!area.fill() || document == null || bounds.height() <= 0) {
             return area.maxRows();
         }
-        var lineHeight = paragraph.font().lineHeight();
+        var lineHeight = document.font().lineHeight();
         if (lineHeight <= 0) {
             return area.maxRows();
         }
@@ -669,31 +689,42 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     /// The **visual** lines the text wrapped into, at the width the last frame
     /// measured.
+    ///
+    /// A computed list rather than a built one: a document of ten thousand lines
+    /// is asked about three of them per frame, and materialising the rest would
+    /// be the cost `docs/gaps.md` G44 is about, moved rather than removed
+    /// ([ADR-0388]).
     private List<TextLine> lines() {
-        return paragraph == null ? List.of() : paragraph.layout(contentWidth()).lines();
+        var layout = layout();
+        return layout == null ? List.of() : layout;
+    }
+
+    /// The same, as the document's own view — null before the first render.
+    private @Nullable DocumentLines layout() {
+        var shaped = document;
+        return shaped == null ? null : shaped.lines(contentWidth());
     }
 
     /// Which visual line `offset` is on — the last one that starts at or before
     /// it, which is what puts a caret at a wrap on the line it is about to type
     /// into.
-    private static int lineIndex(List<TextLine> lines, int offset) {
-        var index = 0;
-        for (var i = 0; i < lines.size(); i++) {
-            if (lines.get(i).start() <= offset) {
-                index = i;
-            }
-        }
-        return index;
+    ///
+    /// A search within the offset's own hard line rather than a walk over the
+    /// document's lines, which is what makes it independent of how long the note
+    /// is ([ADR-0388]).
+    private int lineIndex(int offset) {
+        var layout = layout();
+        return layout == null ? 0 : layout.indexOf(offset);
     }
 
     private int visualLineStart(int offset) {
         var layout = lines();
-        return layout.isEmpty() ? 0 : layout.get(lineIndex(layout, offset)).start();
+        return layout.isEmpty() ? 0 : layout.get(lineIndex(offset)).start();
     }
 
     private int visualLineEnd(int offset) {
         var layout = lines();
-        return layout.isEmpty() ? edit.length() : layout.get(lineIndex(layout, offset)).end();
+        return layout.isEmpty() ? edit.length() : layout.get(lineIndex(offset)).end();
     }
 
     /// Whether the pointer is holding the scrollbar's thumb.
@@ -711,11 +742,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// the proportion of the text on screen, and its track is the box it is
     /// drawn down.
     private @Nullable ScrollBar scrollbar() {
-        if (paragraph == null) {
+        var shaped = document;
+        if (shaped == null) {
             barOffset = Double.NaN;
             return null;
         }
-        var lineHeight = paragraph.font().lineHeight();
+        var lineHeight = shaped.font().lineHeight();
         var content = lines().size() * lineHeight;
         var viewport = widget().fill() && bounds.height() > 0
                 ? bounds.height() - padding.vertical()
@@ -743,10 +775,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// How far this control can be scrolled: the text's height less what it
     /// shows.
     private double maximumScroll() {
-        if (paragraph == null) {
+        var shaped = document;
+        if (shaped == null) {
             return 0;
         }
-        var lineHeight = paragraph.font().lineHeight();
+        var lineHeight = shaped.font().lineHeight();
         return Math.max(0, lines().size() * lineHeight - visibleRows() * lineHeight);
     }
 

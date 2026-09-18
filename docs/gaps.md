@@ -142,7 +142,7 @@ a rule.
 | ~~[G41](#g41)~~ | ~~A `canvas` that can ask for its next frame~~ | **closed** — ADR-0348 | done |
 | ~~[G42](#g42)~~ | ~~Hand a URL to the desktop~~ | **closed** — ADR-0346 | done |
 | ~~[G43](#g43)~~ | ~~`text-area`'s gutter strip does not reach its padding~~ | **closed** — ADR-0350 | done |
-| [G44](#g44) | A `text-area` style pass that does not grow with its text | a preview budget on a long note | high |
+| ~~[G44](#g44)~~ | ~~A `text-area` style pass that does not grow with its text~~ | **closed** — ADR-0388 | done |
 | ~~[G45](#g45)~~ | ~~A `markdown-view` that restyles only the block that changed~~ | **closed** — ADR-0389 | done |
 | ~~[G46](#g46)~~ | ~~A canvas transform that composes with the one it is painted under~~ | **closed** — ADR-0390 | done |
 | ~~[G47](#g47)~~ | ~~A `qr-code` widget~~ | **closed** — ADR-0391 | done |
@@ -2134,7 +2134,7 @@ both on pixels. If Tessera's drift survives a snapshot with this in it, it is a 
 
 <a id="g44"></a>
 
-### G44 — `text-area`'s style pass grows with its text
+### G44 — `text-area`'s style pass grows with its text — **closed**
 
 **Measured, not guessed.** In [docs/notes.md](notes.md) N5's benchmark, a window holds one note editor in
 **edit** mode: one `text-area`, gutter on, `class="mono"`, and nothing else. One character is typed per
@@ -2163,6 +2163,33 @@ check is `./gradlew :tessera-notes:benchmark`, and the edit-mode rows should go 
 
 **What Tessera does meanwhile.** Nothing. The numbers are in
 [docs/status](status/phase-e-notes.md#n5--the-preview-budget--2026-09-17).
+
+**Closed — [ADR-0388](../book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md).**
+**It reproduced, and the entry's own first suspect was wrong.** The cascade was never the term: restyling
+an area whose text had *not* changed was already flat — 0.11 ms at 2 kB against 0.38 ms at 500 kB, over a
+tree of 75 elements either way. ADR-0315 holds, and this was never a cascade problem.
+
+What it was, proved by counting rather than inferred: `TextAreaBox` handed the **whole note** to the
+paragraph cache. A `Paragraph` is shaped whole and keeps two `int[len+1]` prefix sums over a six-`int[]`
+run — about 17 MB for a 500 kB note — and every keystroke makes a different string. One keystroke shaped
+500,005 characters and drew 524,600. It missed the cache **exactly once** at every size, which is why no
+existing counter saw it: `misses()` counts paragraphs, and here the paragraph *was* the document. At
+500 kB the benchmark could not run two hundred frames at all; it ran out of heap after about thirty
+keystrokes.
+
+The fix is `text.document.TextDocument`: a long text shaped one **hard line** at a time, which compares
+the two strings from both ends, widens to whole lines and rebuilds only those. Every other line keeps its
+paragraph and its wrap memo. Nothing is lost, because wrapping was already per hard line. `TextAreaBox`
+draws the rows in view as one slice, in one box, because Yoga rounds each box onto the pixel grid and a
+box per row moved the text sub-pixel.
+
+Style at 500 kB went from **92 ms to 0.85**, and the whole frame from 207 ms to 4.15. A keystroke now
+shapes about 2,000 characters whatever the note's size, and a settled frame shapes nothing.
+
+**What is irreducible is named.** Opening a note still shapes all of it once — the scroll range is a fact
+about every line — which is 78–95 ms for 500 kB. That is filed in `book/src/TODO.md` rather than claimed.
+`TextAreaKeystrokeCostTest` guards the result in **characters** rather than milliseconds, and it was
+verified to fail on the commit before the fix.
 
 <a id="g45"></a>
 
@@ -2481,8 +2508,18 @@ build with no `goldberry-emoji` on its path gets exactly what it got before, sil
 
 The showcase's emoji sheet is in colour, and it gained a line of ordinary prose with emoji in it that
 **names no font at all** — which is the thing an application actually writes. `MessageRows`' two rules go.
+
 ---
 
-**Nothing else, and nothing open.** All five of the latest were raised by building something rather
-than by reading the API surface, as all forty-three have been, and all five are answered, in ADR-0346 and
-ADR-0348 to ADR-0351. The next entry goes below this line, before any code is written for it (§3).
+**Nothing else, and nothing open.** All six of the latest were raised by building something rather
+than by reading the API surface, as all forty-nine have been, and all six are closed, in ADR-0388 to
+ADR-0393. The next entry goes below this line, before any code is written for it (§3).
+
+**Two of these six were measurements rather than missing features, and both of them found something
+other than what they reported.** G44 named the cascade and the cascade was flat; what was expensive was
+shaping the whole note as one paragraph on every keystroke, which missed the cache exactly once and so
+was invisible to every counter the toolkit had. G45 named a keystroke and the expensive keystroke turned
+out to be a **space**, at fifteen times the layout of a letter, because a space renumbered every word
+below the caret. Neither would have been found by reading the code the entry pointed at. Both entries
+were right that something was wrong and wrong about what, which is the most useful kind of entry this
+list gets — and the reason §3 asks for the measurement rather than the diagnosis.

@@ -217,18 +217,33 @@ class TextAreaGutterTest {
 
         var before = numbers(tree);
         assertNotNull(before);
-        var top = before.inset().top();
+        var started = textOf(before);
 
         box(tree).onPointer(wheel());
         render(tree);
 
         assertTrue(state(tree).scrolledBy() > 0, "something scrolled");
+        // Against the **text's** own top rather than against the scroll offset:
+        // both are now drawn from the first line in view rather than from the
+        // top of the document, which is what keeps a long note's cost bounded
+        // ([ADR-0388]). What the entry is about is that the two agree.
         assertEquals(
-                -state(tree).scrolledBy(),
+                pointsOf(firstLine(tree).inset().top()),
                 pointsOf(numbers(tree).inset().top()),
                 0.01,
                 "and the numbers moved by exactly what the text did");
-        assertFalse(top.equals(numbers(tree).inset().top()), "which is not where they started");
+        // And the column is numbering different lines than it was, which is what
+        // the reader sees: only the rows in view are drawn, so a scroll changes
+        // the numbers rather than sliding a column of all of them.
+        assertFalse(started.equals(textOf(numbers(tree))), "which is not the lines it started on");
+    }
+
+    /// The box holding the first visible hard line's glyphs.
+    ///
+    /// The highlights come first, one per visible row, and the text boxes follow
+    /// them — [TextAreaBox]'s own order.
+    private Box firstLine(ElementTree tree) {
+        return content(render(tree)).children().get(3);
     }
 
     private PointerEvent wheel() {
