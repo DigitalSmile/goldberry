@@ -2,10 +2,10 @@ package io.github.digitalsmile.goldberry.render.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,7 +164,6 @@ class EventLoopTimerTest {
         order.add("scheduled");
         loop.run(event -> {});
 
-        assertEquals(java.util.List.of("scheduled", "timer"), order);
-        assertTrue(true);
+        assertEquals(List.of("scheduled", "timer"), order);
     }
 }

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -95,11 +94,10 @@ class BundledAssetsTest {
 
     // --- shaping with real outlines -----------------------------------------
 
-    @BeforeAll
-    static void reportNativeAvailability() {
-        // Only the shaping tests below need the library; the resource tests
-        // above run everywhere.
-    }
+    // Only the shaping tests below need the library; the resource tests above run
+    // everywhere. That used to be said by an empty `@BeforeAll` named
+    // `reportNativeAvailability`, which reported nothing (the 2026-09-18 review,
+    // §6); it is a comment now, which is what it always was.
 
     @Test
     @DisplayName("shaping with Inter produces real glyph ids and advances")

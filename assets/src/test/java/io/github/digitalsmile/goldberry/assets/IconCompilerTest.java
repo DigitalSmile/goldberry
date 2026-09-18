@@ -44,7 +44,10 @@ class IconCompilerTest {
         assertTrue(path.startsWith("M2 12A10 10"), path);
         assertTrue(path.endsWith("M9 12h6"), path);
         // Concatenation is only safe because every subpath begins with a moveto.
-        assertEquals(2, path.split(" ").length > 1 ? 2 : 1, "two subpaths");
+        // `assertEquals(2, path.split(" ").length > 1 ? 2 : 1)` stood here, which
+        // compares 2 with 2 once the asserts above have passed (the 2026-09-18
+        // review, §6). Two subpaths means two `M` commands, so count those.
+        assertEquals(2, path.chars().filter(c -> c == 'M').count(), "two subpaths, so two moves");
     }
 
     @Test

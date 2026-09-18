@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.natives.platform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.util.EnumSet;
 
@@ -60,9 +61,12 @@ class NativeCapabilitiesTest {
         // third-party -dev package that may or may not have been installed on the
         // build machine, and a library without them is exactly the thing this
         // whole mechanism exists to describe rather than to forbid.
-        if (os == NativePlatform.OperatingSystem.LINUX) {
-            return;
-        }
+        // Aborted rather than returned. A `return` here reported a green tick for
+        // a test that had asserted nothing, on the one platform where this suite
+        // usually runs (the 2026-09-18 review, §6).
+        assumeFalse(
+                os == NativePlatform.OperatingSystem.LINUX,
+                "on Linux each capability is a -dev package that may not be installed");
         assertEquals(
                 EnumSet.allOf(NativeCapability.class),
                 EnumSet.copyOf(NativeCapabilities.get()),

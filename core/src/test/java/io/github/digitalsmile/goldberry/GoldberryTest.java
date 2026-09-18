@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,8 +48,16 @@ class GoldberryTest {
     }
 
     @Test
-    @DisplayName("version() is stable across calls")
-    void versionIsStable() {
-        assertTrue(Goldberry.version().equals(Goldberry.version()));
+    @DisplayName("version() is the version the build resolved, and is not a placeholder")
+    void versionIsTheBuilds() {
+        // `assertTrue(version().equals(version()))` stood here, which compares a
+        // static final with itself and can never fail (the 2026-09-18 review, §6).
+        // What is worth pinning is that the generated constant reached the class:
+        // an unresolved one reads `unknown`, which is what a jar built outside
+        // Gradle would report.
+        var version = Goldberry.version();
+        assertNotNull(version);
+        assertNotEquals("unknown", version, "the build's version never reached BuildInfo");
+        assertTrue(version.matches("\\d{4}\\.\\d+(\\.\\d+)?(-SNAPSHOT)?"), () -> "not a calendar version: " + version);
     }
 }

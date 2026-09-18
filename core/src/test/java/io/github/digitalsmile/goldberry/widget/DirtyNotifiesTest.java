@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -120,9 +120,12 @@ class DirtyNotifiesTest {
             var tree = new ElementTree(new Counter("n"));
             tree.flush();
 
-            stateOf(tree).bump();
-
-            assertEquals(List.of(), List.of());
+            // The point is that this does not throw with nothing listening, and
+            // that the tree still knows it is dirty -- `assertEquals(List.of(),
+            // List.of())` stood here and asserted neither (the 2026-09-18
+            // review, §6).
+            assertDoesNotThrow(() -> stateOf(tree).bump());
+            assertTrue(tree.needsBuild(), "a bump with no listener still marks the tree");
         }
     }
 }
