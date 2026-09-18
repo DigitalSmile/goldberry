@@ -50,6 +50,10 @@ final class ScrollState extends State<Scroll> {
     /// Which bar the pointer is dragging, or null.
     private @Nullable Boolean draggingVertical;
 
+    /// Whether this viewport is at the end, which is the whole of what
+    /// [ScrollAnchor#END] needs to remember.
+    private final ScrollStick stick = new ScrollStick();
+
     /// Attaches to the controller the application gave this viewport, if any.
     ///
     /// On mount rather than on every build, so the attachment survives rebuilds
@@ -57,6 +61,15 @@ final class ScrollState extends State<Scroll> {
     @Override
     protected void initState() {
         attach(widget().controller());
+        if (widget().anchor() == ScrollAnchor.END) {
+            // Before the first layout there is nothing to be at the end *of*, so
+            // this is not a position — it is the standing instruction that the
+            // first measurement is to land there. "Opens at the end" and "stays
+            // at the end" are then one piece of code rather than two, which is
+            // what stops them disagreeing about the frame in between
+            // (ADR-0392).
+            stick.openAtEnd();
+        }
     }
 
     @Override
@@ -169,6 +182,8 @@ final class ScrollState extends State<Scroll> {
                 fade,
                 glide,
                 this::moveTo,
+                scroll.preservesOnPrepend(),
+                this::shiftBy,
                 draggingVertical,
                 this::drag,
                 this::measured,
@@ -229,8 +244,82 @@ final class ScrollState extends State<Scroll> {
         setState(() -> {
             viewport = bounds;
             content = part;
+            // Whether this viewport was at the end is a question about the sizes
+            // it had a moment ago, and they have just been replaced -- so the
+            // answer is taken from `stick`, which was written the last time the
+            // offset moved. Asking it here instead would say "no" for every
+            // viewport a message has just arrived in, which is precisely the
+            // case ([ScrollStick]).
+            if (widget().anchor() == ScrollAnchor.END) {
+                keepToTheEnd();
+            }
         });
         notifyController();
+    }
+
+    /// Puts the offset back at the end on whichever axes were at it.
+    ///
+    /// The three things [ScrollAnchor#END] promises are this one line applied at
+    /// three moments: the first measurement (opened at the end because
+    /// [#initState] said so), a message arriving while the reader is at the
+    /// bottom (still at the end, so it follows), and a message arriving while
+    /// they are reading history (not at the end, so nothing here runs and the
+    /// offset is untouched).
+    ///
+    /// **No glide and no woken bars.** The offset is where the content *is*; a
+    /// glide would draw a 240ms slide every time a line was logged, and bars
+    /// that woke would say the user had scrolled when they had not (ADR-0363).
+    private void keepToTheEnd() {
+        if (widget().axis().isHorizontal() && stick.atEndX()) {
+            offsetX = viewport.overflowX(content);
+        }
+        if (widget().axis().isVertical() && stick.atEndY()) {
+            offsetY = viewport.overflowY(content);
+        }
+    }
+
+    /// Told that the content slid by `dx`, `dy` under a viewport nobody touched
+    /// — rows were inserted above what the reader was looking at.
+    ///
+    /// Adds the distance to the offset, which is what keeps the screen still:
+    /// the content moved down by that much and the window onto it moves down by
+    /// the same, so the reader's line is drawn exactly where it was.
+    ///
+    /// An `END` viewport that is **at the end** does nothing here.
+    /// [#keepToTheEnd] has already put it at the new end, which for an insertion
+    /// above is the same number — and adding the shift on top of it would be
+    /// counting the insertion twice. A `START` viewport that happens to be
+    /// scrolled to its bottom is a different thing entirely: nothing put it back
+    /// at the end, so it wants the shift like any other.
+    ///
+    /// Not a [#scrollBy]: that one glides, wakes the bars and reports a move.
+    /// Nothing moved.
+    private void shiftBy(double dx, double dy) {
+        var end = widget().anchor() == ScrollAnchor.END;
+        var x = widget().axis().isHorizontal() && !(end && stick.atEndX())
+                ? clamp(offsetX + dx, viewport.overflowX(content))
+                : offsetX;
+        var y = widget().axis().isVertical() && !(end && stick.atEndY())
+                ? clamp(offsetY + dy, viewport.overflowY(content))
+                : offsetY;
+        if (x == offsetX && y == offsetY) {
+            return;
+        }
+        setState(() -> {
+            offsetX = x;
+            offsetY = y;
+        });
+        notifyController();
+    }
+
+    /// Re-reads "am I at the end" from where the offset now is.
+    ///
+    /// Called from the two places an offset is written on purpose — [#moveTo] and
+    /// [#scrollBy] — rather than from the setters, so that [#keepToTheEnd] and
+    /// [#shiftBy], which move the offset precisely in order *not* to move the
+    /// view, leave the flag alone.
+    private void settle() {
+        stick.moved(offsetX, offsetY, viewport.overflowX(content), viewport.overflowY(content));
     }
 
     /// Starts or ends a thumb drag, holding the bars open for its duration.
@@ -262,6 +351,11 @@ final class ScrollState extends State<Scroll> {
             offsetX = x;
             offsetY = y;
             fade.woken();
+            // A deliberate move decides whether this viewport is following the
+            // end: `scrollIntoView` onto the last row is how a timeline is
+            // caught up with, and a reveal of something in the middle is how it
+            // is left behind ([ScrollStick]).
+            settle();
         });
         notifyController();
     }
@@ -317,6 +411,11 @@ final class ScrollState extends State<Scroll> {
             // key, a drag or a track click. `moveTo` is the one place all four
             // arrive, which is why the wake is here rather than in each handler.
             fade.woken();
+            // And it is the one place the user says whether they are still
+            // following the end. `End` and a drag to the bottom turn the stick
+            // back on; a single pixel up turns it off, because a pixel is more
+            // than [ScrollStick#TOLERANCE] and a pixel up is a decision.
+            settle();
         });
         notifyController();
     }

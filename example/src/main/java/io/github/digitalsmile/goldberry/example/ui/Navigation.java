@@ -24,10 +24,11 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// ## Why this screen is not in a viewport
 ///
-/// [Scrolling] owns one, and §2.4 bans nested same-axis scrollers — a screen
-/// inside the gallery's `scroll` that held another one would be exactly that. The
-/// wall is what makes the ban affordable: two columns of cards are half as tall
-/// as one, so the screen fits without needing to scroll at all.
+/// [Scrolling] and [Console] own one each, and §2.4 bans nested same-axis
+/// scrollers — a screen inside the gallery's `scroll` that held another one would
+/// be exactly that. The wall is what makes the ban affordable: two columns of
+/// cards are half as tall as one, so the screen fits without needing to scroll at
+/// all.
 ///
 /// @param startTour the application's, because starting a tour needs a `Host` and
 ///                  a widget has none (ADR-0121)
@@ -38,8 +39,8 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
             "A strip replaces what is on screen, an affixed header keeps something on it while"
                     + " the rest travels, a trail says where you are, and a tour walks you through"
                     + " what is already there."
-                    + " This screen is the one the gallery does not put in a viewport: the"
-                    + " card below owns one, and §2.4 bans a scroller inside a scroller.";
+                    + " This screen is the one the gallery does not put in a viewport: two"
+                    + " of the cards below own one, and §2.4 bans a scroller inside a scroller.";
 
     @Override
     public Widget build(BuildContext context) {
@@ -48,7 +49,13 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
                 "Navigation",
                 NOTE,
                 2,
-                List.of(new TabsDemo(model, actions), trail(), new WizardDemo(), new Scrolling(), tour()));
+                List.of(
+                        new TabsDemo(model, actions),
+                        trail(),
+                        new WizardDemo(),
+                        new Scrolling(),
+                        new Console(),
+                        tour()));
     }
 
     /// §6's `breadcrumbs`, driven by the model's path ([ADR-0306]).

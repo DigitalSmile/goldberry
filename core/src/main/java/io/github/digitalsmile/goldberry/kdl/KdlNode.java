@@ -75,6 +75,23 @@ public record KdlNode(
         return properties.get(key) instanceof KdlValue.Bool bool && bool.value();
     }
 
+    /// A boolean property that may be **absent** — `null` when nothing set it.
+    ///
+    /// [#booleanProperty] folds "absent" into `false`, which is right for every
+    /// attribute whose default is a constant. It is wrong for the ones whose
+    /// default is decided by something else in the same node: `scroll`'s
+    /// `preserve-on-prepend` is on for `anchor="end"` and off otherwise, so an
+    /// unset attribute is a third state and has to reach the widget as one
+    /// (ADR-0392).
+    ///
+    /// A value that is not a boolean reads as unset rather than as an error, for
+    /// [#booleanProperty]'s reason: a document being edited is broken more often
+    /// than it is whole, and a half-typed attribute should leave the default
+    /// alone rather than invert it.
+    public @Nullable Boolean flagProperty(String key) {
+        return properties.get(key) instanceof KdlValue.Bool bool ? bool.value() : null;
+    }
+
     /// A numeric property, or `fallback` when absent.
     ///
     /// The third kind an attribute comes in, and the first widget to need it is
