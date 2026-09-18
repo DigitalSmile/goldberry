@@ -10,7 +10,7 @@ binding schema for.
 > it, starting in well under a second and painting at about 1 ms a frame
 > headless — faster than the JVM build over a short run, because there is nothing
 > to warm up ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)).
-> The FFM downcalls, the two upcalls, the fonts, the icons, the stylesheets, the
+> The FFM downcalls, the six upcalls, the fonts, the icons, the stylesheets, the
 > KDL, the `WidgetCatalog` service and `libgoldberry` itself all travel inside it.
 >
 > It logs, too, which took one hand-written metadata entry — see
@@ -59,7 +59,14 @@ A closed world has to know every foreign function the program will call before i
 runs, and Goldberry's are not knowable from the source: a binding class takes a
 `SymbolLookup` obtained at run time and builds its handles from it, which is what
 lets an application choose which `libgoldberry` it loads. `libgoldberry` exports
-184 symbols, plus one upcall for Yoga's measure callback.
+**246 symbols** — SDL3 75, Yoga 69, Blend2D 56, HarfBuzz 25, libwebp 11, and 10
+of the shim's own, md4c reaching Java through those rather than through exports
+of its own — plus **six upcalls**, from five owners: `SdlEventWatch`,
+`SdlFileDialogs`, `SdlTray`, Yoga's `MeasureCallback` and `SdlClipboard`.
+`ExportListTest` holds the list to the bindings in both directions — an exported
+symbol nothing binds is dead weight in every artifact, and a bound symbol nothing
+exports is a link error at the first call — and `ForeignSurfaceTest.upcalls`
+holds the six.
 
 So the first command **runs the showcase under GraalVM's tracing agent** and
 records what it saw — the foreign descriptors, the resources, the reflection
@@ -172,6 +179,18 @@ native-image does not. That is why a holder's `call` names its own
 `static final` on the holder rather than a component of it: an instance field is
 a value read from an object, not a constant read from a class, and measures
 4540 ns/call ([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+
+**And the list of packages is its own hazard.** `native-image.properties` is the
+one file in `:natives` that nothing compiles, runs or reads — it is a hand-typed
+package list consumed by a tool that is not part of this build — so a package
+added to the module and not to the file is invisible in every way but the
+measurement above. Three of the nine were missing when the 2026-09-18 review
+counted them. `NativeImagePropertiesTest` reads the **shipped resource** against
+`ForeignSurface.holderClassNames()` and requires the two to agree, naming the one
+deliberate exception: `desktop.calls` stays out, because `PortalSettings` binds a
+dozen libdbus functions in a *static* initialiser and build-time initialising it
+either fails the image with a `MemorySegment` in the image heap or bakes the
+build machine's D-Bus into it.
 
 **Nothing fails when it is missing.** The image builds, runs, paints correctly
 and is forty times slower, which is why the number is written down here. (It is
