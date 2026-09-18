@@ -137,7 +137,7 @@ public final class WordGeometry {
         return block;
     }
 
-    /// Keeps blocks `from` up to but not including `through`, exactly as they were.
+    /// Keeps every block up to but not including `through`, exactly as it was.
     ///
     /// What a memoized block is: the fold did not mint its words again, so nothing
     /// here has been told about them and they must not be treated as dropped.
@@ -148,18 +148,17 @@ public final class WordGeometry {
     /// minter calls and a kept block does not reach. So the entries a kept widget is
     /// holding are still in the list, in the same order, whoever else moved.
     ///
+    /// **So the block count is the whole question.** There used to be a scan here for
+    /// a block left with no words, and there is no build that can produce one:
+    /// [WordMinter] opens a block only in the line above the one that registers its
+    /// first word, so every block this list holds has at least one, and [#endBuild]
+    /// drops the tail a shorter document no longer has rather than emptying it.
+    ///
     /// @return false when this geometry no longer holds them, so the fold has to
     ///         build them after all
-    boolean keepBlocks(int from, int through) {
+    boolean keepBlocks(int through) {
         if (through > blocks.size()) {
             return false;
-        }
-        for (var index = from; index < through; index++) {
-            if (blocks.get(index).size == 0) {
-                // Emptied by a build that walked it and minted nothing: its entries
-                // are gone and the widgets holding them are stale.
-                return false;
-            }
         }
         blockCount = Math.max(blockCount, through);
         return true;

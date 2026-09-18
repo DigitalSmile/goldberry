@@ -26,6 +26,8 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
+import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 
 /// What the axis has to reach, and whether each reading is marked — `charts.md`
@@ -198,6 +200,23 @@ class ChartAxisTest {
                 java.util.Arrays.equals(
                         pixels(crowded.markers(Markers.ALWAYS)), pixels(crowded.markers(Markers.NEVER))),
                 "ALWAYS draws them into the mess it was warned about");
+    }
+
+    /// `bar-chart` and `area-chart` carry this knob because all three axis charts
+    /// carry the same ones, and both ignore it: a bar's shape is its length and a
+    /// band's is its thickness, so neither has anywhere to put a dot that would
+    /// mean anything. Their withers said otherwise until [ChartSpec] was given one
+    /// statement per knob — `BarChart.markers` promised "a dot at each reading" and
+    /// there has never been one.
+    @Test
+    @DisplayName("a bar and a band have nowhere to put one, and say the same either way")
+    void notEveryChartMarksItsReadings() {
+        var readings = Series.of("rate", 3, 9, 4, 8, 5, 7, 6);
+        var bars = new BarChart(List.of(readings), List.of(), id());
+        var area = new AreaChart(List.of(readings), List.of(), id());
+
+        assertArrayEquals(pixels(bars), pixels(bars.markers(Markers.ALWAYS)));
+        assertArrayEquals(pixels(area), pixels(area.markers(Markers.ALWAYS)));
     }
 
     @Test

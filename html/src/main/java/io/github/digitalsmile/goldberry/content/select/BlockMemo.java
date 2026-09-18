@@ -191,18 +191,4 @@ public final class BlockMemo {
     public int built() {
         return built;
     }
-
-    /// Forgets everything, so the next build rebuilds the document.
-    ///
-    /// Nothing calls this today. It is here because a memo with no way to be emptied
-    /// is a memo whose only recovery from a bug is a new window.
-    public void clear() {
-        entries.clear();
-    }
-
-    /// What the `i`th block was built from, or null — for a test that wants to say
-    /// which block was kept rather than how many.
-    public @Nullable Object sourceAt(int index) {
-        return index >= 0 && index < entries.size() ? entries.get(index).source() : null;
-    }
 }

@@ -27,7 +27,21 @@ import io.github.digitalsmile.goldberry.image.Image;
 /// decoder's message and the view shows its error state (ADR-0358).
 public sealed interface ImageSource {
 
-    /// What the cache calls this source. Equal keys are the same pixels.
+    /// What the cache calls this source, or **null for a source with nothing to
+    /// remember**. Equal keys are the same pixels.
+    ///
+    /// A key names the *work*: a path, a resource, a digest of some bytes, a name
+    /// the application gave its own supplier. Two views naming the same work share
+    /// one decode, and the answer outlives both of them in a process-wide map.
+    ///
+    /// [Decoded] answers null, and that is the whole reason this is nullable. Its
+    /// pixels are already in hand, so there is no decode to share; and a key made
+    /// from the object's identity would be *wrong* rather than merely useless —
+    /// `System.identityHashCode` is not unique, so two application images could
+    /// collide and the second view would be handed the first one's picture. Null
+    /// says the cache should not be asked, which is both the cheap answer and the
+    /// only correct one.
+    @Nullable
     String key();
 
     /// Reads and decodes, blocking. Called off the UI thread by the loader.
@@ -221,9 +235,22 @@ public sealed interface ImageSource {
             Objects.requireNonNull(image, "image");
         }
 
+        /// **Null: an image in hand is not cached.**
+        ///
+        /// This used to answer `"decoded:" + System.identityHashCode(image)`, which
+        /// was wrong twice over. Identity hashes are not unique — the JVM makes no
+        /// such promise and does not keep one — so two application images could
+        /// share a key, and the second view to ask would be handed the first one's
+        /// picture. And an entry under that key put an object the *application*
+        /// owns into a cache that lives as long as the process, where it stayed
+        /// until enough other pictures pushed it out.
+        ///
+        /// Neither cost bought anything. The cache exists to stop a file being
+        /// read and decoded twice, and there is nothing here to read or decode:
+        /// [#load] hands back what it was given.
         @Override
-        public String key() {
-            return "decoded:" + System.identityHashCode(image);
+        public @Nullable String key() {
+            return null;
         }
 
         @Override

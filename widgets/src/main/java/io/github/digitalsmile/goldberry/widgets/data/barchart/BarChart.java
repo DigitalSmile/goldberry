@@ -3,10 +3,13 @@ package io.github.digitalsmile.goldberry.widgets.data.barchart;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.data.ChartOptions;
 import io.github.digitalsmile.goldberry.widgets.data.ChartParts;
+import io.github.digitalsmile.goldberry.widgets.data.ChartSpec;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
@@ -31,160 +34,44 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// A negative value hangs below the zero line rather than being drawn upside
 /// down, which is the one thing every naive bar renderer gets wrong.
+///
+/// ## The knobs it draws, and the ones it does not
+///
+/// [ChartSpec] carries them all, and this chart is the one that ignores the most
+/// of them: [ChartSpec#markers], [ChartSpec#logY], [ChartSpec#curve] and
+/// [ChartSpec#times] each draw the same pixels here as leaving them alone does,
+/// and each says so where it is declared. A bar is a length from zero, so there is
+/// nowhere to put a dot, no path between readings to bend, and no axis for a
+/// logarithm or an instant to sit on. There is no `fill` at all: a bar is a solid
+/// rectangle with no region under it for a ramp to cross.
+///
+/// What it does draw is the domain and the annotations — [ChartSpec#softAxis],
+/// [ChartSpec#axis], [ChartSpec#threshold], [ChartSpec#nulls], the crosshair and
+/// the three states of [ChartSpec#status].
 @Markup("bar-chart")
-public record BarChart(
-        List<Series> series,
-        List<String> categories,
-        io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
-        Attributes attributes)
-        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec, Attributed<BarChart> {
+public record BarChart(List<Series> series, List<String> categories, ChartOptions options, Attributes attributes)
+        implements Widget.Stateful, ChartSpec<BarChart>, Attributed<BarChart> {
 
     public BarChart {
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
-        options = options == null ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
+        options = options == null ? ChartOptions.DEFAULTS : options;
     }
 
     /// The ordinary form: a chart that has its data.
     public BarChart(List<Series> series, List<String> categories, Attributes attributes) {
-        this(series, categories, io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
-    }
-
-    /// This chart with an axis that reaches **at least** `min…max`, and further
-    /// if the data does.
-    ///
-    /// What stops a flat series rendering as noise: an uptime between 99.91 and
-    /// 99.99 auto-scaled is a mountain range made of eight hundredths of a
-    /// percent, and `softAxis(99, 100)` draws it as the flat line near the top
-    /// that it is — while still showing an outage, because a reading of 40 pushes
-    /// the axis down to meet it
-    /// ([io.github.digitalsmile.goldberry.widgets.data.Bounds]).
-    public BarChart softAxis(double min, double max) {
-        return options(options.bounds(io.github.digitalsmile.goldberry.widgets.data.Bounds.soft(min, max)));
-    }
-
-    /// This chart with an axis that is **exactly** `min…max`, whatever the data
-    /// does.
-    ///
-    /// For a range that is a definition rather than an observation — a percentage
-    /// of a whole, a gauge with a physical stop. Data outside it is drawn outside
-    /// the plot and clipped, which is the correct rendering of a promise that was
-    /// wrong.
-    public BarChart axis(double min, double max) {
-        return options(options.bounds(io.github.digitalsmile.goldberry.widgets.data.Bounds.hard(min, max)));
-    }
-
-    /// This chart sharing its crosshair with every other chart in `group`.
-    ///
-    /// Pointing at Tuesday here puts the crosshair on Tuesday on all of them,
-    /// which is how a reader asks what the other panel was doing at the same
-    /// moment. Only the chart under the pointer draws the readout
-    /// ([io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup]).
-    public BarChart crosshair(io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group) {
-
-        return options(options.crosshair(group));
-    }
-
-    /// This chart with a different marker rule — a dot at each reading, or not.
-    public BarChart markers(io.github.digitalsmile.goldberry.widgets.data.Markers value) {
-        return options(options.markers(value));
-    }
-
-    /// This chart with a **logarithmic** value axis.
-    ///
-    /// For a series that spends its life at 3 and spikes to 30 000: on a linear
-    /// axis every reading anybody cares about is in the bottom pixel. A log axis
-    /// gives each decade the same room.
-    ///
-    /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
-    /// non-positive reading has no position and becomes a hole — the line breaks
-    /// there rather than sliding off the bottom
-    /// (ADR-0205).
-    /// Only `line-chart` draws one: a bar and a band are lengths from zero, and
-    /// zero is not on the axis.
-    public BarChart logY() {
-        return options(options.logY(true));
-    }
-
-    /// This chart with a different interpolation — how the line gets from one
-    /// point to the next.
-    ///
-    /// The default is [io.github.digitalsmile.goldberry.widgets.data.Curve#LINEAR],
-    /// which makes the weakest claim about what happened in between. A
-    /// `bar-chart` ignores it: a bar is a length rather than a path.
-    public BarChart curve(io.github.digitalsmile.goldberry.widgets.data.Curve value) {
-        return options(options.curve(value));
-    }
-
-    /// This chart with `value` as everything that is not its numbers.
-    public BarChart options(io.github.digitalsmile.goldberry.widgets.data.ChartOptions value) {
-        return new BarChart(series, categories, value, attributes);
-    }
-
-    /// This chart with a **time axis**: one instant per point, so the x is when
-    /// rather than which.
-    ///
-    /// A gap in the sampling becomes a gap on the axis, and the labels step
-    /// across second, minute, hour, day, month and year boundaries
-    /// ([io.github.digitalsmile.goldberry.widgets.data.TimeAxis]).
-    public BarChart times(List<java.time.Instant> value) {
-        return options(options.time(io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value)));
-    }
-
-    /// The same, in a zone the application chooses — a server's clock, or `UTC`
-    /// for a test.
-    public BarChart times(List<java.time.Instant> value, java.time.ZoneId zone) {
-        return options(options.time(
-                io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value).in(zone)));
-    }
-
-    /// This chart with `limit` drawn across it — a line or a shaded region, in
-    /// one of the four semantic hues.
-    ///
-    /// Additive, so several limits read as several calls:
-    /// `chart.threshold(warn).threshold(fail)`. A threshold is part of the
-    /// domain, so one you have not crossed yet is still on screen
-    /// ([io.github.digitalsmile.goldberry.widgets.data.Threshold]).
-    public BarChart threshold(io.github.digitalsmile.goldberry.widgets.data.Threshold limit) {
-        return options(options.threshold(limit));
-    }
-
-    /// This chart with exactly these limits, replacing whatever it had.
-    public BarChart thresholds(List<io.github.digitalsmile.goldberry.widgets.data.Threshold> limits) {
-
-        return options(options.thresholds(limits));
-    }
-
-    /// This chart, told what to do where a series has no value.
-    ///
-    /// The default is [io.github.digitalsmile.goldberry.widgets.data.NullPolicy#GAP],
-    /// which is the only one of the three that invents nothing.
-    public BarChart nulls(io.github.digitalsmile.goldberry.widgets.data.NullPolicy value) {
-        return options(options.nulls(value));
-    }
-
-    /// This chart, waiting for its data — it keeps its box and says so.
-    ///
-    /// The box is the point: a panel whose charts vanished while their queries
-    /// resolved would reflow twice per chart (ChartStatus).
-    public BarChart loading() {
-        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.loading());
-    }
-
-    /// This chart, in the application's own words about why there is nothing.
-    public BarChart failed(String message) {
-        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.failed(message));
-    }
-
-    /// This chart with `value` as its state — see
-    /// [io.github.digitalsmile.goldberry.widgets.data.ChartStatus].
-    public BarChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
-        return options(options.status(value));
+        this(series, categories, ChartOptions.DEFAULTS, attributes);
     }
 
     public BarChart(List<Series> series) {
         this(series, List.of(), Attributes.NONE);
+    }
+
+    /// This chart with `value` as everything that is not its numbers.
+    @Override
+    public BarChart options(ChartOptions value) {
+        return new BarChart(series, categories, value, attributes);
     }
 
     /// This chart with a label under each group.
@@ -192,22 +79,21 @@ public record BarChart(
         return new BarChart(series, values, options, attributes);
     }
 
-    /// The type of the box this chart's view draws — see
-    /// [io.github.digitalsmile.goldberry.widgets.data.ChartSpec#chartType()].
+    /// The type of the box this chart's view draws — see [ChartSpec#chartType()].
     @Override
     public String chartType() {
         return "bar-chart";
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode mode() {
-        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.BAR;
+    public ChartParts.Mode mode() {
+        return ChartParts.Mode.BAR;
     }
 
     /// The state both halves of this chart read — which series is isolated.
     @Override
-    public io.github.digitalsmile.goldberry.widget.State<?> createState() {
-        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.state();
+    public State<?> createState() {
+        return ChartParts.state();
     }
 
     @Override

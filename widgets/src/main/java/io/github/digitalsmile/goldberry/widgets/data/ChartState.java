@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// remember it, and this is that.
 ///
 /// One state class for the three axis charts, for [ChartSpec]'s reason.
-final class ChartState extends State<ChartSpec> {
+final class ChartState extends State<ChartSpec<?>> {
 
     /// The series shown alone, or -1 for all of them.
     ///

@@ -81,7 +81,7 @@ public final class WordMinter {
     /// build in between dropped them — and a fold that carried on anyway would hand
     /// back words reporting their rectangles into entries nothing reads.
     public boolean canResume(Mark mark) {
-        return mark.opened() >= opened && geometry.keepBlocks(opened, mark.opened());
+        return mark.opened() >= opened && geometry.keepBlocks(mark.opened());
     }
 
     /// Carries on from `mark`, as if this minter had minted what lies between.

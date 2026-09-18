@@ -188,10 +188,8 @@ public record HtmlView(
         // The memo is ignored here. ADR-0389 gave `markdown-view` block reuse because
         // that is where the measurement was taken; the same lever is available to this
         // fold and is a separate piece of work, not a line of it.
-        return new SelectableDocument(
-                document,
-                (minter, _, overlay) ->
-                        new HtmlWidgets(onLink, images, minter).document(document, attributes, overlay));
+        return new SelectableDocument((minter, _, overlay) ->
+                new HtmlWidgets(onLink, images, minter).document(document, attributes, overlay));
     }
 
     /// Builds an `html-view` from markup.

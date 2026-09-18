@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.DisplayName;
@@ -94,6 +95,29 @@ class TimeColumnsTest {
         @DisplayName("draws two digits, always")
         void twoDigits() {
             assertEquals("00", selected(mounted(LocalTime.MIDNIGHT), 0));
+        }
+
+        /// The wheel formatted its digits with `String.format("%02d", …)` and no
+        /// locale, so the *default* locale's numbering system chose the glyphs: a
+        /// machine set to `hi-IN-u-nu-deva` drew `०९` where CI drew `09`, and the
+        /// golden taken on it was a pixel diff nobody could reproduce
+        /// (`docs/testing.md` §0). `Slider#text()` had already been told this.
+        @Test
+        @DisplayName("in the same digits wherever the machine is set")
+        void latinDigitsWhateverTheLocale() {
+            var was = Locale.getDefault(Locale.Category.FORMAT);
+            try {
+                Locale.setDefault(Locale.Category.FORMAT, Locale.forLanguageTag("hi-IN-u-nu-deva"));
+
+                var tree = mounted(LocalTime.of(9, 30));
+
+                assertEquals(
+                        List.of("07", "08", "09", "10", "11"),
+                        cells(tree, 0).stream().map(TimeCell::label).toList());
+                assertEquals("30", selected(tree, 1));
+            } finally {
+                Locale.setDefault(Locale.Category.FORMAT, was);
+            }
         }
 
         /// `58 59 00 01 02` is telling the truth about what comes next, where a

@@ -295,7 +295,7 @@ public record MarkdownView(
         //
         // A fold per build, because it counts the tasks and the words it has seen as
         // it walks (ADR-0300) — and a build is exactly one walk of one document.
-        return new SelectableDocument(document, (minter, memo, overlay) -> {
+        return new SelectableDocument((minter, memo, overlay) -> {
             // The wiring is the memo's, not this build's: a block handed back from an
             // earlier keystroke still has to reach the handler the application is
             // holding now, and an application that writes `onLink(this::open)` in its

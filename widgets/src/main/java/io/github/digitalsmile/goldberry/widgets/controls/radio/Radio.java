@@ -103,12 +103,22 @@ public record Radio(
 
 
     /// This option as its group sees it: told whether it is on, what picking it
-    /// does, and whether the group as a whole is unavailable.
+    /// does, and whether anything else makes it unavailable.
     ///
     /// Package-private, because there is exactly one caller and letting an
     /// application set `selected` itself is how a group ends up with two.
-    Radio within(boolean isSelected, Runnable select, boolean groupDisabled) {
-        return new Radio(value, label, isSelected, select, disabled || groupDisabled, attributes);
+    ///
+    /// @param alsoDisabled a further reason this option cannot be picked, or false.
+    ///        **Not the group's own flag**, though the parameter used to be called
+    ///        `groupDisabled` and say so: [RadioGroup] deliberately passes the
+    ///        option's *own* `disabled` here, because a disabled group already
+    ///        reaches its options through the router walking the ancestors
+    ///        (ADR-0077) and pushing it down as well would match `:disabled` twice
+    ///        and land the 45% at 20%. What a caller puts here is whatever
+    ///        disabling it has that the option does not know about — which for a
+    ///        combobox's list is the field's, and for a group is nothing.
+    Radio within(boolean isSelected, Runnable select, boolean alsoDisabled) {
+        return new Radio(value, label, isSelected, select, disabled || alsoDisabled, attributes);
     }
 
     @Override

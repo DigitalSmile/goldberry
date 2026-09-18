@@ -158,7 +158,7 @@ public record Option(
     }
 
     /// This option as its control sees it: told whether it is on, what picking it
-    /// does, and whether the set as a whole is unavailable.
+    /// does, and whether anything else makes it unavailable.
     ///
     /// Package-private until `select` needed it from another package, and the
     /// visibility costs nothing it was protecting: **both controls rewrite every
@@ -166,8 +166,18 @@ public record Option(
     /// discarded before it is ever drawn. What keeps a set from having two
     /// selected options was never this modifier — it is that "exactly one" is
     /// computed in one place from the bound value and stored nowhere (ADR-0141).
-    public Option within(boolean isSelected, Runnable select, boolean groupDisabled) {
-        return new Option(value, label, icon, isSelected, select, disabled || groupDisabled,
+    ///
+    /// @param alsoDisabled a further reason this option cannot be picked, or false.
+    ///        **Not the control's own flag**, though the parameter used to be called
+    ///        `groupDisabled` and say so: [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented]
+    ///        deliberately passes the option's *own* `disabled` here, because a
+    ///        disabled bar already reaches its segments through the router walking
+    ///        the ancestors (ADR-0077) and pushing it down as well would match
+    ///        `:disabled` twice and land the 45% at 20%. A `select`'s list is the
+    ///        caller that really does pass its own: a row of a disabled combobox is
+    ///        not pickable and nothing above it is drawn to say so.
+    public Option within(boolean isSelected, Runnable select, boolean alsoDisabled) {
+        return new Option(value, label, icon, isSelected, select, disabled || alsoDisabled,
                 attributes, roving);
     }
 

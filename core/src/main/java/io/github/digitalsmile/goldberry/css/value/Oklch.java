@@ -66,7 +66,7 @@ final class Oklch {
             return to;
         }
 
-        var alpha = lerp((from >>> 24) & 0xFF, (to >>> 24) & 0xFF, t);
+        var alpha = Interpolate.lerp((from >>> 24) & 0xFF, (to >>> 24) & 0xFF, t);
 
         var a = toOklch(from);
         var b = toOklch(to);
@@ -91,11 +91,9 @@ final class Oklch {
             delta += 360;
         }
 
-        return fromOklch(lerp(a[0], b[0], t), lerp(a[1], b[1], t), hueA + delta * t, (int) Math.round(alpha));
-    }
-
-    private static double lerp(double from, double to, double t) {
-        return from + (to - from) * t;
+        var lightness = Interpolate.lerp(a[0], b[0], t);
+        var chroma = Interpolate.lerp(a[1], b[1], t);
+        return fromOklch(lightness, chroma, hueA + delta * t, (int) Math.round(alpha));
     }
 
     /// sRGB to OKLCH: `{ lightness, chroma, hue in degrees }`.
