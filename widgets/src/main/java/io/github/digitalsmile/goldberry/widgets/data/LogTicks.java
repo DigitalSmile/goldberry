@@ -53,10 +53,17 @@ public final class LogTicks {
         // Enough decades to stand on their own: label every *n*th one, for the
         // smallest n that fits. `1, 100, 10000` is a real log axis; `1, 10, 100,
         // …, 10^12` is a column of numbers nobody can read.
-        var decades = last - first + 1;
-        if (decades >= wanted) {
-            var stride = (int) Math.ceil((double) decades / wanted);
-            return new Labelling(powers(first, last, stride, low, high), true);
+        //
+        // **The decades that are on the axis**, not the ones bounding it. `3…40`
+        // touches three powers of ten and contains exactly one, so counting the
+        // bounds sent a range with a single rung in it down the striding path and
+        // labelled it `10` — one label for an axis that asked for three. The rule
+        // is about how many labels there are to stride through, so it has to be
+        // asked of the labels.
+        var decades = powers(first, last, low, high);
+        if (decades.size() >= wanted) {
+            var stride = (int) Math.ceil((double) decades.size() / wanted);
+            return new Labelling(every(decades, stride), true);
         }
 
         // Too few decades to stand alone. Subdivide by whichever set of mantissas
@@ -80,15 +87,29 @@ public final class LogTicks {
         return new Labelling(values, chosen.length == 1);
     }
 
-    /// Every `stride`th power of ten in `first…last` that is inside `low…high`.
-    private static List<Double> powers(int first, int last, int stride, double low, double high) {
+    /// Every power of ten in `first…last` that is inside `low…high`.
+    private static List<Double> powers(int first, int last, double low, double high) {
 
         var out = new ArrayList<Double>();
-        for (var exponent = first; exponent <= last; exponent += stride) {
+        for (var exponent = first; exponent <= last; exponent++) {
             var value = Math.pow(10, exponent);
             if (value >= low * 0.999999 && value <= high * 1.000001) {
                 out.add(value);
             }
+        }
+        return List.copyOf(out);
+    }
+
+    /// Every `stride`th of `values`, starting at the first.
+    ///
+    /// Counted from the first value that is **on** the axis rather than from the
+    /// decade below it, so a range starting at 3 strides from 10 and not from 1 —
+    /// an exponent nothing would have been drawn at anyway, which is a stride
+    /// that quietly loses its first label.
+    private static List<Double> every(List<Double> values, int stride) {
+        var out = new ArrayList<Double>();
+        for (var i = 0; i < values.size(); i += stride) {
+            out.add(values.get(i));
         }
         return List.copyOf(out);
     }

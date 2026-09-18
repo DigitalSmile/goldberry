@@ -56,6 +56,32 @@ class LogTicksTest {
     }
 
     @Test
+    @DisplayName("a range with one decade in it is subdivided at every target, not only at five")
+    void theBoundingDecadesAreNotTheDecadesOnTheAxis() {
+        // `3…40` touches three powers of ten -- 1, 10 and 100 -- and contains
+        // exactly one. Counting the bounds made it three decades, which is
+        // "enough to stand on their own" at a target of three, so the axis was
+        // strided and came out as the single label `10`. The target five was the
+        // one this file happened to ask for, and the one it does not show at.
+        assertTrue(labels(3, 40, 3).size() >= 3, "expected three labels, got " + labels(3, 40, 3));
+        for (var target = 2; target <= 8; target++) {
+            assertTrue(
+                    labels(3, 40, target).size() >= 2,
+                    "at a target of " + target + ", 3…40 was labelled " + labels(3, 40, target));
+        }
+    }
+
+    @Test
+    @DisplayName("four decades asked for five labels get four, not two")
+    void aStrideIsForTooManyDecadesRatherThanTooFew() {
+        // `3…30000` holds 10, 100, 1000 and 10 000. Counting 1 and 100 000 as
+        // well made it six decades against a target of five, so it strode over
+        // every other one and drew `100, 10000` -- two labels on a chart that
+        // asked for five, which is what `ChartLogTest`'s golden showed.
+        assertEquals(List.of("10", "100", "1000", "10000"), labels(3, 30000, 5));
+    }
+
+    @Test
     @DisplayName("every label is inside the range it labels")
     void nothingOutsideTheAxis() {
         for (var ticks : List.of(
