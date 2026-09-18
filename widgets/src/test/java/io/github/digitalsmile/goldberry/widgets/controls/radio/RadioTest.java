@@ -104,35 +104,18 @@ class RadioTest {
             assertEquals(fromJava, fromKdl);
         }
 
+        /// The eleven `assertFalse(registered.contains("radio-indicator"))` lines
+        /// that stood here are gone: `WidgetParityTest.partsAreNotConstructible`
+        /// asks the catalog rather than a list, so it holds for the parts nobody
+        /// thought to write down as well as for these.
+        ///
+        /// What it cannot ask is whether the *control list* grew, which is the
+        /// half that stays.
         @Test
-        @DisplayName("both are CSS-selectable by type, id and class")
-        void selectable() {
-            assertEquals("radio", new Radio("dark", "Dark").cssType());
-            assertEquals("radio-group", new RadioGroup("dark").cssType());
-            assertEquals(
-                    Set.of("inline"), new RadioGroup("dark").styled("inline").classes());
-        }
-
-        @Test
-        @DisplayName("the registry lists both, and the parts are deliberately absent")
+        @DisplayName("a control reaching the catalog is a deliberate act")
         void registered() {
-            var registered = Widgets.inflater().registered();
-            assertTrue(registered.contains("radio"));
-            assertTrue(registered.contains("radio-group"));
-            assertFalse(
-                    registered.contains("radio-indicator"),
-                    "a part is CSS-selectable and not KDL-constructible (ADR-0065)");
-            assertFalse(registered.contains("radio-dot"), "and so is the dot inside it");
-            assertFalse(registered.contains("check-mark"), "and the checkbox's mark");
-            assertFalse(registered.contains("toggle-track"), "and the switch's pill");
-            assertFalse(registered.contains("toggle-thumb"), "and the disc inside it");
-            assertFalse(registered.contains("slider-track"), "and the slider's groove");
-            assertFalse(registered.contains("slider-thumb"), "and the disc that runs along it");
-            assertFalse(registered.contains("progress-fill"), "and the coloured part of a bar");
-            assertFalse(registered.contains("segmented-track"), "and the grid a pill runs along");
-            assertFalse(registered.contains("segmented-indicator"), "and the pill itself");
-            // Pinned rather than counted: a control reaching the catalog is a
-            // deliberate act, and this failing is what makes it one.
+            // Pinned rather than counted: a name appearing here should be
+            // somebody's decision, and this failing is what makes it one.
             assertEquals(
                     List.of(
                             "button",

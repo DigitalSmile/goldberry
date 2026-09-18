@@ -222,16 +222,6 @@ class StackTest {
         assertEquals(0, out.get(3).left(), 1e-6, "the second child should be over the first, not beside it");
     }
 
-    @Test
-    @DisplayName("and it is registered under the name §1 gives it")
-    void registered() {
-        assertTrue(
-                io.github.digitalsmile.goldberry.widgets.Widgets.inflater()
-                        .registered()
-                        .contains("stack"),
-                "§1 lists `stack` in the core group, so a document has to be able to name it");
-    }
-
     private static Attributes id(String id) {
         return new Attributes(id, java.util.Set.of(), id);
     }

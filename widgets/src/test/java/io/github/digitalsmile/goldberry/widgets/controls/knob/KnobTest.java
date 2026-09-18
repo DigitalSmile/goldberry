@@ -525,18 +525,6 @@ class KnobTest {
 
             assertEquals(new Knob(0, 11, 5, 1, 3, null, null, false, attributes), fromKdl);
         }
-
-        @Test
-        @DisplayName("the control is in the catalog and its parts deliberately are not")
-        void registry() {
-            assertTrue(Controls.controlTypes().contains("knob"));
-            for (var part : List.of("knob-track", "knob-arc")) {
-                assertFalse(Controls.controlTypes().contains(part));
-                assertFalse(
-                        Widgets.inflater().registered().contains(part),
-                        "a part is CSS-selectable and not KDL-constructible (ADR-0065)");
-            }
-        }
     }
 
     @Test

@@ -106,25 +106,6 @@ class SliderTest {
                             .gap());
         }
 
-        @Test
-        @DisplayName("slider is a control type and its parts are not")
-        void partsAreNotConstructible() {
-            var registered = Widgets.inflater().registered();
-            assertTrue(Controls.controlTypes().contains("slider"));
-            for (var part : List.of(
-                    "slider-track",
-                    "slider-groove",
-                    "slider-fill",
-                    "slider-rest",
-                    "slider-thumb",
-                    "slider-ticks",
-                    "slider-tick",
-                    "slider-value")) {
-                assertFalse(registered.contains(part), part + " is a part, not a widget (ADR-0065)");
-                assertFalse(Controls.controlTypes().contains(part));
-            }
-        }
-
         /// A contradiction is refused; a half-typed number is not. `max <= min`
         /// has no reading at all, while a mistyped `min=` is a document being
         /// edited, which reload is deliberately forgiving about (ADR-0051).

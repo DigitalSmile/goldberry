@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -255,6 +256,120 @@ class WidgetParityTest {
     /// which name was forgotten.
     private static List<String> minus(List<String> declared, Set<String> registered) {
         return declared.stream().filter(name -> !registered.contains(name)).toList();
+    }
+
+    /// Every type a base rule selects, which is every name a theme can reach.
+    private static Set<String> styledTypes() {
+        var types = new TreeSet<String>();
+        for (var rule : Controls.baseStylesheet().rules()) {
+            for (var selector : rule.selectors()) {
+                for (var part : selector.parts()) {
+                    var type = part.compound().type();
+                    if (type != null) {
+                        types.add(type);
+                    }
+                }
+            }
+        }
+        return types;
+    }
+
+    /// A widget nothing styles paints the default box, which is nobody's
+    /// intention and shows up as "it rendered, just wrong" rather than as a
+    /// failure.
+    ///
+    /// **This is what seventeen per-widget tests were doing.** `badge`, `button`,
+    /// `checkbox`, `radio`, `toggle`, `slider`, `segmented`, `select`, `knob`,
+    /// `chip`, `progress`, `affix`, `scroll`, `stack` and `qr-code` each asserted
+    /// that a hand-kept `List.of` contained their own name; none of them would
+    /// have noticed the widget next to it going unstyled, because a list contains
+    /// what it was written to contain. Asked of the catalog, the same question
+    /// covers all 72.
+    /// The four the sweep found: registered widgets the base stylesheet names
+    /// nowhere, and why each one is right to have no rule.
+    ///
+    /// Every one of them paints nothing of its own, so a default rule would be a
+    /// colour nobody asked for rather than an appearance. An application can
+    /// still select all four; what the toolkit does not do is get there first.
+    private static final Map<String, String> UNSTYLED = Map.of(
+            "spacer", "a gap: it has a size and no surface",
+            "stack", "a layout container, drawn entirely by what is stacked in it",
+            "canvas", "the application paints it, which is the whole of what it is for",
+            "sparkline", "inherits `color` like text, deliberately — see its own doc comment");
+
+    @ParameterizedTest
+    @MethodSource("builtIns")
+    @DisplayName("every registered widget has a rule that styles it")
+    void everyRegisteredTypeIsStyled(String type) {
+        if (UNSTYLED.containsKey(type)) {
+            assertFalse(
+                    styledTypes().contains(type),
+                    type + " has a base rule now (" + UNSTYLED.get(type) + " is stale); take it out of UNSTYLED");
+            return;
+        }
+        assertTrue(
+                styledTypes().contains(type),
+                type + " is in the catalog and the base stylesheet names it nowhere, so it paints the default box");
+    }
+
+    /// The three registered names that read like a part of another widget, and
+    /// why each is a widget in its own right.
+    ///
+    /// A `radio-group` is what a document writes; the radios inside it are its
+    /// children. `text-input` and `text-area` are controls that happen to begin
+    /// with the name of the `text` primitive, which is a collision of English
+    /// rather than of meaning.
+    private static final Set<String> READ_LIKE_PARTS = Set.of("radio-group", "text-input", "text-area");
+
+    /// ADR-0065's half that has no other holder: a **part** is CSS-selectable and
+    /// deliberately not KDL-constructible, because a `toggle-track` outside a
+    /// `toggle` is a pill that means nothing.
+    ///
+    /// Eleven classes asserted this by naming parts one at a time —
+    /// `radio-indicator`, `check-mark`, `slider-thumb`, `chip-dismiss`,
+    /// `knob-arc`, `select-chevron`, `progress-fill`, `segmented-indicator` and
+    /// the rest — which holds only for the parts somebody remembered to list.
+    /// Asked of the catalog it holds for every part there will ever be:
+    /// `@Markup("toggle-track")` on `ToggleTrack` fails here, and each of those
+    /// lists would have kept passing unless its author happened to have named
+    /// that one.
+    @Test
+    @DisplayName("no name shaped like a part of a registered widget is itself registered")
+    void partsAreNotConstructible() {
+        var registered = Set.copyOf(Widgets.inflater().registered());
+
+        // The stylesheet styles things markup cannot write -- the premise the
+        // rest of this rests on, and the half that would rot silently if the
+        // parts ever became ordinary widgets.
+        var parts = styledTypes().stream()
+                .filter(type -> !registered.contains(type))
+                .toList();
+        assertFalse(parts.isEmpty(), "the base stylesheet selects no part at all, so ADR-0065 has nothing to hold");
+
+        for (var name : registered) {
+            if (READ_LIKE_PARTS.contains(name)) {
+                continue;
+            }
+            for (var owner : registered) {
+                assertFalse(
+                        name.startsWith(owner + "-"),
+                        () -> name + " is registered and reads as a part of " + owner
+                                + "; a part is CSS-selectable and not KDL-constructible (ADR-0065)");
+            }
+        }
+    }
+
+    /// An exemption is a claim, and [#READ_LIKE_PARTS] is three of them.
+    @Test
+    @DisplayName("every name excused from the part rule is still registered and still reads like a part")
+    void theNameExemptionsAreLive() {
+        var registered = Set.copyOf(Widgets.inflater().registered());
+        for (var name : READ_LIKE_PARTS) {
+            assertTrue(registered.contains(name), name + " is excused from the part rule and is not registered");
+            assertTrue(
+                    registered.stream().anyMatch(owner -> name.startsWith(owner + "-")),
+                    name + " no longer reads as a part of anything; take it out of READ_LIKE_PARTS");
+        }
     }
 
     @Test

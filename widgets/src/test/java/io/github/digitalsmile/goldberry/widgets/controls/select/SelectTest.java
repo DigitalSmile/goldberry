@@ -304,15 +304,6 @@ class SelectTest {
         }
 
         @Test
-        @DisplayName("`select` is a registered control and its parts are not")
-        void parity() {
-            assertTrue(Controls.controlTypes().contains("select"));
-            assertFalse(Controls.controlTypes().contains("select-value"));
-            assertFalse(Controls.controlTypes().contains("select-chevron"));
-            assertFalse(Controls.controlTypes().contains("select-list"));
-        }
-
-        @Test
         @DisplayName("an `option` is the same widget a `segmented` writes")
         void sharesOption() {
             var fromSelect =

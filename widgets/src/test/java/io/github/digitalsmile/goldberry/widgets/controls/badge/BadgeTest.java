@@ -84,14 +84,6 @@ class BadgeTest {
         assertEquals("offline", Badge.of("", Property.of("offline")).resolved());
     }
 
-    @Test
-    @DisplayName("it is a widget in the catalog and not a part")
-    void isACatalogWidget() {
-        assertTrue(Controls.controlTypes().contains("badge"));
-        assertTrue(Widgets.inflater().registered().contains("badge"));
-        assertEquals("badge", new Badge("3").cssType());
-    }
-
     /// §3's row: height 20, min-width 20, padding-x 4, radius `full`, `caption`.
     /// Asserted against the *resolved* style rather than read off the stylesheet,
     /// so a rule that stopped matching would fail here rather than in a golden.

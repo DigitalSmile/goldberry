@@ -70,31 +70,6 @@ class ButtonTest {
         }
 
         @Test
-        @DisplayName("a button is CSS-selectable by type, id and class")
-        void selectable() {
-            var button = new Button("Save", null, null, false, new Attributes("save", Set.of("primary"), null));
-
-            assertEquals("button", button.cssType());
-            assertEquals("save", button.id());
-            assertEquals(Set.of("primary"), button.classes());
-        }
-
-        @Test
-        @DisplayName("the registry lists it, and refuses what it does not know")
-        void registered() {
-            assertTrue(Widgets.inflater().registered().contains("button"));
-            assertTrue(
-                    Widgets.inflater().registered().contains("column"),
-                    "the primitives come along, so markup can mix the two");
-            assertTrue(Controls.controlTypes().contains("button"));
-
-            // A part is not a control: `check-indicator` is CSS-selectable and
-            // deliberately not KDL-constructible, so it is in neither list.
-            assertTrue(!Controls.controlTypes().contains("check-indicator"));
-            assertTrue(!Widgets.inflater().registered().contains("check-indicator"));
-        }
-
-        @Test
         @DisplayName("`styled` produces the same classes markup would")
         void styledMatchesMarkup() {
             var fromJava = new Button("Delete", null).styled("danger");

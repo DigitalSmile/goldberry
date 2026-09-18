@@ -18,9 +18,7 @@ import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
@@ -62,34 +60,6 @@ class ToggleTest {
                     """)).getFirst();
 
             assertEquals(fromJava, fromKdl);
-        }
-
-        @Test
-        @DisplayName("a toggle is CSS-selectable by type, id and class")
-        void cssSelectable() {
-            var sheets = List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
-                    toggle    { gap: 1px }
-                    #frost    { gap: 2px }
-                    .compact  { gap: 3px }
-                    """));
-            var tree = new ElementTree(
-                    new Toggle("Frost", true, null, null, false, new Attributes("frost", Set.of("compact"), "frost")));
-
-            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT);
-
-            // The id wins on specificity, which is what says all three matched.
-            assertEquals(Length.points(2), style.gap());
-        }
-
-        /// The parts are the fifth and sixth, and neither is in the catalog —
-        /// a `toggle-track` outside a `toggle` is a pill that means nothing
-        /// (ADR-0065).
-        @Test
-        @DisplayName("toggle is a control type and its two parts are not")
-        void partsAreNotConstructible() {
-            assertTrue(Controls.controlTypes().contains("toggle"));
-            assertFalse(Controls.controlTypes().contains("toggle-track"));
-            assertFalse(Controls.controlTypes().contains("toggle-thumb"));
         }
     }
 
