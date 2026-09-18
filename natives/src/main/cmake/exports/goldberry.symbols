@@ -127,10 +127,14 @@ SDL_GetModState
 SDL_GetGlobalMouseState
 
 # Event pumping, and SDL_PushEvent for the cross-thread wakeup.
+#
+# SDL_PumpEvents is deliberately absent: SDL_PollEvent and SDL_WaitEventTimeout
+# pump for themselves, and nothing here ever wanted the queue refreshed without
+# reading it. It was exported and force-linked for a year and bound by nothing,
+# which is the dead weight the rule at the top of this file names.
 SDL_PollEvent
 SDL_WaitEventTimeout
 SDL_PushEvent
-SDL_PumpEvents
 
 # The event watch (ADR-0060). Windows and macOS run a modal loop while a window
 # is being resized and do not return from event pumping until the drag ends; a
@@ -282,14 +286,17 @@ bl_image_convert
 bl_context_init_as
 bl_context_end
 bl_context_destroy
-bl_context_flush
 
 # State: the display scale reaches the rasterizer as a transform.
 bl_context_apply_transform_op
 bl_context_set_comp_op
 
 # Drawing.
-bl_context_clear_all
+#
+# Not bl_context_clear_all and not bl_context_flush: a frame starts with a
+# fill_all over the whole clip box, and bl_context_end is what flushes. Both were
+# bound in Java, called by nothing, and exported for the binding that called
+# them.
 bl_context_fill_all_rgba32
 bl_context_fill_rect_d_rgba32
 
@@ -612,5 +619,4 @@ WebPAnimDecoderNewInternal
 WebPAnimDecoderGetInfo
 WebPAnimDecoderGetNext
 WebPAnimDecoderHasMoreFrames
-WebPAnimDecoderReset
 WebPAnimDecoderDelete

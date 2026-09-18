@@ -52,10 +52,6 @@ final class Blend2dContext {
         check("bl_context_destroy", calls.contextDestroy().call(context));
     }
 
-    void contextFlush(MemorySegment context, int flags) {
-        check("bl_context_flush", calls.contextFlush().call(context, flags));
-    }
-
     /// Applies a transform whose operand is a pair of doubles —
     /// [BlendTransformOp#SCALE] or [BlendTransformOp#TRANSLATE].
     ///
@@ -94,10 +90,6 @@ final class Blend2dContext {
 
     void contextCompOp(MemorySegment context, BlendCompOp compOp) {
         check("bl_context_set_comp_op", calls.contextSetCompOp().call(context, compOp.nativeValue()));
-    }
-
-    void contextClearAll(MemorySegment context) {
-        check("bl_context_clear_all", calls.contextClearAll().call(context));
     }
 
     /// Fills the whole clip box with a straight-alpha `0xAARRGGBB`.
