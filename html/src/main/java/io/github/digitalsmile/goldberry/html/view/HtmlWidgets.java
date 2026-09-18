@@ -206,7 +206,16 @@ final class HtmlWidgets {
             case "pre" -> preformatted(element);
             case "hr" -> new Row(List.of(), classesOf(element, "html-rule"));
             case "table" -> table(element);
-            case "thead", "tbody", "tfoot", "tr" -> new Column(rows(element), classesOf(element, "html-table"));
+            case "thead", "tbody", "tfoot" -> new Column(rows(element), classesOf(element, "html-table"));
+            // **A row with no table above it is still a row.** It reaches here only
+            // when nothing folded it as part of one, and [#rows] matches `tr` and
+            // sections and a `caption` — so a `tr` handed to it answered with no rows
+            // at all and the cells went nowhere. HTML's own "in body" mode drops the
+            // `<tr>` tag and keeps what is inside it; the model here keeps both
+            // ([Element]), and the fold's rule for anything in the wrong place —
+            // a stray paragraph in a list, a tag nobody has heard of — is to draw it
+            // where it is.
+            case "tr" -> row(element);
             case "td", "th" -> cell(element);
             default -> new Column(blocks(element.children()), classesOf(element, "html-block"));
         };
