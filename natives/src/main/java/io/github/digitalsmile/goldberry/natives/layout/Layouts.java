@@ -792,6 +792,72 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("y_offset"),
                     MemoryLayout.paddingLayout(4))); // var
 
+    /// The bytes handed to libwebp's animation decoder — `WebPData`.
+    ///
+    /// ```c
+    /// struct WebPData {
+    ///     const uint8_t *bytes;
+    ///     size_t         size;
+    /// };
+    /// ```
+    ///
+    /// Java allocates this one and writes both fields, which is why it is here
+    /// rather than counted at the call site: `size_t` is the pointer-width
+    /// scalar, so the struct is twelve bytes on a 32-bit target and sixteen on
+    /// every target Goldberry ships. A hand-written 16 is right until it is not,
+    /// and the failure is a decoder reading a length out of the wrong half of the
+    /// struct — which returns "not an animation" rather than an error.
+    public static final NativeStructLayout WEBP_DATA = new NativeStructLayout(
+            "WebPData",
+            MemoryLayout.structLayout(ValueLayout.ADDRESS.withName("bytes"), ValueLayout.JAVA_LONG.withName("size")));
+
+    /// The decoder's options block — `WebPAnimDecoderOptions`.
+    ///
+    /// ```c
+    /// struct WebPAnimDecoderOptions {
+    ///     WEBP_CSP_MODE color_mode;
+    ///     int           use_threads;
+    ///     uint32_t      padding[7];
+    /// };
+    /// ```
+    ///
+    /// Goldberry zeroes it and lets `WebPAnimDecoderOptionsInitInternal` fill it
+    /// in, so no field is read here — but the **size** is what the library writes
+    /// through, and an undersized allocation is a write past the end of a confined
+    /// arena. The seven words are upstream's reserve for later use, which is
+    /// exactly the sort of thing a release spends without announcing.
+    public static final NativeStructLayout WEBP_ANIM_DECODER_OPTIONS = new NativeStructLayout(
+            "WebPAnimDecoderOptions",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("color_mode"),
+                    ValueLayout.JAVA_INT.withName("use_threads"),
+                    MemoryLayout.sequenceLayout(7, ValueLayout.JAVA_INT).withName("padding")));
+
+    /// What the decoder reports about an animation — `WebPAnimInfo`.
+    ///
+    /// ```c
+    /// struct WebPAnimInfo {
+    ///     uint32_t canvas_width;
+    ///     uint32_t canvas_height;
+    ///     uint32_t loop_count;
+    ///     uint32_t bgcolor;
+    ///     uint32_t frame_count;
+    ///     uint32_t pad[4];
+    /// };
+    /// ```
+    ///
+    /// The three fields Goldberry reads are the first three, and they were read
+    /// at 0, 4 and 8 by hand. Named here so the C compiler is what says so.
+    public static final NativeStructLayout WEBP_ANIM_INFO = new NativeStructLayout(
+            "WebPAnimInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("canvas_width"),
+                    ValueLayout.JAVA_INT.withName("canvas_height"),
+                    ValueLayout.JAVA_INT.withName("loop_count"),
+                    ValueLayout.JAVA_INT.withName("bgcolor"),
+                    ValueLayout.JAVA_INT.withName("frame_count"),
+                    MemoryLayout.sequenceLayout(4, ValueLayout.JAVA_INT).withName("pad")));
+
     private Layouts() {}
 
     /// Every layout that must agree with the compiled library.
@@ -829,6 +895,9 @@ public final class Layouts {
                 BL_FONT_METRICS,
                 BL_RUNTIME_BUILD_INFO,
                 HB_GLYPH_INFO,
-                HB_GLYPH_POSITION);
+                HB_GLYPH_POSITION,
+                WEBP_DATA,
+                WEBP_ANIM_DECODER_OPTIONS,
+                WEBP_ANIM_INFO);
     }
 }

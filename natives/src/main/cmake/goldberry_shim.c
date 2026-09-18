@@ -73,6 +73,23 @@
 #include <md4c.h>
 #include <entity.h>
 
+/*
+ * For WebPData, WebPAnimDecoderOptions, WebPAnimInfo and WEBP_DEMUX_ABI_VERSION.
+ *
+ * Nothing here calls libwebp -- the bindings reach it directly through FFM -- so
+ * these headers are included for the table alone. The animation decoder is the
+ * one place in this module where Java ALLOCATES an upstream struct and writes
+ * into it by offset: a WebPData holding a pointer and a size, an options block
+ * the library fills in, and an info block it reads back. Those three sizes and
+ * offsets were counted by hand against demux.h and believed, which is precisely
+ * what ADR-0010 says not to do. And WEBP_DEMUX_ABI_VERSION travels on every
+ * `…Internal` call: a pinned libwebp that bumps it makes the decoder refuse
+ * every animation, silently, because "not an animation" is a normal answer.
+ */
+#include <webp/decode.h>
+#include <webp/demux.h>
+#include <webp/mux_types.h>
+
 /* malloc/realloc/free and memcpy/memset, for the Markdown event buffer. */
 #include <stdlib.h>
 #include <string.h>
@@ -84,7 +101,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 11u
+#define GOLDBERRY_ABI_VERSION 12u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -908,6 +925,37 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("GOLDBERRY_CAP_DEVICE_HOTPLUG", GOLDBERRY_CAP_DEVICE_HOTPLUG),
     GB_CONSTANT("GOLDBERRY_CAP_FILE_DIALOG", GOLDBERRY_CAP_FILE_DIALOG),
     GB_CONSTANT("GOLDBERRY_CAP_SCREENSAVER_INHIBIT", GOLDBERRY_CAP_SCREENSAVER_INHIBIT),
+
+    /*
+     * libwebp's animation decoder (ADR-0385).
+     *
+     * The three structs Java allocates and reads by offset. WebPData is a
+     * pointer and a size_t, so its size is 12 on a 32-bit target and 16 here --
+     * the ordinary reason a hand-counted layout is right on one machine only.
+     * The two demux structs end in padding upstream reserved for later use,
+     * which is exactly the field a future libwebp spends without saying so.
+     */
+    GB_STRUCT(WebPData),
+    GB_FIELD(WebPData, bytes),
+    GB_FIELD(WebPData, size),
+
+    GB_STRUCT(WebPAnimDecoderOptions),
+    GB_FIELD(WebPAnimDecoderOptions, color_mode),
+    GB_FIELD(WebPAnimDecoderOptions, use_threads),
+    GB_FIELD(WebPAnimDecoderOptions, padding),
+
+    GB_STRUCT(WebPAnimInfo),
+    GB_FIELD(WebPAnimInfo, canvas_width),
+    GB_FIELD(WebPAnimInfo, canvas_height),
+    GB_FIELD(WebPAnimInfo, loop_count),
+    GB_FIELD(WebPAnimInfo, bgcolor),
+    GB_FIELD(WebPAnimInfo, frame_count),
+    GB_FIELD(WebPAnimInfo, pad),
+
+    /* The version every `…Internal` entry point is called with. libwebp checks
+     * it and refuses on a mismatch, and a refusal is indistinguishable from
+     * "these bytes are not an animation". */
+    GB_CONSTANT("WEBP_DEMUX_ABI_VERSION", WEBP_DEMUX_ABI_VERSION),
 };
 
 GOLDBERRY_EXPORT const goldberry_layout_entry_t *goldberry_layout_table(void) {

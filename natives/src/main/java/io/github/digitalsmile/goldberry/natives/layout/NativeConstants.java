@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.webp.calls.WebpCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 
 /// The registry of C constants the Java side hard-codes.
@@ -83,6 +84,11 @@ public final class NativeConstants {
         for (var value : Md4cEnum.all()) {
             constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
+        // Not an enumerator but a version number, and one that travels on every
+        // call to libwebp's two `…Internal` entry points. A pinned libwebp that
+        // bumps it refuses every animation, and a refusal is indistinguishable
+        // from "these bytes are not one" (ADR-0385).
+        constants.add(new NativeConstant("WEBP_DEMUX_ABI_VERSION", WebpCalls.DEMUX_ABI_VERSION));
         return List.copyOf(constants);
     }
 }
