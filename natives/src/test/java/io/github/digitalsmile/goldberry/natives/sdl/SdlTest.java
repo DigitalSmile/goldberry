@@ -3,14 +3,20 @@ package io.github.digitalsmile.goldberry.natives.sdl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 
@@ -91,32 +97,36 @@ class SdlTest {
     }
 
     @Test
-    @DisplayName("quitting a subsystem is visible to SDL_WasInit")
-    void quitsSubsystem() {
-        var sdl = Sdl.get();
-        sdl.initialize(EnumSet.of(SdlSubsystem.EVENTS));
-
-        sdl.quitSubsystems(EnumSet.of(SdlSubsystem.EVENTS));
-
-        assertEquals(Set.of(), sdl.wasInit());
-    }
-
-    @Test
     @DisplayName("nothing is initialized before SDL_Init")
     void nothingInitializedInitially() {
         // @AfterEach quits SDL, so this holds however the tests are ordered.
         assertEquals(Set.of(), Sdl.get().wasInit());
     }
 
-    @Test
-    @DisplayName("subsystems can be added to a running SDL")
-    void addsSubsystems() {
+    /// The two ways the running set changes after `SDL_Init`, each starting from
+    /// the events subsystem because that is the one a runner with no display has.
+    private static Stream<Arguments> changes() {
+        return Stream.of(
+                arguments(
+                        "quitting the only running subsystem",
+                        (Consumer<Sdl>) sdl -> sdl.quitSubsystems(EnumSet.of(SdlSubsystem.EVENTS)),
+                        Set.of()),
+                arguments(
+                        "adding one to a running SDL",
+                        (Consumer<Sdl>) sdl -> sdl.initializeSubsystems(EnumSet.of(SdlSubsystem.SENSOR)),
+                        EnumSet.of(SdlSubsystem.EVENTS, SdlSubsystem.SENSOR)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("changes")
+    @DisplayName("SDL_WasInit sees every change to the running subsystems")
+    void wasInitFollowsTheSubsystems(String label, Consumer<Sdl> change, Set<SdlSubsystem> expected) {
         var sdl = Sdl.get();
         sdl.initialize(EnumSet.of(SdlSubsystem.EVENTS));
 
-        sdl.initializeSubsystems(EnumSet.of(SdlSubsystem.SENSOR));
+        change.accept(sdl);
 
-        assertTrue(sdl.wasInit().containsAll(EnumSet.of(SdlSubsystem.EVENTS, SdlSubsystem.SENSOR)));
+        assertEquals(expected, sdl.wasInit(), label);
     }
 
     @Test
@@ -130,16 +140,5 @@ class SdlTest {
         // means finding a call that fails identically on six targets, and the
         // binding under test here is the char* read, not SDL's error policy.
         assertEquals("", sdl.lastError());
-    }
-
-    @Test
-    @DisplayName("initializing twice is not an error")
-    void doubleInitIsFine() {
-        var sdl = Sdl.get();
-
-        sdl.initialize(EnumSet.of(SdlSubsystem.EVENTS));
-        sdl.initialize(EnumSet.of(SdlSubsystem.EVENTS));
-
-        assertTrue(sdl.wasInit().contains(SdlSubsystem.EVENTS));
     }
 }

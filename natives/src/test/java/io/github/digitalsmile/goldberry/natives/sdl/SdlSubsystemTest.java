@@ -1,17 +1,25 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
+/// `SDL_INIT_*`, as a mask and back again.
+///
+/// Unlike every other SDL enum the bindings model, `SdlSubsystem` is **not** in
+/// `NativeConstants.registry()` — it has no `nativeName()`, so the layout probe
+/// never compares its bits with the compiled SDL. The literals below are
+/// therefore the only thing holding them, and they stay.
 class SdlSubsystemTest {
 
     /// The literals are SDL's, from the `SDL_INIT_*` defines in
@@ -33,63 +41,51 @@ class SdlSubsystemTest {
         assertEquals(expected, subsystem.bit());
     }
 
-    @ParameterizedTest
-    @EnumSource(SdlSubsystem.class)
-    @DisplayName("every subsystem survives a mask round trip")
-    void singleRoundTrips(SdlSubsystem subsystem) {
-        assertEquals(Set.of(subsystem), SdlSubsystem.decode(SdlSubsystem.mask(Set.of(subsystem))));
+    /// Every word the decoder has to get right, and the subsystems it names.
+    private static Stream<Arguments> words() {
+        return Stream.concat(
+                Stream.of(
+                        arguments("no bits at all", 0, Set.of()),
+                        // SDL_WasInit reports what SDL initialized. A future SDL may
+                        // report a subsystem this enum predates, and a dependency bump
+                        // must not become a crash. Contrast MeasureMode.of(), where an
+                        // unknown value means the binding is wrong.
+                        arguments(
+                                "a bit this enum predates, beside one it knows",
+                                SdlSubsystem.EVENTS.bit() | 0x4000_0000,
+                                Set.of(SdlSubsystem.EVENTS)),
+                        arguments("every bit set", -1, EnumSet.allOf(SdlSubsystem.class))),
+                // One row per subsystem, so a bit shared between two shows up as the
+                // row that decoded to a pair.
+                Arrays.stream(SdlSubsystem.values())
+                        .map(subsystem -> arguments(subsystem + " alone", subsystem.bit(), Set.of(subsystem))));
     }
 
-    @Test
-    @DisplayName("a set of subsystems round-trips as one mask")
-    void setRoundTrips() {
-        var requested = EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS, SdlSubsystem.GAMEPAD);
-
-        assertEquals(requested, SdlSubsystem.decode(SdlSubsystem.mask(requested)));
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("words")
+    @DisplayName("a word decodes to exactly the subsystems its bits name")
+    void decodes(String label, int word, Set<SdlSubsystem> expected) {
+        assertEquals(expected, SdlSubsystem.decode(word), label);
     }
 
-    @Test
-    @DisplayName("no subsystems is a zero mask")
-    void emptyIsZero() {
-        assertEquals(0, SdlSubsystem.mask(Set.of()));
-        assertEquals(Set.of(), SdlSubsystem.decode(0));
+    /// Every set the encoder has to get right, and the word it becomes.
+    private static Stream<Arguments> requests() {
+        return Stream.of(
+                arguments("nothing requested", Set.of(), 0),
+                // VIDEO|EVENTS happens to be a sum too; overlapping flags would not
+                // be. Asserting the literal keeps the implementation honest either way.
+                arguments("video and events", EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS), 0x20 | 0x4000),
+                arguments(
+                        "video, events and gamepad",
+                        EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS, SdlSubsystem.GAMEPAD),
+                        0x20 | 0x4000 | 0x2000));
     }
 
-    @Test
-    @DisplayName("the mask is the bitwise or, not a sum")
-    void maskIsBitwise() {
-        // VIDEO|EVENTS happens to be a sum too; overlapping flags would not be.
-        // Asserting the literal keeps the implementation honest either way.
-        assertEquals(0x00000020 | 0x00004000, SdlSubsystem.mask(EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS)));
-    }
-
-    @Test
-    @DisplayName("a bit this enum does not know is ignored, not rejected")
-    void unknownBitsIgnored() {
-        // SDL_WasInit reports what SDL initialized. A future SDL may report a
-        // subsystem this enum predates, and a dependency bump must not become a
-        // crash. Contrast MeasureMode.of(), where an unknown value means the
-        // binding is wrong.
-        var flags = SdlSubsystem.EVENTS.bit() | 0x40000000;
-
-        assertEquals(Set.of(SdlSubsystem.EVENTS), SdlSubsystem.decode(flags));
-    }
-
-    @Test
-    @DisplayName("all bits set decodes to every known subsystem")
-    void allBitsDecodeToEverything() {
-        var all = SdlSubsystem.decode(-1);
-
-        assertEquals(EnumSet.allOf(SdlSubsystem.class), all);
-    }
-
-    @Test
-    @DisplayName("no two subsystems share a bit")
-    void bitsAreDistinct() {
-        var seen = 0;
-        for (var subsystem : SdlSubsystem.values()) {
-            assertTrue((seen & subsystem.bit()) == 0, () -> subsystem + " overlaps another subsystem");
-            seen |= subsystem.bit();
-        }
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("requests")
+    @DisplayName("a set of subsystems masks to the bitwise or of their bits, and comes back")
+    void masks(String label, Set<SdlSubsystem> requested, int expected) {
+        assertEquals(expected, SdlSubsystem.mask(requested), label);
+        assertEquals(requested, SdlSubsystem.decode(SdlSubsystem.mask(requested)), label);
     }
 }
