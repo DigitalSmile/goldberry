@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -155,30 +155,47 @@ public final class TimeTicks {
         }
 
         var values = new ArrayList<Instant>();
-        var at = snap(from.atZone(zone), chosen);
+        // **Stepped on the clock and read back off the zone**, which is not the
+        // same as stepping the instant.
+        //
+        // `ZonedDateTime.plus` splits its units down the middle: a date-based one
+        // — DAYS and up — is added to the local date and re-resolved against the
+        // zone, and a time-based one is added to the *instant*. So a daily axis
+        // already survived a zone change and an hourly one could not: twelve
+        // hours added to `00:00` on the day Berlin springs forward is `13:00`,
+        // and the labels come off the clock and never go back on it — `00:00,
+        // 12:00, 00:00, 13:00`. Stepping the [LocalDateTime] puts every unit on
+        // the date-based side of that line, and a month is still as long as that
+        // month is.
+        var local = snap(from.atZone(zone).toLocalDateTime(), chosen);
+        var at = local.atZone(zone);
         if (at.toInstant().isBefore(from)) {
-            at = at.plus(chosen.amount(), chosen.unit());
+            local = local.plus(chosen.amount(), chosen.unit());
+            at = local.atZone(zone);
         }
-        // **Stepped in java.time**, so a month is as long as that month is and a
-        // day across a zone change is 23 or 25 hours. Adding a fixed number of
-        // milliseconds is the version of this that drifts an hour twice a year
-        // and a day every February.
         while (!at.toInstant().isAfter(to)) {
-            values.add(at.toInstant());
-            var next = at.plus(chosen.amount(), chosen.unit());
-            if (!next.isAfter(at)) {
+            // **Only if it is a new instant.** An hour a zone skips is a local
+            // time that does not exist, and resolving one lands on the far side
+            // of the gap — where the next tick already is. Two labels on one
+            // pixel is the one way this can produce a tick nobody can read.
+            if (values.isEmpty() || at.toInstant().isAfter(values.getLast())) {
+                values.add(at.toInstant());
+            }
+            var next = local.plus(chosen.amount(), chosen.unit());
+            if (!next.isAfter(local)) {
                 // Cannot happen with a positive amount, and a guard rather than a
                 // comment because the loop is the one place a bad rung would hang
                 // the paint thread rather than draw something wrong.
                 break;
             }
-            at = next;
+            local = next;
+            at = local.atZone(zone);
         }
         return new Labelling(List.copyOf(values), formatFor(chosen), chosen.unit(), chosen.amount());
     }
 
     /// `time` moved back to the previous boundary of `step`'s own unit.
-    private static ZonedDateTime snap(ZonedDateTime time, Step step) {
+    private static LocalDateTime snap(LocalDateTime time, Step step) {
         return switch (step.unit()) {
             case SECONDS -> time.truncatedTo(ChronoUnit.MINUTES).plusSeconds(floor(time.getSecond(), step.amount()));
             case MINUTES -> time.truncatedTo(ChronoUnit.HOURS).plusMinutes(floor(time.getMinute(), step.amount()));

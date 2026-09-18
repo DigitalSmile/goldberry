@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -31,6 +32,11 @@ class TimeTicksTest {
 
     private static Instant utc(String text) {
         return Instant.parse(text);
+    }
+
+    /// The instant a wall clock in `zone` reads `text` — `2026-03-28T00:00`.
+    private static Instant local(String text, ZoneId zone) {
+        return LocalDateTime.parse(text).atZone(zone).toInstant();
     }
 
     @Test
@@ -123,6 +129,59 @@ class TimeTicksTest {
                             .toHours());
         }
         assertEquals(23, shortest, "the spring-forward day is 23 hours long");
+    }
+
+    @Test
+    @DisplayName("an hour step across a zone change stays on the clock")
+    void daylightSavingIsNotAnHour() {
+        // `ZonedDateTime.plus` adds a date-based unit to the local date and a
+        // time-based one to the *instant*, so twelve hours added to the midnight
+        // Berlin springs forward on is 13:00 and the axis read `00:00, 12:00,
+        // 00:00, 13:00`. Days were on the right side of that split all along,
+        // which is why `daylightSavingIsNotADay` never saw this.
+        var berlin = ZoneId.of("Europe/Berlin");
+
+        assertEquals(
+                List.of("00:00", "12:00", "00:00", "12:00", "00:00"),
+                labels(local("2026-03-28T00:00", berlin), local("2026-03-30T00:00", berlin), 5, berlin),
+                "the hours came off the clock across the spring-forward");
+        assertEquals(
+                List.of("00:00", "12:00", "00:00", "12:00", "00:00"),
+                labels(local("2026-10-24T00:00", berlin), local("2026-10-26T00:00", berlin), 5, berlin),
+                "and across the fall-back");
+
+        // And the ticks are on the clock rather than evenly spaced in real time:
+        // the half-day the hour goes missing from is eleven hours long, exactly
+        // as the day in `daylightSavingIsNotADay` is twenty-three.
+        var spring = TimeTicks.of(local("2026-03-28T00:00", berlin), local("2026-03-30T00:00", berlin), 5, berlin);
+        var shortest = Long.MAX_VALUE;
+        for (var i = 1; i < spring.values().size(); i++) {
+            shortest = Math.min(
+                    shortest,
+                    Duration.between(spring.values().get(i - 1), spring.values().get(i))
+                            .toHours());
+        }
+        assertEquals(11, shortest, "the half-day that loses the hour is eleven hours long");
+    }
+
+    @Test
+    @DisplayName("an hour a zone skips is not labelled twice")
+    void theHourThatNeverHappened() {
+        // 02:00 does not exist in Berlin on 2026-03-29: stepping the clock lands
+        // on a local time the zone has no instant for, and resolving one moves it
+        // forward to 03:00 -- where the next tick already is. One label per
+        // instant, so the axis says 01:00, 03:00, 04:00 and the missing hour is
+        // the gap a reader can see.
+        var berlin = ZoneId.of("Europe/Berlin");
+        var labelling = TimeTicks.of(local("2026-03-29T01:00", berlin), local("2026-03-29T04:00", berlin), 3, berlin);
+
+        assertEquals(ChronoUnit.HOURS, labelling.unit());
+        assertEquals(1, labelling.amount());
+        assertEquals(
+                List.of("01:00", "03:00", "04:00"),
+                labelling.values().stream()
+                        .map(at -> labelling.label(at, berlin))
+                        .toList());
     }
 
     @Test
