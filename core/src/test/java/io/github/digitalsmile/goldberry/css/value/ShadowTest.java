@@ -336,10 +336,12 @@ class ShadowTest {
         /// decimal point, and the spread is written only when there is one, which
         /// is the difference between four fields and five.
         ///
-        /// Deliberately **not** a round trip through `parse`: the colour is
-        /// printed packed, `#aarrggbb`, and CSS reads eight digits as
-        /// `#rrggbbaa` — so a shadow's own text parses back as a different
-        /// colour, and `0px 2px 8px #40000000` comes back as `none`.
+        /// **And it round-trips**, which it did not until the sweep that wrote
+        /// this table tried it: the colour was printed packed as `#aarrggbb`
+        /// while CSS reads eight digits as `#rrggbbaa`, so
+        /// `0px 2px 8px #40000000` parsed back as alpha zero — `Shadow.NONE`.
+        /// A value whose own text does not survive its own parser cannot be
+        /// written into a stylesheet, which is what this one is for.
         static Stream<Arguments> printed() {
             return Stream.of(
                     arguments("a whole number of pixels", new Shadow(0, 2, 8, 0, 0x40000000), 4),
@@ -360,6 +362,21 @@ class ShadowTest {
                 assertTrue(length.endsWith("px"), () -> "a length written as " + length + " in: " + text);
             }
             assertTrue(fields[fieldCount - 1].startsWith("#"), text);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("printed")
+        @DisplayName("and what it prints parses back as the shadow it printed")
+        void roundTrips(String what, Shadow shadow, int fieldCount) {
+            assertEquals(shadow, parse(shadow.toString()), what);
+        }
+
+        @Test
+        @DisplayName("an opaque shadow writes six hex digits, and a translucent one eight")
+        void theColourIsWrittenAsCssReadsIt() {
+            // `#rrggbb` and `#rrggbbaa` — the CSS order, not the packed one.
+            assertTrue(new Shadow(0, 4, 12, -2, 0xFF123456).toString().endsWith("#123456"));
+            assertTrue(new Shadow(0, 2, 8, 0, 0x40000000).toString().endsWith("#00000040"));
         }
 
         @Test

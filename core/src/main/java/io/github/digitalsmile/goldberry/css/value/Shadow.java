@@ -315,7 +315,23 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         if (spread != 0) {
             text.append(' ').append(px(spread));
         }
-        return text.append(' ').append(String.format("#%08x", argb)).toString();
+        return text.append(' ').append(hex(argb)).toString();
+    }
+
+    /// The colour as CSS writes it — `#rrggbb` when it is opaque, `#rrggbbaa`
+    /// when it is not.
+    ///
+    /// **Not `#%08x` of the packed value.** That prints `#aarrggbb`, and CSS reads
+    /// eight hex digits as `#rrggbbaa` — so `Shadow.parse(shadow.toString())`
+    /// came back with the alpha read as red: `0x40000000` printed as
+    /// `#40000000`, which parses to alpha `0x00` and is `Shadow.NONE`. A value
+    /// whose `toString` does not round-trip through its own parser is a value
+    /// that cannot be written into a stylesheet, which is what this one is for
+    /// (found while sweeping the tests, the 2026-09-18 review §11).
+    private static String hex(int argb) {
+        var alpha = (argb >>> 24) & 0xFF;
+        var rgb = String.format("#%06x", argb & 0xFFFFFF);
+        return alpha == 0xFF ? rgb : rgb + String.format("%02x", alpha);
     }
 
     private static String px(double value) {
