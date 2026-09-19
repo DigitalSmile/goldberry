@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.later;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -112,18 +113,6 @@ class TextInputPipelineTest {
     private void press(Key key) {
         backend.post(new BackendEvent.KeyPressed(window(), key.sdlKeycode(), 0, false));
         backend.post(new BackendEvent.KeyReleased(window(), key.sdlKeycode(), 0));
-    }
-
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
     }
 
     @Test
