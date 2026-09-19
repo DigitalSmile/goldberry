@@ -277,7 +277,7 @@ class CssTokenizerTest {
             // Caught a "(char) code" cast made before the surrogate test: it kept
             // only the low sixteen bits, so \1D800 arrived looking like U+D800
             // and every legal supplementary escape came back replaced.
-            assertEquals("𝀀", only("\\1D800 ").text());
+            assertEquals("𝠀", only("\\1D800 ").text());
             assertEquals("😀", only("\\1F600 ").text());
             // The spec's three replacement cases, and only those three.
             assertEquals("�", only("\\110000 ").text());
