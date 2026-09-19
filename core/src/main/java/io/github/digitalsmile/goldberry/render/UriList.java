@@ -161,6 +161,18 @@ public record UriList(List<URI> uris) {
             if (!FILE_SCHEME.equalsIgnoreCase(uri.getScheme())) {
                 continue;
             }
+            if (namesAnotherHost(uri)) {
+                // **Refused here rather than left to `Path.of`**, because
+                // `Path.of` refuses it on one platform and accepts it on another:
+                // on Windows `file://fileserver/share/a.png` is a perfectly good
+                // UNC path and comes back as `\\fileserver\share\a.png`. Relying
+                // on the exception meant this type kept its promise on Linux and
+                // quietly broke it on Windows, handing an application a path to a
+                // file on somebody else's machine. Found by CI, which is the only
+                // place the difference was visible.
+                LOG.debug("a uri-list entry names another host and was skipped: {}", uri);
+                continue;
+            }
             try {
                 out.add(Path.of(withoutLocalAuthority(uri)));
             } catch (RuntimeException e) {
@@ -174,15 +186,30 @@ public record UriList(List<URI> uris) {
         return List.copyOf(out);
     }
 
+    /// Whether this names a file on some *other* machine.
+    ///
+    /// An empty authority and `localhost` are both this machine — RFC 8089
+    /// blesses `file:///x` and `file://localhost/x` alike. Anything else is a
+    /// name for something somewhere else, and resolving it locally would open
+    /// the wrong file rather than none.
+    ///
+    /// **Asked explicitly, because the platforms disagree about it.** On Linux
+    /// `Path.of` throws for any authority and the refusal came for free; on
+    /// Windows an authority is a UNC share and `Path.of` hands back
+    /// `\\fileserver\share\a.png` quite happily. A promise kept by an exception
+    /// on one platform is not a promise.
+    private static boolean namesAnotherHost(URI uri) {
+        var authority = uri.getAuthority();
+        return authority != null && !authority.isEmpty() && !authority.equalsIgnoreCase("localhost");
+    }
+
     /// `file://localhost/tmp/x` with the authority taken off.
     ///
-    /// RFC 8089 blesses both `file:///x` and `file://localhost/x` and Java's file
-    /// system accepts only the first — `Path.of` refuses an authority outright,
-    /// including the `localhost` that means "this machine". Dropping an entry over
-    /// that would be the toolkit inventing a failure, so the one authority that
-    /// *is* this machine is normalised away and any other is left to fail: a
-    /// `file://fileserver/share` is a name for something on another host, and
-    /// pretending it is local would open the wrong file rather than none.
+    /// Java's file system accepts only the authority-less spelling — `Path.of`
+    /// refuses one outright, including the `localhost` that means "this machine".
+    /// Dropping an entry over that would be the toolkit inventing a failure, so
+    /// the one authority that *is* this machine is normalised away. Any other has
+    /// already been refused by [#namesAnotherHost].
     private static URI withoutLocalAuthority(URI uri) {
         var authority = uri.getAuthority();
         if (authority == null || !authority.equalsIgnoreCase("localhost")) {

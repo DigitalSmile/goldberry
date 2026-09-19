@@ -94,9 +94,18 @@ class UriListTest {
         @Test
         @DisplayName("writes CRLF, each entry terminated")
         void writesCrlf() {
-            var list = UriList.of(Path.of("/tmp/my file.png"));
+            var path = Path.of("/tmp/my file.png");
+            var list = UriList.of(path);
 
-            assertEquals("file:///tmp/my%20file.png\r\n", list.text());
+            // The URI is the path's own, not a literal. A bare `/tmp/...` is
+            // drive-relative on Windows, so `toUri` absolutises it to
+            // `file:///D:/tmp/...` there and to `file:///tmp/...` here — and a
+            // hard-coded spelling asserts which machine ran the test rather than
+            // what this class writes. What it writes is the terminator.
+            assertEquals(path.toUri() + "\r\n", list.text());
+            assertTrue(list.text().endsWith("\r\n"), "every entry is terminated, including the last");
+            assertTrue(
+                    list.text().contains("my%20file"), "a space is percent-encoded rather than left to split the line");
             assertArrayEquals(list.text().getBytes(StandardCharsets.UTF_8), list.encode());
         }
 
@@ -105,7 +114,13 @@ class UriListTest {
         void roundTrips() {
             var paths = List.of(Path.of("/tmp/a b.png"), Path.of("/tmp/пр.txt"));
 
-            assertEquals(paths, UriList.parse(UriList.of(paths).encode()).paths());
+            // Compared absolute, because a URI is: `Path.toUri` resolves a
+            // relative path against the working directory, so a drive-relative
+            // `\tmp\a b.png` on Windows comes back as `D:\tmp\a b.png` — the
+            // same file, spelled in full. The round trip preserves the file, not
+            // the abbreviation.
+            var expected = paths.stream().map(Path::toAbsolutePath).toList();
+            assertEquals(expected, UriList.parse(UriList.of(paths).encode()).paths());
         }
     }
 
@@ -169,6 +184,8 @@ class UriListTest {
         @Test
         @DisplayName("drops a file: URI that names another host")
         void anotherHostIsNotLocal() {
+            // Refused by UriList itself rather than by Path.of, which accepts it
+            // on Windows as a UNC share -- see `namesAnotherHost`.
             var list = UriList.parse("file://fileserver/share/a.png\r\n");
 
             assertEquals(1, list.count());
@@ -221,12 +238,15 @@ class UriListTest {
             try (var backend = new HeadlessBackend()) {
                 var clipboard = backend.clipboard();
                 var paths = List.of(Path.of("/tmp/a b.png"), Path.of("/tmp/c.png"));
+                // Absolute for the reason `roundTrips` gives: a URI has no
+                // relative spelling to come back as.
+                var expected = paths.stream().map(Path::toAbsolutePath).toList();
 
                 assertTrue(UriList.of(paths).toClipboard(clipboard));
 
                 assertTrue(UriList.onClipboard(clipboard));
                 assertEquals(List.of(UriList.MIME), clipboard.types());
-                assertEquals(paths, UriList.fromClipboard(clipboard).paths());
+                assertEquals(expected, UriList.fromClipboard(clipboard).paths());
             }
         }
 
