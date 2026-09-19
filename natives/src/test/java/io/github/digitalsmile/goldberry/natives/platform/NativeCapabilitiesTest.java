@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.platform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.util.EnumSet;

@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 
 /// The IME half of the SDL binding — `docs/gaps.md` G15.
 ///
