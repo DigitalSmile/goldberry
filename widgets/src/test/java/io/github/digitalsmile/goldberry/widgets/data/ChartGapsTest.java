@@ -1,29 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.pixels;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.renderer;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 
@@ -35,9 +30,6 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// thing.** A chart whose null handling was wired up but never applied would pass
 /// every unit test in the other file.
 class ChartGapsTest {
-
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
 
     @BeforeEach
     void setUp() {
@@ -52,51 +44,12 @@ class ChartGapsTest {
 
     private static final List<String> DAYS = List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
 
-    private static Widget framed(Widget chart) {
-        return new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"));
-    }
-
-    private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
-                                #frame { padding: 12px; background: var(--gb-bg) }
-                                #plot  { width: 296px; height: 156px }
-                                """)),
-                TestFont.get());
-    }
-
-    private static Attributes id() {
-        return new Attributes("plot", Set.of(), "plot");
-    }
-
-    /// Paints `chart` and reads the frame back.
-    private static int[] pixels(Widget chart) {
-        var render = renderer();
-        var tree = new ElementTree(framed(chart));
-        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try {
-            BoxPainter.paint(target.frame(), render.render(tree));
-        } finally {
-            target.end();
-        }
-        var out = new int[WIDTH * HEIGHT];
-        for (var y = 0; y < HEIGHT; y++) {
-            for (var x = 0; x < WIDTH; x++) {
-                out[y * WIDTH + x] = target.pixel(x, y);
-            }
-        }
-        return out;
-    }
-
     @Test
     @DisplayName("the three policies draw three different pictures")
     void thePolicyIsApplied() {
-        var gap = pixels(new LineChart(holed(), DAYS, id()));
-        var connect = pixels(new LineChart(holed(), DAYS, id()).nulls(NullPolicy.CONNECT));
-        var zero = pixels(new LineChart(holed(), DAYS, id()).nulls(NullPolicy.ZERO));
+        var gap = pixels(new LineChart(holed(), DAYS, plot()));
+        var connect = pixels(new LineChart(holed(), DAYS, plot()).nulls(NullPolicy.CONNECT));
+        var zero = pixels(new LineChart(holed(), DAYS, plot()).nulls(NullPolicy.ZERO));
 
         assertFalse(
                 java.util.Arrays.equals(gap, connect),
@@ -110,8 +63,8 @@ class ChartGapsTest {
     void gapIsWhatYouGetForFree() {
         assertTrue(
                 java.util.Arrays.equals(
-                        pixels(new LineChart(holed(), DAYS, id())),
-                        pixels(new LineChart(holed(), DAYS, id()).nulls(NullPolicy.GAP))),
+                        pixels(new LineChart(holed(), DAYS, plot())),
+                        pixels(new LineChart(holed(), DAYS, plot()).nulls(NullPolicy.GAP))),
                 "asking for a gap and asking for nothing are the same request");
     }
 
@@ -124,8 +77,8 @@ class ChartGapsTest {
         // hole and the picture without the holed points must therefore differ
         // *only* where the hole is, which is enough to say the axis survived: a
         // collapsed chart differs everywhere.
-        var holed = pixels(new LineChart(holed(), DAYS, id()));
-        var whole = pixels(new LineChart(List.of(Series.of("Downloads", 12, 19, 23, 27, 31, 33, 36)), DAYS, id()));
+        var holed = pixels(new LineChart(holed(), DAYS, plot()));
+        var whole = pixels(new LineChart(List.of(Series.of("Downloads", 12, 19, 23, 27, 31, 33, 36)), DAYS, plot()));
 
         var differing = 0;
         for (var i = 0; i < holed.length; i++) {
@@ -144,7 +97,7 @@ class ChartGapsTest {
     @DisplayName("a broken line, which is what a missing reading looks like")
     void gapGolden() {
         var render = renderer();
-        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, id())));
+        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, plot())));
 
         GoldenImage.assertMatches(
                 "line-chart-gap-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
@@ -154,7 +107,7 @@ class ChartGapsTest {
     @DisplayName("a line straight across it, for a series that was merely not scraped")
     void connectGolden() {
         var render = renderer();
-        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, id()).nulls(NullPolicy.CONNECT)));
+        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, plot()).nulls(NullPolicy.CONNECT)));
 
         GoldenImage.assertMatches(
                 "line-chart-connect-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
@@ -164,7 +117,7 @@ class ChartGapsTest {
     @DisplayName("a dive to the baseline, which is a claim and looks like one")
     void zeroGolden() {
         var render = renderer();
-        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, id()).nulls(NullPolicy.ZERO)));
+        var tree = new ElementTree(framed(new LineChart(holed(), DAYS, plot()).nulls(NullPolicy.ZERO)));
 
         GoldenImage.assertMatches(
                 "line-chart-zero-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
@@ -179,7 +132,7 @@ class ChartGapsTest {
                         Series.of("Cache", 40, 52, 48, 61, 58, 66, 71),
                         Series.of("Origin", 12, Double.NaN, 9, 18, 21, 19, 24)),
                 DAYS,
-                id())));
+                plot())));
 
         // The upper band breaks too, and that is the point: a total with an
         // unknown component is unknown, and drawing the band above the hole as

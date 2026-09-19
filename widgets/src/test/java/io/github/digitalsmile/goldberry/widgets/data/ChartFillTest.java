@@ -1,30 +1,25 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.pixels;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.renderer;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
@@ -39,9 +34,6 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// the picture it had.
 class ChartFillTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
-
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
@@ -51,53 +43,15 @@ class ChartFillTest {
     /// thing a column count can see.
     private static final Series TRAFFIC = Series.of("Requests", 20, 45, 38, 72, 64, 88, 70);
 
-    private static Attributes id() {
-        return new Attributes("plot", Set.of(), "plot");
-    }
-
-    private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
-                                #frame { padding: 12px; background: var(--gb-bg) }
-                                #plot  { width: 296px; height: 156px }
-                                """)),
-                TestFont.get());
-    }
-
-    private static Widget framed(Widget chart) {
-        return new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"));
-    }
-
-    private static int[] pixels(Widget chart) {
-        var render = renderer();
-        var tree = new ElementTree(framed(chart));
-        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try {
-            BoxPainter.paint(target.frame(), render.render(tree));
-        } finally {
-            target.end();
-        }
-        var out = new int[WIDTH * HEIGHT];
-        for (var y = 0; y < HEIGHT; y++) {
-            for (var x = 0; x < WIDTH; x++) {
-                out[y * WIDTH + x] = target.pixel(x, y);
-            }
-        }
-        return out;
-    }
-
     private static LineChart line() {
-        return new LineChart(List.of(TRAFFIC), List.of(), id());
+        return new LineChart(List.of(TRAFFIC), List.of(), plot());
     }
 
     private static AreaChart area() {
         return new AreaChart(
                 List.of(Series.of("Cache", 40, 52, 44, 61, 58, 66, 71), Series.of("Origin", 12, 9, 15, 11, 14, 10, 13)),
                 List.of(),
-                id());
+                plot());
     }
 
     @Test
@@ -179,7 +133,7 @@ class ChartFillTest {
         // region between it and anything for a ramp to cross. `BarChart` has no
         // `fill` wither at all -- this is the other half of that, which is that
         // reaching past it through `ChartOptions` changes no pixel.
-        var bars = new BarChart(List.of(TRAFFIC), List.of(), id());
+        var bars = new BarChart(List.of(TRAFFIC), List.of(), plot());
 
         assertArrayEquals(pixels(bars), pixels(bars.options(bars.options().fill(Fill.GRADIENT))));
     }

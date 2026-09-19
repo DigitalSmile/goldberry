@@ -1,5 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.pixels;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.renderer;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,26 +14,15 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 
@@ -37,9 +32,6 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// This is the half that only a picture can answer: **does the chart actually
 /// place its points in time**, or has it merely relabelled the indices?
 class TimeAxisTest {
-
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
 
     /// Every test here reads a fixed zone, for the reason every label in this
     /// toolkit is formatted in the root locale: a golden taken in the machine's
@@ -76,42 +68,8 @@ class TimeAxisTest {
                 start.plusSeconds(840));
     }
 
-    private static Attributes id() {
-        return new Attributes("plot", Set.of(), "plot");
-    }
-
-    private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
-                                #frame { padding: 12px; background: var(--gb-bg) }
-                                #plot  { width: 296px; height: 156px }
-                                """)),
-                TestFont.get());
-    }
-
-    private static int[] pixels(Widget chart) {
-        var render = renderer();
-        var tree = new ElementTree(new Column(List.of(chart), new Attributes("frame", Set.of(), "frame")));
-        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try {
-            BoxPainter.paint(target.frame(), render.render(tree));
-        } finally {
-            target.end();
-        }
-        var out = new int[WIDTH * HEIGHT];
-        for (var y = 0; y < HEIGHT; y++) {
-            for (var x = 0; x < WIDTH; x++) {
-                out[y * WIDTH + x] = target.pixel(x, y);
-            }
-        }
-        return out;
-    }
-
     private static LineChart chart() {
-        return new LineChart(List.of(READINGS), List.of(), id());
+        return new LineChart(List.of(READINGS), List.of(), plot());
     }
 
     @Test
@@ -133,8 +91,8 @@ class TimeAxisTest {
         // because the index does not know when anything happened.
         assertArrayEquals(pixels(chart()), pixels(chart()), "the same chart twice");
         assertArrayEquals(
-                pixels(new LineChart(List.of(READINGS), List.of(), id())),
-                pixels(new LineChart(List.of(READINGS), List.of(), id())));
+                pixels(new LineChart(List.of(READINGS), List.of(), plot())),
+                pixels(new LineChart(List.of(READINGS), List.of(), plot())));
     }
 
     @Test
@@ -168,7 +126,7 @@ class TimeAxisTest {
         // A bar has a width and sits *in* a band; bands of unequal width are a
         // different chart. So a time axis on a bar chart is ignored rather than
         // half-applied.
-        var plain = new BarChart(List.of(READINGS), List.of(), id());
+        var plain = new BarChart(List.of(READINGS), List.of(), plot());
 
         assertArrayEquals(pixels(plain), pixels(plain.times(withAGap(), UTC)));
     }
@@ -206,7 +164,7 @@ class TimeAxisTest {
         // draws the break it already knows how to draw.
         var joined = pixels(chart().times(withAGap(), UTC));
         var broken =
-                pixels(new LineChart(List.of(Series.of("p99", 128, 131, 126, Double.NaN, 142, 138)), List.of(), id())
+                pixels(new LineChart(List.of(Series.of("p99", 128, 131, 126, Double.NaN, 142, 138)), List.of(), plot())
                         .times(withAGap(), UTC));
 
         assertFalse(
@@ -217,9 +175,7 @@ class TimeAxisTest {
     @DisplayName("ten minutes missing, and the axis says so")
     void golden() {
         var render = renderer();
-        var tree = new ElementTree(new Column(
-                List.of(new LineChart(List.of(READINGS), List.of(), id()).times(withAGap(), UTC)),
-                new Attributes("frame", Set.of(), "frame")));
+        var tree = new ElementTree(framed(new LineChart(List.of(READINGS), List.of(), plot()).times(withAGap(), UTC)));
 
         GoldenImage.assertMatches(
                 "line-chart-time-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
