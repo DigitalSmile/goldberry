@@ -257,10 +257,11 @@ class EditorTest {
         @DisplayName("a double click selects a word and a triple click selects the lot")
         void clickCounts() {
             var editor = editor("one two three");
-            var caret = editor.caret();
 
             // Click where the caret would be at offset 5, which is inside "two".
-            var x = TextGeometry.caretAt(editor.paragraph(), editor.layout(), 5).x();
+            editor.caretTo(5, false);
+            var caret = editor.caret();
+            var x = caret.x();
             editor.pointerAt(x, caret.top(), false, 2);
             assertEquals("two", editor.edit().selectedText());
 
@@ -330,15 +331,15 @@ class EditorTest {
     class Shaping {
 
         @Test
-        @DisplayName("the paragraph the caret is measured against is the one handed out")
+        @DisplayName("the shaping the caret is measured against is the one handed out")
         void oneShapingPerText() {
             var editor = editor("hello");
 
-            var first = editor.paragraph();
-            assertSame(first, editor.paragraph(), "asking twice does not reshape");
+            var first = editor.document();
+            assertSame(first, editor.document(), "asking twice does not reshape");
 
             editor.onText("!");
-            assertEquals("hello!", editor.paragraph().text(), "and typing does");
+            assertEquals("hello!", editor.document().text(), "and typing does");
         }
 
         @Test
@@ -346,9 +347,9 @@ class EditorTest {
         void wrapWidthRelaysOut() {
             var editor = editor("the quick brown fox jumps over the lazy dog");
 
-            var wide = editor.layout().lineCount();
+            var wide = editor.lines().size();
             editor.wrapWidth(80);
-            var narrow = editor.layout().lineCount();
+            var narrow = editor.lines().size();
 
             assertTrue(narrow > wide, "the same text wraps into more lines in a narrower box");
             assertEquals(1, wide, "and was one line when unconstrained");
@@ -380,7 +381,7 @@ class EditorTest {
             assertEquals(TextAlign.CENTER, editor.textAlign());
             assertTrue(editor.caret().x() > left, "a centred line starts further in, and so does its caret");
             assertEquals(
-                    TextAlign.CENTER.indentOf(editor.layout().lines().getFirst().width(), 200) + left,
+                    TextAlign.CENTER.indentOf(editor.lines().getFirst().width(), 200) + left,
                     editor.caret().x(),
                     0.001,
                     "and it is the painter's own indent rather than a second guess at it");
@@ -402,11 +403,11 @@ class EditorTest {
         @DisplayName("the alignment is a late decision and re-wraps nothing")
         void alignmentKeepsTheLayout() {
             var editor = editor("the quick brown fox jumps over the lazy dog").wrapWidth(80);
-            var layout = editor.layout();
+            var rows = editor.lines();
 
             editor.textAlign(TextAlign.END);
 
-            assertSame(layout, editor.layout(), "alignment does not decide where lines break");
+            assertSame(rows, editor.lines(), "alignment does not decide where lines break");
         }
 
         @Test

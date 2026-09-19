@@ -93,24 +93,31 @@ public final class ShadowRamp {
     /// for every box in an ordinary window, so this is the cheap answer and not
     /// the exceptional one.
     ///
-    /// @param occluded whether the box will paint an **opaque** fill over its own
-    ///        border box. When it will, the bands that lie entirely inside that
-    ///        rectangle cannot be seen and are not returned. They are always a
-    ///        suffix — `grow` only decreases — so dropping them changes no
-    ///        earlier band's alpha, and the visible result is identical
-    public static List<Band> bands(Shadow shadow, boolean occluded) {
+    /// **The whole fade, including the bands that will not be drawn.** This used
+    /// to take a second argument saying whether the box would paint an opaque
+    /// fill over its own rectangle, and to drop the bands hidden under it. It no
+    /// longer does, for two reasons that arrived together in ADR-0427:
+    ///
+    /// - the question had two answers and now has one. The painter cuts the
+    ///   border box out of every band with an even-odd fill, so a band inside
+    ///   that rectangle paints nothing whether the box is opaque or not;
+    /// - and deciding *where* a band is was never this class's job. It is
+    ///   [ShadowGeometry#coveredAt]'s, which is where the painter now asks.
+    ///
+    /// What is lost is that the hidden bands are constructed and thrown away —
+    /// a record of a `double` and an `int` each, for at most half of at most
+    /// forty-eight. What is bought is that the alphas below can be tested across
+    /// the whole curve rather than across whatever a culling rule left of it.
+    public static List<Band> bands(Shadow shadow) {
         Objects.requireNonNull(shadow, "shadow");
         if (!shadow.hasInk()) {
             return List.of();
         }
-        var hidden = occluded ? -Math.max(Math.abs(shadow.offsetX()), Math.abs(shadow.offsetY())) : Double.NaN;
 
         if (shadow.blur() <= 0) {
             // A hard shadow: one fill at the shadow's own colour. No fade to
             // approximate, so nothing to solve for.
-            return occluded && shadow.spread() <= hidden
-                    ? List.of()
-                    : List.of(new Band(shadow.spread(), shadow.argb()));
+            return List.of(new Band(shadow.spread(), shadow.argb()));
         }
 
         var reach = shadow.reach();
@@ -125,11 +132,6 @@ public final class ShadowRamp {
         for (var k = 1; k <= count; k++) {
             var u = 1 - 2.0 * k / count;
             var grow = shadow.spread() + reach * u;
-            if (occluded && grow <= hidden) {
-                // This band and every band after it is under the box. Stop
-                // rather than continue: `grow` is monotonically decreasing.
-                break;
-            }
             var wanted = target * coverage(u);
             var alpha = Math.clamp(1 - (1 - wanted) / (1 - accumulated), 0, 1);
             var quantized = (int) Math.round(alpha * 255);

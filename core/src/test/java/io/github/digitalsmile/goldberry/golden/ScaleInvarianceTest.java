@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -255,7 +257,7 @@ class ScaleInvarianceTest {
         /// update, or a machine bisecting a rasterizer change.
         static Stream<Arguments> settings() {
             return Stream.of(
-                    arguments("2x and 1.5x by default", null, List.of(2.0f, 1.5f)),
+                    arguments("2x, 1.5x and 1.25x by default", null, List.of(2.0f, 1.5f, 1.25f)),
                     arguments("an empty list is how it is turned off", "", List.of()),
                     arguments("a list replaces the default", "3, 1.25", List.of(3.0f, 1.25f)),
                     arguments("a multiplier of zero is refused", "0", null));
@@ -263,7 +265,7 @@ class ScaleInvarianceTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("settings")
-        @DisplayName("the scales are 2x and 1.5x unless the property says otherwise, and never zero")
+        @DisplayName("the scales are 2x, 1.5x and 1.25x unless the property says otherwise, and never zero")
         void multipliers(String what, String property, List<Float> expected) {
             withProperty(property, () -> {
                 if (expected == null) {
@@ -272,6 +274,46 @@ class ScaleInvarianceTest {
                     assertEquals(expected, ScaleInvariance.multipliers(), what);
                 }
             });
+        }
+
+        /// The sub-pixel offsets an integer logical coordinate lands on at
+        /// `multiplier` — `k * m mod 1`, which is what Yoga's rounding to whole
+        /// device pixels actually exercises.
+        ///
+        /// Every multiplier here is a dyadic rational and exact as a `float`, so
+        /// this arithmetic is exact and the rounding below only tidies the print.
+        private static Set<Double> offsets(float multiplier) {
+            var found = new TreeSet<Double>();
+            for (var k = 0; k < 64; k++) {
+                found.add(Math.round(k * (double) multiplier % 1 * 1e6) / 1e6);
+            }
+            return found;
+        }
+
+        /// [ADR-0434]'s argument, held as an assertion rather than left in prose.
+        ///
+        /// The reason 1.25 was added and 1.75 was not is not that one is more
+        /// popular — though it is — but that `5/4` and `7/4` are the same four
+        /// quarters, so the second of them re-asks a question the first has
+        /// answered. If that ever stops being true, this fails and the ADR is
+        /// wrong.
+        @Test
+        @DisplayName("1.75 would visit no offset 1.25 does not, which is why it is not in the list")
+        void theFourthMultiplierWouldRepeatTheThird() {
+            assertEquals(offsets(1.25f), offsets(1.75f), "5/4 and 7/4 are the same four quarters");
+            assertTrue(offsets(1.25f).containsAll(offsets(1.5f)), "and the quarters contain the halves");
+            assertEquals(Set.of(0.0), offsets(2.0f), "an integer scale never lands between two pixels");
+        }
+
+        @Test
+        @DisplayName("and the three defaults are three different rounding families")
+        void theDefaultsAreDistinct() {
+            var families = ScaleInvariance.multipliers().stream()
+                    .map(Multipliers::offsets)
+                    .toList();
+
+            assertEquals(3, families.size(), "three multipliers");
+            assertEquals(families.size(), Set.copyOf(families).size(), "and none of them repeats another's offsets");
         }
 
         /// A `null` value clears the property, which is how the default row runs.

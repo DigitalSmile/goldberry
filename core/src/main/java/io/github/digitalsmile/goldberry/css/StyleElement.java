@@ -31,9 +31,11 @@ public interface StyleElement {
     /// descendant combinator passing through it — which is exactly how an
     /// unstyled `<div>` behaves. Deriving a name for those instead would make
     /// every private composition class selectable by accident.
+    @Nullable
     String type();
 
     /// The `id`, or null. At most one per element.
+    @Nullable
     String id();
 
     /// The classes on this element. Never null; empty is normal.
@@ -43,6 +45,7 @@ public interface StyleElement {
     ///
     /// The only structural question the matcher asks, and the reason a selector
     /// is matched right to left: this walks up, and there is no way to walk down.
+    @Nullable
     StyleElement parent();
 
     /// The custom properties this element resolved last time, if they are still

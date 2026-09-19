@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
@@ -131,6 +132,40 @@ class SliderGeometryTest {
     private static Slider slider(double fraction, int ticks, String format) {
         return new Slider(
                 0, 100, fraction * 100, 0, ticks, format, null, null, null, false, new Attributes("s", Set.of(), "s"));
+    }
+
+    /// **The node the router will reach**, which moved when `slider` became a
+    /// composition ([ADR-0430]).
+    ///
+    /// A `Slider` is no longer a `Handles`: it describes a [SliderControl] and
+    /// that is what handles, styles and paints. The router hit-tests painted
+    /// regions and dispatches from the element that owns one, so the claim worth
+    /// pinning is that the region a press lands in belongs to a node that can take
+    /// it — and that the node still names `slider-track` as the part the local
+    /// fraction is measured against, which is the whole of [ADR-0080].
+    ///
+    /// Asserted here rather than argued in a doc comment because the failure mode
+    /// is silent: a slider that draws perfectly and ignores the pointer looks like
+    /// a slider until somebody drags it.
+    @Test
+    @DisplayName("the painted region belongs to a node that handles, and it measures along the track")
+    void theRouterHasSomethingToDispatchTo() {
+        layout(slider(0.5, 0, null), 300);
+
+        var owner = regions.stream()
+                .filter(region -> region.owner() instanceof Element element
+                        && element.widget() instanceof Styled styled
+                        && "slider".equals(styled.cssType()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("nothing painted a `slider` region"));
+
+        var widget = ((Element) owner.owner()).widget();
+        assertTrue(widget instanceof Handles, "the painted `slider` node must be able to take a press");
+        assertEquals(
+                "slider-track",
+                ((Handles) widget).localPart(),
+                "and must measure the pointer along the track rather than along the control");
+        assertTrue(((Handles) widget).isFocusable(), "an enabled slider is in the Tab order");
     }
 
     /// The claim the whole tick layout is built on: a mark names a position the

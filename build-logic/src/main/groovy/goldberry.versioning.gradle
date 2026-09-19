@@ -1,5 +1,8 @@
 import io.github.digitalsmile.goldberry.build.publish.PublishedModules
 import io.github.digitalsmile.goldberry.build.version.BuildVersion
+import io.github.digitalsmile.goldberry.build.version.VersionBump
+
+import java.time.Year
 
 // ============================================================================
 // Group and version (ADR-0333)
@@ -28,4 +31,27 @@ tasks.register('printVersion') {
     description = 'Prints the version this build stamps on its artifacts.'
     def text = buildVersion.toString()
     doLast { println text }
+}
+
+// `./gradlew -q :core:bumpVersion` -- the step after a tag (ADR-0421).
+//
+// Invoked as `:core:bumpVersion` for the same reason `printVersion` is: this
+// plugin is applied per module, and the root project cannot apply it. It rewrites
+// one line of the settings directory's `gradle.properties` whichever module it is
+// asked through, so there is one file and one answer.
+//
+// `release.yml` runs it on the default branch and opens the result as a pull
+// request. A person cutting a patch runs it on the release branch by hand.
+tasks.register('bumpVersion') {
+    group = 'release'
+    description = 'Rewrites gradle.properties to the release line that follows this one.'
+
+    def propertiesFile = layout.settingsDirectory.file('gradle.properties').asFile
+    doLast {
+        def bump = VersionBump.of(propertiesFile.getText('UTF-8'), Year.now())
+        propertiesFile.setText(bump.properties(), 'UTF-8')
+        // The only output, and it is parsed: the workflow reads it for the branch
+        // name and the commit message.
+        println bump
+    }
 }

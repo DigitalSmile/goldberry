@@ -366,18 +366,59 @@ class ComputedStyleTest {
             assertEquals(Insets.all(Length.points(40)), child.padding());
         }
 
+        /// **Rewritten by [ADR-0416], and it changed meaning rather than moving.**
+        ///
+        /// It asserted `2rem` was 32 on an element built with no parent and
+        /// `Context(20, 16)` — the configured root size times two. That was
+        /// ADR-0242's semantics, and it is wrong for the element it was asserted
+        /// on: a node with no parent *is* the root, and CSS says `rem` is the root
+        /// element's **computed** `font-size`. This element declares none, so its
+        /// computed size is `Typography.INITIAL`'s 13, and `2rem` is 26.
+        ///
+        /// On a root, `1rem` and `1em` coincide. That reads like the test having
+        /// lost its point, and it is CSS's rule: the root has nothing above it for
+        /// the two to differ about. The point moves to
+        /// `RootFontSizeTest`, where there is a descendant to
+        /// tell them apart.
         @Test
-        @DisplayName("rem multiplies the root font size, not the local one")
-        void rem() {
+        @DisplayName("rem on a root is the root's own computed size")
+        void remOnARoot() {
             var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "button { padding: 2rem }");
             var root = element("window");
             root.with(element("button"));
             var declarations = new StyleResolver(List.of(sheet)).resolve(root.descend(1));
 
-            // Root 16, and the element's own size is `Typography.INITIAL`'s 13
-            // -- `rem` must ignore the local one either way ([ADR-0242]).
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
-            assertEquals(Insets.all(Length.points(32)), style.padding());
+            assertEquals(Insets.all(Length.points(26)), style.padding());
+        }
+
+        /// The root's *own* half of ADR-0416, which needs no renderer: once the
+        /// root has computed a size, its remaining declarations resolve `rem`
+        /// against it. Exactly the second pass ADR-0242 built for `em`, reused.
+        @Test
+        @DisplayName("a root that declares a size resolves its own rem against it")
+        void remAgainstTheRootsDeclaredSize() {
+            var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "window { font-size: 20px; padding: 2rem }");
+            var root = element("window");
+            var declarations = new StyleResolver(List.of(sheet)).resolve(root);
+
+            var style = ComputedStyle.of(declarations, new CssLength.Context(16, 16));
+            assertEquals(Insets.all(Length.points(40)), style.padding());
+        }
+
+        /// CSS's one exception, and it falls out of the two-pass structure rather
+        /// than being coded: `rem` on the root element's **own** `font-size`
+        /// cannot be the value being computed, so it resolves against the
+        /// configured size — 16 here, giving 32 rather than a self-reference.
+        @Test
+        @DisplayName("rem on the root's own font-size is not its own input")
+        void remOnTheRootsFontSize() {
+            var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "window { font-size: 2rem }");
+            var root = element("window");
+            var declarations = new StyleResolver(List.of(sheet)).resolve(root);
+
+            var style = ComputedStyle.of(declarations, new CssLength.Context(16, 16));
+            assertEquals(32, style.typography().size(), 0.001);
         }
 
         @Test

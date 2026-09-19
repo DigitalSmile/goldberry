@@ -24,6 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.core.canvas.Canvas;
 import io.github.digitalsmile.goldberry.widgets.core.canvas.Input;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
+import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Motion** screen: the three ways something on this toolkit moves by
@@ -80,7 +81,8 @@ public record MotionScreen() implements Widget.Stateful {
                 host = context.host().orElse(null);
                 scheduleSwaps();
             }
-            return new Wall("motion", "Motion", NOTE, 2, List.of(floorCard(), keyframesCard(), enteringCard()));
+            return new Wall(
+                    "motion", "Motion", NOTE, 2, Masonry.UNSET, List.of(floorCard(), keyframesCard(), enteringCard()));
         }
 
         private Widget floorCard() {

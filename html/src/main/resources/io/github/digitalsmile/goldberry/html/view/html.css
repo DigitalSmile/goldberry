@@ -51,7 +51,22 @@
  * leaves open; everything else on it is here.
  */
 
-.html-prose {
+/* **`.html-prose` carries no declarations, and the split is the decision**
+   (ADR-0442, which `markdown.css` argues at length beside the same pair of rules).
+   It is on the paragraph's box whichever shape that box has -- the wrapping row below
+   when the page wrote no `br` inside it, the column below that when it did -- so a
+   declaration here would have to mean the same thing on a row and on a column, and
+   the row's three do not: `gap` on the row is the space between two words and on the
+   column would be the space between two lines.
+
+   The paragraph's box is still where the tag's own class lands (`.html-h2`,
+   `.html-caption`), and that is the half of the split that matters to a page: the
+   face is inherited by every line, a fill is painted once round the paragraph, and
+   there is one box per paragraph in the flow either way. */
+
+/* One line of a paragraph: a wrapping row of words. On the paragraph's box itself
+   when the paragraph is one line, and on each row of `.html-lines` when it is not. */
+.html-line {
   flex-wrap: wrap;
   /* Words of different sizes -- a code span sits in a smaller face -- sit on one
      line. Without this the row would stretch every word box to its tallest
@@ -61,6 +76,17 @@
      It is also the gap *between wrapped lines*, since `gap` is one value here --
      which reads as leading, and is why it is not larger. */
   gap: 0.25em;
+}
+
+/* A paragraph with a `br` in it: the lines, stacked. */
+.html-lines {
+  flex-direction: column;
+  /* The same 0.25em `.html-line` puts between two *wrapped* lines, so a line the
+     author ended and a line the width ended are the same distance apart. */
+  gap: 0.25em;
+  /* Each line gets the paragraph's full width, so a line after a `br` wraps where
+     the line before it did. */
+  align-items: stretch;
 }
 
 /* A word that spans two styles is a row of pieces with no gap between them, so

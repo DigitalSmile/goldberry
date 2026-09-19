@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -450,28 +451,28 @@ class ContrastTest {
     /// somewhere it would have to be written down.
     private static final List<String> RINGS_BELOW_FLOOR = List.of();
 
-    /// The one mark still below the floor, and the one that is **not** a ramp
-    /// slide.
+    /// **Empty**, and the last entry to come off it was the one that was not a
+    /// ramp slide.
     ///
-    /// The other three came off this list when the light accent moved: they were
-    /// `--gb-accent` on `--gb-border` at 2.98:1, one pair wearing three names,
-    /// and 0.02 is what a ramp slide is for ([ADR-0258]).
+    /// Three came off when the light accent moved: they were `--gb-accent` on
+    /// `--gb-border` at 2.98:1, one pair wearing three names, and 0.02 is what a
+    /// ramp slide is for ([ADR-0258]).
     ///
-    /// This one is arithmetic rather than indecision. The light theme's slider
+    /// The fourth was arithmetic rather than indecision. The light theme's slider
     /// track sits between a **white thumb** and a **dark accent fill**, and it
     /// has to clear 3:1 against both: a white thumb needs the track's relative
     /// luminance at 0.300 or below, and the accent fill needs it at 0.688 or
-    /// above. No solid colour is both. So the track cannot be slid anywhere that
-    /// fixes this, and what has to change is what a light-theme thumb *is* — a
-    /// border around it, or a fill that is not white — which is a sentence
-    /// `docs/design-system.md` §3 does not currently contain and is not a test's
-    /// to write.
+    /// above. No solid colour is both, so the track could not be slid anywhere
+    /// that fixed it — and neither could the thumb, because every fill dark
+    /// enough to clear the groove is within a hair of the accent fill's own
+    /// luminance and vanishes into the half of the groove it lies on top of.
+    /// [ADR-0429] settled it the other way: the thumb has an **edge**, the second
+    /// means §1.2 allows and the one `checkbox` and `radio` already use, and
+    /// [#everyMarkIsVisible] measures the better of the two the way
+    /// [#everyControlIsDistinguishable] always has.
     ///
-    /// Kept as an exact set for [#RINGS_BELOW_FLOOR]'s reason.
-    private static final List<String> MARKS_BELOW_FLOOR = List.of(
-            // 1.35:1. A near-white thumb on the light theme's grey groove, and
-            // the worst mark measurement in either theme.
-            "nord-light slider thumb");
+    /// Kept as an empty list for [#RINGS_BELOW_FLOOR]'s reason.
+    private static final List<String> MARKS_BELOW_FLOOR = List.of();
 
     /// A control against the surface behind it, by the better of fill and edge —
     /// **empty**, and it held all twelve.
@@ -504,24 +505,62 @@ class ContrastTest {
     ///
     /// Which is also the line this sweep stops at. A mark on a *translucent* fill
     /// has no single ratio, for `button.ghost`'s reason, and none of these is
-    /// translucent.
-    private static final List<String[]> MARKS = List.of(
+    /// translucent. [BackdropContrastTest] is the check that does not have that
+    /// limit, and it measures what is painted rather than what is resolved.
+    ///
+    /// ## A mark may carry an edge, and then the edge counts
+    ///
+    /// [Mark#edge()] is null for all but one of these, and it is not a
+    /// convenience. §1.2's non-text floor exists so a thing can be **identified**,
+    /// and a shape offers two means of it at once — a fill that differs from its
+    /// backdrop and a line drawn round it. WCAG asks that *some* means clears the
+    /// floor; [#everyControlIsDistinguishable] has taken the better of the two
+    /// since it was written, and this sweep took only the fill because until
+    /// [ADR-0429] nothing in [#MARKS] had an edge to take.
+    ///
+    /// A slider's thumb is what forced it, and it is the one shape in the system
+    /// that genuinely needs both: it lies **across two backdrops at once**, the
+    /// accent fill on one side of its centre and the bare groove on the other, so
+    /// one colour has to answer for two pairs and no colour does. The fill carries
+    /// it against the accent and the edge carries it against the groove.
+    private record Mark(
+            String name,
+            String backdrop,
+            String fill,
+            @Nullable String edge) {
+
+        Mark(String name, String backdrop, String fill) {
+            this(name, backdrop, fill, null);
+        }
+    }
+
+    private static final List<Mark> MARKS = List.of(
             // §2.1's controls, each in the state where its mark is showing. The
             // unchecked halves are not marks at all -- `--gb-checkbox-mark` is
             // `transparent`, because an unchecked box draws no tick.
-            new String[] {"checkbox tick", "checkbox-bg-checked", "checkbox-mark-checked"},
-            new String[] {"radio dot", "radio-bg-checked", "radio-dot-checked"},
-            new String[] {"toggle thumb (off)", "toggle-track-bg", "toggle-thumb-bg"},
-            new String[] {"toggle thumb (on)", "toggle-track-bg-checked", "toggle-thumb-bg-checked"},
+            new Mark("checkbox tick", "checkbox-bg-checked", "checkbox-mark-checked"),
+            new Mark("radio dot", "radio-bg-checked", "radio-dot-checked"),
+            new Mark("toggle thumb (off)", "toggle-track-bg", "toggle-thumb-bg"),
+            new Mark("toggle thumb (on)", "toggle-track-bg-checked", "toggle-thumb-bg-checked"),
             // §3's ranges. The groove and the track are both `--gb-border`, and the
             // thumb and the fill are what has to be visible against them.
-            new String[] {"slider thumb", "slider-track-bg", "slider-thumb-bg"},
-            new String[] {"slider fill", "slider-track-bg", "slider-fill-bg"},
-            new String[] {"progress fill", "progress-track-bg", "progress-fill-bg"},
+            //
+            // **All three of the thumb's states**, which is new with ADR-0429 and
+            // is how the worst measurement in this file was found: the light
+            // theme's `--gb-slider-thumb-bg-active` is literally `--nord4`, which
+            // is that theme's groove, so a pressed thumb was 1.00:1 against the
+            // track it was being dragged along. A sweep that measured only the
+            // resting fill could not see it, and a press is exactly the state a
+            // user is in while they are looking at the thing.
+            new Mark("slider thumb", "slider-track-bg", "slider-thumb-bg", "slider-thumb-border"),
+            new Mark("slider thumb:hover", "slider-track-bg", "slider-thumb-bg-hover", "slider-thumb-border"),
+            new Mark("slider thumb:active", "slider-track-bg", "slider-thumb-bg-active", "slider-thumb-border"),
+            new Mark("slider fill", "slider-track-bg", "slider-fill-bg"),
+            new Mark("progress fill", "progress-track-bg", "progress-fill-bg"),
             // The knob draws two marks on two different boxes: the arc rides the rim
             // over the track, and the pointer is drawn on the dial's body.
-            new String[] {"knob arc", "knob-track", "knob-arc"},
-            new String[] {"knob pointer", "knob-bg", "knob-pointer"});
+            new Mark("knob arc", "knob-track", "knob-arc"),
+            new Mark("knob pointer", "knob-bg", "knob-pointer"));
 
     @Test
     @DisplayName("every mark a control draws is visible on the box it is drawn in, on both themes")
@@ -531,9 +570,20 @@ class ContrastTest {
 
         for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
             for (var mark : MARKS) {
-                var name = themeName(theme) + " " + mark[0];
-                var ratio = ratio(theme, "var(--gb-" + mark[1] + ")", "var(--gb-" + mark[2] + ")");
-                report.append(String.format(Locale.ROOT, "%n  %-44s %5.2f:1", name, ratio));
+                var name = themeName(theme) + " " + mark.name();
+                var backdrop = "var(--gb-" + mark.backdrop() + ")";
+                var fill = ratio(theme, backdrop, "var(--gb-" + mark.fill() + ")");
+                // A transparent edge is not an edge. The dark theme declares the
+                // token and sets it to `transparent` -- two tokens because the
+                // system needs two and not because that file does -- and alpha is
+                // ignored here, so a `transparent` edge would measure as black and
+                // hand the thumb a contrast it has not got.
+                var edge = edgeRatio(theme, backdrop, mark.edge());
+                var ratio = Double.isNaN(edge) ? fill : Math.max(fill, edge);
+                report.append(String.format(Locale.ROOT, "%n  %-44s fill %5.2f:1", name, fill));
+                if (!Double.isNaN(edge)) {
+                    report.append(String.format(Locale.ROOT, "  edge %5.2f:1", edge));
+                }
                 if (ratio < LINE_FLOOR) {
                     failures.add(name);
                 }
@@ -651,12 +701,36 @@ class ContrastTest {
     /// mirrored onto an element by `WidgetRenderer`, which this test deliberately
     /// does not run.
     private static double ratio(Theme theme, String background, String color) {
+        return contrast(resolve(theme, background), resolve(theme, color));
+    }
+
+    /// One token expression, through the same cascade, as an ARGB.
+    ///
+    /// Split out of [#ratio] so that a single colour can be **inspected** rather
+    /// than only compared — [#edgeRatio] has to know whether an edge is opaque
+    /// before it is allowed to measure it, and a ratio hands back a number that
+    /// has already forgotten.
+    private static int resolve(Theme theme, String expression) {
         var sheets = new ArrayList<>(Controls.stylesheets(theme));
-        sheets.add(Stylesheet.parse(
-                CascadeLayer.APPLICATION, "text { background: " + background + "; color: " + color + " }"));
+        sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, "text { color: " + expression + " }"));
         var style = ComputedStyle.of(
                 new StyleResolver(sheets).resolve(new ElementTree(new Text("Aa")).root()), CssLength.Context.DEFAULT);
-        return contrast(style.background(), style.color());
+        return style.color();
+    }
+
+    /// A mark's edge against its backdrop, or `NaN` for a mark that has no edge
+    /// this sweep may credit it with.
+    ///
+    /// `NaN` and not 0, and not 1: it means **"do not count this"**, which is a
+    /// different statement from "this edge is invisible". A `transparent` edge is
+    /// not a failing edge, it is an absent one, and the shape is then held up by
+    /// its fill alone exactly as every mark was before [ADR-0429].
+    private static double edgeRatio(Theme theme, String backdrop, @Nullable String edge) {
+        if (edge == null) {
+            return Double.NaN;
+        }
+        var color = resolve(theme, "var(--gb-" + edge + ")");
+        return Contrast.isOpaque(color) ? contrast(resolve(theme, backdrop), color) : Double.NaN;
     }
 
     @Test

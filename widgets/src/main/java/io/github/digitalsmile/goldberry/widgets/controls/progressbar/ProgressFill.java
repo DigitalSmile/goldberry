@@ -32,17 +32,28 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// would run Yoga on **every frame of a loop that never ends**, which is
 /// precisely the cost §1.7's whitelist exists to refuse.
 ///
-/// It travels **there and back within the track**, rather than off one end and in
-/// at the other. The off-the-edges version is the more common drawing and it
-/// depends on clipping: a bar that ran past its track would otherwise be drawn
-/// across whatever is beside it, and the wrap from one end to the other — which
-/// clipping is what hides — would be a visible jump once a loop. A bar that
-/// reverses has no wrap to hide.
+/// It travels **off one edge and in at the other**: the bar starts entirely to the
+/// left of the track, crosses it, and leaves entirely to the right before the loop
+/// begins again. That is the drawing every other toolkit ships, and it says the
+/// one thing a there-and-back sweep cannot — that the work has no far end to
+/// reverse at.
 ///
-/// This used to say the toolkit had no `overflow: hidden`, and that has been
-/// untrue since ADR-0114. What is left is a choice rather than a limit: the
-/// off-the-edges sweep would work now, and changing a shipped animation to a
-/// different drawing is a design decision and not a bug fix (ADR-0235).
+/// It depends on a clip, and the clip is `progress`'s own `overflow: hidden` in
+/// `controls.css`. Two things need hiding and it hides both: the overhang, which
+/// would otherwise be drawn across whatever is beside the control, and the **wrap**
+/// — the instant the bar's left edge jumps from the track's right-hand side back
+/// to before its left one, which is invisible only because the bar is outside the
+/// clip at both ends of it.
+///
+/// This drawing was not available until ADR-0114 shipped `overflow`, and for a
+/// while afterwards the code still said it was not — so what was left was a
+/// decision about a shipped animation rather than a missing mechanism. The
+/// decision is taken in [ADR-0418].
+///
+/// The clip is a **rectangle**, where CSS's would follow the border radius. At
+/// §3's metrics — a 4px track with a 2px radius — the difference is the four
+/// corner wedges of a semicircular cap, under a square pixel each, and it shows
+/// only while the bar is passing an end. Named rather than left to be found.
 ///
 /// The offset is a percentage, and a percentage inside `translate` is a
 /// proportion of the **moving box**. That is CSS's rule, it is exactly what is
@@ -104,21 +115,25 @@ record ProgressFill(double fraction, boolean indeterminate) implements Widget.Le
         if (!indeterminate || context.reducedMotion()) {
             return Transform.NONE;
         }
-        // The travel is what is left of the track, measured in bars: a bar
-        // covering 0.3 of the track has 0.7 to cross, which is 233% of itself.
-        var offset = travelAt(phaseAt(context.nowMillis())) * (1 - SWEEP_WIDTH) / SWEEP_WIDTH * 100;
+        var offset = offsetAt(phaseAt(context.nowMillis()));
         return Transform.of(new Transform.Function.Translate(Transform.Length.percent(offset), Transform.Length.ZERO));
     }
 
-    /// How far across the track the bar is at `phase`, `0..1`.
+    /// Where the bar is at `phase`, as a percentage of **its own width** — which
+    /// is what a percentage inside `translate` means.
     ///
-    /// Out in the first half of the loop and back in the second, which is what
-    /// keeps it inside a control nothing clips. Linear each way (§3.1), so the
-    /// only thing that happens at the turn is that the direction changes —
-    /// easing it would make the bar hesitate at both ends, which reads as work
-    /// stalling rather than as a control.
-    static double travelAt(double phase) {
-        return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+    /// The bar's leading edge runs from `-SWEEP_WIDTH` to `1` in track fractions:
+    /// it begins one whole bar before the track and ends one whole track after its
+    /// own start, so it is entirely outside the clip at both ends of the loop and
+    /// the wrap between them cannot be seen. That is a travel of
+    /// `1 + SWEEP_WIDTH` of the track, and dividing by `SWEEP_WIDTH` converts it
+    /// into the unit `translate` is written in: a bar covering 0.3 of the track
+    /// crosses 1.3 of it, which is 433% of itself.
+    ///
+    /// Linear (§3.1), so the bar arrives and leaves at one speed. Easing it would
+    /// make it hesitate at the edges, which reads as work stalling.
+    static double offsetAt(double phase) {
+        return (phase * (1 + SWEEP_WIDTH) - SWEEP_WIDTH) / SWEEP_WIDTH * 100;
     }
 
     /// Where in the loop `now` is, `0..1`.

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
@@ -133,10 +134,21 @@ public final class Menus {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchorId, "anchorId");
         Objects.requireNonNull(placement, "placement");
-        return host.anchor(anchorId)
-                // `painted()`: where the anchor was drawn, which is where the
-                // user is looking ([ADR-0270]).
-                .flatMap(anchor -> open(host, anchor.painted(), menu, placement, new ArrayList<>(), null, siblings));
+        Objects.requireNonNull(menu, "menu");
+        // **By name, not by rectangle.** This used to resolve the anchor itself —
+        // `host.anchor(anchorId).painted()` — because no `Host.popup` overload
+        // took an id *and* the minimum width and the `Fit` a menu also needs, and
+        // a menu opened against a rectangle has nothing to re-resolve when its
+        // anchor scrolls. There is one now, and passing the name is the whole of
+        // what makes a menu travel with the heading it hangs off ([ADR-0432],
+        // [ADR-0270]).
+        return open(
+                host,
+                menu,
+                new ArrayList<>(),
+                null,
+                siblings,
+                content -> host.popup(content, anchorId, placement, 0, VIEWPORT));
     }
 
     /// Opens `menu` against a rectangle in the window's own coordinates — where a
@@ -183,9 +195,29 @@ public final class Menus {
         Objects.requireNonNull(anchor, "anchor");
         Objects.requireNonNull(menu, "menu");
 
+        return open(
+                host, menu, stack, parent, siblings, content -> host.popup(content, anchor, placement, 0, VIEWPORT));
+    }
+
+    /// The realest one: everything an open menu is, told only **how** to open it.
+    ///
+    /// The two forms differ in one expression — a name or a rectangle — and in
+    /// nothing else, and the part that is the same is the part that matters: the
+    /// rows have to be described against an [OpenMenu] that does not exist until
+    /// the popup does, and the popup has to reach the stack whether it was placed
+    /// against a name or a rectangle. A submenu is always a rectangle, because it
+    /// is anchored inside the menu it came from and that is not a node this
+    /// window painted ([ADR-0432]).
+    private static Optional<Popup> open(
+            Host host,
+            Menu menu,
+            List<Popup> stack,
+            @Nullable OpenMenu parent,
+            @Nullable Siblings siblings,
+            Function<Widget, Optional<Popup>> opener) {
+
         var open = new OpenMenu(host, menu, stack, parent, siblings);
-        var opened = host.popup(
-                menu.withAttributes(menu.attributes()).children(open.describe()), anchor, placement, 0, VIEWPORT);
+        var opened = opener.apply(menu.withAttributes(menu.attributes()).children(open.describe()));
         opened.ifPresent(popup -> {
             open.self = popup;
             stack.add(popup);

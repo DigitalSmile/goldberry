@@ -12,7 +12,9 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.selectlist.SelectList;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted;
+import io.github.digitalsmile.goldberry.widgets.panel.tree.Tree;
 
 /// Whether a [Select]'s list is open, where the field is, and what typing means.
 ///
@@ -391,8 +393,7 @@ final class SelectState extends State<Select> {
         // No typeahead of the list's own: the tree has one, over its **visible**
         // rows (ADR-0209), and a letter that reaches the focused row is handled
         // there. The list stays out of the capture phase so it does (ADR-0368).
-        return new SelectList(java.util.List.of(new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
-                select.tree(), select.resolved(), this::chooseNode)));
+        return new SelectList(List.of(new Tree(select.tree(), select.resolved(), this::chooseNode)));
     }
 
     /// A node was chosen from the tree — the same road an option takes.

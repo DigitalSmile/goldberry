@@ -30,10 +30,15 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
@@ -54,22 +59,89 @@ class SliderTest {
         return new Slider(min, max, value, step, null, asked::add, false, Attributes.NONE);
     }
 
+    /// The node a stylesheet and the router both mean by `slider`.
+    ///
+    /// A [Slider] is no longer that node: it is a composition that styles nothing
+    /// and builds [SliderControl], which is `scroll`'s and `tabs`' arrangement and
+    /// is there so that one `slider` rule matches one element ([ADR-0430]). The
+    /// arithmetic is still the record's; the handlers are the node's.
+    ///
+    /// Built with the **default** thumb width, which is what a control gets before
+    /// any `render` has resolved `--gb-slider-thumb-size` — and, on the shipped
+    /// stylesheet, what it gets afterwards too.
+    private static SliderControl control(Slider slider) {
+        return new SliderControl(slider, SliderControl.THUMB, value -> {});
+    }
+
     /// The groove inside a slider's track, which is where the fill, the thumb and
     /// the rest live ([ADR-0080] moved them one level down).
     private static SliderGroove groove(Slider slider) {
         return (SliderGroove)
-                ((SliderTrack) slider.children().getFirst()).children().getFirst();
+                ((SliderTrack) control(slider).children().getFirst()).children().getFirst();
     }
 
-    /// The resolved style of a node reached by child indices from a widget's own
-    /// element — `styleOf(slider, 0, 0, 1)` is the thumb.
+    /// The resolved style of a node reached by child indices from the **styled**
+    /// root of a widget's element tree — `styleOf(slider, 0, 0, 1)` is the thumb.
+    ///
+    /// The walk starts at the first styled element rather than at the root,
+    /// because a `Slider` describes a `slider` and is not one: its own element
+    /// carries no CSS type and resolving against it would hand back the defaults
+    /// for every assertion here. This is [WidgetParityTest]'s `styledElement`
+    /// walk, in miniature and for the same reason.
     private static ComputedStyle styleOf(Widget widget, int... path) {
         var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-        var element = new ElementTree(widget).root();
+        var element = styledRoot(new ElementTree(widget).root());
         for (var index : path) {
             element = element.children().get(index);
         }
         return ComputedStyle.of(resolver.resolve(element), CssLength.Context.DEFAULT);
+    }
+
+    private static Element styledRoot(Element element) {
+        return element.widget() instanceof Styled
+                ? element
+                : styledRoot(element.children().getFirst());
+    }
+
+    /// A [Paints.Context] that answers one length and refuses everything else.
+    ///
+    /// Everything else is **refused rather than defaulted**, which is the point:
+    /// a `slider`'s `render` may read the cascade for exactly one thing, and a
+    /// stub that quietly answered a font would let a future edit start shaping
+    /// text in a paint without this test noticing. The renderer is the real
+    /// context and `SliderGeometryTest` is where it runs.
+    private record TokenContext(double thumb) implements Paints.Context {
+
+        @Override
+        public Font font(ComputedStyle style) {
+            throw new UnsupportedOperationException("a slider's render has no text");
+        }
+
+        @Override
+        public Paragraph paragraph(ComputedStyle style, String text) {
+            throw new UnsupportedOperationException("a slider's render has no text");
+        }
+
+        @Override
+        public double nowMillis() {
+            throw new UnsupportedOperationException("a slider does not animate itself (§3.1)");
+        }
+
+        @Override
+        public int color(String name, int fallback) {
+            throw new UnsupportedOperationException("a slider reads no colour token");
+        }
+
+        @Override
+        public double length(String name, double fallback) {
+            assertEquals(SliderControl.THUMB_TOKEN, name, "the only token a slider asks for");
+            return thumb;
+        }
+
+        @Override
+        public boolean reducedMotion() {
+            throw new UnsupportedOperationException("a slider does not animate itself (§3.1)");
+        }
     }
 
     @Nested
@@ -100,9 +172,15 @@ class SliderTest {
             var tree = new ElementTree(
                     new Slider(0, 1, 0.5, 0, null, null, false, new Attributes("gain", Set.of("vertical"), "gain")));
 
+            // The `slider` node, which is what `SliderState` builds rather than
+            // what the document wrote -- and the point of the split: `#gain` and
+            // `.vertical` reach it because a composition hands its attributes to
+            // the node that carries its name (ADR-0430).
             assertEquals(
                     Length.points(2),
-                    ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT)
+                    ComputedStyle.of(
+                                    new StyleResolver(sheets).resolve(styledRoot(tree.root())),
+                                    CssLength.Context.DEFAULT)
                             .gap());
         }
 
@@ -182,7 +260,7 @@ class SliderTest {
             var gain = Property.of(2.0);
             var slider = new Slider(0, 10, 0, 0, gain, value -> {}, false, null);
 
-            slider.onKey(press(Key.RIGHT));
+            control(slider).onKey(press(Key.RIGHT));
 
             assertEquals(2.0, gain.get(), 1e-9);
             assertEquals(2.0, slider.resolved(), 1e-9);
@@ -200,11 +278,11 @@ class SliderTest {
         @Test
         @DisplayName("an arrow offers the next reachable value, not the current plus a step")
         void stepGoesToTheGrid() {
-            slider(0, 100, 40, 25).onKey(press(Key.RIGHT));
-            slider(0, 100, 40, 25).onKey(press(Key.LEFT));
+            control(slider(0, 100, 40, 25)).onKey(press(Key.RIGHT));
+            control(slider(0, 100, 40, 25)).onKey(press(Key.LEFT));
             // Already on the grid: the two readings agree, which is every other
             // time.
-            slider(0, 100, 50, 25).onKey(press(Key.RIGHT));
+            control(slider(0, 100, 50, 25)).onKey(press(Key.RIGHT));
 
             assertEquals(List.of(50.0, 25.0, 75.0), asked);
         }
@@ -216,8 +294,8 @@ class SliderTest {
         @Test
         @DisplayName("steps are counted from min, not from zero")
         void stepsCountFromMin() {
-            slider(1, 10, 1, 2).onKey(press(Key.RIGHT));
-            slider(1, 10, 1, 2).onKey(press(Key.HOME));
+            control(slider(1, 10, 1, 2)).onKey(press(Key.RIGHT));
+            control(slider(1, 10, 1, 2)).onKey(press(Key.HOME));
 
             assertEquals(List.of(3.0, 1.0), asked);
         }
@@ -228,8 +306,8 @@ class SliderTest {
         @Test
         @DisplayName("the ends are reachable even when the range is not a whole number of steps")
         void endsAreAlwaysReachable() {
-            slider(0, 10, 9, 3).onKey(press(Key.END));
-            slider(0, 10, 3, 3).onKey(press(Key.HOME));
+            control(slider(0, 10, 9, 3)).onKey(press(Key.END));
+            control(slider(0, 10, 3, 3)).onKey(press(Key.HOME));
 
             assertEquals(List.of(10.0, 0.0), asked);
         }
@@ -237,7 +315,7 @@ class SliderTest {
         @Test
         @DisplayName("step 0 is continuous and reports what it was given")
         void continuous() {
-            slider(0, 1, 0.5, 0).onKey(press(Key.RIGHT));
+            control(slider(0, 1, 0.5, 0)).onKey(press(Key.RIGHT));
 
             assertEquals(0.51, asked.getFirst(), 1e-9, "a hundredth of the range");
         }
@@ -250,10 +328,10 @@ class SliderTest {
         @Test
         @DisplayName("both arrow pairs step, because the axis is the stylesheet's")
         void bothPairsStep() {
-            slider(0, 100, 50, 10).onKey(press(Key.RIGHT));
-            slider(0, 100, 50, 10).onKey(press(Key.UP));
-            slider(0, 100, 50, 10).onKey(press(Key.LEFT));
-            slider(0, 100, 50, 10).onKey(press(Key.DOWN));
+            control(slider(0, 100, 50, 10)).onKey(press(Key.RIGHT));
+            control(slider(0, 100, 50, 10)).onKey(press(Key.UP));
+            control(slider(0, 100, 50, 10)).onKey(press(Key.LEFT));
+            control(slider(0, 100, 50, 10)).onKey(press(Key.DOWN));
 
             assertEquals(List.of(60.0, 60.0, 40.0, 40.0), asked);
         }
@@ -261,10 +339,10 @@ class SliderTest {
         @Test
         @DisplayName("PageUp and PageDown take ten steps, and Home and End the ends")
         void largeSteps() {
-            slider(0, 100, 50, 1).onKey(press(Key.PAGE_UP));
-            slider(0, 100, 50, 1).onKey(press(Key.PAGE_DOWN));
-            slider(0, 100, 50, 1).onKey(press(Key.HOME));
-            slider(0, 100, 50, 1).onKey(press(Key.END));
+            control(slider(0, 100, 50, 1)).onKey(press(Key.PAGE_UP));
+            control(slider(0, 100, 50, 1)).onKey(press(Key.PAGE_DOWN));
+            control(slider(0, 100, 50, 1)).onKey(press(Key.HOME));
+            control(slider(0, 100, 50, 1)).onKey(press(Key.END));
 
             assertEquals(List.of(60.0, 40.0, 0.0, 100.0), asked);
         }
@@ -276,7 +354,7 @@ class SliderTest {
         @DisplayName("an arrow is consumed even when the value did not move")
         void arrowsAreAlwaysConsumed() {
             var event = press(Key.RIGHT);
-            slider(0, 10, 10, 1).onKey(event);
+            control(slider(0, 10, 10, 1)).onKey(event);
 
             assertTrue(
                     event.isConsumed(),
@@ -289,7 +367,8 @@ class SliderTest {
         @Test
         @DisplayName("a repeat steps again, unlike every other control")
         void repeatsStep() {
-            slider(0, 100, 50, 10).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, true, null));
+            control(slider(0, 100, 50, 10))
+                    .onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, true, null));
 
             assertEquals(List.of(60.0), asked);
         }
@@ -297,7 +376,7 @@ class SliderTest {
         @Test
         @DisplayName("a modified arrow is left alone")
         void modifiedArrowIgnored() {
-            slider(0, 100, 50, 10)
+            control(slider(0, 100, 50, 10))
                     .onKey(new KeyEvent(
                             KeyEvent.Kind.PRESSED, Key.RIGHT, new Modifiers(true, false, false, false), false, null));
 
@@ -311,29 +390,147 @@ class SliderTest {
 
         /// A press jumps the value to where it landed. The fraction comes from
         /// the router's local coordinates, which is the only way a widget can
-        /// know how far along itself a pointer is (ADR-0079).
+        /// know how far along itself a pointer is (ADR-0079) — mapped over the
+        /// thumb's **travel**, which is where the thumb can actually go.
+        ///
+        /// 60px along a 200px track with a 16px thumb is `(60 − 8) / 184`, not
+        /// `60 / 200`: the centre of the disc starts 8px in.
         @Test
         @DisplayName("a press jumps the value to where it landed")
         void pressJumps() {
-            slider(0, 100, 0, 0).onPointer(at(PointerEvent.Kind.PRESSED, 60, 200));
+            control(slider(0, 100, 0, 0)).onPointer(at(PointerEvent.Kind.PRESSED, 60, 200));
 
             // A tolerance because the fraction comes off `float` coordinates:
             // the router reports pixels, and a pixel is a float everywhere else
             // in the toolkit.
             assertEquals(1, asked.size());
-            assertEquals(30.0, asked.getFirst(), 1e-4);
+            assertEquals(100 * 52 / 184.0, asked.getFirst(), 1e-4);
         }
 
         @Test
         @DisplayName("a move while held follows the pointer exactly")
         void dragFollows() {
-            var slider = slider(0, 100, 0, 0);
-            slider.onPointer(at(PointerEvent.Kind.PRESSED, 20, 200));
-            slider.onPointer(at(PointerEvent.Kind.MOVED, 150, 200));
+            var control = control(slider(0, 100, 0, 0));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 20, 200));
+            control.onPointer(at(PointerEvent.Kind.MOVED, 150, 200));
 
             assertEquals(2, asked.size());
-            assertEquals(10.0, asked.get(0), 1e-4);
-            assertEquals(75.0, asked.get(1), 1e-4);
+            assertEquals(100 * 12 / 184.0, asked.get(0), 1e-4);
+            assertEquals(100 * 142 / 184.0, asked.get(1), 1e-4);
+        }
+
+        /// **The whole of ADR-0430, as three numbers.** The prize is 8px at each
+        /// end, so the test has to be specific about where those 8px went: the
+        /// mapping is asserted against the thumb's width at both extremes and in
+        /// the middle, and the old full-width mapping fails all three.
+        ///
+        /// The ends are what the entry was about. A finger at `x = 0` is asking
+        /// for `min` and a finger at `x = width` is asking for `max`, and under
+        /// the old mapping both were right — what was wrong is everything in
+        /// between, worst at `x = 8` and `x = width − 8`, where the *thumb's own
+        /// centre* sits when the value is at an end. Under the travel mapping
+        /// those two are exactly `min` and `max`; under the full-width one they
+        /// were 4% and 96% of the range, so a user who dragged to the end of the
+        /// track and looked at the readout saw a number that was not the maximum.
+        @Test
+        @DisplayName("the pointer maps over the travel: half a thumb in is min, half a thumb short is max")
+        void mapsOverTheTravel() {
+            var control = control(slider(0, 100, 0, 0));
+            var thumb = SliderControl.THUMB;
+            var width = 216f;
+
+            // Where the thumb's centre rests at each end of the range.
+            control.onPointer(at(PointerEvent.Kind.PRESSED, (float) (thumb / 2), width));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, (float) (width - thumb / 2), width));
+            // And the middle, which the two mappings agree about and which would
+            // still pass if this test asserted nothing else.
+            control.onPointer(at(PointerEvent.Kind.PRESSED, width / 2, width));
+
+            assertEquals(0.0, asked.get(0), 1e-4, "the thumb's centre at its leftmost is exactly min");
+            assertEquals(100.0, asked.get(1), 1e-4, "and at its rightmost, exactly max");
+            assertEquals(50.0, asked.get(2), 1e-4, "the centre of the track is the centre of the travel");
+        }
+
+        /// Monotonic and reaching both ends: the two properties the old mapping
+        /// had and this one must not lose, checked over the whole track rather
+        /// than argued.
+        ///
+        /// Beyond the ends it **clamps**, which is not a rounding detail. The
+        /// press takes the pointer until the release (ADR-0058), so a drag that
+        /// wanders off the track arrives here with a local coordinate outside the
+        /// box — and `x = −40` has to mean `min` rather than a value below it.
+        @Test
+        @DisplayName("the mapping is monotonic, clamps outside the track, and reaches both ends")
+        void monotonicAndClamped() {
+            var control = control(slider(0, 100, 0, 0));
+            for (var x = -40; x <= 240; x += 4) {
+                control.onPointer(at(PointerEvent.Kind.PRESSED, x, 200));
+            }
+
+            assertEquals(0.0, asked.getFirst(), 1e-9, "off the left end is min, not less");
+            assertEquals(100.0, asked.getLast(), 1e-9, "off the right end is max, not more");
+            for (var i = 1; i < asked.size(); i++) {
+                assertTrue(
+                        asked.get(i) >= asked.get(i - 1),
+                        "the value must never go backwards as the pointer goes forwards, and it did at "
+                                + asked.get(i - 1) + " -> " + asked.get(i));
+            }
+        }
+
+        /// A track no wider than its thumb has **no travel**, and the mapping
+        /// falls back to the position fraction rather than dividing by zero or
+        /// answering a constant. Still monotonic, still reaches both ends — which
+        /// is the whole of what is being preserved.
+        @Test
+        @DisplayName("a track narrower than its own thumb still maps, over what is left")
+        void aTrackWithNoTravel() {
+            var control = control(slider(0, 100, 0, 0));
+
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 0, 12));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 6, 12));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 12, 12));
+
+            assertEquals(List.of(0.0, 50.0, 100.0), asked);
+        }
+
+        /// The banked number is the one the mapping uses, which is what makes
+        /// `--gb-slider-thumb-size` a token an author can actually set rather
+        /// than a number the widget merely reads ([ADR-0251]).
+        @Test
+        @DisplayName("a fatter thumb moves the mapping with it")
+        void theThumbWidthIsTheTokens() {
+            new SliderControl(slider(0, 100, 0, 0), 40, value -> {}).onPointer(at(PointerEvent.Kind.PRESSED, 20, 200));
+
+            // 20px in on a 200px track: the centre of a 40px thumb starts at 20,
+            // so this is exactly min -- where a 16px thumb would have read 7.6%.
+            assertEquals(0.0, asked.getFirst(), 1e-4);
+        }
+
+        /// The widget asks for the number, and it asks **at `render`**, which is
+        /// the one place a widget is handed the cascade. The banking itself is
+        /// [SliderState]'s; what this holds is that the read happens at all.
+        @Test
+        @DisplayName("render resolves the thumb token and banks it")
+        void renderBanksTheThumbWidth() {
+            var banked = new ArrayList<Double>();
+            var control = new SliderControl(slider(0, 100, 0, 0), SliderControl.THUMB, banked::add);
+
+            control.render(styleOf(slider(0, 100, 0, 0)), List.of(), new TokenContext(24));
+
+            assertEquals(List.of(24.0), banked, "the token is read through the context, not assumed");
+        }
+
+        /// The shipped stylesheet's own answer, so that the default in Java and
+        /// the declaration in CSS cannot drift apart: `SliderControl.THUMB` is
+        /// what a control uses until a `render` says otherwise, and what
+        /// `--gb-slider-thumb-size` resolves to had better be the same number.
+        @Test
+        @DisplayName("the token's shipped value is the Java default")
+        void theTokenAgreesWithTheDefault() {
+            assertEquals(
+                    Length.points((float) SliderControl.THUMB),
+                    styleOf(slider(0, 100, 0, 0), 0, 0, 1).width(),
+                    "a thumb that is not `SliderControl.THUMB` wide is a pointer that is out by the difference");
         }
 
         /// `dragX()` is NaN with no button held, which is the router reporting
@@ -346,7 +543,7 @@ class SliderTest {
             var event = new PointerEvent(PointerEvent.Kind.MOVED, 150, 10, null, 0, null);
             event.localTo(new PointerEvent.Local(150, 10, 200, 32));
 
-            slider(0, 100, 0, 0).onPointer(event);
+            control(slider(0, 100, 0, 0)).onPointer(event);
 
             assertTrue(asked.isEmpty(), "hovering a slider must not move it");
         }
@@ -361,10 +558,12 @@ class SliderTest {
             // A quarter of the way down a 200-tall fader is three quarters up it.
             event.localTo(new PointerEvent.Local(10, 50, 32, 200));
 
-            slider.onPointer(event);
+            control(slider).onPointer(event);
 
+            // (50 - 8) / (200 - 16) of the way down, inverted: the travel
+            // mapping applies on the cross axis exactly as it does along one.
             assertEquals(1, asked.size());
-            assertEquals(75.0, asked.getFirst(), 1e-4);
+            assertEquals(100 * (1 - 42 / 184.0), asked.getFirst(), 1e-4);
         }
 
         @Test
@@ -372,11 +571,11 @@ class SliderTest {
         void disabledRefuses() {
             var slider = new Slider(0, 100, 50, 10, null, asked::add, true, null);
 
-            slider.onPointer(at(PointerEvent.Kind.PRESSED, 60, 200));
-            slider.onKey(press(Key.RIGHT));
+            control(slider).onPointer(at(PointerEvent.Kind.PRESSED, 60, 200));
+            control(slider).onKey(press(Key.RIGHT));
 
             assertTrue(asked.isEmpty());
-            assertFalse(slider.isFocusable(), "a disabled control leaves the Tab order");
+            assertFalse(control(slider).isFocusable(), "a disabled control leaves the Tab order");
         }
 
         /// A widget poked directly, with no layout behind it, gets
@@ -385,7 +584,7 @@ class SliderTest {
         @Test
         @DisplayName("a press with no layout behind it reads as the start of the track")
         void unlaidOutIsZero() {
-            slider(0, 100, 50, 0)
+            control(slider(0, 100, 50, 0))
                     .onPointer(new PointerEvent(
                             PointerEvent.Kind.PRESSED, 5, 5, PointerEvent.Button.PRIMARY, 1, 5, 5, null));
 
@@ -417,13 +616,13 @@ class SliderTest {
         @Test
         @DisplayName("the track holds the groove, and the slider holds the track")
         void anatomy() {
-            var track = (SliderTrack) slider(0, 100, 25, 0).children().getFirst();
+            var track = (SliderTrack) control(slider(0, 100, 25, 0)).children().getFirst();
 
             assertEquals("slider-track", track.cssType());
             assertEquals("slider-groove", ((SliderGroove) track.children().getFirst()).cssType());
             assertEquals(
                     "slider-track",
-                    slider(0, 100, 25, 0).localPart(),
+                    control(slider(0, 100, 25, 0)).localPart(),
                     "the value is a position along the track, not along the control");
         }
 
@@ -546,9 +745,9 @@ class SliderTest {
         @DisplayName("no label and no marks unless asked for, which is what most sliders are")
         void absentByDefault() {
             var plain = SliderTest.this.slider(0, 100, 25, 0);
-            var track = (SliderTrack) plain.children().getFirst();
+            var track = (SliderTrack) control(plain).children().getFirst();
 
-            assertEquals(1, plain.children().size(), "the track, and nothing beside it");
+            assertEquals(1, control(plain).children().size(), "the track, and nothing beside it");
             assertEquals(1, track.children().size(), "the groove, and nothing under it");
             assertNull(plain.text());
         }
@@ -566,7 +765,7 @@ class SliderTest {
         @Test
         @DisplayName("the label is a part beside the track, so the track is what is measured")
         void labelIsAPartBesideTheTrack() {
-            var children = slider(0, "%.0f", null).children();
+            var children = control(slider(0, "%.0f", null)).children();
 
             assertEquals(2, children.size());
             assertEquals("slider-value", ((SliderValue) children.get(1)).cssType());
@@ -593,7 +792,7 @@ class SliderTest {
         @Test
         @DisplayName("the marks hang under the groove, inside the track")
         void marksAreUnderTheGroove() {
-            var track = (SliderTrack) slider(5, null, null).children().getFirst();
+            var track = (SliderTrack) control(slider(5, null, null)).children().getFirst();
 
             assertEquals(2, track.children().size(), "the groove and the scale");
             var ticks = (SliderTicks) track.children().get(1);
@@ -659,7 +858,7 @@ class SliderTest {
                     false,
                     new Attributes(null, Set.of(), null));
 
-            fader.onPointer(pressAt(0.9f, 100));
+            control(fader).onPointer(pressAt(0.9f, 100));
 
             assertEquals(1, asked.size());
             assertEquals(0.5, asked.getFirst(), 0.02, "90% up a 60 dB travel is half gain");
@@ -672,11 +871,13 @@ class SliderTest {
         @Test
         @DisplayName("an arrow steps a hundredth of the travel, which a scale bends")
         void arrowsStepAlongTheTravel() {
-            new Slider(0, 100, 40, 0, 0, null, null, null, asked::add, false, null).onKey(press(Key.RIGHT));
+            control(new Slider(0, 100, 40, 0, 0, null, null, null, asked::add, false, null))
+                    .onKey(press(Key.RIGHT));
             assertEquals(41.0, asked.getFirst(), 1e-9, "linear: a hundredth of the range");
 
             asked.clear();
-            new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, asked::add, false, null).onKey(press(Key.RIGHT));
+            control(new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, asked::add, false, null))
+                    .onKey(press(Key.RIGHT));
 
             // 0.5 is 90% of the way up; 91% is 0.6 dB louder, which is 0.536.
             assertEquals(0.536, asked.getFirst(), 0.002);
@@ -727,10 +928,20 @@ class SliderTest {
             assertEquals(fromJava, fromKdl);
         }
 
+        /// A press `fraction` of the way along the thumb's **travel**, which is
+        /// what "90% up the fader" has always meant here and what the pixel now
+        /// has to be computed from.
+        ///
+        /// It used to be `fraction * width`, and that was the same number only
+        /// because the mapping was also wrong: the travel starts half a thumb in
+        /// and ends half a thumb short, so 90% of a 100px track is 83.6px and not
+        /// 90 ([ADR-0430]). The assertion below is unchanged, which is the point
+        /// — the scale's curve is what this test is about, and it is untouched.
         private PointerEvent pressAt(float fraction, float width) {
-            var event = new PointerEvent(
-                    PointerEvent.Kind.PRESSED, fraction * width, 16, PointerEvent.Button.PRIMARY, 1, 0, 16, null);
-            event.localTo(new PointerEvent.Local(fraction * width, 16, width, 32));
+            var thumb = (float) SliderControl.THUMB;
+            var x = thumb / 2 + fraction * (width - thumb);
+            var event = new PointerEvent(PointerEvent.Kind.PRESSED, x, 16, PointerEvent.Button.PRIMARY, 1, 0, 16, null);
+            event.localTo(new PointerEvent.Local(x, 16, width, 32));
             return event;
         }
     }
@@ -750,7 +961,7 @@ class SliderTest {
                             slider min=0 max=100 value=50 step=10 change="setGain"
                             """))
                     .getFirst();
-            slider.onKey(press(Key.RIGHT));
+            control(slider).onKey(press(Key.RIGHT));
 
             assertEquals(List.of("60.0"), got);
         }

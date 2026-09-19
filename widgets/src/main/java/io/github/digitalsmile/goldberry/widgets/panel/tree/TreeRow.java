@@ -134,7 +134,14 @@ record TreeRow(
             // A parent in a leaf-only tree: still a row, still navigable, and not
             // an answer. A class rather than `:disabled`, which would say it is
             // inert -- it is not, it opens and closes.
-            out.add("heading");
+            //
+            // **`group` and not `heading`**, which is what this was until
+            // ADR-0414. `heading` is one of §1.4's seven type ranks, and a rank is
+            // styled by a class selector with no type on it -- so `.heading`
+            // reached this row whatever else `tree-row.heading` said, and every
+            // branch of a leaf-only tree drew at 15px/600 inside a row with a
+            // fixed height. Nothing chose that; the two namespaces collided.
+            out.add("group");
         }
         return out;
     }

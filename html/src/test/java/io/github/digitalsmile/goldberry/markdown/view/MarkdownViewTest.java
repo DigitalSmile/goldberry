@@ -22,13 +22,20 @@ import io.github.digitalsmile.goldberry.content.select.Word;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.markdown.Markdown;
 import io.github.digitalsmile.goldberry.markdown.MarkdownSyntax;
+import io.github.digitalsmile.goldberry.markdown.model.CellAlignment;
 import io.github.digitalsmile.goldberry.markdown.model.Document;
 import io.github.digitalsmile.goldberry.markdown.model.Heading;
+import io.github.digitalsmile.goldberry.markdown.model.LineBreak;
 import io.github.digitalsmile.goldberry.markdown.model.Paragraph;
 import io.github.digitalsmile.goldberry.markdown.model.Table;
+import io.github.digitalsmile.goldberry.markdown.model.TableCell;
+import io.github.digitalsmile.goldberry.markdown.model.TableRow;
+import io.github.digitalsmile.goldberry.markdown.model.Text;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// `markdown-view`, as the tree of widgets it builds.
@@ -160,8 +167,7 @@ class MarkdownViewTest {
     @Test
     @DisplayName("keeps the document it was handed")
     void keepsItsDocument() {
-        var document = new Document(
-                List.of(new Heading(1, List.of(new io.github.digitalsmile.goldberry.markdown.model.Text("Hi")))));
+        var document = new Document(List.of(new Heading(1, List.of(new Text("Hi")))));
         assertEquals(document, MarkdownView.of(document).document());
         assertThrows(NullPointerException.class, () -> MarkdownView.of((Document) null));
     }
@@ -320,6 +326,169 @@ class MarkdownViewTest {
         void rawHtml() {
             var elements = mount("<div>x</div>\n");
             assertEquals(List.of("<div>x</div>\n"), wordsOf(withClass(elements, "md-raw")));
+        }
+    }
+
+    /// What a break does, which is two different things (ADR-0426).
+    ///
+    /// The assertions are about the **shape** of the paragraph as well as its classes,
+    /// because the shape is the fix: a soft break leaves the single wrapping row every
+    /// golden image was blessed against, and a hard break is the one case that becomes
+    /// a column.
+    @Nested
+    @DisplayName("a break inside a paragraph")
+    class Breaks {
+
+        /// The paragraph's own box — the one thing per paragraph that `md-prose` is on,
+        /// whichever shape it took.
+        private Element paragraph(List<Element> elements) {
+            var prose = withClass(elements, "md-prose");
+            assertEquals(1, prose.size(), "there is one box per paragraph, whatever shape it is");
+            return prose.getFirst();
+        }
+
+        /// The rows a paragraph's words are laid out in, in order.
+        private List<Element> lines(List<Element> elements) {
+            return withClass(elements, "md-line");
+        }
+
+        @Test
+        @DisplayName("a soft break reflows, so the paragraph is the one row it always was")
+        void softBreakIsStillOneRow() {
+            var elements = mount("one\ntwo\n");
+            var prose = paragraph(elements);
+
+            assertInstanceOf(Row.class, prose.widget(), "a newline the author's editor put in is not a line ending");
+            assertTrue(prose.classes().contains("md-line"), "the paragraph is its own line");
+            assertFalse(prose.classes().contains("md-lines"));
+            assertEquals(1, lines(elements).size());
+            assertEquals(List.of("one", "two"), wordsOf(elements));
+        }
+
+        @Test
+        @DisplayName("a hard break ends the line, as a column of the lines it made")
+        void hardBreakStartsANewLine() {
+            var elements = mount("one  \ntwo\n");
+            var prose = paragraph(elements);
+            var lines = lines(elements);
+
+            assertInstanceOf(Column.class, prose.widget(), "two lines cannot be one wrapping row");
+            assertTrue(prose.classes().contains("md-lines"));
+            assertFalse(prose.classes().contains("md-line"), "the paragraph is not itself a line any more");
+            assertEquals(2, lines.size());
+            assertEquals(List.of("one"), wordsOf(List.of(lines.getFirst())));
+            assertEquals(List.of("two"), wordsOf(List.of(lines.get(1))));
+        }
+
+        @Test
+        @DisplayName("a backslash break is the same break, because the model says so")
+        void aBackslashIsTheSameBreak() {
+            assertEquals(2, lines(mount("one\\\ntwo\n")).size());
+        }
+
+        @Test
+        @DisplayName("one inside emphasis splits the line and both halves keep the mark")
+        void insideEmphasis() {
+            var elements = mount("*a\\\nb*\n");
+            var lines = lines(elements);
+
+            assertEquals(2, lines.size(), "the break arrives partway down the walk and means the same thing there");
+            assertEquals(List.of("a"), wordsOf(List.of(lines.getFirst())));
+            assertEquals(List.of("b"), wordsOf(List.of(lines.get(1))));
+            assertEquals(
+                    List.of("a", "b"),
+                    wordsOf(withClass(elements, "md-em")),
+                    "emphasis across two lines is what every renderer does");
+        }
+
+        @Test
+        @DisplayName("one inside a link does not, because a link is one thing to press")
+        void insideALink() {
+            var elements = mount("[a\\\nb](/x)\n");
+            var prose = paragraph(elements);
+
+            assertInstanceOf(Row.class, prose.widget(), "splitting the button would make two Tab stops for one href");
+            assertEquals(1, lines(elements).size());
+            assertEquals("a b", buttonsOf(elements).getFirst().label(), "the break is a space in the label instead");
+        }
+
+        @Test
+        @DisplayName("two in a row keep the empty line between them, which is a line an author can write")
+        void twoInARow() {
+            // `one`, two hard breaks, `two` -- md4c's reading of a line holding only a
+            // backslash, and what a browser draws for `one<br><br>two`.
+            var lines = lines(mount("one  \n\\\ntwo\n"));
+
+            assertEquals(3, lines.size());
+            assertEquals(
+                    List.of(" "),
+                    wordsOf(List.of(lines.get(1))),
+                    "a row with nothing in it measures zero high, so the blank line is one space");
+        }
+
+        @Test
+        @DisplayName("a leading one leaves the empty line where it was written")
+        void leadingBreak() {
+            var lines = lines(mount("\\\none\n"));
+
+            assertEquals(2, lines.size());
+            assertEquals(List.of(" "), wordsOf(List.of(lines.getFirst())));
+            assertEquals(List.of("one"), wordsOf(List.of(lines.get(1))));
+        }
+
+        @Test
+        @DisplayName("a trailing one is not something Markdown can write, and is drawn if a model holds one")
+        void trailingBreak() {
+            // md4c strips the two spaces at the end of a paragraph, so the source cannot
+            // produce this -- but `html-view`'s `<p>a<br></p>` can, and the model is
+            // public, so the fold is asked directly.
+            assertEquals(
+                    List.of(new Text("one")),
+                    ((Paragraph) Markdown.parse("one  \n").blocks().getFirst()).content(),
+                    "two spaces before the end of a paragraph are not a break");
+
+            var document = new Document(List.of(new Paragraph(List.of(new Text("one"), new LineBreak(true)))));
+            var lines = lines(walk(new ElementTree(MarkdownView.of(document)).root()));
+
+            assertEquals(2, lines.size(), "a break the model holds is a line ending, wherever it is");
+            assertEquals(List.of(" "), wordsOf(List.of(lines.get(1))));
+        }
+
+        @Test
+        @DisplayName("a heading's classes stay on the paragraph's box, so every line inherits the size")
+        void headingClassesStayOnTheBox() {
+            // The Java half of the CSS split: `md-h2` sets a font size and the lines
+            // have to inherit it, so it belongs on the box above them and not on each
+            // one. A setext heading is the only heading whose source can hold a break;
+            // the model is asked directly, which is what `prose` sees either way.
+            var heading = new Heading(2, List.of(new Text("a"), new LineBreak(true), new Text("b")));
+            var elements = walk(new ElementTree(MarkdownView.of(new Document(List.of(heading)))).root());
+            var prose = paragraph(elements);
+
+            assertTrue(prose.classes().contains("md-h2"), "the level is on the box the lines are inside");
+            assertTrue(prose.classes().contains("md-heading"));
+            assertTrue(prose.classes().contains("md-lines"));
+            lines(elements)
+                    .forEach(line ->
+                            assertFalse(line.classes().contains("md-h2"), "a line carries no typography of its own"));
+        }
+
+        @Test
+        @DisplayName("a table cell stays one row, because a cell is one line by construction")
+        void cellsAreOneLine() {
+            // md4c cannot put a hard break in a cell -- a table row is a single line of
+            // source, and `<br>` in one is raw markup -- so this is what the fold does
+            // when a model built by hand holds one: the break ends the token and no
+            // more, which is what every box that is a line by construction wants.
+            var cell = new TableCell(
+                    false, CellAlignment.DEFAULT, List.of(new Text("a"), new LineBreak(true), new Text("b")));
+            var table = new Table(List.of(), List.of(new TableRow(false, List.of(cell))));
+            var elements = walk(new ElementTree(MarkdownView.of(new Document(List.of(table)))).root());
+
+            assertEquals(1, withClass(elements, "md-cell").size());
+            assertInstanceOf(
+                    Row.class, withClass(elements, "md-cell").getFirst().widget());
+            assertEquals(List.of("a", "b"), wordsOf(elements));
         }
     }
 

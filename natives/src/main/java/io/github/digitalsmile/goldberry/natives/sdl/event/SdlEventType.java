@@ -113,6 +113,20 @@ public enum SdlEventType {
     /// every other string SDL hands over in an event.
     DROP_FILE(0x1000),
 
+    /// One **line** of dropped text arrived — `SDL_EVENT_DROP_TEXT`
+    /// ([ADR-0408]).
+    ///
+    /// `SDL_DropEvent.data` is the text, with the same lifetime as
+    /// [#DROP_FILE]'s name: it dies at the next pump.
+    ///
+    /// One line, not one drop. SDL tokenises the payload on `\r\n` and calls
+    /// `SDL_SendDropText` per token on every platform that has one — Wayland,
+    /// Windows, macOS and Emscripten all loop — so a two-line selection arrives
+    /// as two of these and the separators are gone. Which is why this is the same
+    /// shape as [#DROP_FILE] and not a single event: the toolkit reassembles both
+    /// the same way.
+    DROP_TEXT(0x1001),
+
     /// The pointer moved over the window while a drag was in progress —
     /// `SDL_EVENT_DROP_POSITION`.
     ///

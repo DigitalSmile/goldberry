@@ -177,12 +177,19 @@ public final class StyleResolver {
     }
 
     /// The rules that could match an element of this type.
-    private List<Candidate> candidatesFor(String type) {
+    ///
+    /// **Null is the case this exists for**, not a defensive branch: a
+    /// composition node has no CSS type ([StyleElement#type()]), and the rules
+    /// that can match it are exactly the ones naming no type either. The
+    /// parameter was declared non-null until [ADR-0413] annotated the interface,
+    /// which is how three call sites came to pass a nullable expression into a
+    /// signature that forbade it while the body handled it correctly.
+    private List<Candidate> candidatesFor(@Nullable String type) {
         return candidatesFor(type, byType, untyped);
     }
 
     private static List<Candidate> candidatesFor(
-            String type, java.util.Map<String, List<Candidate>> byType, List<Candidate> untyped) {
+            @Nullable String type, java.util.Map<String, List<Candidate>> byType, List<Candidate> untyped) {
         if (type == null) {
             return untyped;
         }

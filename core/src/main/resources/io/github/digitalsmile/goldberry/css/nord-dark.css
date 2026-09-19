@@ -437,6 +437,15 @@
   --gb-slider-thumb-bg: var(--nord6);
   --gb-slider-thumb-bg-hover: #ffffff;
   --gb-slider-thumb-bg-active: var(--nord4);
+  /* **None**, and the token exists anyway. Every one of this theme's three thumb
+     fills is light and its groove is nord3, so all three clear §1.2's 3:1 on
+     their own and an edge would be decoration.
+     Declared because a theme may need one and nord-light does, which is
+     `--gb-toggle-thumb-bg-checked`'s arrangement exactly: two tokens because the
+     *system* needs two, not because this file does. A transparent border is drawn
+     and composites to nothing -- the background fills the whole border box first
+     -- so the disc is the same 16px of nord6 it has always been (ADR-0429). */
+  --gb-slider-thumb-border: transparent;
   /* A tick mark is a groove one step long, so it is the groove's own colour --
      and `--gb-border` again for the same reason, since the marks sit on the
      control's background rather than in the groove and a scale that vanished on

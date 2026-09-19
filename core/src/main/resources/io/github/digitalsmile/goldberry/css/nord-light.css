@@ -424,6 +424,26 @@
   --gb-slider-thumb-bg: #ffffff;
   --gb-slider-thumb-bg-hover: var(--nord5);
   --gb-slider-thumb-bg-active: var(--nord4);
+  /* **The one §1.2 exception that was not a ramp, closed** (ADR-0429). A white
+     thumb on this groove is 1.35:1, and the ramp has nowhere to go: the groove
+     has to clear 3:1 against the thumb *and* against the accent fill on the other
+     side of it, which wants its luminance at once <= 0.300 and >= 0.688, and no
+     solid colour is both.
+
+     Moving the *thumb* instead does not work either, and that is the argument for
+     an edge rather than a darker fill. Clearing this groove needs the thumb's
+     luminance at 0.209 or below; the accent fill's is 0.200, so every fill dark
+     enough to be seen on the bare groove is within a hair of the fill it lies on
+     top of and disappears into its own filled half. Below 0.083 it clears both --
+     that is #525252 or darker, a near-black disc on a light theme, which is the
+     hole-in-the-control failure ADR-0075 paid for twice on the switch.
+
+     So the disc keeps its white fill, which is what carries it against the accent,
+     and a 1px edge carries it against the groove. nord3 on nord4 is **5.46:1**.
+     One token covers all three thumb states, which a re-chosen fill would not
+     have: `-bg-active` is literally nord4, the groove's own colour, and was
+     1.00:1 against it in every theme this has ever shipped. */
+  --gb-slider-thumb-border: var(--nord3);
   /* The marks take `--gb-border` rather than the groove's nord4: they sit on the
      control's background, where nord4 is a step too quiet, and a scale is a
      thing you have to be able to read. */

@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLayout;
 import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.text.document.DocumentLines;
+import io.github.digitalsmile.goldberry.text.document.TextDocument;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 
 /// Where a caret **is** on a paragraph that has been laid out.
@@ -59,6 +61,19 @@ import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 /// [TextAlign#indentOf(double, double)] — one implementation, shared with the
 /// paint, because two copies of "where does this line start" is the bug rather
 /// than the fix.
+///
+/// ## A document, not a paragraph
+///
+/// The same four questions have a form over a [TextDocument] and its
+/// [DocumentLines], and they are the ones an editor over a *document* asks: a
+/// text shaped one hard line at a time has no whole-text paragraph to measure
+/// against, and building one to answer where a caret is would be paying for
+/// exactly what shaping a line at a time avoids ([ADR-0411]).
+///
+/// They are the same arithmetic against a different shaping, and they are here
+/// rather than in a second class because that is the point — what a caret is does
+/// not depend on how the glyphs were cached, and two classes would be two places
+/// for the answer to drift.
 public final class TextGeometry {
 
     private TextGeometry() {}
@@ -287,6 +302,144 @@ public final class TextGeometry {
                 // The selection continues past this line, so the break itself is
                 // inside it.
                 right += paragraph.font().widthOf(" ");
+            }
+            if (right <= left) {
+                continue;
+            }
+            rects.add(
+                    LogicalRect.of((float) left, (float) (i * lineHeight), (float) (right - left), (float) lineHeight));
+        }
+        return List.copyOf(rects);
+    }
+
+    // --- the same four, over a document --------------------------------------
+
+    /// Where the caret at `offset` is drawn in a text shaped a hard line at a time.
+    ///
+    /// [#caretAt(Paragraph, TextLayout, int, double, TextAlign)]'s answer, measured
+    /// against the one hard line the caret is on: `widthBetween` is a subtraction
+    /// of two prefix widths of the same shaping there as here, and here the
+    /// shaping is one line's ([ADR-0411]).
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    /// @throws IndexOutOfBoundsException if the offset is outside the text
+    public static Caret caretAt(
+            TextDocument document, DocumentLines lines, int offset, double wrapWidth, TextAlign align) {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(lines, "lines");
+        Objects.requireNonNull(align, "align");
+        Objects.checkIndex(offset, document.text().length() + 1);
+
+        var index = lines.indexOf(offset);
+        var line = lines.get(index);
+        var lineHeight = document.font().lineHeight();
+        var x = document.widthBetween(line.start(), Math.max(line.start(), offset));
+        return new Caret(indentOf(line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
+    }
+
+    /// The offset a point lands on, in a text shaped a hard line at a time.
+    ///
+    /// The row comes from the y and the offset from that row's own paragraph, so a
+    /// click costs one line's grapheme walk rather than one document's — which is
+    /// the same property that makes this shaping worth having at all.
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static int offsetAt(
+            TextDocument document, DocumentLines lines, double x, double y, double wrapWidth, TextAlign align) {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(lines, "lines");
+        Objects.requireNonNull(align, "align");
+        var lineHeight = document.font().lineHeight();
+        if (lineHeight <= 0) {
+            return 0;
+        }
+        var index = Math.clamp((int) Math.floor(y / lineHeight), 0, lines.size() - 1);
+        var line = lines.get(index);
+        return document.offsetAt(line.start(), line.end(), x - indentOf(line, wrapWidth, align));
+    }
+
+    /// `Up`, `Down`, `PageUp`, `PageDown` in a text shaped a hard line at a time.
+    ///
+    /// Off the top is the start of the text and off the bottom is the end, exactly
+    /// as the paragraph form has it: the caret ends up somewhere the user asked for
+    /// in both cases.
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static int moveLine(
+            TextDocument document,
+            DocumentLines lines,
+            int offset,
+            int count,
+            double desiredX,
+            double wrapWidth,
+            TextAlign align) {
+
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(lines, "lines");
+        Objects.requireNonNull(align, "align");
+        var from = lines.indexOf(offset);
+        var target = from + count;
+        if (target < 0) {
+            return 0;
+        }
+        if (target >= lines.size()) {
+            return document.text().length();
+        }
+        var column = Double.isNaN(desiredX)
+                ? caretAt(document, lines, offset, wrapWidth, align).x()
+                : desiredX;
+        var line = lines.get(target);
+        return document.offsetAt(line.start(), line.end(), column - indentOf(line, wrapWidth, align));
+    }
+
+    /// The rectangles covering `start`..`end` in a text shaped a hard line at a
+    /// time, one per visual line.
+    ///
+    /// **Only the lines the selection is on are visited.** The paragraph form walks
+    /// every line of the layout and skips what does not intersect, which is fine
+    /// for a label and is a walk over ten thousand rows for a document — on every
+    /// frame, to draw a highlight over three of them ([ADR-0411]).
+    ///
+    /// @param wrapWidth the width the text was drawn in
+    /// @param align     what the cascade said about `text-align`
+    public static List<LogicalRect> selectionRects(
+            TextDocument document, DocumentLines lines, int start, int end, double wrapWidth, TextAlign align) {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(lines, "lines");
+        Objects.requireNonNull(align, "align");
+        var from = Math.min(start, end);
+        var to = Math.max(start, end);
+        Objects.checkIndex(from, document.text().length() + 1);
+        Objects.checkIndex(to, document.text().length() + 1);
+        if (from == to) {
+            return List.of();
+        }
+
+        var lineHeight = document.font().lineHeight();
+        var space = document.font().widthOf(" ");
+        var rects = new ArrayList<LogicalRect>();
+        var last = Math.min(lines.indexOf(to), lines.size() - 1);
+        for (var i = lines.indexOf(from); i <= last; i++) {
+            var line = lines.get(i);
+            var lineFrom = Math.max(from, line.start());
+            var lineTo = Math.min(to, line.end());
+            if (lineFrom >= lineTo && !(from <= line.start() && to > line.end())) {
+                continue;
+            }
+            lineFrom = Math.clamp(lineFrom, line.start(), line.end());
+            lineTo = Math.clamp(lineTo, line.start(), line.end());
+
+            var indent = indentOf(line, wrapWidth, align);
+            var left = indent + document.widthBetween(line.start(), lineFrom);
+            var right = indent + document.widthBetween(line.start(), lineTo);
+            if (to > line.end()) {
+                // The selection continues past this line, so the break itself is
+                // inside it — a space's width, so that a selected newline is
+                // visible as the end of a line rather than as nothing at all.
+                right += space;
             }
             if (right <= left) {
                 continue;

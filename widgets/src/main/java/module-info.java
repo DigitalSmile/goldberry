@@ -169,10 +169,19 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.radio;
     exports io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
-    /// `select` — the closed control and the list under it. The rows are
+    /// `select` — the closed control. The rows are
     /// [io.github.digitalsmile.goldberry.widgets.controls.option.Option]s, so
     /// this package exports one type and hides the parts that draw the value and
     /// the chevron (ADR-0141).
+    ///
+    /// The **list** is not in here any more. `select-list` is a part with two
+    /// owners — this control and `text-input`'s autocomplete — so it sits in
+    /// `…controls.selectlist` beside the other one-widget packages, and that
+    /// package is deliberately **not exported**: a part is styleable and not
+    /// constructible (ADR-0065), which is the same arrangement `…form.parts` has
+    /// and for the same reason. The move cost a `package` line and some imports,
+    /// because a CSS type is the string a widget returns and never its package —
+    /// the opposite of what it had been filed as costing (ADR-0417, ADR-0182).
     exports io.github.digitalsmile.goldberry.widgets.controls.select;
     exports io.github.digitalsmile.goldberry.widgets.controls.slider;
     exports io.github.digitalsmile.goldberry.widgets.controls.spinner;

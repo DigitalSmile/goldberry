@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css.lint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -10,8 +11,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.TestElement;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 
 /// What a stylesheet says that the engine will not do.
 ///
@@ -21,6 +26,10 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 /// a hundred false findings each while the machinery this promotes was being
 /// written as a test ([ADR-0215], [ADR-0216], [ADR-0257]).
 class StyleLintTest {
+
+    /// What `em` and `rem` resolve against. Any context will do here for the same
+    /// reason [StyleLint]'s own does: nothing below is a length.
+    private static final CssLength.Context CONTEXT = CssLength.Context.DEFAULT;
 
     private static Stylesheet sheet(String css) {
         return Stylesheet.parse(CascadeLayer.APPLICATION, css);
@@ -294,6 +303,163 @@ class StyleLintTest {
                     .filter(f -> f.kind() == Finding.Kind.UNTYPED_RULE)
                     .findFirst()
                     .orElseThrow();
+        }
+    }
+
+    /// A root nothing gives a colour, and every primitive under it
+    /// ([ADR-0415]).
+    ///
+    /// The premise is asserted first, because the whole check rests on it: a bare
+    /// `text` with no ancestor setting `color` really does draw in the initial
+    /// black, which is ADR-0066's deliberate decision and a trap all the same.
+    @Nested
+    @DisplayName("a root with no colour")
+    class UncolouredRoot {
+
+        private static final String THEME = ":root { --gb-text: #eceff4 }";
+
+        private static List<Finding> uncoloured(TestElement root, String... css) {
+            var sheets = java.util.Arrays.stream(css).map(StyleLintTest::sheet).toList();
+            return new StyleLint(sheets).uncolouredRoot(root).stream().toList();
+        }
+
+        /// The trap, stated as an assertion rather than as prose: a `text`
+        /// inherits a colour, nothing hands it one, and the initial value is
+        /// black. On the dark theme that is a label nobody can read, and on a
+        /// light one it is perfectly fine — which is why the *resolved* colour
+        /// cannot be what a check looks at.
+        @Test
+        @DisplayName("a bare text under an uncoloured root really does resolve to the initial black")
+        void thePremise() {
+            var resolver = new StyleResolver(List.of(sheet(THEME)));
+            var root = TestElement.element(".app");
+            var label = TestElement.element("text");
+            root.with(label);
+
+            var rootStyle = ComputedStyle.of(resolver.resolve(root), CONTEXT, null);
+            var labelStyle = ComputedStyle.of(resolver.resolve(label), CONTEXT, rootStyle);
+
+            assertEquals(ComputedStyle.INITIAL.color(), labelStyle.color(), "nothing set a colour anywhere");
+        }
+
+        @Test
+        @DisplayName("is reported when nothing in force sets one")
+        void reportedWhenNothingSetsOne() {
+            var findings = uncoloured(TestElement.element(".app"), THEME, "text { font-size: 13px }");
+
+            assertEquals(1, findings.size(), () -> findings.toString());
+            assertEquals(Finding.Kind.UNCOLOURED_ROOT, findings.getFirst().kind());
+            assertEquals("color", findings.getFirst().property());
+            assertTrue(findings.getFirst().kind().isDefect(), "unreadable text is a defect, not a cost");
+        }
+
+        /// **The showcase's own shape, and the reason this takes an element.** The
+        /// one application in the repository that does this right writes
+        /// `#root { color: var(--gb-text) }` — an *id* selector. A check that
+        /// resolved a synthetic `:root` probe would have reported the reference
+        /// application as the defect on the day it was written.
+        @Test
+        @DisplayName("is not reported when an id rule sets one, which is how the showcase does it")
+        void anIdRuleCounts() {
+            var root = TestElement.element("panel#root");
+
+            assertTrue(
+                    uncoloured(root, THEME, "#root { color: var(--gb-text) }").isEmpty());
+        }
+
+        @Test
+        @DisplayName("nor when a type rule or a :root rule does")
+        void theOtherTwoSpellingsCount() {
+            assertTrue(uncoloured(TestElement.element("window"), THEME, "window { color: var(--gb-text) }")
+                    .isEmpty());
+            assertTrue(uncoloured(TestElement.element(".app"), THEME, ":root { color: var(--gb-text) }")
+                    .isEmpty());
+        }
+
+        /// A `var()` naming nothing takes the declaration with it before the
+        /// engine sees one, so the root has no colour and saying so is the right
+        /// answer rather than a gap — the author wrote a rule and got nothing.
+        @Test
+        @DisplayName("a colour whose var() resolves to nothing is no colour")
+        void anUnresolvableColourIsNoColour() {
+            var findings = uncoloured(TestElement.element(".app"), "#root { color: var(--nobody-defines-this) }");
+
+            assertEquals(1, findings.size(), () -> findings.toString());
+        }
+
+        @Test
+        @DisplayName("the finding names the root the way a selector would, so it says what to write")
+        void theFindingNamesTheRoot() {
+            var byId = uncoloured(TestElement.element("panel#root"), THEME);
+            var byType = uncoloured(TestElement.element("window"), THEME);
+            var neither = uncoloured(TestElement.element(".app"), THEME);
+
+            assertEquals("#root", byId.getFirst().selector());
+            assertEquals("window", byType.getFirst().selector());
+            assertEquals(":root", neither.getFirst().selector(), "a root with no type and no id has one name");
+            assertTrue(
+                    byId.getFirst().toString().contains("--gb-text"),
+                    byId.getFirst().toString());
+        }
+
+        /// Asking about a node that is not a root would answer a question nobody
+        /// asked: what a child inherits is its parent's business, and a check that
+        /// quietly reported "no colour" for every uncoloured node in a tree is the
+        /// per-node diagnostic this deliberately is not.
+        @Test
+        @DisplayName("a node with a parent is refused rather than answered")
+        void onlyARootIsAnswered() {
+            var root = TestElement.element(".app");
+            var child = TestElement.element("text");
+            root.with(child);
+            var lint = new StyleLint(List.of(sheet(THEME)));
+
+            var thrown = assertThrows(IllegalArgumentException.class, () -> lint.uncolouredRoot(child));
+            assertTrue(thrown.getMessage().contains("not a root"), thrown.getMessage());
+        }
+    }
+
+    /// The probe's null parent, which this package was left unmarked for
+    /// ([ADR-0413]).
+    ///
+    /// `Probe` is a record whose `parent` component was declared non-null and is
+    /// **null for every single-compound selector** — that is, for most rules in
+    /// any sheet. It had to be, because a null parent is how [StyleLint] makes the
+    /// leftmost probe the root, and the root is what `:root`'s custom properties
+    /// hang off. So the one thing the package could not say was the one thing it
+    /// depended on.
+    @Nested
+    @DisplayName("the probe, and the root it needs to be")
+    class TheProbe {
+
+        @Test
+        @DisplayName("a one-compound selector's probe is the root, so :root reaches it")
+        void aSingleCompoundProbeIsTheRoot() {
+            // If the probe were not the root, `--gb-accent` would resolve to
+            // nothing, substitution would take the declaration with it, and this
+            // would be quiet for the wrong reason — so the assertion below is
+            // paired with a sheet whose var() is genuinely undefined.
+            var theme = sheet(":root { --gb-accent: #88c0d0 }");
+            var mine = sheet("button { color: var(--gb-accent) }");
+
+            assertTrue(
+                    new StyleLint(List.of(theme, mine)).check(mine).isEmpty(),
+                    "the probe matched :root and the colour resolved");
+        }
+
+        @Test
+        @DisplayName("and so is the leftmost of a chain, three compounds deep")
+        void theLeftmostOfAChainIsTheRoot() {
+            // `probeFor` walks the parts backwards and hands each new probe the
+            // one before it, so only the first gets null. A chain is where the
+            // annotation matters least and the behaviour matters most: the theme
+            // has to reach the *rightmost* probe through two links.
+            var theme = sheet(":root { --gb-space: 4px }");
+            var mine = sheet("card row button { padding: var(--gb-space) }");
+
+            assertTrue(
+                    new StyleLint(List.of(theme, mine)).check(mine).isEmpty(),
+                    "the custom property reached the end of the chain");
         }
     }
 }

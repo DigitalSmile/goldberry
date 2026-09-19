@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.paint.shadow;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -132,6 +133,120 @@ class ShadowGeometryTest {
             var rounded = ShadowGeometry.band(80, 80, Corners.all(8), Shadow.NONE, 0);
 
             assertTrue(rounded.segmentCount() > square.segmentCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("the hole cut out of every band — ADR-0427")
+    class Hole {
+
+        @Test
+        @DisplayName("it is the border box itself, at the origin and unmoved by the offset")
+        void isTheBorderBox() {
+            // The offset moves the band and not the hole. A hole that travelled
+            // with the band would sit exactly on top of it, and an even-odd fill
+            // of the two would paint nothing at all — the shadow would vanish
+            // rather than gain a hole.
+            var hole = ShadowGeometry.borderBox(60, 40, Corners.SQUARE);
+
+            assertArrayEquals(new double[] {0, 0, 60, 40}, boundsOf(hole));
+        }
+
+        @Test
+        @DisplayName("it carries the box's own radii, ungrown")
+        void keepsTheBoxesCorners() {
+            // The band at `grow` has radii grown by `grow`; the hole never does.
+            // It is the shape the background will be painted with, and cutting a
+            // hole any other shape would leave a rim of shadow around a rounded
+            // box.
+            var square = ShadowGeometry.borderBox(60, 40, Corners.SQUARE);
+            var rounded = ShadowGeometry.borderBox(60, 40, Corners.all(12));
+
+            assertTrue(rounded.segmentCount() > square.segmentCount());
+            assertArrayEquals(boundsOf(square), boundsOf(rounded));
+        }
+
+        @Test
+        @DisplayName("a square box's hole is the same point sequence its band is")
+        void squareHoleIsARect() {
+            // So the fill rule has nothing to disagree about: the shape being
+            // cut and the shape cutting it are described the same way.
+            var hole = ShadowGeometry.borderBox(60, 40, Corners.SQUARE);
+            var band = ShadowGeometry.band(60, 40, Corners.SQUARE, Shadow.NONE, 0);
+
+            assertEquals(band.segments(), hole.segments());
+        }
+    }
+
+    @Nested
+    @DisplayName("which bands the hole erases entirely")
+    class Covered {
+
+        @Test
+        @DisplayName("a centred shadow's whole inner half is inside the hole")
+        void centred() {
+            // No offset: the band at grow = 0 is the border box, and everything
+            // inside it is erased.
+            assertEquals(0, ShadowGeometry.coveredAt(new Shadow(0, 0, 16, 0, BLACK)));
+        }
+
+        @Test
+        @DisplayName("an offset shadow keeps the bands that reach past the edge it moved towards")
+        void offset() {
+            // Moved 4px down, so a band inset by less than 4 still sticks out of
+            // the top — and one inset by 4 or more does not.
+            assertEquals(-4, ShadowGeometry.coveredAt(new Shadow(0, 4, 16, 0, BLACK)));
+        }
+
+        @Test
+        @DisplayName("it is the larger of the two offsets, not their sum")
+        void twoAxes() {
+            // A band has to escape the box on *some* side to be seen, so the
+            // axis that moved furthest is the one that decides. Taking the sum,
+            // or one axis alone, would erase bands that are still visible.
+            assertEquals(-7, ShadowGeometry.coveredAt(new Shadow(7, 3, 16, 0, BLACK)));
+            assertEquals(-7, ShadowGeometry.coveredAt(new Shadow(-7, 3, 16, 0, BLACK)));
+            assertEquals(-7, ShadowGeometry.coveredAt(new Shadow(3, -7, 16, 0, BLACK)));
+        }
+
+        @Test
+        @DisplayName("every band it erases really is inside the border box")
+        void erasedBandsAreInside() {
+            // The claim checked against the geometry rather than restated: a
+            // covered band's bounding box must lie within the hole's.
+            var shadow = new Shadow(0, 4, 16, 0, BLACK);
+            var hole = boundsOf(ShadowGeometry.borderBox(60, 40, Corners.all(8)));
+
+            for (var band : ShadowRamp.bands(shadow)) {
+                if (band.grow() > ShadowGeometry.coveredAt(shadow)) {
+                    continue;
+                }
+                var bounds = boundsOf(ShadowGeometry.band(60, 40, Corners.all(8), shadow, band.grow()));
+                assertTrue(bounds[0] >= hole[0] - 1e-9, "band at " + band.grow() + " escapes on the left");
+                assertTrue(bounds[1] >= hole[1] - 1e-9, "band at " + band.grow() + " escapes on the top");
+                assertTrue(bounds[2] <= hole[2] + 1e-9, "band at " + band.grow() + " escapes on the right");
+                assertTrue(bounds[3] <= hole[3] + 1e-9, "band at " + band.grow() + " escapes on the bottom");
+            }
+        }
+
+        @Test
+        @DisplayName("and the first band it keeps really does escape")
+        void keptBandsEscape() {
+            // The other side of it, which is what stops `coveredAt` from being
+            // over-eager and quietly erasing a visible band.
+            var shadow = new Shadow(0, 4, 16, 0, BLACK);
+            var hole = boundsOf(ShadowGeometry.borderBox(60, 40, Corners.all(8)));
+            var covered = ShadowGeometry.coveredAt(shadow);
+
+            var last = ShadowRamp.bands(shadow).stream()
+                    .filter(band -> band.grow() > covered)
+                    .reduce((first, second) -> second)
+                    .orElseThrow();
+            var bounds = boundsOf(ShadowGeometry.band(60, 40, Corners.all(8), shadow, last.grow()));
+
+            assertTrue(
+                    bounds[0] < hole[0] || bounds[1] < hole[1] || bounds[2] > hole[2] || bounds[3] > hole[3],
+                    "the innermost drawn band at " + last.grow() + " is entirely inside the hole");
         }
     }
 }

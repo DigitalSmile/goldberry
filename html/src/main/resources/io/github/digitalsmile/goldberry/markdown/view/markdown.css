@@ -54,7 +54,27 @@
  * rule here rather than by a painter nobody can restyle. See ADR-0295.
  */
 
-.md-prose {
+/* **`.md-prose` carries no declarations, and the split is the decision** (ADR-0442).
+   It is on the paragraph's own box whichever shape that box has -- the wrapping row
+   below when the author ended no line inside it, the column below that when they did
+   -- so a declaration here would have to mean the same thing on a row and on a
+   column, and the row's three do not. `gap` is the one that proves it: on the row it
+   is the space between two words, on the column it would be the space between two
+   lines.
+
+   What belongs here instead is everything about the paragraph as a *block*: its
+   typography, which every line inherits (`.md-h2` lands beside this class, on the
+   outer box, so a heading's size reaches the words of all its lines), a fill or a
+   padding, which has to be painted once round the paragraph rather than once per
+   line, and its place in `.markdown`'s 12px column -- which is the same place either
+   way, because there is one box per paragraph and it carries no margin. That is what
+   makes a paragraph with a hard break in it sit exactly where one without sits. */
+
+/* One line of a paragraph: a wrapping row of words. On the paragraph's box itself
+   when the paragraph is one line, and on each row of `.md-lines` when it is not --
+   so the three declarations that were on `.md-prose` are unchanged and are still on
+   the row that lays words out. */
+.md-line {
   flex-wrap: wrap;
   /* Words of different sizes -- a code span sits in a smaller face -- sit on one
      line. Without this the row would stretch every word box to its tallest
@@ -65,6 +85,20 @@
      wrapped lines*, since `gap` is one value here -- which reads as leading, and
      is why it is not larger. */
   gap: 0.25em;
+}
+
+/* A paragraph the author ended a line inside: the lines, stacked. */
+.md-lines {
+  flex-direction: column;
+  /* **The same 0.25em, and that is the point.** It is what `.md-line` puts between
+     two *wrapped* lines, so a line the author ended and a line the width ended are
+     the same distance apart; a number of its own here would give one paragraph two
+     leadings and the reader would see which of its breaks were typed. */
+  gap: 0.25em;
+  /* Each line gets the paragraph's full width, so a hard-broken line still wraps
+     where an unbroken one would -- and so a rule that centres a heading has
+     something to centre in. */
+  align-items: stretch;
 }
 
 /* A word that spans two styles -- `*emphasis*,` is an emphasised piece and then a

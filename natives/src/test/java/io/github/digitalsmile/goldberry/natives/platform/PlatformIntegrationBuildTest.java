@@ -110,6 +110,64 @@ class PlatformIntegrationBuildTest {
                 "the failure has to name the package to install, on both package managers");
     }
 
+    @ParameterizedTest
+    @EnumSource(SdlDecided.class)
+    @DisplayName("the two capabilities SDL alone decides are read out of its generated header")
+    void sdlDecidedCapabilitiesAreReadNotPredicted(SdlDecided decided) {
+        assumeReadable();
+
+        // The arrangement these two have, and the reason it differs from the three
+        // above: there is no pkg-config prediction to confirm, because SDL decides
+        // the Wayland driver with one check over five specs plus a scanner binary,
+        // and a prediction narrower than what it predicts would fail builds that
+        // were fine (ADR-0422). So the define comes from SDL's own answer.
+        assertTrue(
+                cmakeLists.contains(decided.sdlDefine()),
+                "the superbuild never reads " + decided.sdlDefine() + " out of SDL_build_config.h");
+        assertTrue(
+                cmakeLists.contains("GOLDBERRY_PLATFORM_${_sdl_capability}"),
+                "the superbuild does not derive a shim define from SDL's answer");
+        assertTrue(
+                shim.contains("GOLDBERRY_PLATFORM_" + decided.sdlDefine()),
+                "the shim does not read GOLDBERRY_PLATFORM_" + decided.sdlDefine()
+                        + ", so SDL's answer is discarded and the capability is reported wrongly");
+    }
+
+    @Test
+    @DisplayName("neither of them stops the build, because neither package is installable everywhere")
+    void sdlDecidedCapabilitiesDegradeRatherThanFail() {
+        assumeReadable();
+
+        // `libdecor-devel` and `xkeyboard-config` are in no repository the
+        // manylinux release container has, so the honest report for that build is
+        // "it cannot" rather than "install this". A REQUIRED probe here would make
+        // the release container unbuildable.
+        var block = cmakeLists.substring(cmakeLists.indexOf("_sdl_capability IN ITEMS"));
+        assertTrue(
+                block.contains("message(WARNING"),
+                "a missing Wayland driver or libdecor must warn rather than stop the configure");
+        assertTrue(
+                block.contains("libdecor-0-dev") && block.contains("libdecor-devel"),
+                "the warning has to name the package on both package managers");
+        assertTrue(
+                block.contains("mesa-libEGL-devel"),
+                "EGL's headers are the spec whose absence has actually dropped the Wayland driver");
+    }
+
+    @Test
+    @DisplayName("a build that could not read SDL's answer claims neither capability")
+    void unreadableConfigClaimsNothing() {
+        assumeReadable();
+
+        // The right way round: a #ifdef that is absent reports the capability
+        // absent, so the failure mode of a moved upstream header is an
+        // understated library rather than an overstated one.
+        var fallback = cmakeLists.substring(cmakeLists.indexOf("SDL_build_config.h was not found"));
+        assertTrue(
+                fallback.contains("reported as absent"),
+                "the unreadable-header path must say the two capabilities are reported absent");
+    }
+
     @Test
     @DisplayName("the capability function is exported, or Java cannot call it")
     void theCapabilityFunctionIsExported() {
@@ -155,6 +213,35 @@ class PlatformIntegrationBuildTest {
                 GoldberryShim.SUPPORTED_ABI_VERSION,
                 Integer.parseInt(declared.group(1)),
                 "goldberry_shim.c and GoldberryShim.SUPPORTED_ABI_VERSION disagree");
+    }
+
+    /// A capability whose only source of truth is SDL's generated build config.
+    ///
+    /// Distinct from [Integration] because there is nothing to predict and nothing
+    /// to cross-check: the define is *read* rather than confirmed
+    /// ([ADR-0422]).
+    ///
+    /// @param sdlDefine  the `SDL_build_config.h` define that decides it
+    /// @param capability what a library loses without it
+    private enum SdlDecided {
+        WAYLAND_DRIVER("SDL_VIDEO_DRIVER_WAYLAND", NativeCapability.WAYLAND),
+        DECORATIONS("HAVE_LIBDECOR_H", NativeCapability.WINDOW_DECORATIONS);
+
+        private final String sdlDefine;
+        private final NativeCapability capability;
+
+        SdlDecided(String sdlDefine, NativeCapability capability) {
+            this.sdlDefine = sdlDefine;
+            this.capability = capability;
+        }
+
+        String sdlDefine() {
+            return sdlDefine;
+        }
+
+        NativeCapability capability() {
+            return capability;
+        }
     }
 
     /// One desktop integration, as the superbuild names it.

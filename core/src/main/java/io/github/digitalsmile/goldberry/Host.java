@@ -1,6 +1,10 @@
 package io.github.digitalsmile.goldberry;
 
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.Clipboard;
@@ -458,7 +462,45 @@ public interface Host {
     /// Empty when the platform has no popups **or** when nothing with that id was
     /// painted, which are different problems with the same answer here: there is
     /// nowhere to put it.
-    java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement);
+    default Optional<Popup> popup(Widget content, String anchorId, Placement placement) {
+        return popup(content, anchorId, placement, 0, null);
+    }
+
+    /// [#popup(Widget, String, Placement)] with a floor under the width **and** a
+    /// say in what happens when the content does not fit.
+    ///
+    /// The overload a menu and a dropdown were missing. Anchoring by id is what
+    /// makes a popup **follow** — the name is a question the next painted frame
+    /// can answer again, where a rectangle is only ever the answer it already was
+    /// ([ADR-0270]) — and until this existed the two callers that also needed a
+    /// minimum width ([ADR-0145]) or a [Fit] ([ADR-0179]) had to resolve the
+    /// anchor to a rectangle themselves and gave the following up to do it
+    /// ([ADR-0432]).
+    ///
+    /// Empty for [#popup(Widget, String, Placement)]'s two reasons: no popup
+    /// windows, or nothing painted under that id.
+    ///
+    /// **A `default` rather than a method**, which is the opposite of what
+    /// [ADR-0145] did for `minimumWidth` and for a reason that does not apply
+    /// here: a floor is something an implementation has to *do*, while resolving
+    /// a name is [#anchor(String)] followed by the rectangle overload, and an
+    /// implementation that wrote that out by hand could only write it out
+    /// differently. What a [Launcher] adds on top is the remembering, which is
+    /// not behaviour a caller can observe on a host that has no popups at all.
+    ///
+    /// @param anchorId     the `id` of a node this window painted
+    /// @param minimumWidth the least the popup may be, in logical pixels
+    /// @param fit          consulted between the measure and the place, or null
+    default Optional<Popup> popup(
+            Widget content, String anchorId, Placement placement, float minimumWidth, @Nullable Fit fit) {
+
+        Objects.requireNonNull(anchorId, "anchorId");
+        // `painted()` and not `bounds()`: a menu belongs under where its anchor
+        // was drawn, and a button inside a `scroll` is laid out where it always
+        // was and drawn a long way from there ([ADR-0270]).
+        return anchor(anchorId)
+                .flatMap(region -> popup(content, region.painted(), placement, minimumWidth, fit));
+    }
 
     /// What to do when a widget carrying `context-menu="…"` is right-clicked.
     ///

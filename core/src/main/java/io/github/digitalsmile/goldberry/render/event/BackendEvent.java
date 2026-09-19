@@ -278,12 +278,47 @@ public sealed interface BackendEvent {
         }
     }
 
-    /// The drag-and-drop gesture ended — every file that was coming has arrived.
+    /// One **line** of dropped text landed on the window — [ADR-0408].
+    ///
+    /// The same shape as [FileDropped], because the platform reports it the same
+    /// way, and that is a fact rather than a symmetry chosen for tidiness: SDL
+    /// tokenises a dropped text payload on `\r\n` and raises one event per token
+    /// on every platform that supports the gesture. So a two-line selection is two
+    /// of these followed by one [FileDropCompleted], exactly as two files would
+    /// be, and the reassembly in
+    /// [io.github.digitalsmile.goldberry.input.drop.TextDrop] is the file drop's
+    /// reassembly.
+    ///
+    /// **The separators are gone by the time this is raised.** SDL's tokeniser
+    /// throws them away, so nothing downstream can tell `\n` from `\r\n`, or a
+    /// trailing newline from none. The lines are what the platform gives and the
+    /// lines are what this carries.
+    ///
+    /// @param text one line of the dropped text, never empty — an empty token is
+    ///             dropped by the backend rather than forwarded
+    /// @param x    the drop's window-relative x in logical pixels
+    /// @param y    the same, vertically
+    record TextDropped(BackendWindow window, String text, float x, float y) implements BackendEvent {
+        public TextDropped {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(text, "text");
+        }
+    }
+
+    /// The drag-and-drop gesture ended — everything that was coming has arrived.
     ///
     /// Raised whether or not any [FileDropped] preceded it: a drag that crossed
     /// the window and left drops nothing, and something still has to clear the
     /// half-built gesture. It carries the last position the platform reported, so
     /// a drop whose files arrived without coordinates still knows where it was.
+    ///
+    /// **It ends a text drop too** ([ADR-0408]). SDL has one
+    /// `SDL_EVENT_DROP_COMPLETE` for both kinds and no per-kind completion, so
+    /// this is the end of *the gesture* rather than of the file half of it. The
+    /// name is narrower than the job and is kept anyway: it is the word every
+    /// exhaustive `switch` over this interface spells, and renaming a case of a
+    /// sealed SPI type to gain an adjective is a change every backend and every
+    /// consumer pays for.
     record FileDropCompleted(BackendWindow window, float x, float y) implements BackendEvent {
         public FileDropCompleted {
             Objects.requireNonNull(window, "window");

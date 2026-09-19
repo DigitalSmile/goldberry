@@ -68,7 +68,9 @@ import io.github.digitalsmile.goldberry.log.Logs;
 /// reader, and a cache that disagreed would open one face per frame and look
 /// exactly like a leak.
 ///
-/// Confined to the thread that created it, and must be closed.
+/// Confined to the thread that created it, and must be closed. **Both are
+/// enforced**: a book used or closed from another thread throws rather than
+/// corrupting its own maps, which is what it did until ADR-0425.
 public final class Fonts implements AutoCloseable {
 
     /// Key precision: a thousandth of a logical pixel, which is far below what
@@ -317,6 +319,11 @@ public final class Fonts implements AutoCloseable {
         if (closed) {
             return;
         }
+        // Before the flag, so a book closed from the wrong thread is still usable
+        // afterwards from the right one. The faces underneath would have refused
+        // anyway -- from inside Blend2D's wrapper, one font at a time, after this
+        // book had already declared itself closed and cleared its maps.
+        requireOwner();
         closed = true;
         RuntimeException failure = null;
         for (var font : fonts.values()) {
@@ -355,6 +362,39 @@ public final class Fonts implements AutoCloseable {
     private void requireUsable() {
         if (closed) {
             throw new IllegalStateException("this Fonts has been closed");
+        }
+        requireOwner();
+    }
+
+    /// The thread this book was opened on — see the confinement note on the class.
+    private final Thread owner = Thread.currentThread();
+
+    /// Refuses a book used from a thread that did not open it.
+    ///
+    /// **Enforced rather than documented, since ADR-0425.** The class comment has
+    /// said "confined to the thread that created it" since ADR-0044 and nothing
+    /// checked it, which made the one unsafe way to render off the UI thread the
+    /// one this toolkit's own javadoc recommended: a server told to "hand over one
+    /// `Fonts` and keep it" would hand the same book to every worker in a pool.
+    ///
+    /// What that bought was not an exception. [#faces] and [#fonts] are plain
+    /// `LinkedHashMap`s, so two threads in [#fontOf] are an unsynchronized map
+    /// mutation — a lost entry, a duplicated native face, or a corrupted table —
+    /// and the `Font` it vends is itself confined, so the *eventual* failure was a
+    /// `requireOwner` from inside HarfBuzz's wrapper on some later frame, naming a
+    /// font rather than the book that leaked it.
+    ///
+    /// Every other confined object on the render path already checks this:
+    /// `ParagraphCache`, `RenderTree`, `YogaConfig`, `YogaNode`, `BlendContext`,
+    /// `ShapedFont`, `BlendFont`. This was the one gap, and it was the one an
+    /// application could reach.
+    private void requireOwner() {
+        var current = Thread.currentThread();
+        if (current != owner) {
+            throw new IllegalStateException("a Fonts belongs to the thread that opened it (" + owner.getName()
+                    + "), and this is " + current.getName()
+                    + "; a book holds native faces from two libraries that are confined to it."
+                    + " Open one book per thread, or render on the thread that opened this one");
         }
     }
 

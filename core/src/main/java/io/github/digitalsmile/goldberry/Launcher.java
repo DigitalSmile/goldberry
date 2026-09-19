@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.drive.FrameBudgetException;
 import io.github.digitalsmile.goldberry.drive.ResizeWalk;
+import io.github.digitalsmile.goldberry.frame.FrameSequence;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
@@ -54,6 +55,14 @@ final class Launcher implements Host {
     private RenderTree render;
     private PointerRouter router;
     private WidgetRenderer renderer;
+
+    /// The steps a frame runs, in the order they have to run in — shared with
+    /// `Offscreen`, which used to keep a second copy of them (ADR-0423).
+    ///
+    /// What is *not* in it is what makes a window a window: the damage pass, the
+    /// frame ring, the HUD's stage timings and the model sweep are all below, and
+    /// the sequence knows about none of them.
+    private FrameSequence sequence;
 
     /// The one clock this window runs on.
     ///
@@ -124,9 +133,29 @@ final class Launcher implements Host {
         for (var entry : List.copyOf(placements.entrySet())) {
             var popup = entry.getKey();
             var placed = entry.getValue();
-            var anchor = placed.anchorId() == null
-                    ? placed.anchor()
-                    : anchor(placed.anchorId()).map(HitTest.Region::painted).orElse(placed.anchor());
+            if (!popup.isOpen()) {
+                // Closed by an earlier turn of this very loop: a popup that
+                // followed a vanishing anchor takes the ones stacked on it with
+                // it, and those are entries in this map too.
+                continue;
+            }
+            LogicalRect anchor;
+            if (placed.anchorId() == null) {
+                anchor = placed.anchor();
+            } else {
+                var region = anchor(placed.anchorId()).filter(this::stillOnScreen);
+                if (region.isEmpty()) {
+                    // The anchor is gone — scrolled out of the viewport that
+                    // confines it, or not painted at all. Following it out of
+                    // sight would leave a menu pointing at a widget nobody can
+                    // see, and the placement would clamp it back to the work
+                    // area next to something it does not belong to
+                    // ([ADR-0433]).
+                    closeFrom(popup);
+                    continue;
+                }
+                anchor = region.get().painted();
+            }
             var at = placed.placement()
                     .place(anchor, popup.bounds().size(), placeableArea())
                     .at();
@@ -134,6 +163,62 @@ final class Launcher implements Host {
                 popup.move(at);
             }
         }
+    }
+
+    /// Whether an anchor is still somewhere a user could look at it.
+    ///
+    /// Two questions, because one rectangle can leave by two routes and the
+    /// clip only knows about the first ([ADR-0433]):
+    ///
+    /// - [HitTest.Region#isVisible()] — has it left the viewport that clips it,
+    ///   which is what a scroll does to it;
+    /// - the window's own rectangle, for an anchor that left by some other route.
+    ///   A box with no clipping ancestor is captured under an infinite clip,
+    ///   which admits everything, so the clip alone would call it visible for
+    ///   ever — see
+    /// [io.github.digitalsmile.goldberry.paint.Clip#NONE].
+    ///
+    /// The window and **not** [#placeableArea()]: the work area is where a popup
+    /// may be *placed*, and it is routinely larger than the window. Whether the
+    /// anchor is drawn is a question about the window it is drawn in.
+    private boolean stillOnScreen(HitTest.Region region) {
+        if (!region.isVisible()) {
+            return false;
+        }
+        var painted = region.painted();
+        var size = window.size();
+        return painted.right() > 0
+                && painted.left() < size.width()
+                && painted.bottom() > 0
+                && painted.top() < size.height();
+    }
+
+    /// Closes `popup` and every popup opened after it.
+    ///
+    /// A submenu is anchored to a rectangle **inside** the menu it came from, so
+    /// it has no name to be re-resolved and would not notice its root going. The
+    /// open order is the containment order here — a popup opened while another
+    /// was up is either its submenu or something standing on it — so the stack
+    /// above the one that lost its anchor goes with it, which is what
+    /// [#dismissPopups()] already does for a press ([ADR-0433]).
+    ///
+    /// `lightDismiss(false)` is not consulted. It says that *input* does not
+    /// close this popup; an anchor that stopped being drawn is not input, and a
+    /// tooltip outliving the menu it was describing is the same orphan by a
+    /// shorter route.
+    private void closeFrom(Popup popup) {
+        var from = popups.indexOf(popup);
+        if (from < 0) {
+            popup.close();
+            return;
+        }
+        for (var other : List.copyOf(popups.subList(from, popups.size()))) {
+            if (other.isOpen()) {
+                other.close();
+            }
+        }
+        popups.removeIf(open -> !open.isOpen());
+        placements.keySet().removeIf(open -> !open.isOpen());
     }
 
     /// Whether any open popup was anchored to an **id**, which is the only kind
@@ -366,6 +451,10 @@ final class Launcher implements Host {
         // re-lays out nothing (ADR-0069).
         render = RenderTree.create();
 
+        // The three objects a frame walks, and the order it walks them in
+        // (ADR-0423). Built once beside them because all three outlive a frame.
+        sequence = FrameSequence.over(tree, render, router);
+
         window.onPaint(this::paint);
 
         // A popup is positioned as an offset from its owner, so **moving** the
@@ -551,31 +640,25 @@ final class Launcher implements Host {
             io.github.digitalsmile.goldberry.bind.runtime.Models.refresh(model);
         }
 
-        // Every setState since the last frame settles here, once, however many of
-        // them there were (ADR-0052).
-        // Before the flush, not after: a build may ask the cascade about a custom
-        // property (ADR-0254), and a resolver handed over afterwards would be a
-        // frame late for no reason. `renderer()` is lazy, so this is also what
-        // creates it on the first frame.
-        renderer().prepare(tree);
-        if (tree.needsBuild()) {
-            tree.flush();
-        }
-        var builtAt = System.nanoTime();
-
-        // The cascade and the box tree: the term ADR-0070 measured as the largest
-        // in a frame, and ADR-0142 as the one that had stopped being cached.
-        var boxes = renderer().render(tree);
-        var styledAt = System.nanoTime();
-
-        // One layout pass, two readers. `update` reconciles the retained render
-        // tree against this frame's description and lays it out; the paint and the
-        // hit-test snapshot both read that one result (ADR-0069).
-        render.update(frame, boxes);
-        var laidOutAt = System.nanoTime();
+        // Prepare, flush, render, lay out -- the four steps whose order is the
+        // load-bearing part, and they are not written here any more. `Offscreen`
+        // runs the same four in the same order, and it ran them from its own copy
+        // of this code until ADR-0423 put the order in one place; the reasons each
+        // step is in front of the next one moved with it. `renderer()` is lazy, so
+        // this call is also what creates it on the first frame -- once, rather than
+        // the two calls the steps used to make.
+        var stages = sequence.layOut(frame, renderer(), beganAt);
+        var builtAt = stages.builtAt();
+        var styledAt = stages.styledAt();
+        var laidOutAt = stages.laidOutAt();
 
         // What differs from the last frame, computed before painting because the
         // clip has to be in place before anything is drawn (ADR-0072).
+        //
+        // **This half stays here**, and it is the step the shared sequence does
+        // not own: a window paints the damaged rectangles because the backend
+        // promises last frame's pixels are still there, and a buffer has no last
+        // frame to promise anything about.
         var damage = render.damage(frame);
         if (window.canRepaintPartially()) {
             render.paint(frame, damage);
@@ -591,13 +674,9 @@ final class Launcher implements Host {
         // not a fresh layout -- which would be one frame ahead of what the user
         // can see (ADR-0054). Kept as well as handed over: `anchor` answers from
         // the same capture, so a menu opens under where its button *was drawn*
-        // rather than where a fresh layout would put it.
-        regions = HitTest.capture(render);
-        // Before the regions, because a `Located` widget is told what clips it and
-        // "nothing clips me" resolves to this (ADR-0119).
-        router.windowBounds(
-                LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
-        router.updateRegions(regions);
+        // rather than where a fresh layout would put it. The window bounds go in
+        // first, and that ordering is the sequence's too (ADR-0119).
+        regions = sequence.captureRegions(frame, router);
 
         // **After the regions**, which is the whole of why this is a flag and not
         // a call in the resize handler: `anchor(id)` answers from the capture the
@@ -1484,6 +1563,13 @@ final class Launcher implements Host {
 
     @Override
     public java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement) {
+        return popup(content, anchorId, placement, 0, null);
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(
+            Widget content, String anchorId, Placement placement, float minimumWidth, Fit fit) {
+
         Objects.requireNonNull(anchorId, "anchorId");
         var anchor = anchor(anchorId);
         if (anchor.isEmpty()) {
@@ -1496,11 +1582,13 @@ final class Launcher implements Host {
         // the same rectangle for anything nothing transformed, which is nearly
         // every anchor there has ever been — which is why this was not wrong
         // until something scrolled.
-        var opened = popup(content, anchor.get().painted(), placement);
+        var opened = placed(content, anchor.get().painted(), placement, PopupKind.MENU, minimumWidth, fit);
         // Upgraded from a rectangle to a **name**, which is what makes a resize
         // able to follow the anchor rather than merely re-clamp against the new
         // work area: the id is re-resolved against the frame the resize produced
-        // ([ADR-0231]).
+        // ([ADR-0231]). A menu and a dropdown could not have this until there was
+        // an overload that took a name *and* the two things they also need
+        // ([ADR-0432]).
         opened.ifPresent(popup -> placements.computeIfPresent(
                 popup, (key, placed) -> new Placed(anchorId, placed.anchor(), placed.placement())));
         return opened;

@@ -333,7 +333,22 @@ public record ComputedStyle(
         // Undeclared is the ordinary case and needs no branch: the size is
         // whatever was inherited, which is exactly what `em` should resolve
         // against.
-        var own = new CssLength.Context((float) style.typography().size(), context.rootFontSize());
+        //
+        // **`rem` gets the same treatment, for the root and only for the root**
+        // ([ADR-0416]). CSS says `rem` is the *root element's* computed
+        // `font-size`, with one exception that is this method's own two-pass
+        // structure seen from the other end: on the root element's `font-size`
+        // itself, `rem` cannot be the value being computed, so it resolves
+        // against the configured size above. Everything else on the root -- and,
+        // through the context the renderer hands down, everything below it --
+        // resolves against what the root just computed.
+        //
+        // A node with a parent takes `rootFontSize` as given, because by then it
+        // is the renderer's business rather than this method's: a node is handed
+        // its parent's style and not the root's, which is the whole reason
+        // ADR-0242 left this open.
+        var rootSize = parent == null ? (float) style.typography().size() : context.rootFontSize();
+        var own = new CssLength.Context((float) style.typography().size(), rootSize);
         for (var entry : declarations.entrySet()) {
             if (!"font-size".equals(entry.getKey())) {
                 style = style.with(entry.getKey(), entry.getValue(), own);

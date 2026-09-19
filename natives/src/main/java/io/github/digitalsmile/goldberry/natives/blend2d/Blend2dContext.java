@@ -8,6 +8,7 @@ import java.lang.foreign.ValueLayout;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.calls.ContextCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFillRule;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
@@ -90,6 +91,10 @@ final class Blend2dContext {
 
     void contextCompOp(MemorySegment context, BlendCompOp compOp) {
         check("bl_context_set_comp_op", calls.contextSetCompOp().call(context, compOp.nativeValue()));
+    }
+
+    void contextFillRule(MemorySegment context, BlendFillRule fillRule) {
+        check("bl_context_set_fill_rule", calls.contextSetFillRule().call(context, fillRule.nativeValue()));
     }
 
     /// Fills the whole clip box with a straight-alpha `0xAARRGGBB`.

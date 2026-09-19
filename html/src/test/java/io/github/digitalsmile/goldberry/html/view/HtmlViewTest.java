@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.html.view;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -24,6 +25,8 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// `html-view`, as the tree of widgets it builds.
@@ -286,6 +289,62 @@ class HtmlViewTest {
 
             assertEquals(2, withClass(elements, "html-prose").size(), "a newline between tags is not a paragraph");
             assertEquals(List.of("one", "two"), wordsOf(elements));
+        }
+
+        @Test
+        @DisplayName("a br as the line ending it is, and nothing else as one")
+        void lineBreaks() {
+            var elements = mount("<p>one<br>two</p>");
+            var prose = withClass(elements, "html-prose");
+            var lines = withClass(elements, "html-line");
+
+            assertEquals(1, prose.size(), "one box per paragraph, whatever shape it is");
+            assertInstanceOf(Column.class, prose.getFirst().widget(), "two lines cannot be one wrapping row");
+            assertTrue(prose.getFirst().classes().contains("html-lines"));
+            assertTrue(prose.getFirst().classes().contains("html-p"), "the tag's class stays on the paragraph's box");
+            assertEquals(2, lines.size());
+            assertEquals(List.of("one"), wordsOf(List.of(lines.getFirst())));
+            assertEquals(List.of("two"), wordsOf(List.of(lines.get(1))));
+        }
+
+        @Test
+        @DisplayName("a paragraph with no br as the single wrapping row it always was")
+        void withoutABreak() {
+            var prose = withClass(mount("<p>one two</p>"), "html-prose").getFirst();
+
+            assertInstanceOf(Row.class, prose.widget());
+            assertTrue(prose.classes().contains("html-line"), "the paragraph is its own line");
+            assertFalse(prose.classes().contains("html-lines"));
+        }
+
+        @Test
+        @DisplayName("two brs keeping the empty line between them, the way a browser draws one")
+        void twoBreaksInARow() {
+            var lines = withClass(mount("<p>one<br><br>two</p>"), "html-line");
+
+            assertEquals(3, lines.size());
+            assertEquals(
+                    List.of(" "),
+                    wordsOf(List.of(lines.get(1))),
+                    "a row with nothing in it measures zero high, so the blank line is one space");
+        }
+
+        @Test
+        @DisplayName("a br inside an anchor as a space in its label, because a link is one button")
+        void breakInsideAnAnchor() {
+            var elements = mount("<p><a href=\"/x\">a<br>b</a></p>");
+
+            assertEquals(1, withClass(elements, "html-line").size(), "splitting the button would be two Tab stops");
+            assertEquals("a b", buttonsOf(elements).getFirst().label());
+        }
+
+        @Test
+        @DisplayName("a br in the paragraph nobody wrote, which is a paragraph like any other")
+        void breakInAnImplicitParagraph() {
+            var elements = mount("<div>one<br>two</div>");
+
+            assertEquals(1, withClass(elements, "html-prose").size());
+            assertEquals(2, withClass(elements, "html-line").size());
         }
 
         @Test

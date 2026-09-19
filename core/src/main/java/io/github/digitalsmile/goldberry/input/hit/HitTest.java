@@ -151,6 +151,30 @@ public final class HitTest {
                     (float) (forward.d() * height));
         }
 
+        /// Whether **any** of this box survived the clip above it.
+        ///
+        /// [#contains] asks this of one point; this asks it of the rectangle, and
+        /// it is the question a popup has to keep asking about the anchor it is
+        /// following. A row scrolled past the top of its viewport is still laid
+        /// out where it always was and still reported here — the walk only stops
+        /// at a subtree whose *own* clip went empty, and a row is not one
+        /// ([ADR-0114]) — so a menu hanging off it would go on pointing at a
+        /// widget nobody can see ([ADR-0433]).
+        ///
+        /// **The clip, and not the window.** [Clip#NONE] is what a box with no
+        /// clipping ancestor is painted under, and it admits everything: this
+        /// answers "has it left the viewport that confines it", which is what a
+        /// scroll does to an anchor, and says nothing about a box that left the
+        /// window by some other route. The window is the caller's to know.
+        ///
+        /// A box of no area is not visible either, which falls out of the
+        /// half-open arithmetic rather than being a case.
+        public boolean isVisible() {
+            var rect = painted();
+            return !clip.intersect(Clip.of(rect.left(), rect.top(), rect.width(), rect.height()))
+                    .isEmpty();
+        }
+
         /// This rectangle as a plain one, in the window's logical coordinates.
         ///
         /// The rectangle **layout** produced, without the owner, the cursor or

@@ -32,6 +32,7 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.selectlist.SelectList;
 
 /// §4's first field, driven the way a user drives it.
 ///
@@ -822,11 +823,22 @@ class TextInputTest {
         }
 
         @Test
-        @DisplayName("a caret at the end brings the end into view")
+        @DisplayName("a caret at the end brings the end into view, once the field is in use")
         void scrollsToTheCaret() {
             var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
 
-            // A press at the field's right edge must land near the *end* of the
+            // Untouched, the field shows the **head** of its value and a press at
+            // its right edge lands a few characters in ([ADR-0412],
+            // [FieldOpeningTest]). The focus is what makes the caret — which has
+            // been at the end all along — worth chasing.
+            press(tree, 55, 1, Modifiers.NONE);
+            assertTrue(field(tree).edit().caret() < 20, "the head was what was under the press");
+
+            field(tree).onFocusChanged(true, false);
+            key(tree, Key.END);
+            render(tree);
+
+            // A press at the field's right edge must now land near the *end* of the
             // text rather than a few characters in, which is what it would if
             // the content had not moved under the caret.
             press(tree, 55, 1, Modifiers.NONE);
@@ -1067,9 +1079,8 @@ class TextInputTest {
             return tree;
         }
 
-        private io.github.digitalsmile.goldberry.widgets.controls.select.SelectList offered() {
-            return (io.github.digitalsmile.goldberry.widgets.controls.select.SelectList)
-                    host.opened.getFirst().content();
+        private SelectList offered() {
+            return (SelectList) host.opened.getFirst().content();
         }
 
         private TextInput field(String value, String... options) {

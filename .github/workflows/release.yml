@@ -14,7 +14,12 @@
 # mavenLocal, uploading nothing. It is the way to find out that javadoc, signing
 # configuration or a POM is broken on a day that is not release day.
 #
-# docs/releasing.md is the checklist, including what to bump afterwards.
+# The bump that used to be step 5 of the runbook is a job here now (ADR-0426):
+# a successful release opens a pull request moving master to the next line, so
+# forgetting it is a review request nobody merged rather than a snapshot that
+# Maven orders below the release it follows.
+#
+# docs/releasing.md is the checklist.
 #
 # STATUS: never run.
 
@@ -39,3 +44,83 @@ jobs:
       release: ${{ github.event_name == 'push' }}
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
+
+  # Move master on, as a pull request (ADR-0426).
+  #
+  # After `publish`, because a release that failed has nothing to follow. On a tag
+  # push only: a `workflow_dispatch` rehearsal publishes nothing and must not
+  # propose a version bump for a release that did not happen.
+  #
+  # It opens a pull request rather than pushing to master. Master may be protected
+  # -- and if it is not, a workflow that pushed to it would be the one commit in
+  # the repository nobody reviewed, which is a poor precedent to set on the file
+  # that decides what every artifact is called.
+  bump:
+    name: Bump the release line
+    needs: publish
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # The default branch, not the tag. The tag names the release that just
+      # happened; what is being bumped is where development continues.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The guard, and it covers two cases with one comparison. A patch tag is cut
+      # from a `release/*` branch whose line master left long ago, and a re-run of
+      # a tag whose bump has already merged finds master ahead as well. In both,
+      # the answer is that there is nothing here to move.
+      - name: Is there anything to bump?
+        id: check
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          declared=$(sed -n 's/^goldberryVersion=//p' gradle.properties)
+          if [ "v$declared" = "$TAG" ]; then
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+            echo "The default branch declares **$declared** and the tag is **$TAG**; nothing to bump." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Rewrite gradle.properties
+        if: steps.check.outputs.bump == 'true'
+        id: rewrite
+        run: |
+          # `2026.1 -> 2026.2`, printed by the task and parsed here.
+          bump=$(./gradlew -q :core:bumpVersion -Pgoldberry.skipNative=true --no-daemon)
+          to=${bump##*-> }
+          echo "to=$to" >> "$GITHUB_OUTPUT"
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+          git diff --stat
+
+      - name: Open the pull request
+        if: steps.check.outputs.bump == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          TO: ${{ steps.rewrite.outputs.to }}
+          BUMP: ${{ steps.rewrite.outputs.bump }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Named for the version it moves to, so a re-run reuses the branch
+          # rather than opening a second pull request.
+          git switch -c "bump/$TO"
+          git commit -am "The release line moves to $TO"
+          git push --force-with-lease origin "bump/$TO"
+          gh pr create --fill --base "${{ github.event.repository.default_branch }}" \
+            --title "The release line moves to $TO" \
+            --body "$TAG is published, so master declares $TO from here ($BUMP). Opened by release.yml — ADR-0426." \
+            || gh pr edit "bump/$TO" --title "The release line moves to $TO"
+          echo "Opened the bump to **$TO**." >> "$GITHUB_STEP_SUMMARY"

@@ -999,6 +999,19 @@ public final class Sdl3Backend implements Backend {
                 }
                 out.add(new BackendEvent.FileDropped(window, path, dropX, dropY));
             }
+        } else if (type == SdlEventType.DROP_TEXT.value()) {
+            // The same arm as DROP_FILE, reading the same `data` field, because
+            // SDL reports the two gestures identically -- one event per line of
+            // text, tokenised on \r\n by SDL itself ([ADR-0408]).
+            var text = eventBuffer.droppedText();
+            if (!text.isEmpty()) {
+                var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+                if (at[0] != 0 || at[1] != 0) {
+                    dropX = at[0];
+                    dropY = at[1];
+                }
+                out.add(new BackendEvent.TextDropped(window, text, dropX, dropY));
+            }
         } else if (type == SdlEventType.DROP_COMPLETE.value()) {
             out.add(new BackendEvent.FileDropCompleted(window, dropX, dropY));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {

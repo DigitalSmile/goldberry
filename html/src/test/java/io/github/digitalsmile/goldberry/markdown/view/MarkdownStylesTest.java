@@ -56,8 +56,12 @@ class MarkdownStylesTest {
         // Not every class -- that list belongs in `MarkdownWidgets` -- but the ones
         // whose absence would be invisible: a document that rendered as a column of
         // unstyled words looks like a document somebody wrote badly.
+        //
+        // `.md-line` and `.md-lines` rather than `.md-prose`, which carries no
+        // declarations since ADR-0426: a paragraph's geometry moved to the class that
+        // means a line of words, and `.md-prose` is the hook the paragraph's box keeps.
         for (var name : new String[] {
-            ".markdown", ".md-prose", ".md-h1", ".md-strong", ".md-code-block", ".md-table", "task-mark"
+            ".markdown", ".md-line", ".md-lines", ".md-h1", ".md-strong", ".md-code-block", ".md-table", "task-mark"
         }) {
             assertTrue(css.contains(name), () -> "markdown.css has no rule for " + name);
         }

@@ -81,10 +81,13 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 /// - **A table has no rules between its cells**, because §10's `border` is uniform
 ///   — there is no `border-left` to draw one with. The head's fill and the space in
 ///   the cells are what separate them.
-/// - **A hard break inside a paragraph does nothing.** A wrapping row has no widget
-///   meaning "start a new line here"; the HTML writer emits the `<br>` it deserves.
 ///
-/// All four are in `book/src/TODO.md` rather than only here.
+/// All three are in `book/src/TODO.md` rather than only here.
+///
+/// **A hard break was on that list and is not any more** (ADR-0426): a paragraph the
+/// author ended a line inside is a column of line rows rather than one row, so the
+/// break lands where they put it. A *soft* break still reflows, because that is what
+/// makes it soft.
 final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     /// The `md-word` / `md-token` namespace, which is all this fold and
@@ -207,7 +210,8 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             // The markup as the text it is. A widget renderer with no HTML engine
             // under it has no honest alternative, and showing nothing would lose
             // content the author meant to keep.
-            case HtmlBlock(var html) -> new Row(List.of(words.whole(html, Set.of("md-raw"))), classes("md-prose"));
+            case HtmlBlock(var html) ->
+                new Row(List.of(words.whole(html, Set.of("md-raw"))), classes("md-prose", "md-line"));
             case Table table -> table(table);
             case TableRow row -> row(row);
             case TableCell cell -> cell(cell, false);
@@ -216,15 +220,32 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     // --- prose -----------------------------------------------------------------
 
-    /// A run of inline content as a wrapping row of words.
+    /// A run of inline content as the lines it is: one wrapping row of words, or a
+    /// column of them where the author ended a line.
+    ///
+    /// **With no hard break in it this builds exactly the row it always built**, one
+    /// class wider — which is deliberate and is what keeps every golden image of every
+    /// document without a break in it unmoved. `md-prose` is the paragraph, whichever
+    /// shape it takes, and `md-line` is a line of words; `markdown.css` says which
+    /// declarations belong to which and why (ADR-0426).
     private Widget prose(List<Inline> content, String... extra) {
         minter.block();
-        var fragments = new ArrayList<Words.Piece>();
-        inlines(fragments, content, Set.of());
-        var classes = new ArrayList<String>(extra.length + 1);
+        var pieces = new ArrayList<Words.Piece>();
+        inlines(pieces, content, Set.of());
+        var lines = words.lines(pieces);
+        var classes = new ArrayList<String>(extra.length + 2);
         classes.add("md-prose");
+        classes.add(lines.size() == 1 ? "md-line" : "md-lines");
         classes.addAll(List.of(extra));
-        return new Row(words.tokens(fragments), classes(classes.toArray(String[]::new)));
+        var attributes = classes(classes.toArray(String[]::new));
+        if (lines.size() == 1) {
+            return new Row(lines.getFirst(), attributes);
+        }
+        var rows = new ArrayList<Widget>(lines.size());
+        for (var line : lines) {
+            rows.add(new Row(line, classes("md-line")));
+        }
+        return new Column(rows, attributes);
     }
 
     /// Walks the inline tree, carrying the marks a fragment is inside down with it.
@@ -249,14 +270,14 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
                     link(out, target, children, Words.and(marks, "md-wikilink"), wiring.wikiLinks());
                 case Image(var src, var _, var alt) -> image(out, src, alt, Words.and(marks, "md-image"));
                 case RawHtml(var html) -> out.add(new Words.Fragment(html, Words.and(marks, "md-raw"), true));
-                // **A break ends the token and nothing more, hard or soft.** A
-                // wrapping row breaks where the width runs out, and there is no widget
-                // that means "start a new line here" -- a `spacer` with `flex-grow`
-                // would fill the rest of the line, which is the trick this deliberately
-                // does not play: it would make a hard break look like justified text.
-                // Noted in TODO.md; `html-view` is where a hard break becomes a `<br>`
-                // that means it.
-                case LineBreak _ -> out.add(Words.Fragment.SEPARATOR);
+                // **The two breaks are two different things, and this is where they
+                // stop being the same one.** A soft break is a newline the author's
+                // editor happened to put in, so it ends the token and the line reflows;
+                // a hard break is a line they ended, so it is a boundary `prose` cuts
+                // the paragraph at (ADR-0426). No `spacer` with `flex-grow` anywhere
+                // near it: that fills the rest of the line, which makes the line before
+                // a break look justified.
+                case LineBreak(var hard) -> out.add(hard ? Words.Break.HARD : Words.Fragment.SEPARATOR);
             }
         }
     }
@@ -272,6 +293,14 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// A link with **no text** — one wrapping only an image, or an empty destination —
     /// is folded inline instead, because a button with nothing on it has nothing to
     /// click and nothing to read out (§13).
+    ///
+    /// **A hard break inside a link does not break the line**, and this is the one place
+    /// ADR-0426 stops: the whole run is one `button.link` — one Tab stop, one hover, one
+    /// press — and two buttons for one destination is a worse lie to a reader than a
+    /// line that did not end where they typed. So the break becomes a space in the
+    /// label, which is also what a copy of it says. [Inlines#text] is where the newline
+    /// comes from, and it is right to produce one: the `<br>` of the HTML writer is what
+    /// it is for.
     private void link(
             List<Words.Piece> out,
             String destination,
@@ -279,7 +308,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             Set<String> marks,
             @Nullable Consumer<String> handler) {
 
-        var label = Inlines.text(children);
+        var label = Inlines.text(children).replace('\n', ' ');
         if (destination.isBlank() || label.isBlank()) {
             inlines(out, children, marks);
             return;

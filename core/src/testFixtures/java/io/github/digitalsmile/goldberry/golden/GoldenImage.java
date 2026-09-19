@@ -45,10 +45,11 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 ///
 /// A golden pins one scale, and it is 1.0 for almost all of them — the gap
 /// ADR-0157 named after a HiDPI bug that every image here was blind to. So every
-/// golden that matches is then drawn again at 2x and 1.5x its own scale and
-/// checked for describing the same picture, with nothing further committed. That
-/// is [ScaleInvariance], `-Dgoldberry.golden.scales=` turns it off, and ADR-0162
-/// is why it is a second question rather than a second set of files.
+/// golden that matches is then drawn again at 2x, 1.5x and 1.25x its own scale
+/// and checked for describing the same picture, with nothing further committed.
+/// That is [ScaleInvariance], `-Dgoldberry.golden.scales=` turns it off, ADR-0162
+/// is why it is a second question rather than a second set of files, and
+/// [ADR-0434] is why the third multiplier is 1.25 and why there is no fourth.
 public final class GoldenImage {
 
     /// Rewrites the goldens instead of asserting on them.
@@ -113,6 +114,29 @@ public final class GoldenImage {
     /// [#assertMatches(String, int, int, float, Consumer)] for a scene that
     /// renders itself.
     public static void assertMatches(String name, int width, int height, float scale, Scene scene) {
+        assertMatches(name, width, height, scale, scene, true);
+    }
+
+    /// The same, **without the second question** — the golden is compared and the
+    /// scene is not re-rendered at any other scale.
+    ///
+    /// For a scene the invariance claim is *false* about, which is a small and
+    /// specific category: [ScaleInvariance] asserts that the picture is a fact
+    /// about logical space, and a scene holding content that is not — a decoded
+    /// bitmap drawn at its own pixel size, a barcode whose modules are a
+    /// hard-edged grid — legitimately differs between one device and another.
+    /// This is `DamageTest`'s exclusion, arrived at from the picture side: an
+    /// invariance check on a QR code asserts something untrue and the honest move
+    /// is not to assert it ([ADR-0434]).
+    ///
+    /// Use it sparingly and say why at the call site. A golden that opts out is a
+    /// golden nothing checks at 2&times;, which is the blindness ADR-0157 was
+    /// about.
+    public static void assertMatchesAtOneScale(String name, int width, int height, float scale, Scene scene) {
+        assertMatches(name, width, height, scale, scene, false);
+    }
+
+    private static void assertMatches(String name, int width, int height, float scale, Scene scene, boolean sweep) {
 
         // Through the shipped `Offscreen` rather than through a frame this
         // harness opens itself (ADR-0284). It owns the buffer, the frame and the
@@ -145,7 +169,9 @@ public final class GoldenImage {
         if (comparison.matches()) {
             // Only once the image is right: a scene whose golden has drifted
             // would report both faults, and the first one is the one to read.
-            ScaleInvariance.assertScaleInvariant(name, width, height, scale, scene, actual);
+            if (sweep) {
+                ScaleInvariance.assertScaleInvariant(name, width, height, scale, scene, actual);
+            }
             return;
         }
 

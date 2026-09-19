@@ -4,9 +4,7 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -18,7 +16,6 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
@@ -70,90 +67,13 @@ public final class HeadlessBackend implements Backend {
     /// is the one piece of state that has to be safe to touch from anywhere.
     private final AtomicBoolean woken = new AtomicBoolean();
 
-    /// An in-memory clipboard, not [Clipboard#none()].
+    /// The session's clipboard, in memory — lazy and able to refuse
+    /// ([ADR-0407]).
     ///
-    /// A test that copies and pastes should be testing the widget's editing
-    /// model, and against a clipboard that accepts nothing every such test would
-    /// pass for the wrong reason. This one behaves like a session's: what was
-    /// last written is what is read.
-    private final StringBuilder clipboardText = new StringBuilder();
-
-    /// The byte half of the same clipboard, which a headless test needs for the
-    /// same reason it needs the text half: a paste that could not possibly have
-    /// anything to paste tests nothing (ADR-0286).
-    ///
-    /// Eager where a platform's is lazy — there is no other application to ask,
-    /// so the bytes are simply kept. What that cannot model is a *refusal*, and
-    /// nothing here pretends to.
-    private final Map<String, byte[]> clipboardData = new LinkedHashMap<>();
-
-    private final Clipboard clipboard = new Clipboard() {
-
-        @Override
-        public boolean hasText() {
-            requireUiThread();
-            return !clipboardText.isEmpty();
-        }
-
-        @Override
-        public String text() {
-            requireUiThread();
-            return clipboardText.toString();
-        }
-
-        @Override
-        public boolean text(String text) {
-            requireUiThread();
-            clipboardText.setLength(0);
-            clipboardText.append(text == null ? "" : text);
-            return true;
-        }
-
-        @Override
-        public boolean has(String mime) {
-            requireUiThread();
-            return clipboardData.containsKey(mime);
-        }
-
-        @Override
-        public byte[] read(String mime) {
-            requireUiThread();
-            var bytes = clipboardData.get(mime);
-            // A copy, because what a platform hands back is a copy: a test that
-            // mutated what it pasted and saw the clipboard change would be
-            // learning something about this class rather than about a clipboard.
-            return bytes == null ? new byte[0] : bytes.clone();
-        }
-
-        @Override
-        public java.util.List<String> types() {
-            requireUiThread();
-            return java.util.List.copyOf(clipboardData.keySet());
-        }
-
-        @Override
-        public boolean write(Map<String, byte[]> byMime) {
-            requireUiThread();
-            clipboardData.clear();
-            byMime.forEach((mime, bytes) -> clipboardData.put(
-                    Objects.requireNonNull(mime, "mime"),
-                    Objects.requireNonNull(bytes, "bytes").clone()));
-            return true;
-        }
-
-        @Override
-        public boolean clear() {
-            requireUiThread();
-            clipboardData.clear();
-            clipboardText.setLength(0);
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return "Clipboard[headless, " + clipboardText.length() + " chars, " + clipboardData.size() + " types]";
-        }
-    };
+    /// Its own class rather than an anonymous one here, because it has state and
+    /// two seams a test reaches for; see [HeadlessClipboard] for what it models
+    /// and why a headless session has a real clipboard at all.
+    private final HeadlessClipboard clipboard = new HeadlessClipboard(this);
 
     private boolean closed;
 
@@ -265,8 +185,15 @@ public final class HeadlessBackend implements Backend {
         trays.remove(tray);
     }
 
+    /// The session's clipboard, in memory.
+    ///
+    /// Narrowed to [HeadlessClipboard] rather than returned as the SPI type, for
+    /// the reason [#fileDialogs()] is: a test that cannot reach
+    /// [HeadlessClipboard#offer] or [HeadlessClipboard#refuseWrites] has to cast,
+    /// and the cast would be the only thing in the test that knows which backend
+    /// it is running on.
     @Override
-    public Clipboard clipboard() {
+    public HeadlessClipboard clipboard() {
         return clipboard;
     }
 

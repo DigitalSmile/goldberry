@@ -53,7 +53,7 @@ public record Selector(List<Part> parts) {
     /// @param classes      the `.class` names, in source order
     /// @param pseudoClasses the `:state` names
     public record Compound(
-            String type, String id, List<String> classes, List<PseudoClass> pseudoClasses) {
+            @Nullable String type, @Nullable String id, List<String> classes, List<PseudoClass> pseudoClasses) {
 
         public Compound {
             classes = List.copyOf(classes == null ? List.of() : classes);

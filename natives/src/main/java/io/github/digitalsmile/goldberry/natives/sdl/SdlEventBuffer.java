@@ -228,6 +228,22 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// Empty for `DROP_BEGIN`, `DROP_POSITION` and `DROP_COMPLETE`, which carry
     /// a NULL there and say so in SDL's own header.
     public String droppedPath() {
+        return droppedData();
+    }
+
+    /// One line of the dropped **text**, or `""` — the same
+    /// `SDL_DropEvent.data`, read for `DROP_TEXT` ([ADR-0408]).
+    ///
+    /// A second name for one field rather than a second field: SDL's header says
+    /// `data` is "the text for `SDL_EVENT_DROP_TEXT` and the file name for
+    /// `SDL_EVENT_DROP_FILE`". The names are separate so that the arm reading it
+    /// says which event it is on — a `droppedPath()` in the text arm would read
+    /// as a bug every time somebody looked at it.
+    public String droppedText() {
+        return droppedData();
+    }
+
+    private String droppedData() {
         var pointer = event.get(ValueLayout.ADDRESS, DROP_DATA_OFFSET);
         if (MemorySegment.NULL.equals(pointer)) {
             return "";

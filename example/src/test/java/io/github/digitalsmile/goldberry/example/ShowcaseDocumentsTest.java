@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -115,9 +116,20 @@ class ShowcaseDocumentsTest {
             var wall = wall(name);
             assertFalse(wall.children().isEmpty(), () -> name + ".kdl built no cards");
             // Not a detail: `Wall.of` rebuilds the masonry with the Java cards
-            // added, and a column count of zero would throw where a wrong one
-            // would silently re-lay the whole screen.
-            assertTrue(wall.columns() >= 1, () -> name + ".kdl asks for " + wall.columns() + " columns");
+            // added, and it has to carry the document's **mode** and not just a
+            // number -- a screen that came back as a count when the document said
+            // a width would stop following the window and nothing would say so.
+            // Since ADR-0436 there are two legal shapes and no third: a count of
+            // at least one, or a minimum column width of at least one.
+            if (wall.responsive()) {
+                assertTrue(
+                        wall.minColumnWidth() >= 1,
+                        () -> name + ".kdl asks for columns at least " + wall.minColumnWidth() + " wide");
+                assertEquals(Masonry.UNSET, wall.columns(), () -> name + ".kdl names a width and a count");
+            } else {
+                assertTrue(wall.columns() >= 1, () -> name + ".kdl asks for " + wall.columns() + " columns");
+                assertEquals(Masonry.UNSET, wall.minColumnWidth(), () -> name + ".kdl names a count and a width");
+            }
         }
     }
 
@@ -311,10 +323,38 @@ class ShowcaseDocumentsTest {
     }
 
     private static void collectOn(Element element, Object property, List<String> into) {
-        if (element.widget().binding() == property && element.type() != null) {
-            into.add(element.type());
+        if (element.widget().binding() == property) {
+            // The element's own type when it has one, and otherwise the type of
+            // the node it builds. A **stateful** control carries its binding on
+            // the widget a document wrote and its CSS type on the node that
+            // widget builds — `slider` since ADR-0430, the arrangement `tabs`,
+            // `collapse` and `toaster` have always had. Asking only the bound
+            // element would have this test quietly counting two readers where
+            // there are four, which is what it caught when `slider` became
+            // stateful.
+            var type = element.type() == null ? styledTypeBelow(element) : element.type();
+            if (type != null) {
+                into.add(type);
+            }
         }
         element.children().forEach(child -> collectOn(child, property, into));
+    }
+
+    /// The CSS type of the nearest descendant that has one, breadth-first.
+    ///
+    /// Breadth-first because a stateful widget's styled node is its immediate
+    /// child; a depth-first walk would reach that node's own first child first
+    /// and report a part (`slider-track`) where the control (`slider`) is meant.
+    private static @Nullable String styledTypeBelow(Element element) {
+        var queue = new java.util.ArrayDeque<>(element.children());
+        while (!queue.isEmpty()) {
+            var next = queue.removeFirst();
+            if (next.type() != null) {
+                return next.type();
+            }
+            queue.addAll(next.children());
+        }
+        return null;
     }
 
     @Test

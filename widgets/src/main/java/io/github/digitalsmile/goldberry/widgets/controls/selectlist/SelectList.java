@@ -1,17 +1,19 @@
-package io.github.digitalsmile.goldberry.widgets.controls.select;
+package io.github.digitalsmile.goldberry.widgets.controls.selectlist;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
-/// The open half of a [Select]: the panel of options, in a popup window of its
+/// The open half of a `select`: the panel of options, in a popup window of its
 /// own.
 ///
 /// A **part** — CSS-selectable and not constructible
@@ -33,23 +35,35 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// Horizontal roving is absent for `menu`'s reason: a list is one column, and
 /// `Left` and `Right` are not its to take.
 ///
-/// ## Two callers now
+/// ## Two callers, and a package of its own
 ///
 /// §4's autocomplete is the second: "attaches a `popover` of suggestions to the
-/// field", which is this panel with this keyboard and this drawing. It is public
+/// field", which is this panel with this keyboard and this drawing. It is shared
 /// rather than copied for the reason
 /// [io.github.digitalsmile.goldberry.widgets.controls.option.Option] was moved
-/// into a package of its own the day *it* had two callers — and moving this one
-/// the same way is the follow-up that has not been taken, because the CSS type
-/// it carries is `select-list` and renaming that is a change to every stylesheet
-/// and every golden rather than to this file ([ADR-0182]).
+/// into a package of its own the day *it* had two callers.
+///
+/// This lives here rather than in `…controls.select` because a part belongs to
+/// whatever owns it, and two things own this one. The move was filed and not
+/// taken for years on the grounds that the CSS type it carries is `select-list`
+/// and renaming that would touch every stylesheet and every golden — which was
+/// simply **wrong**: the CSS type is the string [#cssType()] returns and a Java
+/// package is not part of it. Nothing outside this file moved
+/// ([ADR-0417], and ADR-0182 is where the mistaken cost was written down).
+///
+/// The package is **not exported**, which is the other half of the move and the
+/// part that was a real change. ADR-0065's rule is that a part is styleable and
+/// not constructible, and this type said so in its own first paragraph while
+/// sitting public in an exported package — so an application could build a
+/// dropdown's panel with no dropdown around it. `…form.parts` already holds two
+/// widgets' shared parts this way: public to the module, invisible outside it.
 ///
 /// `Option.inAList()` is what makes it right for both: the arrows move the
 /// focus and `Enter` commits, so a suggestion list never rewrites the field
 /// under a user who is only looking (§4).
 ///
 /// @param children the rows — the options, already told what they are
-public record SelectList(List<Widget> children, java.util.function.Consumer<String> onTypeahead)
+public record SelectList(List<Widget> children, Consumer<String> onTypeahead)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     public SelectList {
@@ -75,7 +89,7 @@ public record SelectList(List<Widget> children, java.util.function.Consumer<Stri
     /// not — which is the point of fixing this rather than writing a second
     /// typeahead for the open case.
     @Override
-    public void onTextCapture(io.github.digitalsmile.goldberry.input.event.TextEvent event) {
+    public void onTextCapture(TextEvent event) {
         if (onTypeahead == null || event.text().isBlank()) {
             return;
         }
@@ -83,6 +97,11 @@ public record SelectList(List<Widget> children, java.util.function.Consumer<Stri
         event.consume();
     }
 
+    /// `select-list`, and it did not change when this file did.
+    ///
+    /// The string is the whole of what a stylesheet, a golden and a selector see.
+    /// It is written here and nowhere else, which is why moving the class cost one
+    /// `package` line and a handful of imports ([ADR-0417]).
     @Override
     public String cssType() {
         return "select-list";

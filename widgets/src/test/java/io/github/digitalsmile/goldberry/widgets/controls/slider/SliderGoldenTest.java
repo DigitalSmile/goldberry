@@ -63,9 +63,22 @@ class SliderGoldenTest {
         GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
+    /// A pseudo-class forced onto one child of the scene, standing in for the
+    /// router.
+    ///
+    /// **Onto the child's first *styled* element**, which since [ADR-0430] is not
+    /// the child itself: a `Slider` is a composition that styles nothing and
+    /// builds the `slider` node, so a `:hover` set on the composition would be a
+    /// `:hover` no rule can see. The router has no such problem — it dispatches to
+    /// the element that handles, which is the styled one — so this walk is the
+    /// test catching up with where the node went, not a behaviour being patched.
     private record PseudoState(int child, Selector.PseudoClass pseudoClass) {
         void applyTo(Element root) {
-            root.children().get(child).setPseudoClass(pseudoClass, true);
+            styled(root.children().get(child)).setPseudoClass(pseudoClass, true);
+        }
+
+        private static Element styled(Element element) {
+            return element.type() != null ? element : styled(element.children().getFirst());
         }
     }
 

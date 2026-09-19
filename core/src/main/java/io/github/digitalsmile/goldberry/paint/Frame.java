@@ -332,6 +332,25 @@ public final class Frame {
         context.fillPath(x, y, path, argb);
     }
 
+    /// The same, filled **even-odd**: a sub-path inside another is a hole.
+    ///
+    /// Package-private and deliberately not on [Path], which is where a public
+    /// fill rule would have to live. A `Path` is a value describing a shape, and
+    /// a fill rule is a statement about how to read one — attaching it to the
+    /// value would mean every path in the toolkit carries an answer to a
+    /// question only one drawing asks, and adding it to the public
+    /// [#fillPath(double, double, Path, int)] would be API surface nothing has
+    /// requested (ADR-0427).
+    ///
+    /// That one drawing is a drop shadow with the box's own rectangle cut out of
+    /// it. When something else needs a hole, this is what it grows out of.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    void fillPathEvenOdd(double x, double y, BlendPath path, int argb) {
+        requireOpen();
+        context.fillPathEvenOdd(x, y, path, argb);
+    }
+
     /// Fills `path` with `gradient`, with the path's own origin placed at
     /// logical `(x, y)`.
     ///

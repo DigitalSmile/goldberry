@@ -11,7 +11,8 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
-import io.github.digitalsmile.goldberry.text.TextLayout;
+import io.github.digitalsmile.goldberry.text.document.DocumentLines;
+import io.github.digitalsmile.goldberry.text.document.TextDocument;
 import io.github.digitalsmile.goldberry.text.edit.keys.EditCommand;
 import io.github.digitalsmile.goldberry.text.edit.keys.EditKeys;
 import io.github.digitalsmile.goldberry.text.edit.keys.EditSurface;
@@ -46,9 +47,10 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 ///
 /// It holds three things and nothing else: a [TextEdit] (the string, the caret
 /// and the anchor), an [EditHistory] (undo, with a typing run folded into one
-/// step), and a [Paragraph] it re-shapes when the text changes. Everything
-/// visual — where to draw it, what colour, whether the caret blinks, whether
-/// there is a border — stays the caller's.
+/// step), and a [TextDocument] — the text shaped one **hard line** at a time, so
+/// that a keystroke re-shapes the line it landed on rather than everything
+/// ([ADR-0411]). Everything visual — where to draw it, what colour, whether the
+/// caret blinks, whether there is a border — stays the caller's.
 ///
 /// ## A canvas holding one must ask for the keyboard
 ///
@@ -95,15 +97,31 @@ public final class Editor {
 
     private @Nullable Clipboard clipboard;
 
-    /// The shaped text, rebuilt when the text changes and not before.
+    /// The shaped text — one [Paragraph] per **hard line**, re-shaped a hard line
+    /// at a time ([ADR-0411]).
     ///
-    /// Shaping a sticky's worth of text is microseconds and a keystroke is a
-    /// human, so this is a cache for correctness rather than for speed: the
-    /// caret, the hit test and the paint must all measure the *same* shaping, and
-    /// the way to guarantee that is for there to be one.
-    private @Nullable Paragraph paragraph;
+    /// It is a cache for correctness before it is one for speed: the caret, the
+    /// hit test and the paint must all measure the *same* shaping, and the way to
+    /// guarantee that is for there to be one. What makes it a cache for speed as
+    /// well is that the next one is built **from** this one, so a keystroke into a
+    /// long text re-shapes the line it landed on and nothing else (ADR-0388).
+    private @Nullable TextDocument document;
 
-    private @Nullable TextLayout layout;
+    /// Whether [#document] describes text this editor no longer holds.
+    ///
+    /// A flag rather than nulling the document, because the stale document is the
+    /// input to the new one. And a flag rather than letting
+    /// [TextDocument#of] notice: that comparison is two passes over the text, and
+    /// a frame asks for the caret, the selection, the lines and the paint. One
+    /// comparison per edit is the cost this is for; four per frame is not.
+    private boolean stale = true;
+
+    /// What turns one hard line into glyphs — [#shaper(TextDocument.Shaper)].
+    private TextDocument.Shaper shaper;
+
+    /// How tall the caller's viewport is, in the text's own space, or `NaN` when
+    /// it has not said — [#viewportHeight(double)].
+    private double viewportHeight = Double.NaN;
 
     /// The column a run of `Up`/`Down` is keeping, or NaN when the last thing the
     /// caret did was not vertical.
@@ -136,6 +154,57 @@ public final class Editor {
     /// A new, empty editor whose text is shaped with `font`.
     public Editor(Font font) {
         this.font = Objects.requireNonNull(font, "font");
+        this.shaper = line -> Paragraph.of(font, line);
+    }
+
+    /// Where a hard line's glyphs come from. `Paragraph.of` with this editor's
+    /// font by default, which caches nothing.
+    ///
+    /// A caller inside a frame hands over the renderer's paragraph cache and gets
+    /// the sharing the rest of the frame gets; a caller that has no frame — a
+    /// test, a headless measurement — leaves it alone. The seam is
+    /// [TextDocument]'s own and this only passes it along, because the class that
+    /// shapes is the class that should not decide who caches (ADR-0388).
+    ///
+    /// **Lines already shaped keep the paragraphs they have.** A new shaper is
+    /// asked for the lines that change from here, which is what makes handing one
+    /// over cheap enough to do on the first frame that has a cache to offer.
+    public Editor shaper(TextDocument.Shaper value) {
+        this.shaper = Objects.requireNonNull(value, "value");
+        return this;
+    }
+
+    /// How tall the box this editor is drawn into is, in the text's own space —
+    /// what `PageUp` and `PageDown` move by ([ADR-0410]).
+    ///
+    /// A page is a screenful, and until this existed an editor on a canvas had no
+    /// way to know what a screenful was: it moved by ten lines whatever the caller
+    /// had drawn, so `PageDown` in a six-line sticky ran off the end and
+    /// `PageDown` in a forty-line pane moved a quarter of the way down it.
+    ///
+    /// In **logical units and not in lines**, because a height is what a caller
+    /// has — a `Canvas` is handed one of these:
+    ///
+    /// [io.github.digitalsmile.goldberry.input.hit.Extent]
+    ///
+    /// and a sticky is a rectangle on a board. Dividing by a line's height needs
+    /// the font, this editor has it, and a caller doing that arithmetic itself
+    /// would be doing it with a guess at the leading.
+    ///
+    /// Leave it unset — or pass `NaN`, `0` or a negative — and a page is ten
+    /// lines, which is what every editor here did before this and is still the
+    /// only defensible answer for a caller that has not said (see [ADR-0410]).
+    ///
+    /// **Nothing is invalidated.** How tall the viewport is does not change where
+    /// a line breaks or where a caret goes; it changes what one key means.
+    public Editor viewportHeight(double height) {
+        this.viewportHeight = height;
+        return this;
+    }
+
+    /// See [#viewportHeight(double)] — `NaN` when the caller has not said.
+    public double viewportHeight() {
+        return viewportHeight;
     }
 
     /// The width the text wraps at, in logical units.
@@ -143,11 +212,12 @@ public final class Editor {
     /// [Paragraph#UNCONSTRAINED] by default, which is one long line — a label or a
     /// single-line field. Set it to the box the text is drawn in and the caret,
     /// the hit test and `Up`/`Down` all follow the wrap.
+    /// **The shaping survives it.** A width decides where the lines break and not
+    /// what the glyphs are, and [TextDocument#lines(double)] memoises the break at
+    /// one width like [Paragraph#layout] does — so a resize re-wraps and re-shapes
+    /// nothing.
     public Editor wrapWidth(double width) {
-        if (width != wrapWidth) {
-            this.wrapWidth = width;
-            this.layout = null;
-        }
+        this.wrapWidth = width;
         return this;
     }
 
@@ -429,7 +499,7 @@ public final class Editor {
         // Mapped back out of the displayed text: a click during a composition
         // lands somewhere in a string that is not in the document, and the
         // document's answer for every point inside it is the caret.
-        var offset = toDocument(TextGeometry.offsetAt(paragraph(), layout(), x, y, wrapWidth, textAlign));
+        var offset = toDocument(TextGeometry.offsetAt(document(), lines(), x, y, wrapWidth, textAlign));
         edit = switch (Math.min(clickCount, 3)) {
             case 2 -> edit.wordAt(offset);
             case 3 -> edit.selectAll();
@@ -474,33 +544,39 @@ public final class Editor {
 
     // --- geometry and painting -----------------------------------------------
 
-    /// The shaped text, for a caller that paints it itself.
+    /// The shaped text, for a caller that paints it itself — a hard line at a
+    /// time ([ADR-0411]).
     ///
     /// The same instance the caret and the hit test are measured against, which is
     /// the point of it being handed out rather than rebuilt by the caller.
-    public Paragraph paragraph() {
-        var current = paragraph;
-        if (current == null) {
+    public TextDocument document() {
+        var current = document;
+        if (current == null || stale) {
             // [#displayText], not [#text]: a composition is drawn *inside* the
             // text so that the words after it move along, and the caret, the hit
             // test and the paint all have to measure the same shaping (ADR-0289).
-            current = Paragraph.of(font, displayText());
-            paragraph = current;
-            layout = null;
+            //
+            // The old document goes in as well as coming out: it is what makes a
+            // keystroke re-shape one hard line rather than the whole text
+            // (ADR-0388).
+            current = TextDocument.of(font, displayText(), current, shaper);
+            document = current;
+            stale = false;
         }
         return current;
     }
 
-    /// The line breaking at the current [#wrapWidth(double)].
-    public TextLayout layout() {
-        var current = layout;
-        if (current == null) {
-            // An empty paragraph lays out to one empty line rather than to
-            // none, so the caret has a line to sit on without a fallback here.
-            current = paragraph().layout(wrapWidth);
-            layout = current;
-        }
-        return current;
+    /// The visual lines at the current [#wrapWidth(double)], in the whole text's
+    /// own offsets.
+    ///
+    /// A `List<TextLine>` computed on demand rather than built, so a text of ten
+    /// thousand lines does not allocate ten thousand records to answer where the
+    /// caret is ([DocumentLines]).
+    public DocumentLines lines() {
+        // A document always has at least one hard line and a hard line always
+        // occupies at least one visual line, so the caret has a line to sit on
+        // without a fallback here.
+        return document().lines(wrapWidth);
     }
 
     /// Where to draw the caret, in the text's own space.
@@ -510,7 +586,7 @@ public final class Editor {
     /// assembling, and a caret pinned to the document's own offset would sit
     /// before the characters being typed.
     public TextGeometry.Caret caret() {
-        return TextGeometry.caretAt(paragraph(), layout(), displayCaret(), wrapWidth, textAlign);
+        return TextGeometry.caretAt(document(), lines(), displayCaret(), wrapWidth, textAlign);
     }
 
     /// The visual line the caret is on, in the text's own space — what
@@ -524,7 +600,7 @@ public final class Editor {
     /// In the text's own space, so a caller drawing at `(x, top)` adds both.
     public LogicalRect caretLine() {
         var caret = caret();
-        var line = layout().lines().get(caret.line());
+        var line = lines().get(caret.line());
         return LogicalRect.of(0, (float) caret.top(), (float) line.width(), (float) caret.height());
     }
 
@@ -540,7 +616,7 @@ public final class Editor {
         if (!preedit.isEmpty()) {
             return List.of();
         }
-        return TextGeometry.selectionRects(paragraph(), layout(), edit.start(), edit.end(), wrapWidth, textAlign);
+        return TextGeometry.selectionRects(document(), lines(), edit.start(), edit.end(), wrapWidth, textAlign);
     }
 
     /// The composition's rectangles, one per visual line — what an underline is
@@ -550,8 +626,7 @@ public final class Editor {
             return List.of();
         }
         var start = edit.caret();
-        return TextGeometry.selectionRects(
-                paragraph(), layout(), start, start + preedit.length(), wrapWidth, textAlign);
+        return TextGeometry.selectionRects(document(), lines(), start, start + preedit.length(), wrapWidth, textAlign);
     }
 
     /// The clause the input method is currently converting, one rectangle per
@@ -567,7 +642,7 @@ public final class Editor {
         }
         var start = edit.caret();
         return TextGeometry.selectionRects(
-                paragraph(), layout(), start + preeditClauseStart, start + preeditClauseEnd, wrapWidth, textAlign);
+                document(), lines(), start + preeditClauseStart, start + preeditClauseEnd, wrapWidth, textAlign);
     }
 
     /// What a caller draws with: the three colours an edited string is made of.
@@ -628,7 +703,7 @@ public final class Editor {
                     rect.height(),
                     ink.selection());
         }
-        paragraph().paint(frame, x, top, wrapWidth, ink.text(), TextFlow.NORMAL.textAlign(textAlign));
+        paintText(frame, x, top, ink.text());
         // And the underline, in front of them, which is the mark every platform
         // uses for "this is not text yet". One logical unit, like the caret.
         for (var rect : composingRects()) {
@@ -651,18 +726,42 @@ public final class Editor {
         paint(frame, x, top, ink, caretVisible, 1);
     }
 
+    /// The glyphs, one **hard line** at a time ([ADR-0411]).
+    ///
+    /// One paragraph per hard line, each drawn at the top of its own first visual
+    /// line, which is where the whole text's single paragraph drew it: the wrap is
+    /// per hard line either way ([TextDocument]), and the rows of a wrapped line
+    /// are consecutive, so the y of hard line `k` is the number of visual lines
+    /// above it times the line height.
+    ///
+    /// **Every line is drawn, in the document's order.** ADR-0388's other half —
+    /// drawing a screenful — needs to know which rows are on screen, and that is
+    /// the caller's scroll offset and the caller's transform; an editor asked to
+    /// paint at `(x, top)` knows only where *it* was told to start. A caller with a
+    /// viewport clips, as it already must.
+    private void paintText(Frame frame, double x, double top, int argb) {
+        var shaped = document();
+        var rows = lines();
+        var lineHeight = font.lineHeight();
+        var flow = TextFlow.NORMAL.textAlign(textAlign);
+        for (var k = 0; k < shaped.hardLineCount(); k++) {
+            shaped.paragraphOf(k).paint(frame, x, top + rows.firstVisualOf(k) * lineHeight, wrapWidth, argb, flow);
+        }
+    }
+
     // --- the plumbing --------------------------------------------------------
 
     /// `Home` and `End` on the **visual** line, which is what a reader means by
     /// them and is not [TextEdit]'s hard-line start.
     private TextEdit toLineEdge(boolean start, boolean extend) {
-        var line = layout().lines().get(TextGeometry.lineOf(layout(), edit.caret()));
+        var rows = lines();
+        var line = rows.get(rows.indexOf(edit.caret()));
         return edit.caretTo(start ? line.start() : line.end(), extend);
     }
 
     private boolean verticalBy(int lines, boolean extend) {
         var keep = Double.isNaN(desiredX) ? caret().x() : desiredX;
-        var offset = TextGeometry.moveLine(paragraph(), layout(), edit.caret(), lines, keep, wrapWidth, textAlign);
+        var offset = TextGeometry.moveLine(document(), lines(), edit.caret(), lines, keep, wrapWidth, textAlign);
         var before = edit;
         edit = edit.caretTo(offset, extend);
         // Set *after* the move and not before it, so that a run of Up/Down keeps
@@ -676,11 +775,33 @@ public final class Editor {
         return true;
     }
 
-    /// Lines to a page. Ten, and it is a guess: a page is the height of a
-    /// viewport, and an editor drawn on a canvas has none. A caller that knows
-    /// better moves the caret itself.
+    /// What a page is when the caller has not said how tall its viewport is
+    /// ([#viewportHeight(double)]).
+    ///
+    /// Ten, which is what this editor did before a viewport could be declared, so
+    /// no caller's `PageDown` changed under it. It is a guess and it stays because
+    /// every alternative is worse: zero makes `PageUp` a key that reports `true`
+    /// and does nothing, one makes it `Up` under a second name, and the whole text
+    /// makes it `Ctrl+End` — which is a key the map already has. Ten lines is
+    /// wrong by a factor and never wrong in kind ([ADR-0410]).
+    private static final int DEFAULT_PAGE_LINES = 10;
+
+    /// Lines to a page — the whole lines the caller's viewport holds.
+    ///
+    /// At least one, so a viewport shorter than a line still pages: the caller has
+    /// said it is drawing into something, and a `PageDown` that moves nowhere
+    /// would be this editor deciding the box is too small to use.
+    ///
+    /// Not the viewport less a line, which is what an editor that *scrolls* pages
+    /// by so that the last row of the old screen is the first of the new one. This
+    /// editor does not scroll — its caller does, at a transform this class never
+    /// sees ([ADR-0285]) — so the overlap is not ours to keep.
     private int pageLines() {
-        return 10;
+        var lineHeight = font.lineHeight();
+        if (Double.isNaN(viewportHeight) || viewportHeight <= 0 || lineHeight <= 0) {
+            return DEFAULT_PAGE_LINES;
+        }
+        return Math.max(1, (int) Math.floor(viewportHeight / lineHeight));
     }
 
     private boolean move(TextEdit moved) {
@@ -726,9 +847,9 @@ public final class Editor {
         return true;
     }
 
+    /// Marks the shaping stale without throwing it away — [#stale].
     private void invalidate() {
-        paragraph = null;
-        layout = null;
+        stale = true;
     }
 
     /// Called by everything that moves the caret without changing the text.

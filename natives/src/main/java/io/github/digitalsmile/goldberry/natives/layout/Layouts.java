@@ -296,9 +296,10 @@ public final class Layouts {
     /// } SDL_DropEvent;
     /// ```
     ///
-    /// `data` is the file name for `SDL_EVENT_DROP_FILE` and NULL for the begin,
-    /// position and complete events. It points into SDL's own memory and is valid
-    /// only until the next pump, exactly as `SDL_TextInputEvent.text` is.
+    /// `data` is the file name for `SDL_EVENT_DROP_FILE`, one line of the text for
+    /// `SDL_EVENT_DROP_TEXT` ([ADR-0408]), and NULL for the begin, position and
+    /// complete events. It points into SDL's own memory and is valid only until
+    /// the next pump, exactly as `SDL_TextInputEvent.text` is.
     ///
     /// The two floats before the pointers are what make the offsets worth
     /// checking rather than counting by hand: `windowID`, `x` and `y` are three

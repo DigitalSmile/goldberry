@@ -24,6 +24,7 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -192,43 +193,85 @@ class ProgressTest {
             assertEquals(one, other);
         }
 
-        /// **Inside the track, there and back.** The off-one-end-and-in-at-the-
-        /// other drawing needs `overflow: hidden` to hide both the overhang and
-        /// the wrap, and nothing here clips a box — so a bar that ran past its
-        /// track would be drawn over its neighbours, once a loop, forever.
+        /// **Off one edge and in at the other** ([ADR-0418]). The bar begins one
+        /// whole bar-width before the track and ends one whole track-width after
+        /// its own start, so it is outside the clip at both ends of the loop —
+        /// which is what makes the wrap between them invisible.
         @Test
-        @DisplayName("the bar reverses at the ends and never leaves the track")
-        void sweepStaysInsideTheTrack() {
-            // 0.3 of the track wide, so it has the other 0.7 to cross -- which
-            // in units of the bar itself, which is what a percentage translate
-            // means, is 233%.
+        @DisplayName("the bar starts entirely off the leading edge and ends entirely off the far one")
+        void sweepRunsOffBothEdges() {
+            // 0.3 of the track wide, so its leading edge crosses 1.3 of the
+            // track -- which in units of the bar itself, which is what a
+            // percentage translate means, is 433%.
             assertEquals(Length.percent(30), fillOf(Progress.sweeping(), 0).width());
-            assertEquals(0, translateOf(fillOf(Progress.sweeping(), 0)), 1e-6);
-            assertEquals(700.0 / 3, translateOf(fillOf(Progress.sweeping(), 600)), 1e-6);
-            assertEquals(0, translateOf(fillOf(Progress.sweeping(), 1200)), 1e-6);
-            // Half way out and half way back are the same place, which is what
-            // "it reverses" means and what a wrapping sweep would not do.
-            assertEquals(350.0 / 3, translateOf(fillOf(Progress.sweeping(), 300)), 1e-6);
-            assertEquals(350.0 / 3, translateOf(fillOf(Progress.sweeping(), 900)), 1e-6);
+
+            // The two ends of the travel, as the arithmetic states them. At the
+            // top of the loop the bar's left edge is one whole bar to the left of
+            // the track (-100% of itself); at the bottom it has crossed 1.3
+            // tracks and its left edge sits on the track's right-hand edge
+            // (1 / 0.3 = 333% of itself). Nothing is visible at either, which is
+            // the same picture -- and is precisely why the wrap cannot be seen.
+            assertEquals(-100, ProgressFill.offsetAt(0), 1e-9);
+            assertEquals(1000.0 / 3, ProgressFill.offsetAt(1), 1e-9);
+
+            // The second of those is a **limit** and not a frame: `phaseAt(1200)`
+            // is zero, because 1200 ms is the top of the next loop rather than
+            // the bottom of this one. A test that asserted it at 1200 would be
+            // asserting the modulus is broken.
+            assertEquals(-100, translateOf(fillOf(Progress.sweeping(), 0)), 1e-6);
+            assertEquals(-100, translateOf(fillOf(Progress.sweeping(), 1200)), 1e-6);
+            // And half way is half way, because it is linear the whole way.
+            assertEquals((-100 + 1000.0 / 3) / 2, translateOf(fillOf(Progress.sweeping(), 600)), 1e-6, "linear (§3.1)");
+        }
+
+        /// The half of the drawing that was unavailable until ADR-0114, and the
+        /// reason this bar may now leave its track at all: `progress` cuts it off.
+        /// Without the clip, a bar a third of the way out is painted over whatever
+        /// is beside the control.
+        @Test
+        @DisplayName("the track clips, which is what lets the bar leave it")
+        void theTrackClips() {
+            assertEquals(Overflow.HIDDEN, paint(Progress.sweeping(), 0).overflow());
+            // On a determinate bar too. It has never needed it -- a fill that is
+            // a width cannot leave its track -- but one rule for one widget is
+            // how the two stop agreeing.
+            assertEquals(Overflow.HIDDEN, paint(new Progress(0.4), 0).overflow());
         }
 
         @Test
-        @DisplayName("the loop has no jump in it, because it turns rather than wraps")
-        void sweepDoesNotJump() {
-            // Two frames either side of the loop boundary. A bar that ran off
-            // one end and came back in at the other would cross the **whole
-            // travel** between these two, once every 1.2 seconds, in a control
-            // nothing clips.
-            var acrossTheWrap = Math.abs(travel(1199.99) - travel(1200.01));
-            assertEquals(0, acrossTheWrap, 1e-4, "the loop turns rather than wrapping");
-
-            // And it is genuinely moving elsewhere, or the assertion above would
-            // pass for a bar that never went anywhere.
-            assertTrue(Math.abs(travel(300) - travel(316)) > 0.01);
+        @DisplayName("it moves in one direction only, and never reverses")
+        void sweepDoesNotReverse() {
+            // The old drawing went out and came back, so two phases either side
+            // of the midpoint were the *same place*. They must not be now: a bar
+            // that reverses says the work has a far end to turn at.
+            assertNotEquals(offset(300), offset(900));
+            assertTrue(offset(300) < offset(600) && offset(600) < offset(900), "monotonic across the loop");
         }
 
-        private static double travel(double now) {
-            return ProgressFill.travelAt(ProgressFill.phaseAt(now));
+        /// The cost of the new drawing, stated rather than hidden: there **is** a
+        /// discontinuity at the loop boundary, of the whole travel, once every
+        /// 1.2 seconds. It is invisible only because the bar is outside the clip
+        /// on both sides of it — so this test asserts the jump exists *and* that
+        /// it happens where nothing is drawn.
+        @Test
+        @DisplayName("the wrap is a real jump, and it happens off-screen at both ends")
+        void theWrapIsHiddenRatherThanAbsent() {
+            var before = offset(1199.99);
+            var after = offset(1200.01);
+
+            // Nearly the whole 433% of travel, between two frames a hundredth of
+            // a millisecond apart.
+            assertTrue(before - after > 430, "the whole travel, in one frame: " + before + " to " + after);
+            // And both sides of it are outside the track, to within the hundredth
+            // of a millisecond the samples are off the instant by: a bar 0.3 of
+            // the track wide is clear of the leading edge at -100% of itself and
+            // clear of the far edge at 333%.
+            assertEquals(-100, after, 0.01, "after the wrap it has not entered yet");
+            assertEquals(1000.0 / 3, before, 0.01, "before it, it had already left");
+        }
+
+        private static double offset(double now) {
+            return ProgressFill.offsetAt(ProgressFill.phaseAt(now));
         }
 
         @Test

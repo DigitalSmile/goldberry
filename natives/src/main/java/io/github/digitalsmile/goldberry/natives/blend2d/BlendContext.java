@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFillRule;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
@@ -549,6 +550,36 @@ public final class BlendContext implements AutoCloseable {
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
         calls.contextFillPath(context, origin, path.pointer(), argb);
+    }
+
+    /// The same, counting **crossings** rather than windings — a sub-path inside
+    /// another is a hole.
+    ///
+    /// A whole method rather than a fill rule this class lets callers set,
+    /// because the rule is context state and Blend2D offers no stack for it: a
+    /// caller that set it and did not put it back would hand the rule to
+    /// whatever drew next, and the symptom is a hole in an unrelated shape three
+    /// boxes later. Set, fill, and restored in a `finally`, so the leak is not
+    /// something anyone has to remember (ADR-0427).
+    ///
+    /// The restore is to [BlendFillRule#NON_ZERO] and not to whatever was there
+    /// before, which is the same claim [#fillPath] makes about style and this
+    /// class makes about the transform: non-zero is what a context starts with
+    /// and the only rule any other drawing here ever wants.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void fillPathEvenOdd(double x, double y, BlendPath path, int argb) {
+        requireUsable();
+        Objects.requireNonNull(path, "path");
+        requireDrawableOrigin(x, y);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
+        calls.contextFillRule(context, BlendFillRule.EVEN_ODD);
+        try {
+            calls.contextFillPath(context, origin, path.pointer(), argb);
+        } finally {
+            calls.contextFillRule(context, BlendFillRule.NON_ZERO);
+        }
     }
 
     /// Fills `path` with `gradient`, offset so its own origin lands at `(x, y)`.

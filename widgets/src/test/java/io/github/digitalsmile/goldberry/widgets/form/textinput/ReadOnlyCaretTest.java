@@ -66,13 +66,24 @@ class ReadOnlyCaretTest {
         assertEquals(0, state(tree).scrolledBy(), "so the box shows the head of the value");
     }
 
+    /// **This used to assert the opposite**, and the sentence it asserted was
+    /// "an editable field still opens at the end, because that is where you type".
+    /// Half of that survives and is still checked here: the caret *is* at the end,
+    /// because that is where typing goes and four other controls lean on it. What
+    /// went is the scroll that chased it before anybody had asked to type — see
+    /// [FieldOpeningTest] and [ADR-0412].
     @Test
-    @DisplayName("an editable field still opens at the end, because that is where you type")
-    void editableStartsAtTheTail() {
+    @DisplayName("an editable field keeps its caret at the end and still shows the head")
+    void editableKeepsItsCaretAtTheTail() {
         var tree = mounted(new TextInput(INVITE, null));
 
         assertEquals(INVITE.length(), field(tree).edit().caret());
-        assertTrue(state(tree).scrolledBy() > 0, "and the box is scrolled to show it");
+        assertEquals(0, state(tree).scrolledBy(), 0.01, "but nobody has touched it, so the head is what is shown");
+
+        field(tree).onFocusChanged(true, false);
+        render(tree);
+
+        assertTrue(state(tree).scrolledBy() > 0, "and the moment it is focused the box shows the caret");
     }
 
     @Test

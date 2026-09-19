@@ -19,7 +19,29 @@
 // Everything below flows down through `bind=` and back up through `change=`, so
 // the file names what the application registered and never touches a `Property`
 // (ADR-0063).
-masonry id="basic-wall" columns=2 {
+//
+// ## Why this wall is the one that says a width instead of a count
+//
+// `columns=2` until ADR-0436, and two columns at 1200 were two columns at 720 as
+// well -- half as wide and twice as tall, which is a phone layout on a desktop
+// and is the defect the gallery was photographing in `gallery-basic-narrow`.
+// `min-column-width` is a count the window does: **as many columns as fit at 560,
+// at least one.**
+//
+// 560 and not §3's default of 320, and the arithmetic is worth writing down
+// because it is the whole decision. This wall is 1168 wide in a 1200 window and
+// 688 in a 720 one, and the gap between columns is 12. At 320 it would be three
+// columns at 1200 -- a third narrower than the cards on it were built for, on a
+// screen where §10's `wrap` is not built to catch what overflows -- and still
+// *two* at 720, so the picture the change exists to fix would not have moved.
+// 560 is what these cards are: two of them and a gap is 1132, which 1168 holds
+// and 688 does not. So the wide screen is the screen it always was, and the
+// narrow one is one readable column instead of two cramped ones.
+//
+// The other eight walls keep their counts, deliberately. Converting them would
+// re-column six screens at the width the gallery is photographed at, which is a
+// redesign of the gallery rather than a demonstration of the attribute.
+masonry id="basic-wall" min-column-width=560 {
 
   // §1.4's six ranks, in order, so a reader can see what "one rung quieter"
   // buys. Nothing here is a heading element -- there is no such widget -- they

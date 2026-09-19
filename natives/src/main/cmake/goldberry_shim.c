@@ -101,7 +101,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 12u
+#define GOLDBERRY_ABI_VERSION 14u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -142,6 +142,8 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
 #define GOLDBERRY_CAP_DEVICE_HOTPLUG 0x4u
 #define GOLDBERRY_CAP_FILE_DIALOG 0x8u
 #define GOLDBERRY_CAP_SCREENSAVER_INHIBIT 0x10u
+#define GOLDBERRY_CAP_WINDOW_DECORATIONS 0x20u
+#define GOLDBERRY_CAP_WAYLAND 0x40u
 
 /*
  * GOLDBERRY_PLATFORM_DBUS, _IBUS and _UDEV are passed by the superbuild, which
@@ -179,7 +181,35 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
 #define GOLDBERRY_CAPS_UDEV 0u
 #endif
 
-#define GOLDBERRY_CAPABILITIES (GOLDBERRY_CAPS_DBUS | GOLDBERRY_CAPS_IBUS | GOLDBERRY_CAPS_UDEV)
+/*
+ * These two come from a different place than the three above: the superbuild
+ * reads them out of the SDL_build_config.h SDL generated, rather than predicting
+ * them with a pkg-config probe and confirming them there. SDL decides its Wayland
+ * driver with one pkg_check_modules over five specs plus a scanner binary, and a
+ * prediction narrower than that would be worse than none (ADR-0422).
+ *
+ * A window's decorations are a build-time fact on Linux and only on Linux:
+ * without libdecor SDL compiles no client-side decoration support at all, so a
+ * Wayland window opens bare however the session is configured (ADR-0083). The
+ * plugin that then has to load is a *run-time* matter and a separate defect
+ * (ADR-0084) -- this bit says the toolkit was built able to ask for a titlebar,
+ * not that one will appear.
+ */
+#if defined(GOLDBERRY_PLATFORM_HAVE_LIBDECOR_H)
+#define GOLDBERRY_CAPS_LIBDECOR GOLDBERRY_CAP_WINDOW_DECORATIONS
+#else
+#define GOLDBERRY_CAPS_LIBDECOR 0u
+#endif
+
+#if defined(GOLDBERRY_PLATFORM_SDL_VIDEO_DRIVER_WAYLAND)
+#define GOLDBERRY_CAPS_WAYLAND GOLDBERRY_CAP_WAYLAND
+#else
+#define GOLDBERRY_CAPS_WAYLAND 0u
+#endif
+
+#define GOLDBERRY_CAPABILITIES \
+    (GOLDBERRY_CAPS_DBUS | GOLDBERRY_CAPS_IBUS | GOLDBERRY_CAPS_UDEV | GOLDBERRY_CAPS_LIBDECOR \
+     | GOLDBERRY_CAPS_WAYLAND)
 
 #else
 
@@ -191,10 +221,18 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
  * the theme, NSTextInputClient and TSF are the input methods, IOKit and
  * WM_DEVICECHANGE are hotplug, NSOpenPanel and IFileDialog are the file dialogs,
  * IOPMAssertion and SetThreadExecutionState are the screensaver.
+ *
+ * Window decorations are on that list: the window server draws them, there is no
+ * optional library in the way, and there is nothing a build could have compiled
+ * out. GOLDBERRY_CAP_WAYLAND is not, and its absence here is a statement rather
+ * than an omission -- there is no Wayland on either platform, so a library that
+ * claimed the bit would be claiming something false about the session it will run
+ * in (ADR-0422).
  */
 #define GOLDBERRY_CAPABILITIES \
     (GOLDBERRY_CAP_SYSTEM_THEME | GOLDBERRY_CAP_INPUT_METHOD | GOLDBERRY_CAP_DEVICE_HOTPLUG \
-     | GOLDBERRY_CAP_FILE_DIALOG | GOLDBERRY_CAP_SCREENSAVER_INHIBIT)
+     | GOLDBERRY_CAP_FILE_DIALOG | GOLDBERRY_CAP_SCREENSAVER_INHIBIT \
+     | GOLDBERRY_CAP_WINDOW_DECORATIONS)
 
 #endif
 
@@ -419,6 +457,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_WINDOW_CLOSE_REQUESTED", SDL_EVENT_WINDOW_CLOSE_REQUESTED),
     GB_CONSTANT("SDL_EVENT_SYSTEM_THEME_CHANGED", SDL_EVENT_SYSTEM_THEME_CHANGED),
     GB_CONSTANT("SDL_EVENT_DROP_FILE", SDL_EVENT_DROP_FILE),
+    GB_CONSTANT("SDL_EVENT_DROP_TEXT", SDL_EVENT_DROP_TEXT),
     GB_CONSTANT("SDL_EVENT_DROP_POSITION", SDL_EVENT_DROP_POSITION),
     GB_CONSTANT("SDL_EVENT_DROP_COMPLETE", SDL_EVENT_DROP_COMPLETE),
     GB_CONSTANT("SDL_EVENT_DROP_BEGIN", SDL_EVENT_DROP_BEGIN),
@@ -768,6 +807,27 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_COMP_OP_SRC_OVER", BL_COMP_OP_SRC_OVER),
     GB_CONSTANT("BL_COMP_OP_SRC_COPY", BL_COMP_OP_SRC_COPY),
 
+    /*
+     * Which points a path encloses (ADR-0427). Two values, and the wrong one is
+     * as silent as every other constant here: a shadow asked to cut its box out
+     * of itself under NON_ZERO paints the hole solid instead, which is a dark
+     * rectangle over the control and no error anywhere.
+     */
+    GB_CONSTANT("BL_FILL_RULE_NON_ZERO", BL_FILL_RULE_NON_ZERO),
+    GB_CONSTANT("BL_FILL_RULE_EVEN_ODD", BL_FILL_RULE_EVEN_ODD),
+
+    /*
+     * How bl_image_scale resamples (ADR-0428). Positional enumerators, so a
+     * value inserted upstream shifts every one after it -- and the failure is a
+     * thumbnail resampled by the wrong filter, which looks like a thumbnail.
+     * BL_IMAGE_SCALE_FILTER_NONE is deliberately absent: it is the absence of a
+     * filter rather than one of them, and nothing binds it.
+     */
+    GB_CONSTANT("BL_IMAGE_SCALE_FILTER_NEAREST", BL_IMAGE_SCALE_FILTER_NEAREST),
+    GB_CONSTANT("BL_IMAGE_SCALE_FILTER_BILINEAR", BL_IMAGE_SCALE_FILTER_BILINEAR),
+    GB_CONSTANT("BL_IMAGE_SCALE_FILTER_BICUBIC", BL_IMAGE_SCALE_FILTER_BICUBIC),
+    GB_CONSTANT("BL_IMAGE_SCALE_FILTER_LANCZOS", BL_IMAGE_SCALE_FILTER_LANCZOS),
+
     /* Blend2D must be allowed to write the buffer it was handed. A bit set, so
      * these values do not shift if Blend2D adds one. */
     GB_CONSTANT("BL_DATA_ACCESS_NO_FLAGS", BL_DATA_ACCESS_NO_FLAGS),
@@ -925,6 +985,8 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("GOLDBERRY_CAP_DEVICE_HOTPLUG", GOLDBERRY_CAP_DEVICE_HOTPLUG),
     GB_CONSTANT("GOLDBERRY_CAP_FILE_DIALOG", GOLDBERRY_CAP_FILE_DIALOG),
     GB_CONSTANT("GOLDBERRY_CAP_SCREENSAVER_INHIBIT", GOLDBERRY_CAP_SCREENSAVER_INHIBIT),
+    GB_CONSTANT("GOLDBERRY_CAP_WINDOW_DECORATIONS", GOLDBERRY_CAP_WINDOW_DECORATIONS),
+    GB_CONSTANT("GOLDBERRY_CAP_WAYLAND", GOLDBERRY_CAP_WAYLAND),
 
     /*
      * The subsystems SDL_Init takes. A bit mask rather than an enumeration, so

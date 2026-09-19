@@ -244,6 +244,13 @@ final class TreeState extends State<Tree> {
     /// Through the host's focus-by-name for [#moveOut]'s reason: a row cannot
     /// reach another row's element, and an id is the one handle both ends agree
     /// on ([ADR-0176]).
+    ///
+    /// **Unprefixed, and two trees no longer collide anyway.** A `list` prefixes
+    /// its rows with its own id and a tree never did, so two trees sharing a node
+    /// id answered each other's keys whether or not either was named. The router
+    /// resolves a name inside the composite the keyboard is in before the window,
+    /// and a tree is a composite — which settles the named case and the unnamed
+    /// one together, and is why nothing here had to change ([ADR-0437]).
     private void focusRow(TreeNode node) {
         if (host != null) {
             host.focus("tree-" + node.id(), true);

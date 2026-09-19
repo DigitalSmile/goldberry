@@ -262,7 +262,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // on it is a container, so it holds no value and needs no Java.
                     new Tab("panels", title("panels"),
                             scrolled(new Wall("panels", "Panels", PANELS_NOTE,
-                                    panels.columns(), panels.children()))),
+                                    panels.columns(), panels.minColumnWidth(), panels.children()))),
                     new Tab("overlays", title("overlays"),
                             scrolled(new Overlays(overlays))),
                     new Tab("forms", title("forms"), scrolled(new Forms(forms))),
@@ -274,7 +274,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                             new Navigation(model, actions, widget().startTour())),
                     new Tab("collections", title("collections"),
                             scrolled(new Wall("collections", "Collections", COLLECTIONS_NOTE,
-                                    2, Collections.cards()))),
+                                    2, Masonry.UNSET, Collections.cards()))),
                     new Tab("charts", title("charts"), scrolled(new Charts())),
                     // The screen about an **optional module**: `goldberry-html`'s
                     // `markdown-view`, which this application opts into and never

@@ -22,6 +22,7 @@ public record ContextCalls(
         ContextDestroy contextDestroy,
         ContextApplyTransformOp contextApplyTransformOp,
         ContextSetCompOp contextSetCompOp,
+        ContextSetFillRule contextSetFillRule,
         ContextFillAllRgba32 contextFillAllRgba32,
         ContextFillRectDRgba32 contextFillRectDRgba32,
         ContextFillGlyphRunDRgba32 contextFillGlyphRunDRgba32,
@@ -52,6 +53,7 @@ public record ContextCalls(
                 new ContextDestroy(lookup),
                 new ContextApplyTransformOp(lookup),
                 new ContextSetCompOp(lookup),
+                new ContextSetFillRule(lookup),
                 new ContextFillAllRgba32(lookup),
                 new ContextFillRectDRgba32(lookup),
                 new ContextFillGlyphRunDRgba32(lookup),
@@ -210,6 +212,38 @@ public record ContextCalls(
                 return (int) FD_bl_context_set_comp_op.invokeExact(address, context, compOp);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_set_comp_op", t);
+            }
+        }
+    }
+
+    /// Sets which points a filled path encloses.
+    ///
+    /// Context state, and the only piece of it that can change what a *path*
+    /// means rather than what colour it comes out — a shape with a sub-path
+    /// inside another is one ring under even-odd and a disc under non-zero
+    /// (ADR-0427).
+    ///
+    /// `int bl_context_set_fill_rule(void*, int)`
+    public static final class ContextSetFillRule {
+
+        private static final MethodHandle FD_bl_context_set_fill_rule =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        ContextSetFillRule(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_set_fill_rule");
+        }
+
+        /// Calls `bl_context_set_fill_rule`.
+        ///
+        /// @param context the context to set it on
+        /// @param fillRule a `BLFillRule`
+        public int call(MemorySegment context, int fillRule) {
+            try {
+                return (int) FD_bl_context_set_fill_rule.invokeExact(address, context, fillRule);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_set_fill_rule", t);
             }
         }
     }

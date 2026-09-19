@@ -230,6 +230,25 @@ public class TestHost implements Host {
     }
 
     @Override
+    public Optional<Popup> popup(Widget content, String anchorId, Placement placement, float minimumWidth, Fit fit) {
+        anchored.add(anchorId);
+        return anchor(anchorId)
+                .map(region -> popup(content, region.bounds(), placement, minimumWidth, fit))
+                .orElseGet(Optional::empty);
+    }
+
+    /// Every id a popup was opened **by name** against, in order.
+    ///
+    /// The observable that says a caller inherited the following: a popup placed
+    /// against a rectangle cannot follow anything, and the only difference
+    /// visible from outside is which overload it went through ([ADR-0432]).
+    public List<String> anchoredBy() {
+        return List.copyOf(anchored);
+    }
+
+    private final List<String> anchored = new ArrayList<>();
+
+    @Override
     public Optional<Popup> popup(Widget content, String anchorId, Placement placement) {
         // Through the same recording path as the rectangle form, so a test can
         // assert on what was opened whichever overload the widget reached for.

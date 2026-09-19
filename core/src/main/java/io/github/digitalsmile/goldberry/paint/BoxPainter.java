@@ -157,14 +157,12 @@ public final class BoxPainter {
         var y = layout.top();
         var width = layout.width();
         var height = layout.height();
-        var opaque = (box.background() >>> 24) == 0xFF;
-
         if (decoration.hasShadow()) {
-            // Told whether the background will cover its own rectangle, so the
-            // bands that would be hidden under an opaque box are never built --
-            // which is half of them for a shadow with any offset, on every
-            // shadowed surface the design system has.
-            ShadowPainter.paint(frame, path, decoration.shadow(), x, y, width, height, decoration.corners(), opaque);
+            // The painter cuts the border box out of every band, so the bands
+            // that would land under it are not built at all -- which is half of
+            // them for a shadow with any offset, and no longer conditional on
+            // the background being opaque the way it was before ADR-0427.
+            ShadowPainter.paint(frame, path, decoration.shadow(), x, y, width, height, decoration.corners());
         }
 
         if ((box.background() >>> 24) != 0) {

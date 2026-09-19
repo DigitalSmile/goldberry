@@ -44,15 +44,14 @@ class ShadowRampTest {
         @Test
         @DisplayName("a transparent shadow is no bands")
         void transparent() {
-            assertTrue(
-                    ShadowRamp.bands(new Shadow(0, 4, 16, 0, 0x00000000), false).isEmpty());
-            assertTrue(ShadowRamp.bands(Shadow.NONE, false).isEmpty());
+            assertTrue(ShadowRamp.bands(new Shadow(0, 4, 16, 0, 0x00000000)).isEmpty());
+            assertTrue(ShadowRamp.bands(Shadow.NONE).isEmpty());
         }
 
         @Test
         @DisplayName("a shadow with no blur is one hard fill at its own colour")
         void hardShadow() {
-            var bands = ShadowRamp.bands(new Shadow(2, 2, 0, 3, BLACK), false);
+            var bands = ShadowRamp.bands(new Shadow(2, 2, 0, 3, BLACK));
 
             assertEquals(1, bands.size());
             assertEquals(3, bands.getFirst().grow());
@@ -60,11 +59,19 @@ class ShadowRampTest {
         }
 
         @Test
-        @DisplayName("a hard shadow entirely under an opaque box is not drawn")
+        @DisplayName("a hard shadow entirely inside the border box is still a band here")
         void hardShadowHidden() {
             // Offset 2px with a 4px *negative* spread: the shape is inside the
-            // box on every side, so an opaque box covers all of it.
-            assertTrue(ShadowRamp.bands(new Shadow(0, 2, 0, -4, BLACK), true).isEmpty());
+            // box on every side. Before ADR-0427 this method was told so and
+            // returned nothing; now it reports the arithmetic and
+            // `ShadowGeometry.coveredAt` is what says the band cannot be seen —
+            // see ShadowGeometryTest for the other half of this claim.
+            var bands = ShadowRamp.bands(new Shadow(0, 2, 0, -4, BLACK));
+
+            assertEquals(1, bands.size());
+            assertTrue(
+                    bands.getFirst().grow() <= ShadowGeometry.coveredAt(new Shadow(0, 2, 0, -4, BLACK)),
+                    "the painter will skip it");
         }
     }
 
@@ -75,7 +82,7 @@ class ShadowRampTest {
         @Test
         @DisplayName("the bands run outermost first, each one smaller than the last")
         void ordered() {
-            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK), false);
+            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK));
 
             assertFalse(bands.isEmpty());
             for (var i = 1; i < bands.size(); i++) {
@@ -91,7 +98,7 @@ class ShadowRampTest {
             // CSS's definition of the blur radius: the fade is centred on the
             // shape's edge, so it reaches `blur / 2` either side of it and no
             // further. The damage rectangle is computed from the same number.
-            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK), false);
+            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK));
 
             assertTrue(bands.getFirst().grow() <= 8, "reaches no further than half the blur");
             assertEquals(-8, bands.getLast().grow(), 1e-9);
@@ -100,8 +107,8 @@ class ShadowRampTest {
         @Test
         @DisplayName("spread moves the whole fade out without changing its width")
         void spread() {
-            var plain = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK), false);
-            var spread = ShadowRamp.bands(new Shadow(0, 0, 16, 5, BLACK), false);
+            var plain = ShadowRamp.bands(new Shadow(0, 0, 16, 0, BLACK));
+            var spread = ShadowRamp.bands(new Shadow(0, 0, 16, 5, BLACK));
 
             assertEquals(plain.size(), spread.size());
             for (var i = 0; i < plain.size(); i++) {
@@ -113,7 +120,7 @@ class ShadowRampTest {
         @Test
         @DisplayName("every band shares the shadow's colour and differs only in alpha")
         void oneColour() {
-            var bands = ShadowRamp.bands(new Shadow(0, 2, 12, 0, 0xCC2E3440), false);
+            var bands = ShadowRamp.bands(new Shadow(0, 2, 12, 0, 0xCC2E3440));
 
             for (var band : bands) {
                 assertEquals(0x2E3440, band.argb() & 0x00FFFFFF);
@@ -129,7 +136,7 @@ class ShadowRampTest {
         @DisplayName("the accumulated alpha grows as the bands go in, and never overshoots")
         void monotonic() {
             var shadow = new Shadow(0, 0, 16, 0, 0x80000000);
-            var bands = ShadowRamp.bands(shadow, false);
+            var bands = ShadowRamp.bands(shadow);
             // 128/255, not 0.5: the ceiling is the alpha the shadow was actually
             // given, and eight bits do not divide in half.
             var ceiling = 0x80 / 255.0;
@@ -151,7 +158,7 @@ class ShadowRampTest {
             // sixteen bands of a 50% shadow lands near fully opaque. A shadow
             // twice as dark as the colour it was given is what a stylesheet
             // author sees as "box-shadow is far too heavy".
-            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, 0x80000000), false);
+            var bands = ShadowRamp.bands(new Shadow(0, 0, 16, 0, 0x80000000));
 
             assertEquals(128 / 255.0, accumulated(bands, bands.size() - 1), 0.01);
         }
@@ -164,7 +171,7 @@ class ShadowRampTest {
             // on the curve with a definition rather than a taste, so it is the one
             // worth pinning.
             var shadow = new Shadow(0, 0, 16, 0, argb);
-            var bands = ShadowRamp.bands(shadow, false);
+            var bands = ShadowRamp.bands(shadow);
             var edge = bands.size() / 2 - 1;
 
             assertEquals((argb >>> 24) / 255.0 / 2, accumulated(bands, edge), 0.03);
@@ -176,67 +183,69 @@ class ShadowRampTest {
             // The band alphas are solved as `1 - (1 - Aₖ)/(1 - Aₖ₋₁)`, and the
             // denominator goes to zero exactly here. Clamped rather than
             // divergent.
-            var bands = ShadowRamp.bands(new Shadow(0, 0, 8, 0, BLACK), false);
+            var bands = ShadowRamp.bands(new Shadow(0, 0, 8, 0, BLACK));
 
             assertEquals(1.0, accumulated(bands, bands.size() - 1), 0.01);
         }
     }
 
     @Nested
-    @DisplayName("what an opaque box hides")
+    @DisplayName("what the hole in the band will erase")
     class Occlusion {
 
+        /// How many of `shadow`'s bands the painter will actually fill — the
+        /// prefix above [ShadowGeometry#coveredAt], since `grow` only decreases.
+        private static long drawn(Shadow shadow) {
+            var covered = ShadowGeometry.coveredAt(shadow);
+            return ShadowRamp.bands(shadow).stream()
+                    .filter(band -> band.grow() > covered)
+                    .count();
+        }
+
         @Test
-        @DisplayName("the bands under the box are dropped, and they are the inner ones")
+        @DisplayName("the bands inside the border box are the inner ones, so they are a suffix")
         void dropsTheTail() {
+            // The property the whole arrangement rests on: what the painter
+            // skips is a *tail*, so skipping it changes no earlier band's alpha
+            // and the picture is identical to one that painted them under the
+            // hole and had them erased.
             var shadow = new Shadow(0, 4, 16, 0, BLACK);
-            var all = ShadowRamp.bands(shadow, false);
-            var visible = ShadowRamp.bands(shadow, true);
+            var all = ShadowRamp.bands(shadow);
+            var drawn = (int) drawn(shadow);
 
-            assertTrue(visible.size() < all.size(), "an offset shadow has bands the box covers");
-            assertEquals(visible, all.subList(0, visible.size()));
-        }
-
-        @Test
-        @DisplayName("no band survives that is entirely inside the box")
-        void keepsNothingHidden() {
-            // A band at `grow <= -4` on a shadow offset 4px down sits inside the
-            // border box on every side, so an opaque background covers it whole.
-            for (var band : ShadowRamp.bands(new Shadow(0, 4, 16, 0, BLACK), true)) {
-                assertTrue(band.grow() > -4, "band at " + band.grow() + " cannot be seen");
+            assertTrue(drawn < all.size(), "an offset shadow has bands inside its own hole");
+            for (var i = drawn; i < all.size(); i++) {
+                assertTrue(all.get(i).grow() <= -4, "band " + i + " should be inside the box");
             }
         }
 
         @Test
-        @DisplayName("a shadow cast straight down keeps only its outer half")
+        @DisplayName("a shadow cast straight down draws only its outer half")
         void centredShadow() {
-            // No offset and no spread: the shape *is* the border box, so the
-            // whole inner half of the fade is under it and only what reaches
-            // past the edge can be seen. Half the fills, for an identical
-            // picture — which is the common case, because `0 0 <blur>` is what a
-            // glow is.
+            // No offset and no spread: the band at grow = 0 *is* the border box,
+            // so the whole inner half of the fade is inside the hole and only
+            // what reaches past the edge puts ink down. Half the fills, for an
+            // identical picture — the common case, because `0 0 <blur>` is what
+            // a glow is.
             var shadow = new Shadow(0, 0, 16, 0, BLACK);
-            var all = ShadowRamp.bands(shadow, false);
-            var visible = ShadowRamp.bands(shadow, true);
+            var all = ShadowRamp.bands(shadow);
 
-            assertEquals(all.stream().filter(band -> band.grow() > 0).count(), visible.size());
-            assertTrue(visible.size() < all.size() / 2 + 1);
-            for (var band : visible) {
-                // Strictly greater: the band at zero *is* the border box, and a
-                // shape coincident with an opaque fill is a shape nobody sees.
-                assertTrue(band.grow() > 0, "band at " + band.grow() + " is under the box");
-            }
+            assertEquals(all.stream().filter(band -> band.grow() > 0).count(), drawn(shadow));
+            assertTrue(drawn(shadow) < all.size() / 2 + 1);
         }
 
         @Test
-        @DisplayName("a translucent box hides nothing: its shadow shows through it")
-        void translucentHidesNothing() {
-            // The flag is "will the background cover its own rectangle", and a
-            // box that will not gets every band. See `ShadowGeometry` for what
-            // the toolkit does *not* do here that CSS does.
+        @DisplayName("a translucent box hides no more and no less than an opaque one")
+        void translucencyIsNotAQuestionAnyMore() {
+            // The point of ADR-0427, as arithmetic. This used to take a flag
+            // meaning "will the background cover its own rectangle", and a
+            // translucent box got every band because its shadow showed through
+            // it. The hole is cut whatever the background's alpha is, so there
+            // is one answer now and the box's colour is not an input to it.
             var shadow = new Shadow(0, 4, 16, 0, BLACK);
-            assertEquals(
-                    ShadowRamp.bandCount(16), ShadowRamp.bands(shadow, false).size());
+
+            assertEquals(ShadowRamp.bandCount(16), ShadowRamp.bands(shadow).size());
+            assertEquals(4, -ShadowGeometry.coveredAt(shadow));
         }
     }
 

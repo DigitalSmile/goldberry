@@ -851,11 +851,18 @@ class PopupLifecycleTest {
     /// **anchor** moved.
     ///
     /// A `scroll` is a translation on the content — Yoga never sees it — so the
-    /// widget the menu hangs off is laid out where it always was and drawn 120
+    /// widget the menu hangs off is laid out where it always was and drawn 60
     /// pixels higher. Two things have to be true for the menu to follow it: the
     /// anchor rectangle has to be the *painted* one rather than the laid-out one,
     /// and something has to re-ask the question on a frame that no resize and no
     /// move produced ([ADR-0270]).
+    ///
+    /// **This scrolled by 120 and the anchor is 80 tall**, so it used to travel
+    /// the whole way with a target that had gone entirely off the top of the
+    /// window — which was the following working and the case [ADR-0433] now
+    /// closes the popup for. 60 keeps 20 pixels of the anchor drawn, which is
+    /// what this test was always about: the following, not its limit.
+    /// [PopupAnchorVisibilityTest] is the limit.
     @Test
     @Timeout(20)
     @DisplayName("a popup follows an anchor that scrolls under it")
@@ -876,7 +883,7 @@ class PopupLifecycleTest {
                                 return;
                             }
                             before[0] = popup.offset();
-                            scrolled.set(120f);
+                            scrolled.set(60f);
                             // Four turns, which is past the frame the binding
                             // asked for and past the re-placement at the end of
                             // it.
@@ -890,10 +897,10 @@ class PopupLifecycleTest {
 
         assertNotNull(before[0], "the popup never opened, so there is nothing to say about it");
         assertEquals(
-                before[0].y() - 120,
+                before[0].y() - 60,
                 after[0].y(),
                 0.5,
-                "the content scrolled 120px and the menu stayed where the target used to be drawn");
+                "the content scrolled 60px and the menu stayed where the target used to be drawn");
         assertEquals(before[0].x(), after[0].x(), 0.5, "and it should not have moved sideways");
     }
 

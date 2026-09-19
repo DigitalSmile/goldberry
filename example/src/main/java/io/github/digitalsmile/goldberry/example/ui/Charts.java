@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.widgets.data.donutchart.DonutChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 import io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
+import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.panel.statistic.Statistic;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -151,6 +152,7 @@ public record Charts() implements Widget.Stateful {
                     "Charts",
                     NOTE,
                     3,
+                    Masonry.UNSET,
                     List.of(
                             card(
                                     "Leagues per day",

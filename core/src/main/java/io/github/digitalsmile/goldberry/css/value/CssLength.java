@@ -30,13 +30,32 @@ public final class CssLength {
 
     /// The context a relative length needs.
     ///
-    /// @param fontSize     the font size in force, for `em`
-    /// @param rootFontSize the root element's font size, for `rem`
+    /// Both fields are what the **root** resolves against, and each stops meaning
+    /// that one step down: `em` becomes the element's own computed size inside
+    /// [io.github.digitalsmile.goldberry.css.ComputedStyle#of]
+    /// ([ADR-0242]), and `rem` becomes the root element's computed size, which the
+    /// renderer puts here with [#withRootFontSize] once the root has resolved
+    /// ([ADR-0416]).
+    ///
+    /// @param fontSize     the font size the root's own `em` resolves against
+    /// @param rootFontSize the root element's computed font size, for `rem` —
+    ///                     until the root has computed one, the configured value
+    ///                     its own `font-size` declaration resolves `rem` against
     public record Context(float fontSize, float rootFontSize) {
 
         /// The default before typography tokens land (§10.1): 16 logical pixels,
         /// which is what every browser and every design system starts from.
         public static final Context DEFAULT = new Context(16, 16);
+
+        /// This context with `rem` meaning `size`.
+        ///
+        /// The one thing the renderer changes about a context per frame. `em` is
+        /// not withered beside it because nothing ever needs to be: the element's
+        /// own size is derived per node where it is used, and a wither for it
+        /// would be a second way to say something already said better.
+        public Context withRootFontSize(float size) {
+            return size == rootFontSize ? this : new Context(fontSize, size);
+        }
     }
 
     /// Parses a length.

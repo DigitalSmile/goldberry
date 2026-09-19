@@ -167,10 +167,15 @@ final class HtmlWidgets {
             return;
         }
         minter.block();
-        var line = run.take();
-        if (!line.isEmpty()) {
-            widgets.add(new Row(line, classes("html-prose")));
+        var lines = run.take();
+        // A run that held only whitespace produced no words at all, and a paragraph of
+        // nothing is not a paragraph. One line and nothing on it is exactly that case:
+        // `lines` never answers with an empty line unless a `br` put one there, and a
+        // `br` is a line the author asked for.
+        if (lines.size() == 1 && lines.getFirst().isEmpty()) {
+            return;
         }
+        widgets.add(paragraph(lines, classes("html-prose")));
     }
 
     /// One block, or null for a node with nothing to draw.
@@ -217,12 +222,31 @@ final class HtmlWidgets {
         };
     }
 
-    /// An element's inline content as a wrapping row of words.
+    /// An element's inline content as the lines it is.
     private Widget prose(Element element, String... extra) {
         minter.block();
         var run = new Prose();
         element.children().forEach(child -> run.add(child, Set.of()));
-        return new Row(run.take(), classesOf(element, extra));
+        return paragraph(run.take(), classesOf(element, extra));
+    }
+
+    /// `lines` as the one box a paragraph is: a wrapping row of words, or a column of
+    /// them when a `br` ended a line inside it (ADR-0426).
+    ///
+    /// **With no `br` in it this builds exactly the row it always built**, one class
+    /// wider — which is what keeps a page nobody wrote a `br` in pixel-identical.
+    /// `html-prose` and the tag's own class stay on the paragraph's box whichever shape
+    /// it has, so the page's structure is the same to a stylesheet either way, and
+    /// `html-line` is what lays a line of words out — see `html.css`.
+    private Widget paragraph(List<List<Widget>> lines, Attributes attributes) {
+        if (lines.size() == 1) {
+            return new Row(lines.getFirst(), with(attributes, "html-line"));
+        }
+        var rows = new ArrayList<Widget>(lines.size());
+        for (var line : lines) {
+            rows.add(new Row(line, classes("html-line")));
+        }
+        return new Column(rows, with(attributes, "html-lines"));
     }
 
     /// A quotation: the bar, and the blocks beside it.
@@ -414,12 +438,12 @@ final class HtmlWidgets {
                 own = Words.and(own, "html-" + name);
             }
             switch (tag) {
-                // **A break ends the token and nothing more.** A wrapping row breaks
-                // where the width runs out and there is no widget meaning "start a new
-                // line here" -- a `spacer` with `flex-grow` would make the line before
-                // it look justified. The same limit `markdown-view` has, noted in
-                // TODO.md.
-                case "br" -> pending.add(Words.Fragment.SEPARATOR);
+                // **A `br` ends the line, which is the whole of what it is for**
+                // (ADR-0426). It is a boundary rather than anything drawn, so it goes
+                // into the run as one and [#take()] is where the paragraph is cut at
+                // it. No `spacer` with `flex-grow`: that fills the rest of the line,
+                // which makes the line before a break look justified.
+                case "br" -> pending.add(Words.Break.HARD);
                 case "wbr" -> {}
                 // The picture, or the alt text when nobody can say where the picture is.
                 case "img" -> image(element, own);
@@ -499,9 +523,10 @@ final class HtmlWidgets {
             return pending.isEmpty();
         }
 
-        /// Everything built so far, and this builder is empty again.
-        List<Widget> take() {
-            var taken = words.tokens(List.copyOf(pending));
+        /// Everything built so far **as the lines it is** — one list of tokens, or one
+        /// per line where a `br` ended one — and this builder is empty again.
+        List<List<Widget>> take() {
+            var taken = words.lines(List.copyOf(pending));
             pending.clear();
             return taken;
         }

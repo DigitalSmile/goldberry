@@ -21,6 +21,7 @@ public record ImageCalls(
         ImageInit imageInit,
         ImageReadFromData imageReadFromData,
         ImageConvert imageConvert,
+        ImageScale imageScale,
         ImageDestroy imageDestroy,
         ImageGetData imageGetData) {
 
@@ -33,6 +34,7 @@ public record ImageCalls(
                 new ImageInit(lookup),
                 new ImageReadFromData(lookup),
                 new ImageConvert(lookup),
+                new ImageScale(lookup),
                 new ImageDestroy(lookup),
                 new ImageGetData(lookup));
     }
@@ -178,6 +180,46 @@ public record ImageCalls(
                 return (int) FD_bl_image_convert.invokeExact(address, image, format);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_image_convert", t);
+            }
+        }
+    }
+
+    /// Resamples one image into another at a different size.
+    ///
+    /// **The second call here that allocates pixels**, after [ImageReadFromData]
+    /// — the destination is resized to the size asked for and Blend2D owns it
+    /// until it is destroyed. The wrapper copies the rows out and destroys it on
+    /// the same call, which is the discipline ADR-0283 set for the decoder and
+    /// ADR-0428 keeps for this.
+    ///
+    /// Distinct from `bl_context_blit_scaled_image_d`, which resamples on its
+    /// way onto a surface and keeps nothing: that one is a *drawing* and this one
+    /// is a *copy*, and only the second can be written to a file.
+    ///
+    /// `int bl_image_scale(void*, const void*, const void* size, int filter)`
+    public static final class ImageScale {
+
+        private static final MethodHandle FD_bl_image_scale =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        ImageScale(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_image_scale");
+        }
+
+        /// Calls `bl_image_scale`.
+        ///
+        /// @param destination an initialised `BLImageCore`, resized and allocated
+        ///        for by this call
+        /// @param source the image to resample; not modified
+        /// @param size a `BLSizeI` holding the destination's width and height
+        /// @param filter a `BLImageScaleFilter`
+        public int call(MemorySegment destination, MemorySegment source, MemorySegment size, int filter) {
+            try {
+                return (int) FD_bl_image_scale.invokeExact(address, destination, source, size, filter);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_image_scale", t);
             }
         }
     }

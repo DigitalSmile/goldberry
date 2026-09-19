@@ -127,18 +127,43 @@ class ShadowPaintTest {
     }
 
     @Test
-    @DisplayName("a translucent box shows its own shadow through itself")
+    @DisplayName("a translucent box does not show its own shadow through itself")
     void throughATranslucentBox() {
-        // Not CSS's behaviour, and it is written down rather than hidden: CSS
-        // knocks the border box out of an outer shadow, and the rasterizer
-        // binding has neither a path clip nor a fill rule to cut that hole with
-        // (see `ShadowGeometry`). What the toolkit does instead is paint the
-        // shadow under the box, so a half-transparent box is slightly darker
-        // than its colour alone. Pinned here so that the day a fill rule lands,
-        // this test is what says the deviation is gone.
-        var target = painted(new Shadow(0, 0, 0, 0, BLACK), 0x80FF0000, Corners.SQUARE);
+        // The deviation ADR-0310 recorded and ADR-0427 removed. CSS knocks the
+        // border box out of an outer shadow, and until a fill rule was on the
+        // export list the toolkit could not: it painted the whole shape and
+        // relied on the box covering it, so a half-transparent box came out
+        // darker than its colour alone. This test used to assert exactly that,
+        // as a pin on known-wrong behaviour -- `luminance(pixel(60, 50)) < 128`,
+        // the shadow showing through from underneath.
+        //
+        // Now the band has the border box cut out of it, so what is under the
+        // box is the page. A 50% red over white is the *only* thing in the
+        // middle of the box, whatever shadow it casts.
+        var shadowed = painted(new Shadow(0, 0, 0, 0, BLACK), 0x80FF0000, Corners.SQUARE);
+        var plain = painted(Shadow.NONE, 0x80FF0000, Corners.SQUARE);
 
-        assertTrue(luminance(target.pixel(60, 50)) < 128, "the shadow is still under the box");
+        assertEquals(plain.pixel(60, 50), shadowed.pixel(60, 50), "the shadow leaves the box's own pixels alone");
+        assertTrue(luminance(shadowed.pixel(60, 50)) > 128, "and a 50% red over white is a light pixel");
+    }
+
+    @Test
+    @DisplayName("a blurred shadow under a translucent box is cut out of it too")
+    void blurredUnderATranslucentBox() {
+        // The case the entry called out as the one a user actually meets: a box
+        // mid-`opacity` transition fades its shadow by the same factor, so a
+        // shadow showing through darkened the box as it faded. A blur reaches
+        // *inside* the border box by half its radius, which is the half the hole
+        // has to erase -- a knock-out that only handled the hard case would pass
+        // `throughATranslucentBox` and still darken every fading card.
+        var shadowed = painted(new Shadow(0, 4, 16, 0, BLACK), 0x80FF0000, Corners.all(8));
+        var plain = painted(Shadow.NONE, 0x80FF0000, Corners.all(8));
+
+        // Well inside the box, where the inner half of a 16px blur reaches.
+        assertEquals(plain.pixel(60, 55), shadowed.pixel(60, 55), "the blur is cut out of the box");
+        assertEquals(plain.pixel(45, 50), shadowed.pixel(45, 50));
+        // And it is still a shadow: the page below the box is darkened.
+        assertTrue(luminance(shadowed.pixel(60, 76)) < 250, "the page below is still shadowed");
     }
 
     private static double luminance(int argb) {

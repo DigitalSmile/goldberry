@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.input.drop.FileDrop;
+import io.github.digitalsmile.goldberry.input.drop.TextDrop;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.tap.ModifierTaps;
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -86,10 +87,20 @@ public final class Window implements AutoCloseable {
     /// ([ADR-0330]).
     private final List<Consumer<FileDrop>> dropListeners = new ArrayList<>();
 
+    /// Everything listening for dropped text, a list for [#dropListeners]'
+    /// reason ([ADR-0408]).
+    private final List<Consumer<TextDrop>> textDropListeners = new ArrayList<>();
+
     /// The paths of the gesture currently in progress, in the order they
     /// arrived. Cleared at the end of every gesture, whether or not anything was
     /// dropped.
     private final List<Path> dropping = new ArrayList<>();
+
+    /// The lines of text of the gesture currently in progress. A second buffer
+    /// rather than a shared one, because one gesture is a file drop **or** a text
+    /// drop on every platform SDL supports and nothing should break if one ever
+    /// sends both ([ADR-0408]).
+    private final List<String> droppingText = new ArrayList<>();
 
     /// Where the last event of the gesture said the pointer was.
     private float dropX;
@@ -288,6 +299,33 @@ public final class Window implements AutoCloseable {
         Objects.requireNonNull(listener, "listener");
         dropListeners.add(listener);
         return () -> dropListeners.remove(listener);
+    }
+
+    /// Called when text is dropped on this window — [ADR-0408].
+    ///
+    /// [#onFileDrop]'s twin, down to the `Subscription`, because the platform
+    /// reports the two gestures identically: a beginning, a moving position, one
+    /// event per **line** of text, and the same end a file drop has.
+    ///
+    /// **Once per gesture, with the lines.** SDL splits the dropped payload on
+    /// `\r\n` and raises one event per piece, so the separators are gone before
+    /// Java sees any of it — [TextDrop#text()] joins them back with `\n` and says
+    /// that the `\n` is ours. A one-line drop, which is nearly every drop, has
+    /// nothing to reconstruct.
+    ///
+    /// **Nothing is interpreted.** A dropped URL is a line of text; if an
+    /// application wants to treat it as a file it says so itself.
+    ///
+    /// A drag that dropped nothing, or dropped files, raises nothing here — the
+    /// two kinds share a gesture and are still two events.
+    ///
+    /// ```java
+    /// window.onTextDrop(drop -> field.insert(drop.text()));
+    /// ```
+    public Subscription onTextDrop(Consumer<TextDrop> listener) {
+        Objects.requireNonNull(listener, "listener");
+        textDropListeners.add(listener);
+        return () -> textDropListeners.remove(listener);
     }
 
     /// Decides what happens when the user asks to close the window.
@@ -961,25 +999,55 @@ public final class Window implements AutoCloseable {
         }
     }
 
-    /// The gesture ended. Raises one [FileDrop] if anything arrived, and clears
-    /// the gesture either way.
-    void handleFileDropCompleted(float x, float y) {
-        if (dropping.isEmpty()) {
+    /// One line of dropped text landed. Collected like a file, and for the same
+    /// reason: SDL sends one of these per line — see [#onTextDrop] ([ADR-0408]).
+    void handleTextDropped(String text, float x, float y) {
+        dropX = x;
+        dropY = y;
+        if (text.isEmpty()) {
+            // SDL's tokeniser skips empty tokens, so this is a platform that sent
+            // one anyway. An empty line is not something to tell a listener about
+            // and it must not make an otherwise empty gesture raise.
+            return;
+        }
+        droppingText.add(text);
+    }
+
+    /// The gesture ended. Raises one [FileDrop] and/or one
+    /// [io.github.digitalsmile.goldberry.input.drop.TextDrop] if anything arrived,
+    /// and clears the gesture either way.
+    ///
+    /// One completion for both kinds, because the platform has one: SDL's
+    /// `SDL_EVENT_DROP_COMPLETE` ends the gesture whatever it carried
+    /// ([ADR-0408]).
+    void handleDropCompleted(float x, float y) {
+        if (dropping.isEmpty() && droppingText.isEmpty()) {
             // A drag that crossed the window and left, or a drop of something
-            // that is not a file. There is nothing to tell anyone about.
+            // that is neither a file nor text. There is nothing to tell anyone
+            // about.
             return;
         }
         // The position from the end of the gesture when the platform gave one:
         // some report coordinates on every event of a drop and some only on the
         // position events, so the last non-zero answer wins.
         var at = new LogicalPoint(x == 0 && y == 0 ? dropX : x, y == 0 && x == 0 ? dropY : y);
-        var drop = new FileDrop(List.copyOf(dropping), at);
-        dropping.clear();
-        LOG.debug("{} file(s) dropped at {}", drop.count(), at);
-        // Copied, so a listener that unsubscribes itself from inside its own
-        // handler does not disturb the walk.
-        for (var listener : List.copyOf(dropListeners)) {
-            listener.accept(drop);
+        if (!dropping.isEmpty()) {
+            var drop = new FileDrop(List.copyOf(dropping), at);
+            dropping.clear();
+            LOG.debug("{} file(s) dropped at {}", drop.count(), at);
+            // Copied, so a listener that unsubscribes itself from inside its own
+            // handler does not disturb the walk.
+            for (var listener : List.copyOf(dropListeners)) {
+                listener.accept(drop);
+            }
+        }
+        if (!droppingText.isEmpty()) {
+            var drop = new TextDrop(List.copyOf(droppingText), at);
+            droppingText.clear();
+            LOG.debug("{} line(s) of text dropped at {}", drop.count(), at);
+            for (var listener : List.copyOf(textDropListeners)) {
+                listener.accept(drop);
+            }
         }
     }
 

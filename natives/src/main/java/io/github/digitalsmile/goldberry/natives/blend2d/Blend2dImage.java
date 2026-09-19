@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.calls.ImageCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendDataAccess;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendImageScaleFilter;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
@@ -32,6 +33,10 @@ final class Blend2dImage {
     private static final long IMAGE_DATA_WIDTH = Layouts.BL_IMAGE_DATA.offsetOf("size");
 
     private static final long IMAGE_DATA_HEIGHT = IMAGE_DATA_WIDTH + Integer.BYTES;
+
+    private static final long SIZE_I_W = Layouts.BL_SIZE_I.offsetOf("w");
+
+    private static final long SIZE_I_H = Layouts.BL_SIZE_I.offsetOf("h");
 
     private static final class Holder {
         private static final Blend2dImage INSTANCE =
@@ -107,6 +112,30 @@ final class Blend2dImage {
     /// `BLResult bl_image_convert(BLImageCore*, BLFormat)`
     void imageConvert(MemorySegment image, BlendFormat format) {
         check("bl_image_convert", calls.imageConvert().call(image, format.nativeValue()));
+    }
+
+    /// Resamples `source` into `destination` at `width` × `height`.
+    ///
+    /// `BLResult bl_image_scale(BLImageCore* dst, const BLImageCore* src,`
+    /// `const BLSizeI* size, BLImageScaleFilter filter)`
+    ///
+    /// `destination` must already be initialised — Blend2D resizes and allocates
+    /// for it, which makes this the second call in this class that asks Blend2D
+    /// for pixels after the decoder, and the second that hands them back on the
+    /// call that made them ([BlendScaledImage], ADR-0428).
+    ///
+    /// The `BLSizeI` is built in a confined arena per call. That is eight bytes
+    /// and an arena for something Blend2D reads and does not keep, and it is
+    /// affordable here for the reason it is not on the frame path: a resample is
+    /// an operation an application asks for, not one that happens sixty times a
+    /// second.
+    void imageScale(MemorySegment destination, MemorySegment source, int width, int height, BlendImageScaleFilter f) {
+        try (var arena = Arena.ofConfined()) {
+            var size = arena.allocate(Layouts.BL_SIZE_I.layout());
+            size.set(ValueLayout.JAVA_INT, SIZE_I_W, width);
+            size.set(ValueLayout.JAVA_INT, SIZE_I_H, height);
+            check("bl_image_scale", calls.imageScale().call(destination, source, size, f.nativeValue()));
+        }
     }
 
     /// Copies `image`'s pixels into `destination`, row by row.

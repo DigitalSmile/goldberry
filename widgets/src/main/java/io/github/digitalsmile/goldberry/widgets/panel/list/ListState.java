@@ -266,14 +266,17 @@ final class ListState<T> extends State<ListView<T>> {
     /// A row's focus name, **scoped to its list**.
     ///
     /// `host.focus` takes a name that is global to the window ([ADR-0176]), so
-    /// two lists showing items with the same identity would each answer to the
-    /// other's `Home`. Prefixing with the list's own `id` settles it wherever the
+    /// two lists showing items with the same identity name the same rows.
+    /// Prefixing with the list's own `id` tells them apart wherever the
     /// application gave one — which is the case a screen with two lists on it
     /// already has, because a stylesheet needs to tell them apart too.
     ///
-    /// A list with no `id` keeps the bare prefix and the collision with it. That
-    /// is `tree`'s behaviour unchanged, and the residue is small: two lists, both
-    /// unnamed, holding an item with the same identity.
+    /// **Two unnamed lists are settled elsewhere**, by the router: a name is
+    /// resolved inside the composite the keyboard is in before the window, and a
+    /// `list` is a composite ([ADR-0437]). So the prefix is no longer what keeps
+    /// `End` in one list out of the other, and it stays for what it was always
+    /// also doing — giving a row a name that means something from *outside* any
+    /// list, to a stylesheet or to an application that wants to focus one.
     private String rowId(String itemId) {
         var own = widget().attributes().id();
         return (own == null ? "list" : own) + "-" + itemId;

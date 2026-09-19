@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
@@ -92,10 +93,27 @@ class GalleryGoldenTest {
         paint(name, screen, theme, width, height, false);
     }
 
+    /// Whether the golden is also re-rendered at [ScaleInvariance]'s multipliers
+    /// and checked for describing the same picture.
+    private enum Sweep {
+
+        /// The default, and what every screen but one gets.
+        EVERY_SCALE,
+
+        /// The picture is pinned at 1&times; and the invariance claim is not made
+        /// — see [#canvas()].
+        ONE_SCALE
+    }
+
     /// The same, choosing how the text is drawn: with the one-font renderer these
     /// goldens were taken with, or with a **book**, which is what a screen about
     /// `font-family` needs ([ADR-0386]).
     private void paint(String name, String screen, Theme theme, int width, int height, boolean book) {
+        paint(name, screen, theme, width, height, book, Sweep.EVERY_SCALE);
+    }
+
+    /// The same, told whether the scale sweep applies to this screen at all.
+    private void paint(String name, String screen, Theme theme, int width, int height, boolean book, Sweep sweep) {
         actions.pickScreen(screen);
 
         var inflater = Widgets.inflater(
@@ -143,10 +161,12 @@ class GalleryGoldenTest {
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         // The size and the scale are the harness's rather than captured here,
-        // because a golden that matches is then re-rendered at 2x and 1.5x and
-        // checked for describing the same picture (ADR-0162). The whole screen
-        // goes through that sweep now, which it always did — the difference is
-        // that the render it sweeps is one an application could have written.
+        // because a golden that matches is then re-rendered at 2x, 1.5x and 1.25x
+        // and checked for describing the same picture (ADR-0162, ADR-0434). The
+        // whole screen goes through that sweep now, which it always did — the
+        // difference is that the render it sweeps is one an application could have
+        // written. The one exception is `canvas`, and the note on that test says
+        // why it is the exception.
         if (book) {
             // A **font book** rather than the one-font renderer, for the one
             // screen whose subject is `font-family`: the emoji sheet draws every
@@ -155,11 +175,11 @@ class GalleryGoldenTest {
             // ([ADR-0386]). Opened and closed per picture, because a book owns
             // the faces it opened.
             try (var fonts = Fonts.bundled()) {
-                GoldenImage.assertMatches(
+                assertGolden(
                         name,
                         width,
                         height,
-                        1.0f,
+                        sweep,
                         (size, scale) -> Offscreen.of(size)
                                 .scale(scale)
                                 .stylesheets(sheets)
@@ -168,16 +188,26 @@ class GalleryGoldenTest {
             }
             return;
         }
-        GoldenImage.assertMatches(
+        assertGolden(
                 name,
                 width,
                 height,
-                1.0f,
+                sweep,
                 (size, scale) -> Offscreen.of(size)
                         .scale(scale)
                         .stylesheets(sheets)
                         .font(font)
                         .render(root));
+    }
+
+    /// One of [GoldenImage]'s two entry points, chosen by `sweep` — here rather
+    /// than at each of the two call sites above, so the choice is made once.
+    private static void assertGolden(String name, int width, int height, Sweep sweep, GoldenImage.Scene scene) {
+        if (sweep == Sweep.ONE_SCALE) {
+            GoldenImage.assertMatchesAtOneScale(name, width, height, 1.0f, scene);
+            return;
+        }
+        GoldenImage.assertMatches(name, width, height, 1.0f, scene);
     }
 
     /// 1720 tall rather than 900, for the Forms screen's reason: the shapes card
@@ -262,6 +292,38 @@ class GalleryGoldenTest {
         paint("gallery-charts", "charts", Theme.NORD_DARK, 1200, 900);
     }
 
+    /// **The one golden in the repository with no scale sweep behind it**, and the
+    /// reason is what is on the screen rather than anything about the check
+    /// ([ADR-0434]).
+    ///
+    /// This wall holds three QR codes and four decoded bitmaps. A QR module is a
+    /// hard-edged square in a dense grid and a decoded PNG drawn at its natural
+    /// size is a raster, and neither is a fact about logical space: re-rendered at
+    /// a fractional scale and resampled back, a module boundary lands on the other
+    /// side of a pixel and a whole run of them reads inverted, which no
+    /// three-by-three neighbourhood search can forgive because the neighbour is
+    /// the opposite colour. Measured over the whole screen, against a 1.200%
+    /// budget every other gallery image meets with two orders of magnitude to
+    /// spare:
+    ///
+    /// | multiplier | pixels with no match | worst delta |
+    /// | --- | --- | --- |
+    /// | 1.5&times; | 0.605% | 163 |
+    /// | 2&times; | 0.743% | 163 |
+    /// | 1.75&times; | 1.189% | 229 |
+    /// | 1.25&times; | **1.229%** | 229 |
+    ///
+    /// It has been within a hair of failing since it was taken, and the quarter
+    /// scales tip it over. Raising the budget to accommodate it would loosen the
+    /// check on 245 images that do not need it; asserting invariance about a
+    /// barcode asserts something false. So this one screen is pinned at 1&times;
+    /// and makes no invariance claim, exactly as `DamageTest` is excluded because
+    /// a damage rectangle is in physical pixels by design.
+    ///
+    /// **What that costs is real**: the paths, strokes, gradient and dashed rule
+    /// on this wall *are* scale-invariant and are no longer checked to be. The
+    /// smaller assertion that would keep them — a sweep over part of an image — is
+    /// a mechanism nothing else needs yet.
     @Test
     @DisplayName("the canvas screen")
     void canvas() {
@@ -269,18 +331,33 @@ class GalleryGoldenTest {
         // The picture is taken **at rest**: neither interactive card draws
         // anything extra until something touches it, which is what makes a
         // surface an application controls photographable at all (ADR-0281).
-        paint("gallery-canvas", "canvas", Theme.NORD_DARK, 1200, 900);
+        paint("gallery-canvas", "canvas", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE);
     }
 
-    /// The same screen at the size a small window gives it.
+    /// The same screen at the size a small window gives it, and **the one picture
+    /// in the gallery whose subject is the window rather than a widget**.
     ///
-    /// Worth a picture of its own because a masonry's columns are a *count* and
-    /// not a media query: two columns of cards at 1200 are two columns at 720 as
-    /// well, half as wide and twice as tall. What this asserts is that they still
-    /// fit -- a card whose contents had a minimum width would overflow rather than
-    /// wrap, and §10's `wrap` is not built (ADR-0196).
+    /// It was worth a picture for the opposite reason until ADR-0436. A masonry's
+    /// columns were a *count* and not a media query, so two columns of cards at
+    /// 1200 were two columns at 720 as well — half as wide and twice as tall —
+    /// and what this asserted was that they still fit: a card whose contents had
+    /// a minimum width would overflow rather than wrap, because §10's `wrap` is
+    /// not built (ADR-0196). It was a picture of a layout surviving a window it
+    /// was not designed for.
+    ///
+    /// `basic.kdl` says `min-column-width=560` now, so this is a picture of the
+    /// wall **reflowing** instead: 688 pixels holds one 560 column and not two, so
+    /// the narrow window gets one column of full-width cards. The assertion it
+    /// makes is stronger than the one it replaces — the old one could only tell
+    /// you that nothing burst, and this one fails if the count stops following the
+    /// width at all.
+    ///
+    /// The wide `gallery-basic` is **unchanged** by that, deliberately: 1168 holds
+    /// two 560s and a gap, so the same document is the same two columns at 1200
+    /// that it always was. A responsive wall whose widest picture moved would have
+    /// been a redesign wearing a layout change's clothes.
     @Test
-    @DisplayName("the Basic screen in a narrow window")
+    @DisplayName("the Basic screen in a narrow window, reflowed to one column")
     void basicNarrow() {
         paint("gallery-basic-narrow", "basic", Theme.NORD_DARK, 720, 900);
     }

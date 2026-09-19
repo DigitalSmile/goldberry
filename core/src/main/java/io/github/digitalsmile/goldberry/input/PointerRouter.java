@@ -1691,7 +1691,7 @@ public final class PointerRouter {
     ///
     /// @return whether focus moved
     public boolean focusById(String id, boolean fromKeyboard) {
-        var found = findById(focusRoot, id);
+        var found = findNamed(id);
         if (found == null) {
             return false;
         }
@@ -1717,6 +1717,43 @@ public final class PointerRouter {
         var found = new ArrayList<Element>();
         collectFocusable(element, found);
         return found.isEmpty() ? null : found.getFirst();
+    }
+
+    /// The element called `id`, looked for **inside the composites the keyboard
+    /// is already in** before the window as a whole.
+    ///
+    /// A focus name is global to the window ([ADR-0176]), because the namespace
+    /// it resolves in is the element tree's `id` — and an id is the document's
+    /// name for a node. That is right for the names an application writes down
+    /// and wrong for the ones a widget manufactures: a `list` names each row
+    /// after the item's identity, so two lists over the same identities name the
+    /// same rows, and `End` in the second one moved the focus into the first
+    /// ([ADR-0437]).
+    ///
+    /// **The boundary is [FocusScope]**, which is already the right one for the
+    /// reason it exists. A composite is one Tab stop (ADR-0073) whose items the
+    /// composite itself builds and itself names, so it is exactly the subtree
+    /// whose manufactured names are its own business. Nothing new has to be
+    /// declared: `list`, `tree`, `menu` and `tabs` all say they are scopes
+    /// already, because they all needed arrow keys.
+    ///
+    /// Outwards scope by scope and then the window, so a composite nested in
+    /// another answers before the one containing it, and a name that is nobody's
+    /// row resolves exactly where it always did.
+    ///
+    /// Anchored on the focused node, which is not a guess about the caller:
+    /// every request for a manufactured name **is** a key pressed on a row —
+    /// `Home`, `End`, type-to-select, a tree's `Left` to its parent. With the
+    /// focus nowhere there is no subtree for a name to be relative to, and the
+    /// window is the only answer there is.
+    private @Nullable Element findNamed(String id) {
+        for (var scope = enclosingScope(focused); scope != null; scope = enclosingScope(scope)) {
+            var within = findById(scope, id);
+            if (within != null) {
+                return within;
+            }
+        }
+        return findById(focusRoot, id);
     }
 
     private static @Nullable Element findById(Element element, String id) {

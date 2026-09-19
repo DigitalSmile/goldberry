@@ -41,7 +41,24 @@ public final class WidgetRenderer {
     private static final Logger LOG = Logs.of(WidgetRenderer.class);
 
     private final StyleResolver resolver;
+
+    /// What the **root** resolves `em` and `rem` against — the configured pair,
+    /// which is what an application passed in and never changes.
     private final CssLength.Context lengths;
+
+    /// [#lengths] with `rem` set to what the root element actually computed
+    /// ([ADR-0416]).
+    ///
+    /// The one piece of per-frame style state the renderer keeps, and it is
+    /// mutable for a reason nothing else here is: CSS defines `rem` as the root
+    /// element's computed `font-size`, a node is handed its parent's style rather
+    /// than the root's, and the walk is the only thing that ever holds both. It is
+    /// reset to [#lengths] at the top of every frame and set once, at the root, so
+    /// it is never read stale — a frame either has not reached the root yet, in
+    /// which case the configured value is the right answer, or has, in which case
+    /// this is.
+    private CssLength.Context lengthsBelowRoot;
+
     private final Paints.Context paintContext;
 
     /// What time it is, for anything that animates (§1.7).
@@ -75,6 +92,7 @@ public final class WidgetRenderer {
     public WidgetRenderer(List<Stylesheet> stylesheets, Fonts fonts, CssLength.Context lengths) {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.lengths = Objects.requireNonNull(lengths, "lengths");
+        this.lengthsBelowRoot = this.lengths;
         Objects.requireNonNull(fonts, "fonts");
         this.paintContext = context(style -> fonts.of(style.typography().scaled(textScale)));
     }
@@ -88,6 +106,7 @@ public final class WidgetRenderer {
     public WidgetRenderer(List<Stylesheet> stylesheets, Font font, CssLength.Context lengths) {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.lengths = Objects.requireNonNull(lengths, "lengths");
+        this.lengthsBelowRoot = this.lengths;
         Objects.requireNonNull(font, "font");
         this.paintContext = context(style -> font);
     }
@@ -168,6 +187,11 @@ public final class WidgetRenderer {
             /// style is not in hand at this seam. Nothing asks for one — the
             /// tokens this answers are all `px` — and the day one does, the fix
             /// is to pass the style in, not to guess.
+            ///
+            /// **`rem` is exact here**, which it was not before ADR-0416. This
+            /// seam runs with `currentElement` set, so the walk has reached the
+            /// root and [#lengthsBelowRoot] carries the size the root actually
+            /// computed rather than the number an application configured.
             @Override
             public double length(String name, double fallback) {
                 java.util.Objects.requireNonNull(name, "name");
@@ -181,7 +205,7 @@ public final class WidgetRenderer {
                 // A percentage is of something, and a widget asking for a token
                 // has no containing block in hand to be a percentage of; `auto`
                 // is not a number at all. Both answer the fallback.
-                return io.github.digitalsmile.goldberry.css.value.CssLength.parse(resolved, lengths)
+                return io.github.digitalsmile.goldberry.css.value.CssLength.parse(resolved, lengthsBelowRoot)
                                 instanceof io.github.digitalsmile.goldberry.layout.Length.Points points
                         ? points.value()
                         : fallback;
@@ -355,6 +379,12 @@ public final class WidgetRenderer {
         // So a node whose state changes between frames can ask what the sheets
         // say without having resolved a style of its own (ADR-0149).
         tree.styleResolver(resolver);
+        // `rem` starts the frame meaning the configured size and becomes the
+        // root's computed one the moment the walk has it (ADR-0416). Reset here
+        // rather than left from last frame, so a root whose `font-size` changed
+        // cannot leave the tree below it resolving against the old number for a
+        // frame -- and so the value is never a fact about a render that is over.
+        lengthsBelowRoot = lengths;
         var textHitsBefore = FrameTrace.ENABLED ? paragraphs.hits() : 0;
         var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
         var boxes = render(tree.root(), null, false, now);
@@ -409,7 +439,7 @@ public final class WidgetRenderer {
         if (declared == null) {
             return null;
         }
-        var starting = ComputedStyle.of(declared, lengths, inherited);
+        var starting = ComputedStyle.of(declared, lengthsBelowRoot, inherited);
         return element.widget() instanceof Styled styled ? styled.restyle(starting) : starting;
     }
 
@@ -423,7 +453,8 @@ public final class WidgetRenderer {
             }
             return null;
         }
-        return KeyframeTrack.resolve(block, target, frame -> resolver.resolveKeyframe(element, frame), lengths);
+        return KeyframeTrack.resolve(
+                block, target, frame -> resolver.resolveKeyframe(element, frame), lengthsBelowRoot);
     }
 
     /// The boxes one element contributes — one if it paints, otherwise its
@@ -496,7 +527,7 @@ public final class WidgetRenderer {
             self = element.cachedStyle(resolver, inherited);
             if (self == null) {
                 var began = trace == null ? 0L : System.nanoTime();
-                self = ComputedStyle.of(resolver.resolve(element), lengths, inherited);
+                self = ComputedStyle.of(resolver.resolve(element), lengthsBelowRoot, inherited);
                 element.cacheStyle(resolver, inherited, self);
                 if (trace != null) {
                     trace.countResolve();
@@ -535,6 +566,28 @@ public final class WidgetRenderer {
         } else {
             self = inherited;
             handDown = inherited;
+        }
+
+        // **`rem` gets its real meaning here, and it could not get it earlier**
+        // (ADR-0416). CSS says `rem` is the root *element's* computed
+        // `font-size`, and ADR-0242 left it as the configured number because a
+        // node is handed its parent's style and not the root's -- so nothing
+        // inside `ComputedStyle.of` can recover it for a descendant. What can is
+        // the thing that walks the tree, at the one moment it has the root's
+        // style and has not yet descended.
+        //
+        // The field is "correct only after the root has resolved", which ADR-0242
+        // listed as a drawback of this shape and is in fact the specification: on
+        // the root's own `font-size`, `rem` refers to the initial value, because
+        // the value being computed cannot be its own input. That case is
+        // `ComputedStyle.of`'s and is handled there; this is every other node.
+        //
+        // A root that paints nothing and styles nothing keeps the configured
+        // value, which is right for the same reason: it computed no size, so
+        // there is none to be the root's.
+        if (element.parent() == null && self != null) {
+            lengthsBelowRoot =
+                    lengths.withRootFontSize((float) self.typography().size());
         }
 
         // The target the cascade just produced, and the values actually in

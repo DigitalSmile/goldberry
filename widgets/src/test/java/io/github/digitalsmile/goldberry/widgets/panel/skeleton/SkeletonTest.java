@@ -82,15 +82,35 @@ class SkeletonTest {
         assertFalse(one.getFirst().last(), "a one-line paragraph is a full line");
     }
 
-    /// So `skeleton.title` selects from a document that only said
+    /// So `skeleton.shape-title` selects from a document that only said
     /// `shape="title"`.
+    ///
+    /// **`shape-circle` and not `circle`**, which is the whole family renamed by
+    /// ADR-0414: `title` was one of §1.4's type ranks, `.title` is styled with no
+    /// type on it, and both the `skeleton` and each of its bars were wearing a
+    /// 20px/600 type rank nobody asked them to. §5's `shape="title"` is the
+    /// published word and is unchanged; the class is the widget's own.
     @Test
     @DisplayName("the shape is a class on the skeleton and on its bars")
     void shapeIsAClass() {
         var tree = new ElementTree(new Skeleton(Skeleton.Shape.CIRCLE));
 
-        assertTrue(Described.first(tree, Skeleton.class).classes().contains("circle"));
-        assertTrue(Described.first(tree, Skeleton.SkeletonBar.class).classes().contains("circle"));
+        assertTrue(Described.first(tree, Skeleton.class).classes().contains("shape-circle"));
+        assertTrue(Described.first(tree, Skeleton.SkeletonBar.class).classes().contains("shape-circle"));
+    }
+
+    /// The rename's other half: what a document writes did **not** move.
+    ///
+    /// A convention that fixed the collision by changing `shape="title"` would
+    /// have been a breaking change to §5 to tidy up a class name, which is the
+    /// trade ADR-0414 refused.
+    @Test
+    @DisplayName("the shape attribute is still spelled the way §5 spells it")
+    void theAttributeIsUnchanged() {
+        var tree = new ElementTree(Widgets.inflater()
+                .inflate(KdlParser.parse("skeleton shape=\"title\"").getFirst()));
+
+        assertTrue(Described.first(tree, Skeleton.class).classes().contains("shape-title"));
     }
 
     /// A skeleton that stopped asking for frames would be a picture of a

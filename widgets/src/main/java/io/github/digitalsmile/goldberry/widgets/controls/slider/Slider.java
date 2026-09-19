@@ -1,26 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
 import org.jspecify.annotations.Nullable;
-import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
-import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.Scale;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.DoubleConsumer;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
@@ -38,6 +28,18 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// **flex ratio** rather than by a transform, because a transform cannot express
 /// it (ADR-0079).
 ///
+/// ## This record styles nothing, and that is new
+///
+/// `slider` as a CSS type is [SliderControl], the node this builds. The split is
+/// `scroll`'s and `tabs`' exactly — a stateful widget that was also styled would
+/// put two `slider` nodes in the cascade, one inside the other, and every rule
+/// would apply twice (ADR-0109, ADR-0116).
+///
+/// It is stateful for **one number**: the thumb's width, which the stylesheet
+/// owns and the pointer mapping needs — see [SliderState] (ADR-0430).
+/// Everything here is still a pure function of the record's components; what the
+/// state holds is a measurement, not a value.
+///
 /// ## Direct manipulation
 ///
 /// §3.1: "drag: **1:1, no animation**". A press anywhere on the control jumps the
@@ -46,11 +48,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// the finger would lag it, and lag is the one thing a control being dragged must
 /// not have.
 ///
-/// The pointer's position along the track comes from
-/// [PointerEvent.Local#fractionX()] — the router's answer to "where inside *you*
-/// did this happen", which a widget cannot work out for itself
-/// ([ADR-0079]). The press already takes the pointer until the release
-/// ([ADR-0058]), so a drag that wanders off the track keeps working.
+/// The pointer's position along the track is [SliderControl]'s, mapped over the
+/// thumb's **travel** rather than over the track's full width: the thumb's centre
+/// cannot reach within half a thumb of either end, so a finger at the very edge
+/// of the track is asking for a value the thumb is 8px away from. The press
+/// already takes the pointer until the release ([ADR-0058]), so a drag that
+/// wanders off the track keeps working.
 ///
 /// ## The keyboard
 ///
@@ -95,7 +98,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// The label sits **at the end of the control, beside the track**, so the value
 /// is no longer a position along the slider: it is a position along the
-/// [SliderTrack], which is what [#localPart()] tells the router.
+/// [SliderTrack], which is what
+/// [SliderControl#localPart()] tells the router.
 ///
 /// @param min      the value at the start of the track
 /// @param max      the value at the end; must be greater than `min`
@@ -116,7 +120,7 @@ public record Slider(
         int ticks, String format, Scale scale,
         Observable<?> source, DoubleConsumer onChange,
         boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Slider>, Bindable<Slider> , Semantics {
+        implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
 
     public Slider {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
@@ -272,98 +276,20 @@ public record Slider(
         return source;
     }
 
+    /// The `id` doubles as the reconciliation key, exactly as it did while this
+    /// was the styled node — the element tree pairs a rebuilt description with
+    /// the element that already holds [SliderState], so a thumb width measured
+    /// last frame survives a rebuild.
     @Override
-    public String cssType() {
-        return "slider";
-    }
-
-    @Override
-    public String id() {
-        return attributes.id();
-    }
-
-    @Override
-    public Set<String> classes() {
-        return attributes.classes();
-    }
-
-    @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 
+    /// One [SliderState] per mounted slider, holding the one number a `render`
+    /// can see and an `onPointer` cannot.
     @Override
-    public boolean isFocusable() {
-        return !disabled;
-    }
-
-    @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    /// The track, and — beside it, on the control's main axis — the value.
-    ///
-    /// The track holds the groove and the tick marks, which is what makes it the
-    /// box the value is measured along even when a label has taken a chunk of the
-    /// control's width ([#localPart()]).
-    @Override
-    public List<Widget> children() {
-        var children = new ArrayList<Widget>(2);
-        children.add(new SliderTrack(fraction(), ticks, disabled));
-        if (format != null) {
-            children.add(new SliderValue(text(), disabled));
-        }
-        return List.copyOf(children);
-    }
-
-    /// The value is a position along the **track**, not along the control.
-    ///
-    /// The two are the same box until a label is added, and then they are not:
-    /// the label takes its width off the end of the track, so a pointer at the
-    /// right-hand end of a labelled control is at 100% of the track and 88% of
-    /// the slider. Measuring along the slider would put the value 12% short at
-    /// that end, in a way that draws perfectly and reports no error at all
-    /// ([ADR-0080]).
-    @Override
-    public String localPart() {
-        return "slider-track";
-    }
-
-    /// A press jumps, and every move until the release follows — §3.1's "1:1".
-    ///
-    /// Both the press and the moves after it read the same thing, so there is no
-    /// separate "am I dragging" state to keep: the router's implicit capture is
-    /// what makes a `MOVED` between a press and a release mean "still dragging",
-    /// and a `MOVED` with no button held reports `NaN` for its drag and is
-    /// ignored here.
-    @Override
-    public void onPointer(PointerEvent event) {
-        var dragging = switch (event.kind()) {
-            case PRESSED -> event.button() == PointerEvent.Button.PRIMARY;
-            // Only while a button is down. `dragX()` is NaN otherwise, which is
-            // the router reporting "no gesture" through the arithmetic rather
-            // than through a flag (ADR-0075).
-            case MOVED -> !Double.isNaN(event.dragX());
-            default -> false;
-        };
-        if (!dragging) {
-            return;
-        }
-        ask(scale.toValue(fractionOf(event), min, max));
-        // Consumed so an ancestor -- a scroll view, a list row -- does not also
-        // act on a drag that is plainly this control's.
-        event.consume();
-    }
-
-    /// Which way along the control the pointer is, honouring the `vertical` class.
-    ///
-    /// A vertical slider **inverts** the fraction, because zero is at the top of a
-    /// screen and at the bottom of a fader. That inversion is the widget's rather
-    /// than the router's: `fractionY()` reports what the pointer did, and what it
-    /// means is a fact about the control.
-    private double fractionOf(PointerEvent event) {
-        return isVertical() ? 1 - event.local().fractionY() : event.local().fractionX();
+    public State<?> createState() {
+        return new SliderState();
     }
 
     /// Whether this slider runs bottom-to-top — `docs/core-widgets.md` §3's
@@ -371,35 +297,6 @@ public record Slider(
     /// widget names the semantics and the stylesheet names the axis.
     public boolean isVertical() {
         return attributes.classes().contains("vertical");
-    }
-
-    @Override
-    public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || !event.modifiers().none()) {
-            return;
-        }
-        // Repeats are deliberately honoured, unlike every control before this:
-        // holding an arrow to run a value up is how a slider is used, while
-        // holding Space on a checkbox to flutter it is not.
-        var current = resolved();
-        var moved = switch (event.key()) {
-            case LEFT, DOWN -> stepFrom(current, -1, 0.01);
-            case RIGHT, UP -> stepFrom(current, 1, 0.01);
-            case PAGE_DOWN -> stepFrom(current, -1, 0.1);
-            case PAGE_UP -> stepFrom(current, 1, 0.1);
-            case HOME -> min;
-            case END -> max;
-            default -> Double.NaN;
-        };
-        if (Double.isNaN(moved)) {
-            return;
-        }
-        ask(moved);
-        // Always consumed, even when the value did not move -- a slider at its
-        // maximum still owns Right, and letting it through would hand the key to
-        // a focus scope and move focus off the control the user is adjusting
-        // (ADR-0073, ADR-0078).
-        event.consume();
     }
 
     /// The **next value the user can reach** in `direction`, which is not always
@@ -419,7 +316,7 @@ public record Slider(
     /// the top of the travel and by a third of it at the bottom. A slider that
     /// does have a grid keeps it, because a grid is what the author asked for and
     /// the values on it are theirs rather than the screen's.
-    private double stepFrom(double current, int direction, double share) {
+    double stepFrom(double current, int direction, double share) {
         if (step <= 0) {
             return scale.toValue(
                     scale.toFraction(current, min, max) + direction * share, min, max);
@@ -437,11 +334,6 @@ public record Slider(
         return min + next * step;
     }
 
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new));
-    }
-
     /// Asks the application for a value, snapped and clamped. It does **not** set
     /// one.
     ///
@@ -450,7 +342,11 @@ public record Slider(
     /// an application repeating the arithmetic would be an application getting it
     /// slightly wrong. A `Property` swallows a value it already holds, so a drag
     /// within one step raises changes that settle rather than looping.
-    private void ask(double raw) {
+    ///
+    /// Package-private rather than private: the handlers that call it are
+    /// [SliderControl]'s now, because the node that carries `slider` in the
+    /// cascade is the node the router delivers to (ADR-0430).
+    void ask(double raw) {
         if (!disabled && onChange != null) {
             onChange.accept(snap(clamp(raw)));
         }
@@ -496,17 +392,6 @@ public record Slider(
                 Scale.of(node.stringProperty("scale")),
                 wiring.bound(node), wiring.numeric(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
-    }
-
-    @Override
-    public Role role() {
-        return Role.SLIDER;
-    }
-
-    /// No name of its own: a slider carries no label of its own; the `field` or the text beside it names it.
-    @Override
-    public @Nullable String accessibleName() {
-        return null;
     }
 
 }

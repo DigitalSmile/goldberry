@@ -552,14 +552,68 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "one have diverged and the superbuild is what needs fixing.")
             endif()
         endforeach()
+
+        # --- Two capabilities SDL's own answer is the *only* source for --------
+        #
+        # The three above are predicted by a pkg-config probe and confirmed here.
+        # These two are read here and not predicted at all, which is a different
+        # arrangement and a deliberate one (ADR-0422).
+        #
+        # SDL_VIDEO_DRIVER_WAYLAND is decided by a single pkg_check_modules over
+        # five specs in SDL's CheckWayland -- wayland-client, wayland-scanner,
+        # wayland-egl, wayland-cursor and egl -- plus wayland-protocols and the
+        # scanner *binary*. Lose any one and the entire Wayland driver is dropped
+        # silently. A prediction of that would have to restate all seven
+        # conditions, and a prediction narrower than what it predicts is worse
+        # than none: under the all-of semantics Wayland needs, a probe that asked
+        # for four of the five would report "available" on a machine where SDL
+        # builds no Wayland driver, and the cross-check above would then fail a
+        # build that was fine. So there is nothing to cross-check; SDL's answer is
+        # the fact.
+        #
+        # HAVE_LIBDECOR_H is simpler and lands in the same place for a second
+        # reason: `libdecor-devel` is in no repository the manylinux release
+        # container has, so the honest report for that build is "it cannot" rather
+        # than "install this" -- which is a capability and not a preflight error.
+        foreach(_sdl_capability IN ITEMS SDL_VIDEO_DRIVER_WAYLAND HAVE_LIBDECOR_H)
+            if(_sdl_build_config_text MATCHES "\n#define ${_sdl_capability}")
+                set(_definitions ${GOLDBERRY_PLATFORM_DEFINITIONS})
+                list(APPEND _definitions GOLDBERRY_PLATFORM_${_sdl_capability})
+                set(GOLDBERRY_PLATFORM_DEFINITIONS "${_definitions}")
+                message(STATUS "Goldberry desktop integration: SDL compiled in ${_sdl_capability}")
+            else()
+                # A warning rather than an error, and the message says what is
+                # lost rather than what is missing -- because on the release
+                # container neither package can be installed and the build must
+                # still produce a library.
+                message(WARNING
+                    "Goldberry: SDL configured itself without ${_sdl_capability}:\n"
+                    "  ${_sdl_build_config}\n"
+                    "This libgoldberry will report the matching capability as absent through "
+                    "Goldberry.capabilities(). For SDL_VIDEO_DRIVER_WAYLAND that means every "
+                    "session falls back to X11 or XWayland, which resizes visibly worse "
+                    "(ADR-0027); for HAVE_LIBDECOR_H it means a Wayland window opens with no "
+                    "titlebar and no resize edge (ADR-0083).\n"
+                    "  Debian/Ubuntu:       sudo apt install libwayland-dev wayland-protocols "
+                    "libxkbcommon-dev libegl1-mesa-dev libdecor-0-dev\n"
+                    "  RHEL/Fedora/Alma:    sudo dnf install -y wayland-devel wayland-protocols-devel "
+                    "libxkbcommon-devel mesa-libEGL-devel libdecor-devel")
+            endif()
+        endforeach()
     else()
         # Not fatal: an upstream that moves its generated header is a broken
         # cross-check, not a broken library, and the capability bits still say
         # what the probe found.
+        #
+        # For the two capabilities read out of this file rather than predicted,
+        # the consequence is stronger and is the right way round: they are
+        # reported absent, because a build that could not read SDL's answer has
+        # not earned the claim.
         message(WARNING
             "Goldberry: SDL's generated SDL_build_config.h was not found under "
             "${sdl3_BINARY_DIR}, so what SDL compiled in could not be cross-checked "
-            "against this build's own probe (docs/gaps.md G32).")
+            "against this build's own probe (docs/gaps.md G32), and the Wayland driver "
+            "and window decorations are reported as absent (ADR-0422).")
     endif()
 endif()
 

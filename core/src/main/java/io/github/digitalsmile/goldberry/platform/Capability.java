@@ -66,5 +66,39 @@ public enum Capability {
     FILE_DIALOG,
 
     /// Keeping the screensaver off a window that is playing something.
-    SCREENSAVER_INHIBIT
+    SCREENSAVER_INHIBIT,
+
+    /// Whether this build can ask the desktop for a titlebar and a resize edge.
+    ///
+    /// **On Linux this is libdecor at build time.** Without it SDL compiles no
+    /// client-side decoration support at all, and a window on a GNOME/Wayland
+    /// session opens with no titlebar and no resize edge however the session is
+    /// configured — which is two consecutive shipped bugs' worth of history
+    /// ([ADR-0083](../../../../../book/src/adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)).
+    /// On macOS and Windows the window server draws them, so this is always
+    /// present there.
+    ///
+    /// **It does not promise a titlebar.** libdecor's default plugin refuses to
+    /// start off the process's initial thread and a JVM is never on it, so a build
+    /// that reports this can still open a bare window at run time
+    /// ([ADR-0084](../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// Built able to ask is the claim.
+    WINDOW_DECORATIONS,
+
+    /// Whether SDL compiled a Wayland video driver into this build.
+    ///
+    /// Linux only; never present on macOS or Windows, where there is no Wayland to
+    /// have a driver for.
+    ///
+    /// Worth asking because losing it is **silent**. SDL decides the entire driver
+    /// with one `pkg_check_modules` over five specs, so a build machine missing any
+    /// one of them — EGL's headers being the one that has actually happened —
+    /// produces a library whose every session falls back to X11 or XWayland, with
+    /// no error anywhere. XWayland resizes visibly worse, which is what
+    /// [ADR-0027](../../../../../book/src/adr/0027-prefer-wayland-fall-back-to-x11.md)
+    /// chose against.
+    ///
+    /// Like every other value here this describes the **library**: a build with
+    /// the driver still runs on X11 when that is what the desktop is.
+    WAYLAND
 }

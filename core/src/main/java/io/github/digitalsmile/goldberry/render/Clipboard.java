@@ -25,6 +25,12 @@ import java.util.Map;
 /// which lives beside the decoder rather than here: a backend implementing this
 /// interface should not have to know what a PNG is.
 ///
+/// A **file list** goes the same way. `text/uri-list` is bytes under a type like
+/// anything else, and what turns those bytes into names is [UriList] — a value
+/// beside this interface rather than a method on it, because percent-decoding a
+/// URI is not something a backend should have an opinion about either
+/// ([ADR-0406]).
+///
 /// Every byte method has a **default that does nothing**, so a backend with no
 /// data clipboard — or one written before this existed — is honest rather than
 /// broken: it reports that it holds nothing and accepts nothing.

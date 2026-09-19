@@ -60,15 +60,20 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
         return new Words(prefix + "-word", prefix + "-token", minter);
     }
 
-    /// One thing in a line: text the author wrote, or a widget somebody built.
+    /// One thing in a line: text the author wrote, a widget somebody built, or the end
+    /// of a line the author asked for.
     ///
-    /// Two kinds because of the anchor. `markdown-view` produces nothing but text and
-    /// could take a list of fragments; `html-view` turns an `<a href>` into a
-    /// `button.link` in the middle of a sentence (ADR-0298), and that button has to be
-    /// part of the **token** it is written in — otherwise the full stop after a link
-    /// becomes a word of its own with a space in front of it, which is the exact
-    /// mistake ADR-0295 recorded about `*emphasis*, and`.
-    public sealed interface Piece permits Fragment, Node {}
+    /// Two of the three kinds are there because of the anchor. `markdown-view` produces
+    /// nothing but text and could take a list of fragments; `html-view` turns an
+    /// `<a href>` into a `button.link` in the middle of a sentence (ADR-0298), and that
+    /// button has to be part of the **token** it is written in — otherwise the full stop
+    /// after a link becomes a word of its own with a space in front of it, which is the
+    /// exact mistake ADR-0295 recorded about `*emphasis*, and`.
+    ///
+    /// The third is [Break], and it is why a run of pieces is a list and not a row: a
+    /// hard break is a *boundary* between two lines rather than anything drawn, so
+    /// [#lines] cuts the list where it finds one (ADR-0426).
+    public sealed interface Piece permits Fragment, Node, Break {}
 
     /// One piece of a paragraph, with the marks it is inside.
     ///
@@ -94,7 +99,25 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
     ///        nothing for a picture, which is what a browser copies for an image
     public record Node(Widget widget, String text) implements Piece {}
 
-    /// The widgets for `pieces`, one per token.
+    /// The end of a line, because the author said so — two trailing spaces, a
+    /// backslash, a `<br>`.
+    ///
+    /// Nothing is drawn for it and it carries no marks: what it *is* is the place
+    /// [#lines] cuts, and a fold that lays a run out as a single row treats it as a
+    /// token boundary and no more (ADR-0426).
+    public record Break() implements Piece {
+
+        /// The only one there is, because a break has nothing to say about itself.
+        public static final Break HARD = new Break();
+    }
+
+    /// The widgets for `pieces`, one per token — **one line's worth**.
+    ///
+    /// A [Break] in `pieces` ends the token and nothing else here, which is what a
+    /// caller laying out a box that is one line by construction wants: a table cell is
+    /// one row of words, and md4c cannot put a hard break in one anyway, since a table
+    /// row is a single line of source. A caller that has a paragraph asks [#lines]
+    /// instead.
     public List<Widget> tokens(List<? extends Piece> pieces) {
         var widgets = new ArrayList<Widget>();
         var token = new ArrayList<Widget>();
@@ -103,34 +126,92 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
             // a token is what sits between two spaces, so the piece that opens one is
             // preceded by a space and the pieces after it are not -- which is the same
             // rule that puts a comma against the emphasised word before it.
-            if (piece instanceof Node(var widget, var label)) {
+            switch (piece) {
                 // **No classes on the wrapper.** It draws nothing itself -- the button
                 // or the picture inside it does -- so a rule meant for the *text* of a
                 // word would be applying to a box round a control. What it contributes
                 // is the label, to a copied selection.
-                token.add(minter.wrapping(widget, label, Attributes.NONE, token.isEmpty()));
-                continue;
+                case Node(var widget, var label) ->
+                    token.add(minter.wrapping(widget, label, Attributes.NONE, token.isEmpty()));
+                case Break _ -> close(token, widgets);
+                case Fragment fragment -> words(fragment, token, widgets);
             }
-            var fragment = (Fragment) piece;
-            if (fragment.atomic()) {
-                token.add(text(fragment.text(), fragment.marks(), token.isEmpty()));
-                continue;
-            }
-            var text = fragment.text();
-            var word = new StringBuilder();
-            for (var i = 0; i < text.length(); i++) {
-                var c = text.charAt(i);
-                if (Character.isWhitespace(c)) {
-                    flush(word, token, fragment.marks());
-                    close(token, widgets);
-                } else {
-                    word.append(c);
-                }
-            }
-            flush(word, token, fragment.marks());
         }
         close(token, widgets);
         return widgets;
+    }
+
+    /// The tokens of `pieces`, **one list per line**: one line unless the author ended
+    /// one inside the run, and one more for every [Break] that they did.
+    ///
+    /// The caller builds the boxes, because what a paragraph *is* is the one thing the
+    /// two folds disagree about — this says where its lines are and nothing about their
+    /// shape (ADR-0426).
+    ///
+    /// Two things happen here that a caller could not do afterwards, and both are about
+    /// the order words are minted in:
+    ///
+    /// - **Every line after the first opens a block** ([WordMinter#block()]), so a copy
+    ///   of the selection has the newline the author wrote in it — which is what
+    ///   `Inlines.text` and the `<br>` of the HTML writer already say a hard break
+    ///   means. The cost is that a triple-click takes one line of the paragraph rather
+    ///   than all of it, and that is the right trade for the case hard breaks exist
+    ///   for: an address, a stanza, a signature block.
+    /// - **A line with nothing on it gets one space**, for the reason a fence's blank
+    ///   line does: a row holding no words measures zero high, so two breaks in a row
+    ///   would collapse into one and the blank line the author typed would be the bug
+    ///   this fixed.
+    ///
+    /// **A run with no break in it is minted exactly as [#tokens] would mint it** — no
+    /// boundary, no space, the same words in the same order. That is not an
+    /// optimisation: it is what keeps every golden image of every document nobody put a
+    /// break in unmoved, and a run that is *empty* is one of those. An `<img>` with no
+    /// alt text contributes no pieces at all, and a space in the paragraph it was the
+    /// whole of would be a word the page does not contain.
+    public List<List<Widget>> lines(List<? extends Piece> pieces) {
+        var split = new ArrayList<List<Piece>>();
+        var line = new ArrayList<Piece>();
+        for (var piece : pieces) {
+            if (piece instanceof Break) {
+                split.add(List.copyOf(line));
+                line.clear();
+                continue;
+            }
+            line.add(piece);
+        }
+        split.add(List.copyOf(line));
+        if (split.size() == 1) {
+            return List.of(tokens(split.getFirst()));
+        }
+        var lines = new ArrayList<List<Widget>>(split.size());
+        for (var i = 0; i < split.size(); i++) {
+            if (i > 0) {
+                minter.block();
+            }
+            var only = split.get(i);
+            lines.add(only.isEmpty() ? List.of(whole(" ", Set.of())) : tokens(only));
+        }
+        return List.copyOf(lines);
+    }
+
+    /// `fragment` split into the words of the token being built.
+    private void words(Fragment fragment, List<Widget> token, List<Widget> widgets) {
+        if (fragment.atomic()) {
+            token.add(text(fragment.text(), fragment.marks(), token.isEmpty()));
+            return;
+        }
+        var text = fragment.text();
+        var word = new StringBuilder();
+        for (var i = 0; i < text.length(); i++) {
+            var c = text.charAt(i);
+            if (Character.isWhitespace(c)) {
+                flush(word, token, fragment.marks());
+                close(token, widgets);
+            } else {
+                word.append(c);
+            }
+        }
+        flush(word, token, fragment.marks());
     }
 
     /// One widget for `text` exactly as it is, whitespace included — for a caller that

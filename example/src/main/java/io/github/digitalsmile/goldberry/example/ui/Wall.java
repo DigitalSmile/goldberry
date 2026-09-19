@@ -31,15 +31,26 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// is the case `masonry` exists for
 /// (ADR-0196).
 ///
-/// @param id      the screen's name, which is also its `#screen-<id>` and its
-///                `#<id>-wall`
-/// @param columns how wide the wall is. Not a stylesheet's business, because
-///                `masonry` distributes children in Java rather than in CSS —
-///                the count is a constructor argument for the same reason the
-///                packing is (ADR-0196)
-/// @param cards   every card on the screen, in the order they are offered to the
-///                columns
-record Wall(String id, String title, String note, int columns, List<Widget> cards) implements Widget.Stateless {
+/// ## How wide the wall is, which is two numbers because it is two modes
+///
+/// Not a stylesheet's business either way, because `masonry` distributes children
+/// in Java rather than in CSS — the count is a constructor argument for the same
+/// reason the packing is (ADR-0196). But it is a *count* only for the screens
+/// that want one: a `min-column-width` is a screen saying how narrow its cards
+/// may get and letting the window decide the rest (ADR-0436), and the two are
+/// exclusive, so a wall carries both numbers and hands them on exactly as the
+/// document wrote them. `Masonry.UNSET` is the one that was not named.
+///
+/// @param id             the screen's name, which is also its `#screen-<id>` and
+///                       its `#<id>-wall`
+/// @param columns        how many columns, or `Masonry.UNSET` for a wall that
+///                       counts its own
+/// @param minColumnWidth how narrow a column may get, or `Masonry.UNSET` for a
+///                       wall that was given a count
+/// @param cards          every card on the screen, in the order they are offered
+///                       to the columns
+record Wall(String id, String title, String note, int columns, int minColumnWidth, List<Widget> cards)
+        implements Widget.Stateless {
 
     Wall {
         cards = List.copyOf(cards == null ? List.of() : cards);
@@ -53,7 +64,7 @@ record Wall(String id, String title, String note, int columns, List<Widget> card
     static Wall of(String id, String title, String note, Masonry document, Widget @Nullable ... extra) {
         var cards = new java.util.ArrayList<>(document.children());
         cards.addAll(List.of(extra));
-        return new Wall(id, title, note, document.columns(), cards);
+        return new Wall(id, title, note, document.columns(), document.minColumnWidth(), cards);
     }
 
     @Override
@@ -63,7 +74,10 @@ record Wall(String id, String title, String note, int columns, List<Widget> card
                         new SectionHeader(title),
                         new Text(note, Attributes.NONE.classes("prose")),
                         new Masonry(
-                                cards, columns, Attributes.NONE.id(id + "-wall").classes("wall"))),
+                                cards,
+                                columns,
+                                minColumnWidth,
+                                Attributes.NONE.id(id + "-wall").classes("wall"))),
                 Attributes.NONE.id("screen-" + id).classes("screen"));
     }
 }

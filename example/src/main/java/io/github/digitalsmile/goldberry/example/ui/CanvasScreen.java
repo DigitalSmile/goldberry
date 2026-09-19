@@ -45,6 +45,7 @@ import io.github.digitalsmile.goldberry.widgets.core.image.ImageSource;
 import io.github.digitalsmile.goldberry.widgets.core.image.ImageView;
 import io.github.digitalsmile.goldberry.widgets.core.qrcode.QrCode;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
+import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Canvas** screen: the escape hatch, and what it is now able to do.
@@ -690,6 +691,7 @@ public record CanvasScreen() implements Widget.Stateful {
                     "Canvas",
                     NOTE,
                     2,
+                    Masonry.UNSET,
                     List.of(
                             captioned(
                                     "Paths, strokes and a ramp",

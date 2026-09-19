@@ -13,6 +13,9 @@ import io.github.digitalsmile.goldberry.image.gif.GifDecoder;
 import io.github.digitalsmile.goldberry.image.gif.GifFormatException;
 import io.github.digitalsmile.goldberry.image.png.PngEncoder;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendDecodedImage;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendScaledImage;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendImageScaleFilter;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 import io.github.digitalsmile.goldberry.natives.webp.Webp;
 import io.github.digitalsmile.goldberry.render.Clipboard;
@@ -422,6 +425,88 @@ public final class Image {
     /// would make that a convention instead of a fact.
     public PixelBuffer pixels() {
         return readable;
+    }
+
+    /// A **copy** of this image, resampled to `width` × `height` — [ADR-0428].
+    ///
+    /// ## Not the same thing as drawing one smaller
+    ///
+    /// Scaling for the screen happens at the blit, where the destination size is
+    /// known and nothing is kept:
+    /// `frame.drawImage(image, x, y, width, height)` resamples on its way onto
+    /// the surface and produces no pixels anybody owns. This produces pixels —
+    /// a thumbnail to write to a file, an icon resampled once and drawn a
+    /// hundred times, an over-sized paste cut down before it goes into a
+    /// document. If the answer is going straight onto a frame, this is the
+    /// wrong method and costs a buffer for nothing.
+    ///
+    /// ## The filter
+    ///
+    /// [Resampling#LANCZOS], which is the right answer for the operation this
+    /// exists for: a thumbnail is a **downscale**, and a downscale wants as much
+    /// of the source averaged in as possible. It is the wrong answer for
+    /// doubling a 16×16 icon, which wants [Resampling#NEAREST] — see
+    /// [Resampling] for why the choice is a real one rather than a quality knob,
+    /// and use [#scaled(int, int, Resampling)] to make it.
+    ///
+    /// Asking for the size it already is returns **this image**, not a copy: an
+    /// image is a value, so there is nothing a copy could be used for that this
+    /// cannot.
+    ///
+    /// @throws IllegalArgumentException if the size is not positive
+    /// @throws ImageScaleException if the rasterizer refuses — running out of
+    ///         memory for a size a caller computed is the ordinary reason
+    public Image scaled(int width, int height) {
+        return scaled(width, height, Resampling.LANCZOS);
+    }
+
+    /// [#scaled(int, int)] with the filter said out loud.
+    ///
+    /// @param filter how the pixels that are not there are invented
+    /// @throws IllegalArgumentException if the size is not positive
+    /// @throws ImageScaleException if the rasterizer refuses
+    public Image scaled(int width, int height, Resampling filter) {
+        Objects.requireNonNull(filter, "filter");
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException(
+                    "a scaled image needs a positive size, and " + width + "x" + height + " is not");
+        }
+        if (width == width() && height == height()) {
+            return this;
+        }
+        // Two native objects and neither outlives the statement. The source is a
+        // view over pixels Java already owns, which is the rule everywhere in
+        // this toolkit; the destination is the exception, because
+        // `bl_image_scale` resizes and allocates the destination itself and has
+        // no form that writes into a buffer somebody else owns (ADR-0283's
+        // exception, widened by ADR-0428).
+        try (var source = BlendImage.wrapping(pixels.pixels(), width(), height(), pixels.stride());
+                var scaled = BlendScaledImage.scale(source, width, height, toBlend(filter))) {
+
+            var buffer = PixelBuffer.allocate(new PhysicalSize(width, height), FORMAT);
+            scaled.copyInto(buffer.pixels(), buffer.stride());
+            return new Image(buffer);
+        } catch (BlendException e) {
+            // Translated here for the reason a failed decode is: an application
+            // must not have to name a type from `:natives` to catch this.
+            throw new ImageScaleException(
+                    "the rasterizer would not resample this " + width() + "x" + height() + " image to " + width + "x"
+                            + height,
+                    e);
+        }
+    }
+
+    /// The rasterizer's name for a [Resampling].
+    ///
+    /// A switch and not an ordinal: the two enums agree today and a `:core` type
+    /// must not be pinned to the order of a `:natives` one.
+    private static BlendImageScaleFilter toBlend(Resampling filter) {
+        return switch (filter) {
+            case NEAREST -> BlendImageScaleFilter.NEAREST;
+            case BILINEAR -> BlendImageScaleFilter.BILINEAR;
+            case BICUBIC -> BlendImageScaleFilter.BICUBIC;
+            case LANCZOS -> BlendImageScaleFilter.LANCZOS;
+        };
     }
 
     /// This image as PNG bytes.

@@ -11,6 +11,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs.Breadcrumbs;
 import io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs.Crumb;
+import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The **Navigation** screen: the three ways this toolkit moves a reader around a
@@ -49,6 +50,7 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
                 "Navigation",
                 NOTE,
                 2,
+                Masonry.UNSET,
                 List.of(
                         new TabsDemo(model, actions),
                         trail(),

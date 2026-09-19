@@ -59,7 +59,13 @@ dependencies {
     implementation 'io.github.digitalsmile:goldberry'                // common, natives, core, widgets
     implementation 'io.github.digitalsmile:goldberry-html'           // optional: Markdown and HTML
     implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the OpenMoji face (CC BY-SA)
+    // All four: `NativeLibrary` picks the right one at run time by `os.name` and
+    // `os.arch`, so this works on every machine the application is built or run
+    // on. Slim it to one line for a single target deliberately -- see below.
     runtimeOnly 'io.github.digitalsmile:goldberry-natives::linux-x64'
+    runtimeOnly 'io.github.digitalsmile:goldberry-natives::linux-aarch64'
+    runtimeOnly 'io.github.digitalsmile:goldberry-natives::macos-aarch64'
+    runtimeOnly 'io.github.digitalsmile:goldberry-natives::windows-x64'
 }
 ```
 
@@ -85,11 +91,22 @@ dependencies {
 nothing else: it cannot pick `goldberry-natives::linux-x64` for the machine that
 builds against it, because a POM has no notion of an operating system or an
 architecture. The umbrella `goldberry` depends on the bindings jar
-`goldberry-natives` without a classifier, so the platform's classifier jar is the
-one line an application adds itself — one per platform it ships to, or all four,
-since `NativeLibrary` picks the right one at run time by `os.name` and `os.arch`.
-A Gradle plugin, or Gradle module-metadata variants keyed on OS and architecture,
-could choose for the consumer; neither exists yet (`book/src/TODO.md`, ADR-0336).
+`goldberry-natives` without a classifier, so the platform's classifier jars are
+what an application adds itself. **All four is the default worth writing**, since
+`NativeLibrary` picks the right one at run time by `os.name` and `os.arch` — the
+one-platform form is the one that goes wrong quietly, on a developer building on
+macOS for an application that ships to Linux.
+
+**A Gradle plugin is what would choose for the consumer, and module-metadata
+variants are not** — that pair used to be offered here as two options and only one
+of them works
+([ADR-0438](../book/src/adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md)).
+A variant is selected by matching the consumer's attributes, and a plain JVM
+consumer declares no operating system to match on: it resolves the unattributed
+jar silently. A consumer that *does* declare one then ties, because a variant
+missing an attribute is compatible with every value of it — and the rule that
+would break the tie is registered on the consumer's schema, where a producer
+cannot put it. So the plugin is the whole of the answer, and it is not built.
 
 A new optional module is one line in `PublishedModules`
 (`new Library("pdf", Inclusion.OPTIONAL)`) plus `id 'goldberry.publish'` in its
@@ -124,6 +141,9 @@ Done by a person, once. Nothing here can be checked from the repository.
 6. **Optional variable** `CENTRAL_AUTO_RELEASE=true`, once a few releases have been
    pressed through the Portal by hand. Until then a release stops there as a
    validated deployment.
+7. **Settings → Actions → General → "Allow GitHub Actions to create and approve
+   pull requests"**, or the bump job pushes its branch and then fails to open the
+   pull request on it (ADR-0421).
 
 The GitHub Release needs no setup: the workflow's own `GITHUB_TOKEN` creates the
 draft and uploads to it.
@@ -151,14 +171,19 @@ summary instead of failing.
    `CENTRAL_AUTO_RELEASE` is on. Central takes a few minutes to an hour to sync.
    Then **publish the draft GitHub Release**, so the binaries and the artifacts
    appear together.
-5. **Bump master straight away** — `goldberryVersion=2026.2`. Until then master
-   publishes `2026.1-SNAPSHOT`, which Maven orders *below* the release it follows.
+5. **Merge the bump.** `release.yml` opens it as a pull request — `bump/2026.2`,
+   moving `goldberryVersion` to `2026.2`
+   ([ADR-0421](../book/src/adr/0421-the-release-line-moves-on-by-itself.md)).
+   Until it is merged master publishes `2026.1-SNAPSHOT`, which Maven orders
+   *below* the release it follows. If the job could not open it, the branch is
+   pushed and `./gradlew -q :core:bumpVersion` is what it ran.
 
 ## A patch
 
 ```sh
 git switch -c release/2026.1 v2026.1
-# fix, then set goldberryVersion=2026.1.1
+# fix, then set goldberryVersion=2026.1.1 -- or `./gradlew -q :core:bumpVersion`,
+# which moves a patch line to its next patch rather than to the next release
 git tag -a v2026.1.1 -m "Goldberry 2026.1.1" && git push origin release/2026.1 v2026.1.1
 ```
 

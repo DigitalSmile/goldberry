@@ -13,15 +13,17 @@
 /// reason: the engine's job is to resolve a style, and asking it what it *would
 /// not* do is a different one with its own vocabulary ([ADR-0257]).
 ///
-/// ## Not `@NullMarked`, and the reason is not this package
+/// ## `@NullMarked`, which it could not be when it was written
 ///
-/// It was written marked and taken back out.
-/// [io.github.digitalsmile.goldberry.css.StyleElement] documents **three**
-/// members as "or null" — `type()`, `id()` and `parent()` — and annotates none
-/// of them, in a `css` package that *is* `@NullMarked`. So an implementation
-/// written inside a marked package cannot say what the interface's own javadoc
-/// says, and `StyleLint`'s probe is the first implementation to be written in
-/// one. Marking this package would mean either lying in three overrides or
-/// annotating the interface, which moves every implementation and every caller.
-/// Recorded in `book/src/TODO.md` rather than fixed in passing.
+/// It was written marked, taken back out, and marked again.
+/// [io.github.digitalsmile.goldberry.css.StyleElement] documented **three**
+/// members as "or null" — `type()`, `id()` and `parent()` — and annotated none
+/// of them, in a `css` package that *is* `@NullMarked`; so [StyleLint]'s probe,
+/// the first implementation written inside a marked package, could not say what
+/// the interface said. The interface says it now ([ADR-0413]), which is the end
+/// this had to be fixed from: an unmarked package is a checker turned off, and
+/// turning one off to accommodate a lie in a signature spreads the lie.
+@NullMarked
 package io.github.digitalsmile.goldberry.css.lint;
+
+import org.jspecify.annotations.NullMarked;

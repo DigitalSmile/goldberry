@@ -197,14 +197,14 @@ class EditorPreeditTest {
     void movingTheCaretReshapesTheComposition() {
         var editor = editor("abcd").caretTo(0, false);
         editor.onPreedit(preedit("XY"));
-        assertEquals("XYabcd", editor.paragraph().text());
+        assertEquals("XYabcd", editor.document().text());
 
         editor.caretTo(4, false);
 
         assertEquals("abcdXY", editor.displayText());
         assertEquals(
                 "abcdXY",
-                editor.paragraph().text(),
+                editor.document().text(),
                 "the shaping the caret and the underline are measured against is a frame behind the caret");
     }
 
@@ -213,13 +213,13 @@ class EditorPreeditTest {
     void clickingReshapesTheComposition() {
         var editor = editor("abcd").caretTo(0, false);
         editor.onPreedit(preedit("XY"));
-        assertEquals("XYabcd", editor.paragraph().text());
+        assertEquals("XYabcd", editor.document().text());
 
         // Far to the right of everything: the end of the document.
         editor.pointerAt(10_000, 0, false, 1);
 
         assertEquals(4, editor.edit().caret());
-        assertEquals("abcdXY", editor.paragraph().text());
+        assertEquals("abcdXY", editor.document().text());
     }
 
     /// What the stale shaping actually looks like: the underline is drawn along

@@ -56,7 +56,25 @@ public record Finding(
         /// a **performance** finding rather than a correctness one, which is why
         /// it is reported beside the others rather than logged — a warning that
         /// is usually wrong is the log [ADR-0243] had just finished quietening.
-        UNTYPED_RULE;
+        UNTYPED_RULE,
+
+        /// Nothing in force gives the root a `color`, so every primitive that
+        /// inherits one gets the initial black ([ADR-0415]) — the value held by
+        /// [io.github.digitalsmile.goldberry.css.ComputedStyle#INITIAL]
+        /// .
+        ///
+        /// A **fact about the sheets**, not about a pixel, and the distinction is
+        /// the whole reason this is a finding rather than a warning. Black text is
+        /// correct on a light theme and unreadable on a dark one, so the resolved
+        /// colour is not evidence of anything; what is evidence is that no
+        /// declaration anywhere set one, and the element inherited the initial
+        /// value because there was nothing to inherit.
+        ///
+        /// A control escapes this — `controls.css` sets `color` on `checkbox`,
+        /// `radio`, `toggle` and `slider` themselves — which is exactly why it
+        /// took a bare `text` on a dark theme to find it, and why the check is
+        /// about the root rather than about any node that happens to be dark.
+        UNCOLOURED_ROOT;
 
         /// Whether the rule does the wrong thing, as against merely costing more
         /// than it needs to.
@@ -66,7 +84,7 @@ public record Finding(
         /// and an untyped rule draws correctly and asks every element to think
         /// about it.
         public boolean isDefect() {
-            return this == DEAD_DECLARATION;
+            return this != UNTYPED_RULE;
         }
     }
 
@@ -98,6 +116,10 @@ public record Finding(
                         + " } — the engine applies nothing from this: either the property is not in the"
                         + " subset or the value is not one it takes";
             case UNTYPED_RULE -> prefix + selector + " — names no type, so every element has to consider it in full";
+            case UNCOLOURED_ROOT ->
+                prefix + selector + " — nothing in force gives the root a color, so every primitive that"
+                        + " inherits one draws in the initial black. A control sets its own and gets away"
+                        + " with it; a bare text does not. Write `color: var(--gb-text)` here.";
         };
     }
 }

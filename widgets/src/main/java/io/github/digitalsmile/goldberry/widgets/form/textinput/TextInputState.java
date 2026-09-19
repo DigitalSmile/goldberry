@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.controls.selectlist.SelectList;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Preedit;
@@ -89,6 +90,26 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// and applied in the same frame, so marking the element dirty for it would
     /// be asking for a frame in order to draw the frame being drawn (ADR-0119).
     private double scrollOffset;
+
+    /// Whether the caret is worth chasing yet.
+    ///
+    /// **False until somebody touches this field**, and what it fixes is a field
+    /// handed a value longer than it is wide. [TextEdit#of] puts the caret at the
+    /// end — right, and unchanged, because the end is where typing goes — and
+    /// [#laidOut] scrolls to keep the caret in view, so a field holding a long
+    /// value opened showing its **last** characters. What a reader wants first is
+    /// the beginning of the value, which is what every text box on the web shows
+    /// and what a `text-area` has shown since [ADR-0297] ([ADR-0412]).
+    ///
+    /// A press, a key, an edit, a composition or the focus arriving sets it — the
+    /// moment the caret stops being an implementation detail of "where typing
+    /// would go" and becomes something the user is looking for. From then on the
+    /// field follows the caret exactly as it always did, so nothing about typing,
+    /// selecting or arrowing changes.
+    ///
+    /// A read-only field never needs it: [#opening] puts that caret at the head
+    /// instead, because there is no typing to come back to ([ADR-0326]).
+    private boolean caretMatters;
 
     /// The last frame's size, from [io.github.digitalsmile.goldberry.input.handler.Measured].
     private Extent bounds = Extent.NONE;
@@ -247,7 +268,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             closeSuggestions();
             return;
         }
-        var list = new io.github.digitalsmile.goldberry.widgets.controls.select.SelectList(rows(wanted));
+        var list = new SelectList(rows(wanted));
         if (suggestions != null && suggestions.isOpen()) {
             // Narrowed rather than reopened: §4 says the popup "stays open and
             // narrows", and closing and opening a platform window per keystroke
@@ -377,6 +398,12 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     ///                 false for a caret move, which no filter has an opinion
     ///                 about
     private boolean apply(TextEdit next, EditHistory.Kind kind, boolean filtered) {
+        // **Before the refusals below**, and that is the point of it being here:
+        // `End` on a field whose caret is already at the end changes nothing and
+        // still has to bring the end into view, because pressing `End` is a reader
+        // asking to see it ([#caretMatters]). The same goes for a keystroke a
+        // filter turns down — the field was worked in either way.
+        touched();
         if (next.equals(edit)) {
             return false;
         }
@@ -424,6 +451,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (!preedit.wouldChange(text, caret, clauseStart, clauseLength)) {
             return !text.isEmpty();
         }
+        touched();
         setState(() -> preedit.set(text, caret, clauseStart, clauseLength));
         // A composition moving is the caret moving, and a caret that blinked out
         // mid-composition is one the user cannot find.
@@ -507,6 +535,12 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // *described* by this widget, so the tree has to be rebuilt for either to
         // appear. A focused field that never rebuilt would have no caret in it.
         setState(() -> focused = gained);
+        if (gained) {
+            // Focus is the field being aimed at, which is the point the caret
+            // stops being where typing *would* go and becomes where it *will*
+            // ([#caretMatters]). Set before the select-all below, which scrolls.
+            touched();
+        }
         if (host != null) {
             host.textInput(gained && !widget().disabled() && !widget().readOnly());
         }
@@ -581,6 +615,15 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         return scrollOffset;
     }
 
+    /// Somebody is working in this field — see [#caretMatters].
+    ///
+    /// Not `setState`: nothing drawn reads this flag. What reads it is [#laidOut],
+    /// during the render of a frame that is already being built for the press, the
+    /// key or the focus that got us here.
+    private void touched() {
+        caretMatters = true;
+    }
+
     @Override
     public double laidOut(Paragraph shaped, double left, double right, double caretWidth, TextAlign align) {
         paragraph = shaped;
@@ -603,12 +646,19 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // nothing. What moves is the box, and the caret and the highlight with it.
         indent = align.indentOf(textWidth, room);
 
-        // Move as little as possible: only when the caret has left the window.
-        // A caret at the very end needs **its own width** of room, or the field
-        // scrolls short of showing it -- which was hard-coded to one pixel and is
-        // now whatever `--gb-caret-width` resolved to (ADR-0253).
-        var offset = Math.max(scrollOffset, caretAt - room + caretWidth);
-        offset = Math.min(offset, caretAt);
+        var offset = scrollOffset;
+        // The caret is only chased once this field has been touched -- see
+        // [#caretMatters]. An untouched field shows the head of its value, which
+        // is the part that says what the value *is*.
+        if (caretMatters) {
+            // Move as little as possible: only when the caret has left the window.
+            // A caret at the very end needs **its own width** of room, or the
+            // field scrolls short of showing it -- which was hard-coded to one
+            // pixel and is now whatever `--gb-caret-width` resolved to
+            // (ADR-0253).
+            offset = Math.max(offset, caretAt - room + caretWidth);
+            offset = Math.min(offset, caretAt);
+        }
         // And never leave a gap at the end: a field that has been scrolled and
         // then had its text deleted should come back rather than show a blank.
         offset = Math.clamp(offset, 0, Math.max(0, textWidth - room));
@@ -678,6 +728,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             return false;
         }
         var changed = !restored.text().equals(edit.text());
+        touched();
         setState(() -> edit = restored);
         if (changed) {
             widget().report(restored.text());

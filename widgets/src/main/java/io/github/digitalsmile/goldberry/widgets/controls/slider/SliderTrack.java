@@ -19,7 +19,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// track was the control — and a label at the end of the row is exactly what
 /// makes them different, by its own width
 /// (ADR-0080).
-/// [Slider#localPart()] names this part, and the router measures against it.
+/// [SliderControl#localPart()] names this part, and the router measures against
+/// it.
 ///
 /// It is also what gives the groove and the tick marks somewhere to be *stacked*:
 /// the slider's own axis is taken by the value, and a scale under a groove is the

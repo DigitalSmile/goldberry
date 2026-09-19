@@ -41,7 +41,12 @@ class AsymmetricPaddingTest {
     private double scrolledWith(String padding) {
         var tree = new ElementTree(new TextInput(LONG, null).withAttributes(Attributes.NONE.classes(padding)), host);
         render(tree);
-        ((TextField) tree.root().children().getFirst().widget()).measured(new Extent(200, 32), new Extent(200, 32));
+        var field = (TextField) tree.root().children().getFirst().widget();
+        field.measured(new Extent(200, 32), new Extent(200, 32));
+        // Focused, because an untouched field no longer chases its caret at all
+        // ([ADR-0412]) — and what this measures is the chase: how much room the
+        // caret is given at the trailing edge, which is where the right padding is.
+        field.onFocusChanged(true, false);
         render(tree);
         return ((TextInputState) tree.root().state().orElseThrow()).scrolledBy();
     }

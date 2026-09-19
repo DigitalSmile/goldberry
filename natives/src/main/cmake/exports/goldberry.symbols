@@ -281,6 +281,21 @@ bl_image_read_from_data
 # once at decode is what keeps `Frame.drawImage` from having to ask what format
 # it is blitting.
 bl_image_convert
+#
+# And a resampled COPY, which is a different operation from a scaled blit and
+# the one image operation this library could do and did not (ADR-0428).
+# bl_context_blit_scaled_image_d below resamples on its way to a surface and
+# keeps nothing; this produces pixels that outlive the call -- a thumbnail
+# written to disk, an icon scaled once and drawn a hundred times.
+#
+# It allocates, which makes it the second exception to "Goldberry never asks
+# Blend2D for pixels" after the decoder, and it is held to the same discipline:
+# the destination is destroyed on the call that made it, once its rows have been
+# copied into a buffer Java owns.
+#
+# The filter argument is mandatory in C, so the choice exists whether or not a
+# caller is offered it. BLImageScaleFilter is on the layout table.
+bl_image_scale
 
 # Rendering context lifecycle.
 bl_context_init_as
@@ -290,6 +305,20 @@ bl_context_destroy
 # State: the display scale reaches the rasterizer as a transform.
 bl_context_apply_transform_op
 bl_context_set_comp_op
+
+# Which points a path encloses (ADR-0427). Blend2D fills non-zero by default, so
+# a sub-path wound the other way inside an outer one is still filled and a hole
+# cannot be cut. Even-odd counts crossings instead, and a point inside two
+# sub-paths is crossed twice and left alone -- which is what knocks a box's own
+# rectangle out of its drop shadow, the deviation from CSS that ADR-0310 wrote
+# down and could not fix.
+#
+# The obvious alternative is not on this list because it is not in the library.
+# Blend2D clips to a RECTANGLE and to nothing else: `bl_context_clip_to_rect_d`
+# and `_i` above are the whole of its clipping surface, and there is no
+# `clip_to_path` in `core/context.h` to export. A fill rule is not the cheaper of
+# two ways to cut a hole here; it is the only one.
+bl_context_set_fill_rule
 
 # Drawing.
 #

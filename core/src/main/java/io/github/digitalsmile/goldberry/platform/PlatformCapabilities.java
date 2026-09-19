@@ -63,6 +63,8 @@ public final class PlatformCapabilities {
             case DEVICE_HOTPLUG -> Capability.DEVICE_HOTPLUG;
             case FILE_DIALOG -> Capability.FILE_DIALOG;
             case SCREENSAVER_INHIBIT -> Capability.SCREENSAVER_INHIBIT;
+            case WINDOW_DECORATIONS -> Capability.WINDOW_DECORATIONS;
+            case WAYLAND -> Capability.WAYLAND;
         };
     }
 

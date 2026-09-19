@@ -52,9 +52,13 @@ class HtmlStylesTest {
         // Not every class -- that list belongs in `HtmlWidgets` -- but the ones whose
         // absence would be invisible: a page that rendered as a column of unstyled
         // words looks like a page somebody wrote badly.
+        // `.html-line` and `.html-lines` rather than `.html-prose`, which carries no
+        // declarations since ADR-0426: the geometry of a line moved to the class that
+        // means a line, and a paragraph's box keeps the page's own classes.
         for (var name : List.of(
                 ".html",
-                ".html-prose",
+                ".html-line",
+                ".html-lines",
                 ".html-h1",
                 ".html-strong",
                 ".html-em",

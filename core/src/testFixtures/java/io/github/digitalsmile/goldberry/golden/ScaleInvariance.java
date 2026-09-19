@@ -69,9 +69,11 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 /// ## Turning it off
 ///
 /// `-Dgoldberry.golden.scales=` runs no extra scales; a comma-separated list of
-/// multipliers replaces the default `2,1.5`. `-Dgoldberry.golden.scales.report=true`
+/// multipliers replaces the default `2,1.5,1.25`.
+/// `-Dgoldberry.golden.scales.report=true`
 /// prints what every check measured, which is how the thresholds below were set
-/// rather than guessed.
+/// rather than guessed — and how [#DEFAULT_MULTIPLIERS]' cost was measured rather
+/// than guessed too.
 ///
 /// ## Without a golden
 ///
@@ -88,10 +90,31 @@ public final class ScaleInvariance {
     /// Prints the measurement for every check, passing or not.
     static final String REPORT_PROPERTY = "goldberry.golden.scales.report";
 
-    /// 2 is a Retina display and the scale ADR-0157's bug needed; 1.5 is the
-    /// ordinary fractional case on Linux, and the one where a raster is rounded
-    /// up to a whole pixel and has to be mapped back down by the fraction.
-    private static final List<Float> DEFAULT_MULTIPLIERS = List.of(2.0f, 1.5f);
+    /// Three, chosen by **rounding family** rather than by popularity
+    /// ([ADR-0434]).
+    ///
+    /// Yoga rounds a computed edge to a whole device pixel, so what a multiplier
+    /// exercises is the set of sub-pixel offsets an integer logical coordinate can
+    /// land on — `k * m mod 1`, over integer `k`:
+    ///
+    ///   - **2** is a Retina display and the scale ADR-0157's bug needed. Its
+    ///     offset set is `{0}`: nothing ever lands between pixels, which is why it
+    ///     catches a doubled subtree and catches no rounding at all.
+    ///   - **1.5** is the ordinary fractional case on Linux and Windows' second
+    ///     most common setting. `3/2`, so `{0, ½}` — a raster rounded up to a
+    ///     whole pixel and mapped back down by a half.
+    ///   - **1.25** is Windows' most common setting and a **different
+    ///     denominator**. `5/4`, so `{0, ¼, ½, ¾}`, which strictly contains 1.5's
+    ///     halves and visits two offsets nothing else here reaches.
+    ///
+    /// **1.75 is deliberately absent.** It is `7/4` — the same denominator as
+    /// 1.25 and therefore the same four offsets in a different order — so it
+    /// re-asks a question 1.25 has already answered, and its magnitude is
+    /// bracketed by 1.5 below and 2 above. It costs what any other multiplier
+    /// costs, which is about four seconds of `check` across the corpus, and buys a
+    /// second opinion. `-Dgoldberry.golden.scales=2,1.5,1.25,1.75` is the run to
+    /// make when the rounding path itself changes.
+    private static final List<Float> DEFAULT_MULTIPLIERS = List.of(2.0f, 1.5f, 1.25f);
 
     /// How far a pixel may be from the nearest pixel of the other rendering, per
     /// channel, before it counts as differing at all.

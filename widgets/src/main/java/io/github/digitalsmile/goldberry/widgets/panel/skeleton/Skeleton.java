@@ -81,8 +81,28 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
         /// for arbitrary content has no token to take its size from.
         RECT;
 
+        /// The class this shape puts on the `skeleton` and on each of its bars.
+        ///
+        /// **`shape-title` and not `title`**, which is what it was until
+        /// ADR-0414. `title` is one of §1.4's seven type ranks, and a rank is
+        /// styled by a class selector with no type on it — so `.title` reached
+        /// both nodes and set a font-size, a line-height and a weight on them
+        /// behind `skeleton-bar.title`'s back. Nothing drew text there and no
+        /// pixel moved, which is exactly why it went unnoticed for as long as it
+        /// did: the collision was waiting for the first dimension anybody wrote
+        /// in `em`.
+        ///
+        /// The whole family is prefixed rather than the one that collided. Three
+        /// of these are safe today because §1.4 happens not to have a rank called
+        /// `circle`, which is not a property anybody is maintaining, and
+        /// `skeleton-bar.text` reads like the `text` *type* into the bargain.
+        ///
+        /// §5's `shape="title"` is untouched — see [#of]. What an application
+        /// writes is a published word; what a widget puts in a class set is the
+        /// widget's own business, and that asymmetry is the whole of why this
+        /// rename cost nothing.
         String cssClass() {
-            return name().toLowerCase(Locale.ROOT);
+            return "shape-" + name().toLowerCase(Locale.ROOT);
         }
 
         static Shape of(String text) {

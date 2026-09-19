@@ -37,7 +37,6 @@ the mechanism the sentence named — while the entry itself sat on under
 other entry was a cost nobody had measured, and measuring it was the answer.
 
 ## Overlays, popups and windows
-
 - **A toast is not announced, and the only thing still missing is the bridge.**
   The widget half is finished: a toast answers [Live#POLITE] and [Role#STATUS] and
   names itself with its own text, which is the claim §7's "live region" is and the
@@ -88,39 +87,15 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   exists for. A driver that needs the flag will still *look* like a menu that
   closes as it opens until somebody sets it. —
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
-- **Only a `popover` follows a scrolling anchor; a `menu` and a `select` hold the
-  rectangle they opened against.** Following is a property of having been opened
-  **by id**, which is `Popover`'s documented shape and the one the entry that
-  asked for this named. `Menus` and `SelectState` resolve the anchor to a
-  rectangle themselves, because they want a minimum width and a `Fit` as well and
-  no `Host.popup` overload takes an id *and* those two. It is one overload's worth
-  of work and nothing has asked for it: a dropdown is dismissed by a press
-  elsewhere, and the wheel over an open one scrolls its own list. —
-  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
-  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
-- **A popup whose anchor scrolls out of sight follows it out of sight.** Now that
-  a `popover` travels with its anchor, an anchor scrolled past the top of its
-  viewport takes the popup with it, and the placement clamps it to the work area
-  rather than dismissing it — so a menu can end up pointing at a widget that is no
-  longer drawn. The region carries the clip that would answer "is it still
-  visible", so the mechanism is there; what is missing is a decision about what
-  should happen — close it, hide it, or pin it to the viewport's edge — and
-  nothing has asked for one yet. —
-  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
-  [ADR-0114](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
-
 ## The catalog: specified and unbuilt
 
 ### What the last four widgets left behind
-
 - **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
   `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
   written on it: a role nothing consumes is a value written for a bridge that does
   not exist. The AccessKit bridge is where the words arrive. —
   [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
-
 ### `text-input`, and what §4 still owes
-
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
   resize — invisible, because a resize is followed immediately by another frame.
@@ -159,7 +134,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
   [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
   [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
-
 - **A trail is not a landmark, and a crumb is not a link.** §6 gives
   `breadcrumbs` "navigation landmark containing links, current page marked", and
   `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
@@ -188,26 +162,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-
-- **A `masonry`'s column count is a number and not a breakpoint, and what stops
-  it is the spec gate rather than the mechanism.** Two columns at 1200px are two
-  columns at 720px — half as wide and twice as tall — because the count is a
-  constructor argument and no selector can count columns. This used to say that
-  "as many columns as fit at a minimum width" is "a layout pass that reads its
-  own width, which is the loop ADR-0196 built the last-frame read to avoid", and
-  that reads the record backwards: ADR-0196 *is* the last-frame read, `masonry`
-  already banks every card's height through `Measured`, and reading its **own**
-  width is the same door one step over. `Measured`'s third rule holds for it too,
-  with one caveat worth stating — a column count changes the masonry's *height*
-  and not its width, so the number is stable under the thing it causes **for a
-  masonry whose width comes from its parent**, which is every one in the
-  showcase and not every one imaginable. What actually blocks it is that
-  `masonry` **has no row in `docs/core-widgets.md` at all** — it is named once,
-  as what the showcase's screens are made of — so §5's spec-then-metrics-then-
-  gallery gate has nothing to have passed. —
-  [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
-  [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
-
 - **A `tour` cannot find the viewport its target is in — read against the code,
   and it stands.** §5 asks it to scroll a target into view, and `Stop` takes a
   `ScrollController` the application supplies. Discovering it means walking from
@@ -219,29 +173,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   the tour is not the thing being revealed. —
   [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-
-- **The gallery goldens cannot see typography at all, and the 150% half is now
-  waiting on a decision rather than on a mechanism.** `GalleryGoldenTest` builds
-  its renderer with the single-font constructor — which ignores `font-family`,
-  `font-size` and `font-weight` by design, so that a golden image is not a test of
-  whichever Inter is on the machine — so every screenshot draws prose, headings
-  and button labels at one size. A screen with no typographic hierarchy looks
-  exactly like a screen with one, which is how a screen title and the paragraph
-  under it stayed the same 13px with nothing catching it. `ShowcaseTypographyTest`
-  asserts sizes through the cascade instead. **The clipping half read as a gap in
-  the tests and was a gap in the toolkit**: nothing enforced §1.4's 150% because
-  nothing *implemented* it, so there was nothing for an image to be of.
-  `renderer.textScale` exists now
-  ([ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)) — it
-  scales the text and deliberately not the boxes, which is the condition §1.4
-  asks components to survive. What is left is **what to assert**: since
-  `text-overflow: ellipsis` shipped, some cutting is correct, so "no text is
-  clipped" is no longer the sentence, and a golden of eleven screens at 150%
-  would pin every one of those decisions at once in a picture before anybody had
-  taken them. —
-  [ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-
 - **A scrollbar's thumb stops being proportional on a very long document.** It is
   floored at 24px, so past about four screens the thumb no longer says how much
   is visible — only that there is a lot. The trade every scrollbar makes, named
@@ -253,13 +184,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   Every other consumer reads its own box. It obeys the third rule by construction for
   the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
   is laid out where it always was.
-- **`Measured` is a door every widget can now open and almost none should.** A
-  widget that sizes itself from last frame's measurement lags its own content,
-  and one that does so in a way that changes the measurement never settles.
-  Nothing enforces the rule that keeps it safe — read geometry to interpret an
-  input or to draw something that cannot affect layout, never to decide a size —
-  and the scroll view obeys it by construction rather than by check. —
-  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
 - ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`.~~ **It is now**
   ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
@@ -344,13 +268,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   different arithmetic, and it is worth it past about fifty columns, which is
   past where a table is the right thing to be looking at. —
   [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
-- **A row's focus name still collides between two unnamed lists.** `host.focus`
-  takes a name global to the window, and `list` scopes its rows by the list's own
-  `id` — which settles it wherever an application named one, and leaves the case
-  of two lists, both unnamed, holding an item with the same identity. `tree` has
-  the unscoped version of the same thing. What would close it properly is a focus
-  name that is relative to a subtree, which the router has no notion of. —
-  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 - **`tree` moved from deferred to specified, and `table` has since followed it**, which changes what M5 owes. ARCHITECTURE
   §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
   `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
@@ -360,28 +277,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   whole row until an author writes `width`. It buys the travelling indicator, and there
   is no third option under flexbox — content-sized cells cannot be travelled between,
   and a zero basis collapses the bar entirely.
-- **`SelectList` is in the wrong package.** It now has two callers, which is what
-  moved `Option` into a package of its own; it stayed put because the CSS type it
-  carries is `select-list`, so moving it renames a type in every stylesheet and
-  every golden rather than editing one file. Autocomplete itself reaches markup
-  through `suggestions=` and `options=` (ADR-0367). —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
-- **A slider maps the pointer over the track's full width**, so at the extremes the
-  thumb's centre is up to 8px from the finger. Mapping over the *travel* needs the
-  thumb's width, which is the stylesheet's and not the widget's. The mapping is
-  monotonic and reaches both ends exactly. **The door this entry named is open and
-  a different one is shut**: "a widget being told a resolved metric" is
-  `Paints.Context.length` and has been since
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
-  — but it is a **`render`-time** read, and the pointer arrives at `onPointer`
-  where there is no context to ask. `scroll` solved exactly that by banking the
-  number into its `State`; a `Slider` is a `record` with nowhere to bank one, so
-  closing this means making `slider` stateful. That is still a bigger change than
-  8px, and it is now a different sentence. The **tick marks do not
-  have this problem**: their inset is half a thumb, written in the stylesheet beside the
-  thumb's own width, so a mark and the thumb agree exactly while the finger is the thing
-  that is up to 8px out. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
-  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md)
 - **A toggle's thumb does not follow the pointer during the drag — and the design system
   says it should not.** Left open as a defect after ADR-0075 and closed by reading
   rather than by building: §1.7's first principle names the controls that track 1:1 —
@@ -405,23 +300,12 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   whoever writes the compact screenshots. —
   [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md),
   [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
-- **An indeterminate bar turns where it should run off the edge, and that is now
-  a choice rather than a limit.** `progress`'s indeterminate sweep travels
-  there-and-back within its track because the off-the-edges drawing — the more
-  common one — needs the bar clipped at the track's edges. This entry said nothing
-  clipped; `overflow: hidden` has shipped since ADR-0114, so the drawing is
-  available. What is left is a design decision about a shipped animation rather
-  than a missing mechanism — and it is the **only** thing left on ADR-0235's list,
-  now that the label half has been built ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
-  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
-
 ## The shell: the tray, and what it cannot say
 
 §9's `tray-icon` ships ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
 What follows is what it does not do, and in three cases what no platform lets it
 do — recorded here rather than left to be rediscovered by an author whose
 description had no effect.
-
 - **§9's "activate event" is not built, and SDL has no callback for it.** The
   sentence asks for icon, tooltip, menu **and an activate event**; SDL3's tray API
   registers a callback per *entry* and none for the icon itself. So a click on the
@@ -468,9 +352,7 @@ description had no effect.
   warning in `SdlTray.invoke` is the only evidence there would be if one ever does
   not. Doing better means posting to the loop, which is a second delivery path
   for one hypothetical.
-
 ## `canvas`, and what a document cannot say
-
 - **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
   with a registry the application owns
@@ -491,41 +373,14 @@ description had no effect.
   repaint boundary with a `Layer`
   ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
   measured a case that needs it.
-
 ## Images, and what the primitive is not
-
 - **`Image.decode` is still synchronous.** A large JPEG is tens of milliseconds,
   and a `canvas` painter that decodes pays it on the UI thread. The `image` widget
   does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
   that is the seam a painter should use too. Nothing has measured a painter that
   needs it.
-- **No `Image.scaled(...)`.** Scaling happens at the blit, which is where the
-  destination size is known. A resampled *copy* — for a thumbnail written to disk
-  — is a different operation and would need a filter argument that
-  `bl_image_scale` has and nothing has asked for.
-
 ## Rendering without a window
-
-- **The frame sequence exists twice.** `Launcher.paint` and `Offscreen` run the
-  same steps in the same order, and only one of them is the hot path with damage,
-  frame statistics, the HUD and the models' refresh woven through it
-  ([ADR-0284](adr/0284-a-picture-with-no-window-under-it.md)). Extracting the
-  common core is the right refactor and was not taken during a feature: what holds
-  them together meanwhile is that every golden image goes through `Offscreen`, so
-  a divergence moves a picture.
-- **No animation strip.** One call, one picture. A caller wanting frame 3 of a
-  transition wants to drive the clock between paints, which is an object with a
-  lifetime rather than a builder that renders once.
-- **No reuse and no cache.** Each render builds a fresh element tree and unmounts
-  it, so rendering the same document twice does the work twice. A font book can be
-  handed in and kept; nothing else can.
-- **Nothing renders off the UI thread**, and nothing says it must not. A render
-  touches no window and no backend, so a server thread is probably fine — "probably"
-  is why it is written here rather than in the javadoc. What would have to be
-  checked first is the shaping cache and Blend2D's own worker pool.
-
 ## Editing text
-
 - **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
   not promise visual order for mixed-direction text, and a caret in it needs a
   walk the toolkit does not have. Latin, Cyrillic and CJK are exact; Arabic and
@@ -534,12 +389,7 @@ description had no effect.
   has been clipped. A canvas with a long document moves its own transform, which
   it is already doing for everything else on it; a *widget* wanting this is
   `text-area`, which has a viewport.
-- **No word-wrap-aware `PageUp`/`PageDown`.** The page is ten lines, hard-coded,
-  because an editor drawn on a canvas has no viewport to measure. A caller that
-  knows its own height moves the caret itself.
-
 ## The clipboard
-
 - **Nothing watches it.** There is no "the clipboard changed" notification, so a
   paste button cannot grey itself out until its menu opens and asks
   ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
@@ -552,17 +402,22 @@ description had no effect.
   ([ADR-0330](adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
   unbound there is `SDL_EVENT_DROP_TEXT` — the same shape, and nothing has asked
   for it.
+
+  **`SDL_EVENT_DROP_TEXT` closed —
+  [ADR-0408](adr/0408-a-dropped-line-of-text-is-a-dropped-file-in-every-way-but-one.md).**
+  "The same shape" turns out to be literal rather than loose: SDL tokenises
+  dropped text on `\r\n` and raises one event **per line**, then one shared
+  `DROP_COMPLETE` for both kinds — so `TextDrop` carries a list of lines, and
+  a test exists specifically to stop the shared completion turning a file drop
+  into a text drop. What had blocked it was diagnosed here and is worth
+  keeping: the blocker is a missing **constant**, not a missing symbol, so
+  adding the enum value fails the *layout probe* rather than the link, and the
+  bill is a shim row and an ABI bump on four platforms. ADR-0422 was bumping
+  the ABI anyway, so the bill was already paid.
 - **No primary selection.** X11's middle-click buffer has its own SDL calls
   (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
   the widgets that would fill it — a text field on X11 — would have to know they
   are on X11.
-- **The headless clipboard is eager.** It keeps the bytes rather than serialising
-  on demand, so nothing in a test exercises the *laziness* the platform imposes;
-  the upcall path is covered in `:natives` against the real SDL instead.
-- **A refusal is not modelled anywhere.** Every write returns a boolean and the
-  in-memory clipboard always returns true, so the branch an application writes for
-  "the compositor declined" is only ever taken on a real desktop.
-
 ## Content modules
 
 `docs/content-widgets.md` specifies eleven optional modules; **one of them
@@ -572,7 +427,6 @@ of §4. The shape they share is
 [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
 on, which in four cases is the same thing.
-
 - **Both halves of `goldberry-html` are built, and neither has an engine under
   it.** `:html` ships `Markdown.parse`, `MarkdownHtml`, `markdown-view`, `Html.parse`
   and `html-view`
@@ -616,13 +470,23 @@ on, which in four cases is the same thing.
     ADR-0295 put it at roughly one per word. An incremental parse is md4c's to
     offer and it does not; a rebuild bounded by what the viewport shows is the
     `list` virtualization argument applied to a document, and nothing needs it yet.
-- **A `text-input` holding a long value shows its end, not its beginning.**
-  `TextEdit.of` puts the caret at the end and the field keeps the caret in view
-  from its first layout, which is what `text-area` did until
-  [ADR-0297](adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md).
-  The fix is the same flag and the same argument; it is not done here because a
-  field is not a document and changing two controls on one screen's evidence is how
-  a fix becomes a regression somewhere nobody looked.
+
+  **Closed —
+  [ADR-0426](adr/0426-a-paragraph-is-one-row-of-words-until-somebody-ends-a-line.md).**
+  A hard break is now its own `Words.Piece`, and a paragraph with one becomes
+  a column of line rows; with none it builds exactly the single row it built
+  before, which is why no `:html` golden moved. The CSS split is the decision:
+  `.md-prose` and `.html-prose` are declaration-less paragraph hooks now, the
+  row geometry moved to `.md-line` / `.html-line`, and the column carries the
+  **same** `0.25em` gap so a typed break and a width break sit at the same
+  leading. **A break inside a link deliberately does not split** — one
+  `button.link` is one Tab stop and one hover — so it becomes a space in the
+  label. Three things the entry could not have said: a *trailing* hard break
+  is unwritable in Markdown (md4c strips the two spaces), two in a row come
+  from a lone backslash and do survive as an empty line, and a table cell
+  provably cannot hold one. `gallery-markdown` moved, because the showcase's
+  own sample says "Two spaces at the end of a line / are a hard break" and now
+  demonstrates it.
 - **A code editor is `goldberry-code`, and that module does not exist.** The
   Markdown screen's editor is a `text-area` in the code face: a caret, a selection,
   undo, the clipboard and an input method. It has **line numbers** now
@@ -703,34 +567,8 @@ on, which in four cases is the same thing.
   deliberately unstable API, so the module would own a `cdylib` shim and its
   breakage. Revisit when libservo ships semver guarantees or Verso-style
   embedding stabilizes; CEF-OSR stays the documented escape hatch until then.
-
 ## Layout
-
-- **An icon larger than its slot overflows it.** An `Icon` is a path built at a
-  size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
-  16px leading column is 20px — centred now rather than parked in the corner,
-  which is the difference between "large" and "misaligned", but still larger than
-  the column. An application that wants them to fit builds them at 16, and
-  nothing says so at the door. —
-  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
 ## Style, colour and motion
-
-- **An outer shadow is painted *under* the box, not cut out of it.** CSS knocks
-  the border box out of a `box-shadow` so a translucent background does not have
-  its own shadow showing through from underneath. The toolkit paints the whole
-  shape and relies on the box being drawn on top — and cannot do better today,
-  because cutting the hole needs a path clip or a fill rule and the Blend2D
-  binding exports neither. The obvious trick is worse than the problem: a
-  reversed sub-path under the default non-zero winding *fills* the parts of
-  itself the outer shape does not cover, so the inner half of a blur would paint
-  a dark ring where it was supposed to erase one. **It is invisible under an
-  opaque background**, which is every shadowed surface the design system has, and
-  shows under a box mid-`opacity` transition, which fades its shadow by the same
-  factor and so darkens itself slightly. What it would take: `BLContextSetFillRule`
-  or a path-clip call on the export list, and then one reversed sub-path per
-  band. `ShadowPaintTest.throughATranslucentBox` pins the current behaviour, so
-  the day that lands there is a test that says the deviation is gone. —
-  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
 - ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
   ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
   §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,
@@ -773,7 +611,6 @@ on, which in four cases is the same thing.
   ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
   `right` are still refused, and for a reason rather than an omission: they are
   not the same as `start`/`end` under RTL.
-
 - **A popup's transparent corners need a compositor**, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
   the platform leaves there. The fallback that always works — filling the frame
@@ -788,66 +625,6 @@ on, which in four cases is the same thing.
   2px offset and the bar's inset is 2, so the two coincide — legible in
   `segmented-focus.png`, and an accident of two numbers derived separately rather than a
   thing anyone chose. If either moves, look at the image.
-- **One non-text pair is below §1.2's 3:1, and no colour can lift it.** This
-  entry said sixteen, and filed them as one thing waiting for one decision.
-  Measured against the arithmetic rather than against the sentence they were
-  three, and fifteen are fixed
-  ([ADR-0258](adr/0258-the-edge-a-measurement-chose.md)). The **twelve control
-  boundaries** were a gap in the palette nobody had put anything in: Nord stops
-  between `--nord3` and `--nord4`, which measure 1.17:1 and 6.39:1 against
-  `--gb-surface-2`, so a palette edge is either invisible or a white ring around
-  a dark control — `--gb-checkbox-border` is the midpoint, at 3.17:1 and 3.22:1.
-  The **three marks** were `--gb-accent` on `--gb-border`, one pair wearing three
-  names, missing by 0.02; the light accent slid to `#5c7ea8` and every other pair
-  it appears in moved the same way, so there was nothing to trade against. What
-  is left is the **light theme's slider thumb**, and it is not a ramp question:
-  the track sits between a white thumb and a dark accent fill, and clearing 3:1
-  against both needs its relative luminance at once **≤ 0.300 and ≥ 0.688**. No
-  solid colour is both. What has to change is what a light-theme thumb *is* — a
-  border round it, or a fill that is not white — which is a sentence
-  `docs/design-system.md` §3 does not contain and is the one genuine decision in
-  the original sixteen. Twenty-two goldens moved, which is why this had waited. —
-  [ADR-0258](adr/0258-the-edge-a-measurement-chose.md),
-  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
-  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
-  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
-- **`button.ghost` has no contrast ratio, and is therefore not checked.** Its fill is
-  `transparent` and its hover is a `#ffffff14` wash, so what a user reads depends on the
-  surface underneath — there is no single pair to measure. It is left out of
-  `ContrastTest` rather than measured against black, which is what ignoring alpha would
-  silently do and would score it as passing. The same is true of `--gb-selection`. A
-  backdrop-aware check would need the painted frame rather than the cascade, which is a
-  different kind of test. —
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
-- **`rem` is the *configured* root size, not the root element's.** What
-  [ADR-0242](adr/0242-em-is-the-elements-own-size.md) left: `em` resolves against
-  the element's own computed size now, and `rem` still reads
-  `CssLength.Context.rootFontSize()`. CSS says the **root element's** computed
-  `font-size`, so the two agree unless a root declares one — and recovering that
-  inside `ComputedStyle.of` is not possible, because a node is handed its
-  *parent's* style and not the root's. It needs a third thing threaded down, or a
-  field on the renderer that is only correct after the root has resolved. Nothing
-  in the catalog styles a root's `font-size`, so this is exact today. —
-  [ADR-0242](adr/0242-em-is-the-elements-own-size.md)
-- **A bare `text` with no ancestor setting `color` renders black**, which is ADR-0066's
-  deliberate `INITIAL` and a trap all the same: the showcase's new gain label was
-  unreadable on the dark theme. A control gets away with saying nothing because
-  `controls.css` sets `color` on `checkbox`, `radio`, `toggle` and `slider` themselves;
-  a primitive does not. The showcase now sets `color: var(--gb-text)` on its root, which
-  is what an application should do — but nothing warns one that has not. —
-  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
-- **`StyleElement` documents three nullable members inside a `@NullMarked`
-  package and annotates none of them.** `type()`, `id()` and `parent()` each say
-  "or null" in their own javadoc and each is declared as a plain `String` or
-  `StyleElement`, in a `css` package that *is* marked — so NullAway reads all
-  three as non-null. Nothing had noticed because every implementation lived in an
-  unmarked package; `StyleLint`'s probe is the first written in a marked one, and
-  it cannot say what the interface says. The lint's package is unmarked as a
-  result, which is the wrong end to fix it from. Closing it properly means
-  annotating the interface, which moves every implementation and every caller —
-  and would probably find real nullness bugs on the way, which is the argument
-  for doing it rather than against. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
 - **A generated registry can fail at class-init time now, and only for private
   members.** A `VarHandle` lookup that cannot find its field throws
   `ExceptionInInitializerError` where a direct field reference would have thrown
@@ -855,15 +632,7 @@ on, which in four cases is the same thing.
   exception, and both are impossible within one compilation, which is how a registry and
   its model are always built. Recorded because it is the one thing ADR-0098 moved later
   rather than earlier.
-- **A widget's CSS classes share a namespace with the design system's.** A `hud`
-  reading named `display` picked up §1.4's `.display` type rank and rendered at
-  28px. Renamed, and nothing prevents the next one: there is no prefix
-  convention, no check, and the two sets of names are written in different files
-  by different people. —
-  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
-
 ## Rendering and performance
-
 - **Opening a long note still shapes all of it, on the frame that opens it.** A
   keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
   costs now, because the text is shaped one hard line at a time and only the rows
@@ -878,28 +647,6 @@ on, which in four cases is the same thing.
   editor's complaint was the keystroke, and `TextAreaFrameBenchmark` is where the
   number would have to come from first (ADR-0045). —
   [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md)
-- **`Editor` still shapes its whole text.** The `canvas` editing seam from
-  ADR-0285 holds one `Paragraph` over everything it is given, which is what
-  `text-area` did until ADR-0388. `TextDocument` is exported and is the obvious
-  second caller. Nothing has measured an `Editor` over a document, so nothing has
-  earned the change. —
-  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md),
-  [ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
-- **What is still asserted only at 1x, now that the goldens are not.** Every image in
-  the golden corpus — about 245 of them now — is drawn again at 2x and 1.5x and checked
-  for being the same picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
-  without a golden behind them — so the whole widget catalog, text included, is now
-  covered against the logical-against-physical family ADR-0157 found. **Four classes
-  of direct pixel assertion are not**, and two of them are deliberate:
-  `BoxPainterTest` and `TextPaintTest` each already carry their own scale cases and
-  would gain little; `DamageTest` is **excluded on purpose**, because a damage
-  rectangle is in physical pixels by design and legitimately differs between scales,
-  so an invariance check there would assert something false; and `ThreadedPaintTest`
-  is about two worker counts agreeing, which is orthogonal. What no test at any scale
-  covers is a **fractional scale other than 1.5** — 1.25 and 1.75 are ordinary
-  Windows settings and neither is exercised. —
-  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md),
-  [ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md)
 - **The scale-invariance thresholds are calibrated on one CPU.** The worst honest
   disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
   Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
@@ -908,7 +655,6 @@ on, which in four cases is the same thing.
   `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
   how a runner pressing against the limit would say so in numbers. —
   [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md)
-
 - **How damage is computed, and the bug a resize found in it.** Each render object
   remembers where it was, and a node that changed damages the union of where it **was**
   and where it **is** — both, because damaging only the new position leaves the old
@@ -955,15 +701,6 @@ on, which in four cases is the same thing.
   cache amortises it almost to nothing, but a first frame and every invalidated subtree
   still pay it. Worth doing when a deep tree makes a first frame visible. —
   [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
-- **Present costs 6.6 ms with no compositor to wait for.** The question ADR-0045 opened
-  while closing another. [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-  measured present at ~10 ms and concluded "most of it is waiting on the compositor
-  rather than copying". Under SDL's `dummy` video driver — no compositor, no display, no
-  surface to hand anyone — present still measures **6.6 ms**, essentially the same as
-  under Wayland. Whatever that time is, the explanation on record is wrong, and present
-  is the largest single term in a frame. —
-  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md),
-  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
 - **`Element.update` invalidates a subtree only when the cascade could see the
   change.** ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
   rebuilt widget throws away what is below it when `matchesDiffer` says its
@@ -980,9 +717,7 @@ on, which in four cases is the same thing.
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-
 ## Platform, compositor and CI
-
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
   macOS and Windows. The budget half is met with 3.9× of headroom
@@ -1104,6 +839,25 @@ on, which in four cases is the same thing.
   to `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` is the remaining work, and the
   honest form of it is probably a `Capability.WINDOW_DECORATIONS`, since the answer for
   the container may be "it cannot" rather than "install this".
+
+  **Closed —
+  [ADR-0422](adr/0422-what-sdl-compiled-is-the-fact-and-decorations-are-a-capability.md).**
+  It guessed the honest form right: `Capability.WINDOW_DECORATIONS` and
+  `Capability.WAYLAND`, warned about rather than required, because
+  `libdecor-devel` is unavailable in the release container and a `REQUIRED`
+  probe there would produce no library at all. What it did not anticipate is
+  that *extending both* was the wrong move. The existing pattern is a
+  pkg-config prediction confirmed against SDL's generated header, and SDL
+  decides the whole Wayland driver with one check over five specs plus a
+  scanner binary — so a prediction narrower than that reports "present" where
+  SDL reports "absent", and the cross-check then fails a build that was fine.
+  These two are therefore **read** out of `SDL_build_config.h` and never
+  predicted, which is strictly better where it is available and is why a
+  header SDL did not generate now reports both bits absent rather than
+  carrying on. `WINDOW_DECORATIONS` is also deliberately narrower than it
+  sounds: it is libdecor at build time and says nothing about ADR-0084's
+  plugin, because a bit that was set on the exact machine where the bug is
+  would be the worst possible value.
 - **No CI leg exercises Wayland.** `showcase.yml` runs under
   `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
   is never reached — which is why two consecutive decoration bugs shipped without a
@@ -1134,16 +888,13 @@ on, which in four cases is the same thing.
   either alone leaves the window bare. Whether Goldberry should carry its own
   decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
   standing question behind both records.
-
 - **CI is green, and the fixes that made it so were written blind.** Nine causes on
   Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
   passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
   Windows or macOS test before a push, so a platform-specific regression is caught by
   the Snapshot rather than locally. The annotations make that cheap to read, not free.
   — [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
-
 ## The native build and its bindings
-
 - **The layout registry is now mostly constants, not layouts.** Seven struct layouts and
   61 constant rows, 48 of them Yoga enumerators. The struct half has a known limit —
   `YGSize` is identical on all six targets, so its row proves nothing the round trip in
@@ -1170,9 +921,7 @@ on, which in four cases is the same thing.
   *same* dependency on visibility that this fix addresses. —
   [ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md),
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-
 ## Build, artifacts and release
-
 - **A build with no network cannot produce a usable `goldberry-core`.** The bundled
   fonts and icons are fetched from upstream releases and cached, so this bites once per
   checkout rather than once per build — but a jar assembled without the asset step
@@ -1187,10 +936,6 @@ on, which in four cases is the same thing.
   four secrets. Until then every snapshot run rehearses into `mavenLocal` and says so.
   `docs/releasing.md` is the list. —
   [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
-- **Nothing bumps `goldberryVersion` after a release.** Forgetting leaves master
-  publishing `2026.1-SNAPSHOT` after `2026.1` is out, which Maven orders below the
-  release. A step in `release.yml` that opens the bump as a pull request would close
-  it. — [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md)
 - **The macOS and Windows native showcases are built from unreviewed traces.** The
   checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
   CI traces the other two headlessly before building, for 120 frames, and uses what it
@@ -1214,6 +959,28 @@ on, which in four cases is the same thing.
   application's. A Gradle plugin, or module-metadata variants keyed on OS and
   architecture, would close it. —
   [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
+
+  **Narrowed —
+  [ADR-0438](adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md).**
+  Half the proposed fix does not work, and it was measured rather than argued.
+  **Module-metadata variants keyed on OS and architecture cannot close this**:
+  a variant is chosen by matching the *consumer's* attributes, and a plain JVM
+  consumer declares no operating system — so it resolves the unattributed jar
+  silently, exactly as today but with more machinery behind it. A consumer
+  that *does* declare one then fails with an ambiguity, because a variant that
+  is missing an attribute is compatible with every value of it, so the
+  ordinary `runtimeElements` ties with the platform-specific one. The three
+  ways out of that tie are all the consumer's: attributing the shared bindings
+  jar (which is not platform-specific), deleting the unattributed variant
+  (which breaks every consumer that works today), or a disambiguation rule —
+  and those are registered on the **consumer's** schema, where a producer
+  cannot put one. So a Gradle plugin is the whole of the answer, which is what
+  JavaFX, LWJGL and sqlite-jdbc each ship. It is not built: it is a new
+  published artifact with its own release surface, on a publishing chain that
+  has never run. What did change is the documented snippet — **all four
+  classifiers**, because `NativeLibrary` picks at run time and the
+  one-platform form is the one that fails quietly for somebody building on
+  macOS for Linux.
 - **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
   three native images to the tag's draft release with `gh release`; the first `v*` tag
   is its first run, and a manual dispatch exercises everything but that step. —
@@ -1224,6 +991,662 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Only a `popover` follows a scrolling anchor; a `menu` and a `select` hold the
+  rectangle they opened against.**~~ Following is a property of having been opened
+  **by id**, which is `Popover`'s documented shape and the one the entry that
+  asked for this named. `Menus` and `SelectState` resolve the anchor to a
+  rectangle themselves, because they want a minimum width and a `Fit` as well and
+  no `Host.popup` overload takes an id *and* those two. It is one overload's worth
+  of work and nothing has asked for it: a dropdown is dismissed by a press
+  elsewhere, and the wheel over an open one scrolls its own list. —
+  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
+
+  **Closed —
+  [ADR-0432](adr/0432-a-menu-is-anchored-by-the-name-it-was-opened-with.md).**
+  The overload exists — `Host.popup(content, anchorId, placement,
+  minimumWidth, fit)` — and `Menus` opens by name through it. **The entry is
+  wrong about `SelectState`**: a `select` has no id to be anchored by,
+  `SelectField` is `Located` and takes its rectangle from the frame, and
+  ADR-0119 explicitly rejected generating one because two unnamed selects in a
+  window would then depend on that generation being unique. So only `Menus`
+  was a customer and `select` still does not follow. The entry's own "nothing
+  has asked for it" stands as the value of this record on its own; what it is
+  really for is being the prerequisite of the entry below.
+- ~~**A popup whose anchor scrolls out of sight follows it out of sight.**~~ Now that
+  a `popover` travels with its anchor, an anchor scrolled past the top of its
+  viewport takes the popup with it, and the placement clamps it to the work area
+  rather than dismissing it — so a menu can end up pointing at a widget that is no
+  longer drawn. The region carries the clip that would answer "is it still
+  visible", so the mechanism is there; what is missing is a decision about what
+  should happen — close it, hide it, or pin it to the viewport's edge — and
+  nothing has asked for one yet. —
+  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0114](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
+
+  **Closed —
+  [ADR-0433](adr/0433-a-popup-whose-anchor-leaves-goes-with-it.md).** The
+  decision is **close**, and the other two were rejected for reasons worth
+  keeping. *Pin* is the only one that makes the toolkit lie: a menu parked at
+  the viewport's edge points at whatever row scrolled up to meet it and the
+  user cannot tell. *Hide* leaves a popup holding the keyboard, so `Down`
+  moves a selection nobody sees and `Enter` runs a command nobody chose. Close
+  costs the in-progress interaction and nothing else, which is the one failure
+  a user can see and undo. The threshold is intersection rather than
+  containment, and closing takes the popups opened after it, since a submenu
+  anchors to a rectangle inside its parent. **The region's clip answers only
+  half the question**, which the entry assumed was the whole of it: a row
+  scrolled fully away is still reported — ADR-0114's empty-clip stop is about
+  a subtree's *own* clip — and a box with no clipping ancestor sits under an
+  infinite clip, so the predicate is the clip *and* the window's rectangle.
+  One shipped behaviour changed: ADR-0270's `followsAScrollingAnchor` asserted
+  a menu travelling with an anchor that had left the window entirely, which is
+  the picture this record calls wrong.
+- ~~**A `masonry`'s column count is a number and not a breakpoint, and what stops
+  it is the spec gate rather than the mechanism.**~~ Two columns at 1200px are two
+  columns at 720px — half as wide and twice as tall — because the count is a
+  constructor argument and no selector can count columns. This used to say that
+  "as many columns as fit at a minimum width" is "a layout pass that reads its
+  own width, which is the loop ADR-0196 built the last-frame read to avoid", and
+  that reads the record backwards: ADR-0196 *is* the last-frame read, `masonry`
+  already banks every card's height through `Measured`, and reading its **own**
+  width is the same door one step over. `Measured`'s third rule holds for it too,
+  with one caveat worth stating — a column count changes the masonry's *height*
+  and not its width, so the number is stable under the thing it causes **for a
+  masonry whose width comes from its parent**, which is every one in the
+  showcase and not every one imaginable. What actually blocks it is that
+  `masonry` **has no row in `docs/core-widgets.md` at all** — it is named once,
+  as what the showcase's screens are made of — so §5's spec-then-metrics-then-
+  gallery gate has nothing to have passed. —
+  [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
+  [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
+
+  **Closed —
+  [ADR-0436](adr/0436-a-column-count-is-a-width-the-window-does.md).**
+  `min-column-width` is built, exclusive with `columns`, defaulting to 320,
+  with the wall's own width read through `Measured` from `MasonryBox` — and
+  the resolved `gap` read with it, because `n` columns need `n` minimums
+  **and** `n−1` gaps and counting without them over-counts at every boundary.
+  It settles in **3 passes** worst case, which matters exactly: `Offscreen`
+  measures twice and paints the third, so a responsive wall is photographed
+  settled with nothing to spare. **The spec row written for this task was
+  wrong about shrink-to-fit** and has been corrected: `masonry-column` is
+  `flex-basis: 0`, so a wall with no definite width measures zero whatever its
+  count is and the count is independent of itself by construction — degenerate
+  and stable, and identical with a fixed `columns`, so it is a pre-existing
+  defect rather than anything this option introduces. The showcase adopts it
+  on the Basic screen only, at 560 rather than 320, because at 320 a
+  1168-point wall becomes three columns a third narrower than its cards were
+  built for.
+- ~~**The gallery goldens cannot see typography at all, and the 150% half is now
+  waiting on a decision rather than on a mechanism.**~~ `GalleryGoldenTest` builds
+  its renderer with the single-font constructor — which ignores `font-family`,
+  `font-size` and `font-weight` by design, so that a golden image is not a test of
+  whichever Inter is on the machine — so every screenshot draws prose, headings
+  and button labels at one size. A screen with no typographic hierarchy looks
+  exactly like a screen with one, which is how a screen title and the paragraph
+  under it stayed the same 13px with nothing catching it. `ShowcaseTypographyTest`
+  asserts sizes through the cascade instead. **The clipping half read as a gap in
+  the tests and was a gap in the toolkit**: nothing enforced §1.4's 150% because
+  nothing *implemented* it, so there was nothing for an image to be of.
+  `renderer.textScale` exists now
+  ([ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)) — it
+  scales the text and deliberately not the boxes, which is the condition §1.4
+  asks components to survive. What is left is **what to assert**: since
+  `text-overflow: ellipsis` shipped, some cutting is correct, so "no text is
+  clipped" is no longer the sentence, and a golden of eleven screens at 150%
+  would pin every one of those decisions at once in a picture before anybody had
+  taken them. —
+  [ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+
+  **Closed —
+  [ADR-0435](adr/0435-a-150-percent-check-is-a-rule-not-a-picture.md).** The
+  assertion is a **rule**, not a picture, and it is differential between 100%
+  and 150%: no line is cut without something asking for the cut, and no box
+  overruns its container. Three candidates were rejected, one of them by
+  measurement — *"every ellipsis at 150% was reachable at 100%"* is backwards
+  and false on the corpus, since HTML gains one correct marked cut and
+  Markdown two. **The entry's premise is also wrong in a way that would have
+  made the picture worthless**: `renderer.textScale` exists but does not reach
+  the gallery, because `WidgetRenderer`'s one-font constructor discards the
+  style the scale is applied to — a 150% golden taken the way the gallery's
+  are taken would have photographed the 100% tree and passed for ever. The
+  audit opens a book instead, making it the first check here to lay the
+  gallery out with real `font-family`, `font-size` and `font-weight`.
+  `OverflowWatch` answers half: its noise is a fact, its silence is not,
+  because the walk is gated on the **root** node's `hadOverflow`. **The
+  gallery does not survive 150% today** — the overruns are carried as a named
+  ratchet, and the five the narrow Basic screen had are already gone, removed
+  by `masonry`'s responsive columns rather than by anything aimed at them.
+- ~~**`Measured` is a door every widget can now open and almost none should.**~~ A
+  widget that sizes itself from last frame's measurement lags its own content,
+  and one that does so in a way that changes the measurement never settles.
+  Nothing enforces the rule that keeps it safe — read geometry to interpret an
+  input or to draw something that cannot affect layout, never to decide a size —
+  and the scroll view obeys it by construction rather than by check. —
+  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+
+  **Closed —
+  [ADR-0420](adr/0420-the-measured-rule-is-checked-by-a-fixed-point.md).**
+  `Settled`, a harness that drives the real frame loop to a fixed point and
+  fails on oscillation, now holds six consumers to the rule. A *runtime* check
+  was considered and refused, because it cannot tell an oscillation from a
+  resize drag. **There are eleven consumers now, not one**, and the
+  interesting number is how many actually feed back: masonry, scroll and
+  split-pane settle in 2 passes; table, text-area and text-input in **1**,
+  meaning they show no layout feedback at all — so the harness also asserts
+  that a consumer was reached, which is what caught `toast` placing no box in
+  a windowless harness and passing vacuously. `toast`, `tour`, `image` and
+  `IconSheet` stay uncovered, each with its reason written down.
+- ~~**A row's focus name still collides between two unnamed lists.**~~ `host.focus`
+  takes a name global to the window, and `list` scopes its rows by the list's own
+  `id` — which settles it wherever an application named one, and leaves the case
+  of two lists, both unnamed, holding an item with the same identity. `tree` has
+  the unscoped version of the same thing. What would close it properly is a focus
+  name that is relative to a subtree, which the router has no notion of. —
+  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+
+  **Closed —
+  [ADR-0437](adr/0437-a-focus-name-resolves-in-the-composite-the-keyboard-is-in.md).**
+  `PointerRouter.focusById` resolves inside the enclosing `focus-scope` chain
+  before falling back to the window. **The entry says the router "has no
+  notion" of a subtree and it does** — `enclosingScope`, used for traversal
+  and never for resolving a name — so the fix is about eight lines and no
+  published API moved. `focus-scope` is the right naming boundary for a reason
+  that is not a coincidence: the elements a composite manufactures names for
+  are exactly the ones its arrow keys rove over, because a row gets a name *so
+  that* `End` can reach it. The entry also understates `tree`, which is not
+  merely "the unscoped version" — a **named** tree collided too, where a named
+  list was already settled by its id prefix. One residue is written down
+  rather than fixed: a virtualized unnamed list's not-yet-built row is not in
+  its own scope to be found, so the cross-frame retry can still reach another
+  list's row for one frame.
+- ~~**`SelectList` is in the wrong package.**~~ It now has two callers, which is what
+  moved `Option` into a package of its own; it stayed put because the CSS type it
+  carries is `select-list`, so moving it renames a type in every stylesheet and
+  every golden rather than editing one file. Autocomplete itself reaches markup
+  through `suggestions=` and `options=` (ADR-0367). —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
+
+  **Closed — [ADR-0417](adr/0417-a-css-type-is-a-string-not-a-package.md).**
+  **The reason this entry sat is false.** `cssType()` returns the string
+  literal `"select-list"`; nothing derives a CSS type from a class's package
+  or simple name, so the move renamed nothing in any stylesheet, golden or
+  test — every `select-list` in `controls.css`, the `select-list-dark` golden
+  name and `SelectTest`'s assertion are byte-for-byte unchanged. Eight Java
+  files moved and that was all. The *other* half of ADR-0182's note was true
+  and was the real defect: the class documented itself as "not constructible"
+  while sitting public in an **exported** package, so the new package is not
+  exported.
+- ~~**A slider maps the pointer over the track's full width**~~, so at the extremes the
+  thumb's centre is up to 8px from the finger. Mapping over the *travel* needs the
+  thumb's width, which is the stylesheet's and not the widget's. The mapping is
+  monotonic and reaches both ends exactly. **The door this entry named is open and
+  a different one is shut**: "a widget being told a resolved metric" is
+  `Paints.Context.length` and has been since
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
+  — but it is a **`render`-time** read, and the pointer arrives at `onPointer`
+  where there is no context to ask. `scroll` solved exactly that by banking the
+  number into its `State`; a `Slider` is a `record` with nowhere to bank one, so
+  closing this means making `slider` stateful. That is still a bigger change than
+  8px, and it is now a different sentence. The **tick marks do not
+  have this problem**: their inset is half a thumb, written in the stylesheet beside the
+  thumb's own width, so a mark and the thumb agree exactly while the finger is the thing
+  that is up to 8px out. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
+  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md)
+
+  **Closed —
+  [ADR-0430](adr/0430-a-slider-maps-the-pointer-over-its-travel.md).**
+  `slider` is stateful on `scroll`'s arrangement — `Slider` (record) builds
+  `SliderControl` (the CSS type), and `SliderState` banks
+  `--gb-slider-thumb-size` read at `render` for `onPointer` to use. The
+  mapping is over the travel. The entry was right about everything including
+  the tick marks, which `SliderGeometryTest` had been asserting all along and
+  which pass untouched. One cost it could not have known: **there is no
+  `calc()`**, so the thumb's `border-radius` and `slider-ticks`' inset stay
+  hand-maintained halves of the new token, held together by a test rather than
+  by arithmetic.
+- ~~**An indeterminate bar turns where it should run off the edge, and that is now
+  a choice rather than a limit.**~~ `progress`'s indeterminate sweep travels
+  there-and-back within its track because the off-the-edges drawing — the more
+  common one — needs the bar clipped at the track's edges. This entry said nothing
+  clipped; `overflow: hidden` has shipped since ADR-0114, so the drawing is
+  available. What is left is a design decision about a shipped animation rather
+  than a missing mechanism — and it is the **only** thing left on ADR-0235's list,
+  now that the label half has been built ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
+
+  **Closed —
+  [ADR-0418](adr/0418-the-indeterminate-bar-runs-off-both-edges.md).** The
+  sweep crosses and leaves — −100% to 333% of the bar's own width — with
+  `overflow: hidden` written in `controls.css` rather than forced in Java, so
+  the clip stays the stylesheet's. Two goldens moved and were re-blessed;
+  `progress-determinate`, `progress-light`, `progress-reduced` and both
+  spinners did not, which is the evidence the clip costs the other drawings
+  nothing. One new cost, named rather than hidden: `Clip` is a rectangle and
+  not CSS's rounded clip, so the track's 2px cap squares off momentarily —
+  about 0.86 px² per corner.
+- ~~**No `Image.scaled(...)`.**~~ Scaling happens at the blit, which is where the
+  destination size is known. A resampled *copy* — for a thumbnail written to disk
+  — is a different operation and would need a filter argument that
+  `bl_image_scale` has and nothing has asked for.
+
+  **Closed — [ADR-0428](adr/0428-a-resampled-copy-is-not-a-scaled-blit.md).**
+  `bl_image_scale` is bound as `BlendScaledImage`, mirroring
+  `BlendDecodedImage`. The filter argument the entry names is real and
+  mandatory in C, and the answer is an enum **with** a default: no single
+  filter is right both for shrinking a photograph and for doubling a 16×16
+  icon, and the wrong choice is silent in both directions, so `Image.scaled(w,
+  h)` is Lanczos and `Image.scaled(w, h, Resampling)` is the other four.
+  `BL_IMAGE_SCALE_FILTER_NONE` is deliberately unbound — it is the absence of
+  a filter rather than one of them.
+- ~~**The frame sequence exists twice.**~~ `Launcher.paint` and `Offscreen` run the
+  same steps in the same order, and only one of them is the hot path with damage,
+  frame statistics, the HUD and the models' refresh woven through it
+  ([ADR-0284](adr/0284-a-picture-with-no-window-under-it.md)). Extracting the
+  common core is the right refactor and was not taken during a feature: what holds
+  them together meanwhile is that every golden image goes through `Offscreen`, so
+  a divergence moves a picture.
+
+  **Closed —
+  [ADR-0423](adr/0423-one-frame-sequence-shared-by-the-window-and-the-buffer.md).**
+  `FrameSequence` in a new non-exported `frame` package holds the element
+  tree, the render tree and the router, and both callers use it — every golden
+  unmoved, which is the safety net this entry itself named. **The entry was
+  wrong that it is one sequence.** There are three orders, not two: a window
+  lays out, paints, then captures; a measuring pass lays out and captures
+  without painting; the drawing pass lays out and paints without capturing. A
+  single "run a frame" method would have needed two booleans about windows. So
+  five of the six steps are shared and `draw` is deliberately left out — it
+  differs by design (ADR-0072) and has no ordering constraint to protect.
+- ~~**No animation strip.**~~ One call, one picture. A caller wanting frame 3 of a
+  transition wants to drive the clock between paints, which is an object with a
+  lifetime rather than a builder that renders once.
+
+  **Closed —
+  [ADR-0424](adr/0424-a-tree-mounted-once-and-photographed-repeatedly.md).**
+  `Offscreen.strip(Widget)` returns a `Filmstrip`: a closeable object that
+  mounts the tree once and answers `advance(millis)` and `frame()` repeatedly.
+  The hard part was what stays alive between frames, which the record states
+  rather than leaves to be discovered — every frame gets its own buffer, and
+  the pictures survive closing the strip.
+- ~~**No reuse and no cache.**~~ Each render builds a fresh element tree and unmounts
+  it, so rendering the same document twice does the work twice. A font book can be
+  handed in and kept; nothing else can.
+
+  **Closed —
+  [ADR-0425](adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
+  `Studio` keeps a renderer over a font book and hands out wired `Offscreen`
+  builders. **The entry named the wrong thing as the cost.** "A font book can
+  be handed in and kept" is true, and the book was not the expensive part: the
+  cascade index and the shaping cache were, and both live on the renderer,
+  which had no way in. A *result* cache is still refused, and for a reason
+  worth keeping — a `Widget` has an `equals`, which is exactly what makes it
+  tempting and wrong, because a card closing over a mutable model is equal to
+  a stale one.
+- ~~**Nothing renders off the UI thread**~~, and nothing says it must not. A render
+  touches no window and no backend, so a server thread is probably fine — "probably"
+  is why it is written here rather than in the javadoc. What would have to be
+  checked first is the shaping cache and Blend2D's own worker pool.
+
+  **Closed —
+  [ADR-0425](adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
+  Folded into the entry above, because they are one decision: the reusable
+  unit is the renderer over a font book, and that is precisely the object that
+  must not be shared across threads. **Both suspects the entry named were
+  clean.** The shaping cache is per-renderer and already fail-fast; Blend2D's
+  pool is process-wide but already degrades to synchronous with identical
+  pixels. The real hazard was `Fonts`, which had documented confinement since
+  ADR-0044 and enforced nothing — and **the unsafe arrangement was the one
+  `Offscreen`'s own javadoc recommended**, "hand over one `Fonts` and keep
+  it". That advice is gone and the assert is there; `rendersConcurrently`
+  drives eight threads to a pixel-identical result. So the javadoc says it
+  rather than saying "probably".
+- ~~**No word-wrap-aware `PageUp`/`PageDown`.**~~ The page is ten lines, hard-coded,
+  because an editor drawn on a canvas has no viewport to measure. A caller that
+  knows its own height moves the caret itself.
+
+  **Closed — [ADR-0410](adr/0410-a-page-is-the-callers-height.md).**
+  `Editor.viewportHeight(double)` makes a page `max(1, floor(height /
+  lineHeight))`, counted in **visual** lines, with ten kept as the fallback
+  and defended against the four alternatives. A page is the screenful rather
+  than the screenful-less-one, because the overlap belongs to a scroll and
+  this editor's caller owns the scroll. The entry's "a caller that knows its
+  own height moves the caret itself" turns out to be more expensive than it
+  sounds — it means re-implementing `desiredX` column-keeping and intercepting
+  the key before `onKey`, which is the argument for the setter.
+- ~~**The headless clipboard is eager.**~~ It keeps the bytes rather than serialising
+  on demand, so nothing in a test exercises the *laziness* the platform imposes;
+  the upcall path is covered in `:natives` against the real SDL instead.
+
+  **Closed —
+  [ADR-0407](adr/0407-the-headless-clipboard-serialises-when-asked.md).** It
+  holds a supplier per type now, so a test can assert that nothing was
+  serialised until something asked. Every `read` calls the supplier again
+  rather than caching, which is the platform's actual contract: a double that
+  produced bytes at `write` time rewards an application for serialising per
+  copy instead of per paste, and the real clipboard then silently forgives it.
+- ~~**A refusal is not modelled anywhere.**~~ Every write returns a boolean and the
+  in-memory clipboard always returns true, so the branch an application writes for
+  "the compositor declined" is only ever taken on a real desktop.
+
+  **Closed —
+  [ADR-0407](adr/0407-the-headless-clipboard-serialises-when-asked.md).**
+  `refuseWrites(boolean)` makes the `false` branch reachable from a test, with
+  the default behaviour unchanged — a test seam rather than a new policy.
+  Worth noting that `ClipboardDataTest`'s own javadoc asserted this gap ("what
+  it cannot model is the platform's laziness or a refusal") and was wrong from
+  the commit that closed it; ADR-0286's identical sentence is left as written,
+  because it was true when it was written.
+- ~~**A `text-input` holding a long value shows its end, not its beginning.**~~
+  `TextEdit.of` puts the caret at the end and the field keeps the caret in view
+  from its first layout, which is what `text-area` did until
+  [ADR-0297](adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md).
+  The fix is the same flag and the same argument; it is not done here because a
+  field is not a document and changing two controls on one screen's evidence is how
+  a fix becomes a regression somewhere nobody looked.
+
+  **Closed — [ADR-0412](adr/0412-a-field-shows-its-beginning.md).** An
+  untouched field shows the head; the caret stays at the end; a press, key,
+  edit, composition or focus makes it chase again. No markup attribute — the
+  default *is* the decision, and ADR-0326's own argument applies, that a call
+  site which must say where the caret goes can forget to. **The entry said
+  "the same flag and the same argument" and only the flag was the same**:
+  ADR-0326 had already fixed the read-only half and left a test asserting the
+  editable tail *on purpose*, so this had to argue against a written sentence
+  rather than against silence. It also turned up a real bug the entry could
+  not have predicted — the flag was set after `apply()`'s equality check, so
+  `End` on an untouched field did nothing at all.
+- ~~**An icon larger than its slot overflows it.**~~ An `Icon` is a path built at a
+  size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
+  16px leading column is 20px — centred now rather than parked in the corner,
+  which is the difference between "large" and "misaligned", but still larger than
+  the column. An application that wants them to fit builds them at 16, and
+  nothing says so at the door. —
+  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
+
+  **Closed —
+  [ADR-0419](adr/0419-the-slot-size-is-named-where-the-icon-is-built.md).**
+  `Icons.SLOT` and `Icons.bind(String)` name the size at the door, and
+  `ItemLead` reports an overhang at **debug**, deduplicated by name, size and
+  column — ADR-0394's rule, since a warning firing on every legitimately
+  larger icon says nothing. **The entry was misleadingly general**:
+  `item-lead` is the *only* slot in the catalog an icon can overflow, because
+  every other widget uses `Box.icon`, which sizes the box to the glyph. It
+  also corrected a comment that had the override backwards — `.style(style)`
+  is applied last, so the CSS width wins, not `Box.icon`.
+- ~~**An outer shadow is painted *under* the box, not cut out of it.**~~ CSS knocks
+  the border box out of a `box-shadow` so a translucent background does not have
+  its own shadow showing through from underneath. The toolkit paints the whole
+  shape and relies on the box being drawn on top — and cannot do better today,
+  because cutting the hole needs a path clip or a fill rule and the Blend2D
+  binding exports neither. The obvious trick is worse than the problem: a
+  reversed sub-path under the default non-zero winding *fills* the parts of
+  itself the outer shape does not cover, so the inner half of a blur would paint
+  a dark ring where it was supposed to erase one. **It is invisible under an
+  opaque background**, which is every shadowed surface the design system has, and
+  shows under a box mid-`opacity` transition, which fades its shadow by the same
+  factor and so darkens itself slightly. What it would take: `BLContextSetFillRule`
+  or a path-clip call on the export list, and then one reversed sub-path per
+  band. `ShadowPaintTest.throughATranslucentBox` pins the current behaviour, so
+  the day that lands there is a test that says the deviation is gone. —
+  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+
+  **Closed — [ADR-0427](adr/0427-the-shadow-is-cut-out-of-its-box.md).** Each
+  band is now filled together with the border box under
+  `BL_FILL_RULE_EVEN_ODD`, so a point inside both is crossed twice and left
+  empty — one extra sub-path per band, no extra fill. **The entry offered a
+  choice that does not exist**: Blend2D clips to a *rectangle and nothing
+  else*, and both `bl_context_clip_to_rect_i/_d` were already exported, so
+  there is no path clip to prefer and the fill rule was the only option rather
+  than the cheaper one. Its reversed-sub-path warning was right and is why the
+  rule matters. "Invisible under an opaque background" turned out to be true
+  of *interior* pixels only: twelve goldens moved, every one of them on the
+  anti-aliased arc of a rounded corner where the box covers a fraction of a
+  pixel and the shadow beneath that fraction is now cut away — the same seam a
+  browser has. The fix also retired machinery the entry did not mention:
+  ADR-0310's `occluded` band flag has one answer once the hole is cut, so
+  culling moved to `ShadowGeometry.coveredAt`.
+  `ShadowPaintTest.throughATranslucentBox` asserted the deviation and now
+  asserts its absence.
+- ~~**One non-text pair is below §1.2's 3:1, and no colour can lift it.**~~ This
+  entry said sixteen, and filed them as one thing waiting for one decision.
+  Measured against the arithmetic rather than against the sentence they were
+  three, and fifteen are fixed
+  ([ADR-0258](adr/0258-the-edge-a-measurement-chose.md)). The **twelve control
+  boundaries** were a gap in the palette nobody had put anything in: Nord stops
+  between `--nord3` and `--nord4`, which measure 1.17:1 and 6.39:1 against
+  `--gb-surface-2`, so a palette edge is either invisible or a white ring around
+  a dark control — `--gb-checkbox-border` is the midpoint, at 3.17:1 and 3.22:1.
+  The **three marks** were `--gb-accent` on `--gb-border`, one pair wearing three
+  names, missing by 0.02; the light accent slid to `#5c7ea8` and every other pair
+  it appears in moved the same way, so there was nothing to trade against. What
+  is left is the **light theme's slider thumb**, and it is not a ramp question:
+  the track sits between a white thumb and a dark accent fill, and clearing 3:1
+  against both needs its relative luminance at once **≤ 0.300 and ≥ 0.688**. No
+  solid colour is both. What has to change is what a light-theme thumb *is* — a
+  border round it, or a fill that is not white — which is a sentence
+  `docs/design-system.md` §3 does not contain and is the one genuine decision in
+  the original sixteen. Twenty-two goldens moved, which is why this had waited. —
+  [ADR-0258](adr/0258-the-edge-a-measurement-chose.md),
+  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
+  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
+
+  **Closed —
+  [ADR-0429](adr/0429-a-light-themes-thumb-is-a-disc-with-an-edge.md).** The
+  entry called this "the one genuine decision" and framed it as a choice
+  between a border and a fill that is not white. **It is not a choice**: the
+  groove needs a thumb at luminance ≤ 0.209 to clear 3:1, and the light accent
+  fill sits at 0.200, so every fill dark enough to be seen against the bare
+  groove vanishes into the half of the track that is filled. Clearing both at
+  once needs ≤ 0.083 — `#525252` or darker — which is the "hole punched
+  through the control" the theme file already rejects twice for the switch. So
+  the fill answers the accent and a 1px `--gb-slider-thumb-border` answers the
+  groove, and the dark theme sets it `transparent` because nord6 on nord3 is
+  already 6.40:1. **The measurement found a worse pair than the one it went
+  looking for**: the light theme's *pressed* thumb was `var(--nord4)`, the
+  groove's own colour, at **1.00:1** for as long as the control has existed —
+  the sweep had only ever looked at resting fills. It sweeps all three thumb
+  states now, one border token covers all three, and `MARKS_BELOW_FLOOR` is
+  empty. "Twenty-two goldens moved" was the cost of sliding a *ramp*; an edge
+  touches only the thumb, and **two** moved.
+- ~~**`button.ghost` has no contrast ratio, and is therefore not checked.**~~ Its fill is
+  `transparent` and its hover is a `#ffffff14` wash, so what a user reads depends on the
+  surface underneath — there is no single pair to measure. It is left out of
+  `ContrastTest` rather than measured against black, which is what ignoring alpha would
+  silently do and would score it as passing. The same is true of `--gb-selection`. A
+  backdrop-aware check would need the painted frame rather than the cascade, which is a
+  different kind of test. —
+  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+
+  **Closed —
+  [ADR-0431](adr/0431-a-translucent-fill-is-measured-on-the-frame.md).**
+  `BackdropContrastTest` renders real trees with the real rasterizer and reads
+  the pixels back — five surfaces × four probes × two themes, forty pairs. It
+  deliberately does not reimplement `src-over`: a hand-rolled compositor is a
+  second opinion and the first one is what ships. **Nothing failed**, worst at
+  4.79:1 (`button.ghost:active` on the dark theme's `--gb-surface-2`), so the
+  entry's four exclusions were correct to make *and* correct to leave — what
+  changed is that an unmeasured pass is now a measured one. Worth recording
+  that the check's own first draft reported three failures that were its
+  fault, sampling three pixels into an unpadded row and reading ink over fill;
+  the flat-region guard that caught it is why the rest is believable.
+- ~~**`rem` is the *configured* root size, not the root element's.**~~ What
+  [ADR-0242](adr/0242-em-is-the-elements-own-size.md) left: `em` resolves against
+  the element's own computed size now, and `rem` still reads
+  `CssLength.Context.rootFontSize()`. CSS says the **root element's** computed
+  `font-size`, so the two agree unless a root declares one — and recovering that
+  inside `ComputedStyle.of` is not possible, because a node is handed its
+  *parent's* style and not the root's. It needs a third thing threaded down, or a
+  field on the renderer that is only correct after the root has resolved. Nothing
+  in the catalog styles a root's `font-size`, so this is exact today. —
+  [ADR-0242](adr/0242-em-is-the-elements-own-size.md)
+
+  **Closed —
+  [ADR-0416](adr/0416-rem-is-the-root-elements-size-and-the-walk-is-what-knows-it.md).**
+  Both halves, split: the root's own `rem` falls out of the two-pass structure
+  ADR-0242 already built for `em`, and descendants get it through
+  `WidgetRenderer`. **The entry called the renderer-field shape "correct only
+  after the root has resolved" as a drawback, and it is the specification** —
+  CSS says `rem` *on the root's own* `font-size` refers to the initial value.
+  And the claim that this was "not possible inside `ComputedStyle.of`" was
+  half wrong: that half was already in reach.
+- ~~**A bare `text` with no ancestor setting `color` renders black**~~, which is ADR-0066's
+  deliberate `INITIAL` and a trap all the same: the showcase's new gain label was
+  unreadable on the dark theme. A control gets away with saying nothing because
+  `controls.css` sets `color` on `checkbox`, `radio`, `toggle` and `slider` themselves;
+  a primitive does not. The showcase now sets `color: var(--gb-text)` on its root, which
+  is what an application should do — but nothing warns one that has not. —
+  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+
+  **Closed —
+  [ADR-0415](adr/0415-the-root-has-no-colour-is-a-fact-about-the-sheets.md).**
+  `StyleLint.uncolouredRoot(root)` answers it as a lint asked for rather than
+  a warning logged, which is ADR-0257's shape and avoids ADR-0394's trap of
+  firing sixty times a second on a correct application. **The entry implies
+  the check can read the sheets, and it cannot**: the showcase — the one
+  application that does this right — writes `#root` rather than `:root`, so a
+  synthetic `:root` probe would have reported the reference application as the
+  defect. It takes the root element instead.
+- ~~**`StyleElement` documents three nullable members inside a `@NullMarked`
+  package and annotates none of them.**~~ `type()`, `id()` and `parent()` each say
+  "or null" in their own javadoc and each is declared as a plain `String` or
+  `StyleElement`, in a `css` package that *is* marked — so NullAway reads all
+  three as non-null. Nothing had noticed because every implementation lived in an
+  unmarked package; `StyleLint`'s probe is the first written in a marked one, and
+  it cannot say what the interface says. The lint's package is unmarked as a
+  result, which is the wrong end to fix it from. Closing it properly means
+  annotating the interface, which moves every implementation and every caller —
+  and would probably find real nullness bugs on the way, which is the argument
+  for doing it rather than against. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
+
+  **Closed —
+  [ADR-0413](adr/0413-a-signature-that-lies-turns-the-checker-off.md).** All
+  three are `@Nullable` now, `Selector.Compound` with them, and `css.lint` is
+  marked rather than unmarked — which was the entry's point, that the lint's
+  package was the wrong end to fix it from. **The entry predicted "real
+  nullness bugs on the way" and there were none.** Six NullAway diagnostics,
+  every one already handled at the call site, several with comments explaining
+  why. The finding is better than the prediction: a `@NullMarked` package had
+  been enforcing a contract nobody believed for long enough that the first
+  code physically unable to lie about it was made to leave the room instead.
+- ~~**A widget's CSS classes share a namespace with the design system's.**~~ A `hud`
+  reading named `display` picked up §1.4's `.display` type rank and rendered at
+  28px. Renamed, and nothing prevents the next one: there is no prefix
+  convention, no check, and the two sets of names are written in different files
+  by different people. —
+  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
+
+  **Closed —
+  [ADR-0414](adr/0414-a-rank-applies-to-anything-so-its-name-is-reserved.md).**
+  The convention is **not** a prefix, which is what the entry guessed: both
+  namespaces are published vocabulary, and a widget's class is already
+  namespaced by its type, so the seven §1.4 rank names are **reserved**
+  instead and `ClassNamespaceTest` holds the line. **There were two more
+  collisions already in the tree**, which is the entry's "nothing prevents the
+  next one" having already happened twice. `TreeRow` minted `heading`, so
+  every branch label in every tree drew at 15px/600 in a fixed-height row —
+  three goldens moved when it was fixed. `Skeleton.Shape` minted `title`,
+  harmless in pixels today and waiting for the first `em`.
+- ~~**`Editor` still shapes its whole text.**~~ The `canvas` editing seam from
+  ADR-0285 holds one `Paragraph` over everything it is given, which is what
+  `text-area` did until ADR-0388. `TextDocument` is exported and is the obvious
+  second caller. Nothing has measured an `Editor` over a document, so nothing has
+  earned the change. —
+  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md),
+  [ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
+
+  **Closed — [ADR-0411](adr/0411-an-editor-shapes-a-line-at-a-time.md).**
+  `Editor` holds a `TextDocument` now, and the numbers the entry said nobody
+  had taken are taken: a keystroke into 500 kB goes **111.5 ms → 1.4 ms**, and
+  the characters shaped go **500 097 → 132** against 129 for a 2 kB document.
+  Opening is still proportional (130 ms for 500 kB) and the record says so.
+  **Only the shaping half of ADR-0388 ports**: its "drawn a screenful at a
+  time" half does not, because the rows in view are the caller's scroll and
+  transform rather than the editor's. `gallery-canvas` is byte-identical,
+  which is the evidence the change is pixel-neutral.
+- ~~**What is still asserted only at 1x, now that the goldens are not.**~~ Every image in
+  the golden corpus — about 245 of them now — is drawn again at 2x and 1.5x and checked
+  for being the same picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
+  without a golden behind them — so the whole widget catalog, text included, is now
+  covered against the logical-against-physical family ADR-0157 found. **Four classes
+  of direct pixel assertion are not**, and two of them are deliberate:
+  `BoxPainterTest` and `TextPaintTest` each already carry their own scale cases and
+  would gain little; `DamageTest` is **excluded on purpose**, because a damage
+  rectangle is in physical pixels by design and legitimately differs between scales,
+  so an invariance check there would assert something false; and `ThreadedPaintTest`
+  is about two worker counts agreeing, which is orthogonal. What no test at any scale
+  covers is a **fractional scale other than 1.5** — 1.25 and 1.75 are ordinary
+  Windows settings and neither is exercised. —
+  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md),
+  [ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md)
+
+  **Closed —
+  [ADR-0434](adr/0434-every-check-sweeps-1-25-and-nothing-sweeps-1-75.md).**
+  1.25 is in every `check`'s sweep and **1.75 goes nowhere**, which is the
+  opposite of what the entry asked for and is arithmetic rather than thrift: a
+  multiplier exercises Yoga's rounding, so what matters is the offsets `k·m
+  mod 1` visits — 2 gives `{0}`, 1.5 gives `{0, ½}`, 1.25 gives `{0, ¼, ½,
+  ¾}`, and **1.75 gives the same four quarters**, re-asking a question 1.25
+  has answered while its magnitude is bracketed by 1.5 and 2. The cost is
+  about 4 s of `check` per multiplier repo-wide. Two things the entry could
+  not know: `gallery-canvas` misses at 1.25 (1.229% against a 1.200% budget)
+  because a hard-edged QR module grid resampled at 5/4 comes back *inverted*
+  rather than blurred, so that one image is excluded from the sweep by name
+  rather than the budget being loosened on 245 images that meet it with
+  tenfold room; and on that same screen a *natural-size* image tile differs
+  wholesale between scales where the stretched and cropped tiles beside it
+  differ only at their outlines, which has the shape of ADR-0157's bug and is
+  now recorded but unswept.
+- ~~**Present costs 6.6 ms with no compositor to wait for.**~~ The question ADR-0045 opened
+  while closing another. [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+  measured present at ~10 ms and concluded "most of it is waiting on the compositor
+  rather than copying". Under SDL's `dummy` video driver — no compositor, no display, no
+  surface to hand anyone — present still measures **6.6 ms**, essentially the same as
+  under Wayland. Whatever that time is, the explanation on record is wrong, and present
+  is the largest single term in a frame. —
+  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md),
+  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
+
+  **Closed —
+  [ADR-0409](adr/0409-present-costs-a-tenth-of-a-millisecond-and-the-wait-is-the-rasterizers.md).**
+  The entry was right that the explanation on record was wrong and wrong about
+  everything else, its own number included. Measured over 300 frames under the
+  driver it names, present's median is **0.127 ms** and its p95 0.319 ms — off
+  by a factor of about fifty — and it is 0.8% of a frame rather than the
+  largest term in one. **The largest term is `end`**, at 10.2 ms: the join
+  that waits for Blend2D's workers, with `draw`'s 5.9 ms of queueing in front
+  of it, so a frame under `dummy` is rasterization and almost nothing else.
+  Two plausible misattributions were ruled out on the way and both were
+  already right — the Blend2D join is timed *before* the present boundary, and
+  the frame pacer's sleep caps the event wait rather than the painted frame.
+  What survives is the qualifier: under `dummy` the frame is rasterized
+  straight into SDL's surface and present copies nothing, so 0.127 ms is the
+  floor rather than the universal figure. ADR-0031's Wayland number is left
+  standing because it cannot be re-measured here — opening a real surface on
+  this machine takes GNOME Shell down — and the like-for-like Wayland
+  measurement below stays open.
+- ~~**Nothing bumps `goldberryVersion` after a release.**~~ Forgetting leaves master
+  publishing `2026.1-SNAPSHOT` after `2026.1` is out, which Maven orders below the
+  release. A step in `release.yml` that opens the bump as a pull request would close
+  it. — [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md)
+
+  **Closed — [ADR-0421](adr/0421-the-release-line-moves-on-by-itself.md).**
+  That is exactly what landed, and the entry named the right shape: a `bump`
+  job that `needs: publish`, checks out the default branch and opens
+  `bump/<next>`. Two things it did not say. The *arithmetic* is the part with
+  a decision in it, and it is a tested value in `build-logic` rather than a
+  `sed` — `VersionBump` moves a patch line to its next **patch**, because a
+  `release/2026.1` branch bumped to `2026.2` would claim a feature release
+  from a maintenance branch, and a `sed` that incremented the last number
+  would get that right and get `2026.3` in January wrong. And the guard needed
+  no rule of its own: comparing what the default branch declares against the
+  tag rules out both a patch tag and a re-run whose bump already merged.
+  `CalendarVersion.nextRelease` had been written by ADR-0333 and called by
+  nothing until now.
 - ~~**PNG is the only format written.**~~ **WebP is written too, 2026-09-17**,
   and losslessly by default: VP8 is worst at the flat colour and hard edges a
   user interface is made of, so `encodeWebp()` is the lossless path and

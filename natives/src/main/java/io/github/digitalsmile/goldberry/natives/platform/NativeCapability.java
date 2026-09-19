@@ -59,7 +59,41 @@ public enum NativeCapability {
     FILE_DIALOG(0x8, "GOLDBERRY_CAP_FILE_DIALOG"),
 
     /// Keeping the screensaver off a window that is playing something.
-    SCREENSAVER_INHIBIT(0x10, "GOLDBERRY_CAP_SCREENSAVER_INHIBIT");
+    SCREENSAVER_INHIBIT(0x10, "GOLDBERRY_CAP_SCREENSAVER_INHIBIT"),
+
+    /// Whether this build can ask for a titlebar and a resize edge.
+    ///
+    /// **On Linux this is libdecor at build time**, and its absence is the first
+    /// half of a two-part trap: `libdecor-0-dev` missing when the superbuild ran
+    /// means SDL compiled no client-side decoration support at all, so a Wayland
+    /// window opens bare however the session is configured
+    /// ([ADR-0083]). The second half is a *run-time* one — the
+    /// plugin libdecor loads by default refuses to start off the process's initial
+    /// thread and a JVM is never on it
+    /// ([ADR-0084]) — and this bit says nothing about it.
+    /// Built able to ask is what it reports; whether a titlebar appears is the
+    /// other record's subject.
+    ///
+    /// On macOS and Windows the window server draws them and there is no optional
+    /// library in the way, so the bit is always set.
+    WINDOW_DECORATIONS(0x20, "GOLDBERRY_CAP_WINDOW_DECORATIONS"),
+
+    /// Whether SDL compiled a Wayland video driver into this library.
+    ///
+    /// Linux only, and never set elsewhere — there is no Wayland on macOS or
+    /// Windows, so a library claiming the bit there would be claiming something
+    /// false about the session it runs in.
+    ///
+    /// It is here because losing it is **silent**: SDL decides the whole driver
+    /// with one `pkg_check_modules` over five specs, and a machine missing any one
+    /// of them — `mesa-libEGL-devel` is the one that has actually happened —
+    /// builds an SDL with no Wayland driver and no complaint. Every session then
+    /// falls back to X11 or XWayland, which resizes visibly worse and is the thing
+    /// [ADR-0027] chose against.
+    ///
+    /// **This bit describes the library and not the session.** A build with the
+    /// driver in it still runs on X11 when that is what the desktop is.
+    WAYLAND(0x40, "GOLDBERRY_CAP_WAYLAND");
 
     private final int bit;
     private final String nativeName;

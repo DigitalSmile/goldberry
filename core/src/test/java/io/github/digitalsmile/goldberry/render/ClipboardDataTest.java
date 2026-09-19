@@ -21,9 +21,10 @@ import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
 /// The clipboard's byte half — ADR-0286.
 ///
 /// Against the headless backend's in-memory clipboard, which is the one a test
-/// gets. What it cannot model is the platform's laziness or a refusal; what it
-/// does model is the contract every caller is written against — types go on,
-/// bytes come back, a write replaces rather than merges.
+/// gets. What is pinned here is the contract every caller is written against —
+/// types go on, bytes come back, a write replaces rather than merges. The
+/// platform's *laziness* and a *refusal* are the same clipboard's other two
+/// halves and are `HeadlessClipboardTest` ([ADR-0407]).
 ///
 /// The SDL side of the same contract, including the upcall a paste runs, is
 /// `SdlClipboardTest` in `:natives`.

@@ -93,7 +93,13 @@ class ProgressGoldenTest {
                 new Column(List.of(new Progress(0), new Progress(0.4), new Progress(1)), id("scene")));
     }
 
-    /// The bar a third of the way into its travel, entering from the left.
+    /// The bar **part way in**, cut off by the track's leading edge — 180 ms into
+    /// the loop, where its left edge is still 0.105 of a track to the left of the
+    /// groove and only the trailing two thirds of it are drawn ([ADR-0418]).
+    ///
+    /// This is the image that says the clip is real. Without `overflow: hidden` on
+    /// `progress` the bar would be drawn whole, hanging into the gap above the
+    /// second bar, and the picture would look perfectly plausible.
     ///
     /// Two bars in one frame, and they are **identical on purpose**: a sweep is a
     /// function of the clock alone, so two of them in a window are in step. A
@@ -101,7 +107,7 @@ class ProgressGoldenTest {
     /// different places, and nothing about it would look broken enough to
     /// investigate ([ADR-0081]).
     @Test
-    @DisplayName("a sweep 180ms into its loop, and two of them agreeing")
+    @DisplayName("a sweep 180ms into its loop, entering under the leading edge")
     void sweeping() {
         paint(
                 "progress-sweeping",
@@ -113,21 +119,26 @@ class ProgressGoldenTest {
                 new Column(List.of(Progress.sweeping(), Progress.sweeping()), id("scene")));
     }
 
-    /// The far end of the same loop, at 600 ms — flush against the right-hand
-    /// edge and about to turn back.
+    /// The other end, at 1080 ms — the bar **leaving**, cut off by the far edge,
+    /// with its leading tenth already outside the track.
     ///
-    /// The pair of images is what says the travel is **inside** the track: the
-    /// bar reaches the edge and stops there rather than carrying on past it,
-    /// which is what a toolkit with no `overflow: hidden` has to do (ADR-0081).
+    /// The pair is what says the travel goes **through** the track rather than
+    /// bouncing inside it: the same bar is clipped on the left in one image and on
+    /// the right in the other, and there is no frame in which it sits flush against
+    /// an edge and waits. A bar that reversed would show a whole bar in both.
+    ///
+    /// 1080 rather than 1200, because at 1200 the bar is entirely outside the clip
+    /// and the picture is an empty groove — true, and a golden of nothing
+    /// ([ADR-0418]).
     @Test
-    @DisplayName("and at 600ms, flush against the far end")
+    @DisplayName("and at 1080ms, leaving under the far edge")
     void sweepingAtTheEnd() {
         paint(
                 "progress-sweeping-end",
                 Theme.NORD_DARK,
                 300,
                 60,
-                600,
+                1080,
                 false,
                 new Column(List.of(Progress.sweeping()), id("scene")));
     }

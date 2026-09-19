@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
+import io.github.digitalsmile.goldberry.widgets.controls.selectlist.SelectList;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.Tree;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
 

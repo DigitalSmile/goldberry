@@ -276,6 +276,28 @@ class SelectionTest {
     }
 
     @Test
+    @DisplayName("a hard break inside a paragraph is a newline in what is copied")
+    void hardBreakIsANewline() {
+        // The other half of ADR-0426. The picture is two lines, and a copy that joined
+        // them with a space would be saying the author's line ending was the width of
+        // the pane -- which is exactly what a *soft* break means and exactly what this
+        // one does not. `Inlines.text` and the HTML writer's `<br>` already agree; the
+        // price is that a triple-click takes one line rather than the paragraph, which
+        // is the right one for an address or a stanza.
+        mount(MarkdownView.of("one  \ntwo\n").id("note"));
+
+        assertEquals("one\ntwo", state().text());
+    }
+
+    @Test
+    @DisplayName("and a soft break is the space it draws")
+    void softBreakIsASpace() {
+        mount(MarkdownView.of("one\ntwo\n").id("note"));
+
+        assertEquals("one two", state().text(), "a newline the editor wrapped is not a line the author ended");
+    }
+
+    @Test
     @DisplayName("inline content after a block is a block of its own, not the tail of the one above")
     void inlineAfterABlock() {
         // An HTML page rather than a note, because this is `html-view`'s fold: it

@@ -3,10 +3,14 @@ package io.github.digitalsmile.goldberry.css.lint;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.StyleRule;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.parse.Token;
@@ -102,6 +106,82 @@ public final class StyleLint {
         return check(List.of(Objects.requireNonNull(linted, "linted")));
     }
 
+    /// Whether the sheets in force leave `root` — and so every primitive under it
+    /// that inherits a colour — with no `color` at all ([ADR-0415]).
+    ///
+    /// ```java
+    /// new StyleLint(everythingLoaded).uncolouredRoot(tree.root()).ifPresent(f -> LOG.warn("{}", f));
+    /// ```
+    ///
+    /// ## Why this is asked about the root and not about the text
+    ///
+    /// Because the resolved colour is not evidence. `color: INITIAL` is black by
+    /// [ADR-0066]'s deliberate decision, and black text on a light theme is
+    /// **correct** — so a check that fired on a node resolving to black would be
+    /// wrong about every light-themed application in existence, and would be
+    /// wrong about it once per text node per frame. That is exactly the
+    /// distribution [ADR-0394] took a diagnostic apart for: 688 reports of which
+    /// 665 were the check misunderstanding its own question.
+    ///
+    /// What *is* evidence is that no declaration anywhere set one. `color`
+    /// inherits, so one rule on the root settles the whole tree; a root with no
+    /// `color` in its cascade means there was nothing to inherit, all the way
+    /// down. That is one question, asked once, about one node.
+    ///
+    /// ## Why it takes the root rather than looking for `:root`
+    ///
+    /// Because the application that does this **right** does not write `:root`.
+    /// The showcase writes `#root { color: var(--gb-text) }`, and a check that
+    /// resolved a synthetic `:root` probe the way the theme audit does would have
+    /// reported the one correct example in the repository as the defect. A root
+    /// is whatever the tree's root element is, its selector is the application's
+    /// business, and the only thing that can answer "does a rule reach it" is the
+    /// element itself.
+    ///
+    /// Nothing calls this for you, which is [ADR-0257]'s whole shape: it is a
+    /// value an application asks for at start-up, beside
+    /// [io.github.digitalsmile.goldberry.css.contrast.ThemeAudit#failures]
+    /// , and not a line in a log nobody reads.
+    ///
+    /// @param root the tree's root element — the one whose [StyleElement#parent]
+    ///             is null
+    /// @return the finding, or empty when something gives the root a colour
+    /// @throws IllegalArgumentException if `root` has a parent, which would make
+    ///         the answer a fact about a subtree and quietly wrong
+    public Optional<Finding> uncolouredRoot(StyleElement root) {
+        Objects.requireNonNull(root, "root");
+        if (root.parent() != null) {
+            throw new IllegalArgumentException("not a root: " + name(root) + " has a parent, and what it"
+                    + " inherits is that parent's business rather than the sheets'");
+        }
+        // The **declared** cascade rather than a `ComputedStyle`, and that is the
+        // whole mechanism. A resolved style always has a colour -- the initial one
+        // if nothing else -- so asking it can only ever report the value, never
+        // whether anybody chose it. The map the cascade produces has a `color` key
+        // if and only if a declaration won one.
+        //
+        // A `color: var(--nothing)` is absent here too, because substitution
+        // failing takes the declaration with it. That is the right answer rather
+        // than a gap: a root whose colour resolves to nothing has no colour.
+        if (resolver.resolve(root).containsKey("color")) {
+            return Optional.empty();
+        }
+        return Optional.of(new Finding(Finding.Kind.UNCOLOURED_ROOT, name(root), "color", null, 0, 0));
+    }
+
+    /// How a selector would name `root`, so the finding tells the author what to
+    /// write rather than only what is missing.
+    ///
+    /// `:root` is the fallback rather than the first choice: it is what a root
+    /// with no type and no id has to be selected by, and an application that has
+    /// given its root either would rather be told about the one it chose.
+    private static String name(StyleElement root) {
+        if (root.id() != null) {
+            return "#" + root.id();
+        }
+        return root.type() == null ? ":root" : root.type();
+    }
+
     /// Every declaration in `rule` that the engine applies nothing from, as seen
     /// through `selector`.
     ///
@@ -119,8 +199,7 @@ public final class StyleLint {
     /// finding that did fire named a line whose value was not the one printed
     /// beside it. What a lint wants is what the author wrote, with its `var()`s
     /// resolved as they would be here — which is [StyleResolver#substitutedFor].
-    private void checkRule(Selector selector, io.github.digitalsmile.goldberry.css.StyleRule rule, List<Finding> into) {
-
+    private void checkRule(Selector selector, StyleRule rule, List<Finding> into) {
         var probe = probeFor(selector);
         for (var declaration : rule.declarations()) {
             if (declaration.isCustomProperty()) {
@@ -189,19 +268,24 @@ public final class StyleLint {
         return Objects.requireNonNull(element, "a selector with no parts");
     }
 
-    private record Probe(Selector.Compound compound, StyleElement parent) implements StyleElement {
+    /// @param parent the probe to the left, or **null** for the leftmost — which
+    ///               is what makes it the root, so `:root`'s custom properties
+    ///               reach the rest of the chain
+    private record Probe(
+            Selector.Compound compound, @Nullable StyleElement parent) implements StyleElement {
 
         @Override
-        public String type() {
+        public @Nullable String type() {
             return compound.type();
         }
 
-        // Unannotated, matching `StyleElement` and `Selector.Compound`, both of
-        // which document a null `type` and `id` and declare neither `@Nullable`.
-        // That disagreement is older than this class and wider than it: making
-        // either honest would move every implementation and every caller.
+        // Annotated, and so are `StyleElement` and `Selector.Compound`, both of
+        // which used to document a null `type` and `id` and declare neither
+        // `@Nullable`. This package was unmarked to accommodate that; ADR-0413
+        // annotated the interfaces instead, and these three overrides are the
+        // ones that could not be written honestly before.
         @Override
-        public String id() {
+        public @Nullable String id() {
             return compound.id();
         }
 

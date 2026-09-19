@@ -63,6 +63,23 @@
      without a selector because `ButtonTest` reads this file for a literal
      hash and takes one as a hard-coded colour.) */
   --gb-scroll-line: 20px;
+  /* §3's slider thumb 16, and the third metric a widget reads back out of the
+     cascade rather than holding as a constant (`--gb-scroll-line` and
+     `--gb-caret-width` are the other two, ADR-0251).
+
+     A slider needs its own thumb's width to map a pointer, because the thumb's
+     *centre* only travels `width - 16`: half a thumb is unreachable at each end,
+     and mapping over the full width puts the disc up to 8px from the finger at
+     the extremes. `SliderControl` reads this at `render` and banks it for
+     `onPointer` (ADR-0430).
+
+     **`slider-thumb` sizes itself from this token**, so the disc the user drags
+     and the arithmetic the pointer goes through are one declaration. Two numbers
+     below still have to follow it by hand -- the thumb's `border-radius`, which
+     is half of it, and `slider-ticks`' inset, which is also half of it -- because
+     §8's subset has no `calc()`. `SliderTest.theHalvesOfAThumb` is what holds the
+     three together. */
+  --gb-slider-thumb-size: 16px;
   /* How wide a text caret is drawn. One pixel is what every desktop draws; a
      token because a thicker caret is a real low-vision aid and 13 lists that
      kind of switch. Read through `Paints.Context.length` (ADR-0251), so it
@@ -1056,9 +1073,10 @@ slider-rest {
    `toggle-thumb`: a switch has two positions a stylesheet can name and a slider
    has a continuum it cannot. */
 slider-thumb {
-  width: 16px;
-  height: 16px;
+  width: var(--gb-slider-thumb-size);
+  height: var(--gb-slider-thumb-size);
   border-radius: 8px;
+  border: 1px solid var(--gb-slider-thumb-border);
   background: var(--gb-slider-thumb-bg);
 }
 
@@ -1086,12 +1104,19 @@ slider-thumb {
    takes the groove's own 4 and half its 2px radius -- a tick is a groove one
    step long.
 
-   The padding is **half of §3's thumb 16**, and it is the whole reason the marks
-   line up: a mark names a position the thumb's *centre* can reach, and that
-   centre stops 8px short of each end because the thumb is 16 wide. It is one
+   The padding is **half of `--gb-slider-thumb-size`**, and it is the whole reason
+   the marks line up: a mark names a position the thumb's *centre* can reach, and
+   that centre stops 8px short of each end because the thumb is 16 wide. It is one
    arithmetic statement with the thumb above it, exactly as the toggle's
    2 + 16 + 16 + 2 = 36 is one with its travel -- change the thumb and this
-   follows. */
+   follows.
+
+   It cannot be written as half of the token, because §8's subset has no `calc()`
+   (ADR-0430). So it is the one number here that an author moving the thumb has to
+   move too, and `SliderTest.theHalvesOfAThumb` is what makes forgetting it a
+   failure rather than a pointer that is eight pixels out. It is also the number
+   the *pointer* now agrees with: the marks were never wrong, and until ADR-0430
+   the finger was. */
 slider-ticks {
   /* **Zero-height, and that is the load-bearing number.** The track centres its
      column, so anything the scale contributes to that column pushes the groove
@@ -1209,6 +1234,20 @@ progress {
   height: 4px;
   border-radius: 2px;
   background: var(--gb-progress-track-bg);
+  /* The indeterminate sweep runs off both edges, so the track has to cut it off:
+     without this, a bar a third of the way out of its track is drawn over
+     whatever is beside the control, and the instant it wraps from the right-hand
+     side back to the left is a visible jump once every 1.2 seconds. Both are
+     hidden by the same rectangle (ADR-0418).
+
+     Here rather than forced on the box in Java, because `overflow` has been a
+     cascaded property since ADR-0114 and every other number in this rule is the
+     theme's. A stylesheet that writes `overflow: visible` has asked for the
+     overhang and gets it.
+
+     It costs a determinate bar nothing: its fill is a width and has never left
+     the track. */
+  overflow: hidden;
 }
 
 /* The coloured part. Its **width** comes from the widget, because it is the
@@ -3891,8 +3930,15 @@ tree-row.selected {
 }
 
 /* A parent in a leaf-only tree: still a row, still openable, and not an answer.
-   Dimmed rather than disabled, because disabled would say it is inert. */
-tree-row.heading {
+   Dimmed rather than disabled, because disabled would say it is inert.
+
+   `group` and not `heading`. This rule said `tree-row.heading` and set only the
+   colour, while §1.4's `.heading` rank -- a class selector with no type on it,
+   because a rank applies to anything -- reached the same row and set its
+   font-size, line-height and weight. So every branch of a leaf-only tree drew at
+   15px/600 in a row whose height is `--gb-list-row-height`. The two namespaces
+   collided and the sheet could not see it (ADR-0414). */
+tree-row.group {
   color: var(--gb-text-muted);
 }
 
@@ -4320,17 +4366,17 @@ skeleton-bar {
 
 /* Body text. The height is the line box rather than the glyph height, so three
    bars occupy exactly what three lines will. */
-skeleton-bar.text {
+skeleton-bar.shape-text {
   height: var(--gb-font-body);
 }
 
-skeleton-bar.title {
+skeleton-bar.shape-title {
   height: var(--gb-font-title);
 }
 
 /* An avatar. The radius is half the side, which is how a square becomes a circle
    in a subset with no `border-radius: 50%`. */
-skeleton-bar.circle {
+skeleton-bar.shape-circle {
   width: 40px;
   height: 40px;
   border-radius: 20px;
@@ -4338,14 +4384,14 @@ skeleton-bar.circle {
 
 /* Arbitrary content — an image, a chart. No token can say how big that is, so
    this is a floor and whatever encloses it decides the rest. */
-skeleton-bar.rect {
+skeleton-bar.shape-rect {
   height: 80px;
 }
 
 /* The last line of a paragraph is short, because a block of identical full-width
    bars reads as a table rather than as prose. A width and not a margin: the bars
    are in a column, so shortening one is shortening it. */
-skeleton-bar.text.last {
+skeleton-bar.shape-text.last {
   width: 60%;
 }
 
