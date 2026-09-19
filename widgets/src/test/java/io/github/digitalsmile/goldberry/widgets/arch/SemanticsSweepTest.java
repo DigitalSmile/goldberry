@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.arch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -12,9 +13,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widgets.CatalogMarkup;
 
 /// `docs/testing.md` §1.7: **every interactive node exposes a role and a name.**
 ///
@@ -105,8 +109,30 @@ class SemanticsSweepTest {
                         + ". Implement Semantics — a role, and a name if it has one of its own.");
     }
 
+    /// The test this class's own header promises, and which its neighbour below
+    /// only *counted* until the 2026-09-18 review (§11.3) read the two against
+    /// each other: `everyRoleIsAnswered` never called `role()`.
+    ///
+    /// It can now, because `CatalogMarkup` knows what each registered name needs
+    /// in order to exist — the same fixture the parity sweep was widened onto.
+    /// A widget that answers a null role is one a screen reader cannot name, and
+    /// the interface says the method is never null.
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("io.github.digitalsmile.goldberry.widgets.CatalogMarkup#types")
+    @DisplayName("every registered widget that carries Semantics answers a role")
+    void everyRoleIsReallyAnswered(String type) {
+        var widget = CatalogMarkup.inflate(type, "");
+        if (!(widget instanceof Semantics semantics)) {
+            return;
+        }
+        assertNotNull(
+                semantics.role(),
+                () -> type + " implements Semantics and answers a null role, so nothing reading the"
+                        + " screen aloud can say what it is");
+    }
+
     @Test
-    @DisplayName("no widget answers a null role")
+    @DisplayName("enough widgets implement Semantics that the sweep is reading the right tree")
     void everyRoleIsAnswered() throws IOException {
         var counted = 0;
         for (var type : catalogClasses()) {
