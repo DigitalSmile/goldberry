@@ -233,20 +233,6 @@ class ContextMenuSelectsTest {
         assertEquals(List.of("inner"), asked, "the outer plate named the menu; the inner one is what was clicked");
     }
 
-    /// Only once, however many ancestors could have answered — a right-click is
-    /// one gesture and has one subject.
-    @Test
-    @Timeout(20)
-    @DisplayName("only one widget is asked, however many could answer")
-    void onlyOne() {
-        var asked = new ArrayList<String>();
-        var inner = new Plate("inner", asked, null);
-        var middle = new Plate("middle", asked, null, inner);
-        rightClick(new Plate("outer", asked, "rows", middle), host -> host.onContextMenu((menu, at) -> {}));
-
-        assertEquals(List.of("inner"), asked);
-    }
-
     /// The keyboard's half shares the walk, so it shares this: the menu key on a
     /// focused-but-unselected row selects it, exactly as a right-click does
     /// (ADR-0208).

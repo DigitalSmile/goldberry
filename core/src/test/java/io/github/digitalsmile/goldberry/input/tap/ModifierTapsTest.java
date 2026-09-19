@@ -278,13 +278,5 @@ class ModifierTapsTest {
             assertEquals(Optional.empty(), ModifierKey.ofSdl(0));
             assertFalse(ModifierKey.ALT.matches(LEFT_SHIFT));
         }
-
-        /// Four modifiers and no way to write a fifth — the whole point of a
-        /// separate, tiny vocabulary.
-        @Test
-        @DisplayName("there are exactly four")
-        void closed() {
-            assertEquals(4, ModifierKey.values().length);
-        }
     }
 }

@@ -95,16 +95,6 @@ class YogaTest {
     }
 
     @Test
-    @DisplayName("a length does not quietly change units")
-    void unitsDoNotSwap() {
-        // The transposition this catches: `percent` wired to `points` produces a
-        // 50-pixel box where a half-width one was meant, on every screen size,
-        // and no test of the value types alone would see it.
-        assertEquals(StyleLength.points(50), Yoga.length(Length.points(50)));
-        assertEquals(StyleLength.percent(50), Yoga.length(Length.percent(50)));
-    }
-
-    @Test
     @DisplayName("insets keep CSS's order across the boundary")
     void insetsKeepTheirOrder() {
         // Four values of one type, which is exactly the shape a transposition

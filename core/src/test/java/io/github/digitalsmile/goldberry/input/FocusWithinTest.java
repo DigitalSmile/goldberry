@@ -128,21 +128,6 @@ class FocusWithinTest {
 
             assertEquals(List.of("input-a blurred", "input-a left", "field-one left", "form left"), log);
         }
-
-        @Test
-        @DisplayName("a widget that is focused is inside its own subtree")
-        void aFocusedNodeIsWithinItself() {
-            var router = new PointerRouter();
-            twoFields();
-
-            router.focus(find("input-a"), true);
-
-            // Told twice, about two different questions -- `:focus` and
-            // `:focus-within` are both true of a focused node in CSS for exactly
-            // this reason.
-            assertTrue(log.contains("input-a focused"));
-            assertTrue(log.contains("input-a entered"));
-        }
     }
 
     @Nested

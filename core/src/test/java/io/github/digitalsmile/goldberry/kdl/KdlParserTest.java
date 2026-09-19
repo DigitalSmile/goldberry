@@ -5,14 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class KdlParserTest {
@@ -299,33 +303,35 @@ class KdlParserTest {
     @DisplayName("what this subset refuses")
     class Refused {
 
-        @Test
-        @DisplayName("type annotations are named rather than dropped")
-        void typeAnnotations() {
-            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse("(u8)a x=1"));
-            assertTrue(thrown.getMessage().contains("type annotation"));
+        /// Every input the subset refuses, and — for the two features KDL 2.0 has
+        /// and this does not — the word the refusal must carry, so a reader is
+        /// told "not supported here" rather than "unexpected token". Everything
+        /// refused carries a **position**, which is what makes a refusal usable
+        /// at all; the sentence around it is free to change.
+        static Stream<Arguments> refusals() {
+            return Stream.of(
+                    arguments("a type annotation is named rather than dropped", "(u8)a x=1", "type annotation"),
+                    arguments(
+                            "a multi-line string is named rather than mis-reported",
+                            "a x=\"\"\"\nhello\n\"\"\"",
+                            "multi-line"),
+                    arguments("an unclosed child block", "a {", null),
+                    arguments("a stray close", "}", null),
+                    arguments("a property with no value", "a x=", null),
+                    arguments("an unterminated string", "a \"unterminated", null),
+                    arguments("an identifier that looks like a number", "1abc", null));
         }
 
-        @Test
-        @DisplayName("multi-line strings are named rather than mis-reported")
-        void multiLineStrings() {
-            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse("a x=\"\"\"\nhello\n\"\"\""));
-            assertTrue(thrown.getMessage().contains("multi-line"));
-        }
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("refusals")
+        @DisplayName("malformed markup is refused with a position, and a missing feature is refused by name")
+        void refused(String what, String markup, String named) {
+            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse(markup), what);
 
-        @ParameterizedTest
-        @ValueSource(
-                strings = {
-                    "a {", // unclosed child block
-                    "}", // stray close
-                    "a x=", // property with no value
-                    "a \"unterminated",
-                    "1abc", // an identifier may not look like a number
-                })
-        @DisplayName("malformed markup is refused with a position")
-        void malformed(String markup) {
-            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse(markup));
             assertTrue(thrown.line() >= 1, () -> "no position on: " + thrown.getMessage());
+            if (named != null) {
+                assertTrue(thrown.getMessage().contains(named), thrown.getMessage());
+            }
         }
     }
 

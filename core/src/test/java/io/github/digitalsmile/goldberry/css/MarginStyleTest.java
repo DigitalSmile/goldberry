@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
@@ -43,28 +44,22 @@ class MarginStyleTest {
     @DisplayName("the shorthand")
     class Shorthand {
 
-        @Test
-        @DisplayName("one value is every edge")
-        void one() {
-            assertEquals(Insets.all(px(8)), marginOf("margin: 8px"));
-        }
-
-        @Test
-        @DisplayName("two are vertical then horizontal")
-        void two() {
-            assertEquals(Insets.symmetric(px(4), px(12)), marginOf("margin: 4px 12px"));
-        }
-
-        @Test
-        @DisplayName("three name the fourth as the opposite of the second")
-        void three() {
-            assertEquals(new Insets(px(1), px(2), px(3), px(2)), marginOf("margin: 1px 2px 3px"));
-        }
-
-        @Test
-        @DisplayName("four are clockwise from the top")
-        void four() {
-            assertEquals(new Insets(px(1), px(2), px(3), px(4)), marginOf("margin: 1px 2px 3px 4px"));
+        /// CSS's 1-to-4 expansion, whose whole content is which written value
+        /// reaches which edge — so the edges are named in the row rather than
+        /// built by `Insets.all` and `Insets.symmetric`, which would let the same
+        /// transposition through twice.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            // declaration, top, right, bottom, left
+            "margin: 8px,             8, 8, 8, 8",
+            "margin: 4px 12px,        4, 12, 4, 12",
+            "margin: 1px 2px 3px,     1, 2, 3, 2",
+            "margin: 1px 2px 3px 4px, 1, 2, 3, 4",
+        })
+        @DisplayName(
+                "one value is every edge, two are vertical then horizontal, three name the fourth, four go clockwise")
+        void expansion(String declaration, float top, float right, float bottom, float left) {
+            assertEquals(new Insets(px(top), px(right), px(bottom), px(left)), marginOf(declaration));
         }
 
         @Test

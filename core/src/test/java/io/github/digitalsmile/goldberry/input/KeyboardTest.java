@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -257,18 +259,6 @@ class KeyboardTest {
         }
 
         @Test
-        @DisplayName("Tab skips nodes that are not focusable")
-        void skipsUnfocusable() {
-            // `container` is in the tree and is not focusable; traversal must
-            // never land on it, or Tab would stop on scenery.
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-            router.keyPressed(Key.TAB, Modifiers.NONE, false);
-
-            assertSame(first, router.focused());
-        }
-
-        @Test
         @DisplayName("Tab focus is keyboard focus, so the ring shows")
         void tabIsKeyboardFocus() {
             router.keyPressed(Key.TAB, Modifiers.NONE, false);
@@ -311,41 +301,33 @@ class KeyboardTest {
     @DisplayName("SDL translation")
     class Translation {
 
-        @Test
-        @DisplayName("named keys map from SDL keycodes")
-        void keycodes() {
-            assertEquals(Key.TAB, Key.fromSdl(0x00000009));
-            assertEquals(Key.ESCAPE, Key.fromSdl(0x0000001b));
-            assertEquals(Key.LEFT, Key.fromSdl(0x40000050));
-            assertEquals(Key.F1, Key.fromSdl(0x4000003a));
-        }
-
-        @Test
-        @DisplayName("an unnamed key is UNKNOWN rather than null")
-        void unknownKey() {
-            // A bracket types a character and nothing binds it, so it stays
-            // unnamed: what was typed arrives as text.
-            assertEquals(Key.UNKNOWN, Key.fromSdl('['));
-            assertEquals(Key.UNKNOWN, Key.fromSdl(0x4000003a - 1), "F13 is not named");
-        }
-
-        @Test
-        @DisplayName("letters and digits are named, because accelerators need them")
-        void letters() {
-            // Ctrl+S produces no text event on any platform, so the letter has to
-            // come from the key event or a shortcut could not be expressed.
-            assertEquals(Key.S, Key.fromSdl('s'));
-            assertEquals(Key.DIGIT_7, Key.fromSdl('7'));
-            assertEquals(Key.COMMA, Key.fromSdl(','));
-        }
-
-        @Test
-        @DisplayName("an uppercase keycode folds to the same key as its lowercase")
-        void caseFolding() {
-            // SDL reports the unmodified keycode, but documents platforms that
-            // only ever give modified ones -- where Shift+S arrives as 'S'.
-            assertEquals(Key.S, Key.fromSdl('S'));
-            assertEquals(Key.fromSdl('s'), Key.fromSdl('S'));
+        /// SDL's keycode and the key it names, one row each, so a translation
+        /// that stopped answering for a keycode says which.
+        ///
+        /// Letters and digits are named because Ctrl+S produces no text event on
+        /// any platform: the letter has to come from the key event or a shortcut
+        /// could not be expressed at all. An uppercase keycode folds to the same
+        /// key as its lowercase — SDL reports the unmodified keycode but
+        /// documents platforms that only ever give modified ones, where Shift+S
+        /// arrives as `S`. Anything unnamed is `UNKNOWN` rather than null: a
+        /// bracket types a character and nothing binds it, so what was typed
+        /// arrives as text instead.
+        @ParameterizedTest(name = "{0} is {1}")
+        @CsvSource({
+            "0x00000009, TAB",
+            "0x0000001b, ESCAPE",
+            "0x40000050, LEFT",
+            "0x4000003a, F1",
+            "0x00000073, S", // 's'
+            "0x00000053, S", // 'S', folded onto the same key
+            "0x00000037, DIGIT_7", // '7'
+            "0x0000002c, COMMA", // ','
+            "0x0000005b, UNKNOWN", // '[' -- typed, not bound
+            "0x40000039, UNKNOWN", // one below F1: F13 is not named
+        })
+        @DisplayName("an SDL keycode names the key it is, or UNKNOWN")
+        void keycodes(int keycode, Key expected) {
+            assertEquals(expected, Key.fromSdl(keycode));
         }
 
         @Test

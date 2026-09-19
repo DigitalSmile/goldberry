@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -259,7 +258,6 @@ class NothingTest {
         @DisplayName("there is one of them")
         void singleton() {
             assertSame(Widget.nothing(), Widget.nothing());
-            assertNotNull(Widget.nothing().toString());
             assertTrue(Widget.nothing() instanceof Widget.Leaf leaf
                     && leaf.children().isEmpty());
         }

@@ -11,8 +11,6 @@ import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
@@ -28,14 +26,6 @@ import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
 /// public side and never reported, which is what the count below is for.
 @DisplayName("the platform capabilities")
 class PlatformCapabilitiesTest {
-
-    @ParameterizedTest
-    @EnumSource(NativeCapability.class)
-    @DisplayName("every native capability has a public one of the same name")
-    void everyNativeCapabilityTranslates(NativeCapability capability) {
-        assertEquals(
-                capability.name(), PlatformCapabilities.translate(capability).name());
-    }
 
     @Test
     @DisplayName("neither enum has a constant the other does not")

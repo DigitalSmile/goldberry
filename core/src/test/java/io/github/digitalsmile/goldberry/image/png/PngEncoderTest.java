@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.image.png;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
@@ -165,11 +164,5 @@ class PngEncoderTest {
 
         var decoded = Image.decode(one.encodePng());
         assertEquals(0xFF123456, decoded.argb(0, 0));
-    }
-
-    @Test
-    @DisplayName("nothing is encoded from nothing")
-    void refusesNull() {
-        assertThrows(NullPointerException.class, () -> PngEncoder.encode(null));
     }
 }

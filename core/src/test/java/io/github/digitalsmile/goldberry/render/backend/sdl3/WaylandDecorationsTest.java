@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -13,13 +14,15 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.render.backend.sdl3.WaylandDecorations.Verdict;
 
@@ -57,102 +60,110 @@ class WaylandDecorationsTest {
     @DisplayName("verdict")
     class VerdictOf {
 
-        @Test
-        @DisplayName("the GTK plugin alone means no decorations under the stock java launcher")
-        void gtkAloneMeansUndecorated() {
-            assertEquals(Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(GTK), CREATED_THREAD));
+        /// The whole truth table: driver, what is in the plugin directory, which
+        /// thread Java is on, and the verdict. Every reason the table encodes,
+        /// in the order the rows run:
+        ///
+        /// The GTK plugin alone is `UNDECORATED` under the stock `java` launcher
+        /// and `DECORATED` on the initial thread — measured, not assumed: an
+        /// embedded `JNI_CreateJavaVM` launcher runs Java on the primordial
+        /// thread, and there libdecor loads the GTK plugin and draws decorations
+        /// that match the desktop, so warning would be plainly wrong about a
+        /// titlebar the user is looking at. With no answer about the thread it is
+        /// `UNKNOWN`, and that is the *only* case whose answer depends on the
+        /// thread: nothing to load is nothing to load, so an empty directory
+        /// stays `UNDECORATED` however the question is asked.
+        ///
+        /// Cairo alongside GTK is enough, verified against the real libdecor:
+        /// with both present and the caller off the initial thread, libdecor
+        /// reports the GTK failure and then decorates anyway, and its "falling
+        /// back on no decorations" line is not printed. Any non-GTK plugin
+        /// counts, including one that does not exist yet — this is not an
+        /// allow-list of known names, because a distribution shipping its own
+        /// plugin should not trip a warning and this code cannot be updated on
+        /// their release schedule.
+        ///
+        /// Off Wayland the answer is `UNKNOWN`: X11 windows are decorated by the
+        /// window manager and never reach libdecor, which is exactly why forcing
+        /// x11 is the workaround the message suggests. And "there are no plugins"
+        /// against "I do not know where the plugins live" is the whole reason the
+        /// verdict is not a boolean.
+        static Stream<Arguments> table() {
+            return Stream.of(
+                    arguments(
+                            "GTK alone under the stock java launcher",
+                            "wayland",
+                            plugins(GTK),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "GTK alone on the initial thread",
+                            "wayland",
+                            plugins(GTK),
+                            INITIAL_THREAD,
+                            Verdict.DECORATED),
+                    arguments(
+                            "GTK alone with no answer about the thread",
+                            "wayland",
+                            plugins(GTK),
+                            UNKNOWN_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments(
+                            "an empty directory on the initial thread",
+                            "wayland",
+                            plugins(),
+                            INITIAL_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "an empty directory with no thread answer",
+                            "wayland",
+                            plugins(),
+                            UNKNOWN_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "an empty directory under the stock launcher",
+                            "wayland",
+                            plugins(),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments("Cairo alongside GTK", "wayland", plugins(GTK, CAIRO), CREATED_THREAD, Verdict.DECORATED),
+                    arguments(
+                            "a plugin that does not exist yet",
+                            "wayland",
+                            plugins(GTK, "libdecor-something-new.so"),
+                            CREATED_THREAD,
+                            Verdict.DECORATED),
+                    arguments(
+                            "the x11 driver is not libdecor's business",
+                            "x11",
+                            plugins(GTK),
+                            CREATED_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments("nor is cocoa", "cocoa", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor windows", "windows", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor offscreen", "offscreen", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor dummy", "dummy", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments(
+                            "the plugin directory could not be located",
+                            "wayland",
+                            noDirectory(),
+                            CREATED_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments("the driver is unknown", null, plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments(
+                            "files in the directory that are not plugins are ignored",
+                            "wayland",
+                            plugins(GTK, "README", "libdecor-cairo.so.disabled"),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED));
         }
 
-        @Test
-        @DisplayName("the GTK plugin alone is fine on the initial thread — it is the launcher, not the JVM")
-        void gtkAloneWorksOnTheInitialThread() {
-            // Measured, not assumed: an embedded JNI_CreateJavaVM launcher runs
-            // Java on the primordial thread, and there libdecor loads the GTK
-            // plugin and draws decorations that match the desktop. Warning in
-            // that configuration would be plainly wrong -- the window has a
-            // titlebar the user is looking at.
-            assertEquals(Verdict.DECORATED, WaylandDecorations.verdict("wayland", plugins(GTK), INITIAL_THREAD));
-        }
-
-        @Test
-        @DisplayName("says nothing when it cannot tell which thread this is")
-        void staysQuietWithNoThreadAnswer() {
-            // Only matters when GTK is the sole candidate, because that is the
-            // only case whose answer depends on the thread.
-            assertEquals(Verdict.UNKNOWN, WaylandDecorations.verdict("wayland", plugins(GTK), UNKNOWN_THREAD));
-        }
-
-        @Test
-        @DisplayName("an empty directory is undecorated whatever thread asks")
-        void noPluginsIgnoresTheThread() {
-            // Nothing to load is nothing to load; the GTK check never comes into
-            // it, so an unknown thread must not soften this to UNKNOWN.
-            assertAll(
-                    () -> assertEquals(
-                            Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(), INITIAL_THREAD)),
-                    () -> assertEquals(
-                            Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(), UNKNOWN_THREAD)));
-        }
-
-        @Test
-        @DisplayName("an empty plugin directory means no decorations")
-        void emptyDirectoryMeansUndecorated() {
-            assertEquals(Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(), CREATED_THREAD));
-        }
-
-        @Test
-        @DisplayName("the Cairo plugin alongside GTK is enough: libdecor falls through to it")
-        void cairoAlongsideGtkIsEnough() {
-            // Verified against the real libdecor: with both present and the caller
-            // off the initial thread, libdecor reports the GTK failure and then
-            // decorates anyway, and its "falling back on no decorations" line is
-            // not printed.
-            assertEquals(Verdict.DECORATED, WaylandDecorations.verdict("wayland", plugins(GTK, CAIRO), CREATED_THREAD));
-        }
-
-        @Test
-        @DisplayName("any non-GTK plugin counts, including one that does not exist yet")
-        void anyOtherPluginCounts() {
-            // Not an allow-list of known plugin names. A distribution shipping its
-            // own plugin should not trip a warning about a missing one, and this
-            // code cannot be updated on their release schedule.
-            assertEquals(
-                    Verdict.DECORATED,
-                    WaylandDecorations.verdict("wayland", plugins(GTK, "libdecor-something-new.so"), CREATED_THREAD));
-        }
-
-        @ParameterizedTest(name = "the {0} driver is not libdecor''s business")
-        @ValueSource(strings = {"x11", "cocoa", "windows", "offscreen", "dummy"})
-        @DisplayName("says nothing about a driver that does not use libdecor")
-        void staysQuietOffWayland(String driver) {
-            // X11 windows are decorated by the window manager, and never reach
-            // libdecor -- which is exactly why forcing x11 is the workaround the
-            // message suggests.
-            assertEquals(Verdict.UNKNOWN, WaylandDecorations.verdict(driver, plugins(GTK), CREATED_THREAD));
-        }
-
-        @Test
-        @DisplayName("says nothing when the plugin directory could not be located")
-        void staysQuietWithNoDirectory() {
-            // The difference between "there are no plugins" and "I do not know
-            // where the plugins live" is the whole reason the verdict is not a
-            // boolean.
-            assertEquals(Verdict.UNKNOWN, WaylandDecorations.verdict("wayland", noDirectory(), CREATED_THREAD));
-        }
-
-        @Test
-        @DisplayName("says nothing when the driver is unknown")
-        void staysQuietWithNoDriver() {
-            assertEquals(Verdict.UNKNOWN, WaylandDecorations.verdict(null, plugins(GTK), CREATED_THREAD));
-        }
-
-        @Test
-        @DisplayName("ignores files in the directory that are not plugins")
-        void ignoresNonPlugins() {
-            assertEquals(
-                    Verdict.UNDECORATED,
-                    WaylandDecorations.verdict(
-                            "wayland", plugins(GTK, "README", "libdecor-cairo.so.disabled"), CREATED_THREAD));
+        @ParameterizedTest(name = "{0} is {4}")
+        @MethodSource("table")
+        @DisplayName("the verdict is UNDECORATED only when it is certain, and UNKNOWN wherever it cannot tell")
+        void verdict(
+                String what, String driver, Optional<List<String>> files, Optional<Boolean> thread, Verdict expected) {
+            assertEquals(expected, WaylandDecorations.verdict(driver, files, thread), what);
         }
     }
 
@@ -247,26 +258,6 @@ class WaylandDecorationsTest {
                             "disagreed for " + files + " / " + thread);
                 }
             }
-        }
-
-        @Test
-        @DisplayName("reports UNDECORATED only when it is certain")
-        void reportsUndecoratedOnlyWhenCertain() {
-            // ADR-0086 removed the caller that acted on this before SDL_Init, but
-            // the distinction still governs whether the warning is emitted, and it
-            // is the shape any future conditional fallback would depend on.
-            assertAll(
-                    () -> assertEquals(
-                            Verdict.UNDECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(noDirectory(), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(plugins(GTK), UNKNOWN_THREAD)),
-                    () -> assertEquals(
-                            Verdict.DECORATED,
-                            WaylandDecorations.verdictForWayland(plugins(GTK, CAIRO), CREATED_THREAD)),
-                    () -> assertEquals(
-                            Verdict.DECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), INITIAL_THREAD)));
         }
     }
 

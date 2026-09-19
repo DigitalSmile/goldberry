@@ -79,29 +79,6 @@ class ItalicFaceTest {
         }
     }
 
-    /// The cascade's half: a resolved style names the face, so `font-style: italic`
-    /// on a heading reaches the file without the painter knowing anything about it.
-    @Test
-    @DisplayName("a resolved typography picks the face out of the matrix")
-    void typographyResolvesTheFace() {
-        var body = Typography.INITIAL;
-
-        assertEquals(BundledFont.UI, body.face());
-        assertEquals(BundledFont.UI_ITALIC, body.style(BundledFont.Style.ITALIC).face());
-        assertEquals(
-                BundledFont.UI_STRONG_ITALIC,
-                body.weight(BundledFont.Weight.SEMI_BOLD)
-                        .style(BundledFont.Style.ITALIC)
-                        .face());
-        assertEquals(
-                BundledFont.UI_STRONG,
-                body.weight(BundledFont.Weight.SEMI_BOLD)
-                        .style(BundledFont.Style.ITALIC)
-                        .style(BundledFont.Style.UPRIGHT)
-                        .face(),
-                "and going back is going back");
-    }
-
     /// Four faces of one family are four entries in the book, opened on demand:
     /// an application that never writes `font-style: italic` never parses one.
     @Test

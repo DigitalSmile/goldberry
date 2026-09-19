@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.image;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -159,24 +158,6 @@ class ImageTest {
             assertEquals(new PhysicalSize(2, 1), image.size());
             assertEquals(0xFFFF0000, image.argb(0, 0));
             assertEquals(0xFF0000FF, image.argb(1, 0));
-        }
-
-        @Test
-        @DisplayName("a decoded image needs no closing, and nothing native outlives the call")
-        void isAValue() {
-            RendererRequirement.enforce();
-            var image = Image.decode(RGBA_PNG);
-
-            // The claim is structural rather than observable, so this is the
-            // closest a test gets to it: an Image is not AutoCloseable, so there is
-            // no close() for a caller to forget and no lifetime to thread through a
-            // document model (ADR-0283).
-            //
-            // Through the class rather than `instanceof`, which javac refuses
-            // outright on a final class that cannot implement it -- a stronger
-            // check than this one, and not one that can be written as a test.
-            assertFalse(AutoCloseable.class.isAssignableFrom(Image.class), "an image is a value, not a handle");
-            assertNotNull(image.toString());
         }
 
         @Test

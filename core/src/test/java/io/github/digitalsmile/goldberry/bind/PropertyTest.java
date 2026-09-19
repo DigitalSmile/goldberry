@@ -16,10 +16,11 @@ import org.junit.jupiter.api.Test;
 class PropertyTest {
 
     @Test
-    @DisplayName("a property hands back what it was given")
-    void holdsItsValue() {
-        assertEquals("frost", Property.of("frost").get());
-        assertNull(Property.of(null).get(), "null is a value a binding has to be able to hold");
+    @DisplayName("null is a value a property holds rather than refuses")
+    void holdsNull() {
+        // A binding over an optional model field has nothing else to put here,
+        // and a property that threw would make the caller invent a sentinel.
+        assertNull(Property.of(null).get());
     }
 
     @Test

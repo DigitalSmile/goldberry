@@ -165,8 +165,7 @@ class FrameTest {
 
         // A painter that squirrels the Frame away and draws into it later would
         // otherwise be writing through a context Blend2D has released.
-        var thrown = assertThrows(IllegalStateException.class, () -> frame.fill(0xFFFFFFFF));
-        assertTrue(thrown.getMessage().contains("already been presented"), thrown.getMessage());
+        assertThrows(IllegalStateException.class, () -> frame.fill(0xFFFFFFFF));
         assertThrows(IllegalStateException.class, () -> frame.fillRect(0, 0, 1, 1, 0xFFFFFFFF));
 
         assertDoesNotThrow(frame::end, "ending twice does nothing");

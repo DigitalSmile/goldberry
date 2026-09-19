@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import io.github.digitalsmile.goldberry.css.Declaration;
 import io.github.digitalsmile.goldberry.css.StyleRule;
@@ -292,35 +292,23 @@ class CssParserTest {
             assertTrue(thrown.getMessage().contains(":hover"));
         }
 
-        @ParameterizedTest
-        @ValueSource(
-                strings = {
-                    "a[href] { color: red }", // attribute selectors are not in the subset
-                    "a + b { color: red }", // sibling combinators are not either
-                    "a::before { color: red }", // nor pseudo-elements
-                    "@supports (x) { }", // nor at-rules other than @media
-                })
-        @DisplayName("constructs outside the subset are refused, not dropped")
-        void outsideTheSubset(String css) {
-            assertThrows(CssSyntaxException.class, () -> CssParser.parse(css));
-        }
-
-        @Test
-        @DisplayName("a numeric hash is not accepted as an id")
-        void numericHashIsNotAnId() {
-            assertThrows(CssSyntaxException.class, () -> CssParser.parse("#123456 { color: red }"));
-        }
-
-        @Test
-        @DisplayName("an unclosed block is refused")
-        void unclosedBlock() {
-            assertThrows(CssSyntaxException.class, () -> CssParser.parse("a { color: red"));
-        }
-
-        @Test
-        @DisplayName("a declaration with no value is refused")
-        void emptyValue() {
-            assertThrows(CssSyntaxException.class, () -> CssParser.parse("a { color: }"));
+        /// Everything the parser refuses rather than drops, in one table: a rule
+        /// that silently never matched would be a bad afternoon, so the whole
+        /// sheet is refused instead. Four are outside §8's subset and the rest
+        /// are simply malformed.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            "an attribute selector is outside the subset,    'a[href] { color: red }'",
+            "and so is a sibling combinator,                 'a + b { color: red }'",
+            "and a pseudo-element,                           'a::before { color: red }'",
+            "and an at-rule that is not @media,              '@supports (x) { }'",
+            "a numeric hash is not an id,                    '#123456 { color: red }'",
+            "an unclosed block,                              'a { color: red'",
+            "a declaration with no value,                    'a { color: }'",
+        })
+        @DisplayName("what the subset has not got is refused, not dropped")
+        void refused(String what, String css) {
+            assertThrows(CssSyntaxException.class, () -> CssParser.parse(css), what);
         }
 
         @Test

@@ -4,13 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opentest4j.AssertionFailedError;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
@@ -241,35 +247,41 @@ class ScaleInvarianceTest {
     @DisplayName("the scales it runs at")
     class Multipliers {
 
-        @Test
-        @DisplayName("2x and 1.5x by default")
-        void byDefault() {
-            assertEquals(java.util.List.of(2.0f, 1.5f), ScaleInvariance.multipliers());
-        }
-
-        /// An empty value is how a run turns the second half off — a golden
+        /// What the property is set to, and what it gets — `null` in the second
+        /// column for the property unset, and in the third for a value that must
+        /// be refused rather than divided by later.
+        ///
+        /// An empty value is how a run turns the second half off: a golden
         /// update, or a machine bisecting a rasterizer change.
-        @Test
-        @DisplayName("an empty list is how it is turned off")
-        void off() {
-            withProperty("", () -> assertTrue(ScaleInvariance.multipliers().isEmpty()));
+        static Stream<Arguments> settings() {
+            return Stream.of(
+                    arguments("2x and 1.5x by default", null, List.of(2.0f, 1.5f)),
+                    arguments("an empty list is how it is turned off", "", List.of()),
+                    arguments("a list replaces the default", "3, 1.25", List.of(3.0f, 1.25f)),
+                    arguments("a multiplier of zero is refused", "0", null));
         }
 
-        @Test
-        @DisplayName("a list replaces the default")
-        void configured() {
-            withProperty("3, 1.25", () -> assertEquals(java.util.List.of(3.0f, 1.25f), ScaleInvariance.multipliers()));
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("settings")
+        @DisplayName("the scales are 2x and 1.5x unless the property says otherwise, and never zero")
+        void multipliers(String what, String property, List<Float> expected) {
+            withProperty(property, () -> {
+                if (expected == null) {
+                    assertThrows(IllegalArgumentException.class, ScaleInvariance::multipliers, what);
+                } else {
+                    assertEquals(expected, ScaleInvariance.multipliers(), what);
+                }
+            });
         }
 
-        @Test
-        @DisplayName("a multiplier of zero is refused rather than dividing by it later")
-        void refusesZero() {
-            withProperty("0", () -> assertThrows(IllegalArgumentException.class, ScaleInvariance::multipliers));
-        }
-
+        /// A `null` value clears the property, which is how the default row runs.
         private void withProperty(String value, Runnable body) {
             var previous = System.getProperty(ScaleInvariance.SCALES_PROPERTY);
-            System.setProperty(ScaleInvariance.SCALES_PROPERTY, value);
+            if (value == null) {
+                System.clearProperty(ScaleInvariance.SCALES_PROPERTY);
+            } else {
+                System.setProperty(ScaleInvariance.SCALES_PROPERTY, value);
+            }
             try {
                 body.run();
             } finally {

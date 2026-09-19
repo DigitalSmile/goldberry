@@ -6,15 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
@@ -37,35 +42,48 @@ class ShippedFontsTest {
     @DisplayName("matching a corner of the matrix")
     class Matching {
 
-        private final List<FontSource> forum = List.of(
+        private static final List<FontSource> FORUM = List.of(
                 source("Forum", Weight.REGULAR, Style.UPRIGHT),
                 source("Forum", Weight.SEMI_BOLD, Style.UPRIGHT),
                 source("Forum", Weight.REGULAR, Style.ITALIC));
 
-        @Test
-        @DisplayName("the exact corner wins")
-        void exact() {
-            assertSame(forum.get(1), Face.match(forum, "forum", Weight.SEMI_BOLD, Style.UPRIGHT));
+        /// One row per rung of the fallback ladder: what is asked for, the faces
+        /// there are to answer with, and which of them wins — `null` where the
+        /// family is nobody's. The first column says which rung it is, so a
+        /// failure names the rule rather than an index.
+        static Stream<Arguments> ladder() {
+            var upright = List.of(FORUM.get(0), FORUM.get(1));
+            return Stream.of(
+                    arguments("the exact corner wins", FORUM, "forum", Weight.SEMI_BOLD, Style.UPRIGHT, FORUM.get(1)),
+                    arguments(
+                            "style before weight: a semi-bold italic that is not there is the regular italic",
+                            FORUM,
+                            "Forum",
+                            Weight.SEMI_BOLD,
+                            Style.ITALIC,
+                            FORUM.get(2)),
+                    arguments(
+                            "a family with no italic keeps the weight it was asked for, upright",
+                            upright,
+                            "Forum",
+                            Weight.SEMI_BOLD,
+                            Style.ITALIC,
+                            upright.get(1)),
+                    arguments(
+                            "a family nobody ships is no match at all",
+                            FORUM,
+                            "Golos Text",
+                            Weight.REGULAR,
+                            Style.UPRIGHT,
+                            null));
         }
 
-        @Test
-        @DisplayName("style before weight: a semi-bold italic that is not there is the regular italic")
-        void styleBeforeWeight() {
-            assertSame(forum.get(2), Face.match(forum, "Forum", Weight.SEMI_BOLD, Style.ITALIC));
-        }
-
-        @Test
-        @DisplayName("a family with no italic keeps the weight it was asked for, upright")
-        void weightWhenNoStyle() {
-            var upright = List.of(forum.get(0), forum.get(1));
-
-            assertSame(upright.get(1), Face.match(upright, "Forum", Weight.SEMI_BOLD, Style.ITALIC));
-        }
-
-        @Test
-        @DisplayName("a family nobody ships is no match at all")
-        void noFamily() {
-            assertNull(Face.match(forum, "Golos Text", Weight.REGULAR, Style.UPRIGHT));
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("ladder")
+        @DisplayName("the match takes the exact corner, then the style, then the weight, and stops at the family")
+        void match(
+                String what, List<FontSource> sources, String family, Weight weight, Style style, FontSource expected) {
+            assertSame(expected, Face.match(sources, family, weight, style), what);
         }
 
         @Test

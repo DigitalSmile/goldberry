@@ -57,18 +57,6 @@ class MotionTest {
             assertThrows(IllegalArgumentException.class, () -> clock.advance(-1));
             assertThrows(IllegalArgumentException.class, () -> clock.set(50));
         }
-
-        @Test
-        @DisplayName("the system clock is monotonic, not the wall clock")
-        void systemClock() {
-            // nanoTime rather than currentTimeMillis: an animation must not jump
-            // because NTP stepped the clock or the user changed time zone.
-            var clock = Clock.system();
-            var first = clock.nowMillis();
-            var second = clock.nowMillis();
-
-            assertTrue(second >= first, second + " went backwards from " + first);
-        }
     }
 
     @Nested

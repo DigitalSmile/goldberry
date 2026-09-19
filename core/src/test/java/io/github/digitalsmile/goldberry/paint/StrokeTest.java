@@ -30,17 +30,12 @@ class StrokeTest {
             assertEquals(1, stroke.width());
             assertEquals(Cap.BUTT, stroke.cap());
             assertEquals(Join.MITER, stroke.join());
+            // SVG's default, named rather than written: a reader who meets a bare
+            // 4 in a constructor cannot tell whether it was chosen or inherited.
+            assertEquals(4, stroke.miterLimit());
             assertEquals(Stroke.DEFAULT_MITER_LIMIT, stroke.miterLimit());
             assertEquals(Dash.NONE, stroke.dash());
             assertEquals(Stroke.HAIRLINE, stroke);
-        }
-
-        @Test
-        @DisplayName("SVG's miter limit default is 4, and it is named rather than written")
-        void miterLimitDefault() {
-            // A reader who meets a bare 4 in a constructor has no way to tell
-            // whether it was chosen or inherited.
-            assertEquals(4, Stroke.DEFAULT_MITER_LIMIT);
         }
 
         @Test

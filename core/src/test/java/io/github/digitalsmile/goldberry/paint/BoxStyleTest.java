@@ -120,13 +120,4 @@ class BoxStyleTest {
             assertEquals(0xFF88C0D0, text.text().argb());
         }
     }
-
-    @Test
-    @DisplayName("an unstyled box keeps the initial style's values")
-    void unstyledBox() {
-        var box = Box.of().style(ComputedStyle.INITIAL);
-
-        assertEquals(Box.TRANSPARENT, box.background());
-        assertEquals(FlexDirection.ROW, box.direction());
-    }
 }

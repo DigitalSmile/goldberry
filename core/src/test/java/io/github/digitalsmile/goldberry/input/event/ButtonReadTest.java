@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.input.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,31 +57,6 @@ class ButtonReadTest {
     void aPressHasOne() {
         assertEquals(PointerEvent.Button.PRIMARY, pressed().button());
         assertEquals(0, PointerEvent.reportedButtonReadCount());
-    }
-
-    /// The shape of the bug, asserted so the message stays about the right thing:
-    /// a null button is **unequal to everything**, so the common guard is true
-    /// exactly when it should be false.
-    @Test
-    @DisplayName("the guard that caused this fires backwards, which is why null alone is not enough")
-    void theGuardFiresBackwards() {
-        var move = moved();
-
-        assertTrue(move.button() != PointerEvent.Button.PRIMARY, "which is what silently lost every drag");
-        assertTrue(move.button() != PointerEvent.Button.SECONDARY, "and it is unequal to the others too");
-    }
-
-    /// Not the same as `dragX`'s `NaN`, which the entry contrasts it with: that
-    /// one is arithmetic, so the meaninglessness **propagates** and every
-    /// comparison against it is false. A caller cannot act on a `NaN` by
-    /// accident; it can act on a null by writing `!=`.
-    @Test
-    @DisplayName("and it is not dragX's NaN, which fails safe in both directions")
-    void unlikeNaN() {
-        var move = moved();
-
-        assertTrue(Double.isNaN(move.dragX()));
-        assertTrue(!(move.dragX() > 0) && !(move.dragX() <= 0), "every comparison against NaN is false");
     }
 
     @Test

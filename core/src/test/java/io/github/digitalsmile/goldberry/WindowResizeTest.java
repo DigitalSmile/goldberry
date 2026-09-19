@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -111,11 +113,16 @@ class WindowResizeTest {
 
     @Test
     @Timeout(10)
-    @DisplayName("a closed window ignores the request")
+    @DisplayName("a closed window ignores the request rather than refusing it")
     void closedIsIgnored() {
         var window = Window.open(WindowSpec.of("resize", OPENING));
         window.close();
 
-        window.resize(LogicalSize.of(500, 350));
+        // Deliberately *not* the refusal `refusesNothing` asserts: a window is
+        // closed by the user, so a layout that resizes on a timer would throw
+        // through no fault of the caller's. Ignoring is the contract, and the
+        // window stays closed after being asked.
+        assertDoesNotThrow(() -> window.resize(LogicalSize.of(500, 350)));
+        assertFalse(window.isOpen());
     }
 }

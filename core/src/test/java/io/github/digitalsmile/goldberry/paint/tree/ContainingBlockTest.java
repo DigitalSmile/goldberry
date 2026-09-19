@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.digitalsmile.goldberry.layout.Insets;
 import io.github.digitalsmile.goldberry.layout.Length;
@@ -79,20 +81,19 @@ class ContainingBlockTest {
     @DisplayName("what does not")
     class Holds {
 
-        /// Flow already placed a relative box inside the padding; shifting it
-        /// again would move it by the padding twice.
-        @Test
-        @DisplayName("a relative box keeps its inset")
-        void relative() {
+        /// Flow already placed a relative or static box inside the padding;
+        /// shifting it again would move it by the padding twice. Named rather
+        /// than `EnumSource`, because `ABSOLUTE` is the one position this must
+        /// not answer for and the nested class above is where it belongs.
+        @ParameterizedTest
+        @EnumSource(
+                value = Position.class,
+                names = {"RELATIVE", "STATIC"})
+        @DisplayName("a box flow already placed keeps its inset")
+        void flowPlacedKeepsItsInset(Position position) {
             var inset = leftTop(4, 4);
-            assertSame(inset, ContainingBlock.insetFor(Position.RELATIVE, inset, PADDING));
-        }
 
-        @Test
-        @DisplayName("a static box keeps its inset")
-        void staticPosition() {
-            var inset = leftTop(4, 4);
-            assertSame(inset, ContainingBlock.insetFor(Position.STATIC, inset, PADDING));
+            assertSame(inset, ContainingBlock.insetFor(position, inset, PADDING));
         }
 
         /// The edge Yoga already gets right. Defining it in order to correct it

@@ -7,12 +7,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -147,57 +153,28 @@ class ShadowTest {
     @DisplayName("what it refuses")
     class Refusals {
 
-        @Test
-        @DisplayName("one length is not a shadow")
-        void tooFewLengths() {
-            assertNull(parse("4px black"));
-        }
-
-        @Test
-        @DisplayName("five lengths are not a shadow either")
-        void tooManyLengths() {
-            assertNull(parse("1px 2px 3px 4px 5px black"));
-        }
-
-        @Test
-        @DisplayName("no colour, because there is no `currentColor` to fall back on")
-        void noColour() {
-            // CSS's default here is `currentColor`, which §8's subset does not
-            // have. Guessing black would paint a hard black halo where an author
-            // meant a tinted one, so the declaration is dropped and logged.
-            assertNull(parse("0 2px 8px"));
-        }
-
-        @Test
-        @DisplayName("a negative blur radius")
-        void negativeBlur() {
-            assertNull(parse("0 2px -8px black"));
-        }
-
-        @Test
-        @DisplayName("`inset`, which is a different drawing")
-        void inset() {
-            assertNull(parse("inset 0 2px 8px black"));
-        }
-
-        @Test
-        @DisplayName("a percentage, for `border-radius`'s reason")
-        void percentage() {
-            // A percentage offset means "of this box's size", and a box has no
-            // size until Yoga has run — long after the cascade.
-            assertNull(parse("0 10% 8px black"));
-        }
-
-        @Test
-        @DisplayName("two colours")
-        void twoColours() {
-            assertNull(parse("0 2px 8px black red"));
-        }
-
-        @Test
-        @DisplayName("nonsense")
-        void nonsense() {
-            assertNull(parse("lift-off"));
+        /// Every value that is not a shadow, and why each one is not.
+        ///
+        /// A missing colour is refused rather than defaulted because CSS's
+        /// default here is `currentColor`, which §8's subset does not have:
+        /// guessing black would paint a hard black halo where an author meant a
+        /// tinted one, so the declaration is dropped and logged. A percentage
+        /// goes for `border-radius`'s reason — it means "of this box's size", and
+        /// a box has no size until Yoga has run, long after the cascade.
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+            "one length,                                    4px black",
+            "five lengths,                                  1px 2px 3px 4px 5px black",
+            "no colour and no currentColor to fall back on, 0 2px 8px",
+            "a negative blur radius,                        0 2px -8px black",
+            "`inset` - a different drawing entirely,        inset 0 2px 8px black",
+            "a percentage the cascade cannot resolve,       0 10% 8px black",
+            "two colours,                                   0 2px 8px black red",
+            "nonsense,                                      lift-off",
+        })
+        @DisplayName("a value that is not a shadow is refused rather than half-read")
+        void refused(String why, String value) {
+            assertNull(parse(value), why);
         }
     }
 
@@ -352,16 +329,37 @@ class ShadowTest {
     @DisplayName("reading one back")
     class Text {
 
-        @Test
-        @DisplayName("a whole number of pixels is written without a decimal point")
-        void wholePixels() {
-            assertEquals("0px 2px 8px #40000000", new Shadow(0, 2, 8, 0, 0x40000000).toString());
+        /// What the text is *for*: reading a `box-shadow` off a computed style in
+        /// a log and recognising the declaration that produced it. So the three
+        /// things worth holding are asserted as facts rather than as characters —
+        /// every length carries its unit, a whole number of pixels carries no
+        /// decimal point, and the spread is written only when there is one, which
+        /// is the difference between four fields and five.
+        ///
+        /// Deliberately **not** a round trip through `parse`: the colour is
+        /// printed packed, `#aarrggbb`, and CSS reads eight digits as
+        /// `#rrggbbaa` — so a shadow's own text parses back as a different
+        /// colour, and `0px 2px 8px #40000000` comes back as `none`.
+        static Stream<Arguments> printed() {
+            return Stream.of(
+                    arguments("a whole number of pixels", new Shadow(0, 2, 8, 0, 0x40000000), 4),
+                    arguments("a shadow with a spread", new Shadow(0, 4, 12, -2, 0xFF000000), 5));
         }
 
-        @Test
-        @DisplayName("the spread appears only when there is one")
-        void spread() {
-            assertEquals("0px 4px 12px -2px #ff000000", new Shadow(0, 4, 12, -2, 0xFF000000).toString());
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("printed")
+        @DisplayName("a shadow prints its lengths with units and its colour as hex")
+        void printsItsLengthsAndItsColour(String what, Shadow shadow, int fieldCount) {
+            var text = shadow.toString();
+            var fields = text.split(" ");
+
+            assertEquals(fieldCount, fields.length, () -> what + " is written in " + fieldCount + " fields: " + text);
+            assertFalse(text.contains("."), () -> "a whole number of pixels needs no decimal point: " + text);
+            for (var i = 0; i < fieldCount - 1; i++) {
+                var length = fields[i];
+                assertTrue(length.endsWith("px"), () -> "a length written as " + length + " in: " + text);
+            }
+            assertTrue(fields[fieldCount - 1].startsWith("#"), text);
         }
 
         @Test

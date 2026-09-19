@@ -6,13 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
@@ -639,76 +644,44 @@ class RuntimeBindingTest {
             assertFalse(Models.isWoven(new Settings()));
         }
 
-        @Test
-        @DisplayName("a class annotated neither way is refused, with what to do about it")
-        void unannotated() {
-            var refusal = assertThrows(IllegalStateException.class, () -> Models.bindings(new Unannotated()));
-
-            assertTrue(refusal.getMessage().contains("annotated neither @Model nor @Actions"));
+        /// Every shape the binder refuses, and the phrase its refusal must carry
+        /// — not the whole sentence, which is free to be reworded, but the words
+        /// that tell an author which declaration to go and change.
+        static Stream<Arguments> refusals() {
+            return Stream.of(
+                    arguments("a static @Bind field", new StaticBind(), "is static"),
+                    arguments("a final @Bind field that is not a Property", new FinalBind(), "is final"),
+                    arguments("an array, because only the assignment is observed", new ArrayBind(), "is an array"),
+                    arguments("two fields claiming one path", new TwicePathed(), "claimed by both"),
+                    arguments(
+                            "a Property asking for a restyle, which has nowhere to put the call",
+                            new RestylingProperty(),
+                            "asks for a restyle"),
+                    arguments("an action taking two arguments", new TwoArguments(), "takes 2 arguments"),
+                    arguments(
+                            "an action taking something no string parses to",
+                            new UnparseableArgument(),
+                            "must be one of String, double, int, boolean"),
+                    arguments("a static action, which has no model to change", new StaticAction(), "has no model"),
+                    arguments(
+                            "a model extending a model, which would notify neither reliably",
+                            new Child(),
+                            "which is also a model"),
+                    arguments(
+                            "a class that is both @Model and @Actions",
+                            new Both(),
+                            "annotated both @Model and @Actions"),
+                    arguments(
+                            "a class annotated neither way, with what to do about it",
+                            new Unannotated(),
+                            "annotated neither @Model nor @Actions"));
         }
 
-        @Test
-        @DisplayName("a static @Bind field")
-        void staticBind() {
-            assertRefused(new StaticBind(), "is static");
-        }
-
-        @Test
-        @DisplayName("a final @Bind field that is not a Property")
-        void finalBind() {
-            assertRefused(new FinalBind(), "is final");
-        }
-
-        @Test
-        @DisplayName("an array, because only the assignment is observed")
-        void arrayBind() {
-            assertRefused(new ArrayBind(), "is an array");
-        }
-
-        @Test
-        @DisplayName("two fields claiming one path")
-        void twicePathed() {
-            assertRefused(new TwicePathed(), "claimed by both");
-        }
-
-        @Test
-        @DisplayName("a Property asking for a restyle, which has nowhere to put the call")
-        void restylingProperty() {
-            assertRefused(new RestylingProperty(), "asks for a restyle");
-        }
-
-        @Test
-        @DisplayName("an action taking two arguments")
-        void twoArguments() {
-            assertRefused(new TwoArguments(), "takes 2 arguments");
-        }
-
-        @Test
-        @DisplayName("an action taking something no string parses to")
-        void unparseable() {
-            assertRefused(new UnparseableArgument(), "must be one of String, double, int, boolean");
-        }
-
-        @Test
-        @DisplayName("a static action, which has no model to change")
-        void staticAction() {
-            assertRefused(new StaticAction(), "has no model to change");
-        }
-
-        @Test
-        @DisplayName("a model extending a model, which would notify neither reliably")
-        void inheritance() {
-            assertRefused(new Child(), "which is also a model");
-        }
-
-        @Test
-        @DisplayName("a class that is both @Model and @Actions")
-        void both() {
-            assertRefused(new Both(), "annotated both @Model and @Actions");
-        }
-
-        private static void assertRefused(Object model, String because) {
-            var refusal = assertThrows(IllegalStateException.class, () -> Models.bindings(model));
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("refusals")
+        @DisplayName("a binding the runtime cannot honour is refused, and the refusal names the declaration")
+        void refused(String what, Object model, String because) {
+            var refusal = assertThrows(IllegalStateException.class, () -> Models.bindings(model), what);
 
             assertTrue(
                     refusal.getMessage().contains(because),

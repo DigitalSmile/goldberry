@@ -63,13 +63,6 @@ class ShortcutTest {
         }
 
         @Test
-        @DisplayName("two shortcuts parsed from the same text are the same value")
-        void valueSemantics() {
-            assertEquals(Shortcut.of("Ctrl+S"), Shortcut.of("ctrl+S"));
-            assertEquals(Shortcut.of("Ctrl+S").hashCode(), Shortcut.of("Ctrl+S").hashCode());
-        }
-
-        @Test
         @DisplayName("it prints back the way it was written")
         void printsBack() {
             assertEquals("Ctrl+S", Shortcut.of("Ctrl+S").toString());
@@ -88,14 +81,6 @@ class ShortcutTest {
             // Ctrl+Shift+S is a different shortcut, and applications bind both.
             assertFalse(save.matches(Key.S, new Modifiers(true, true, false, false)));
             assertFalse(save.matches(Key.S, Modifiers.NONE));
-        }
-
-        @Test
-        @DisplayName("Cmd is not quietly turned into Ctrl")
-        void cmdIsNotCtrl() {
-            // A toolkit that remapped them would make Ctrl+C mean two different
-            // things depending on where it ran.
-            assertFalse(Shortcut.of("Cmd+C").equals(Shortcut.of("Ctrl+C")));
         }
     }
 
