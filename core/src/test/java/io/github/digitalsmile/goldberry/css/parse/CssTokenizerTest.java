@@ -27,15 +27,15 @@ class CssTokenizerTest {
     /// Tokens with the whitespace dropped, which is what most assertions here
     /// care about. Whitespace has its own tests, because in a selector it is a
     /// combinator and must survive.
-    private static List<Token> significant(String css) {
+    private static List&lt;Token&gt; significant(String css) {
         return CssTokenizer.tokenize(css).stream()
-                .filter(t -> !t.is(TokenType.WHITESPACE) && !t.is(TokenType.EOF))
+                .filter(t -&gt; !t.is(TokenType.WHITESPACE) &amp;&amp; !t.is(TokenType.EOF))
                 .toList();
     }
 
     private static Token only(String css) {
         var tokens = significant(css);
-        assertEquals(1, tokens.size(), () -> "expected one token, got " + tokens);
+        assertEquals(1, tokens.size(), () -&gt; "expected one token, got " + tokens);
         return tokens.getFirst();
     }
 
@@ -151,7 +151,7 @@ class CssTokenizerTest {
         @DisplayName("numeric forms")
         void numbers(String css, double expected) {
             var token = only(css);
-            assertTrue(token.is(TokenType.NUMBER), () -> css + " -> " + token);
+            assertTrue(token.is(TokenType.NUMBER), () -&gt; css + " -&gt; " + token);
             assertEquals(expected, token.numeric(), 1e-9);
         }
 
@@ -224,7 +224,7 @@ class CssTokenizerTest {
         @Test
         @DisplayName("an unterminated string is refused, with the position it opened at")
         void unterminated() {
-            var thrown = assertThrows(CssSyntaxException.class, () -> CssTokenizer.tokenize("a { content: \"oops"));
+            var thrown = assertThrows(CssSyntaxException.class, () -&gt; CssTokenizer.tokenize("a { content: \"oops"));
             assertEquals(1, thrown.line());
             assertEquals(14, thrown.column());
         }
@@ -235,7 +235,7 @@ class CssTokenizerTest {
             // The spec emits a bad-string and carries on. Guessing where the
             // quote was meant to close is how one typo silently eats the next
             // ten rules -- see CssSyntaxException.
-            assertThrows(CssSyntaxException.class, () -> CssTokenizer.tokenize("a { content: \"oops\n\" }"));
+            assertThrows(CssSyntaxException.class, () -&gt; CssTokenizer.tokenize("a { content: \"oops\n\" }"));
         }
     }
 
@@ -291,8 +291,17 @@ class CssTokenizerTest {
             // without moving and run() looped for ever. A stylesheet with this in
             // it used to wedge the hot-reload thread, so the bound is the point
             // of the test.
-            var tokens = assertTimeoutPreemptively(Duration.ofMillis(500), () -> significant("a \\\nb"));
-            assertEquals(3, tokens.size(), () -> "expected three tokens, got " + tokens);
+            //
+            // **Five seconds and not the 500 ms it was**, which costs the test
+            // nothing: what it catches never finishes, so any bound at all
+            // catches it, and the only thing a tight one adds is a false failure.
+            // It bought one on a Windows runner — tokenizing four characters on a
+            // cold JIT inside the thread `assertTimeoutPreemptively` spawns, with
+            // the rest of the suite competing for the machine. The loop this
+            // guards against would still be here at five seconds, and at five
+            // hours.
+            var tokens = assertTimeoutPreemptively(Duration.ofSeconds(5), () -&gt; significant("a \\\nb"));
+            assertEquals(3, tokens.size(), () -&gt; "expected three tokens, got " + tokens);
             assertEquals("a", tokens.get(0).text());
             assertTrue(tokens.get(1).isDelim('\\'));
             assertEquals("b", tokens.get(2).text());
@@ -309,8 +318,8 @@ class CssTokenizerTest {
             var tokens = CssTokenizer.tokenize(".a .b");
             // ".a .b" (descendant) and ".a.b" (both classes) must not tokenize
             // to the same thing.
-            assertTrue(tokens.stream().anyMatch(t -> t.is(TokenType.WHITESPACE)));
-            assertFalse(CssTokenizer.tokenize(".a.b").stream().anyMatch(t -> t.is(TokenType.WHITESPACE)));
+            assertTrue(tokens.stream().anyMatch(t -&gt; t.is(TokenType.WHITESPACE)));
+            assertFalse(CssTokenizer.tokenize(".a.b").stream().anyMatch(t -&gt; t.is(TokenType.WHITESPACE)));
         }
 
         @Test
@@ -319,7 +328,7 @@ class CssTokenizerTest {
             assertEquals(
                     1,
                     CssTokenizer.tokenize("  \n\t ").stream()
-                            .filter(t -> t.is(TokenType.WHITESPACE))
+                            .filter(t -&gt; t.is(TokenType.WHITESPACE))
                             .count());
         }
 
@@ -339,13 +348,13 @@ class CssTokenizerTest {
             // a string replace before scanning would produce one ident "ab".
             var tokens = significant("a/* x */b");
             assertEquals(2, tokens.size());
-            assertFalse(tokens.stream().anyMatch(t -> t.text().equals("ab")));
+            assertFalse(tokens.stream().anyMatch(t -&gt; t.text().equals("ab")));
         }
 
         @Test
         @DisplayName("an unterminated comment is refused")
         void unterminatedComment() {
-            assertThrows(CssSyntaxException.class, () -> CssTokenizer.tokenize("a { } /* oops"));
+            assertThrows(CssSyntaxException.class, () -&gt; CssTokenizer.tokenize("a { } /* oops"));
         }
     }
 
@@ -358,7 +367,7 @@ class CssTokenizerTest {
         void positionsAreReported() {
             var tokens = significant(".a {\n  color: red;\n}");
             var color =
-                    tokens.stream().filter(t -> t.isIdent("color")).findFirst().orElseThrow();
+                    tokens.stream().filter(t -&gt; t.isIdent("color")).findFirst().orElseThrow();
             assertEquals(2, color.line());
             assertEquals(3, color.column());
         }
@@ -379,7 +388,7 @@ class CssTokenizerTest {
         @Test
         @DisplayName("a realistic rule tokenizes to what the parser will expect")
         void realisticRule() {
-            var tokens = significant(".button:hover > .icon { color: var(--gb-accent); padding: 4px 8px }");
+            var tokens = significant(".button:hover &gt; .icon { color: var(--gb-accent); padding: 4px 8px }");
 
             var types = tokens.stream().map(Token::type).toList();
             assertEquals(
@@ -388,7 +397,7 @@ class CssTokenizerTest {
                             TokenType.IDENT, // button
                             TokenType.COLON,
                             TokenType.IDENT, // hover
-                            TokenType.DELIM, // >
+                            TokenType.DELIM, // &gt;
                             TokenType.DELIM, // .
                             TokenType.IDENT, // icon
                             TokenType.OPEN_BRACE,
