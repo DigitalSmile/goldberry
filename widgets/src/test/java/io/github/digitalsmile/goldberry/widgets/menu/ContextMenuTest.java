@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.later;
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.popups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,7 +24,6 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -92,25 +93,6 @@ class ContextMenuTest {
         return (HeadlessWindow) backend.windows().getFirst();
     }
 
-    private List<HeadlessPopup> popups() {
-        return backend.windows().stream()
-                .filter(HeadlessPopup.class::isInstance)
-                .map(HeadlessPopup.class::cast)
-                .toList();
-    }
-
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
-    }
-
     /// The page carries a name; a right-click on it opens the menu that name means,
     /// **at the pointer** rather than at the widget.
     @Test
@@ -131,9 +113,9 @@ class ContextMenuTest {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
                 later(200, () -> {
-                    count[0] = popups().size();
-                    if (!popups().isEmpty()) {
-                        offset[0] = popups().getFirst().offset();
+                    count[0] = popups(backend).size();
+                    if (!popups(backend).isEmpty()) {
+                        offset[0] = popups(backend).getFirst().offset();
                     }
                     Goldberry.stop();
                 });
@@ -163,7 +145,7 @@ class ContextMenuTest {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 1, 1, 0));
                 later(200, () -> {
-                    count[0] = popups().size();
+                    count[0] = popups(backend).size();
                     Goldberry.stop();
                 });
             });
@@ -189,7 +171,7 @@ class ContextMenuTest {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
                 later(200, () -> {
-                    count[0] = popups().size();
+                    count[0] = popups(backend).size();
                     Goldberry.stop();
                 });
             });
@@ -239,9 +221,9 @@ class ContextMenuTest {
                 later(100, () -> {
                     backend.post(new BackendEvent.KeyPressed(window(), keycode, modifiers, false));
                     later(200, () -> {
-                        count[0] = popups().size();
-                        if (!popups().isEmpty()) {
-                            offset[0] = popups().getFirst().offset();
+                        count[0] = popups(backend).size();
+                        if (!popups(backend).isEmpty()) {
+                            offset[0] = popups(backend).getFirst().offset();
                         }
                         Goldberry.stop();
                     });
@@ -319,7 +301,7 @@ class ContextMenuTest {
                 later(100, () -> {
                     backend.post(new BackendEvent.KeyPressed(window(), MENU_KEY, 0, false));
                     later(200, () -> {
-                        count[0] = popups().size();
+                        count[0] = popups(backend).size();
                         Goldberry.stop();
                     });
                 });
@@ -345,7 +327,7 @@ class ContextMenuTest {
             later(150, () -> {
                 backend.post(new BackendEvent.KeyPressed(window(), MENU_KEY, 0, false));
                 later(200, () -> {
-                    count[0] = popups().size();
+                    count[0] = popups(backend).size();
                     Goldberry.stop();
                 });
             });
@@ -374,7 +356,7 @@ class ContextMenuTest {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
                 later(200, () -> {
-                    count[0] = popups().size();
+                    count[0] = popups(backend).size();
                     survived[0] = true;
                     Goldberry.stop();
                 });

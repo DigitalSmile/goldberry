@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -27,7 +28,6 @@ import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 
@@ -44,10 +44,6 @@ class MenuBarTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String value) {
-        return Attributes.NONE.id(value);
     }
 
     /// Every widget in the described tree, depth first.

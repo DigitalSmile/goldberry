@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.later;
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.popups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -99,13 +101,6 @@ class SelectPopupTest {
         GoldberryTestAccess.shutdown();
     }
 
-    private List<HeadlessPopup> popups() {
-        return backend.windows().stream()
-                .filter(HeadlessPopup.class::isInstance)
-                .map(HeadlessPopup.class::cast)
-                .toList();
-    }
-
     private HeadlessWindow ownerWindow() {
         return (HeadlessWindow) backend.windows().getFirst();
     }
@@ -114,18 +109,6 @@ class SelectPopupTest {
         backend.post(new BackendEvent.PointerMoved(window, x, y, 0));
         backend.post(new BackendEvent.PointerPressed(window, x, y, 1, 1, 0));
         backend.post(new BackendEvent.PointerReleased(window, x, y, 1, 1, 0));
-    }
-
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
     }
 
     /// A select over three themes, controlled the way an application controls
@@ -153,7 +136,7 @@ class SelectPopupTest {
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
-                        open[0] = popups().size();
+                        open[0] = popups(backend).size();
                         Goldberry.stop();
                     });
                 })));
@@ -173,9 +156,9 @@ class SelectPopupTest {
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
-                        click((HeadlessWindow) popups().getFirst(), 40, FIRST_ROW_Y);
+                        click((HeadlessWindow) popups(backend).getFirst(), 40, FIRST_ROW_Y);
                         later(200, () -> {
-                            openAfter[0] = (int) popups().stream()
+                            openAfter[0] = (int) popups(backend).stream()
                                     .filter(HeadlessPopup::isOpen)
                                     .count();
                             Goldberry.stop();
@@ -235,7 +218,7 @@ class SelectPopupTest {
                         backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
                         backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
                         later(200, () -> {
-                            openAfter[0] = (int) popups().stream()
+                            openAfter[0] = (int) popups(backend).stream()
                                     .filter(HeadlessPopup::isOpen)
                                     .count();
                             Goldberry.stop();
@@ -261,7 +244,7 @@ class SelectPopupTest {
                     later(300, () -> {
                         backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.ESCAPE.sdlKeycode(), 0, false));
                         later(200, () -> {
-                            openAfter[0] = (int) popups().stream()
+                            openAfter[0] = (int) popups(backend).stream()
                                     .filter(HeadlessPopup::isOpen)
                                     .count();
                             Goldberry.stop();
@@ -284,10 +267,10 @@ class SelectPopupTest {
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(300, () -> {
-                        everOpened[0] = popups().size();
+                        everOpened[0] = popups(backend).size();
                         click(ownerWindow(), 40, FIELD_Y);
                         later(200, () -> {
-                            openAfter[0] = (int) popups().stream()
+                            openAfter[0] = (int) popups(backend).stream()
                                     .filter(HeadlessPopup::isOpen)
                                     .count();
                             Goldberry.stop();
@@ -309,7 +292,7 @@ class SelectPopupTest {
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
-                        open[0] = popups().size();
+                        open[0] = popups(backend).size();
                         Goldberry.stop();
                     });
                 })));
@@ -330,7 +313,7 @@ class SelectPopupTest {
                         // The third row: still `dim`, and clicking it asks for the
                         // value it already has -- which a control must treat as a
                         // request rather than as a toggle.
-                        click((HeadlessWindow) popups().getFirst(), 40, FIRST_ROW_Y + ROW_HEIGHT * 2);
+                        click((HeadlessWindow) popups(backend).getFirst(), 40, FIRST_ROW_Y + ROW_HEIGHT * 2);
                         later(200, Goldberry::stop);
                     });
                 })));

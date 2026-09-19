@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.chip;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +17,6 @@ import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
@@ -53,10 +53,6 @@ class ChipGoldenTest {
 
         GoldenImage.assertMatches(
                 name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     /// A row of filters: one chosen, the rest not. The comparison this widget is

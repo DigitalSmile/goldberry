@@ -1,31 +1,26 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.pixels;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.renderer;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
@@ -34,9 +29,6 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// §3.1's "axis min/max, soft min/max" and "point markers".
 class ChartAxisTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
-
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
@@ -44,44 +36,6 @@ class ChartAxisTest {
 
     /// An uptime: four readings inside a tenth of a percent of each other.
     private static final Series UPTIME = Series.of("uptime", 99.94, 99.97, 99.91, 99.99);
-
-    private static Attributes id() {
-        return new Attributes("plot", Set.of(), "plot");
-    }
-
-    private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
-                                #frame { padding: 12px; background: var(--gb-bg) }
-                                #plot  { width: 296px; height: 156px }
-                                """)),
-                TestFont.get());
-    }
-
-    private static Widget framed(Widget chart) {
-        return new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"));
-    }
-
-    private static int[] pixels(Widget chart) {
-        var render = renderer();
-        var tree = new ElementTree(framed(chart));
-        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try {
-            BoxPainter.paint(target.frame(), render.render(tree));
-        } finally {
-            target.end();
-        }
-        var out = new int[WIDTH * HEIGHT];
-        for (var y = 0; y < HEIGHT; y++) {
-            for (var x = 0; x < WIDTH; x++) {
-                out[y * WIDTH + x] = target.pixel(x, y);
-            }
-        }
-        return out;
-    }
 
     /// How many rows the series' colour appears in — how much of the plot the
     /// data is using.
@@ -103,7 +57,7 @@ class ChartAxisTest {
     }
 
     private static LineChart line(Series series) {
-        return new LineChart(List.of(series), List.of(), id());
+        return new LineChart(List.of(series), List.of(), plot());
     }
 
     @Test
@@ -182,8 +136,8 @@ class ChartAxisTest {
                 java.util.Arrays.equals(pixels(line(few)), pixels(line(few).markers(Markers.NEVER))),
                 "seven readings have room for their dots");
         assertArrayEquals(
-                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), id())),
-                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), id()).markers(Markers.NEVER)),
+                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), plot())),
+                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), plot()).markers(Markers.NEVER)),
                 "four hundred do not, and AUTO draws none");
     }
 
@@ -194,7 +148,7 @@ class ChartAxisTest {
         for (var i = 0; i < 400; i++) {
             many.add(3.0 + (i % 7));
         }
-        var crowded = new LineChart(List.of(new Series("rate", many)), List.of(), id());
+        var crowded = new LineChart(List.of(new Series("rate", many)), List.of(), plot());
 
         assertFalse(
                 java.util.Arrays.equals(
@@ -212,8 +166,8 @@ class ChartAxisTest {
     @DisplayName("a bar and a band have nowhere to put one, and say the same either way")
     void notEveryChartMarksItsReadings() {
         var readings = Series.of("rate", 3, 9, 4, 8, 5, 7, 6);
-        var bars = new BarChart(List.of(readings), List.of(), id());
-        var area = new AreaChart(List.of(readings), List.of(), id());
+        var bars = new BarChart(List.of(readings), List.of(), plot());
+        var area = new AreaChart(List.of(readings), List.of(), plot());
 
         assertArrayEquals(pixels(bars), pixels(bars.markers(Markers.ALWAYS)));
         assertArrayEquals(pixels(area), pixels(area.markers(Markers.ALWAYS)));

@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.timeline;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
 import java.util.Set;
 
@@ -51,10 +53,6 @@ class TimelineGoldenTest {
 
         GoldenImage.assertMatches(
                 name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     private static Widget page() {

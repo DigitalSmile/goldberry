@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +19,6 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.Scale;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -67,10 +67,6 @@ class SliderGoldenTest {
         void applyTo(Element root) {
             root.children().get(child).setPseudoClass(pseudoClass, true);
         }
-    }
-
-    private static Attributes id(String id, String... classes) {
-        return new Attributes(id, Set.of(classes), id);
     }
 
     private static Slider at(double fraction, String id) {

@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +21,6 @@ import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -48,10 +47,6 @@ class MessageGoldenTest {
     void setUp() {
         RendererRequirement.enforce();
         clock = Clock.virtual();
-    }
-
-    private static Attributes id(String id, String... classes) {
-        return new Attributes(id, Set.of(classes), id);
     }
 
     private static final String SCENE = """

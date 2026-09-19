@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,7 +22,6 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
@@ -220,9 +220,5 @@ class StackTest {
         // [0] wrap, [1] stack, [2] under, [3] over.
         assertEquals(120, out.get(1).width(), 1e-6, "the inflated stack took its first child's width");
         assertEquals(0, out.get(3).left(), 1e-6, "the second child should be over the first, not beside it");
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, java.util.Set.of(), id);
     }
 }

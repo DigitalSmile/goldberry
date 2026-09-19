@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,10 +50,6 @@ class SelectGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String id, String... classes) {
-        return new Attributes(id, Set.of(classes), id);
     }
 
     private static final String SCENE = """

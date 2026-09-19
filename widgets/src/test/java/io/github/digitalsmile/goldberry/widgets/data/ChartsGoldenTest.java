@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +21,6 @@ import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -36,10 +35,6 @@ class ChartsGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     private static List<Series> two() {

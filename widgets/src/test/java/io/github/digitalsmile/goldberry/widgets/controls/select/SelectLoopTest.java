@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.later;
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.popups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -106,13 +108,6 @@ class SelectLoopTest {
         }
     }
 
-    private List<HeadlessPopup> popups() {
-        return backend.windows().stream()
-                .filter(HeadlessPopup.class::isInstance)
-                .map(HeadlessPopup.class::cast)
-                .toList();
-    }
-
     private HeadlessWindow main() {
         return backend.windows().stream()
                 .filter(w -> !(w instanceof HeadlessPopup))
@@ -125,18 +120,6 @@ class SelectLoopTest {
         backend.post(new BackendEvent.PointerMoved(window, x, y, 0));
         backend.post(new BackendEvent.PointerPressed(window, x, y, 1, 1, 0));
         backend.post(new BackendEvent.PointerReleased(window, x, y, 1, 1, 0));
-    }
-
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
     }
 
     /// The reported defect, as a test: "the autocomplete popup starts near the
@@ -164,9 +147,9 @@ class SelectLoopTest {
                     // A click on the field, which focuses the editor and opens.
                     click(main(), anchor[0].left() + 20, anchor[0].top() + 8);
                     later(300, () -> {
-                        top[0] = popups().isEmpty()
+                        top[0] = popups(backend).isEmpty()
                                 ? Float.NaN
-                                : popups().getFirst().offset().y();
+                                : popups(backend).getFirst().offset().y();
                         Goldberry.stop();
                     });
                 })));
@@ -212,9 +195,9 @@ class SelectLoopTest {
                     anchor[0] = host.anchor("city").orElseThrow().bounds();
                     click(main(), anchor[0].left() + 20, anchor[0].top() + 8);
                     later(300, () -> {
-                        top[0] = popups().isEmpty()
+                        top[0] = popups(backend).isEmpty()
                                 ? Float.NaN
-                                : popups().getFirst().offset().y();
+                                : popups(backend).getFirst().offset().y();
                         Goldberry.stop();
                     });
                 })));
@@ -288,9 +271,9 @@ class SelectLoopTest {
                     var field = host.anchor("city").orElseThrow().bounds();
                     click(main(), field.left() + 20, field.top() + 8);
                     later(300, () -> {
-                        if (!popups().isEmpty()) {
+                        if (!popups(backend).isEmpty()) {
                             // The first row, inside the popup's own window.
-                            click((HeadlessWindow) popups().getFirst(), 40, 16);
+                            click((HeadlessWindow) popups(backend).getFirst(), 40, 16);
                         }
                         later(250, Goldberry::stop);
                     });
@@ -323,18 +306,18 @@ class SelectLoopTest {
                     var field = host.anchor("region").orElseThrow().bounds();
                     click(main(), field.left() + 20, field.top() + 8);
                     later(300, () -> {
-                        before[0] = popups().isEmpty()
+                        before[0] = popups(backend).isEmpty()
                                 ? Float.NaN
-                                : popups().getFirst().size().height();
-                        if (!popups().isEmpty()) {
+                                : popups(backend).getFirst().size().height();
+                        if (!popups(backend).isEmpty()) {
                             // The first row is the branch; clicking it opens it,
                             // because in a leaf-only tree it is not an answer.
-                            click((HeadlessWindow) popups().getFirst(), 40, 16);
+                            click((HeadlessWindow) popups(backend).getFirst(), 40, 16);
                         }
                         later(400, () -> {
-                            after[0] = popups().isEmpty()
+                            after[0] = popups(backend).isEmpty()
                                     ? Float.NaN
-                                    : popups().getFirst().size().height();
+                                    : popups(backend).getFirst().size().height();
                             Goldberry.stop();
                         });
                     });
@@ -386,13 +369,13 @@ class SelectLoopTest {
                     var field = host.anchor("city").orElseThrow().bounds();
                     click(main(), field.left() + 20, field.top() + 8);
                     later(400, () -> {
-                        before.set(pixels(popups().getFirst()));
+                        before.set(pixels(popups(backend).getFirst()));
                         // At the **popup's** window: a plain select puts the
                         // keyboard on the row its value names when it opens, and
                         // the list reads the letter before that row does.
-                        backend.post(new BackendEvent.TextInput(popups().getFirst(), "p"));
+                        backend.post(new BackendEvent.TextInput(popups(backend).getFirst(), "p"));
                         later(400, () -> {
-                            after.set(pixels(popups().getFirst()));
+                            after.set(pixels(popups(backend).getFirst()));
                             Goldberry.stop();
                         });
                     });

@@ -1,30 +1,25 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.pixels;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.renderer;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
@@ -37,9 +32,6 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// place for.
 class ChartLogTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
-
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
@@ -49,46 +41,8 @@ class ChartLogTest {
     /// exactly the shape a linear axis cannot show.
     private static final Series SPIKY = Series.of("rate", 3, 4, 7, 30000, 12, 5, 4);
 
-    private static Attributes id() {
-        return new Attributes("plot", Set.of(), "plot");
-    }
-
-    private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
-                                #frame { padding: 12px; background: var(--gb-bg) }
-                                #plot  { width: 296px; height: 156px }
-                                """)),
-                TestFont.get());
-    }
-
-    private static Widget framed(Widget chart) {
-        return new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"));
-    }
-
-    private static int[] pixels(Widget chart) {
-        var render = renderer();
-        var tree = new ElementTree(framed(chart));
-        var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
-        try {
-            BoxPainter.paint(target.frame(), render.render(tree));
-        } finally {
-            target.end();
-        }
-        var out = new int[WIDTH * HEIGHT];
-        for (var y = 0; y < HEIGHT; y++) {
-            for (var x = 0; x < WIDTH; x++) {
-                out[y * WIDTH + x] = target.pixel(x, y);
-            }
-        }
-        return out;
-    }
-
     private static LineChart line(Series series) {
-        return new LineChart(List.of(series), List.of(), id());
+        return new LineChart(List.of(series), List.of(), plot());
     }
 
     /// How many rows of the **left two fifths** of the frame the series' colour
@@ -162,8 +116,8 @@ class ChartLogTest {
         // axis at all -- it is infinitely far down. A chart that drew one anyway
         // would have to pick a bottom, and every choice is a number nobody gave
         // it.
-        var bars = new BarChart(List.of(SPIKY), List.of(), id());
-        var area = new AreaChart(List.of(SPIKY), List.of(), id());
+        var bars = new BarChart(List.of(SPIKY), List.of(), plot());
+        var area = new AreaChart(List.of(SPIKY), List.of(), plot());
 
         assertArrayEquals(pixels(bars), pixels(bars.logY()));
         assertArrayEquals(pixels(area), pixels(area.logY()));

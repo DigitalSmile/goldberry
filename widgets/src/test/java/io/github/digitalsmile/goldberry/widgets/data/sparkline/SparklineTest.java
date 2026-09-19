@@ -1,12 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.data.sparkline;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,10 +44,6 @@ class SparklineTest {
     }
 
     private static final int INK = 0xFF88C0D0;
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
-    }
 
     /// Paints `sparkline` into a `width`×`height` frame and returns the target,
     /// so a test can read pixels out of it.

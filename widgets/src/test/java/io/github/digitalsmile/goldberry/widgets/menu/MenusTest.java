@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.later;
+import static io.github.digitalsmile.goldberry.widgets.TestLoop.popups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -91,33 +93,12 @@ class MenusTest {
         GoldberryTestAccess.shutdown();
     }
 
-    private List<HeadlessPopup> popups() {
-        return backend.windows().stream()
-                .filter(HeadlessPopup.class::isInstance)
-                .map(HeadlessPopup.class::cast)
-                .toList();
-    }
-
     /// A click at `(x, y)` in `window`'s own coordinates: press, then release,
     /// which is what the router turns into a `CLICKED`.
     private void click(HeadlessWindow window, float x, float y) {
         backend.post(new BackendEvent.PointerMoved(window, x, y, 0));
         backend.post(new BackendEvent.PointerPressed(window, x, y, 1, 1, 0));
         backend.post(new BackendEvent.PointerReleased(window, x, y, 1, 1, 0));
-    }
-
-    /// Runs `action` on the UI thread after `millis` — long enough for the popup
-    /// to have painted, which is what gives its router something to hit-test.
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
     }
 
     private static final LogicalRect ANCHOR = LogicalRect.of(10, 10, 80, 24);
@@ -150,7 +131,7 @@ class MenusTest {
                     .orElseThrow();
 
             later(200, () -> {
-                height[0] = popups().getFirst().size().height();
+                height[0] = popups(backend).getFirst().size().height();
                 Goldberry.stop();
             });
         }));
@@ -178,7 +159,7 @@ class MenusTest {
                     .orElseThrow();
 
             later(200, () -> {
-                height[0] = popups().getFirst().size().height();
+                height[0] = popups(backend).getFirst().size().height();
                 Goldberry.stop();
             });
         }));
@@ -202,7 +183,7 @@ class MenusTest {
 
             later(200, () -> {
                 // The first row: 4px of the menu's padding, then half a row down.
-                click((HeadlessWindow) popups().getFirst(), 40, 20);
+                click((HeadlessWindow) popups(backend).getFirst(), 40, 20);
                 later(200, () -> {
                     openAfter[0] = popup.isOpen();
                     Goldberry.stop();
@@ -227,10 +208,10 @@ class MenusTest {
 
             later(200, () -> {
                 // The second row, which is the one with children.
-                var first = (HeadlessWindow) popups().getFirst();
+                var first = (HeadlessWindow) popups(backend).getFirst();
                 backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
                 later(300, () -> {
-                    count[0] = popups().size();
+                    count[0] = popups(backend).size();
                     Goldberry.stop();
                 });
             });
@@ -254,13 +235,15 @@ class MenusTest {
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
-                backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().getFirst(), 40, 52, 0));
+                backend.post(new BackendEvent.PointerMoved(
+                        (HeadlessWindow) popups(backend).getFirst(), 40, 52, 0));
                 later(300, () -> {
-                    var submenu = popups().get(1);
+                    var submenu = popups(backend).get(1);
                     click((HeadlessWindow) submenu, 40, 20);
                     later(200, () -> {
-                        left[0] = (int)
-                                popups().stream().filter(HeadlessPopup::isOpen).count();
+                        left[0] = (int) popups(backend).stream()
+                                .filter(HeadlessPopup::isOpen)
+                                .count();
                         Goldberry.stop();
                     });
                 });
@@ -286,17 +269,19 @@ class MenusTest {
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
-                var first = (HeadlessWindow) popups().getFirst();
+                var first = (HeadlessWindow) popups(backend).getFirst();
                 // Onto the row with children, and wait for it to open.
                 backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
                 later(300, () -> {
-                    openWhileHovering[0] = (int)
-                            popups().stream().filter(HeadlessPopup::isOpen).count();
+                    openWhileHovering[0] = (int) popups(backend).stream()
+                            .filter(HeadlessPopup::isOpen)
+                            .count();
                     // And back up to the row without one.
                     backend.post(new BackendEvent.PointerMoved(first, 40, 20, 0));
                     later(300, () -> {
-                        openAfterMovingAway[0] = (int)
-                                popups().stream().filter(HeadlessPopup::isOpen).count();
+                        openAfterMovingAway[0] = (int) popups(backend).stream()
+                                .filter(HeadlessPopup::isOpen)
+                                .count();
                         Goldberry.stop();
                     });
                 });
@@ -368,7 +353,7 @@ class MenusTest {
                 press(Key.DOWN);
                 press(Key.RIGHT);
                 later(100, () -> {
-                    openSoonAfter[0] = openCount(popups());
+                    openSoonAfter[0] = openCount(popups(backend));
                     Goldberry.stop();
                 });
             });
@@ -393,10 +378,10 @@ class MenusTest {
                 press(Key.DOWN);
                 press(Key.RIGHT);
                 later(300, () -> {
-                    afterOpening[0] = openCount(popups());
+                    afterOpening[0] = openCount(popups(backend));
                     press(Key.LEFT);
                     later(300, () -> {
-                        afterBack[0] = openCount(popups());
+                        afterBack[0] = openCount(popups(backend));
                         Goldberry.stop();
                     });
                 });
@@ -422,7 +407,7 @@ class MenusTest {
             later(300, () -> {
                 press(Key.LEFT);
                 later(200, () -> {
-                    stillOpen[0] = openCount(popups());
+                    stillOpen[0] = openCount(popups(backend));
                     Goldberry.stop();
                 });
             });
@@ -450,7 +435,7 @@ class MenusTest {
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(300, () -> {
-                var first = (HeadlessWindow) popups().getFirst();
+                var first = (HeadlessWindow) popups(backend).getFirst();
                 before[0] = pixel(first, (int) first.size().width() - 30, 52);
                 backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
                 later(400, () -> {
@@ -458,7 +443,8 @@ class MenusTest {
                     // out of the menu that opened it, so the row keeps nothing
                     // but the mark.
                     backend.post(new BackendEvent.PointerExited(first));
-                    backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().get(1), 20, 20, 0));
+                    backend.post(new BackendEvent.PointerMoved(
+                            (HeadlessWindow) popups(backend).get(1), 20, 20, 0));
                     later(400, () -> {
                         after[0] = pixel(first, (int) first.size().width() - 30, 52);
                         Goldberry.stop();
@@ -521,7 +507,7 @@ class MenusTest {
     /// The one popup that is open, which is how "which menu is showing" is asked
     /// of a bar that only ever has one down.
     private HeadlessPopup openPopup() {
-        return popups().stream()
+        return popups(backend).stream()
                 .filter(HeadlessPopup::isOpen)
                 .reduce((first, second) -> second)
                 .orElseThrow();
@@ -549,10 +535,10 @@ class MenusTest {
                 host -> later(400, () -> {
                     tap(io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT);
                     later(400, () -> {
-                        afterFirst[0] = openCount(popups());
+                        afterFirst[0] = openCount(popups(backend));
                         tap(io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT);
                         later(400, () -> {
-                            afterSecond[0] = openCount(popups());
+                            afterSecond[0] = openCount(popups(backend));
                             // And `Alt+F` is a shortcut rather than a tap, so it
                             // must leave the bar exactly as it found it.
                             backend.post(new BackendEvent.KeyPressed(
@@ -574,7 +560,7 @@ class MenusTest {
                                     io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT.leftKeycode(),
                                     0));
                             later(400, () -> {
-                                afterShortcut[0] = openCount(popups());
+                                afterShortcut[0] = openCount(popups(backend));
                                 Goldberry.stop();
                             });
                         });
@@ -608,15 +594,16 @@ class MenusTest {
             later(300, () -> {
                 // Onto the row that leads somewhere, which is what opens it —
                 // §8's hover-opens-a-submenu, and the shortest way to a chain.
-                backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().getFirst(), 40, 52, 0));
+                backend.post(new BackendEvent.PointerMoved(
+                        (HeadlessWindow) popups(backend).getFirst(), 40, 52, 0));
                 later(400, () -> {
-                    afterOpen[0] = openCount(popups());
+                    afterOpen[0] = openCount(popups(backend));
                     press(Key.ESCAPE);
                     later(300, () -> {
-                        afterFirst[0] = openCount(popups());
+                        afterFirst[0] = openCount(popups(backend));
                         press(Key.ESCAPE);
                         later(300, () -> {
-                            afterSecond[0] = openCount(popups());
+                            afterSecond[0] = openCount(popups(backend));
                             Goldberry.stop();
                         });
                     });
@@ -640,7 +627,7 @@ class MenusTest {
             var popup = Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
-                click((HeadlessWindow) popups().getFirst(), 40, 20);
+                click((HeadlessWindow) popups(backend).getFirst(), 40, 20);
                 later(200, () -> {
                     stillOpen[0] = popup.isOpen();
                     Goldberry.stop();

@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,10 +64,6 @@ class SegmentedGoldenTest {
         if (icon != null) {
             icon.close();
         }
-    }
-
-    private static Attributes id(String id, String... classes) {
-        return new Attributes(id, Set.of(classes), id);
     }
 
     /// Which segment gets which pseudo-class — the states are set by hand rather

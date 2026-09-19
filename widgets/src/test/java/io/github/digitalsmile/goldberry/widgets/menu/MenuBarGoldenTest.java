@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,10 +38,6 @@ class MenuBarGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String value) {
-        return new Attributes(value, Set.of(), value);
     }
 
     private void paint(String name, Theme theme, int width, int height, Widget bar, PseudoState... states) {

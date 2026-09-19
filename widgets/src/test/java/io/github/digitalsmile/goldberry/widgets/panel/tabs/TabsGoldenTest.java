@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +20,6 @@ import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
@@ -52,10 +52,6 @@ class TabsGoldenTest {
         if (icon != null) {
             icon.close();
         }
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     private void paint(String name, Theme theme, int width, int height, Widget strip, PseudoState... states) {

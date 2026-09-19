@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
@@ -54,10 +55,6 @@ class KnobGoldenTest {
 
         GoldenImage.assertMatches(name, width, height, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     private static Widget row(String rowId, Widget... knobs) {

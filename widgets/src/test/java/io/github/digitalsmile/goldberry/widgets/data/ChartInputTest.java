@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.HEIGHT;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.WIDTH;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.framed;
+import static io.github.digitalsmile.goldberry.widgets.data.ChartFrame.plot;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,9 +56,6 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// answer rather than to two descriptions of one.
 class ChartInputTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 180;
-
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
@@ -66,20 +67,12 @@ class ChartInputTest {
     }
 
     private static Widget lineChart() {
-        return framed(new LineChart(
-                two(),
-                List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-                new Attributes("plot", Set.of(), "plot")));
+        return framed(new LineChart(two(), List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), plot()));
     }
 
     private static Widget donut() {
         return framed(new DonutChart(
-                List.of(Series.of("Cache", 62), Series.of("Origin", 24), Series.of("Miss", 14)),
-                new Attributes("plot", Set.of(), "plot")));
-    }
-
-    private static Widget framed(Widget chart) {
-        return new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"));
+                List.of(Series.of("Cache", 62), Series.of("Origin", 24), Series.of("Miss", 14)), plot()));
     }
 
     /// A window coordinate on the ring of a donut painted in `plot`, `turns` of a
@@ -183,19 +176,15 @@ class ChartInputTest {
         /// The chart, pushed down a viewport so that reading it means scrolling
         /// first — which is every chart on a dashboard taller than its window.
         private Widget inAViewport() {
-            return new Column(
-                    List.of(new Scroll(
-                            List.of(new Column(
-                                    List.of(
-                                            new Text("filler", new Attributes("spacer", Set.of(), "spacer")),
-                                            new LineChart(
-                                                    two(),
-                                                    List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-                                                    new Attributes("plot", Set.of(), "plot"))),
-                                    Attributes.NONE)),
-                            ScrollAxis.VERTICAL,
-                            new Attributes("viewport", Set.of(), "viewport"))),
-                    new Attributes("frame", Set.of(), "frame"));
+            return framed(new Scroll(
+                    List.of(new Column(
+                            List.of(
+                                    new Text("filler", new Attributes("spacer", Set.of(), "spacer")),
+                                    new LineChart(
+                                            two(), List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), plot())),
+                            Attributes.NONE)),
+                    ScrollAxis.VERTICAL,
+                    new Attributes("viewport", Set.of(), "viewport")));
         }
 
         @Test
