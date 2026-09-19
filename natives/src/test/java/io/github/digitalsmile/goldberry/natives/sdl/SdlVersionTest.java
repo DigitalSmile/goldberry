@@ -62,8 +62,12 @@ class SdlVersionTest {
     }
 
     @Test
-    @DisplayName("reads as a version string")
+    @DisplayName("reads as three numbers in order, so a log line names the linked build")
     void printsReadably() {
-        assertEquals("3.2.14", new SdlVersion(3, 2, 14).toString());
+        // The claim is that all three components are there and in order; the
+        // separator is not a contract and is not pinned.
+        var text = new SdlVersion(3, 2, 14).toString();
+
+        assertTrue(text.matches("\\D*3\\D+2\\D+14\\D*"), text);
     }
 }

@@ -5,25 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 
+/// `YGMeasureMode`.
+///
+/// The native values are compared with the compiled Yoga by the layout probe —
+/// `MeasureMode` is a `YogaEnum`, so every one of its constants is a row of
+/// `NativeConstants.registry()`. What is left for this is the Java side: the round
+/// trip, and the refusal that keeps a wrong callback signature from looking like a
+/// layout that is merely odd.
 class MeasureModeTest {
-
-    /// The literals are Yoga's, from the `YG_ENUM_DECL(YGMeasureMode, ...)` in
-    /// `yoga/YGEnums.h`. Asserting them here means reordering the Java enum shows
-    /// up as a failure rather than as a layout that is subtly wrong in one mode.
-    @ParameterizedTest
-    @CsvSource({"UNDEFINED, 0", "EXACTLY, 1", "AT_MOST, 2"})
-    @DisplayName("values match YGMeasureMode")
-    void valuesMatchYoga(MeasureMode mode, int expected) {
-        assertEquals(expected, mode.nativeValue());
-    }
 
     @ParameterizedTest
     @EnumSource(MeasureMode.class)
@@ -41,11 +36,5 @@ class MeasureModeTest {
         var thrown = assertThrows(IllegalArgumentException.class, () -> MeasureMode.of(value));
 
         assertEquals(true, thrown.getMessage().contains(String.valueOf(value)));
-    }
-
-    @Test
-    @DisplayName("the three modes are the only ones Yoga defines")
-    void yogaDefinesThree() {
-        assertEquals(3, MeasureMode.values().length);
     }
 }

@@ -9,34 +9,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/// What can be said about the layout table without a compiled library.
+///
+/// The offsets, sizes and alignments of everything in [Layouts#registry()] are
+/// compared field by field with the library the C compiler actually produced, by
+/// `LayoutVerificationTest`; restating them here would be restating them. What is
+/// left is the shape of the registry itself, and the two entries that sit outside
+/// it.
 class LayoutsTest {
-
-    @Test
-    @DisplayName("the canary struct is laid out as the C compiler will lay it out")
-    void probeSelfLayout() {
-        var probe = Layouts.PROBE_SELF;
-
-        // uint8_t a; -- 3 bytes of padding follow, because uint32_t b must be
-        // 4-aligned. void *c then lands on 8 without further padding, since b
-        // ends exactly there.
-        assertEquals(0, probe.offsetOf("a"));
-        assertEquals(4, probe.offsetOf("b"));
-        assertEquals(8, probe.offsetOf("c"));
-        assertEquals(16, probe.offsetOf("d"));
-        assertEquals(24, probe.byteSize());
-        assertEquals(8, probe.byteAlignment());
-    }
-
-    @Test
-    @DisplayName("field sizes are what the C types are")
-    void probeSelfFieldSizes() {
-        var probe = Layouts.PROBE_SELF;
-
-        assertEquals(1, probe.sizeOf("a"));
-        assertEquals(4, probe.sizeOf("b"));
-        assertEquals(8, probe.sizeOf("c"));
-        assertEquals(8, probe.sizeOf("d"));
-    }
 
     @Test
     @DisplayName("padding is unnamed, so only real fields are compared against C")
@@ -94,17 +74,5 @@ class LayoutsTest {
         // is a fault on targets less forgiving than x86.
         assertEquals(128, Layouts.SDL_EVENT.byteSize());
         assertEquals(8, Layouts.SDL_EVENT.byteAlignment());
-    }
-
-    @Test
-    @DisplayName("the window event's fields sit where SDL puts them")
-    void windowEventLayout() {
-        var event = Layouts.SDL_WINDOW_EVENT;
-
-        assertEquals(0, event.offsetOf("type"));
-        assertEquals(8, event.offsetOf("timestamp"));
-        assertEquals(16, event.offsetOf("windowID"));
-        assertEquals(20, event.offsetOf("data1"));
-        assertEquals(24, event.offsetOf("data2"));
     }
 }

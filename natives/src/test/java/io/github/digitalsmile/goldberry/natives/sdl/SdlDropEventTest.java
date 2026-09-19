@@ -94,17 +94,4 @@ class SdlDropEventTest {
             assertEquals("/tmp/dropped.qoi", buffer.droppedPath());
         }
     }
-
-    @Test
-    @DisplayName("the four drop event numbers are the ones SDL's header gives")
-    void theEventNumbers() {
-        // Checked against the compiled SDL by the layout probe as well; stated
-        // here so a transcription slip is a readable failure rather than an event
-        // that silently never arrives.
-        assertEquals(0x1000, SdlEventType.DROP_FILE.value());
-        assertEquals(0x1002, SdlEventType.DROP_BEGIN.value());
-        assertEquals(0x1003, SdlEventType.DROP_COMPLETE.value());
-        assertEquals(0x1004, SdlEventType.DROP_POSITION.value());
-        assertEquals("SDL_EVENT_DROP_FILE", SdlEventType.DROP_FILE.nativeName());
-    }
 }

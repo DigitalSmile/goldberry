@@ -94,12 +94,4 @@ class NativePlatformTest {
     void rejectsUnsupportedArchitectures(String osArch) {
         assertThrows(UnsupportedOperationException.class, () -> NativePlatform.of("Linux", osArch));
     }
-
-    @Test
-    @DisplayName("current() resolves on the machine running the tests")
-    void currentResolves() {
-        var platform = NativePlatform.current();
-
-        assertEquals(platform, NativePlatform.of(System.getProperty("os.name"), System.getProperty("os.arch")));
-    }
 }

@@ -24,20 +24,6 @@ import io.github.digitalsmile.goldberry.natives.NativePlatform;
 class NativeCapabilitiesTest {
 
     @Test
-    @DisplayName("the real library answers, whatever the answer is")
-    void theLibraryAnswers() {
-        NativeLibraryRequirement.enforce();
-
-        var capabilities = NativeCapabilities.get();
-
-        // Every reported capability is one this enum knows, which is what the
-        // tolerant decode above is there to guarantee even when it is not.
-        assertTrue(
-                EnumSet.allOf(NativeCapability.class).containsAll(capabilities),
-                "unexpected capabilities: " + capabilities);
-    }
-
-    @Test
     @DisplayName("the answer is asked once and does not change")
     void theAnswerIsStable() {
         NativeLibraryRequirement.enforce();

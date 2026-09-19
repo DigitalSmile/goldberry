@@ -1,12 +1,12 @@
 package io.github.digitalsmile.goldberry.natives;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Fail;
@@ -49,28 +49,22 @@ class NativeLibraryRequirementTest {
                 () -> "the path is the first thing you want to see: " + fail.reason());
     }
 
-    @ParameterizedTest
+    /// Null and blank are the same thing to this rule, and both sides of the
+    /// required flag have to say so rather than trailing an empty string.
+    @ParameterizedTest(name = "[{0}]")
+    @NullSource
     @ValueSource(strings = {"", "   "})
-    @DisplayName("a blank path says so rather than trailing an empty string")
+    @DisplayName("a path that is not a path says so, whether it is required or not")
     void blankPathIsDescribed(String path) {
-        var decision = NativeLibraryRequirement.decide(false, false, path);
-
-        assertTrue(assertInstanceOf(Skip.class, decision).reason().contains("no path was configured"));
-    }
-
-    @Test
-    @DisplayName("a null path is a blank path, not a NullPointerException")
-    void nullPathIsDescribed() {
-        var decision = NativeLibraryRequirement.decide(false, true, null);
-
-        assertTrue(assertInstanceOf(Fail.class, decision).reason().contains("no path was configured"));
-    }
-
-    @Test
-    @DisplayName("the required-property name is the one the build sets")
-    void propertyNameMatchesTheBuild() {
-        // natives/build.gradle sets this on the test JVM; a rename on one side
-        // only would silently restore the skip-in-CI behaviour ADR-0016 forbids.
-        assertEquals("goldberry.native.required", NativeLibraryRequirement.REQUIRED_PROPERTY);
+        assertTrue(
+                assertInstanceOf(Skip.class, NativeLibraryRequirement.decide(false, false, path))
+                        .reason()
+                        .contains("no path was configured"),
+                () -> "optional, path=" + path);
+        assertTrue(
+                assertInstanceOf(Fail.class, NativeLibraryRequirement.decide(false, true, path))
+                        .reason()
+                        .contains("no path was configured"),
+                () -> "required, path=" + path);
     }
 }

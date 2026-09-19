@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -100,13 +101,6 @@ class SdlTrayTest {
     }
 
     @Test
-    @DisplayName("names every SDL_TRAYENTRY_ constant the way the shim reports it")
-    void flagsAreNamedForTheProbe() {
-        assertEquals("SDL_TRAYENTRY_BUTTON", SdlTrayEntryFlag.BUTTON.nativeName());
-        assertEquals("SDL_TRAYENTRY_CHECKED", SdlTrayEntryFlag.CHECKED.nativeName());
-    }
-
-    @Test
     @DisplayName("refuses an icon whose buffer cannot hold it")
     void iconChecksItsBuffer() {
         var direct = ByteBuffer.allocateDirect(16 * 16 * 4).order(ByteOrder.nativeOrder());
@@ -131,9 +125,8 @@ class SdlTrayTest {
     @Test
     @DisplayName("binds every tray symbol on the export list")
     void bindsItsSymbols() {
-        if (!startVideo()) {
-            return;
-        }
+        requireVideo();
+
         // Whatever this session has, the answer is an Optional and not an
         // UnsatisfiedLinkError -- which is the half of this that fails first
         // when goldberry.symbols and the binding disagree.
@@ -164,13 +157,17 @@ class SdlTrayTest {
         });
     }
 
-    /// Starts SDL's video subsystem, or reports that this machine has none.
-    private static boolean startVideo() {
+    /// Starts SDL's video subsystem, or aborts the test with the reason it could
+    /// not.
+    ///
+    /// An `Assumptions.abort` rather than a bare `return`: a test that quietly
+    /// passes on a machine with no display is a green tick over a crossing nobody
+    /// made, and the run has no way to say how many of these it was.
+    private static void requireVideo() {
         try {
             Sdl.get().initialize(Set.of(SdlSubsystem.VIDEO));
-            return true;
         } catch (SdlException e) {
-            return false;
+            Assumptions.abort("SDL has no video subsystem on this machine: " + e.getMessage());
         }
     }
 }

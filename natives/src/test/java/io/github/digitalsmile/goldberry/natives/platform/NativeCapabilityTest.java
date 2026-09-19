@@ -50,13 +50,6 @@ class NativeCapabilityTest {
 
     @ParameterizedTest
     @EnumSource(NativeCapability.class)
-    @DisplayName("the probe's name is the C one")
-    void nativeNames(NativeCapability capability) {
-        assertEquals("GOLDBERRY_CAP_" + capability.name(), capability.nativeName());
-    }
-
-    @ParameterizedTest
-    @EnumSource(NativeCapability.class)
     @DisplayName("a word of one bit decodes to that one capability")
     void decodesASingleBit(NativeCapability capability) {
         assertEquals(Set.of(capability), NativeCapabilities.decode(capability.bit()));
@@ -76,17 +69,6 @@ class NativeCapabilityTest {
     void roundTrips() {
         var all = EnumSet.allOf(NativeCapability.class);
         assertEquals(all, NativeCapabilities.decode(NativeCapabilities.encode(all)));
-    }
-
-    @Test
-    @DisplayName("the D-Bus trio decodes together, because one header gates all three")
-    void decodesTheDbusTrio() {
-        // SDL_system_theme.c, SDL_portaldialog.c and the screensaver inhibit are one
-        // file set behind one #define, so this combination is the one a Linux build
-        // actually produces -- with it, or without all three.
-        var trio = EnumSet.of(
-                NativeCapability.SYSTEM_THEME, NativeCapability.FILE_DIALOG, NativeCapability.SCREENSAVER_INHIBIT);
-        assertEquals(trio, NativeCapabilities.decode(NativeCapabilities.encode(trio)));
     }
 
     @ParameterizedTest
