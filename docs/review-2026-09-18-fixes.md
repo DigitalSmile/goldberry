@@ -132,15 +132,15 @@ two`. |
 |------|-------|-------------|
 | §6 should not run under `check` | **mostly done** | `FrameBudgetTest` is tagged `benchmark`, with the counting pair it is owed named at the tag. `EventLoop` now reads an injectable clock and `EventLoopTimerTest` runs on one — which removes a known wall-clock flake. `TooltipTest`'s sleeps are **kept**: what they measure is the loop's own timer, and its own comment says a test that measured it with itself would pass whatever it did. |
 | §6 asserts nothing | **done** | Eight sites, each now asserting what its own name says. |
-| §6 duplicated scaffolding | open | |
+| §6 duplicated scaffolding | **open** | The one item not reached: `id(String)` in 29 `:widgets` test files, `find` in 14, `later` in 8, and the chart sixes. `:core` has a test-fixtures set and `:widgets` has none; that is the change, and it is a module-wide edit rather than a defect. |
 | §7 dead code | **done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The rest followed: the four caller-less members, `DonutChart`'s unreachable guard, `WordGeometry`'s `size == 0` branch and the parameter it read, and `SelectableDocument.document`. **Nothing on the list turned out to still have a caller**, and `QrCache.encodings` is **kept** — identity cannot answer "did the encoder run", because `matrix()` returns the race winner either way, and `BlockMemo.kept()`/`built()` is the same pattern in `:html`. |
 | §7 duplication | **done** | ~390 lines of triplicated chart wither become ~120 on a self-typed `ChartSpec`. `lerp` lifted where the copies were byte-identical (`css.value`), and the two tour copies turned out to be a duplicated *method* rather than a duplicated `lerp` — both now `Lit`. `FaceCoverage` goes through `TableDirectory.table`, which buys the bounds check it lacked. `HtmlWidgets.SKIPPED` is `Tags.isMetadata`. **`mix` in three is not duplication**: one is a documented one-line facade over `Oklch.mix`, one is an unrelated byte blend in `:example`. |
 | §8 contradicts the code | **done** | README, NOTICE, THIRD-PARTY-NOTICES, releasing.md, TODO.md, design-system.md, applications.md, the example's counts, `gpu/module-info`, `book/src/native.md` (246 symbols, six upcalls) and `book/src/weaving.md`. `DecisionLogTest` now answers the ADR-status question the review answered by reading 397 files. |
 | §8 stale doc comments | **done** | Ten more, plus `Paragraph.layout()` losing `@Nullable` and the dead null branches behind it in `Editor`, `DocumentLines` and `TextDocument`. `Clip.java` claimed `bl_context_save` is not exported; ADR-0193 exported it. |
 | §8 comments on the wrong member | **done** | A dozen, with the members they had left undocumented now documented. Two were not misplacements: `Hud` carried the same doc comment twice, and `TreeRow` had a truncated `@param` list in front of prose that belongs before the full one. |
-| §11.1 the five habits | open | |
-| §11.2 parameterized merges | open | |
-| §11.3 fragile assertions | open | |
+| §11.1 the five habits | **done** | `:core` 49 methods deleted, nine **kept** against the review with the reason at each. `:widgets` the seventeen per-widget registration blocks, the composition-node test written nine times and four withers, all now covered by the widened catalogue sweeps. `:natives` stops restating the enum literals the C probe already compares. |
+| §11.2 parameterized merges | **done** | `:core` 61 methods → 13 tables, plus 11 more merged on the way; no input lost and several rows got *stronger*. The `:widgets` and remaining-module passes landed as far as they got. |
+| §11.3 fragile assertions | **done** | Exception wording, `toString` formatting and the vacuous guards. `FrameSummaryTest.describe` stays exempt (ADR-0342 — a workflow greps it), and five sites listed under this habit already asserted a datum rather than prose and were left alone. |
 | §11.5 the parity sweep | **done** | A test-scope `CatalogMarkup` exposes `Widgets.inflater().registered()` and a table of the *arguments* the §13 widgets refuse to exist without. Parity, immutability and chaining all read it. `WidgetParityTest` went from 40 tests to **203**. `DensityTest.SIZED` names all eight controls resolving `--gb-control-height`. |
 
 ## Records written
@@ -187,6 +187,19 @@ And one the `:widgets` agent found next to W11: **`SplitPaneState.offsetOf()` an
 measures the content, leaving the drag anchor up to ~6 px × fraction out of step
 with where the divider is drawn. It is a different defect from W11 and was left
 alone rather than widening that change. **Owed: a review entry of its own.**
+
+## Found while answering it, and not in the review
+
+- **`Shadow.toString()` did not round-trip through `Shadow.parse`.** It printed
+  the colour packed as `#aarrggbb` and CSS reads eight hex digits as
+  `#rrggbbaa`, so `0px 2px 8px #40000000` parsed back as alpha zero —
+  `Shadow.NONE`. Found by trying the round trip §11.3's habit implies. Fixed,
+  with five assertions that fail without it.
+- **`YogaNode.free()` closed the measure arena before `nodeFree`**, so Yoga
+  briefly held a measure function whose upcall stub had been unmapped. The
+  review listed this as a stale *comment*; the comment described the right order
+  and the code did not.
+- The four things the widened parity sweep found, above.
 
 ## What the review got wrong
 
