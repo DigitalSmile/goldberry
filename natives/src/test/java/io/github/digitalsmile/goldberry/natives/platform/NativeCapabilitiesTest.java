@@ -37,7 +37,7 @@ class NativeCapabilitiesTest {
     }
 
     @Test
-    @DisplayName("macOS and Windows have all of them, because none is an optional header there")
+    @DisplayName("macOS and Windows have every capability that is theirs to have")
     void theFrameworkPlatformsHaveEverything() {
         NativeLibraryRequirement.enforce();
 
@@ -52,10 +52,21 @@ class NativeCapabilitiesTest {
         assumeFalse(
                 os == NativePlatform.OperatingSystem.LINUX,
                 "on Linux each capability is a -dev package that may not be installed");
+        // **Every capability except `WAYLAND`**, and the exception is a statement
+        // rather than an omission: there is no Wayland on either platform, so a
+        // library claiming the bit would be claiming something false about the
+        // session it runs in ([ADR-0422]).
+        //
+        // Written as a subtraction rather than as a list, so that the next
+        // capability added is included here by default — which is the right
+        // default, since this platform's whole point is that it has all of them.
+        // A capability that is genuinely absent on macOS and Windows has to be
+        // named here, and naming it is the moment to ask whether it should be.
+        var expected = EnumSet.complementOf(EnumSet.of(NativeCapability.WAYLAND));
         assertEquals(
-                EnumSet.allOf(NativeCapability.class),
+                expected,
                 EnumSet.copyOf(NativeCapabilities.get()),
-                "on " + os + " every capability is a system framework SDL is always compiled against");
+                "on " + os + " every capability but WAYLAND is a framework SDL is compiled against");
     }
 
     @Test

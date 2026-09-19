@@ -79,11 +79,27 @@ class FrameSequenceTest {
 
     @AfterEach
     void tearDown() {
-        // The order ADR-0284 records: the frame joins Blend2D's workers, and they
-        // are still holding what the tree lent them.
-        frame.end();
-        render.close();
-        fonts.close();
+        // **Guarded, because `@AfterEach` runs even when `@BeforeEach` aborted.**
+        // `RendererRequirement.enforce()` is an *assumption*: on a machine with no
+        // native library — which is every `Java` job in CI, where the library is
+        // built by a different job — it aborts the setup, so none of these three
+        // fields was ever assigned. An unguarded teardown then fails the test with
+        // a `NullPointerException` instead of skipping it, which is how this class
+        // went red on all three platforms while passing on every developer
+        // machine. The rest of the suite has used this shape since ADR-0016;
+        // `ParagraphTest.closeFont` is the one to copy.
+        //
+        // The order is ADR-0284's: the frame joins Blend2D's workers, and they are
+        // still holding what the tree lent them.
+        if (frame != null) {
+            frame.end();
+        }
+        if (render != null) {
+            render.close();
+        }
+        if (fonts != null) {
+            fonts.close();
+        }
     }
 
     private WidgetRenderer renderer(String css) {
