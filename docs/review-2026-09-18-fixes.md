@@ -33,8 +33,8 @@ the build, then the cascade and the charts, then the tests, then the prose.
 | 4 | C8, C9, C17, C18 and the `EventSink` contract — the backends; C6, C12, C13 | **done** |
 | 4b | H3–H7 the html module; W9–W15 and §11.5's parity sweep | **done** |
 | 4c | C14, N4–N7 and the §4 tail | **done** (the native ABI is 12; the library was rebuilt and the suite re-run against it) |
-| 5 | §6 and §11 — the tests | §11.5 and the `EventLoop` clock seam **done**; §11.1–11.3 running for `:core` and `:widgets` |
-| 6 | §7 dead code and duplication; §8 the prose | §8 **done**; §7 running |
+| 5 | §6 and §11 — the tests | **done** |
+| 6 | §7 dead code and duplication; §8 the prose | **done** |
 
 ## 1. `:core`
 
@@ -130,9 +130,9 @@ two`. |
 
 | Item | State | What landed |
 |------|-------|-------------|
-| §6 should not run under `check` | **mostly done** | `FrameBudgetTest` is tagged `benchmark`, with the counting pair it is owed named at the tag. `EventLoop` now reads an injectable clock and `EventLoopTimerTest` runs on one — which removes a known wall-clock flake. `TooltipTest`'s sleeps are **kept**: what they measure is the loop's own timer, and its own comment says a test that measured it with itself would pass whatever it did. |
+| §6 should not run under `check` | **done** | `FrameBudgetTest` is tagged `benchmark`, with the counting pair it is owed named at the tag. `EventLoop` now reads an injectable clock and `EventLoopTimerTest` runs on one — which removes a known wall-clock flake. `TooltipTest`'s sleeps are **kept**: what they measure is the loop's own timer, and its own comment says a test that measured it with itself would pass whatever it did. |
 | §6 asserts nothing | **done** | Eight sites, each now asserting what its own name says. |
-| §6 duplicated scaffolding | **open** | The one item not reached: `id(String)` in 29 `:widgets` test files, `find` in 14, `later` in 8, and the chart sixes. `:core` has a test-fixtures set and `:widgets` has none; that is the change, and it is a module-wide edit rather than a defect. |
+| §6 duplicated scaffolding | **done** | `TestAttributes`, `data/ChartFrame` and `TestLoop`: 31 copies of `id(String)`, eight chart tests' `renderer`/`framed`/`pixels` and the dimensions they paint at, five `later()`. 443 lines added, 762 removed, test count unchanged at 2580 — which is what says it was a move. **What was left alone matters more**: `press` has 22 copies and 18 differ, `inflate` 10 and 8 differ, `find` 7 and 5 differ. |
 | §7 dead code | **done** | The `:core` half: a painter is compared in `sameAppearance`, so a `canvas` whose painter changed is damaged (a real bug, with `DamageTest.thePainterChanged`); `partialRepaint`'s third conjunct and a comma strip that cannot fire are gone; `Transform.Origin.y` is not `@Nullable`; the motion block no longer runs for a node with no box. The rest followed: the four caller-less members, `DonutChart`'s unreachable guard, `WordGeometry`'s `size == 0` branch and the parameter it read, and `SelectableDocument.document`. **Nothing on the list turned out to still have a caller**, and `QrCache.encodings` is **kept** — identity cannot answer "did the encoder run", because `matrix()` returns the race winner either way, and `BlockMemo.kept()`/`built()` is the same pattern in `:html`. |
 | §7 duplication | **done** | ~390 lines of triplicated chart wither become ~120 on a self-typed `ChartSpec`. `lerp` lifted where the copies were byte-identical (`css.value`), and the two tour copies turned out to be a duplicated *method* rather than a duplicated `lerp` — both now `Lit`. `FaceCoverage` goes through `TableDirectory.table`, which buys the bounds check it lacked. `HtmlWidgets.SKIPPED` is `Tags.isMetadata`. **`mix` in three is not duplication**: one is a documented one-line facade over `Oklch.mix`, one is an unrelated byte blend in `:example`. |
 | §8 contradicts the code | **done** | README, NOTICE, THIRD-PARTY-NOTICES, releasing.md, TODO.md, design-system.md, applications.md, the example's counts, `gpu/module-info`, `book/src/native.md` (246 symbols, six upcalls) and `book/src/weaving.md`. `DecisionLogTest` now answers the ADR-status question the review answered by reading 397 files. |
@@ -187,6 +187,26 @@ And one the `:widgets` agent found next to W11: **`SplitPaneState.offsetOf()` an
 measures the content, leaving the drag anchor up to ~6 px × fraction out of step
 with where the divider is drawn. It is a different defect from W11 and was left
 alone rather than widening that change. **Owed: a review entry of its own.**
+
+## What is left
+
+Nothing from the review itself. Four things it turned up on the way are written
+down rather than done, each because doing it would be a change of a different
+kind:
+
+- **`series` and `point` accept `id=` and `class=` and drop them.** Exempted by
+  name in two sweeps, with a live test so the exemption cannot go stale. Making
+  them `Attributed` — or refusing the attributes at inflation — is a decision
+  about what a chart part *is*.
+- **`statistic` throws a bare `NullPointerException: label`** where every sibling
+  raises a §13 `IllegalArgumentException` naming what is missing. One line, and
+  nobody had asked for it.
+- **`SplitPaneState.offsetOf()` and `dragTo()` still convert through `length`**
+  while the fraction now measures the content, leaving the drag anchor up to
+  ~6 px × fraction out of step with the divider. A different defect from W11.
+- **`RendererRequirement.enforce()` in a `@BeforeEach` appears identically in 87
+  `:widgets` test files** — far larger than anything §6 listed, and not a move: it
+  needs a base class or an `@ExtendWith`, which is an architectural decision.
 
 ## Found while answering it, and not in the review
 
