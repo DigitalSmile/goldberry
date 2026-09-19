@@ -17,7 +17,11 @@
 # `goldberryVersion`, or -- with `release: true` -- the version itself, checked
 # against the tag the run was triggered by.
 #
-# STATUS: never run against Central. Needs the secrets in docs/releasing.md.
+# STATUS: the snapshot leg has run against Central (run 17, 2026-09-19) and failed
+# partway through the upload -- seven of nine modules went out before
+# `:widgets:javadoc` refused a broken [link]. `check` generates javadoc now, so
+# that class of failure cannot reach this workflow again (ADR-0405). The release
+# leg has still never run; docs/releasing.md is the checklist.
 
 name: Publish
 

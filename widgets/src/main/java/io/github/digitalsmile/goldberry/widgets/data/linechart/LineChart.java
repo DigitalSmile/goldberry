@@ -103,7 +103,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// ## Under the line
 ///
-/// [ChartSpec#fill] puts a flat wash or a fade beneath the data — `charts.md`
+/// [#fill] puts a flat wash or a fade beneath the data — `charts.md`
 /// §3.1's last row to be built, and the one that cost a widening of the native
 /// surface before a single pixel of it could be drawn: Blend2D has gradients and
 /// the export list did not

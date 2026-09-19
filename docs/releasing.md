@@ -15,7 +15,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 | Calendar versions, resolved in Gradle | **built**, tested (`CalendarVersionTest`, `BuildVersionTest`) |
 | `goldberry.publish` — POMs, sources, javadoc, signing, classifier jars | **built**, rehearsed locally into a throwaway repository |
 | `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu` optional | **built**, resolved by a local consumer build |
-| `snapshot.yml` → `publish.yml` → Central snapshots | **built, never run** — waits on the secrets below |
+| `snapshot.yml` → `publish.yml` → Central snapshots | **the secrets are set and the first run went out** (run 17, 2026-09-19) — and failed partway: `:widgets:javadoc` refused a broken `[link]` after seven of the nine modules had uploaded, leaving `:widgets` and `:html` off that snapshot. The next green snapshot overwrites it. `check` generates javadoc now, so the same mistake fails on Linux four minutes in ([ADR-0405](../book/src/adr/0405-check-generates-the-published-javadoc.md)) |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **done** (2026-09-17) — all seven upstream files copied verbatim from the pinned checkouts; the check passes with eleven components |

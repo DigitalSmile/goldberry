@@ -121,3 +121,20 @@ pluginManager.withPlugin('java-test-fixtures') {
 tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }
+
+// ...and it runs with `check`, which is the half ADR-0343 left out (ADR-0405).
+// Nothing but `javadocJar` generated javadoc, and nothing but `publish.yml` runs
+// that -- so the lint fired in the last step of the last job, after three
+// operating systems had built four native libraries. `[ChartSpec#fill]` on
+// `line-chart` took thirteen minutes to report a link whose target is one
+// interface up, and it reported it *while uploading*: three modules were already
+// on Central's snapshot repository when the fourth failed to document itself.
+//
+// Under `pluginManager.withPlugin` because `:bom` is a `java-platform` and has no
+// `javadoc` task to depend on; the `default` branch above has already refused any
+// other module that is not a `java-library`.
+pluginManager.withPlugin('java-library') {
+    tasks.named('check') {
+        dependsOn tasks.named('javadoc')
+    }
+}
