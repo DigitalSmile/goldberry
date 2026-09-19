@@ -31,6 +31,7 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The Emoji screen, driven rather than photographed — [ADR-0386].
 ///
@@ -164,7 +165,7 @@ class EmojiScreenTest {
         }
 
         @Test
-        @DisplayName("every tile is a character the face actually has")
+        @DisplayName("the sheet is built from the face, and the face parsed")
         void everyTileIsInTheFace() {
             var harness = new Harness(1200, 900);
             var covered = FaceCoverage.codePoints(BundledAssets.font(BundledFont.EMOJI));
@@ -175,9 +176,21 @@ class EmojiScreenTest {
                 var glyph = tile.children().getFirst();
                 assertEquals("emoji-glyph", glyph.type());
             }
-            // And the list is the font's rather than a transcription: every code
-            // point the screen offers is one the `cmap` reported.
-            assertTrue(covered.length > 1000, "the face has " + covered.length + " code points");
+
+            // What this holds, stated honestly. `EmojiScreen.entries()` builds its
+            // list *from* `FaceCoverage.codePoints`, so "every tile is a character
+            // the face has" is true by construction and a per-tile comparison
+            // would assert the same call against itself. What can still go wrong
+            // is the face not parsing at all — a `cmap` this reader does not
+            // understand returns an empty array and the screen draws an empty
+            // sheet — so that is the assertion, and the display name above says
+            // what the construction gives for free.
+            //
+            // (This comment used to claim the per-tile comparison was being made.
+            // It was not, and it cannot be from here: the tile's character sits
+            // on a package-private record, and making it public for a test would
+            // be a worse trade than saying so — the 2026-09-18 review, §11.3.)
+            assertTrue(covered.length > 1000, "the face reported " + covered.length + " code points");
         }
 
         @Test
@@ -188,9 +201,15 @@ class EmojiScreenTest {
             assertNotNull(harness.byId("emoji-count"));
             // The obligation the artifact carries, met where a reader can see it —
             // which is the whole reason the face is an artifact (ADR-0384).
+            // Read off the widget rather than out of its `toString`: what is on
+            // screen is the `Text`'s content, and a record's printed form is a
+            // debugging convenience that may stop containing it (the 2026-09-18
+            // review, §11.3).
             var note = harness.byType("text").stream()
-                    .map(element -> element.widget().toString())
-                    .filter(text -> text.contains("OpenMoji"))
+                    .map(element -> element.widget())
+                    .filter(Text.class::isInstance)
+                    .map(widget -> ((Text) widget).content())
+                    .filter(content -> content != null && content.contains("OpenMoji"))
                     .findFirst();
             assertTrue(note.isPresent(), "the screen names OpenMoji somewhere a reader can see");
             assertTrue(note.orElseThrow().contains("CC BY-SA"), note.orElseThrow());
