@@ -148,6 +148,41 @@ class ChainingTest {
                         + ". Implement it, or say here why the widget is not one.");
     }
 
+    /// `id` and `styled` are the interface's, so there is one implementation of
+    /// each; what a widget supplies is `withAttributes`, and that is per widget
+    /// and therefore per mistake — a record that drops the attributes it was
+    /// handed, or hands back a copy with them in the wrong slot.
+    ///
+    /// Eight widgets asserted this about themselves. The catalog is asked here
+    /// instead, which is also what makes the eight redundant rather than merely
+    /// repetitive.
+    @Test
+    @DisplayName("every registered widget's `withAttributes` keeps what it was given, and copies")
+    void everyWidgetKeepsWhatItIsChained() {
+        var wrong = new ArrayList<String>();
+        for (var type : CatalogMarkup.types()) {
+            if (NOT_CHAINABLE.contains(type)) {
+                continue;
+            }
+            var widget = (Attributed<?>) CatalogMarkup.inflate(type, "");
+            var chained = (Attributed<?>)
+                    widget.withAttributes(Attributes.NONE.id("chained").classes("accent"));
+
+            if (!"chained".equals(chained.attributes().id())) {
+                wrong.add(type + ": the id came back as " + chained.attributes().id());
+            }
+            if (!chained.attributes().classes().contains("accent")) {
+                wrong.add(type + ": the classes came back as "
+                        + chained.attributes().classes());
+            }
+            if (!Attributes.NONE.equals(widget.attributes())) {
+                wrong.add(type + ": chaining mutated the original, which is now " + widget.attributes());
+            }
+        }
+
+        assertTrue(wrong.isEmpty(), () -> "these widgets lose what is chained onto them: " + wrong);
+    }
+
     /// The two the widened sweep found, and the only names it is allowed to skip.
     ///
     /// `series` and `point` are a chart's **data** rather than nodes an author

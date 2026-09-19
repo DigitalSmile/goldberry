@@ -192,7 +192,6 @@ class HudTest {
         var hud = new Hud(Reading.FPS, Reading.PAINT);
         var children = hud.children();
 
-        assertEquals("hud", hud.cssType());
         // Two readings and the caption that says what they are (ADR-0150).
         assertEquals(3, children.size());
         assertEquals("hud-reading", ((Styled) children.getFirst()).cssType());

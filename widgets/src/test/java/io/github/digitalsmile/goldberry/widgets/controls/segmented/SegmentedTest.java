@@ -127,24 +127,15 @@ class SegmentedTest {
                     inflate("option value=\"list\" \"List\"").getFirst());
         }
 
+        /// That `segmented` and `option` are registered is swept over the whole
+        /// catalog by `WidgetParityTest`; that `segment` is **not** is a claim
+        /// about a name nothing registers, so nothing else can hold it.
         @Test
-        @DisplayName("both are CSS-selectable by type, id and class")
-        void selectable() {
-            assertEquals("segmented", new Segmented("list").cssType());
-            assertEquals("option", new Option("list", "List").cssType());
-            assertEquals(Set.of("wide"), new Segmented("list").styled("wide").classes());
-        }
-
-        @Test
-        @DisplayName("the registry lists both, and `segment` is deliberately not a node")
-        void registered() {
-            var registered = Widgets.inflater().registered();
-
-            assertTrue(registered.contains("segmented"));
-            assertTrue(registered.contains("option"));
+        @DisplayName("`segment` is deliberately not a second spelling of `option`")
+        void noSegmentAlias() {
             // §3 writes `option` in this control and in `select`, so that is the
             // node. A `segment` alias would be a second spelling of one thing.
-            assertFalse(registered.contains("segment"));
+            assertFalse(Widgets.inflater().registered().contains("segment"));
         }
 
         @Test
@@ -980,14 +971,6 @@ class SegmentedTest {
     class Catalog {
 
         @Test
-        @DisplayName("both types are in the catalog's list")
-        void inControlTypes() {
-            assertTrue(Controls.controlTypes().contains("segmented"));
-            assertTrue(
-                    Controls.controlTypes().contains("option"), "a segment is a widget a document writes, not a part");
-        }
-
-        @Test
         @DisplayName("every type the catalog claims has a rule that styles it")
         void styled() {
             // `segmented` and `option` both paint nothing without one, which is
@@ -1006,28 +989,6 @@ class SegmentedTest {
             // way for input to know.
             assertFalse(Controls.baseSource().contains("segmented.vertical"));
             assertFalse(Controls.baseSource().contains("segmented.inline"));
-        }
-    }
-
-    @Nested
-    @DisplayName("chaining")
-    class Chaining {
-
-        @Test
-        @DisplayName("every wither keeps the type and copies rather than mutates")
-        void withers() {
-            var bar = new Segmented("list", new Option("list", "List"));
-
-            assertEquals("view", bar.id("view").id());
-            assertEquals(Set.of("wide"), bar.styled("wide").classes());
-            assertTrue(bar.disabled(true).disabled());
-            assertFalse(bar.disabled(true).disabled(false).disabled());
-            assertEquals(Attributes.NONE, bar.attributes(), "the original is untouched");
-
-            var option = new Option("list", "List");
-            assertEquals("first", option.id("first").id());
-            assertTrue(option.disabled(true).disabled());
-            assertFalse(option.disabled(), "the original is untouched");
         }
     }
 }

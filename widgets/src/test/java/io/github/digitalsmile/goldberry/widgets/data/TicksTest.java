@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /// Where an axis puts its labels.
@@ -179,7 +180,15 @@ class TicksTest {
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, Double.POSITIVE_INFINITY, 5));
     }
 
+    /// A clock, so not a test: §1.5's "a cost is guarded by a count, never by a
+    /// clock" -- and this has no count to guard it with, because what it watches
+    /// is the *work* a search does rather than the answer it gives. Under a
+    /// parallel Gradle it measures the machine's load as much as the search.
+    ///
+    /// So it runs under `./gradlew benchmark` and not under `check`, which is
+    /// where a measurement belongs.
     @Test
+    @Tag("benchmark")
     @DisplayName("answers quickly enough to run inside a frame")
     void isFastEnoughForAFrame() {
         // It runs per axis per frame, so a millisecond here would be a third of

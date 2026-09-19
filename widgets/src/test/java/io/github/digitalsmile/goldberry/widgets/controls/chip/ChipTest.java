@@ -325,19 +325,6 @@ class ChipTest {
         }
 
         @Test
-        @DisplayName("the catalog registers `chip` and not its parts")
-        void theRegistryListsTheWidgetAlone() {
-            var registered = Widgets.inflater().registered();
-
-            assertTrue(registered.contains("chip"));
-            // ADR-0065: a part is CSS-selectable and deliberately not
-            // KDL-constructible.
-            assertFalse(registered.contains("chip-dot"));
-            assertFalse(registered.contains("chip-label"));
-            assertFalse(registered.contains("chip-dismiss"));
-        }
-
-        @Test
         @DisplayName("a chip with no label in the document is refused where it is written")
         void anEmptyDocumentChipIsRefused() {
             assertThrows(

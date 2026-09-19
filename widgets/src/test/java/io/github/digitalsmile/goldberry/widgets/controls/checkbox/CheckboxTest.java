@@ -71,22 +71,6 @@ class CheckboxTest {
         }
 
         @Test
-        @DisplayName("a checkbox is CSS-selectable by type, id and class")
-        void selectable() {
-            var checkbox = new Checkbox("Frost", Checkbox.Value.UNCHECKED).styled("compact");
-
-            assertEquals("checkbox", checkbox.cssType());
-            assertEquals(Set.of("compact"), checkbox.classes());
-        }
-
-        @Test
-        @DisplayName("the registry lists it beside button")
-        void registered() {
-            assertTrue(Widgets.inflater().registered().contains("checkbox"));
-            assertTrue(Controls.controlTypes().contains("checkbox"));
-        }
-
-        @Test
         @DisplayName("`indeterminate=#true` wins over `checked=#true`")
         void indeterminateWins() {
             // A document that says both has said something contradictory, and
@@ -391,17 +375,6 @@ class CheckboxTest {
 
                 assertEquals(entry.getValue(), style.color(), entry.getKey() + " label");
             }
-        }
-
-        @Test
-        @DisplayName("the glyph is a part: CSS-selectable, not KDL-constructible")
-        void partIsNotAWidget() {
-            // A `check-indicator` outside a `checkbox` is a square that means
-            // nothing, so registering the node would let a document create
-            // exactly that. Restyling it is what an author wants, and a type
-            // selector is the whole of that.
-            assertFalse(Widgets.inflater().registered().contains("check-indicator"));
-            assertTrue(Controls.baseSource().contains("check-indicator"));
         }
     }
 

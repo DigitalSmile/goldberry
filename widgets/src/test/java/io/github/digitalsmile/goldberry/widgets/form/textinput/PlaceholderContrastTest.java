@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.contrast.Contrast;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -103,22 +104,6 @@ class PlaceholderContrastTest {
         return (int) Math.round(top * alpha + bottom * (1 - alpha));
     }
 
-    private static double contrast(int one, int other) {
-        var a = luminance(one);
-        var b = luminance(other);
-        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-    }
-
-    private static double luminance(int argb) {
-        return 0.2126 * linear(((argb >> 16) & 0xFF) / 255.0)
-                + 0.7152 * linear(((argb >> 8) & 0xFF) / 255.0)
-                + 0.0722 * linear((argb & 0xFF) / 255.0);
-    }
-
-    private static double linear(double channel) {
-        return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
-    }
-
     @Test
     @DisplayName("a placeholder is legible on every surface a field sits on, in both themes")
     void isLegible() {
@@ -137,8 +122,8 @@ class PlaceholderContrastTest {
                 var placeholder = over(styles.placeholder().color(), field);
                 var value = over(styles.node().color(), field);
 
-                var placeholderRatio = contrast(placeholder, field);
-                var valueRatio = contrast(value, field);
+                var placeholderRatio = Contrast.ratio(placeholder, field);
+                var valueRatio = Contrast.ratio(value, field);
                 var name = theme + " on a " + surface.name();
 
                 report.append("%-28s field %06x  placeholder %.2f  value %.2f%n"

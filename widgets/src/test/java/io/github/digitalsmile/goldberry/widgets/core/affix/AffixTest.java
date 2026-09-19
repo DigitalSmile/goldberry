@@ -32,7 +32,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Primitives;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -420,12 +419,6 @@ class AffixTest {
     @Nested
     @DisplayName("the catalog")
     class Catalog {
-
-        @Test
-        @DisplayName("affix is a registered primitive")
-        void registered() {
-            assertTrue(Primitives.builtInTypes().contains("affix"));
-        }
 
         @Test
         @DisplayName("an edge= attribute reaches the widget, and a misspelling does not throw")

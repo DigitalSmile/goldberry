@@ -580,6 +580,9 @@ class ListTest {
         void theBoxCarriesTheAttributes() {
             var tree = tree(ListView.of(NORDICS).id("countries").styled("dense"));
             var box = Described.of(tree, ListBox.class).getFirst();
+            // `list` is a `Bound` and describes nothing until a model is
+            // bound, so `WidgetParityTest` exempts it and this is the only
+            // place the node it builds says its own name.
             assertEquals("list", box.cssType());
             assertEquals("countries", box.id());
             assertEquals(Set.of("dense"), box.classes());

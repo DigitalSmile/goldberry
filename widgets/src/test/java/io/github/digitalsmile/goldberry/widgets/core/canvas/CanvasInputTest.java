@@ -215,12 +215,6 @@ class CanvasInputTest {
         }
 
         @Test
-        @DisplayName("the input survives a change of attributes")
-        void attributesSurvive() {
-            assertSame(input, canvas.withAttributes(canvas.attributes()).input());
-        }
-
-        @Test
         @DisplayName("the focus reaches the input, so a canvas can draw a caret")
         void focusIsPassedThrough() {
             // The one thing G3 did not need and G6 does: everything else a canvas

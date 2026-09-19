@@ -831,13 +831,6 @@ class ScrollTest {
     class Catalog {
 
         @Test
-        @DisplayName("scroll is a registered primitive")
-        void registered() {
-            assertTrue(io.github.digitalsmile.goldberry.widgets.core.Primitives.builtInTypes()
-                    .contains("scroll"));
-        }
-
-        @Test
         @DisplayName("an axis= attribute reaches the widget, and a misspelling does not throw")
         void axisParses() {
             assertEquals(ScrollAxis.HORIZONTAL, ScrollAxis.parse("horizontal"));

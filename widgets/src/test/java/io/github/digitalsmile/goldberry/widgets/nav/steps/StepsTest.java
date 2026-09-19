@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets.nav.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,18 +74,6 @@ class StepsTest {
         void connectorsAreInterleaved() {
             assertEquals(
                     List.of("Account:done", "==", "Payment:current", "--", "Review:upcoming"), words(row(three(1))));
-        }
-
-        @Test
-        @DisplayName("the row is the styled node, and the composition styles nothing")
-        void theListIsWhatCarriesTheCssType() {
-            var root = new ElementTree(three(0).id("progress")).root();
-            var painted = root.children().getFirst();
-
-            assertInstanceOf(Steps.class, root.widget());
-            assertInstanceOf(StepList.class, painted.widget());
-            assertEquals("steps", painted.type());
-            assertEquals("progress", painted.id(), "the id travels down to the node a stylesheet sees");
         }
 
         @Test

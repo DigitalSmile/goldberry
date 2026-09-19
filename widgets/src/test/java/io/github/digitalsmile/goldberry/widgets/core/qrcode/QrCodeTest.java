@@ -45,7 +45,6 @@ class QrCodeTest {
 
         assertEquals(Level.M, code.level());
         assertEquals(4, code.quietZone());
-        assertEquals("qr-code", code.cssType());
     }
 
     @Test

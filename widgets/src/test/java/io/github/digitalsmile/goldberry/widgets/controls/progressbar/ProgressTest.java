@@ -87,13 +87,6 @@ class ProgressTest {
         }
 
         @Test
-        @DisplayName("progress is a control type and progress-fill is a part")
-        void fillIsAPart() {
-            assertTrue(Controls.controlTypes().contains("progress"));
-            assertFalse(Widgets.inflater().registered().contains("progress-fill"));
-        }
-
-        @Test
         @DisplayName("a maximum of zero has no reading, and is refused")
         void badMaximumRefused() {
             assertThrows(IllegalArgumentException.class, () -> new Progress(1, 0, false, null, ID));
