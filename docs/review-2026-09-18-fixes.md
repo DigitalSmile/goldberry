@@ -207,6 +207,39 @@ kind:
 - **`RendererRequirement.enforce()` in a `@BeforeEach` appears identically in 87
   `:widgets` test files** — far larger than anything §6 listed, and not a move: it
   needs a base class or an `@ExtendWith`, which is an architectural decision.
+- **Three `OverflowWatch` overruns in the showcase**, reported by a user running
+  the app on 2026-09-19 and then verified to **predate this whole batch** — the
+  same numbers appear at `f4a4ce24`, so none of them is a regression:
+
+  | What | Where | When |
+  |------|-------|------|
+  | `masonry#navigation-wall` overruns `column#screen-navigation` by 386 tall (522 at the reporter's size) | the Navigation screen | only once the window is made smaller |
+  | `button#reset` overruns `row#actions` by 64 wide | the Basic screen | at the golden sizes, so it is in the committed images |
+  | `button#dialog-folder` overruns `row#dialog-actions` by 29 wide | the file-dialogs card | at the golden sizes, likewise |
+
+  The first is the interesting one, and it is a **design decision in tension with
+  a documented rule** rather than a defect to fix quietly. `#screen-navigation` is
+  one of two screens the gallery deliberately does not wrap in a viewport, because
+  `design-system.md` §2.4 says "nested same-axis scrollers are banned in the
+  canon" and two of its cards — `Scrolling` and `Console` — each own a vertical
+  one. `Navigation`'s own doc says "the cards are half as tall as one, so the
+  screen fits without needing to scroll at all", which holds at the gallery's
+  working sizes and stops holding when the window shrinks. The bottom cards then
+  go off the edge with nothing that can reach them.
+
+  Four answers, none of them free: reflow `Wall`'s column count from the space it
+  is given (3×2 rather than 2×3, keeps the canon, does not guarantee a fit);
+  scroll the screen anyway (reachable, but departs from §2.4 and needs an ADR
+  saying why); raise the window's minimum height above the 640×480 it stops at
+  now; or leave it as a known limit of the example. **Not chosen here** — it is
+  the application author's call, and the diagnostic is advisory by design
+  (ADR-0375).
+
+  Reproduce with: `./gradlew :example:run -Pgoldberry.example.frames=400
+  -Pgoldberry.example.resize=900x600 -Dgoldberry.backend.videoDriver=dummy`, with
+  `ShowcaseModel.screen` temporarily defaulted to `"navigation"`. A fixed
+  `-Pgoldberry.example.size` does **not** reproduce it: the showcase opens
+  maximized, so that property only sets the size it restores to.
 
 ## Found while answering it, and not in the review
 
