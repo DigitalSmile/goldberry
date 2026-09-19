@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.form.field;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,10 +50,6 @@ class FieldGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String id, String... classes) {
-        return new Attributes(id, Set.of(classes), id);
     }
 
     private static final String SCENE = """

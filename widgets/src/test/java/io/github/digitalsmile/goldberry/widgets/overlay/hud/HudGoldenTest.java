@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
+import static io.github.digitalsmile.goldberry.widgets.TestAttributes.id;
+
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +20,6 @@ import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -48,10 +48,6 @@ class HudGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-    }
-
-    private static Attributes id(String id) {
-        return new Attributes(id, Set.of(), id);
     }
 
     private static WidgetRenderer renderer(Theme theme, FrameStats stats) {
