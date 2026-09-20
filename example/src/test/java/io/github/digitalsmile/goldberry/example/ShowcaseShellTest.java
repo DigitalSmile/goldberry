@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's thirteen screens are named in one place
+/// gallery's fourteen screens are named in one place
 /// (ADR-0221,
 /// ADR-0222).
 ///
@@ -92,7 +92,7 @@ class ShowcaseShellTest {
     /// What is still load-bearing is that the digits and the strip agree about
     /// the first ten, which is [GalleryOrderTest]'s.
     @Test
-    @DisplayName("thirteen screens; the first ten have a digit and the rest have the strip")
+    @DisplayName("fourteen screens; the first ten have a digit and the rest have the strip")
     void theGallery() {
         assertEquals(
                 List.of(
@@ -108,7 +108,8 @@ class ShowcaseShellTest {
                         "canvas",
                         "icons",
                         "emoji",
-                        "motion"),
+                        "motion",
+                        "web"),
                 Screen.GALLERY);
 
         // A keyboard has ten digits and `Screen.GALLERY` may be longer. What must

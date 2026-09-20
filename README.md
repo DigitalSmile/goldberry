@@ -34,8 +34,27 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > system's metrics with rounded corners, a real focus ring, the §1.4 type scale
 > in two real weights, a `regular`/`compact` density that no widget mentions,
 > CSS transitions on a frame clock and golden images. What is not built is the
-> GPU milestone, the AccessKit bridge and nine of the eleven content modules.
+> GPU milestone and nine of the eleven content modules.
 > See [Status](book/src/status.md) for what works, and [TODO](book/src/TODO.md) for what does not yet.
+>
+> **There is no screen-reader support, on any platform, and none is scheduled.**
+> The AccessKit bridge is on hold
+> ([ADR-0440](book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
+> The rest of the accessibility baseline is built and checked — full keyboard
+> reachability, a real focus ring, contrast authored to WCAG AA, hit targets,
+> reduced motion and text scale to 150% — and every widget carries a role and an
+> accessible name that a sweep enforces, so the data a bridge would need is
+> there. Nothing reads it.
+>
+> **A web page is a window, not a widget, and most builds cannot open one.**
+> `web-view` drives the desktop's own engine — WebKitGTK, WebView2, WKWebView —
+> through a **separate optional library**, so that GTK and WebKit are never
+> load-time dependencies of the toolkit
+> ([ADR-0441](book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). Ask
+> `Goldberry.capabilities()` for `WEB_VIEW` before offering one. It cannot be a
+> box in a layout on every platform this ships to, so it is a box on none: the
+> engine has no offscreen surface and Wayland allows neither reparenting a
+> foreign surface nor placing a window where a widget is.
 
 ## Quick start
 

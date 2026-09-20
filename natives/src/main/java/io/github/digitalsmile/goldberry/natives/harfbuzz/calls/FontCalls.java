@@ -53,7 +53,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         BlobCreate(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_blob_create");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_blob_create");
         }
 
         /// Calls `hb_blob_create`.
@@ -70,7 +70,7 @@ public record FontCalls(
             try {
                 return (MemorySegment) FD_hb_blob_create.invokeExact(address, data, length, mode, userData, destroy);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_blob_create", t);
+                throw Downcalls.failure("goldberry_hb_blob_create", t);
             }
         }
     }
@@ -85,7 +85,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         BlobDestroy(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_blob_destroy");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_blob_destroy");
         }
 
         /// Calls `hb_blob_destroy`.
@@ -95,7 +95,7 @@ public record FontCalls(
             try {
                 FD_hb_blob_destroy.invokeExact(address, blob);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_blob_destroy", t);
+                throw Downcalls.failure("goldberry_hb_blob_destroy", t);
             }
         }
     }
@@ -114,7 +114,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FaceCreate(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_face_create");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_face_create");
         }
 
         /// Calls `hb_face_create`.
@@ -126,7 +126,7 @@ public record FontCalls(
             try {
                 return (MemorySegment) FD_hb_face_create.invokeExact(address, blob, index);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_face_create", t);
+                throw Downcalls.failure("goldberry_hb_face_create", t);
             }
         }
     }
@@ -141,7 +141,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FaceDestroy(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_face_destroy");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_face_destroy");
         }
 
         /// Calls `hb_face_destroy`.
@@ -151,7 +151,7 @@ public record FontCalls(
             try {
                 FD_hb_face_destroy.invokeExact(address, face);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_face_destroy", t);
+                throw Downcalls.failure("goldberry_hb_face_destroy", t);
             }
         }
     }
@@ -169,7 +169,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FaceGetEmpty(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_face_get_empty");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_face_get_empty");
         }
 
         /// Calls `hb_face_get_empty`.
@@ -179,7 +179,7 @@ public record FontCalls(
             try {
                 return (MemorySegment) FD_hb_face_get_empty.invokeExact(address);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_face_get_empty", t);
+                throw Downcalls.failure("goldberry_hb_face_get_empty", t);
             }
         }
     }
@@ -200,7 +200,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FaceGetUpem(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_face_get_upem");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_face_get_upem");
         }
 
         /// Calls `hb_face_get_upem`.
@@ -211,7 +211,7 @@ public record FontCalls(
             try {
                 return (int) FD_hb_face_get_upem.invokeExact(address, face);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_face_get_upem", t);
+                throw Downcalls.failure("goldberry_hb_face_get_upem", t);
             }
         }
     }
@@ -226,7 +226,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FontCreate(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_font_create");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_font_create");
         }
 
         /// Calls `hb_font_create`.
@@ -237,7 +237,7 @@ public record FontCalls(
             try {
                 return (MemorySegment) FD_hb_font_create.invokeExact(address, face);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_font_create", t);
+                throw Downcalls.failure("goldberry_hb_font_create", t);
             }
         }
     }
@@ -252,7 +252,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FontDestroy(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_font_destroy");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_font_destroy");
         }
 
         /// Calls `hb_font_destroy`.
@@ -262,7 +262,7 @@ public record FontCalls(
             try {
                 FD_hb_font_destroy.invokeExact(address, font);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_font_destroy", t);
+                throw Downcalls.failure("goldberry_hb_font_destroy", t);
             }
         }
     }
@@ -278,7 +278,7 @@ public record FontCalls(
         private final MemorySegment address;
 
         FontSetScale(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_font_set_scale");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_font_set_scale");
         }
 
         /// Calls `hb_font_set_scale`.
@@ -290,7 +290,7 @@ public record FontCalls(
             try {
                 FD_hb_font_set_scale.invokeExact(address, font, xScale, yScale);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_font_set_scale", t);
+                throw Downcalls.failure("goldberry_hb_font_set_scale", t);
             }
         }
     }

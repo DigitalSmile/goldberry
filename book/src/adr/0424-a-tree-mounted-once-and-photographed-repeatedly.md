@@ -138,7 +138,7 @@ because it was being helpful.
   `font-size` moves is one of the things a strip exists to photograph. Refused at
   `strip()` rather than producing a picture that is quietly not of the animation.
 - **A strip from a `Studio` shares the book and not the renderer**
-  ([ADR-0441](0441-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md)). A
+  ([ADR-0425](0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md)). A
   renderer holds exactly one clock, so a strip on a studio's renderer would move
   the clock under every still picture taken beside it. The book is the expensive
   part and is shared; the cascade index is rebuilt, and that is what a strip costs.

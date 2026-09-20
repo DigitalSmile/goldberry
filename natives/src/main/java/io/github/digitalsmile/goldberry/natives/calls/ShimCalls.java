@@ -17,13 +17,15 @@ import io.github.digitalsmile.goldberry.natives.Downcalls;
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCount layoutCount) {
+public record ShimCalls(
+        AbiVersion abiVersion, LayoutTable layoutTable, LayoutCount layoutCount, PreferGtkBackend preferGtkBackend) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static ShimCalls bind(SymbolLookup lookup) {
-        return new ShimCalls(new AbiVersion(lookup), new LayoutTable(lookup), new LayoutCount(lookup));
+        return new ShimCalls(
+                new AbiVersion(lookup), new LayoutTable(lookup), new LayoutCount(lookup), new PreferGtkBackend(lookup));
     }
 
     /// The ABI version the loaded `libgoldberry` reports.
@@ -106,6 +108,34 @@ public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCo
                 return (int) FD_goldberry_layout_count.invokeExact(address);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_layout_count", t);
+            }
+        }
+    }
+
+    /// Asks GTK to use a given window system, if nothing has said otherwise.
+    ///
+    /// `void goldberry_prefer_gtk_backend(const char* backend)`
+    ///
+    /// A `setenv` with overwrite=0, and it exists because two halves of one
+    /// process can otherwise disagree about the window system — see
+    /// [io.github.digitalsmile.goldberry.natives.GoldberryShim#preferGtkBackend]
+    /// and [ADR-0442].
+    public static final class PreferGtkBackend {
+
+        private static final MethodHandle FD_goldberry_prefer_gtk_backend =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        PreferGtkBackend(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_prefer_gtk_backend");
+        }
+
+        public void call(MemorySegment backend) {
+            try {
+                FD_goldberry_prefer_gtk_backend.invokeExact(address, backend);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_prefer_gtk_backend", t);
             }
         }
     }

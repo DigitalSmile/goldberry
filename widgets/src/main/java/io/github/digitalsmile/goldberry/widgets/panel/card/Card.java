@@ -53,8 +53,9 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// stylesheet's business.
 ///
 /// A card carries **no title**. §5 gives that to `group-box`, and the "group with
-/// optional label" in this line is the *accessible* name, which arrives with the
-/// AccessKit bridge in M5 along with every other widget's.
+/// optional label" in this line is the *accessible* name, which would arrive with
+/// the AccessKit bridge along with every other widget's — and that bridge is **on
+/// hold and owned by no milestone** ([ADR-0440]).
 @Markup("card")
 public record Card(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Card> {

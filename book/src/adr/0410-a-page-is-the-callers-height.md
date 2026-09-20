@@ -126,7 +126,7 @@ migration.
   nowhere is the outcome ruled out above.
 - **The count is in visual lines**, so a wrapped text pages by rows and not by
   paragraphs — which is what "on screen" means, and what
-  [ADR-0412](0412-an-editor-shapes-a-line-at-a-time.md) makes cheap to ask.
+  [ADR-0411](0411-an-editor-shapes-a-line-at-a-time.md) makes cheap to ask.
 - **`text-area` and `text-input` are untouched.** A `text-area` already divides
   its measured height by its line height, and a `text-input` is one line, where
   `EditSurface.FIELD` gives the page keys no meaning at all.

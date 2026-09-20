@@ -36,7 +36,10 @@ public record SdlWindowCalls(
         StartTextInput startTextInput,
         StopTextInput stopTextInput,
         TextInputActive textInputActive,
-        SetTextInputArea setTextInputArea) {
+        SetTextInputArea setTextInputArea,
+        GetWindowProperties getWindowProperties,
+        GetNumberProperty getNumberProperty,
+        GetPointerProperty getPointerProperty) {
 
     /// Binds every function above.
     ///
@@ -61,7 +64,10 @@ public record SdlWindowCalls(
                 new StartTextInput(lookup),
                 new StopTextInput(lookup),
                 new TextInputActive(lookup),
-                new SetTextInputArea(lookup));
+                new SetTextInputArea(lookup),
+                new GetWindowProperties(lookup),
+                new GetNumberProperty(lookup),
+                new GetPointerProperty(lookup));
     }
 
     /// Tells the platform where the text being typed is, so a candidate window
@@ -621,6 +627,79 @@ public record SdlWindowCalls(
                 return (boolean) FD_SDL_TextInputActive.invokeExact(address, window);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_TextInputActive", t);
+            }
+        }
+    }
+
+    /// The property bag a window carries, which is where the platform's own
+    /// handle for it lives.
+    ///
+    /// `SDL_PropertiesID SDL_GetWindowProperties(SDL_Window*)` — an unsigned
+    /// 32-bit id, not a pointer.
+    public static final class GetWindowProperties {
+
+        private static final MethodHandle FD_SDL_GetWindowProperties =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetWindowProperties(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetWindowProperties");
+        }
+
+        public int call(MemorySegment window) {
+            try {
+                return (int) FD_SDL_GetWindowProperties.invokeExact(address, window);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetWindowProperties", t);
+            }
+        }
+    }
+
+    /// A numeric property, which is how X11 reports a `Window` — an integer id
+    /// rather than a pointer.
+    ///
+    /// `Sint64 SDL_GetNumberProperty(SDL_PropertiesID, const char*, Sint64)`
+    public static final class GetNumberProperty {
+
+        private static final MethodHandle FD_SDL_GetNumberProperty =
+                Downcalls.link(FunctionDescriptor.of(JAVA_LONG, JAVA_INT, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        GetNumberProperty(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetNumberProperty");
+        }
+
+        public long call(int properties, MemorySegment name, long fallback) {
+            try {
+                return (long) FD_SDL_GetNumberProperty.invokeExact(address, properties, name, fallback);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetNumberProperty", t);
+            }
+        }
+    }
+
+    /// A pointer property, which is how Windows reports an `HWND` and macOS an
+    /// `NSWindow`.
+    ///
+    /// `void *SDL_GetPointerProperty(SDL_PropertiesID, const char*, void*)`
+    public static final class GetPointerProperty {
+
+        private static final MethodHandle FD_SDL_GetPointerProperty =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetPointerProperty(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetPointerProperty");
+        }
+
+        public MemorySegment call(int properties, MemorySegment name, MemorySegment fallback) {
+            try {
+                return (MemorySegment) FD_SDL_GetPointerProperty.invokeExact(address, properties, name, fallback);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetPointerProperty", t);
             }
         }
     }

@@ -30,6 +30,14 @@ permission notices to travel with it.
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
 | [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` (ADR-0294) |
 | [libwebp](licenses/libwebp.txt) | BSD-3-Clause | <https://github.com/webmproject/libwebp> | WebP decoding — the `webpdecoder` target only, no encoder and no animation demuxer (ADR-0329) |
+| [webview/webview](licenses/webview.txt) | MIT | <https://github.com/webview/webview> | §9's `web-view`, behind the **separate and optional** `libgoldberry-webview` (ADR-0441) |
+
+webview/webview is the only entry here that is not inside `libgoldberry`, and
+the only one an installation may legitimately not have. It also brings **no
+engine of its own**: what renders a page is the WebKitGTK, WebView2 or WKWebView
+already on the user's machine, under whatever licence their operating system
+ships it under. Nothing of those is vendored, linked or redistributed here, so
+this row covers one MIT header and the shim compiled from it.
 
 libwebp is the only BSD-3-Clause component here, and it is the strictest of the
 three licences in this table: the copyright notice, the conditions **and** the

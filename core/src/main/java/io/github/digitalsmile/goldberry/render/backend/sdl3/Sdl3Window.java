@@ -111,6 +111,28 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     }
 
     @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.window.NativeHandle> nativeHandle() {
+        backend.requireUiThread();
+        return video().nativeHandle(handle).map(Sdl3Window::translate);
+    }
+
+    /// SDL's word for a native handle, in the toolkit's.
+    ///
+    /// An exhaustive switch rather than an ordinal: the two enums are separate
+    /// types on purpose, and this is the line that fails to compile when a window
+    /// system is added to one and not the other.
+    private static io.github.digitalsmile.goldberry.render.window.NativeHandle translate(
+            io.github.digitalsmile.goldberry.natives.sdl.window.NativeWindowHandle handle) {
+        var kind =
+                switch (handle.kind()) {
+                    case X11 -> io.github.digitalsmile.goldberry.render.window.NativeHandle.Kind.X11;
+                    case WIN32 -> io.github.digitalsmile.goldberry.render.window.NativeHandle.Kind.WIN32;
+                    case COCOA -> io.github.digitalsmile.goldberry.render.window.NativeHandle.Kind.COCOA;
+                };
+        return new io.github.digitalsmile.goldberry.render.window.NativeHandle(kind, handle.value());
+    }
+
+    @Override
     public DisplayScale scale() {
         backend.requireUiThread();
         return new DisplayScale(video().displayScale(handle));
@@ -479,6 +501,11 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // `windows()` is empty, so an orphaned popup is a process that will not
         // exit.
         backend.closePopupsOf(this);
+        // And any page embedded in this window, for the same reason: an embedded
+        // page is a child X window, and the server destroys a window's children
+        // with it — so one torn down afterwards is GTK unwinding a window that is
+        // already gone (ADR-0442).
+        backend.closeEmbeddedPagesOf(this);
         backend.forget(this);
         video().destroyWindow(handle);
     }

@@ -49,6 +49,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   from the catalog. —
   [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
   [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 - **A popup may not give the *platform's* keyboard focus back, and the widget
   layer has nothing to do with it** — **the second half of this entry was wrong
   and has been measured.** A popup gets its own tree and its own router, and
@@ -95,6 +102,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   written on it: a role nothing consumes is a value written for a bridge that does
   not exist. The AccessKit bridge is where the words arrive. —
   [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 ### `text-input`, and what §4 still owes
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -117,6 +131,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   second one finds a mechanism rather than a dialog-shaped hole. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
   [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 - **Four widgets announce what they are and cannot say what they hold.**
   Each has a specification sentence with two halves and only the first is built.
   `code-input` is "a single textbox with the whole code as its value" —
@@ -134,6 +155,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
   [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
   [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 - **A trail is not a landmark, and a crumb is not a link.** §6 gives
   `breadcrumbs` "navigation landmark containing links, current page marked", and
   `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
@@ -145,6 +173,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   nothing can consume is a constant written for a bridge that does not exist, and
   adding `LINK` and a landmark now would make this gap look closed. M5. —
   [ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 - **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
   answers `Role.SLIDER`, which is true as far as it goes — a control whose value
   you move continuously — and says nothing about the second axis. `GROUP` is "a
@@ -154,6 +189,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   channel, and the shape of that depends on the AccessKit bridge nothing has
   built. M5. —
   [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
+
+  **On hold —
+  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+  The bridge this waits on is not being built and no milestone owns it. The entry
+  keeps its prose and its reasoning, which is still the right reasoning; what has
+  changed is that the thing at the end of it is not coming on a schedule. The way
+  back is a consumer asking, not a date.
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
   `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
@@ -173,6 +215,20 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   the tour is not the thing being revealed. —
   [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+
+  **Closed —
+  [ADR-0439](adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md).**
+  Both premises are true and the conclusion is false, which is why re-reading it
+  twice did not catch it. `Element` **implements** `BuildContext`, so
+  `findAncestorState` walks up from whatever element it is called on rather than
+  from the one being built; and `Host.anchor(id)` already returns a region whose
+  `owner()` is that element — the tour was calling it on every build for the
+  rectangle and discarding the owner. `ScrollScope.enclosing(target)` is the
+  walk. ADR-0120 had written down that `findAncestorState` "stays, because it is
+  how an application-level `scrollIntoView` from *inside* a scroll view reaches
+  the viewport", which is this call, kept for it, three hundred decisions
+  earlier. `Stop.within(controller)` survives for the application that means an
+  **outer** viewport, since the walk finds the innermost.
 - **A scrollbar's thumb stops being proportional on a very long document.** It is
   floored at 24px, so past about four screens the thumb no longer says how much
   is visible — only that there is a lot. The trade every scrollbar makes, named
@@ -563,10 +619,26 @@ on, which in four cases is the same thing.
   `pdf-view`'s selection.
   Three widgets waiting on one mechanism is an argument for building it once, in
   core, rather than in whichever module lands first.
-- **`goldberry-web` is parked, not deferred.** libservo is Rust-only against a
-  deliberately unstable API, so the module would own a `cdylib` shim and its
-  breakage. Revisit when libservo ships semver guarantees or Verso-style
-  embedding stabilizes; CEF-OSR stays the documented escape hatch until then.
+- ~~**`goldberry-web` is parked, not deferred.**~~ **Built, and not as a module**
+  ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). Every word of the
+  entry was true about Servo and none of it was about the question: libservo is
+  Rust-only against a deliberately unstable API, so the module would indeed own a
+  `cdylib` shim and its breakage — and nobody asked whether a page needed an
+  engine of this project's at all. `webview/webview` is MIT, is one header, and
+  **brings no engine**: it drives the WebKitGTK, WebView2 or WKWebView the desktop
+  already has, so neither condition that quarantines a content module applies.
+  **This is the fifth entry in this run of work that was wrong about itself**, and
+  it is the most expensive kind for the second time: "parked" reads like an answer
+  and stopped anybody re-reading it for two milestones.
+
+  What it is *not* is a widget. `webview/webview` cannot render offscreen, so a
+  page is always a platform window; and a Wayland session allows neither
+  reparenting a foreign surface nor placing a window where a widget is, so a
+  `web-view` in a layout would be a box on X11, Windows and macOS and a loose
+  window on the default Linux desktop. It ships as §9's second `widget.shell`
+  member instead — a value and the call that opens it, `tray-icon`'s shape. CEF-OSR
+  stays the documented escape hatch, and is still the only engine that would have
+  made a box possible.
 ## Layout
 ## Style, colour and motion
 - ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**

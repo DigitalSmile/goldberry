@@ -40,6 +40,9 @@ import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
+import io.github.digitalsmile.goldberry.render.web.BackendWebView;
+import io.github.digitalsmile.goldberry.render.web.WebViewEngine;
+import io.github.digitalsmile.goldberry.render.web.WebViewSpec;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
@@ -104,6 +107,23 @@ public final class Sdl3Backend implements Backend {
     /// process it belongs to has gone is the desktop equivalent of a leaked
     /// window, and the shell does not clean it up.
     private final List<Sdl3Tray> trays = new ArrayList<>();
+
+    /// The pages embedded in each window, so they can be closed **before** it is.
+    ///
+    /// The popup problem exactly, and for the same reason: an embedded page is a
+    /// child X window of the application's, and the X server destroys a window's
+    /// children with it. Destroy the parent first and GTK is later handed a
+    /// window the server has already reclaimed — `GdkWindow ... unexpectedly
+    /// destroyed`, then a run of GObject criticals as it unwinds a frame clock
+    /// and signal handlers that are no longer there (ADR-0442).
+    ///
+    /// Declared as an `IdentityHashMap` rather than a `Map`, which is
+    /// `GoldberryRuntime`'s reason for the same choice: a `BackendWindow` is
+    /// looked up by *which window it is*, and an implementation that grew a
+    /// value-based `equals` would silently make two windows one entry. Reading
+    /// the declaration is what says that cannot happen.
+    private final java.util.IdentityHashMap<BackendWindow, List<BackendWebView>> embeddedPages =
+            new java.util.IdentityHashMap<>();
     private final FramePacer pacer = FramePacer.fromProperties();
 
     /// The system cursors, created on first use.
@@ -186,6 +206,7 @@ public final class Sdl3Backend implements Backend {
             // filesystem is read once per process rather than once per window.
             undecoratedWarning = WaylandDecorations.diagnose(Sdl.get().videoDriver());
             reportAbsentIntegrations(Sdl.get().videoDriver());
+            agreeWithGtkAboutTheWindowSystem(Sdl.get().videoDriver());
             installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
@@ -227,6 +248,30 @@ public final class Sdl3Backend implements Backend {
     /// Three things override it, in order: `-Dgoldberry.backend.videoDriver`, an
     /// `SDL_VIDEO_DRIVER` already in the environment, and not being on Linux. The
     /// first is how to ask for Wayland anyway.
+    /// Tells GTK to use the window system SDL just chose.
+    ///
+    /// **Here, and this early, because of what comes after it.** On Linux SDL is
+    /// asked for X11 first (ADR-0086) while GDK, asked nothing, prefers Wayland
+    /// whenever `WAYLAND_DISPLAY` is set — so on an XWayland desktop the
+    /// application's window is an X11 window and its GTK surfaces are Wayland
+    /// surfaces. Nothing notices until something needs the two related, and
+    /// `web-view` does: a Wayland surface cannot be reparented into an X11 window,
+    /// so an embedded page silently refuses on a machine where all of it works
+    /// (ADR-0442).
+    ///
+    /// It has to happen before **anything** initialises GTK, and the first thing
+    /// that does on Linux is `tray-icon` — SDL's tray is libayatana-appindicator,
+    /// which calls `gtk_init`. A tray shown before this line is a page that cannot
+    /// embed, which is exactly the bug this was found as.
+    ///
+    /// Never overwrites a `GDK_BACKEND` somebody exported on purpose, and does
+    /// nothing off Linux.
+    private static void agreeWithGtkAboutTheWindowSystem(String videoDriver) {
+        if ("x11".equals(videoDriver) || "wayland".equals(videoDriver)) {
+            SdlVideo.get().preferGtkBackend(videoDriver);
+        }
+    }
+
     private static void selectVideoDriver() {
         var requested = System.getProperty(VIDEO_DRIVER_PROPERTY);
         if (requested != null && !requested.isBlank()) {
@@ -1235,6 +1280,10 @@ public final class Sdl3Backend implements Backend {
         // Before SDL_Quit, and for the same reason the watch is: a tray holds
         // upcall stubs the shell can still call, and the arena holding them is
         // released by closing the tray.
+        // Before the windows, for `closeEmbeddedPagesOf`'s reason.
+        for (var window : List.copyOf(embeddedPages.keySet())) {
+            closeEmbeddedPagesOf(window);
+        }
         for (var tray : List.copyOf(trays)) {
             tray.close();
         }
@@ -1285,6 +1334,76 @@ public final class Sdl3Backend implements Backend {
         trays.add((Sdl3Tray) tray.get());
         LOG.debug("created SDL tray with {} rows, tooltip {}", spec.items().size(), spec.tooltip());
         return tray;
+    }
+
+    /// Opens a page — §9's `web-view`, [ADR-0441].
+    ///
+    /// **Nothing here is SDL's**, which is why this method is three lines while
+    /// `createTray` above is thirty. A page is a window of WebKitGTK's, WebView2's
+    /// or WKWebView's making: SDL neither creates it, sizes it, pumps it nor hears
+    /// its events, and there is no driver to ask about and no absence to tell from
+    /// a failure. It is on this backend rather than on the SPI's default only
+    /// because the headless one must not open a real window.
+    @Override
+    public Optional<BackendWebView> createWebView(WebViewSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+        return WebViewEngine.open(spec);
+    }
+
+    /// Opens a page inside `window` — §9's `web-view` as a widget ([ADR-0442]).
+    ///
+    /// The whole of the platform test is `nativeHandle()`: a window that can name
+    /// itself to the window system can have a child, and one that cannot is on
+    /// Wayland. Nothing here reaches for a driver name, because the handle is the
+    /// honest question and the driver is a proxy for it.
+    @Override
+    public Optional<BackendWebView> createEmbeddedWebView(
+            WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.window.BackendWindow window,
+            int x,
+            int y,
+            int width,
+            int height) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+        Objects.requireNonNull(window, "window");
+        var parent = window.nativeHandle();
+        if (parent.isEmpty()) {
+            LOG.debug("this window has no native handle, so no page can be embedded in it (Wayland)");
+            return Optional.empty();
+        }
+        var page = WebViewEngine.openEmbedded(spec, parent.get(), x, y, width, height);
+        page.ifPresent(opened -> {
+            var pages = embeddedPages.computeIfAbsent(window, w -> new ArrayList<>());
+            // A widget that goes away closes its own page — switching tabs does
+            // exactly that — and this list would otherwise keep the corpse until
+            // the window closed. Pruned on the way in, so it is bounded by the
+            // pages actually open rather than by how often somebody changed tab.
+            pages.removeIf(BackendWebView::isClosed);
+            pages.add(opened);
+        });
+        return page;
+    }
+
+    /// Closes every page embedded in `window`.
+    ///
+    /// Called from [Sdl3Window#close] **before** the window is destroyed, beside
+    /// `closePopupsOf` and for its reason: the X server destroys a window's
+    /// children with it, and a page torn down afterwards is GTK unwinding a
+    /// window that no longer exists.
+    void closeEmbeddedPagesOf(BackendWindow window) {
+        var pages = embeddedPages.remove(window);
+        if (pages == null) {
+            return;
+        }
+        for (var page : pages) {
+            if (!page.isClosed()) {
+                page.close();
+            }
+        }
     }
 
     void forget(Sdl3Tray tray) {

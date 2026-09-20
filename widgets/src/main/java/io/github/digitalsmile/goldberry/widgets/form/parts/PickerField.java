@@ -155,7 +155,9 @@ public record PickerField(
     ///
     /// The role is honest; the value text is the half with nowhere to go, because
     /// [Semantics] carries a role, a name and a liveness and nothing that means
-    /// "what this currently holds". M5, with the AccessKit bridge.
+    /// "what this currently holds". That channel is behind the AccessKit bridge,
+    /// which is **on hold and owned by no milestone** ([ADR-0440]) — so the half
+    /// that is missing is missing for good reasons and not for a while.
     @Override
     public Role role() {
         return Role.COMBO_BOX;

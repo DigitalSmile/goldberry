@@ -200,6 +200,22 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileD
         return java.util.Optional.empty();
     }
 
+    /// No page, which is what a test host must answer: opening one would put a
+    /// real WebKit window on the desktop of whoever ran the suite.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> webView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec) {
+        return java.util.Optional.empty();
+    }
+
+    /// No page inside the window either, for the reason above.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> embeddedWebView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect bounds) {
+        return java.util.Optional.empty();
+    }
+
     @Override
     public void textInput(boolean active) {}
 

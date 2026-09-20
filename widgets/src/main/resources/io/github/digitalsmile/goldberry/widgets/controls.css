@@ -5572,3 +5572,36 @@ link:hover {
 link.visited {
   color: var(--gb-text-muted);
 }
+
+/* ---------------------------------------------------------------------------
+   `web-view` -- a page inside the window (ADR-0442).
+
+   These are component defaults rather than something an application writes,
+   because without them the widget does not work at all: the page is sized from
+   the box this widget is painted at, and a `canvas` has no intrinsic size
+   (`book/src/TODO.md`, "a canvas has no intrinsic size"). A web-view that did
+   not grow would be a zero-height strip with a page asked to be 0 pixels tall,
+   which is a blank tab and no error anywhere.
+
+   An application still overrides them the ordinary way -- an id selector beats
+   a type one -- for the case where a page should be a fixed size in a column.
+   (No literal hash in this file: the base stylesheet names no colour of its own,
+   and ButtonTest enforces that by looking for the character.)
+   --------------------------------------------------------------------------- */
+column.web-view {
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* The surface the page is kept over. It draws nothing: the page's own window
+   covers it, and on a session that cannot embed there is no page and the notice
+   below is what is seen. It carries the `id`, because `Host.anchor` answers from
+   the hit-test snapshot and only a hit-testable box is in it. */
+canvas.web-surface {
+  flex-grow: 1;
+}
+
+/* Why there is no page, when there is none. */
+message.web-view-notice {
+  flex-shrink: 0;
+}

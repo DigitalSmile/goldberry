@@ -36,7 +36,7 @@ public record VersionCalls(Version version) {
         private final MemorySegment address;
 
         Version(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_version");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_version");
         }
 
         /// Calls `hb_version`.
@@ -48,7 +48,7 @@ public record VersionCalls(Version version) {
             try {
                 FD_hb_version.invokeExact(address, major, minor, micro);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_version", t);
+                throw Downcalls.failure("goldberry_hb_version", t);
             }
         }
     }

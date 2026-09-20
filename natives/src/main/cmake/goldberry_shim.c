@@ -1466,3 +1466,160 @@ GOLDBERRY_EXPORT int goldberry_md_entity(const char *name, uint32_t size, uint32
     out[1] = (uint32_t) entity->codepoints[1];
     return 1;
 }
+
+/* ===========================================================================
+ * HarfBuzz, wrapped so that its symbols do not leave this library
+ *
+ * WHY THIS EXISTS, AND WHY IT IS NOT §3.1's "no C glue in between"
+ *
+ * §3.1 says Goldberry calls upstream functions directly through FFM, and for
+ * every other upstream in this build it does. HarfBuzz is the one that cannot,
+ * and the reason is a crash rather than a preference.
+ *
+ * This library statically links HarfBuzz and used to export 25 of its symbols so
+ * the Java bindings could reach them. GObject's stack brings its OWN HarfBuzz:
+ * pango links libharfbuzz.so, and anything that pulls in GTK -- `web-view`
+ * through WebKitGTK, or `tray-icon` through libayatana-appindicator -- puts it in
+ * the process. There is one global symbol namespace, so pango's calls to those 25
+ * names bound to OUR HarfBuzz while its other ~500 calls bound to the system's.
+ * Two implementations, two struct layouts, one hb_font_t: the process died in
+ * hb_font_set_var_coords_design, from inside gtk_init, before anything of ours
+ * ran (ADR-0442).
+ *
+ * The measured difference: this machine has HarfBuzz 12.3.2 and the pinned build
+ * is 14.3.1.
+ *
+ * The CMake header of this build has always stated the intent -- "hide everything
+ * that is not ours so statically linked upstreams do not leak symbols into the
+ * host process -- an app embedding its own SDL or HarfBuzz must not collide with
+ * ours" -- and the export list was the hole in it. These wrappers close it: no
+ * hb_* symbol is exported any more, so the two HarfBuzzes cannot see each other
+ * and both work.
+ *
+ * HarfBuzz is the ONLY upstream here that needs this. Blend2D, Yoga, SDL and
+ * libwebp share no symbol name with the GTK stack; HarfBuzz shares 25.
+ *
+ * Each wrapper forwards and nothing else. They are written against <hb.h> above,
+ * so a signature that drifts from upstream is a compile error rather than a
+ * corrupted call.
+ * ======================================================================== */
+
+GOLDBERRY_EXPORT void goldberry_hb_version(unsigned int *major, unsigned int *minor, unsigned int *micro) {
+    hb_version(major, minor, micro);
+}
+
+GOLDBERRY_EXPORT hb_blob_t *goldberry_hb_blob_create(
+        const char *data, unsigned int length, hb_memory_mode_t mode, void *user_data, hb_destroy_func_t destroy) {
+    return hb_blob_create(data, length, mode, user_data, destroy);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_blob_destroy(hb_blob_t *blob) { hb_blob_destroy(blob); }
+
+GOLDBERRY_EXPORT hb_face_t *goldberry_hb_face_create(hb_blob_t *blob, unsigned int index) {
+    return hb_face_create(blob, index);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_face_destroy(hb_face_t *face) { hb_face_destroy(face); }
+
+GOLDBERRY_EXPORT hb_face_t *goldberry_hb_face_get_empty(void) { return hb_face_get_empty(); }
+
+GOLDBERRY_EXPORT unsigned int goldberry_hb_face_get_upem(hb_face_t *face) { return hb_face_get_upem(face); }
+
+GOLDBERRY_EXPORT hb_font_t *goldberry_hb_font_create(hb_face_t *face) { return hb_font_create(face); }
+
+GOLDBERRY_EXPORT void goldberry_hb_font_destroy(hb_font_t *font) { hb_font_destroy(font); }
+
+GOLDBERRY_EXPORT void goldberry_hb_font_set_scale(hb_font_t *font, int x_scale, int y_scale) {
+    hb_font_set_scale(font, x_scale, y_scale);
+}
+
+GOLDBERRY_EXPORT hb_buffer_t *goldberry_hb_buffer_create(void) { return hb_buffer_create(); }
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_destroy(hb_buffer_t *buffer) { hb_buffer_destroy(buffer); }
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_reset(hb_buffer_t *buffer) { hb_buffer_reset(buffer); }
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_add_utf16(
+        hb_buffer_t *buffer, const uint16_t *text, int text_length, unsigned int item_offset, int item_length) {
+    hb_buffer_add_utf16(buffer, text, text_length, item_offset, item_length);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_guess_segment_properties(hb_buffer_t *buffer) {
+    hb_buffer_guess_segment_properties(buffer);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_set_direction(hb_buffer_t *buffer, hb_direction_t direction) {
+    hb_buffer_set_direction(buffer, direction);
+}
+
+GOLDBERRY_EXPORT hb_direction_t goldberry_hb_buffer_get_direction(hb_buffer_t *buffer) {
+    return hb_buffer_get_direction(buffer);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_set_script(hb_buffer_t *buffer, hb_script_t script) {
+    hb_buffer_set_script(buffer, script);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_buffer_set_language(hb_buffer_t *buffer, hb_language_t language) {
+    hb_buffer_set_language(buffer, language);
+}
+
+GOLDBERRY_EXPORT unsigned int goldberry_hb_buffer_get_length(hb_buffer_t *buffer) {
+    return hb_buffer_get_length(buffer);
+}
+
+GOLDBERRY_EXPORT hb_glyph_info_t *goldberry_hb_buffer_get_glyph_infos(hb_buffer_t *buffer, unsigned int *length) {
+    return hb_buffer_get_glyph_infos(buffer, length);
+}
+
+GOLDBERRY_EXPORT hb_glyph_position_t *goldberry_hb_buffer_get_glyph_positions(
+        hb_buffer_t *buffer, unsigned int *length) {
+    return hb_buffer_get_glyph_positions(buffer, length);
+}
+
+GOLDBERRY_EXPORT hb_script_t goldberry_hb_script_from_string(const char *str, int len) {
+    return hb_script_from_string(str, len);
+}
+
+GOLDBERRY_EXPORT hb_language_t goldberry_hb_language_from_string(const char *str, int len) {
+    return hb_language_from_string(str, len);
+}
+
+GOLDBERRY_EXPORT void goldberry_hb_shape(
+        hb_font_t *font, hb_buffer_t *buffer, const hb_feature_t *features, unsigned int num_features) {
+    hb_shape(font, buffer, features, num_features);
+}
+
+/// Asks GTK to use the same window system SDL chose.
+///
+/// WHY THE TOOLKIT HAS TO SAY THIS AT ALL
+///
+/// Two halves of one process can disagree about the window system, and on a
+/// Wayland desktop running XWayland they do by default. SDL is asked for X11
+/// first (PREFERRED_LINUX_DRIVERS, ADR-0086) because that is the only way to get
+/// a decorated window today; GDK, asked nothing, prefers Wayland because
+/// WAYLAND_DISPLAY is set. The result is an application whose window is an X11
+/// window and whose GTK surfaces are Wayland surfaces.
+///
+/// That is invisible until something needs the two to be related. Embedding a
+/// page is exactly that: `web-view` reparents the engine's window into the
+/// application's, and a Wayland surface cannot become the child of an X11 window
+/// (ADR-0442). The page then silently refuses to embed on a machine where
+/// everything else works.
+///
+/// So the backend says which window system it picked, once, before anything has
+/// initialised GTK -- which on Linux means before the first `tray-icon`, since
+/// SDL's tray is libayatana-appindicator and that calls gtk_init.
+///
+/// `overwrite` is 0: an application or a user that has deliberately exported
+/// GDK_BACKEND keeps their choice, and this is only a default for the case
+/// nobody expressed an opinion about.
+GOLDBERRY_EXPORT void goldberry_prefer_gtk_backend(const char *backend) {
+#if defined(__linux__) || defined(__FreeBSD__)
+    if (backend != NULL && backend[0] != '\0') {
+        setenv("GDK_BACKEND", backend, 0);
+    }
+#else
+    (void) backend;
+#endif
+}

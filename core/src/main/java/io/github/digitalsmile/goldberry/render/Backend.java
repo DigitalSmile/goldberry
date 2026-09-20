@@ -12,6 +12,8 @@ import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
+import io.github.digitalsmile.goldberry.render.web.BackendWebView;
+import io.github.digitalsmile.goldberry.render.web.WebViewSpec;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
@@ -103,6 +105,55 @@ public interface Backend extends AutoCloseable {
     /// @param spec the icon, the tooltip and the menu
     /// @return the tray, or empty if this desktop has none
     default Optional<BackendTray> createTray(TraySpec spec) {
+        return Optional.empty();
+    }
+
+    /// Opens a web page in a window the engine owns — §9's `web-view`.
+    ///
+    /// **Empty is a normal answer, and here it is the *usual* one.** Unlike every
+    /// other call on this interface, the thing behind it lives in a library the
+    /// build is allowed not to produce: the engine is the desktop's own, so
+    /// `libgoldberry-webview` is separate and absent from any build made without
+    /// WebKit's development headers ([ADR-0441]). A caller that gets empty offers
+    /// the user their own browser.
+    ///
+    /// Process-global rather than per window, like the tray and the clipboard: what
+    /// this opens is not parented to anything of the toolkit's, and is not a
+    /// [io.github.digitalsmile.goldberry.render.window.BackendWindow] at all.
+    ///
+    /// The default is empty, which is right for the headless backend — a golden
+    /// image cannot contain a page, and a test must not open a real window.
+    ///
+    /// @param spec where the page starts, its title and its window size
+    /// @return the page, or empty where no page can be opened here
+    default Optional<BackendWebView> createWebView(WebViewSpec spec) {
+        return Optional.empty();
+    }
+
+    /// Opens a page **inside** a window of this backend's — §9's `web-view` as a
+    /// widget rather than a window ([ADR-0442]).
+    ///
+    /// **Empty is the usual answer, and on Wayland it always is.** Embedding
+    /// means reparenting the engine's window into the application's, which X11,
+    /// Win32 and Cocoa allow and Wayland does not — there is no cross-client
+    /// surface embedding and no protocol proposing one. A caller that gets empty
+    /// says so rather than opening a loose window.
+    ///
+    /// @param spec   where the page starts; its width and height are ignored,
+    ///               because an embedded page is the size of the box it is in
+    /// @param window the window to put it inside
+    /// @param x      the left edge, in that window's own pixels
+    /// @param y      the top edge, in the same pixels
+    /// @param width  the width, positive
+    /// @param height the height, positive
+    /// @return the page, or empty where none can be embedded here
+    default Optional<BackendWebView> createEmbeddedWebView(
+            WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.window.BackendWindow window,
+            int x,
+            int y,
+            int width,
+            int height) {
         return Optional.empty();
     }
 

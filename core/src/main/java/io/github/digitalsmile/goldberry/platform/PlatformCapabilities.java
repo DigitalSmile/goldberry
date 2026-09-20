@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapabilities;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
+import io.github.digitalsmile.goldberry.render.web.WebViewEngine;
 
 /// What the native library this process loaded can actually do.
 ///
@@ -83,9 +84,53 @@ public final class PlatformCapabilities {
         return Collections.unmodifiableSet(translated);
     }
 
-    private static Set<Capability> read() {
+    /// Whether a web page can be opened, which is **not** a bit in
+    /// `libgoldberry`.
+    ///
+    /// Every other capability here is a compile-time constant on the other side of
+    /// the boundary. [Capability#WEB_VIEW] is the presence of a second library —
+    /// `libgoldberry-webview`, which exists so that GTK and WebKit are not
+    /// load-time dependencies of the toolkit — and answering it means trying to
+    /// open that library, which is why it is asked here, once, rather than on
+    /// every call.
+    ///
+    /// Package-private and taken as a parameter by [#read] so a test can ask what
+    /// the set looks like both ways without a native library of either kind.
+    static Set<Capability> read(Set<NativeCapability> native_, boolean webView) {
+        var capabilities = EnumSet.noneOf(Capability.class);
+        capabilities.addAll(translate(native_));
+        if (webView) {
+            capabilities.add(Capability.WEB_VIEW);
+        }
+        return Collections.unmodifiableSet(capabilities);
+    }
+
+    /// Whether a page can be opened, as a question that cannot throw.
+    ///
+    /// [WebViewEngine#isAvailable()] is built not to, and this is the belt to
+    /// that pair of braces: it is reached from
+    /// [io.github.digitalsmile.goldberry.Goldberry#capabilities()], which
+    /// promises an answer before any window is open and on a machine with no
+    /// native library at all. An optional feature must not be able to break the
+    /// call that asks which features exist.
+    private static boolean hasWebView() {
         try {
-            var capabilities = translate(NativeCapabilities.get());
+            return WebViewEngine.isAvailable();
+        } catch (LinkageError | RuntimeException e) {
+            LOG.debug("could not ask whether a web view is available: {}", e.toString());
+            return false;
+        }
+    }
+
+    private static Set<Capability> read() {
+        // Asked ONCE, outside the try, and never again on the way out of it. A
+        // class initialiser that throws is poisoned for the life of the JVM: the
+        // first call reports the real cause and every later one gets a bare
+        // `NoClassDefFoundError`. So a second ask in the catch below would turn a
+        // handled absence into an unhandled error -- which is what it did.
+        var webView = hasWebView();
+        try {
+            var capabilities = read(NativeCapabilities.get(), webView);
             // The line that answers "why is this application in the wrong theme
             // on my machine" without rebuilding anything. `debug` rather than
             // `info`: a complete build has nothing to report here, and the backend
@@ -102,7 +147,12 @@ public final class PlatformCapabilities {
             // to export the function lands here too, and reports the same thing it
             // can do -- none of this, as far as anything can tell.
             LOG.debug("no platform capabilities from libgoldberry: {}", e.getMessage());
-            return Set.of();
+            // Not `Set.of()`. The two libraries are independent — a web view is
+            // the one thing here that does not come out of `libgoldberry` — so a
+            // process that has one and not the other can still open a page, and
+            // saying otherwise would be the "asked and was told nothing" mistake
+            // this class exists to avoid.
+            return read(Set.of(), webView);
         }
     }
 }

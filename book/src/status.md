@@ -16,7 +16,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **thirteen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1205 emoji of the face `goldberry-emoji` ships ([ADR-0386](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md)) — in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
-| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, AccessKit bridge, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on |
+| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: OpenMoji ships there because CC BY-SA wants attribution where the work is seen, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)). The other nine are unscheduled |
 
 ## Foundation
@@ -6723,7 +6723,8 @@ is the `scroll` box's.
 - **The semantics are incomplete and say so.** §6 asks for a navigation landmark
   containing links; `Role` has neither `LINK` nor a landmark, so the crumbs answer
   `BUTTON` and the row answers `GROUP`. Inventing the constants now would make a
-  gap look closed — `docs/gaps.md` carries it until the AccessKit bridge.
+  gap look closed — `docs/gaps.md` carries it until the AccessKit bridge, which
+  is now [on hold](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).
 
 ### An eleventh screen, and the limit that was only ever about keyboards
 
@@ -7329,13 +7330,23 @@ signature** — was never written down and was broken in two families.
 
 ## M5 — Hardening
 
-**Started, with the release half.** Text editing depth, the AccessKit bridge,
-docs, and the first release — IME preedit is done
+**Started, with the release half.** Text editing depth, docs, and the first
+release — IME preedit is done
 ([ADR-0289](adr/0289-a-composition-is-not-an-edit.md),
 [ADR-0292](adr/0292-a-field-composes-and-a-password-does-not.md)) — **and the
 three-platform frame evidence M1 was waiting on**, which is here rather than in
 M1 because it is a CI job and because the hardening milestone is where every
 other "prove it on hardware nobody has run it on" item already lives.
+
+**The AccessKit bridge was this milestone's last toolkit item, and it is on
+hold** ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)):
+nothing has asked for it, two of its three platforms are behind the same missing
+Windows and macOS machines that already block half of `TODO.md` §12, and the
+cost is a permanent four-platform obligation in `:natives`. The semantics tree
+stays — every interactive node has a role and an accessible name, and a sweep
+enforces it — so what is missing is the reader, not the data. **What is left
+under M5 is therefore the release half alone**, and both halves of that are
+blocked on an account and a tag rather than on code.
 
 ### The frame evidence — built, and run once headless
 
@@ -7629,13 +7640,59 @@ And the two facts that make the first one cost more than it reads:
   `tray-icon` reached that file first and paid eleven symbols for it
   ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)), and camera and
   microphone are the same widening again.
+- **One of the eleven turned out not to be a module at all, and is built**
+  ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). `goldberry-web` had
+  been **parked** for two milestones behind an argument that was entirely true and
+  entirely beside the point: libservo is Rust-only against an unstable API, and
+  nobody asked whether a page needed an engine of this project's. `webview/webview`
+  is MIT, is one header and brings none — it drives the WebKitGTK, WebView2 or
+  WKWebView the desktop already has — so neither condition that quarantines a
+  content module applies to it.
+
+  It ships as **§9's second `widget.shell` member**, beside `tray-icon`, because
+  it could not be a widget: `webview/webview` has no offscreen surface, so a page
+  is always a platform window, and a Wayland session allows neither reparenting a
+  foreign surface nor placing a window where a widget is. A `web-view` in a layout
+  would have been a box on three platforms and a loose window on the default Linux
+  desktop.
+
+  **Three things it cost that are worth knowing.** The native library is
+  *separate* — `libgoldberry-webview`, linked into nothing and opened on demand,
+  because GTK and WebKit in `libgoldberry`'s `NEEDED` would make them load-time
+  dependencies of every application on Linux; `objdump -p libgoldberry.so` shows
+  no GTK or WebKit entry, which is the check that whole argument reduces to. The
+  **event loop had to learn to stay awake**: a page's engine runs on GLib's main
+  context, nothing wakes the loop when WebKit has work, and the loop parks for its
+  one-second heartbeat on an idle desktop — so while a page is open, and only
+  then, the wait is capped at 8 ms. And `webview/webview` 0.12.0 has a **bug on
+  its GTK backend**: `set_size_impl` applies the size and then falls off the end
+  into `return error_info{WEBVIEW_ERROR_INVALID_ARGUMENT}` unconditionally, so
+  every resize succeeds and reports failure. The shim validates the hint itself
+  and translates that one spurious code.
+
+  **And the one that cost the most was found by pressing the button.** Two GTK
+  majors in one process is a `SIGSEGV`, not an error: `GdkDisplayManager` is
+  registered by both `gdk-3` and `gdk-4` into GObject's process-global type
+  registry, so the second one back gets 0 and `gtk_init_check` dereferences NULL.
+  SDL's Linux tray is libayatana-appindicator, which links GTK 3 — so the
+  showcase was already a GTK 3 process, and its own "Open the Goldberry page"
+  button took the window down. The Linux build therefore links `webkit2gtk-4.1`,
+  which is WebKitGTK on GTK 3, against webview's own preference; and the shim
+  checks with `RTLD_NOLOAD` whether the rival major is already mapped and
+  declines rather than crashing. `web-view` and `tray-icon` are a **pair** on
+  Linux now, which only a separate process would uncouple.
+
+  *Unverified on Windows and macOS*, in `tray-icon`'s sense: the design says SDL's
+  own pump services both and nothing here has run it. The Linux leg was built and
+  exercised on a Wayland session, through FFM and through a real `Host` with a
+  real tray up — page opened, titled, sized, navigated, pumped and destroyed.
 
 ## Module layout
 
 | Module | Artifact | Contents |
 |---|---|---|
 | `:common` | `goldberry-common` | What both halves need and neither owns: `Logs`, which every logger in the toolkit comes from so that SLF4J's own no-provider warning is quiet before the first one is created ([ADR-0023](adr/0023-logging-and-the-example-as-a-subproject.md)), and `Startup`, the timeline of what happened before the first pixel ([ADR-0028](adr/0028-the-start-up-timeline.md)). **The lowest module**: it requires nothing of Goldberry's, which is what lets `:natives` and `:core` both use it. It exists because they cannot both reach into the other — `:core` requires `:natives`, so shared code used to have to live inside the native layer and be exported from it ([ADR-0174](adr/0174-what-both-halves-need-is-its-own-module.md)) |
-| `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` |
+| `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` — **and, where WebKit's headers were present, `libgoldberry-webview` beside it** ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). The second library is linked into nothing and opened on demand, because GTK and WebKit in `libgoldberry`'s `NEEDED` would make them load-time dependencies of every application on Linux. It is the one artifact here an installation may legitimately not have |
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
 | `:weaver` | *not published* | The weaver, in two halves. **Catalog**: collects a module's `@Markup` widgets into a `WidgetCatalog` and declares it — every build runs this, because nothing finds annotated classes at run time ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)). **Models**: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, with the JDK's class-file API — only a **GraalVM native image** runs this, since an ordinary jar binds the same annotations reflectively ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Build-time only, like `:assets`: it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |

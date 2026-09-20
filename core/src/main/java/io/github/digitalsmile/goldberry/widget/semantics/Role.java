@@ -7,18 +7,21 @@ package io.github.digitalsmile.goldberry.widget.semantics;
 /// promise to an assistive technology that nothing keeps. It grows when a widget
 /// arrives that is genuinely none of these.
 ///
-/// ## Why this exists before the AccessKit bridge
+/// ## Why this exists with no bridge above it
 ///
 /// Because `docs/testing.md` §1.7 asks for a sweep — "walking the gallery asserts
 /// every interactive node exposes role + name" — and that assertion needs
-/// somewhere for the answer to live. The bridge is M5 and this is not it: no
-/// platform API is touched here, nothing is exported to a screen reader, and
-/// `SemanticsSweepTest` is the only consumer. What it buys now is that the
-/// catalog cannot grow a focusable widget that has no name, which is the defect
-/// an accessibility pass finds late and expensively.
+/// somewhere for the answer to live. No platform API is touched here, nothing is
+/// exported to a screen reader, and `SemanticsSweepTest` is the only consumer.
+/// What it buys is that the catalog cannot grow a focusable widget that has no
+/// name, which is the defect an accessibility pass finds late and expensively.
 ///
-/// The shape is what a bridge would need anyway — AccessKit's node is a role, a
-/// name and a set of states — so this is the data rather than a rehearsal of it.
+/// **And there is no bridge coming.** The AccessKit bridge is on hold and owned
+/// by no milestone ([ADR-0440]), so this is not a value waiting for a consumer to
+/// arrive — it is the value the sweep consumes, and it earns its place on that
+/// alone. It stays in the shape a bridge would need anyway, since AccessKit's
+/// node is a role, a name and a set of states, which is what keeps that door open
+/// at no running cost.
 public enum Role {
 
     /// Something you press to make it happen.
@@ -86,8 +89,9 @@ public enum Role {
     /// reached, where a grid promises that all four arrow keys mean something and
     /// that a cell has a position in two axes. `docs/core-widgets.md` §10 asks a
     /// calendar for exactly that — "grid with each cell's full date as its name"
-    /// — and the second half of that sentence has nowhere to go until the
-    /// AccessKit bridge, because [Semantics] has no per-cell channel (ADR-0274).
+    /// — and the second half of that sentence has nowhere to go, because
+    /// [Semantics] has no per-cell channel (ADR-0274) and the AccessKit bridge
+    /// that would have brought one is on hold ([ADR-0440]).
     GRID,
 
     /// A window-like layer over the rest: a dialog, a tour stop.

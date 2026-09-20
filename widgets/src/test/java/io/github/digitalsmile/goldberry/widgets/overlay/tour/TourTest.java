@@ -24,6 +24,13 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollHarness;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `tour` — §5's guided sequence, and the veil under it
 /// (ADR-0121).
@@ -467,6 +474,95 @@ class TourTest {
             assertNotNull(overlay);
             assertTrue(overlay.isFilling(), "a tour dims everything except one widget, so it must cover everything");
             assertEquals(1, host.filled.size());
+        }
+    }
+
+    /// §5: "the target is scrolled into view before the popover is positioned"
+    /// ([ADR-0439]).
+    ///
+    /// Driven against a **real** viewport rather than the stub host the rest of
+    /// this file uses, because the question is whether pixels moved and a stub
+    /// cannot move any. The host is still the stub — it just answers `anchor`
+    /// with a region a real frame produced, owner and clip and all.
+    @Nested
+    @DisplayName("scrolling the target into view")
+    class Revealing {
+
+        private final java.util.List<ScrollHarness> harnesses = new java.util.ArrayList<>();
+
+        @org.junit.jupiter.api.AfterEach
+        void tearDown() {
+            harnesses.forEach(ScrollHarness::close);
+            harnesses.clear();
+        }
+
+        /// Thirty rows in a short viewport, with **nothing wired**: no
+        /// `ScrollController` anywhere, which is the state an ordinary
+        /// application's markup is in.
+        private ScrollHarness scrolled() {
+            io.github.digitalsmile.goldberry.RendererRequirement.enforce();
+            var rows = new java.util.ArrayList<Widget>();
+            for (var i = 0; i < 30; i++) {
+                rows.add(new Text("row " + i, Attributes.NONE.id("row" + i)));
+            }
+            var harness = new ScrollHarness(
+                    new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE));
+            harnesses.add(harness);
+            return harness;
+        }
+
+        @Test
+        @DisplayName("a stop that was told no viewport still brings its target into view")
+        void findsTheViewportItself() {
+            var harness = scrolled();
+            var host = new StubHost();
+            host.anchoring("row20", harness.region("row20"));
+            var before = harness.rowRect("row20");
+            assertTrue(
+                    before.top() > ScrollHarness.VIEWPORT_HEIGHT,
+                    "row20 starts below the fold, or this proves nothing");
+
+            // No `.within(controller)` anywhere: the tour is given a name and
+            // has to find the rest.
+            new ElementTree(new Tour(List.of(new Stop("row20", "There", "the twenty-first row")), host, () -> {}));
+            harness.settle();
+
+            var after = harness.rowRect("row20");
+            assertTrue(
+                    after.top() >= -1 && after.top() + after.size().height() <= ScrollHarness.VIEWPORT_HEIGHT + 1,
+                    "row20 is at " + after.top() + "; the tour did not find the viewport it is in");
+        }
+
+        @Test
+        @DisplayName("a controller the application named is still used, because it may mean an outer viewport")
+        void anExplicitControllerWins() {
+            var harness = scrolled();
+            var host = new StubHost();
+            host.anchoring("row20", harness.region("row20"));
+            // A controller attached to nothing. If the tour preferred the walk
+            // over what it was told, the row would move; being told is the
+            // application saying "this viewport, not whichever one encloses it".
+            var elsewhere = new ScrollController();
+            var before = harness.rowRect("row20").top();
+
+            new ElementTree(new Tour(
+                    List.of(new Stop("row20", "There", "the twenty-first row").within(elsewhere)), host, () -> {}));
+            harness.settle();
+
+            assertEquals(before, harness.rowRect("row20").top(), 0.5, "the named controller was ignored");
+        }
+
+        @Test
+        @DisplayName("a target in no viewport at all is not an error")
+        void nothingEncloses() {
+            var host = new StubHost().anchor("loose", 10, 10, 80, 24);
+
+            // The ordinary case for most stops, and it must not throw: the tour
+            // asks, is told there is no viewport, and places its card.
+            var stop = stopOf(new ElementTree(new Tour(List.of(new Stop("loose", "Here", "x")), host, () -> {})));
+
+            assertNotNull(stop);
+            assertEquals(10, stop.target().left(), 0.01f);
         }
     }
 }

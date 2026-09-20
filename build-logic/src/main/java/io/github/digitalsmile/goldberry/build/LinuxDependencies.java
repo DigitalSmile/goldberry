@@ -296,7 +296,30 @@ public final class LinuxDependencies {
             // into it are rarely on the same display server.
             new Dependency("ibus-1.0", "libibus-1.0-dev", "ibus-devel",
                     Necessity.OPTIONAL, "SDL3 input method on X11",
-                    List.of("INPUT_METHOD")));
+                    List.of("INPUT_METHOD")),
+
+            // §9's `web-view`, and the only row here that is not SDL's (ADR-0441).
+            //
+            // Present, the superbuild produces a SECOND shared library beside
+            // libgoldberry -- libgoldberry-webview, linked into nothing and opened
+            // on demand. Absent, it produces one library and says so, and
+            // `WebViews.open` answers empty for ever after.
+            //
+            // OPTIONAL, and this is the one row where that word is unqualified.
+            // Every other absence here is a feature going quiet on a toolkit that
+            // claims to have it, which is what `capabilities` exists to make
+            // visible. A web view is a thing an application opts into by calling
+            // for it, and most applications never do -- so a build without WebKit
+            // is an ordinary build and not a degraded one.
+            //
+            // No capability is named, deliberately. The list is for capabilities
+            // compiled INTO libgoldberry, and Capability.WEB_VIEW is not one of
+            // them: it is the presence of the second library, answered by trying
+            // to open it. Naming it here would put it in `capabilityBacked()`,
+            // whose rows the release workflow must install -- and the release does
+            // not have to carry WebKit.
+            new Dependency("webkitgtk-6.0", "libwebkitgtk-6.0-dev", "webkitgtk6.0-devel",
+                    Necessity.OPTIONAL, "the `web-view` page engine, in a separate optional library"));
 
     /**
      * The dependencies a built library loses a reportable capability without.

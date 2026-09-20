@@ -1149,3 +1149,70 @@ chip.motion-entry {
     transform: translateY(-8px) scale(0.96);
   }
 }
+
+/* The Web screen — §9's `web-view` (ADR-0441).
+ *
+ * One card rather than a wall, because there is one thing to say and no widget
+ * to demonstrate: the page this screen is about opens in a window of WebKit's,
+ * which no rule here can reach and no golden image can contain.
+ *
+ * Padded on the sides, which `.screen` does not do -- every other screen is a
+ * `masonry` and gets its inset from the wall. `max-width` for the reason the
+ * prose rules have one: a line of body text running the full width of a
+ * maximised window is unreadable, and this screen is mostly prose. */
+#web-screen {
+  padding: 16px;
+}
+
+#web-screen > .wall-card {
+  max-width: 760px;
+}
+
+/* The button and the URL beside it. `align-items: center` so the caption sits on
+ * the button's centre line rather than its top, and `gap` is §1.3's 8 -- the
+ * rung for two controls that belong together. */
+#web-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The `web-view` itself: the box a page is kept over (ADR-0442). It must GROW,
+ * because the page is sized from this widget's painted rectangle -- a
+ * content-sized box would put a page in a zero-height strip. */
+#web-screen > .web-view {
+  flex-grow: 1;
+}
+
+.web-view {
+  flex-direction: column;
+}
+
+/* The canvas inside it draws nothing: the page covers it. It exists to be the
+ * thing with a box, and to give the widget a per-frame hook. */
+.web-view > canvas {
+  flex-grow: 1;
+}
+
+/* The Web screen must FILL the tab, and this is load-bearing rather than
+ * cosmetic. A screen inside the gallery's viewport is content-sized (see
+ * `#screen-navigation` above, which is the same exception for the same kind of
+ * reason). The page is sized from the box the widget is *painted* at, so a
+ * content-sized screen gives a zero-height canvas, a canvas that is never
+ * painted, a widget that never learns where it is, and no page at all. The tab
+ * was blank for exactly this reason. */
+#web-screen {
+  flex-grow: 1;
+}
+
+/* The Web view screen's header: the caption on the left, the dialog button on
+ * the right. `flex-shrink: 0` so it keeps its height while the page below it
+ * takes everything else -- the page is sized from the box the widget is painted
+ * at, so anything that squeezes that box squeezes the page. */
+#web-actions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}

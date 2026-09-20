@@ -323,8 +323,22 @@ class WidgetParityTest {
     private static final Map<String, String> UNSTYLED = Map.of(
             "spacer", "a gap: it has a size and no surface",
             "stack", "a layout container, drawn entirely by what is stacked in it",
-            "canvas", "the application paints it, which is the whole of what it is for",
             "sparkline", "inherits `color` like text, deliberately — see its own doc comment");
+
+    /// `canvas` left this list, and the reason is worth keeping because the
+    /// rationale it left with is still true.
+    ///
+    /// It was here because "the application paints it, which is the whole of what
+    /// it is for" — a default rule would be a colour nobody asked for. That still
+    /// holds for every canvas an application writes, and the base stylesheet still
+    /// gives a bare `canvas` nothing.
+    ///
+    /// What changed is that `web-view` builds one (ADR-0442): the page is sized
+    /// from the box this widget is painted at, and a canvas has no intrinsic size,
+    /// so without `canvas.web-surface { flex-grow: 1 }` a page is asked to be zero
+    /// pixels tall. The rule is **class-scoped** and reaches no canvas but that
+    /// one, which is why this is a rule the toolkit may have and a bare default is
+    /// still not.
 
     @ParameterizedTest
     @MethodSource("builtIns")

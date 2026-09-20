@@ -38,7 +38,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
         private final MemorySegment address;
 
         Shape(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_shape");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_shape");
         }
 
         /// Calls `hb_shape`.
@@ -51,7 +51,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             try {
                 FD_hb_shape.invokeExact(address, font, buffer, features, numFeatures);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_shape", t);
+                throw Downcalls.failure("goldberry_hb_shape", t);
             }
         }
     }
@@ -67,7 +67,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
         private final MemorySegment address;
 
         ScriptFromString(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_script_from_string");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_script_from_string");
         }
 
         /// Calls `hb_script_from_string`.
@@ -79,7 +79,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             try {
                 return (int) FD_hb_script_from_string.invokeExact(address, name, length);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_script_from_string", t);
+                throw Downcalls.failure("goldberry_hb_script_from_string", t);
             }
         }
     }
@@ -98,7 +98,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
         private final MemorySegment address;
 
         LanguageFromString(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_language_from_string");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_language_from_string");
         }
 
         /// Calls `hb_language_from_string`.
@@ -110,7 +110,7 @@ public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, Langu
             try {
                 return (MemorySegment) FD_hb_language_from_string.invokeExact(address, name, length);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_language_from_string", t);
+                throw Downcalls.failure("goldberry_hb_language_from_string", t);
             }
         }
     }

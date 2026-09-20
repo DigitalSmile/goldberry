@@ -77,10 +77,23 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
 
     /// The file name of the shared library for this platform.
     public String libraryFileName() {
+        return sharedLibraryFileName("goldberry");
+    }
+
+    /// The file name a shared library called `stem` has on this platform.
+    ///
+    /// `libgoldberry` is not the only one any more: ADR-0441's
+    /// `libgoldberry-webview` is built beside it and linked into nothing, so the
+    /// three spellings of "a shared library" are needed twice and are written
+    /// down once.
+    ///
+    /// @param stem the library's name without prefix or extension
+    /// @return `libstem.so`, `libstem.dylib` or `stem.dll`
+    public String sharedLibraryFileName(String stem) {
         return switch (os) {
-            case LINUX -> "libgoldberry.so";
-            case MACOS -> "libgoldberry.dylib";
-            case WINDOWS -> "goldberry.dll";
+            case LINUX -> "lib" + stem + ".so";
+            case MACOS -> "lib" + stem + ".dylib";
+            case WINDOWS -> stem + ".dll";
         };
     }
 

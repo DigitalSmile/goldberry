@@ -65,7 +65,8 @@ jobs:
             libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
-            libibus-1.0-dev
+            libibus-1.0-dev \
+            libwebkit2gtk-4.1-dev
 
       # The native library, not `-Pgoldberry.skipNative`: PIT re-runs the suite
       # once per mutant, and a test that skips for want of a rasterizer kills
@@ -122,7 +123,8 @@ jobs:
             libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
-            libibus-1.0-dev
+            libibus-1.0-dev \
+            libwebkit2gtk-4.1-dev
 
       # The native library, because every benchmark that shapes text or paints a
       # frame needs a rasterizer -- without it they skip quietly, which looks

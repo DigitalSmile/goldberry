@@ -650,6 +650,48 @@ public interface Host {
     java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
             io.github.digitalsmile.goldberry.render.tray.TraySpec spec);
 
+    /// Opens a web page in a window of the engine's own — `docs/core-widgets.md`
+    /// §9's `web-view`.
+    ///
+    /// **Empty is the usual answer, not an unlucky one.** A page needs
+    /// `libgoldberry-webview`, which is a separate library precisely so that GTK
+    /// and WebKit are not load-time dependencies of the toolkit, and most builds
+    /// do not have it
+    /// ([ADR-0441](../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)).
+    /// An application that wants to know before it offers the button asks
+    /// [io.github.digitalsmile.goldberry.Goldberry#capabilities()] for
+    /// [io.github.digitalsmile.goldberry.platform.Capability#WEB_VIEW].
+    ///
+    /// On [Host] for the tray's reason, and more strongly: what opens is not a
+    /// Goldberry window, has no box and is in no element tree. It is a window on
+    /// the desktop that this application happens to have asked for, and the only
+    /// thing that connects it to the toolkit is the handle returned here.
+    ///
+    /// **The caller closes it.**
+    /// [io.github.digitalsmile.goldberry.Goldberry#run()] returns when the last
+    /// *Goldberry* window closes, and a page's window is not one.
+    ///
+    /// @param spec where the page starts, its title and its window size
+    /// @return the page, or empty where no page can be opened here
+    java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> webView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec);
+
+    /// Opens a page **inside this window**, at the given rectangle in its own
+    /// logical coordinates — §9's `web-view` as a widget ([ADR-0442]).
+    ///
+    /// **Empty on Wayland, always.** Embedding means reparenting the engine's
+    /// window into this one; X11, Win32 and Cocoa allow that and Wayland does
+    /// not. A caller that gets empty is expected to say so on screen rather than
+    /// to open a window beside the application — which is the whole difference
+    /// between this and [#webView].
+    ///
+    /// @param spec   where the page starts; its width and height are ignored
+    /// @param bounds where to put it, in this window's logical coordinates
+    /// @return the page, or empty where none can be embedded here
+    java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> embeddedWebView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect bounds);
+
     /// Asks the platform to start or stop delivering committed text to this
     /// window.
     ///

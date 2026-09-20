@@ -38,6 +38,11 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 /// the one that clips it, and passes both to [#reveal]. Two rectangles in, a
 /// scroll out.
 ///
+/// **A caller holding the target rather than the viewport wants [ScrollScope]**,
+/// which walks up from the target to whatever viewport encloses it and needs no
+/// controller to have been wired at all ([ADR-0439]). This type stays what an
+/// owner holds — a handle created above a viewport and handed down to it.
+///
 /// ## Lifetime
 ///
 /// Create one and keep it — an application field, or a state's. A controller with
@@ -148,58 +153,8 @@ public final class ScrollController {
     /// [ScrollAxis#VERTICAL] and the horizontal position is left where the user
     /// put it (ADR-0370).
     public void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
-        if (attached == null) {
-            return;
+        if (attached != null) {
+            attached.reveal(self, clip, axes);
         }
-        // `self` was painted where a glide had got to, and the offset is already
-        // where it ends. Measure the rectangle where it will be, or a reveal asked
-        // again mid-glide would move the viewport a second time (ADR-0363).
-        var aheadX = attached.glideRemainingX();
-        var aheadY = attached.glideRemainingY();
-        self = LogicalRect.of(
-                (float) (self.left() - aheadX),
-                (float) (self.top() - aheadY),
-                self.size().width(),
-                self.size().height());
-        var dy = distance(
-                self.top(),
-                self.top() + self.size().height(),
-                clip.top(),
-                clip.top() + clip.size().height());
-        var dx = distance(
-                self.left(),
-                self.left() + self.size().width(),
-                clip.left(),
-                clip.left() + clip.size().width());
-        if (!axes.isHorizontal()) {
-            dx = 0;
-        }
-        if (!axes.isVertical()) {
-            dy = 0;
-        }
-        if (dx != 0 || dy != 0) {
-            attached.scrollBy(dx, dy);
-        }
-    }
-
-    /// How far a viewport must move to bring `near`..`far` inside
-    /// `clipNear`..`clipFar`, or 0 when it already is.
-    ///
-    /// Positive means further down or right. **The least it can**: a reveal that
-    /// centred its target would throw away everything the user was already
-    /// looking at, and §1 asks for the target to be in view rather than for it to
-    /// be anywhere in particular.
-    ///
-    /// The near edge wins when the target is larger than the viewport, because
-    /// showing the top of something too big to fit is what every browser does —
-    /// the alternative shows its bottom and hides the heading.
-    private static double distance(float near, float far, float clipNear, float clipFar) {
-        if (near < clipNear) {
-            return near - clipNear;
-        }
-        if (far > clipFar) {
-            return Math.min(far - clipFar, near - clipNear);
-        }
-        return 0;
     }
 }

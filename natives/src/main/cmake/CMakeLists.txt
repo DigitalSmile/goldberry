@@ -109,11 +109,12 @@ goldberry_pin(harfbuzz GOLDBERRY_HARFBUZZ_REF)
 goldberry_pin(sdl3 GOLDBERRY_SDL3_REF)
 goldberry_pin(md4c GOLDBERRY_MD4C_REF)
 goldberry_pin(libwebp GOLDBERRY_LIBWEBP_REF)
+goldberry_pin(webview GOLDBERRY_WEBVIEW_REF)
 
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
     "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}, "
-    "libwebp ${GOLDBERRY_LIBWEBP_REF}")
+    "libwebp ${GOLDBERRY_LIBWEBP_REF}, webview ${GOLDBERRY_WEBVIEW_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -454,6 +455,28 @@ FetchContent_Declare(md4c
     SOURCE_SUBDIR do-not-add-this-subdirectory)
 
 # ============================================================================
+# webview/webview -- §9's `web-view` (ADR-0441)
+#
+# The only upstream here that does NOT end up in libgoldberry. It goes into
+# `libgoldberry-webview`, built at the bottom of this file, because the engine
+# behind it is the desktop's own -- WebKitGTK, WebView2, WKWebView -- and linking
+# that into the toolkit's library would make GTK and WebKit load-time
+# dependencies of every application on Linux.
+#
+# SOURCE_SUBDIR names a directory that does not exist, for md4c's reason: the
+# upstream CMake project builds a shared library, an amalgamation target, tests
+# and a packaging rule, and what this build wants is one header. The
+# implementation is IN that header -- `core/src/webview.cc` is a single #include
+# -- so `goldberry_webview.cc` is the translation unit and there is nothing to
+# link.
+FetchContent_Declare(webview
+    GIT_REPOSITORY https://github.com/webview/webview.git
+    GIT_TAG ${GOLDBERRY_WEBVIEW_REF}
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+    SOURCE_SUBDIR do-not-add-this-subdirectory)
+
+# ============================================================================
 # libwebp -- the WebP decoder (docs/gaps.md G35a, ADR-0329)
 #
 # Blend2D is compiled with the PNG, JPEG and QOI codecs and no others, so a WebP
@@ -499,7 +522,7 @@ set(WEBP_BUILD_FUZZTEST OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_WEBP_JS OFF CACHE BOOL "" FORCE)
 
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
-FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c libwebp)
+FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3 md4c libwebp webview)
 
 foreach(webp_target webp webpdemux)
     if(NOT TARGET ${webp_target})
@@ -833,3 +856,126 @@ install(TARGETS goldberry
     RUNTIME DESTINATION lib     # Windows DLLs land beside the others on purpose:
     LIBRARY DESTINATION lib     # NativeLibrary looks in one place per target.
     ARCHIVE DESTINATION lib)
+
+
+# ============================================================================
+# libgoldberry-webview -- §9's `web-view` (ADR-0441)
+#
+# The second artifact, and the only one an installation is allowed not to have.
+#
+# It is separate for one reason, and the reason is load time rather than size:
+# the engine is the desktop's own, so linking it into libgoldberry would put GTK
+# and WebKit in that library's DT_NEEDED. Every Goldberry application on Linux
+# would then require them to start -- including the overwhelming majority that
+# never open a page -- and one on a machine without them would fail to load the
+# toolkit at all rather than fail to open a web view.
+#
+# Nothing links against this. Java opens it on demand through
+# `WebviewLibrary`, and where it is absent `Capability.WEB_VIEW` is not reported
+# and `WebViews.open` answers empty -- the same shape `Host.tray` has for a
+# desktop with no notification area.
+#
+# It is also the one place in this build where a missing dependency is NOT a
+# failure. Everything else here is required, because a toolkit that silently
+# drops its text shaping is the bug ADR-0325 exists about; a web view is a
+# feature an application opts into by calling for it, so a build without WebKit's
+# headers produces one library instead of two and says so.
+# ============================================================================
+
+set(GOLDBERRY_WEBVIEW_AVAILABLE OFF)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    # The GTK3 pairing FIRST, which is the reverse of webview's own CMake and of
+    # every upstream recommendation. It is not a preference; it is a constraint,
+    # and it was paid for with a SIGSEGV.
+    #
+    # GObject's type registry is process-global, and gdk-3 and gdk-4 both register
+    # a type called `GdkDisplayManager`. Two GTK majors in one process therefore
+    # kill it: the second registration returns 0, g_once_init_leave_pointer
+    # asserts, and gtk_init_check dereferences NULL.
+    #
+    # A Goldberry process is ALREADY a GTK 3 process whenever it shows a tray
+    # icon, because SDL's Linux tray is libayatana-appindicator and that links
+    # libgtk-3 (§9, ADR-0191). `tray-icon` is an ordinary part of the catalog, so
+    # the toolkit cannot be a GTK 4 process on Linux -- and a web view built
+    # against webkitgtk-6.0 makes it one the first time a page is opened.
+    #
+    # So: webkit2gtk-4.1, which is WebKitGTK on GTK 3, sharing the one libgtk-3
+    # the tray already mapped. 6.0 stays in the list because a build with no 4.1
+    # available is better off with a web view that works in the (common) case of
+    # an application that shows no tray -- and the shim refuses at run time
+    # rather than crashing when it finds the other major already loaded.
+    #
+    # The header picks its platform backend by itself and reads the WebKit version
+    # out of the headers it was given, so choosing the pkg-config module is the
+    # whole of the choice.
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_search_module(GOLDBERRY_WEBKITGTK IMPORTED_TARGET webkit2gtk-4.1 webkitgtk-6.0)
+        if(GOLDBERRY_WEBKITGTK_FOUND)
+            if("${GOLDBERRY_WEBKITGTK_MODULE_NAME}" STREQUAL "webkitgtk-6.0")
+                pkg_check_modules(GOLDBERRY_GTK IMPORTED_TARGET gtk4)
+            else()
+                pkg_check_modules(GOLDBERRY_GTK IMPORTED_TARGET gtk+-3.0)
+            endif()
+            if(GOLDBERRY_GTK_FOUND)
+                set(GOLDBERRY_WEBVIEW_AVAILABLE ON)
+            endif()
+        endif()
+    endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # WKWebView is a system framework and WebView2 ships with the OS, so there is
+    # no optional header to probe for: these are the platforms where the library
+    # is always buildable. UNVERIFIED -- neither has been built or run, which is
+    # the tray's situation exactly and is recorded the same way in ADR-0441.
+    set(GOLDBERRY_WEBVIEW_AVAILABLE ON)
+endif()
+
+if(NOT GOLDBERRY_WEBVIEW_AVAILABLE)
+    message(STATUS
+        "Goldberry web view: OFF -- no WebKitGTK development headers. "
+        "libgoldberry-webview will not be built and `web-view` will report itself "
+        "unavailable at run time. Install libwebkitgtk-6.0-dev (Debian/Ubuntu) or "
+        "webkitgtk6.0-devel (RHEL/Fedora) to build it.")
+else()
+    message(STATUS "Goldberry web view: ON (${GOLDBERRY_WEBKITGTK_MODULE_NAME})")
+
+    add_library(goldberry-webview SHARED goldberry_webview.cc)
+
+    # The implementation lives in the header, so this is the only translation
+    # unit and there is nothing of webview's to link.
+    target_include_directories(goldberry-webview PRIVATE "${webview_SOURCE_DIR}/core/include")
+
+    set_target_properties(goldberry-webview PROPERTIES
+        # `default`, unlike every other target in this build. There is no export
+        # list here and no static archive to pull symbols out of: the nine
+        # functions are this file's own and carry the visibility attribute
+        # themselves, so hiding everything and then re-exporting them would be
+        # two mechanisms for one nine-name surface.
+        CXX_VISIBILITY_PRESET default
+        OUTPUT_NAME goldberry-webview)
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        # X11 as well as GTK: embedding a page is XReparentWindow, which is
+        # Xlib's rather than GDK's (ADR-0442). gdk-x11 would pull it in anyway,
+        # but a link line that states what the source calls is one that keeps
+        # working when a dependency stops re-exporting something.
+        pkg_check_modules(GOLDBERRY_X11 IMPORTED_TARGET x11)
+        target_link_libraries(goldberry-webview PRIVATE
+            PkgConfig::GOLDBERRY_WEBKITGTK
+            PkgConfig::GOLDBERRY_GTK
+            PkgConfig::GOLDBERRY_X11
+            dl)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        target_link_libraries(goldberry-webview PRIVATE
+            "-framework WebKit"
+            "-framework Cocoa")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        target_link_libraries(goldberry-webview PRIVATE advapi32 ole32 shell32 shlwapi user32 version)
+    endif()
+
+    install(TARGETS goldberry-webview
+        RUNTIME DESTINATION lib
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+endif()

@@ -85,6 +85,13 @@ md4c = "release-0.5.3"
 # animation support and every command-line tool are off, because Goldberry reads
 # one still frame and writes PNG.
 libwebp = "v1.6.0"
+# webview/webview is §9's `web-view` (ADR-0441). MIT, and one 4500-line header
+# with the implementation in it -- it brings no engine of its own, driving the
+# desktop's: WebKitGTK, WebView2 or WKWebView. It is the one upstream here that is
+# NOT compiled into libgoldberry: it goes into `libgoldberry-webview` beside it,
+# linked into nothing and opened on demand, because GTK and WebKit must not become
+# load-time dependencies of every application that ever used the toolkit.
+webview = "0.12.0"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

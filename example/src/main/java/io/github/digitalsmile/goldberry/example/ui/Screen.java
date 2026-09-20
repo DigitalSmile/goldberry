@@ -98,7 +98,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "emoji", "motion");
+            "canvas", "icons", "emoji", "motion", "web");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -125,7 +125,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("canvas", "Canvas"),
             Map.entry("icons", "Icons"),
             Map.entry("emoji", "Emoji"),
-            Map.entry("motion", "Motion"));
+            Map.entry("motion", "Motion"),
+            Map.entry("web", "Web view"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -306,7 +307,15 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // What moves by itself: a canvas choreography, `@keyframes`
                     // and `@starting-style`, one card each. Last, so no digit
                     // moves (ADR-0354).
-                    new Tab("motion", title("motion"), scrolled(new MotionScreen()))))),
+                    new Tab("motion", title("motion"), scrolled(new MotionScreen())),
+                    // §9's `web-view`, filling the tab: a real child window over
+                    // the widget's box, moved with it (ADR-0442). NOT `scrolled` --
+                    // a page is clipped by the window rather than by an ancestor's
+                    // box, so a viewport would scroll the frame out from under a
+                    // page that stayed put. Last, after `motion`, so no digit
+                    // moves (ADR-0354); the gallery is longer than ten digits now,
+                    // so this screen has no accelerator.
+                    new Tab("web", title("web"), new WebScreen())))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

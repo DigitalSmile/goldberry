@@ -38,6 +38,13 @@ goldberry_platform_capabilities
 # delivered. See sec. 3.1 and ADR-0017.
 goldberry_probe_measure
 
+# Tells GTK which window system to use, so the two halves of one process agree.
+# SDL is asked for X11 first on Linux and GDK prefers Wayland when asked nothing,
+# which on an XWayland desktop makes the application's window an X11 window and
+# its GTK surfaces Wayland surfaces -- invisible until `web-view` tries to
+# reparent one into the other (ADR-0442).
+goldberry_prefer_gtk_backend
+
 # --- SDL3 (sec. 4, backend SPI) ----------------------------------------------
 # Lifecycle, error and version. Enough to prove SDL3 is reachable through this
 # list and to report which SDL is linked in; windowing follows.
@@ -63,6 +70,21 @@ SDL_SetHint
 # A URL handed to the desktop's own handler for its scheme -- the browser, the
 # mail client. What sec. 2's `link` opens an `href` through (ADR-0346).
 SDL_OpenURL
+
+# The native window handle, which ARCHITECTURE.md sec. 12 has promised since day
+# one and nothing had built: "backends expose raw native window handles for apps
+# embedding external renderers". Its first consumer is `web-view`, which cannot
+# be a widget without one -- a page is a platform window, and putting it inside
+# this one means reparenting it into this one's X11 Window, HWND or NSWindow
+# (ADR-0441, ADR-0442).
+#
+# The property NAMES are string #defines in SDL's headers rather than symbols,
+# so only the three getters cross. SDL_GetWindowProperties returns an id;
+# SDL_GetNumberProperty reads the X11 Window, which is an integer; and
+# SDL_GetPointerProperty reads the HWND and the NSWindow, which are not.
+SDL_GetWindowProperties
+SDL_GetNumberProperty
+SDL_GetPointerProperty
 
 # Windowing and the CPU present path (sec. 4, sec. 5).
 SDL_CreateWindow
@@ -554,40 +576,40 @@ YGNodeLayoutGetHadOverflow
 # positions out. See ADR-0032.
 
 # Which HarfBuzz is linked in.
-hb_version
+goldberry_hb_version
 
 # A font's bytes -> a face -> a font. Three objects because HarfBuzz separates
 # the file, the typeface, and the sizing of it.
-hb_blob_create
-hb_blob_destroy
-hb_face_create
-hb_face_destroy
-hb_face_get_empty
+goldberry_hb_blob_create
+goldberry_hb_blob_destroy
+goldberry_hb_face_create
+goldberry_hb_face_destroy
+goldberry_hb_face_get_empty
 # The units advances come back in when nothing sets a scale -- and therefore
 # the units Blend2D's font matrix expects. See ADR-0034.
-hb_face_get_upem
-hb_font_create
-hb_font_destroy
-hb_font_set_scale
+goldberry_hb_face_get_upem
+goldberry_hb_font_create
+goldberry_hb_font_destroy
+goldberry_hb_font_set_scale
 
 # The buffer: the run of text being shaped, and afterwards the glyphs.
-hb_buffer_create
-hb_buffer_destroy
-hb_buffer_reset
-hb_buffer_add_utf16
-hb_buffer_guess_segment_properties
-hb_buffer_set_direction
-hb_buffer_get_direction
-hb_buffer_set_script
-hb_buffer_set_language
-hb_buffer_get_length
-hb_buffer_get_glyph_infos
-hb_buffer_get_glyph_positions
-hb_script_from_string
-hb_language_from_string
+goldberry_hb_buffer_create
+goldberry_hb_buffer_destroy
+goldberry_hb_buffer_reset
+goldberry_hb_buffer_add_utf16
+goldberry_hb_buffer_guess_segment_properties
+goldberry_hb_buffer_set_direction
+goldberry_hb_buffer_get_direction
+goldberry_hb_buffer_set_script
+goldberry_hb_buffer_set_language
+goldberry_hb_buffer_get_length
+goldberry_hb_buffer_get_glyph_infos
+goldberry_hb_buffer_get_glyph_positions
+goldberry_hb_script_from_string
+goldberry_hb_language_from_string
 
 # The one call the rest of it exists for.
-hb_shape
+goldberry_hb_shape
 
 
 # --- Markdown (ADR-0294) -----------------------------------------------------

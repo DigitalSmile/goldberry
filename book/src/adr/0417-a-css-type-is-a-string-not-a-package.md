@@ -38,7 +38,7 @@ cascade matches on the string, `controls.css` writes the string, and
 `SelectGoldenTest` names its image `select-list-dark` because somebody typed that
 too. Moving the `.java` file could not have touched any of them, and did not: the
 whole of the stylesheet change in this record is one property on an unrelated
-widget, and the goldens that moved belong to [ADR-0419](0419-the-indeterminate-bar-runs-off-both-edges.md).
+widget, and the goldens that moved belong to [ADR-0418](0418-the-indeterminate-bar-runs-off-both-edges.md).
 
 So the entry was not a cost/benefit judgement that came out the wrong way. It was
 an estimate nobody re-derived, and it survived because the thing it protected —

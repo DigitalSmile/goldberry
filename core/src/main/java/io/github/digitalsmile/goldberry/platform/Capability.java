@@ -100,5 +100,34 @@ public enum Capability {
     ///
     /// Like every other value here this describes the **library**: a build with
     /// the driver still runs on X11 when that is what the desktop is.
-    WAYLAND
+    WAYLAND,
+
+    /// Whether this process can open a web page — §9's `web-view`,
+    /// [ADR-0441](../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md).
+    ///
+    /// **The one value here that is not a bit in `libgoldberry`**, and the reason
+    /// is the whole of that ADR. The engine behind a page is the desktop's own —
+    /// WebKitGTK, WebView2, WKWebView — so it lives in a second library,
+    /// `libgoldberry-webview`, which is linked into nothing and opened on demand.
+    /// Linking it into `libgoldberry` would put GTK and WebKit in the toolkit's
+    /// own `NEEDED`, and every application on Linux would then require them to
+    /// *start*.
+    ///
+    /// So this is answered by trying to open that library rather than by reading a
+    /// compiled-in flag, and it covers two absences an application cannot tell
+    /// apart and should not have to: a build made somewhere without WebKit's
+    /// development headers, and a machine without WebKit installed to run it. Both
+    /// mean no page will open.
+    ///
+    /// Unlike every other capability here, absence is **expected**. A toolkit that
+    /// cannot ask the desktop its theme is a build that went wrong; a toolkit that
+    /// cannot open a web page is the ordinary case, and an application that wants
+    /// one asks first:
+    ///
+    /// ```java
+    /// if (!Goldberry.capabilities().contains(Capability.WEB_VIEW)) {
+    ///     // Offer the user their own browser instead.
+    /// }
+    /// ```
+    WEB_VIEW
 }

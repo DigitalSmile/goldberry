@@ -84,4 +84,23 @@ public final class GoldberryShim {
         }
         return shim;
     }
+
+    /// Asks GTK to use the same window system SDL chose.
+    ///
+    /// Called once by the backend, **before anything initialises GTK** — which on
+    /// Linux means before the first `tray-icon`, since SDL's tray is
+    /// libayatana-appindicator and that calls `gtk_init`.
+    ///
+    /// Without it, an application on an XWayland desktop has an X11 window and
+    /// Wayland GTK surfaces, and `web-view` cannot reparent one into the other
+    /// ([ADR-0442]). A no-op off Linux, and it never overwrites a `GDK_BACKEND`
+    /// somebody set deliberately.
+    ///
+    /// @param backend the GDK backend name — `"x11"` or `"wayland"`
+    public void preferGtkBackend(String backend) {
+        java.util.Objects.requireNonNull(backend, "backend");
+        try (var arena = java.lang.foreign.Arena.ofConfined()) {
+            calls.preferGtkBackend().call(arena.allocateFrom(backend));
+        }
+    }
 }

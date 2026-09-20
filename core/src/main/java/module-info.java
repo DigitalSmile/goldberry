@@ -262,6 +262,12 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.render.model;
     exports io.github.digitalsmile.goldberry.render.popup;
     exports io.github.digitalsmile.goldberry.render.tray;
+    /// §9's `web-view` — the page handle and what opens one (ADR-0441).
+    ///
+    /// Exported like `render.tray` beside it, and for the reason that one is:
+    /// what an application holds is a handle to something the platform draws, and
+    /// `:widgets` puts the door on top of it.
+    exports io.github.digitalsmile.goldberry.render.web;
     exports io.github.digitalsmile.goldberry.render.window;
     exports io.github.digitalsmile.goldberry.render.event;
     exports io.github.digitalsmile.goldberry.render;

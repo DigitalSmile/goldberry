@@ -169,6 +169,38 @@ jobs:
           /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja
           echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
 
+      # §9's `web-view`, and the ONE optional dependency in this file (ADR-0441).
+      #
+      # Deliberately its own step and deliberately non-fatal, which nothing else
+      # here is. Every package above is required because its absence is a library
+      # that silently cannot ask the desktop something; this one's absence is a
+      # build that produces one shared library instead of two and says so. A web
+      # view is a feature an application opts into by calling for it, so a
+      # release without it is a smaller release rather than a broken one.
+      #
+      # HEADERS only. No WebKit is compiled, vendored or shipped -- the 73 KB
+      # `libgoldberry-webview.so` this enables links dynamically against whatever
+      # WebKit is installed on the machine that eventually runs it.
+      #
+      # UNVERIFIED on this image, which is why it may not fail the job. This is
+      # manylinux_2_28 (AlmaLinux 8) and the toolkit's CMake searches for
+      # `webkitgtk-6.0` then `webkit2gtk-4.1`; EL8 is a GTK3 vintage and only
+      # gained `webkit2gtk4.1-devel` in a later minor, so it may have neither. If
+      # it does not, the configure prints "Goldberry web view: OFF", the artifact
+      # ships without the second library, and `Capability.WEB_VIEW` is absent for
+      # everyone using the published Linux jars.
+      #
+      # Read the configure log's "Goldberry web view:" line to find out which
+      # happened. If this image cannot provide it, the honest fix is a newer
+      # container for this leg rather than a quieter failure here -- and note
+      # that linking against 4.1 pins the artifact to `libwebkit2gtk-4.1.so.0`,
+      # so a user with only 6.0 installed gets no page either.
+      - name: Install the web view headers (optional)
+        continue-on-error: true
+        run: |
+          dnf install -y webkit2gtk4.1-devel \
+            || echo "no webkit2gtk4.1-devel on this image: the artifact will ship without web view support"
+
       - name: Configure
         run: |
           cmake -S natives/src/main/cmake -B build/native \

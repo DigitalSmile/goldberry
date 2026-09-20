@@ -120,6 +120,26 @@ tasks.named('test') {
             systemProperty name, value.get()
         }
     }
+
+    // No web view, on purpose, for every test in this module (ADR-0441).
+    //
+    // The Web screen photographs a CAPABILITY, and that is the one thing a golden
+    // must not do: `Capability.WEB_VIEW` is present only where the build found
+    // WebKit's development headers, so `gallery-web.png` would otherwise be a
+    // picture of whoever ran the suite and their `apt` history. It was --
+    // 7.21% of the image differed between a machine with libwebkitgtk-6.0-dev
+    // and one without, which is the disabled button and the banner explaining it.
+    //
+    // A path that cannot exist rather than a flag, because the loader already has
+    // exactly this door: `goldberry.webview.library` takes precedence over both
+    // the sibling of `libgoldberry` and the classifier jar, and a file that is not
+    // there is reported as "this build has no web view support" through the same
+    // branch a real absence takes.
+    //
+    // So the golden is the state most readers see, on every machine. The other
+    // state is what `:example:run` shows on a machine that has WebKit.
+    systemProperty 'goldberry.webview.library', layout.buildDirectory
+            .file('no-such-webview-library').get().asFile.absolutePath
 }
 
 tasks.named('run') {
@@ -171,6 +191,10 @@ tasks.named('run') {
     var frames = providers.gradleProperty('goldberry.example.frames')
     if (frames.present) {
         showcaseArgs += '--frames=' + frames.get()
+    }
+    var screen = providers.gradleProperty('goldberry.example.screen')
+    if (screen.present) {
+        systemProperty 'goldberry.example.screen', screen.get()
     }
     var size = providers.gradleProperty('goldberry.example.size')
     if (size.present) {

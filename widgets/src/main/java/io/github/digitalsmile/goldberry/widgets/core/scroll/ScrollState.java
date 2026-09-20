@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -375,6 +376,68 @@ final class ScrollState extends State<Scroll> {
             settle();
         });
         notifyController();
+    }
+
+    /// Which way this viewport moves — [State#widget()] is `protected`, so a
+    /// [ScrollScope] beside it in this package cannot read the widget itself.
+    ScrollAxis axis() {
+        return widget().axis();
+    }
+
+    /// Scrolls the least it can to bring `self` inside `clip`, along `axes`.
+    ///
+    /// The arithmetic lives **here** rather than on [ScrollController] because a
+    /// controller is no longer the only way in: [ScrollScope] reaches a viewport
+    /// by walking up from the target, and two copies of "how far is it out of
+    /// view" is how two callers end up disagreeing about what *in view* means
+    /// ([ADR-0439]).
+    void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
+        // `self` was painted where a glide had got to, and the offset is already
+        // where it ends. Measure the rectangle where it will be, or a reveal asked
+        // again mid-glide would move the viewport a second time (ADR-0363).
+        var ahead = LogicalRect.of(
+                (float) (self.left() - glideRemainingX()),
+                (float) (self.top() - glideRemainingY()),
+                self.size().width(),
+                self.size().height());
+        var dx = axes.isHorizontal()
+                ? distance(
+                        ahead.left(),
+                        ahead.left() + ahead.size().width(),
+                        clip.left(),
+                        clip.left() + clip.size().width())
+                : 0;
+        var dy = axes.isVertical()
+                ? distance(
+                        ahead.top(),
+                        ahead.top() + ahead.size().height(),
+                        clip.top(),
+                        clip.top() + clip.size().height())
+                : 0;
+        if (dx != 0 || dy != 0) {
+            scrollBy(dx, dy);
+        }
+    }
+
+    /// How far a viewport must move to bring `near`..`far` inside
+    /// `clipNear`..`clipFar`, or 0 when it already is.
+    ///
+    /// Positive means further down or right. **The least it can**: a reveal that
+    /// centred its target would throw away everything the user was already
+    /// looking at, and §1 asks for the target to be in view rather than for it to
+    /// be anywhere in particular.
+    ///
+    /// The near edge wins when the target is larger than the viewport, because
+    /// showing the top of something too big to fit is what every browser does —
+    /// the alternative shows its bottom and hides the heading.
+    private static double distance(float near, float far, float clipNear, float clipFar) {
+        if (near < clipNear) {
+            return near - clipNear;
+        }
+        if (far > clipFar) {
+            return Math.min(far - clipFar, near - clipNear);
+        }
+        return 0;
     }
 
     /// Where this viewport is, for [ScrollController#position()].

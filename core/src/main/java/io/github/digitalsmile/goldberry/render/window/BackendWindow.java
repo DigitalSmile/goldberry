@@ -134,6 +134,27 @@ public interface BackendWindow extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// The platform's own handle for this window, or empty where there is none
+    /// that can be used.
+    ///
+    /// **`docs/ARCHITECTURE.md` §12's escape hatch** — *"backends expose raw
+    /// native window handles for apps embedding external renderers"* — promised
+    /// since day one and built when §9's `web-view` needed it ([ADR-0442]).
+    /// Embedding a page means reparenting its window into this one, which means
+    /// naming this one in the window system's own terms.
+    ///
+    /// **Empty on Wayland, on purpose.** There is a `wl_surface` behind a Wayland
+    /// window and it is deliberately not reported, because nothing may be done
+    /// with it: Wayland has no cross-client surface embedding, `xdg-foreign` is
+    /// toplevel *parenting* and errors on anything else, and fourteen years of
+    /// requests have produced no protocol. A handle that cannot be embedded into
+    /// would only invite the attempt.
+    ///
+    /// Empty by default, which is right for a backend with no desktop under it.
+    default Optional<NativeHandle> nativeHandle() {
+        return Optional.empty();
+    }
+
     /// How many times a second the display this window is on refreshes, or **0**
     /// if the platform will not say.
     ///

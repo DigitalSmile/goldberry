@@ -292,6 +292,30 @@ class GalleryGoldenTest {
         paint("gallery-charts", "charts", Theme.NORD_DARK, 1200, 900);
     }
 
+    /// The Web screen, which is a picture of a **page that is not there**.
+    ///
+    /// Every other golden in this file photographs the thing its screen is about.
+    /// This one cannot and never will: a page is a window WebKit draws, with no
+    /// offscreen surface and no way to stand where a widget is on Wayland
+    /// (ADR-0441). So the screen itself is the subject — the prose, the disabled
+    /// button and the banner that says why.
+    ///
+    /// **The capability is pinned off by the build, not by the harness.** Having
+    /// no host is not enough: `Goldberry.capabilities()` answers from the
+    /// libraries on disk, and this module's test task therefore points
+    /// `goldberry.webview.library` at a path that cannot exist. Without that the
+    /// picture is of whoever ran the suite — 7.21% of it differed between a
+    /// machine with `libwebkitgtk-6.0-dev` installed and one without, which is
+    /// this screen's whole subject and exactly what a golden must not photograph.
+    ///
+    /// So this is the state most readers see, on every machine. The other one is
+    /// what `:example:run` shows on a desktop that has WebKit.
+    @Test
+    @DisplayName("the Web screen, whose subject is a window this image cannot contain")
+    void web() {
+        paint("gallery-web", "web", Theme.NORD_DARK, 1200, 900);
+    }
+
     /// **The one golden in the repository with no scale sweep behind it**, and the
     /// reason is what is on the screen rather than anything about the check
     /// ([ADR-0434]).

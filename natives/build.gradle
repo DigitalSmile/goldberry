@@ -37,11 +37,15 @@ dependencies {
 // One row of the §15 distribution matrix. Four rows, not six: Windows on ARM and
 // macOS on Intel are not built (ADR-0041), and `NativePlatform` refuses those two
 // pairs on the Java side so the two lists cannot drift into disagreement.
+// `webview` is the OPTIONAL second library (ADR-0441). It is built only where
+// WebKit's development headers were present, is linked into nothing, and is
+// opened on demand -- so unlike `library` it may legitimately be absent, and the
+// packaging below includes it when it is there rather than demanding it.
 def nativeTargets = [
-        [id: 'linux-x64', library: 'libgoldberry.so'],
-        [id: 'linux-aarch64', library: 'libgoldberry.so'],
-        [id: 'windows-x64', library: 'goldberry.dll'],
-        [id: 'macos-aarch64', library: 'libgoldberry.dylib'],
+        [id: 'linux-x64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so'],
+        [id: 'linux-aarch64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so'],
+        [id: 'windows-x64', library: 'goldberry.dll', webview: 'goldberry-webview.dll'],
+        [id: 'macos-aarch64', library: 'libgoldberry.dylib', webview: 'libgoldberry-webview.dylib'],
 ]
 
 // `linux-x64` -> `LinuxX64`, for task names.
@@ -624,7 +628,12 @@ nativeTargets.each { target ->
         // The layout here is what NativeLibrary.resourcePath() looks for;
         // NativeLibraryTest asserts the same literal from the Java side.
         from(sourceDir) {
+            // Both libraries, into one directory: WebviewLibrary.resourcePath()
+            // resolves against the same classifier jar NativeLibrary does,
+            // because one artifact per platform carries whatever that build
+            // produced (ADR-0441).
             include target.library
+            include target.webview
             into "io/github/digitalsmile/goldberry/natives/${target.id}"
         }
 
@@ -637,6 +646,16 @@ nativeTargets.each { target ->
                         "No ${target.library} for ${target.id} in ${sourceDir.get()}.\n" +
                                 "Build it on a ${target.id} runner and download it there, " +
                                 "or pass -Pgoldberry.artifactsDir=<dir>.")
+            }
+            // Deliberately NOT a failure, which is the whole difference between
+            // the two libraries: a build made without WebKit's headers produces
+            // one and not the other, and that is a supported build rather than a
+            // broken one. Said out loud so that "why has web-view stopped
+            // working" has an answer in the build log (ADR-0441).
+            if (!new File(sourceDir.get(), target.webview).isFile()) {
+                logger.lifecycle(
+                        "no ${target.webview} for ${target.id}: this jar ships without web view support, " +
+                                "and Capability.WEB_VIEW will be absent for anything using it")
             }
         }
     }
@@ -674,6 +693,9 @@ tasks.register('stageHostArtifact', Copy) {
     dependsOn cmakeBuild
     from(installDir.map { it.dir('lib') }) {
         include hostTarget.library
+        // `include` of something the superbuild did not build matches nothing and
+        // copies nothing, which is exactly the behaviour wanted here.
+        include hostTarget.webview
     }
     into artifactsDir.map { new File(it, hostTarget.id) }
 }

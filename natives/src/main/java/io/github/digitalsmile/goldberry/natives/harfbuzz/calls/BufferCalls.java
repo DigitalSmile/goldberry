@@ -58,7 +58,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferCreate(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_create");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_create");
         }
 
         /// Calls `hb_buffer_create`.
@@ -68,7 +68,7 @@ public record BufferCalls(
             try {
                 return (MemorySegment) FD_hb_buffer_create.invokeExact(address);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_create", t);
+                throw Downcalls.failure("goldberry_hb_buffer_create", t);
             }
         }
     }
@@ -83,7 +83,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferDestroy(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_destroy");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_destroy");
         }
 
         /// Calls `hb_buffer_destroy`.
@@ -93,7 +93,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_destroy.invokeExact(address, buffer);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_destroy", t);
+                throw Downcalls.failure("goldberry_hb_buffer_destroy", t);
             }
         }
     }
@@ -108,7 +108,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferReset(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_reset");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_reset");
         }
 
         /// Calls `hb_buffer_reset`.
@@ -118,7 +118,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_reset.invokeExact(address, buffer);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_reset", t);
+                throw Downcalls.failure("goldberry_hb_buffer_reset", t);
             }
         }
     }
@@ -142,7 +142,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferAddUtf16(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_add_utf16");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_add_utf16");
         }
 
         /// Calls `hb_buffer_add_utf16`.
@@ -156,7 +156,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_add_utf16.invokeExact(address, buffer, text, textLength, itemOffset, itemLength);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_add_utf16", t);
+                throw Downcalls.failure("goldberry_hb_buffer_add_utf16", t);
             }
         }
     }
@@ -174,7 +174,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferGuessSegmentProperties(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_guess_segment_properties");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_guess_segment_properties");
         }
 
         /// Calls `hb_buffer_guess_segment_properties`.
@@ -184,7 +184,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_guess_segment_properties.invokeExact(address, buffer);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_guess_segment_properties", t);
+                throw Downcalls.failure("goldberry_hb_buffer_guess_segment_properties", t);
             }
         }
     }
@@ -200,7 +200,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferSetDirection(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_set_direction");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_set_direction");
         }
 
         /// Calls `hb_buffer_set_direction`.
@@ -210,7 +210,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_set_direction.invokeExact(address, buffer, direction);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_set_direction", t);
+                throw Downcalls.failure("goldberry_hb_buffer_set_direction", t);
             }
         }
     }
@@ -226,7 +226,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferGetDirection(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_get_direction");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_get_direction");
         }
 
         /// Calls `hb_buffer_get_direction`.
@@ -236,7 +236,7 @@ public record BufferCalls(
             try {
                 return (int) FD_hb_buffer_get_direction.invokeExact(address, buffer);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_get_direction", t);
+                throw Downcalls.failure("goldberry_hb_buffer_get_direction", t);
             }
         }
     }
@@ -252,7 +252,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferSetScript(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_set_script");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_set_script");
         }
 
         /// Calls `hb_buffer_set_script`.
@@ -262,7 +262,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_set_script.invokeExact(address, buffer, script);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_set_script", t);
+                throw Downcalls.failure("goldberry_hb_buffer_set_script", t);
             }
         }
     }
@@ -278,7 +278,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferSetLanguage(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_set_language");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_set_language");
         }
 
         /// Calls `hb_buffer_set_language`.
@@ -288,7 +288,7 @@ public record BufferCalls(
             try {
                 FD_hb_buffer_set_language.invokeExact(address, buffer, language);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_set_language", t);
+                throw Downcalls.failure("goldberry_hb_buffer_set_language", t);
             }
         }
     }
@@ -304,7 +304,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferGetLength(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_get_length");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_get_length");
         }
 
         /// Calls `hb_buffer_get_length`.
@@ -314,7 +314,7 @@ public record BufferCalls(
             try {
                 return (int) FD_hb_buffer_get_length.invokeExact(address, buffer);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_get_length", t);
+                throw Downcalls.failure("goldberry_hb_buffer_get_length", t);
             }
         }
     }
@@ -333,7 +333,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferGetGlyphInfos(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_get_glyph_infos");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_get_glyph_infos");
         }
 
         /// Calls `hb_buffer_get_glyph_infos`.
@@ -345,7 +345,7 @@ public record BufferCalls(
             try {
                 return (MemorySegment) FD_hb_buffer_get_glyph_infos.invokeExact(address, buffer, length);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_get_glyph_infos", t);
+                throw Downcalls.failure("goldberry_hb_buffer_get_glyph_infos", t);
             }
         }
     }
@@ -361,7 +361,7 @@ public record BufferCalls(
         private final MemorySegment address;
 
         BufferGetGlyphPositions(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "hb_buffer_get_glyph_positions");
+            this.address = Downcalls.symbol(lookup, "goldberry_hb_buffer_get_glyph_positions");
         }
 
         /// Calls `hb_buffer_get_glyph_positions`.
@@ -373,7 +373,7 @@ public record BufferCalls(
             try {
                 return (MemorySegment) FD_hb_buffer_get_glyph_positions.invokeExact(address, buffer, length);
             } catch (Throwable t) {
-                throw Downcalls.failure("hb_buffer_get_glyph_positions", t);
+                throw Downcalls.failure("goldberry_hb_buffer_get_glyph_positions", t);
             }
         }
     }

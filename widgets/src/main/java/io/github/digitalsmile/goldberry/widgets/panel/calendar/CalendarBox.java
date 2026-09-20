@@ -155,8 +155,9 @@ record CalendarBox(
     /// §10 asks for "grid with each cell's full date as its name", and the second
     /// half has nowhere to go: [Semantics] is a role, a name and a liveness, with
     /// no per-cell channel for any widget. The role is honest today and the names
-    /// arrive with the AccessKit bridge in M5 — the entry `code-input` opened,
-    /// which this is the second widget to want.
+    /// would arrive with the AccessKit bridge — the entry `code-input` opened,
+    /// which this is the second widget to want. That bridge is **on hold and
+    /// owned by no milestone** ([ADR-0440]), so the names are not coming.
     @Override
     public Role role() {
         return Role.GRID;

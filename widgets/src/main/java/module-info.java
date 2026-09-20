@@ -68,6 +68,15 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.core;
     exports io.github.digitalsmile.goldberry.widgets.core.affix;
     exports io.github.digitalsmile.goldberry.widgets.core.canvas;
+
+    /// §9's `web-view` as a **widget** — a page inside the window (ADR-0442).
+    ///
+    /// Here rather than in `widgets.shell.web` beside `WebPage`, because this one
+    /// really is a widget: it has a box, it takes part in layout, and a `row`
+    /// sizes it. What stays next door is the *window* form, for the platforms and
+    /// sessions where a page cannot be a child — which on Linux means Wayland,
+    /// permanently.
+    exports io.github.digitalsmile.goldberry.widgets.core.web;
     exports io.github.digitalsmile.goldberry.widgets.core.image;
 
     /// §1's `qr-code` (`docs/gaps.md` G47, ADR-0391). A package of its own
@@ -233,4 +242,16 @@ module io.github.digitalsmile.goldberry.widgets {
     /// draws a tray menu, so there is no box, no cascade and no event to route,
     /// and what is exported is a value plus the call that shows it (ADR-0191).
     exports io.github.digitalsmile.goldberry.widgets.shell.tray;
+
+    /// §9's `web-view`, and the **second** member of this group that is not a
+    /// widget (ADR-0441).
+    ///
+    /// `tray-icon` is not a widget because the desktop's shell draws it. A page
+    /// is not a widget because WebKit does — and for a harder reason than the
+    /// tray's: `webview/webview` cannot render offscreen, and a Wayland session
+    /// allows neither reparenting a foreign surface nor placing a window where a
+    /// widget is, so there is no shape a page could take that would be a box on
+    /// every platform this ships to. What is exported is a value and the call
+    /// that opens it, exactly as next door.
+    exports io.github.digitalsmile.goldberry.widgets.shell.web;
 }

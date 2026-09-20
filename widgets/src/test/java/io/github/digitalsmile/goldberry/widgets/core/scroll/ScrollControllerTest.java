@@ -14,23 +14,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -39,10 +26,24 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// (ADR-0120).
 class ScrollControllerTest {
 
-    private static final int VIEWPORT_HEIGHT = 100;
+    private static final int VIEWPORT_HEIGHT = ScrollHarness.VIEWPORT_HEIGHT;
 
-    private TestFrames.Target target;
-    private RenderTree render;
+    /// Every harness a test made, closed together afterwards.
+    ///
+    /// A list and not a field, because one test below builds **two** — an
+    /// unlimited reveal beside a limited one — and while each was closing the
+    /// one before it, the first of the pair was leaked on every run.
+    private final List<ScrollHarness> harnesses = new ArrayList<>();
+
+    private ScrollHarness harness(Widget root) {
+        return harness(root, "");
+    }
+
+    private ScrollHarness harness(Widget root, String css) {
+        var made = new ScrollHarness(root, css);
+        harnesses.add(made);
+        return made;
+    }
 
     @BeforeEach
     void setUp() {
@@ -51,76 +52,8 @@ class ScrollControllerTest {
 
     @AfterEach
     void tearDown() {
-        if (render != null) {
-            render.close();
-            render = null;
-        }
-        if (target != null) {
-            target.end();
-            target = null;
-        }
-    }
-
-    private final class Harness {
-
-        private final ElementTree tree;
-        private final WidgetRenderer renderer;
-        private final PointerRouter router = new PointerRouter();
-
-        Harness(Widget root) {
-            this(root, "");
-        }
-
-        Harness(Widget root, String css) {
-            target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(
-                            List.of(
-                                    Controls.baseStylesheet(),
-                                    Theme.NORD_DARK.load(),
-                                    Stylesheet.parse(CascadeLayer.APPLICATION, css)),
-                            TestFont.get())
-                    .clock(clock);
-            tree = new ElementTree(root);
-            render = RenderTree.create();
-            router.focusRoot(tree.root());
-            router.windowBounds(LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
-            frame();
-            frame();
-        }
-
-        final Clock.Virtual clock = Clock.virtual();
-
-        void frame() {
-            tree.flush();
-            render.update(target.frame(), renderer.render(tree));
-            router.updateRegions(HitTest.capture(render));
-        }
-
-        /// A frame, and another once a programmatic scroll's glide has had time
-        /// to arrive (ADR-0363).
-        void settle() {
-            frame();
-            clock.advance(ScrollGlide.DURATION_MILLIS + 16);
-            frame();
-        }
-
-        /// Where the row with `id` is painted, in window coordinates.
-        LogicalRect rowRect(String id) {
-            var found = new ArrayList<LogicalRect>();
-            render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element && id.equals(element.id())) {
-                    var m = placed.transform();
-                    var l = placed.layout();
-                    found.add(LogicalRect.of(
-                            (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
-                            (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
-                            l.width(),
-                            l.height()));
-                }
-            });
-            assertEquals(1, found.size(), "expected exactly one row with id " + id);
-            return found.getFirst();
-        }
+        harnesses.forEach(ScrollHarness::close);
+        harnesses.clear();
     }
 
     private static Widget document(ScrollController controller) {
@@ -152,7 +85,7 @@ class ScrollControllerTest {
         @DisplayName("a viewport attaches when it is mounted")
         void attaches() {
             var controller = new ScrollController();
-            new Harness(document(controller));
+            harness(document(controller));
 
             assertTrue(controller.isAttached());
         }
@@ -166,7 +99,7 @@ class ScrollControllerTest {
         @DisplayName("scrollBy moves the viewport, clamped like every other path")
         void scrollByMoves() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             var before = harness.rowRect("row0").top();
 
             controller.scrollBy(0, 40);
@@ -179,7 +112,7 @@ class ScrollControllerTest {
         @DisplayName("scrollBy cannot run off the end")
         void scrollByClamps() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
 
             controller.scrollBy(0, 10_000);
             harness.settle();
@@ -199,7 +132,7 @@ class ScrollControllerTest {
         @DisplayName("a row below the fold is brought to the near edge")
         void revealsFromBelow() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
 
             controller.reveal(harness.rowRect("row20"), viewport);
@@ -215,7 +148,7 @@ class ScrollControllerTest {
         @DisplayName("it scrolls the least it can, so the row lands at the edge it came from")
         void minimal() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
 
             controller.reveal(harness.rowRect("row20"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
             harness.settle();
@@ -233,7 +166,7 @@ class ScrollControllerTest {
         @DisplayName("a row already in view does not move anything")
         void alreadyVisible() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             var before = harness.rowRect("row0").top();
 
             controller.reveal(harness.rowRect("row1"), LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
@@ -252,7 +185,7 @@ class ScrollControllerTest {
         @DisplayName("a programmatic scroll is on its way part of the way through, and there at the end")
         void glides() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             var before = harness.rowRect("row0").top();
 
             controller.scrollBy(0, 100);
@@ -271,7 +204,7 @@ class ScrollControllerTest {
         @DisplayName("the wheel takes over at once, from where the glide had got to")
         void wheelCancels() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
 
             controller.scrollBy(0, 100);
             harness.frame();
@@ -290,7 +223,7 @@ class ScrollControllerTest {
         @DisplayName("a reveal asked again mid-glide measures where the row will be, and does not overshoot")
         void revealMidGlide() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
 
             controller.reveal(harness.rowRect("row20"), viewport);
@@ -312,7 +245,7 @@ class ScrollControllerTest {
         @DisplayName("under reduced motion it jumps")
         void reducedMotionJumps() {
             var controller = new ScrollController();
-            var harness = new Harness(document(controller));
+            var harness = harness(document(controller));
             harness.renderer.reducedMotion(true);
             var before = harness.rowRect("row0").top();
 
@@ -352,13 +285,13 @@ class ScrollControllerTest {
             var viewport = LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT);
 
             var both = new ScrollController();
-            var free = new Harness(grid(both), CELLS);
+            var free = harness(grid(both), CELLS);
             both.reveal(free.rowRect("cell20-10"), viewport);
             free.settle();
             assertTrue(free.rowRect("cell0-0").left() < -1, "an unlimited reveal slid sideways too");
 
             var rows = new ScrollController();
-            var limited = new Harness(grid(rows), CELLS);
+            var limited = harness(grid(rows), CELLS);
             var leftBefore = limited.rowRect("cell0-0").left();
             rows.reveal(limited.rowRect("cell20-10"), viewport, ScrollAxis.VERTICAL);
             limited.settle();

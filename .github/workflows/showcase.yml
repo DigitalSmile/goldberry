@@ -63,6 +63,14 @@ jobs:
       # build succeeds and the Wayland window has no titlebar and cannot be
       # resized, because GNOME does no server-side decorations and libdecor is
       # the only other implementation (ADR-0083).
+      #
+      # libwebkit2gtk-4.1-dev fails the third way: quietly and by design. Without
+      # it the superbuild prints "Goldberry web view: OFF", builds one library
+      # instead of two, and succeeds -- so the only symptom is that
+      # `Capability.WEB_VIEW` is absent from everything this job produces
+      # (ADR-0441). It is HEADERS only: no WebKit is compiled, vendored or
+      # shipped, and the 73 KB library it enables links dynamically against
+      # whatever WebKit the machine running it has.
       - name: Install build tools (linux)
         if: runner.os == 'Linux'
         run: |
@@ -75,6 +83,7 @@ jobs:
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             libibus-1.0-dev \
+            libwebkit2gtk-4.1-dev \
             xvfb zlib1g-dev
           # zlib1g-dev for native-image, which links `-lz` through the `libz.so`
           # symlink only the dev package installs; without it the image build

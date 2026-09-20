@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlThemeCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.window.NativeWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlIconImage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
@@ -442,6 +443,76 @@ public final class SdlVideo {
     /// anything else in the process that touches the same window.
     public boolean textInputActive(SdlWindowHandle window) {
         return sdlWindowCalls.textInputActive().call(window.pointer());
+    }
+
+    /// Asks GTK to use `backend` as its window system, unless something already
+    /// said otherwise.
+    ///
+    /// Here rather than on the shim because the shim's own package is not
+    /// exported, and because this is a statement *about the video driver* — the
+    /// caller is the backend, a moment after SDL told it which driver it got.
+    ///
+    /// Two halves of one process can otherwise disagree: SDL is asked for X11
+    /// first on Linux and GDK prefers Wayland when asked nothing, so on an
+    /// XWayland desktop the window is X11 and the GTK surfaces are Wayland — and
+    /// `web-view` cannot reparent one into the other ([ADR-0442]).
+    ///
+    /// Must be called before anything initialises GTK, which on Linux means
+    /// before the first tray icon.
+    ///
+    /// @param backend the GDK backend name — `"x11"` or `"wayland"`
+    public void preferGtkBackend(String backend) {
+        io.github.digitalsmile.goldberry.natives.GoldberryShim.get().preferGtkBackend(backend);
+    }
+
+    /// The platform's own handle for `window`, or empty where there is none that
+    /// can be used.
+    ///
+    /// §12's escape hatch, and the first thing that needed it is `web-view`
+    /// ([ADR-0442]): embedding a page means reparenting its window into this one,
+    /// which needs this one named in the window system's terms.
+    ///
+    /// **Wayland answers empty on purpose.** There is a `wl_surface` and it is not
+    /// reported, because Wayland has no cross-client surface embedding to use it
+    /// for — see [NativeWindowHandle].
+    ///
+    /// The property names are string constants in SDL's headers rather than
+    /// exported symbols, so they are written out here.
+    public java.util.Optional<NativeWindowHandle> nativeHandle(SdlWindowHandle window) {
+        var properties = sdlWindowCalls.getWindowProperties().call(window.pointer());
+        if (properties == 0) {
+            return java.util.Optional.empty();
+        }
+        try (var arena = java.lang.foreign.Arena.ofConfined()) {
+            // X11 first: it is the one reported as a number, and the one that can
+            // be embedded into.
+            var x11 = sdlWindowCalls
+                    .getNumberProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.x11.window"), 0L);
+            if (x11 != 0L) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.X11, x11));
+            }
+            var win32 = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(
+                            properties,
+                            arena.allocateFrom("SDL.window.win32.hwnd"),
+                            java.lang.foreign.MemorySegment.NULL);
+            if (!java.lang.foreign.MemorySegment.NULL.equals(win32)) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.WIN32, win32.address()));
+            }
+            var cocoa = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(
+                            properties,
+                            arena.allocateFrom("SDL.window.cocoa.window"),
+                            java.lang.foreign.MemorySegment.NULL);
+            if (!java.lang.foreign.MemorySegment.NULL.equals(cocoa)) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.COCOA, cocoa.address()));
+            }
+            // Wayland, or a driver with no handle worth having.
+            return java.util.Optional.empty();
+        }
     }
 
     /// The window's size in logical pixels.

@@ -16,7 +16,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 | `goldberry-media`   | libVLC                  | large       | LGPL-2.1+ (**dynamic link**)  | engine decided; module gated on media doc |
 | `goldberry-camera`  | SDL3 camera subsystem   | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-mic`     | SDL3 audio recording    | none new    | zlib (SDL3, already in core)  | planned |
-| `goldberry-web`     | Servo                   | large       | MPL-2.0                       | **parked** |
+| ~~`goldberry-web`~~ | webview/webview         | none new    | MIT                           | **not a module** — built as §9's `web-view` in `:widgets` (ADR-0441). Servo was the blocker and not the only route: `webview/webview` drives the desktop's own engine, so there is nothing heavy to quarantine. See §11 |
 | `goldberry-emoji`   | OpenMoji                | font only   | CC BY-SA 4.0 (attribution)    | **built** (2026-09-17, ADR-0384) — the face reaches `:core` through an `EmojiFont` service, and an application that adds the artifact displays `OpenMojiFont.CREDIT`. The **colour** build since ADR-0393, routed into ordinary text by the itemizer |
 
 ---
@@ -324,9 +324,51 @@ Because everything is Blend2D, `Plot.renderTo(image)` gives publication-quality 
 
 ---
 
-## 11. Parked: `goldberry-web` (Servo)
+## 11. Built elsewhere: `web-view` (webview/webview)
 
-Full web embedding stays out of scope for core; CEF-OSR remains the documented escape hatch for apps that truly need Chromium. Servo is the tracked future option: MPL-2.0 (file-level copyleft — clean next to Apache-2.0), a `SoftwareRenderingContext` that fits the CPU pipeline, and AccessKit alignment with Goldberry's own a11y plan. Blocker: libservo is Rust-only (a custom `cdylib` C shim would be ours to maintain) against a deliberately unstable API. Revisit when libservo ships with semver guarantees or Verso-style embedding stabilizes.
+> **This is no longer a content module, and `goldberry-web` does not exist.** A
+> web page ships as `web-view` in `:widgets`, beside `tray-icon` in §9's
+> `widget.shell` group
+> ([ADR-0441](../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). What
+> follows is why the module was dissolved rather than built.
+
+**The parked entry was right about Servo and wrong that Servo was the question.**
+libservo is Rust-only against a deliberately unstable API, so the module would
+have owned a `cdylib` shim and its breakage — all true, and it is why nothing was
+built for two milestones. What nobody checked is whether a page needed an engine
+of *this project's* at all.
+
+[`webview/webview`](https://github.com/webview/webview) is MIT, is one header,
+and **brings no engine**: it drives WebKitGTK, WebView2 or WKWebView, which the
+desktop already has. So neither of the two conditions that quarantine a module
+here applies — there is no heavy native payload and no attribution or copyleft
+obligation. Nothing is vendored and nothing is shipped.
+
+**What it cannot do is rasterize into a buffer**, which is the third rule §11.1
+of `ARCHITECTURE.md` states for everything in this document. There is no
+offscreen surface: a page is always a real platform window. And a Wayland session
+allows neither reparenting a foreign surface into another client's window nor
+placing a window where a widget is — so a `web-view` that was a box in a layout
+would be a box on X11, Windows and macOS and a loose window on the default Linux
+desktop.
+
+So a page is **a window the application opens**, not a widget: `WebViews.open`
+returns a handle that navigates, evaluates and closes. That is `tray-icon`'s
+shape, which is why it lives beside it.
+
+**The native library is separate and optional.** `libgoldberry-webview` is built
+only where WebKit's development headers are present, is linked into nothing, and
+is opened on demand — because linking WebKitGTK into `libgoldberry` would make
+GTK and WebKit load-time dependencies of *every* Goldberry application on Linux.
+Where it is absent, `Capability.WEB_VIEW` is not reported and `WebViews.open`
+answers empty.
+
+**CEF-OSR remains the documented escape hatch** for an application that needs
+Chromium specifically, and it is the one engine that *would* have made a real
+`web-view` box possible, because it renders into a buffer. It is also a
+hundred-megabyte vendored binary per platform, which is this document's
+quarantine case in its purest form — the same licence-and-provenance question
+`goldberry-pdf` is parked on. An application that needs it embeds it itself.
 
 ---
 
@@ -344,5 +386,5 @@ Full web embedding stays out of scope for core; CEF-OSR remains the documented e
 | media     | LGPL-2.1+ (libVLC, dynamic) | LGPL notice + relinkability (dynamic linking satisfies); codec/patent review per app |
 | camera    | zlib (SDL3, already shipped) | none new; OS permission prompt + macOS usage-description key |
 | mic       | zlib (SDL3, already shipped) | none new; OS permission prompt + macOS usage-description key |
-| web       | MPL-2.0                  | notice; publish modifications to engine files only |
+| ~~web~~   | MIT (webview/webview)    | **not a module** — `web-view` ships in `:widgets` (ADR-0441). Notice file only, and nothing is vendored: the engine is the desktop's own WebKitGTK, WebView2 or WKWebView, under whatever licence the user's OS ships it |
 | emoji     | CC BY-SA 4.0             | **visible attribution required** (about box / credits) |

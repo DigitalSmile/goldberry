@@ -1741,6 +1741,43 @@ final class Launcher implements Host {
         return GoldberryRuntime.get().backend().createTray(spec.andThen(this::repaint));
     }
 
+    /// Opens a page — §9's `web-view`, [ADR-0441].
+    ///
+    /// No `andThen` and no repaint, which is the difference from the tray above: a
+    /// tray row runs an application's handler and the frame that handler changed
+    /// has to be asked for, while nothing a page does touches this window's tree.
+    /// What it draws is WebKit's, in a window of its own.
+    ///
+    /// The page is **not** registered with the launcher and is not closed when
+    /// this window is. It belongs to whoever opened it.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> webView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec) {
+        return GoldberryRuntime.get().backend().createWebView(spec);
+    }
+
+    /// Opens a page inside this window — §9's `web-view` as a widget ([ADR-0442]).
+    ///
+    /// The rectangle is in this window's **logical** coordinates, which is what a
+    /// widget knows about itself; the platform wants its own pixels, so it is
+    /// scaled here rather than at every call site.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> embeddedWebView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect bounds) {
+        java.util.Objects.requireNonNull(bounds, "bounds");
+        var scale = window.scale().factor();
+        return GoldberryRuntime.get()
+                .backend()
+                .createEmbeddedWebView(
+                        spec,
+                        window.backendWindow(),
+                        Math.round(bounds.origin().x() * scale),
+                        Math.round(bounds.origin().y() * scale),
+                        Math.max(1, Math.round(bounds.size().width() * scale)),
+                        Math.max(1, Math.round(bounds.size().height() * scale)));
+    }
+
     @Override
     public void textInput(boolean active) {
         window.backendWindow().textInput(active);

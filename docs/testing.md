@@ -238,10 +238,14 @@ status beside it reads as a description of what exists.
 
 ### Not built, and what each is waiting on
 
-- **The AccessKit bridge (M5).** `Semantics` is the *data* a bridge needs — a
-  role and a name, which is the shape of an AccessKit node — and no platform API
-  is touched. Exporting it to a screen reader is the remaining work and is a
-  milestone rather than a test.
+- **The AccessKit bridge — on hold, and no milestone owns it**
+  ([ADR-0440](../book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
+  `Semantics` is the *data* a bridge needs — a role and a name, which is the
+  shape of an AccessKit node — and no platform API is touched. Exporting it to a
+  screen reader is not scheduled. **§1.7's sweep is unaffected and is the point**:
+  it asserts that every interactive node in the gallery has a role and a name,
+  which is worth having whether or not anything reads them, and it is the reason
+  the data stays in the tree.
 - **`byRole` in the tests.** The roles exist; converting the catalog's tests from
   `Described.of(tree, Button.class)` to a role query is mechanical and is its own
   change.

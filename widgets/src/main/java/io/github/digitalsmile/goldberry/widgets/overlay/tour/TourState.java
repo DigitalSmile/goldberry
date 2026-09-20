@@ -1,14 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
+import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollScope;
 
 /// Which stop a [Tour] is showing, and how it moves between them.
 final class TourState extends State<Tour> {
@@ -51,13 +55,13 @@ final class TourState extends State<Tour> {
             return new TourVeil(null, window);
         }
         var anchor = anchorOf(stop);
-        if (!revealed && stop.scroll() != null) {
+        if (!revealed) {
             // §5: the target is scrolled into view *before* the popover is
             // positioned. The reveal marks the tree dirty, so the next frame
             // re-reads the anchor and this one draws against where it was --
             // which is why the popover lands correctly on the frame after.
             revealed = true;
-            stop.scroll().reveal(anchor, clipOf(stop));
+            reveal(stop, anchor);
         }
         return new TourStop(
                 stop,
@@ -90,6 +94,40 @@ final class TourState extends State<Tour> {
             revealed = false;
         }
         return null;
+    }
+
+    /// Brings `stop`'s target into view, if anything can.
+    ///
+    /// The controller the application named wins, because an application that
+    /// wired one has said which viewport it means — and it may deliberately mean
+    /// an **outer** one, which no walk up from the target would choose. With none
+    /// named, the viewport is discovered by walking up from the target itself
+    /// ([ScrollScope]), which is the walk the entry recording this gap believed
+    /// the tree could not do ([ADR-0439]).
+    ///
+    /// Nothing happens when the target is in no viewport at all, which is the
+    /// ordinary case for most stops.
+    private void reveal(Stop stop, LogicalRect anchor) {
+        var clip = clipOf(stop);
+        if (stop.scroll() != null) {
+            stop.scroll().reveal(anchor, clip);
+            return;
+        }
+        enclosingScope(stop).ifPresent(scope -> scope.reveal(anchor, clip));
+    }
+
+    /// The viewport that encloses `stop`'s target, found from the element the
+    /// hit-test region was painted for.
+    ///
+    /// A region's owner is whatever the renderer tagged the box with — an
+    /// [Element] in the widget stack, or null for a box nobody claimed — so the
+    /// pattern test is the check rather than a cast that would hold everywhere
+    /// but the one frame it does not.
+    private Optional<ScrollScope> enclosingScope(Stop stop) {
+        return widget().host()
+                .anchor(stop.targetId())
+                .flatMap(region ->
+                        region.owner() instanceof Element element ? ScrollScope.enclosing(element) : Optional.empty());
     }
 
     /// Where the target is on screen.

@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.web.WebViewEngine;
 
 /// Drives a backend: drains queued UI work, pumps platform events, repeats.
 ///
@@ -51,6 +52,15 @@ public final class EventLoop implements AutoCloseable {
     /// interrupts it immediately. It is a heartbeat, so a missed wakeup costs a
     /// second of latency rather than a hang.
     private static final Duration IDLE_TIMEOUT = Duration.ofSeconds(1);
+
+    /// The longest this loop may block while a web page is open — see
+    /// [#webViewCapped].
+    ///
+    /// 8 ms rather than a frame's 16: the page is not painted by this loop, so
+    /// this is how often its own engine is *allowed to run*, and halving a
+    /// display's period is the usual floor for something that has to feel
+    /// continuous through a sampler it does not control.
+    private static final Duration WEB_VIEW_TIMEOUT = Duration.ofMillis(8);
 
     /// What [#after] has scheduled, in no particular order — there are never many,
     /// and a heap would be machinery for a list that is usually empty and rarely
@@ -132,6 +142,11 @@ public final class EventLoop implements AutoCloseable {
                 // return on an otherwise idle desktop.
                 backend.pumpEvents(sink, nextTimeout());
 
+                // A web page's engine has an event loop of its own that nothing
+                // else drives — see WebViewEngine#pump. Free and library-free
+                // when no page is open, which is nearly always (ADR-0441).
+                WebViewEngine.pump();
+
                 fireDueTimers();
 
                 // After: handlers post work too, and it should not wait for the
@@ -182,9 +197,12 @@ public final class EventLoop implements AutoCloseable {
 
     /// How long the next pump may block for: the heartbeat, or the wait until the
     /// earliest timer, whichever is sooner.
-    private Duration nextTimeout() {
+    /// Package-private rather than private so that [EventLoopWebViewTest] can ask
+    /// what the loop would wait for without running it. The web view cap below is
+    /// the one thing in this class that changes a wait for a reason outside it.
+    Duration nextTimeout() {
         if (timers.isEmpty()) {
-            return IDLE_TIMEOUT;
+            return webViewCapped(IDLE_TIMEOUT);
         }
         var now = clock.getAsLong();
         var earliest = Long.MAX_VALUE;
@@ -194,10 +212,38 @@ public final class EventLoop implements AutoCloseable {
             }
         }
         if (earliest == Long.MAX_VALUE) {
-            return IDLE_TIMEOUT;
+            return webViewCapped(IDLE_TIMEOUT);
         }
         var remaining = earliest - now;
-        return remaining <= 0 ? Duration.ZERO : Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos()));
+        return remaining <= 0
+                ? Duration.ZERO
+                : webViewCapped(Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos())));
+    }
+
+    /// Shortens a wait while a web page is open.
+    ///
+    /// **Nothing wakes this loop when WebKit has work to do.** A page's engine
+    /// runs on GLib's main context, which [WebViewEngine#pump()] drains once per
+    /// iteration — and an iteration can be parked in `pumpEvents` for the full
+    /// one-second heartbeat, because SDL has no events on an idle desktop and
+    /// does not know the page has any. A page serviced once a second does not
+    /// scroll, does not animate and barely loads.
+    ///
+    /// So while a page is open the wait is capped at [#WEB_VIEW_TIMEOUT]. That is
+    /// a real cost — the loop wakes 125 times a second doing nothing else — and it
+    /// is deliberately paid only for as long as a page is actually open, which is
+    /// what makes it invisible to every application that never opens one. Zero
+    /// would be the obvious alternative and is a busy loop.
+    ///
+    /// The honest fix is a wakeup from GLib's side, which means a file descriptor
+    /// from `g_main_context_get_poll_func` handed to SDL — and SDL has no API for
+    /// waiting on somebody else's descriptor. Recorded on ADR-0441 rather than
+    /// left here.
+    private Duration webViewCapped(Duration timeout) {
+        if (!WebViewEngine.hasOpenPages()) {
+            return timeout;
+        }
+        return timeout.compareTo(WEB_VIEW_TIMEOUT) <= 0 ? timeout : WEB_VIEW_TIMEOUT;
     }
 
     /// Runs whatever is due, and drops it.

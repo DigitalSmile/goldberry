@@ -133,6 +133,20 @@ module io.github.digitalsmile.goldberry.natives {
     /// returns, so there is no lifetime to hand over.
     exports io.github.digitalsmile.goldberry.natives.webp to
             io.github.digitalsmile.goldberry.core;
+    /// `webview/webview`, behind §9's `web-view` (ADR-0441).
+    ///
+    /// Qualified to `:core` like Blend2D's and Yoga's, and for their reason: an
+    /// application names `WebPage` and `WebViews`, which are `:widgets`' types,
+    /// and no type of this module appears in a signature it can read.
+    ///
+    /// The one wrapper here whose library is **not** `libgoldberry`. WebKitGTK
+    /// cannot be linked into the toolkit's own library without making GTK and
+    /// WebKit load-time dependencies of every application on Linux, so
+    /// `libgoldberry-webview` is built beside it, linked into nothing, and opened
+    /// on demand — which is why this is also the only wrapper whose absence is an
+    /// ordinary state rather than a broken installation.
+    exports io.github.digitalsmile.goldberry.natives.webview to
+            io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.yoga to
             io.github.digitalsmile.goldberry.core;
     exports io.github.digitalsmile.goldberry.natives.yoga.style to

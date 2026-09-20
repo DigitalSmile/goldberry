@@ -85,6 +85,22 @@ public class TestHost implements Host {
         return this;
     }
 
+    /// Says that `id` was painted as this **whole region** last frame.
+    ///
+    /// [#anchoring(String, float, float, float, float)] fabricates a rectangle,
+    /// which is all most tests need and is not all of them: a region also carries
+    /// the element it was painted for and the clip that confines it, and a widget
+    /// that walks from one or reasons about the other — a `tour` finding the
+    /// viewport its target is in ([ADR-0439]) — cannot be tested against a
+    /// rectangle with a null owner and no clip. Hand it one a real frame
+    /// produced.
+    public TestHost anchoring(String id, HitTest.Region region) {
+        regions.put(id, region);
+        return this;
+    }
+
+    private final Map<String, HitTest.Region> regions = new LinkedHashMap<>();
+
     /// The accelerators currently bound, in the order they were bound — the same
     /// order and the same map semantics as the real router's.
     public Map<Shortcut, Runnable> shortcuts() {
@@ -182,6 +198,10 @@ public class TestHost implements Host {
 
     @Override
     public Optional<HitTest.Region> anchor(String id) {
+        var whole = regions.get(id);
+        if (whole != null) {
+            return Optional.of(whole);
+        }
         var rect = anchors.get(id);
         return rect == null
                 ? Optional.empty()
@@ -533,6 +553,126 @@ public class TestHost implements Host {
         // wrong: a tray row arrives with no event behind it, so nothing asks for
         // a frame unless the row does (ADR-0191).
         return trayBackend.createTray(spec.andThen(this::repaint));
+    }
+
+    /// What the last [#webView] was asked to open, or null if nothing was.
+    ///
+    /// A test asserts against the **spec** rather than against a page, because a
+    /// page is a WebKit window and a test host must never open one — see
+    /// [#webViewAvailable].
+    private io.github.digitalsmile.goldberry.render.web.@org.jspecify.annotations.Nullable WebViewSpec lastWebView;
+
+    /// Whether this host pretends a page can be opened.
+    ///
+    /// False by default, which is what most machines really answer: a build
+    /// without WebKit's development headers produces no `libgoldberry-webview`
+    /// and `Capability.WEB_VIEW` is absent ([ADR-0441]). A test that wants the
+    /// other branch sets this and reads [#lastWebView] — what it gets back is
+    /// still a fake, because the alternative is a browser window appearing on the
+    /// desktop of whoever ran the suite.
+    private boolean webViewAvailable;
+
+    /// Makes [#webView] answer with a fake page rather than empty.
+    public TestHost webViewAvailable(boolean available) {
+        this.webViewAvailable = available;
+        return this;
+    }
+
+    /// What the last page was opened with, or null if none was.
+    public io.github.digitalsmile.goldberry.render.web.@org.jspecify.annotations.Nullable WebViewSpec lastWebView() {
+        return lastWebView;
+    }
+
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> webView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec) {
+        this.lastWebView = spec;
+        return webViewAvailable ? java.util.Optional.of(new FakeWebView()) : java.util.Optional.empty();
+    }
+
+    /// Where the last embedded page was asked to go, or null if none was.
+    private io.github.digitalsmile.goldberry.render.model.@org.jspecify.annotations.Nullable LogicalRect
+            lastEmbeddedBounds;
+
+    /// What the last [#embeddedWebView] was asked for, or null.
+    public io.github.digitalsmile.goldberry.render.model.@org.jspecify.annotations.Nullable LogicalRect
+            lastEmbeddedBounds() {
+        return lastEmbeddedBounds;
+    }
+
+    /// A page inside the window, when this host pretends one can be.
+    ///
+    /// Gated by the same [#webViewAvailable] flag, because a test that wants an
+    /// embedded page wants the same fake: what is testable is the rectangle that
+    /// crossed and the calls that followed, not WebKit.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.web.BackendWebView> embeddedWebView(
+            io.github.digitalsmile.goldberry.render.web.WebViewSpec spec,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect bounds) {
+        this.lastWebView = spec;
+        this.lastEmbeddedBounds = bounds;
+        return webViewAvailable ? java.util.Optional.of(new FakeWebView()) : java.util.Optional.empty();
+    }
+
+    /// A page that records instead of drawing.
+    ///
+    /// There is no headless backend to borrow here, unlike the tray above, and
+    /// that difference is the point: a tray's rows are Goldberry's and worth
+    /// testing, while every pixel of a page belongs to WebKit. What is left to
+    /// assert is that the right calls were made.
+    public static final class FakeWebView implements io.github.digitalsmile.goldberry.render.web.BackendWebView {
+
+        private final java.util.List<String> calls = new java.util.ArrayList<>();
+
+        private boolean closed;
+
+        /// Every call made on this page, in order, as `name(arguments)`.
+        public java.util.List<String> calls() {
+            return java.util.List.copyOf(calls);
+        }
+
+        @Override
+        public void navigate(String url) {
+            calls.add("navigate(" + url + ")");
+        }
+
+        @Override
+        public void html(String html) {
+            calls.add("html(" + html + ")");
+        }
+
+        @Override
+        public void title(String title) {
+            calls.add("title(" + title + ")");
+        }
+
+        @Override
+        public void size(int width, int height, io.github.digitalsmile.goldberry.render.web.WebSize size) {
+            calls.add("size(" + width + "," + height + "," + size + ")");
+        }
+
+        @Override
+        public void bounds(int x, int y, int width, int height) {
+            calls.add("bounds(" + x + "," + y + "," + width + "," + height + ")");
+        }
+
+        @Override
+        public void eval(String script) {
+            calls.add("eval(" + script + ")");
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                calls.add("close()");
+            }
+        }
     }
 
     @Override

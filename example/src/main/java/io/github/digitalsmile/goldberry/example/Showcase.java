@@ -227,7 +227,11 @@ public final class Showcase implements Application {
     @Override
     public void start(Host host) {
         this.host = host;
-        paletteIcon = Icon.bundled("palette", ICON_SIZE);
+        // `Icons.SLOT`, not ICON_SIZE: this one goes in a `button icon=`, whose
+        // lead slot is 16, and an icon is built at a size and cannot be rescaled
+        // (ADR-0043). At 20 it was centred in a 16px column and overhung it, which
+        // `ItemLead` says out loud on every run.
+        paletteIcon = Icon.bundled("palette", (float) Icons.SLOT);
         plusIcon = Icon.bundled("plus", ICON_SIZE);
 
         // Two models and one icon registry, and that is the whole of the wiring.
@@ -310,6 +314,15 @@ public final class Showcase implements Application {
         // ordinary `Menu` -- the same value a `menubar` holds -- so the light
         // toggle here and the one in the File menu are one command written once
         // (ADR-0191).
+        // Lets a run start on a named screen, so a tab that only does something
+        // when it is looked at -- `web`, whose page opens over the box it is
+        // painted at -- can be exercised without a human clicking it.
+        var startOn = System.getProperty("goldberry.example.screen");
+        if (startOn != null && !startOn.isBlank()) {
+            LOG.info("starting on the \"{}\" screen, as -Dgoldberry.example.screen asked", startOn);
+            actions.pickScreen(startOn);
+        }
+
         tray = Trays.show(
                 host,
                 TrayIcon.of(
