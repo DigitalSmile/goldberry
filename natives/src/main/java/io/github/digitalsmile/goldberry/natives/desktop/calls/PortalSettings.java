@@ -247,11 +247,12 @@ public final class PortalSettings {
 
     private record Call2(MethodHandle handle, MemorySegment address) {
 
+        /// `DBusConnection *dbus_bus_get(DBusBusType, DBusError *)`.
+        private static final FunctionDescriptor FD = Bindings.describe(
+                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
         Call2(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(
-                            FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         MemorySegment call(int first, MemorySegment second) {
@@ -261,15 +262,16 @@ public final class PortalSettings {
 
     private record Call4(MethodHandle handle, MemorySegment address) {
 
+        /// `DBusMessage *dbus_message_new_method_call(const char *, const char *, const char *, const char *)`.
+        private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.of(
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS));
+
         Call4(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(FunctionDescriptor.of(
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         MemorySegment call(MemorySegment a, MemorySegment b, MemorySegment c, MemorySegment d) {
@@ -279,15 +281,17 @@ public final class PortalSettings {
 
     private record Call4Reply(MethodHandle handle, MemorySegment address) {
 
+        /// `DBusMessage *dbus_connection_send_with_reply_and_block(DBusConnection *, DBusMessage *, int,
+        /// DBusError *)`.
+        private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.of(
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.JAVA_INT,
+                ValueLayout.ADDRESS));
+
         Call4Reply(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(FunctionDescriptor.of(
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.JAVA_INT,
-                            ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         MemorySegment call(MemorySegment a, MemorySegment b, int timeout, MemorySegment error) {
@@ -297,8 +301,11 @@ public final class PortalSettings {
 
     private record Call1Void(MethodHandle handle, MemorySegment address) {
 
+        /// `void dbus_message_unref(DBusMessage *)`, and the two `DBusError` calls.
+        private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+
         Call1Void(SymbolLookup lookup, String symbol) {
-            this(Bindings.link(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)), Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         void call(MemorySegment a) {
@@ -308,10 +315,12 @@ public final class PortalSettings {
 
     private record Call2Void(MethodHandle handle, MemorySegment address) {
 
+        /// `void dbus_message_iter_init_append(DBusMessage *, DBusMessageIter *)`.
+        private static final FunctionDescriptor FD =
+                Bindings.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
         Call2Void(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         void call(MemorySegment a, MemorySegment b) {
@@ -321,10 +330,12 @@ public final class PortalSettings {
 
     private record Call1Int(MethodHandle handle, MemorySegment address) {
 
+        /// `int dbus_message_iter_get_arg_type(DBusMessageIter *)`.
+        private static final FunctionDescriptor FD =
+                Bindings.describe(FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
         Call1Int(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         int call(MemorySegment a) {
@@ -334,11 +345,12 @@ public final class PortalSettings {
 
     private record Call2Int(MethodHandle handle, MemorySegment address) {
 
+        /// `dbus_bool_t dbus_message_iter_init(DBusMessage *, DBusMessageIter *)`.
+        private static final FunctionDescriptor FD = Bindings.describe(
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
         Call2Int(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(
-                            FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         int call(MemorySegment a, MemorySegment b) {
@@ -348,11 +360,12 @@ public final class PortalSettings {
 
     private record Call3Int(MethodHandle handle, MemorySegment address) {
 
+        /// `dbus_bool_t dbus_message_iter_append_basic(DBusMessageIter *, int, const void *)`.
+        private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.of(
+                ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
         Call3Int(SymbolLookup lookup, String symbol) {
-            this(
-                    Bindings.link(FunctionDescriptor.of(
-                            ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS)),
-                    Bindings.symbol(lookup, symbol));
+            this(Bindings.link(FD), Bindings.symbol(lookup, symbol));
         }
 
         int call(MemorySegment a, int type, MemorySegment b) {

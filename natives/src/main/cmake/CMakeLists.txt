@@ -111,10 +111,18 @@ goldberry_pin(md4c GOLDBERRY_MD4C_REF)
 goldberry_pin(libwebp GOLDBERRY_LIBWEBP_REF)
 goldberry_pin(webview GOLDBERRY_WEBVIEW_REF)
 
+# The WebView2 SDK headers, fetched on Windows and nowhere else -- see the web
+# view section at the bottom of this file. Pinned here with everything else even
+# on the two platforms that never download it, because the catalog is the one
+# list of what this build fetches (ADR-0035) and a ref that appears only inside
+# a platform branch is one nothing reviews.
+goldberry_pin(webview2 GOLDBERRY_WEBVIEW2_REF)
+
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
     "sdl3 ${GOLDBERRY_SDL3_REF}, md4c ${GOLDBERRY_MD4C_REF}, "
-    "libwebp ${GOLDBERRY_LIBWEBP_REF}, webview ${GOLDBERRY_WEBVIEW_REF}")
+    "libwebp ${GOLDBERRY_LIBWEBP_REF}, webview ${GOLDBERRY_WEBVIEW_REF}, "
+    "webview2 ${GOLDBERRY_WEBVIEW2_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -923,22 +931,87 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
             endif()
         endif()
     endif()
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    # WKWebView is a system framework and WebView2 ships with the OS, so there is
-    # no optional header to probe for: these are the platforms where the library
-    # is always buildable. UNVERIFIED -- neither has been built or run, which is
-    # the tray's situation exactly and is recorded the same way in ADR-0441.
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    # WKWebView is a system framework, and its headers are in the SDK that every
+    # Xcode installs. There is nothing to probe for and nothing to fetch.
     set(GOLDBERRY_WEBVIEW_AVAILABLE ON)
+    set(GOLDBERRY_WEBVIEW_ENGINE "WKWebView")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # WebView2 is two things with one name, and conflating them is what broke the
+    # Windows leg of snapshot run 25 (ADR-0450). The *runtime* is Edge and ships
+    # with the OS -- which is what the line that used to stand here said, and it
+    # is true. The *SDK header* does not: `WebView2.h` is delivered only in the
+    # Microsoft.Web.WebView2 NuGet package, and `webview.h` includes it by name.
+    # A runner with Edge installed and no package therefore fails to compile:
+    #
+    #   webview.h(2788,10): error C1083: Cannot open include file: 'WebView2.h'
+    #
+    # webview's own CMake downloads that package. This build does not use it --
+    # SOURCE_SUBDIR above names a directory that does not exist, for the reasons
+    # given there -- so the download belongs here.
+    #
+    # HEADERS ONLY, which is the same shape as Linux: nothing out of the package
+    # is linked and nothing out of it is shipped. webview's built-in loader
+    # resolves `WebView2Loader.dll` with LoadLibrary at run time, against the
+    # Edge that is already on the machine.
+    if(NOT GOLDBERRY_WEBVIEW2_INCLUDE_DIR)
+        # A URL rather than a git ref, and deliberately no URL_HASH: a NuGet
+        # version is immutable by NuGet's own policy -- a package cannot be
+        # republished under a version it has already used -- which makes this a
+        # stronger pin than the git *tags* every other upstream here is fetched
+        # by, and those carry no hash either.
+        #
+        # DOWNLOAD_NAME because the URL's last component is a bare version with
+        # no extension, and CMake will not extract an archive whose name gives it
+        # no format to extract. SOURCE_SUBDIR for md4c's reason: the package is a
+        # pile of headers with no CMake project in it, and MakeAvailable must
+        # populate it without trying to add_subdirectory anything.
+        FetchContent_Declare(mswebview2
+            URL "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${GOLDBERRY_WEBVIEW2_REF}"
+            DOWNLOAD_NAME "microsoft-web-webview2-${GOLDBERRY_WEBVIEW2_REF}.zip"
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            SOURCE_SUBDIR do-not-add-this-subdirectory)
+        FetchContent_MakeAvailable(mswebview2)
+
+        # A cache variable, so `-DGOLDBERRY_WEBVIEW2_INCLUDE_DIR=<path>` skips the
+        # download entirely for a machine that already has the SDK installed.
+        find_path(GOLDBERRY_WEBVIEW2_INCLUDE_DIR WebView2.h
+            PATHS "${mswebview2_SOURCE_DIR}/build/native/include"
+            NO_DEFAULT_PATH
+            DOC "The directory holding WebView2.h -- the Microsoft WebView2 SDK headers")
+    endif()
+
+    # Not fatal when the package yields no header, which is this section's rule
+    # everywhere: a web view is a feature an application opts into, so a layout
+    # change at Microsoft's end must cost the second library rather than the
+    # whole native build.
+    if(GOLDBERRY_WEBVIEW2_INCLUDE_DIR)
+        set(GOLDBERRY_WEBVIEW_AVAILABLE ON)
+        set(GOLDBERRY_WEBVIEW_ENGINE "WebView2 SDK ${GOLDBERRY_WEBVIEW2_REF}")
+    else()
+        # One quoted argument, spanning lines. Two would be a CMake *list*, and
+        # the reason would reach the reader with a semicolon in the middle of it.
+        set(GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON
+            "the Microsoft.Web.WebView2 package was fetched but holds no WebView2.h. \
+Point -DGOLDBERRY_WEBVIEW2_INCLUDE_DIR at an installed SDK to build it.")
+    endif()
 endif()
 
 if(NOT GOLDBERRY_WEBVIEW_AVAILABLE)
+    if(NOT GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON)
+        set(GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON
+            "no WebKitGTK development headers. Install libwebkitgtk-6.0-dev \
+(Debian/Ubuntu) or webkitgtk6.0-devel (RHEL/Fedora) to build it.")
+    endif()
     message(STATUS
-        "Goldberry web view: OFF -- no WebKitGTK development headers. "
+        "Goldberry web view: OFF -- ${GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON} "
         "libgoldberry-webview will not be built and `web-view` will report itself "
-        "unavailable at run time. Install libwebkitgtk-6.0-dev (Debian/Ubuntu) or "
-        "webkitgtk6.0-devel (RHEL/Fedora) to build it.")
+        "unavailable at run time.")
 else()
-    message(STATUS "Goldberry web view: ON (${GOLDBERRY_WEBKITGTK_MODULE_NAME})")
+    if(NOT GOLDBERRY_WEBVIEW_ENGINE)
+        set(GOLDBERRY_WEBVIEW_ENGINE "${GOLDBERRY_WEBKITGTK_MODULE_NAME}")
+    endif()
+    message(STATUS "Goldberry web view: ON (${GOLDBERRY_WEBVIEW_ENGINE})")
 
     add_library(goldberry-webview SHARED goldberry_webview.cc)
 
@@ -971,6 +1044,10 @@ else()
             "-framework WebKit"
             "-framework Cocoa")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        # The SDK headers found above. An include directory and no library: the
+        # six below are Windows' own, and `WebView2Loader.dll` is opened by name
+        # at run time rather than linked (ADR-0450).
+        target_include_directories(goldberry-webview PRIVATE "${GOLDBERRY_WEBVIEW2_INCLUDE_DIR}")
         target_link_libraries(goldberry-webview PRIVATE advapi32 ole32 shell32 shlwapi user32 version)
     endif()
 

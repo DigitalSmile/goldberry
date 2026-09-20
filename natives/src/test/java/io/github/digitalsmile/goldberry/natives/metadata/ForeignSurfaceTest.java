@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.metadata;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -21,12 +22,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.natives.CompiledClasses;
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// [ForeignSurface] is complete or it is worthless: a holder it does not
 /// initialise is a `MissingForeignRegistrationError` on somebody's desktop, on
@@ -130,11 +133,118 @@ class ForeignSurfaceTest {
                         "a web page's binding callback"));
     }
 
-    /// The owners are a list, so the list is held to the tree: every class that
-    /// makes a stub declares its shape, or the image meets it unregistered.
+    /// The holders that bind a **system** library, which is the case
+    /// [#everyHandleIsCovered] cannot see: they keep no `FD_…` handle, because
+    /// the library may be absent and the handle is linked only where it is not.
+    ///
+    /// This is the shape that took the showcase's Linux native image down
+    /// (ADR-0451). `PortalSettings` binds `dbus_bus_get` and built its
+    /// descriptor inside the constructor, so nothing recorded it on a build
+    /// machine without libdbus — and the image met it unregistered the first
+    /// time a window asked the desktop about reduced motion.
+    ///
+    /// **Independent of what this machine has installed**, which is the whole
+    /// point and is what makes the test worth having: it passes on a machine
+    /// with no libdbus, no libobjc and no user32, and it failed before the fix
+    /// on every one of them.
     @Test
-    @DisplayName("names every class that makes an upcall stub")
-    void ownersCoverTheSources() throws IOException {
+    @DisplayName("declares the system libraries' shapes, present or not")
+    void systemLibraryShapesAreDeclared() {
+        var downcalls = ForeignSurface.downcalls();
+        assertAll(
+                () -> assertTrue(
+                        downcalls.contains(FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS)),
+                        "libdbus' dbus_bus_get — the one that crashed"),
+                () -> assertTrue(
+                        downcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)),
+                        "libdbus' dbus_message_iter_init_append"),
+                () -> assertTrue(
+                        downcalls.contains(FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS)),
+                        "libdbus' dbus_message_new_method_call"),
+                () -> assertTrue(
+                        downcalls.contains(FunctionDescriptor.of(JAVA_BYTE, ADDRESS, ADDRESS)),
+                        "libobjc's objc_msgSend returning a BOOL — macOS' reduce-motion answer"),
+                () -> assertTrue(
+                        downcalls.contains(FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT)),
+                        "user32's SystemParametersInfoW — Windows' reduce-motion answer"));
+    }
+
+    /// The rule behind the test above, held to the source so that the next
+    /// holder cannot reintroduce the defect.
+    ///
+    /// A descriptor written inline at a `Bindings.link(…)` call site is one
+    /// built when the binding runs, and a binding against a system library runs
+    /// only where that library is. Written as a constant it is built when the
+    /// class is initialised, which [ForeignSurface] does for every class in a
+    /// `…calls` package on any machine at all.
+    @Test
+    @DisplayName("no system-library descriptor is built at its link site")
+    void systemLibraryShapesAreConstants() throws IOException {
+        var sources = holderSources();
+        var inline = new TreeSet<String>();
+        try (Stream<Path> files = Files.walk(sources)) {
+            for (var file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                var text = Files.readString(file);
+                // `Bindings.link(` followed by anything but a bare identifier
+                // and its closing bracket. Whitespace and newlines between the
+                // two are spotless' business and not this test's.
+                var matcher = LINK_ARGUMENT.matcher(text);
+                while (matcher.find()) {
+                    if (!matcher.group(1).strip().matches("\\w+")) {
+                        inline.add(file.getFileName() + ": " + matcher.group(1).strip());
+                    }
+                }
+            }
+        }
+        assertEquals(
+                new TreeSet<String>(),
+                inline,
+                "these descriptors are built where they are linked, so a machine without the library"
+                        + " never records them — declare each as a constant through Bindings.describe."
+                        + " See ADR-0451.");
+    }
+
+    /// `Bindings.link(` and everything up to its matching close, which for these
+    /// three files is always the whole argument: a descriptor, or the name of
+    /// one.
+    private static final Pattern LINK_ARGUMENT =
+            Pattern.compile("Bindings\\.link\\(((?:[^()]|\\([^()]*\\))*)\\)", Pattern.DOTALL);
+
+    /// `natives/src/main/java/.../desktop/calls`, the one package that binds
+    /// libraries other than `libgoldberry`.
+    private static Path holderSources() {
+        var sources = mainSources().resolve("io/github/digitalsmile/goldberry/natives/desktop/calls");
+        assertTrue(Files.isDirectory(sources), sources.toString());
+        return sources;
+    }
+
+    /// The downcall twin of [#ownersCoverTheSources()], and the reason both
+    /// exist: a shape reaches the metadata only if it passes a choke point, so
+    /// what has to be guarded is that there are no other doors.
+    ///
+    /// `Linker.downcallHandle` is called in exactly two places — [Downcalls],
+    /// which records, and `Bindings`, whose callers declare their shapes as
+    /// constants and are held to it by [#systemLibraryShapesAreConstants()]. A
+    /// third would be a binding nothing records, which is ADR-0451 again.
+    @Test
+    @DisplayName("links a downcall in two places, and both of them record")
+    void downcallsHaveTwoChokePoints() throws IOException {
+        var sources = mainSources();
+        var callers = new TreeSet<String>();
+        try (Stream<Path> files = Files.walk(sources)) {
+            for (var file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                if (Files.readString(file).contains(".downcallHandle(")) {
+                    callers.add(file.getFileName().toString());
+                }
+            }
+        }
+        assertEquals(
+                new TreeSet<>(List.of("Bindings.java", "Downcalls.java")),
+                callers,
+                "a downcall linked anywhere else is a shape no metadata knows about — see ADR-0451");
+    }
+
+    private static Path mainSources() {
         var sources = CompiledClasses.mainClassesBeside(ForeignSurfaceTest.class)
                 .getParent()
                 .getParent()
@@ -142,6 +252,15 @@ class ForeignSurfaceTest {
                 .getParent()
                 .resolve("src/main/java");
         assertTrue(Files.isDirectory(sources), sources.toString());
+        return sources;
+    }
+
+    /// The owners are a list, so the list is held to the tree: every class that
+    /// makes a stub declares its shape, or the image meets it unregistered.
+    @Test
+    @DisplayName("names every class that makes an upcall stub")
+    void ownersCoverTheSources() throws IOException {
+        var sources = mainSources();
         var makers = new TreeSet<String>();
         try (Stream<Path> files = Files.walk(sources)) {
             for (var file : files.filter(f -> f.toString().endsWith(".java")).toList()) {

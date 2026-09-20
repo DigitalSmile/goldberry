@@ -6,6 +6,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
+
 /// The crossing, for the libraries that are **not** `libgoldberry`.
 ///
 /// [io.github.digitalsmile.goldberry.natives.Downcalls] is the toolkit's own
@@ -18,13 +20,31 @@ import java.lang.invoke.MethodHandle;
 /// So this is the same three lines with the opposite failure policy: **a missing
 /// symbol is a missing feature**, and a crossing that throws is caught by the
 /// caller and answered as "the desktop does not say".
+///
+/// **One half of that was wrong, and [ADR-0451] is the correction.** The failure
+/// policy is this package's own and stays. Not recording the descriptors was a
+/// mistake: an image still has to be told a shape it may cross, and whether the
+/// library is present on the machine that *builds* it has nothing to do with
+/// whether it is present on the machine that *runs* it. The shapes are declared
+/// through [#describe] on a constant now, and linked here.
 final class Bindings {
 
     private static final Linker LINKER = Linker.nativeLinker();
 
     private Bindings() {}
 
-    /// A handle for `descriptor`.
+    /// Declares `descriptor` as a shape this package may cross, for the native
+    /// image's metadata, and hands it straight back.
+    ///
+    /// Called from a `static final` on the holder rather than from the binding
+    /// that uses it: the binding runs only where the library is, and the whole
+    /// point is to record the shape where it cannot be missed ([ADR-0451]).
+    static FunctionDescriptor describe(FunctionDescriptor descriptor) {
+        return Downcalls.describe(descriptor);
+    }
+
+    /// A handle for `descriptor`, which is expected to be one [#describe] has
+    /// already been given.
     @SuppressWarnings("restricted")
     static MethodHandle link(FunctionDescriptor descriptor) {
         return LINKER.downcallHandle(descriptor);

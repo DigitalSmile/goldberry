@@ -24,16 +24,31 @@ public final class MacMotion {
 
     private MacMotion() {}
 
+    // The four Objective-C runtime shapes, declared here rather than inside
+    // read() so that they are recorded whether or not this machine is a Mac
+    // (ADR-0451). read() runs on macOS alone; an image is built wherever it is
+    // built, and the metadata has to name every shape it might cross.
+
+    /// `Class objc_getClass(const char *)` and `SEL sel_registerName(const char *)`.
+    private static final FunctionDescriptor FD_PTR__PTR =
+            Bindings.describe(FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
+    /// `id objc_msgSend(id, SEL)`.
+    private static final FunctionDescriptor FD_PTR__PTR_PTR =
+            Bindings.describe(FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
+    /// `BOOL objc_msgSend(id, SEL)`, where a `BOOL` is a signed char.
+    private static final FunctionDescriptor FD_BYTE__PTR_PTR =
+            Bindings.describe(FunctionDescriptor.of(ValueLayout.JAVA_BYTE, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
     @SuppressWarnings("restricted")
     public static MotionPreference read() {
         try (var arena = Arena.ofConfined()) {
             var objc = SymbolLookup.libraryLookup("libobjc.A.dylib", arena);
-            var getClass = Bindings.link(FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-            var registerName = Bindings.link(FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-            var send =
-                    Bindings.link(FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-            var sendBoolean = Bindings.link(
-                    FunctionDescriptor.of(ValueLayout.JAVA_BYTE, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+            var getClass = Bindings.link(FD_PTR__PTR);
+            var registerName = Bindings.link(FD_PTR__PTR);
+            var send = Bindings.link(FD_PTR__PTR_PTR);
+            var sendBoolean = Bindings.link(FD_BYTE__PTR_PTR);
 
             var getClassAt = Bindings.symbol(objc, "objc_getClass");
             var registerNameAt = Bindings.symbol(objc, "sel_registerName");

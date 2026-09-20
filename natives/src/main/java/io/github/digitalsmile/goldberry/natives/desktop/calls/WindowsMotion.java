@@ -23,16 +23,24 @@ public final class WindowsMotion {
 
     private WindowsMotion() {}
 
+    /// `BOOL SystemParametersInfoW(UINT, UINT, PVOID, UINT)`.
+    ///
+    /// Declared here rather than inside [#read()] so that it is recorded whether
+    /// or not this machine is a Windows one (ADR-0451): `read()` runs on Windows
+    /// alone, an image is built wherever it is built, and the metadata has to
+    /// name every shape it might cross.
+    private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.of(
+            ValueLayout.JAVA_INT,
+            ValueLayout.JAVA_INT,
+            ValueLayout.JAVA_INT,
+            ValueLayout.ADDRESS,
+            ValueLayout.JAVA_INT));
+
     @SuppressWarnings("restricted")
     public static MotionPreference read() {
         try (var arena = Arena.ofConfined()) {
             var lookup = SymbolLookup.libraryLookup("user32.dll", arena);
-            var call = Bindings.link(FunctionDescriptor.of(
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.ADDRESS,
-                    ValueLayout.JAVA_INT));
+            var call = Bindings.link(FD);
             var address = Bindings.symbol(lookup, "SystemParametersInfoW");
             var answer = arena.allocate(ValueLayout.JAVA_INT);
             answer.set(ValueLayout.JAVA_INT, 0, 1);

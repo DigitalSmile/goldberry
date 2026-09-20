@@ -92,6 +92,16 @@ libwebp = "v1.6.0"
 # linked into nothing and opened on demand, because GTK and WebKit must not become
 # load-time dependencies of every application that ever used the toolkit.
 webview = "0.12.0"
+# The Microsoft WebView2 SDK -- Windows only, and headers only (ADR-0450).
+#
+# WebView2 is two things with one name. The *runtime* is Edge and ships with
+# Windows; the *SDK header* `WebView2.h`, which `webview.h` includes by name,
+# ships only in this NuGet package. Nothing from it is linked and nothing from it
+# is shipped: `WebView2Loader.dll` is resolved with LoadLibrary at run time.
+#
+# This is the version webview 0.12.0 pins and therefore tests against, which is
+# why it is a 2022 date rather than the newest available.
+webview2 = "1.0.1150.38"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

@@ -131,6 +131,30 @@ public final class Downcalls {
         return lookup.find(symbol).orElse(null);
     }
 
+    /// Records `descriptor` as a shape some downcall will have, and returns it,
+    /// so a `static final` can be declared through this call.
+    ///
+    /// The twin of [Upcalls#describe], and it exists for the same reason
+    /// ([ADR-0451]). [#link] records what it links, which is enough for a holder
+    /// against `libgoldberry`: the library is always there, so the holder always
+    /// initialises and the shape is always recorded. It is *not* enough for a
+    /// system library that may be absent — `libdbus`, `libobjc`, `user32` — where
+    /// the descriptor is built inside the binding that only runs on a machine
+    /// that has the library. The build machine may not be that machine, and a
+    /// shape that was never described is a `MissingForeignRegistrationError` on
+    /// one that is.
+    ///
+    /// So: describe the shape where it can always be reached — a constant on the
+    /// holder — and link it where the library is.
+    public static FunctionDescriptor describe(FunctionDescriptor descriptor) {
+        synchronized (LINKED) {
+            if (!LINKED.contains(descriptor)) {
+                LINKED.add(descriptor);
+            }
+        }
+        return descriptor;
+    }
+
     /// The unbound handle for `descriptor`, which is what a holder's `FD_…`
     /// constant is.
     ///
@@ -143,12 +167,7 @@ public final class Downcalls {
     /// the Java types, and ADR-0010 accepted that obligation.
     @SuppressWarnings("restricted")
     public static MethodHandle link(FunctionDescriptor descriptor) {
-        synchronized (LINKED) {
-            if (!LINKED.contains(descriptor)) {
-                LINKED.add(descriptor);
-            }
-        }
-        return LINKER.downcallHandle(descriptor);
+        return LINKER.downcallHandle(describe(descriptor));
     }
 
     /// The distinct descriptors linked so far.

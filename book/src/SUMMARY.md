@@ -464,3 +464,6 @@
 - [ADR-0447 A spinner has a size, because a ring has a stroke](adr/0447-a-spinner-has-a-size-because-a-ring-has-a-stroke.md)
 - [ADR-0448 A page calls back through a name it was given](adr/0448-a-page-calls-back-through-a-name-it-was-given.md)
 - [ADR-0449 A page follows the value that describes it](adr/0449-a-page-follows-the-value-that-describes-it.md)
+- [ADR-0450 The WebView2 runtime ships with Windows; its headers do not](adr/0450-the-webview2-runtime-ships-with-windows-its-headers-do-not.md)
+- [ADR-0451 A shape is declared where it can be reached, not where it is linked](adr/0451-a-shape-is-declared-where-it-can-be-reached-not-where-it-is-linked.md)
+- [ADR-0452 A refresh budget needs a display somebody chose](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)

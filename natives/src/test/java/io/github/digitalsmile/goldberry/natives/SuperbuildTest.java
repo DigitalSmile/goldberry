@@ -8,7 +8,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,11 +41,41 @@ class SuperbuildTest {
         boolean reportsProgress() {
             return body.contains("GIT_PROGRESS TRUE");
         }
+
+        /// A download by archive rather than by clone — the WebView2 SDK, which
+        /// is a NuGet package and has no repository (ADR-0450).
+        boolean fetchesFromUrl() {
+            return !fetchesFromGit() && body.contains("URL ");
+        }
+
+        /// The `GOLDBERRY_*_REF` names this declaration interpolates, from
+        /// wherever in the block they appear: `GIT_TAG` for a clone, the `URL`
+        /// itself for an archive.
+        List<String> refsUsed() {
+            var refs = new ArrayList<String>();
+            var matcher = REF_USE.matcher(withoutComments(body));
+            while (matcher.find()) {
+                refs.add(matcher.group(1));
+            }
+            return refs;
+        }
     }
+
+    /// `${GOLDBERRY_WEBVIEW2_REF}` where an upstream says which version it wants.
+    private static final Pattern REF_USE = Pattern.compile("\\$\\{(GOLDBERRY_\\w+_REF)}");
+
+    /// `goldberry_pin(webview2 GOLDBERRY_WEBVIEW2_REF)` — the catalog key and the
+    /// variable it is read into.
+    private static final Pattern PIN =
+            Pattern.compile("(?m)^[ \t]*goldberry_pin\\(\\s*([\\w-]+)\\s+(GOLDBERRY_\\w+_REF)\\s*\\)");
 
     private final Path projectDir = locateProjectDir();
     private final String cmakeLists = read(projectDir.resolve("src/main/cmake/CMakeLists.txt"));
     private final String buildGradle = read(projectDir.resolve("build.gradle"));
+
+    /// The catalog CMake reads the refs out of — the path `GOLDBERRY_VERSION_CATALOG`
+    /// resolves to, spelled from `:natives` rather than from the CMake directory.
+    private final String versionCatalog = read(projectDir.resolve("../gradle/libs.versions.toml"));
 
     /// The `:natives` project directory, found by walking up from wherever the
     /// tests were started.
@@ -235,6 +267,98 @@ class SuperbuildTest {
                     return hash < 0 ? line : line.substring(0, hash);
                 })
                 .reduce("", (a, b) -> a + "\n" + b);
+    }
+
+    @Test
+    @DisplayName("every fetched upstream takes its version from the catalog")
+    void everyUpstreamIsPinnedFromTheCatalog() {
+        var pinned = new HashMap<String, String>();
+        var pins = PIN.matcher(cmakeLists);
+        while (pins.find()) {
+            pinned.put(pins.group(2), pins.group(1));
+        }
+        assertFalse(pinned.isEmpty(), "the superbuild calls goldberry_pin nowhere");
+
+        for (var declaration : declarationsIn(cmakeLists)) {
+            // asmjit is declared without a ref of its own: Blend2D adds it, and
+            // the pin is applied where it is populated further up.
+            var refs = declaration.refsUsed();
+            if (refs.isEmpty()) {
+                continue;
+            }
+            for (var ref : refs) {
+                // A version written into the CMake instead of the catalog is the
+                // failure ADR-0035 exists about, and it is invisible: the build
+                // works, and the one list of what this project fetches is wrong.
+                assertTrue(
+                        pinned.containsKey(ref),
+                        () -> declaration.name() + " interpolates " + ref
+                                + ", which no goldberry_pin() sets -- see ADR-0035");
+                var key = pinned.get(ref);
+                assertTrue(
+                        Pattern.compile("(?m)^[ \t]*" + Pattern.quote(key) + "[ \t]*=[ \t]*\"")
+                                .matcher(versionCatalog)
+                                .find(),
+                        () -> "gradle/libs.versions.toml has no `" + key + " = \"...\"`, so configuring "
+                                + declaration.name() + " fails -- see ADR-0035");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("an upstream fetched as an archive names the file it downloads")
+    void archiveUpstreamsNameTheirDownload() {
+        for (var declaration : declarationsIn(cmakeLists)) {
+            if (!declaration.fetchesFromUrl()) {
+                continue;
+            }
+            // The WebView2 package's URL ends in a bare version -- no `.zip`, no
+            // `.tar.gz` -- and CMake will not extract an archive whose name tells
+            // it no format. It does not fail either: it copies the file and the
+            // include directory below it is simply never there (ADR-0450).
+            assertTrue(
+                    withoutComments(declaration.body()).contains("DOWNLOAD_NAME"),
+                    () -> declaration.name() + " is fetched by URL without DOWNLOAD_NAME, so CMake may not"
+                            + " recognise the archive and will not extract it -- see ADR-0450");
+        }
+    }
+
+    @Test
+    @DisplayName("the Windows web view SDK is fetched, not assumed to be installed")
+    void theWindowsWebViewSdkIsFetched() {
+        // The regression ADR-0450 is about. WebView2's *runtime* ships with
+        // Windows; `WebView2.h` ships only in a NuGet package, and the CMake used
+        // to conclude from the first fact that there was nothing to probe for --
+        // so `master` broke with C1083 on the one file that includes it.
+        var cmake = withoutComments(cmakeLists);
+        assertTrue(
+                cmake.contains("Microsoft.Web.WebView2"),
+                "the Windows leg must fetch the WebView2 SDK headers -- see ADR-0450");
+        assertTrue(
+                cmake.contains("find_path(GOLDBERRY_WEBVIEW2_INCLUDE_DIR WebView2.h"),
+                "the Windows leg must probe for WebView2.h rather than assume it -- see ADR-0450");
+
+        // Headers only, and this is the assertion that says so: the package also
+        // carries import libraries, and linking one would put a load-time
+        // dependency into a library whose whole point is not having any.
+        assertTrue(
+                cmake.contains("target_include_directories(goldberry-webview PRIVATE"
+                        + " \"${GOLDBERRY_WEBVIEW2_INCLUDE_DIR}\")"),
+                "the SDK must reach the shim as an include directory -- see ADR-0450");
+        assertFalse(
+                cmake.contains("WebView2Loader"),
+                "WebView2Loader.dll is opened by name at run time and must not be linked -- see ADR-0450");
+    }
+
+    @Test
+    @DisplayName("a build without the web view says why, in terms of the platform it is on")
+    void theWebViewOffMessageIsPlatformSpecific() {
+        // The old message named a Debian package on every platform, which is a
+        // wrong instruction rather than a missing one for a Windows reader.
+        var cmake = withoutComments(cmakeLists);
+        assertTrue(
+                cmake.contains("GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON"),
+                "the `web view: OFF` line must carry the reason for this platform -- see ADR-0450");
     }
 
     /// The declaration block for one upstream, for the assertions that care about
