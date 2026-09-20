@@ -1792,4 +1792,12 @@ final class Launcher implements Host {
     public double displayScale() {
         return window.scale().factor();
     }
+
+    /// The router's answer, which is the only one there is: the deepest mounted
+    /// modal is found once per frame beside the hit-test regions, and this reads
+    /// that rather than walking the tree again ([ADR-0444]).
+    @Override
+    public boolean isModal() {
+        return router.isModal();
+    }
 }

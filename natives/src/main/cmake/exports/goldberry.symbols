@@ -59,6 +59,20 @@ SDL_GetVersion
 SDL_GetRevision
 SDL_GetCurrentVideoDriver
 
+# Where SDL's own log messages go (ADR-0443).
+#
+# SDL writes to stderr -- a driver it could not load, a hint it did not
+# understand -- which on an application that configured logging is a line from
+# nowhere, with no level and no name, in a console nothing is capturing. One
+# symbol redirects the lot into SLF4J.
+#
+# The obvious neighbour is deliberately absent. SDL_SetLogPriorities would lower
+# SDL's own per-category thresholds so that more of it reached the bridge, and
+# that is a decision about verbosity this toolkit has no business making for
+# every application that links it. The destination is ours to fix; what is worth
+# saying stays SDL's.
+SDL_SetLogOutputFunction
+
 # The desktop's light-or-dark setting, and the one call that answers it on all
 # three platforms -- the alternatives are AppleInterfaceStyle, the
 # AppsUseLightTheme registry value and the XDG settings portal (sec. G26,

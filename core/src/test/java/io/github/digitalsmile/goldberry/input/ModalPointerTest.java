@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.input;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -235,6 +236,51 @@ class ModalPointerTest {
             press(20, 20);
 
             assertSame(byId("ok"), router.focused());
+        }
+    }
+
+    /// The read a widget outside the router needs, and the reason it exists.
+    ///
+    /// `web-view` is the one widget nothing painted can cover: a page is a
+    /// platform window above the frame, so a `dialog` over it is drawn where
+    /// nobody can see it. The widget therefore has to take the page off the
+    /// screen itself, and to do that it has to be able to ask ([ADR-0444]).
+    ///
+    /// Answered from the same field the two rules above are enforced with, so
+    /// there is one notion of "a modal is in force" rather than two that can
+    /// disagree.
+    @Nested
+    @DisplayName("asked whether a modal is in force")
+    class Asking {
+
+        @Test
+        @DisplayName("says no while the window is open")
+        void noWhileOpen() {
+            build(false);
+
+            assertFalse(router.isModal());
+        }
+
+        @Test
+        @DisplayName("says yes while something modal is mounted")
+        void yesWhileModal() {
+            build(true);
+
+            assertTrue(router.isModal());
+        }
+
+        /// The answer is recomputed from the tree on every frame rather than
+        /// latched when a dialog opens, which is what lets a modal that goes
+        /// away by any route at all give the window back.
+        @Test
+        @DisplayName("and says no again once it is gone, without being told")
+        void noAgainWhenItGoes() {
+            build(true);
+            assertTrue(router.isModal());
+
+            build(false);
+
+            assertFalse(router.isModal());
         }
     }
 }

@@ -12,10 +12,13 @@ import java.util.stream.Stream;
 
 import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.Upcalls;
+import io.github.digitalsmile.goldberry.natives.glib.GlibLog;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlFileDialogs;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlLog;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTray;
+import io.github.digitalsmile.goldberry.natives.webview.Webview;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
 
 /// Every foreign signature this module can cross, found from the classes rather
@@ -40,7 +43,21 @@ public final class ForeignSurface {
     /// The classes that make an upcall stub, each declaring its shape through
     /// [Upcalls#describe] in a static initialiser.
     static final List<Class<?>> UPCALL_OWNERS = List.of(
-            SdlEventWatch.class, SdlFileDialogs.class, SdlTray.class, MeasureCallback.class, SdlClipboard.class);
+            SdlEventWatch.class,
+            SdlFileDialogs.class,
+            SdlTray.class,
+            MeasureCallback.class,
+            SdlClipboard.class,
+            // The two log bridges (ADR-0443). `GlibLog` declares two shapes
+            // rather than one -- a `GLogFunc` and a `GLogWriterFunc` -- which is
+            // the first owner here to do so, and the reason `describe` is a call
+            // rather than a field.
+            SdlLog.class,
+            GlibLog.class,
+            // A page's own script calling back (ADR-0448). One stub for every
+            // binding of every page, so the owner is the wrapper rather than
+            // anything per-page.
+            Webview.class);
 
     private ForeignSurface() {}
 

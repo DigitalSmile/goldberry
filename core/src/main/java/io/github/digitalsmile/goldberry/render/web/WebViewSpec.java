@@ -27,7 +27,14 @@ import org.jspecify.annotations.Nullable;
 ///        Inspector or Edge's DevTools. A parameter rather than a system property
 ///        because an application may legitimately ship it on
 public record WebViewSpec(
-        @Nullable String url, @Nullable String html, String title, int width, int height, WebSize size, boolean debug) {
+        @Nullable String url,
+        @Nullable String html,
+        String title,
+        int width,
+        int height,
+        WebSize size,
+        boolean debug,
+        java.util.Map<String, WebCallback> callbacks) {
 
     /// The size a page opens at when nothing says otherwise.
     ///
@@ -42,6 +49,12 @@ public record WebViewSpec(
     public WebViewSpec {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
+        // Copied and ordered, so the names are bound in the order they were
+        // declared -- which is the order a duplicate is reported in, and the
+        // only thing about a map of handlers that is worth being stable.
+        callbacks = callbacks == null
+                ? java.util.Map.of()
+                : java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(callbacks));
         if (url != null && html != null) {
             throw new IllegalArgumentException(
                     "a page starts at a URL or from a document, not both — pass one and navigate afterwards"
@@ -50,6 +63,32 @@ public record WebViewSpec(
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("a page's window is " + width + "x" + height + ", and both must be > 0");
         }
+    }
+
+    /// A page with no callbacks — the shape this record had before a page could
+    /// call back, kept so that adding that changed nothing that already worked.
+    public WebViewSpec(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug) {
+        this(url, html, title, width, height, size, debug, java.util.Map.of());
+    }
+
+    /// The same page, with `name` callable from its own script.
+    ///
+    /// See [WebCallback] for what crosses and what may be returned. Bindings are
+    /// applied **before** the page is navigated, because the engine injects its
+    /// glue at document start.
+    public WebViewSpec on(String name, WebCallback handler) {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(handler, "handler");
+        var next = new java.util.LinkedHashMap<>(callbacks);
+        next.put(name, handler);
+        return new WebViewSpec(url, html, title, width, height, size, debug, next);
     }
 
     /// A page that opens at `url`, at the default size.
@@ -71,16 +110,17 @@ public record WebViewSpec(
 
     /// The same page with a window title.
     public WebViewSpec title(String value) {
-        return new WebViewSpec(url, html, Objects.requireNonNull(value, "title"), width, height, size, debug);
+        return new WebViewSpec(
+                url, html, Objects.requireNonNull(value, "title"), width, height, size, debug, callbacks);
     }
 
     /// The same page at a different window size.
     public WebViewSpec sized(int value, int height, WebSize mode) {
-        return new WebViewSpec(url, html, title, value, height, mode, debug);
+        return new WebViewSpec(url, html, title, value, height, mode, debug, callbacks);
     }
 
     /// The same page with the engine's inspector on.
     public WebViewSpec debug(boolean value) {
-        return new WebViewSpec(url, html, title, width, height, size, value);
+        return new WebViewSpec(url, html, title, width, height, size, value, callbacks);
     }
 }

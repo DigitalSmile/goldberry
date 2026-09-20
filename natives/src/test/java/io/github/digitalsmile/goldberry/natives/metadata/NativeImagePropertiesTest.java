@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.glib.GlibLibrary;
 import io.github.digitalsmile.goldberry.natives.webview.WebviewLibrary;
 
 /// The image arguments this module ships, held to the module itself.
@@ -140,7 +141,7 @@ class NativeImagePropertiesTest {
     }
 
     @Test
-    @DisplayName("keeps both library loaders out of the builder, because they dlopen")
+    @DisplayName("keeps every library loader out of the builder, because they dlopen")
     void nativeLibraryIsInitialisedAtRunTime() {
         // Two since ADR-0441, and the second one matters more than the first.
         // `NativeLibrary` at build time is a wrong *address* baked into the image,
@@ -149,8 +150,13 @@ class NativeImagePropertiesTest {
         // on a developer's desktop would claim Capability.WEB_VIEW on a server
         // with no WebKit at all, and one built in a bare CI container would deny
         // it for ever on machines that do. Both are silent.
+        //
+        // Three since ADR-0443, and `GlibLibrary` is the second kind again: it
+        // answers whether this machine has a GLib, and a builder's answer baked
+        // into the image is a log bridge that is silently never installed on
+        // every desktop that would have wanted it.
         assertEquals(
-                Set.of(NativeLibrary.class.getName(), WebviewLibrary.class.getName()),
+                Set.of(NativeLibrary.class.getName(), WebviewLibrary.class.getName(), GlibLibrary.class.getName()),
                 valuesOf(RUN_TIME),
                 "a library has to be mapped by the process that runs, not by the one that builds");
     }

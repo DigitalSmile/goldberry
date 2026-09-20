@@ -322,7 +322,6 @@ class WidgetParityTest {
     /// still select all four; what the toolkit does not do is get there first.
     private static final Map<String, String> UNSTYLED = Map.of(
             "spacer", "a gap: it has a size and no surface",
-            "stack", "a layout container, drawn entirely by what is stacked in it",
             "sparkline", "inherits `color` like text, deliberately — see its own doc comment");
 
     /// `canvas` left this list, and the reason is worth keeping because the
@@ -339,6 +338,13 @@ class WidgetParityTest {
     /// pixels tall. The rule is **class-scoped** and reaches no canvas but that
     /// one, which is why this is a rule the toolkit may have and a bare default is
     /// still not.
+    ///
+    /// `stack` left it the same way and for the same widget (ADR-0445). It was
+    /// here as "a layout container, drawn entirely by what is stacked in it",
+    /// which is still true of every stack an application writes; `web-view`
+    /// builds one to hold its spinner over the surface, and `stack.web-stage`
+    /// says how that one is laid out. Class-scoped again: a bare `stack` is
+    /// still given nothing at all.
 
     @ParameterizedTest
     @MethodSource("builtIns")

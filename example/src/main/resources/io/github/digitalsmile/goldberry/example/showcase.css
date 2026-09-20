@@ -1180,6 +1180,24 @@ chip.motion-entry {
 /* The `web-view` itself: the box a page is kept over (ADR-0442). It must GROW,
  * because the page is sized from this widget's painted rectangle -- a
  * content-sized box would put a page in a zero-height strip. */
+/* The address bar: a field that grows and a button that does not. Typing is not
+   navigating -- `Go` is what makes the typed text the page (ADR-0449). */
+#web-address {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#web-url {
+  flex-grow: 1;
+}
+
+/* What the page's own script last said (ADR-0448). */
+#web-callback {
+  flex-shrink: 1;
+}
+
 #web-screen > .web-view {
   flex-grow: 1;
 }
@@ -1212,7 +1230,13 @@ chip.motion-entry {
 #web-actions {
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* Pushed to the far end by an auto margin rather than by `space-between` on the
+   row, which used to hold two things and now holds three: spreading them would
+   put a gap between the two buttons that belong together. */
+#web-callback {
+  margin-left: auto;
 }

@@ -1,13 +1,16 @@
 package io.github.digitalsmile.goldberry.natives.webview;
 
 import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.Objects;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.Upcalls;
 import io.github.digitalsmile.goldberry.natives.sdl.window.NativeWindowHandle;
 import io.github.digitalsmile.goldberry.natives.webview.calls.WebviewCalls;
 
@@ -37,7 +40,7 @@ public final class Webview implements AutoCloseable {
     /// Bumped whenever the shim's exported functions change shape. A library
     /// found on a path the build did not choose — a distribution package, a `-D`
     /// override — is checked against this before anything is called through it.
-    public static final int ABI = 4;
+    public static final int ABI = 6;
 
     private static final Logger LOG = Logs.of(Webview.class);
 
@@ -106,7 +109,44 @@ public final class Webview implements AutoCloseable {
     /// confined, like every other platform handle in this module.
     private static int open;
 
+    /// ```c
+    /// void (*)(const char *id, const char *req, void *arg)
+    /// ```
+    ///
+    /// Declared here rather than beside the stub, so that a native image is told
+    /// this shape before any page exists (ADR-0339).
+    private static final FunctionDescriptor CALLBACK_DESCRIPTOR =
+            Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
+    /// Every binding in the process, by the number handed to the engine as the
+    /// callback's `void *arg`.
+    ///
+    /// **One stub for every binding of every page**, which is why there is a
+    /// registry at all: an upcall stub is a piece of executable memory in a
+    /// global arena, and one per bound name would be one that is never freed per
+    /// name. The number is `SdlFileDialogs`' idiom — a counter, a map, and
+    /// `MemorySegment.ofAddress` to carry it across as a pointer nobody
+    /// dereferences.
+    private static final java.util.Map<Long, Binding> BINDINGS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final java.util.concurrent.atomic.AtomicLong NEXT_BINDING =
+            new java.util.concurrent.atomic.AtomicLong(1);
+
+    /// The page a binding belongs to and what to call. The page, because
+    /// answering is a call on the engine and the handler does not know which
+    /// engine it was reached through.
+    private record Binding(Webview page, WebviewCallback handler, String name) {}
+
+    private static final class StubHolder {
+        private static final MemorySegment STUB = makeStub();
+    }
+
     private final WebviewCalls calls;
+
+    /// The numbers this page's bindings are registered under, so closing it
+    /// takes them out of the process-wide map rather than leaking one entry per
+    /// bound name per page.
+    private final java.util.List<Long> bindings = new java.util.ArrayList<>();
 
     private MemorySegment handle;
 
@@ -206,6 +246,21 @@ public final class Webview implements AutoCloseable {
         calls.setBounds().call(handle, x, y, width, height);
     }
 
+    /// How far through loading this page is.
+    ///
+    /// Polled from the widget's painter once a frame, which is why it is a
+    /// question rather than a callback — see `goldberry_webview_load_state`.
+    ///
+    /// [LoadState#UNKNOWN] where the engine will not say, which a caller should
+    /// read as "show it": a build that cannot answer must behave as every build
+    /// did before there was anything to ask.
+    ///
+    /// @throws IllegalStateException if the page has been closed
+    public LoadState loadState() {
+        requireOpen();
+        return LoadState.of(calls.loadState().call(handle));
+    }
+
     /// Whether a page can be opened in this process at all.
     public static boolean isAvailable() {
         return Holder.CALLS.isPresent();
@@ -287,6 +342,151 @@ public final class Webview implements AutoCloseable {
         withText(script, text -> calls.eval().call(handle, text), "evaluate " + script.length() + " characters");
     }
 
+    /// Makes `name` a global JavaScript function this page can call.
+    ///
+    /// ```java
+    /// page.bind("save", arguments -> { store(arguments); return "true"; });
+    /// ```
+    ///
+    /// ```js
+    /// const ok = await window.save({title: "note"});
+    /// ```
+    ///
+    /// **Bind before navigating.** The engine injects the glue at document
+    /// start, so a binding made after a page has loaded is not there for the
+    /// script that already ran.
+    ///
+    /// @throws IllegalStateException if the page has been closed
+    /// @throws IllegalArgumentException if the name is already bound on this page
+    public void bind(String name, WebviewCallback handler) {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(handler, "handler");
+        requireOpen();
+        var id = NEXT_BINDING.getAndIncrement();
+        BINDINGS.put(id, new Binding(this, handler, name));
+        int result;
+        try (var arena = Arena.ofConfined()) {
+            result = calls.bind().call(handle, arena.allocateFrom(name), StubHolder.STUB, MemorySegment.ofAddress(id));
+        }
+        if (result != 0) {
+            BINDINGS.remove(id);
+            // A duplicate is the only documented failure, and it is a
+            // programming error rather than a platform absence: two handlers for
+            // one name is a question about which one the page reaches.
+            throw new IllegalArgumentException("this page already binds \"" + name + "\"");
+        }
+        bindings.add(id);
+        LOG.debug("web page binds window.{}()", name);
+    }
+
+    /// The upcall every binding arrives through. **Called from C; must not
+    /// throw.**
+    ///
+    /// An exception crossing back into the engine is undefined behaviour, and
+    /// one raised here would also leave the page's promise pending for ever — so
+    /// a handler that fails is turned into a **rejection**, which is something
+    /// the page can catch.
+    @SuppressWarnings("unused")
+    private static void dispatch(MemorySegment id, MemorySegment request, MemorySegment userData) {
+        Binding binding = null;
+        String callId = null;
+        try {
+            binding = BINDINGS.get(userData.address());
+            callId = readString(id);
+            if (binding == null || callId == null) {
+                // A call for a binding that has gone -- a page closed between
+                // the page calling and the pump draining it. Nothing to answer
+                // to and nobody to tell.
+                return;
+            }
+            var arguments = readString(request);
+            // Trace rather than debug: a page is free to call a binding on every
+            // keystroke, and this is the line somebody debugging one wants.
+            LOG.trace("window.{}() called with {}", binding.name(), arguments);
+            var result = binding.handler().call(arguments == null ? "[]" : arguments);
+            binding.page().answer(callId, 0, result == null ? "" : result);
+        } catch (Throwable t) {
+            // The page is awaiting this. Rejecting is the only answer that does
+            // not hang it, and the message is what its `catch` receives.
+            if (binding != null && callId != null) {
+                LOG.debug("window.{}() failed; rejecting the page's promise", binding.name(), t);
+                try {
+                    binding.page().answer(callId, 1, json(String.valueOf(t.getMessage())));
+                } catch (Throwable ignored) {
+                    // The engine is gone. There is nothing further to try.
+                }
+            }
+        }
+    }
+
+    /// Resolves or rejects one call. `status` of zero resolves.
+    private void answer(String id, int status, String result) {
+        if (handle == null) {
+            return;
+        }
+        try (var arena = Arena.ofConfined()) {
+            calls.answer().call(handle, arena.allocateFrom(id), status, arena.allocateFrom(result));
+        }
+    }
+
+    /// `text` as a JSON string, which is what a rejection's reason has to be.
+    ///
+    /// Minimal on purpose: this escapes what a Java exception message can
+    /// contain and nothing else. Goldberry ships no JSON writer and this is not
+    /// the place to start one — a handler returning a value writes its own.
+    private static String json(String text) {
+        var escaped = new StringBuilder("\"");
+        for (var index = 0; index < text.length(); index++) {
+            var character = text.charAt(index);
+            switch (character) {
+                case '"' -> escaped.append("\\\"");
+                case '\\' -> escaped.append("\\\\");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+        return escaped.append('"').toString();
+    }
+
+    /// A C string the engine owns for the length of one call.
+    // Restricted for `Sdl.readString`'s reason: the pointer arrives with no size,
+    // and a bounded window is what keeps a missing NUL from running away.
+    @SuppressWarnings("restricted")
+    private static String readString(MemorySegment pointer) {
+        if (pointer == null || MemorySegment.NULL.equals(pointer)) {
+            return null;
+        }
+        return pointer.reinterpret(MAX_CALLBACK_LENGTH).getString(0);
+    }
+
+    /// The longest argument list or id this will read out of the engine. A
+    /// page that posts more than this across a binding wants a fetch, not a
+    /// callback.
+    private static final long MAX_CALLBACK_LENGTH = 1L << 20;
+
+    @SuppressWarnings("restricted")
+    private static MemorySegment makeStub() {
+        try {
+            var target = java.lang.invoke.MethodHandles.lookup()
+                    .findStatic(
+                            Webview.class,
+                            "dispatch",
+                            java.lang.invoke.MethodType.methodType(
+                                    void.class, MemorySegment.class, MemorySegment.class, MemorySegment.class));
+            return java.lang.foreign.Linker.nativeLinker().upcallStub(target, CALLBACK_DESCRIPTOR, Arena.global());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("no dispatch method to bind a page callback to", e);
+        }
+    }
+
     /// Whether this page has been closed.
     public boolean isClosed() {
         return handle == null;
@@ -301,6 +501,10 @@ public final class Webview implements AutoCloseable {
             // that a second close would free twice.
             handle = null;
             open--;
+            // Before the destroy, so a call already queued in the engine's loop
+            // finds nothing rather than a page whose handle has gone.
+            bindings.forEach(BINDINGS::remove);
+            bindings.clear();
             calls.destroy().call(closing);
         }
     }

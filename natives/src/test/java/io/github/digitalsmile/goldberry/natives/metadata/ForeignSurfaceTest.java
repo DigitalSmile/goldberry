@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.natives.metadata;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -95,18 +96,38 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the six upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the ten upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
-                () -> assertEquals(6, upcalls.size(), upcalls.toString()),
+                () -> assertEquals(10, upcalls.size(), upcalls.toString()),
                 () -> assertTrue(
                         upcalls.stream()
                                 .anyMatch(d -> d.returnLayout()
                                         .filter(StructLayout.class::isInstance)
                                         .isPresent()),
                         "the measure callback returns YGSize by value"),
-                () -> assertTrue(upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)), "the tray's"));
+                () -> assertTrue(upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)), "the tray's"),
+                // The three ADR-0443 added. Named rather than counted, because a
+                // count that moved is the least informative failure there is:
+                // these are the shapes GLib's two log hooks and SDL's one have,
+                // and a native image that has not been told about them meets an
+                // unregistered stub the first time a tray is created.
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, ADDRESS)),
+                        "GLib's GLogFunc"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, JAVA_INT, ADDRESS, JAVA_LONG, ADDRESS)),
+                        "GLib's GLogWriterFunc"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, JAVA_INT, ADDRESS)),
+                        "SDL's SDL_LogOutputFunction"),
+                // A page calling back into the application (ADR-0448): the id,
+                // the arguments as JSON, and the number the binding was made
+                // with.
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS)),
+                        "a web page's binding callback"));
     }
 
     /// The owners are a list, so the list is held to the tree: every class that

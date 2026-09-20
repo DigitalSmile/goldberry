@@ -101,7 +101,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 14u
+#define GOLDBERRY_ABI_VERSION 15u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -1002,6 +1002,39 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_INIT_EVENTS", SDL_INIT_EVENTS),
     GB_CONSTANT("SDL_INIT_SENSOR", SDL_INIT_SENSOR),
     GB_CONSTANT("SDL_INIT_CAMERA", SDL_INIT_CAMERA),
+
+    /*
+     * SDL's own logging, which ADR-0443 routes into SLF4J.
+     *
+     * Ordinals in two C enums, and the priorities are the kind SDL has already
+     * renumbered: SDL_LOG_PRIORITY_TRACE was inserted at 1, below VERBOSE, and
+     * every value above it moved up by one. A Java enum that predates that
+     * insertion logs every message one rung too loud -- an INFO reported as a
+     * WARN -- and nothing anywhere says so.
+     *
+     * The nine SDL_LOG_CATEGORY_RESERVED* values between GPU and CUSTOM are
+     * deliberately absent: they are SDL's room to grow, they name nothing, and
+     * the Java side reports an unknown category by number rather than by name.
+     */
+    GB_CONSTANT("SDL_LOG_PRIORITY_INVALID", SDL_LOG_PRIORITY_INVALID),
+    GB_CONSTANT("SDL_LOG_PRIORITY_TRACE", SDL_LOG_PRIORITY_TRACE),
+    GB_CONSTANT("SDL_LOG_PRIORITY_VERBOSE", SDL_LOG_PRIORITY_VERBOSE),
+    GB_CONSTANT("SDL_LOG_PRIORITY_DEBUG", SDL_LOG_PRIORITY_DEBUG),
+    GB_CONSTANT("SDL_LOG_PRIORITY_INFO", SDL_LOG_PRIORITY_INFO),
+    GB_CONSTANT("SDL_LOG_PRIORITY_WARN", SDL_LOG_PRIORITY_WARN),
+    GB_CONSTANT("SDL_LOG_PRIORITY_ERROR", SDL_LOG_PRIORITY_ERROR),
+    GB_CONSTANT("SDL_LOG_PRIORITY_CRITICAL", SDL_LOG_PRIORITY_CRITICAL),
+    GB_CONSTANT("SDL_LOG_CATEGORY_APPLICATION", SDL_LOG_CATEGORY_APPLICATION),
+    GB_CONSTANT("SDL_LOG_CATEGORY_ERROR", SDL_LOG_CATEGORY_ERROR),
+    GB_CONSTANT("SDL_LOG_CATEGORY_ASSERT", SDL_LOG_CATEGORY_ASSERT),
+    GB_CONSTANT("SDL_LOG_CATEGORY_SYSTEM", SDL_LOG_CATEGORY_SYSTEM),
+    GB_CONSTANT("SDL_LOG_CATEGORY_AUDIO", SDL_LOG_CATEGORY_AUDIO),
+    GB_CONSTANT("SDL_LOG_CATEGORY_VIDEO", SDL_LOG_CATEGORY_VIDEO),
+    GB_CONSTANT("SDL_LOG_CATEGORY_RENDER", SDL_LOG_CATEGORY_RENDER),
+    GB_CONSTANT("SDL_LOG_CATEGORY_INPUT", SDL_LOG_CATEGORY_INPUT),
+    GB_CONSTANT("SDL_LOG_CATEGORY_TEST", SDL_LOG_CATEGORY_TEST),
+    GB_CONSTANT("SDL_LOG_CATEGORY_GPU", SDL_LOG_CATEGORY_GPU),
+    GB_CONSTANT("SDL_LOG_CATEGORY_CUSTOM", SDL_LOG_CATEGORY_CUSTOM),
 
     /*
      * libwebp's animation decoder (ADR-0385).

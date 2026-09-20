@@ -102,6 +102,20 @@ class ExportListTest {
     /// this exemption could hide.
     private static final String SECOND_LIBRARY = "natives" + java.io.File.separator + "webview";
 
+    /// The package whose bindings are against a library **nobody here builds**.
+    ///
+    /// GLib is the system's. ADR-0443 binds two of its functions so that a
+    /// message from libayatana-appindicator or from GTK reaches the
+    /// application's log rather than its stderr, and they are found by `dlopen`
+    /// on `libglib-2.0.so.0` — there is no GLib archive in the superbuild, so
+    /// `g_log_set_default_handler` on the version script would fail the link
+    /// rather than export anything.
+    ///
+    /// Exempted by path for [#SECOND_LIBRARY]'s reason: a `g_*` prefix would
+    /// also excuse a GLib binding put in a class that really does talk to
+    /// `libgoldberry`, which is the mistake the exemption could hide.
+    private static final String THIRD_LIBRARY = "natives" + java.io.File.separator + "glib";
+
     /// Every symbol this module's sources ask `libgoldberry` for.
     private TreeSet<String> bound() {
         var sources = projectDir.resolve("src/main/java");
@@ -110,6 +124,7 @@ class ExportListTest {
         try (Stream<Path> files = Files.walk(sources)) {
             for (var file : files.filter(f -> f.toString().endsWith(".java"))
                     .filter(f -> !f.toString().contains(SECOND_LIBRARY))
+                    .filter(f -> !f.toString().contains(THIRD_LIBRARY))
                     .toList()) {
                 var source = Files.readString(file);
                 BOUND.matcher(source).results().forEach(match -> symbols.add(match.group(1)));

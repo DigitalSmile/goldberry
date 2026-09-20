@@ -1683,6 +1683,35 @@ start-up timeline (866.6ms to here):
      866.6ms    +117.1ms  first frame presented
 ```
 
+### What the platform's own libraries say
+
+The libraries underneath log too, and they used to log to stderr — past SLF4J,
+past your configuration, and past the silence above:
+
+```text
+(java:1034459): libayatana-appindicator-WARNING **: 21:30:36.281:
+libayatana-appindicator is deprecated.
+```
+
+That is GLib, from the tray SDL opened. Those messages are now ordinary SLF4J
+events on `native.<library>.<subsystem>`, so they can be levelled, routed and
+switched off by name like anything else
+([ADR-0443](book/src/adr/0443-somebody-elses-log-line-is-still-a-log-line.md)):
+
+```xml
+<!-- everything the platform says, at warn -->
+<logger name="native" level="warn"/>
+<!-- except this deprecation notice, which an application cannot act on -->
+<logger name="native.glib.libayatana-appindicator" level="off"/>
+<!-- and SDL's video subsystem, while a display problem is being chased -->
+<logger name="native.sdl.video" level="debug"/>
+```
+
+GLib and SDL are bridged. `-Dgoldberry.log.native=false` turns the bridge off
+and gives each library its stderr back, which is what to reach for when
+something in the platform layer is being debugged and a logging configuration
+might be hiding it.
+
 ## Documentation
 
 | Where | What |

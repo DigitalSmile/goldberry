@@ -1294,10 +1294,28 @@ progress-fill {
  * inside a primary button is that button's label colour without either of them
  * naming the other (ADR-0066).
  */
+/* The bare rule is `medium`, which is what every spinner was before there were
+   sizes -- so `spinner.medium` needs no rule of its own and nothing that already
+   existed changed. The stroke is NOT here: §8 has no property for the weight of
+   a mark the painter draws, so the widget derives it from the width resolved
+   below (ADR-0447). An application that overrides the width gets a stroke to
+   match it. */
 spinner {
   width: 16px;
   height: 16px;
   color: var(--gb-accent);
+}
+
+/* Beside a line of text, or inside a control that is busy. */
+spinner.small {
+  width: 12px;
+  height: 12px;
+}
+
+/* On its own, standing for a whole region that is not ready. */
+spinner.large {
+  width: 32px;
+  height: 32px;
 }
 
 /* ----------------------------------------------------------------- badge --
@@ -5599,6 +5617,29 @@ column.web-view {
    the hit-test snapshot and only a hit-testable box is in it. */
 canvas.web-surface {
   flex-grow: 1;
+}
+
+/* The stage: the surface, and whatever is drawn over it while there is no page
+   to hide it (ADR-0445). A `stack`, so the surface stays in flow and keeps
+   sizing the box while the spinner floats.
+
+   `justify-content: center` and no `align-items`, deliberately. The surface has
+   `flex-grow: 1` and therefore leaves no free space on the main axis, so
+   centring there moves the absolute child and not the surface -- whereas
+   `align-items: center` would stop the surface stretching across the box, and
+   the page would be opened over a strip. The spinner says `align-self` for the
+   cross axis instead, which is a rule about one child. */
+stack.web-stage {
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+/* Shown while the page has nothing to show. It is visible only because the page
+   is parked at the same time: a page is a window above the frame, so a spinner
+   drawn over one would be drawn underneath it. */
+spinner.web-loading {
+  align-self: center;
 }
 
 /* Why there is no page, when there is none. */

@@ -13,6 +13,8 @@ import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogCategory;
+import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogPriority;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.natives.webp.calls.WebpCalls;
@@ -91,6 +93,18 @@ public final class NativeConstants {
         // nothing, and the failure surfaces as a window that never appears.
         for (var subsystem : SdlSubsystem.values()) {
             constants.add(new NativeConstant(subsystem.nativeName(), subsystem.bit()));
+        }
+        // SDL's own log priorities and categories, which ADR-0443 turns into an
+        // SLF4J level and a logger name. Ordinals, and the priorities are the
+        // kind SDL has already renumbered: `SDL_LOG_PRIORITY_TRACE` went in at
+        // 1, below `VERBOSE`, and everything above it moved. A Java enum that
+        // predates the insertion reports every message one rung too loud and
+        // nothing anywhere says so.
+        for (var priority : SdlLogPriority.values()) {
+            constants.add(new NativeConstant(priority.nativeName(), priority.value()));
+        }
+        for (var category : SdlLogCategory.values()) {
+            constants.add(new NativeConstant(category.nativeName(), category.value()));
         }
         // Not an enumerator but a version number, and one that travels on every
         // call to libwebp's two `…Internal` entry points. A pinned libwebp that

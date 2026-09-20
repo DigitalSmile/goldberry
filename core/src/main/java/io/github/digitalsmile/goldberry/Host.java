@@ -718,6 +718,32 @@ public interface Host {
         return 1.0;
     }
 
+    /// Whether a modal is in force in this window — a `dialog` is up, and the
+    /// keyboard and pointer are trapped inside it.
+    ///
+    /// A fact about the **window**, which is why it is here rather than found by
+    /// walking the tree: a filling [Overlay] is a *sibling* of the content under
+    /// the window's root, not an ancestor of it, so
+    /// `BuildContext.findAncestorState` cannot see one from inside the
+    /// application's own widgets. The router already knows — it finds the
+    /// deepest modal once per frame beside the hit-test regions — and this is
+    /// that answer, read.
+    ///
+    /// Added for `web-view`, which is the one widget that cannot be covered by
+    /// an overlay: a page is a platform window above the frame, so a dialog over
+    /// it is painted and invisible. The widget takes its page off the screen
+    /// while this is true ([ADR-0444]). Nothing else needs it yet, and other
+    /// widgets that want to stand aside for a modal now can.
+    ///
+    /// **A frame behind**, like [#anchor]: it describes the frame that was
+    /// painted, which is the frame the user is looking at.
+    ///
+    /// False by default, which is right for a host with no router under it — an
+    /// offscreen render, and every golden image.
+    default boolean isModal() {
+        return false;
+    }
+
     /// The window, for the handful of things this interface deliberately does not
     /// wrap: the close-request hook, the cursor, resize and scale notifications.
     ///

@@ -1623,6 +1623,22 @@ public final class PointerRouter {
     /// so the tree that frame came from is the tree to ask ([ADR-0054]).
     private @Nullable Element modal;
 
+    /// Whether a modal is in force for the frame that was last painted.
+    ///
+    /// The read half of the field above, and the cheapest question about it:
+    /// callers outside this class want to know *that* the window is trapped, not
+    /// which element is doing it. A `web-view` is the first — a page is a
+    /// platform window above the frame, so nothing painted into the frame can
+    /// cover it, and the widget has to take the page off the screen itself while
+    /// a dialog is up ([ADR-0444]).
+    ///
+    /// **A frame behind**, like every other answer derived from the hit-test
+    /// snapshot: it describes the frame the user can see, which is the frame
+    /// input is answered against ([ADR-0054]).
+    public boolean isModal() {
+        return modal != null;
+    }
+
     /// Whether the **pointer** may reach `element`.
     ///
     /// Modality used to be two unrelated mechanisms: [Handles#isModal] trapped

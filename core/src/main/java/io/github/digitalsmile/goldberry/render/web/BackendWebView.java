@@ -71,6 +71,21 @@ public interface BackendWebView extends AutoCloseable {
     /// @param height the height, positive
     void bounds(int x, int y, int width, int height);
 
+    /// How far through loading this page is.
+    ///
+    /// Asked once a frame by the `web-view` widget, which keeps the page out of
+    /// sight and paints a `spinner` until it is ready — because nothing the
+    /// toolkit paints can cover a page, so "loading" cannot be drawn *over* one
+    /// ([ADR-0445]).
+    ///
+    /// [WebLoad#UNKNOWN] where the engine will not say, and
+    /// [WebLoad#isReady()] is what turns that into "show it anyway".
+    ///
+    /// Cheap: two field reads inside WebKit and no round trip.
+    default WebLoad loadState() {
+        return WebLoad.UNKNOWN;
+    }
+
     /// Runs `script` in the page.
     ///
     /// Nothing comes back: the engine's call is asynchronous and its result

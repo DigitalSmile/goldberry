@@ -32,7 +32,7 @@ public final class GoldberryShim {
     /// (ADR-0329, ADR-0330); 12 put libwebp's three animation structs, its demux
     /// ABI version and SDL's `SDL_INIT_*` bits on the layout table, which were
     /// hand-counted in Java and checked by nothing.
-    public static final int SUPPORTED_ABI_VERSION = 14;
+    public static final int SUPPORTED_ABI_VERSION = 15;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

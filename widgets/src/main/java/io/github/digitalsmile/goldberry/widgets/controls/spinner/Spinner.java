@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -53,31 +54,63 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// Reduced motion replaces the rotation with §3.1's opacity pulse, which is the
 /// stylesheet's: this widget simply stops turning.
+///
+/// ## It has a size, because a ring has a stroke
+///
+/// ```kdl
+/// spinner size="large"
+/// ```
+///
+/// [SpinnerSize] is a **value** rather than only a class, which is the line
+/// `Message`'s kind draws and `badge`'s variant does not: a size decides the
+/// weight of the arc, and §8's CSS subset has no property for the stroke of a
+/// mark the painter draws. A 32px ring drawn with a 16px ring's 2px stroke is a
+/// thin hoop, and no stylesheet could have said otherwise.
+///
+/// The **diameter** is still the stylesheet's. The size puts a class on the node,
+/// `controls.css` gives that class a width and a height, and [#render] reads the
+/// width the cascade actually resolved — so an application that writes
+/// `#busy { width: 48px }` gets a stroke weighted for 48px, and the two numbers
+/// cannot drift.
+///
+/// @param size       how big, and therefore how heavy the ring is
+/// @param attributes the `id` and classes, plus the size's own class
 @Markup("spinner")
-public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Spinner> {
+public record Spinner(SpinnerSize size, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Attributed<Spinner> {
 
     /// §3.1's "rotation **900ms** linear loop", in milliseconds.
     private static final double PERIOD = 900;
 
-    /// The ring's stroke, in logical pixels.
-    ///
-    /// §3 pins no metric for a spinner at all — it is not in the component table
-    /// — so this is Lucide's own 2px stroke at 24px, which §1.6 already makes the
-    /// toolkit's line weight for anything drawn on that grid. Inventing a third
-    /// number would be inventing a scale the design system does not have.
-    private static final double THICKNESS = 2;
-
     public Spinner {
+        size = size == null ? SpinnerSize.MEDIUM : size;
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
+    /// A spinner of the default size with no attributes of its own.
     public Spinner() {
-        this(Attributes.NONE);
+        this(SpinnerSize.MEDIUM, Attributes.NONE);
+    }
+
+    /// A spinner of the default size. The shape every caller had before there
+    /// were sizes, kept so that adding one changed nothing that already worked.
+    public Spinner(Attributes attributes) {
+        this(SpinnerSize.MEDIUM, attributes);
+    }
+
+    /// A spinner of this size with no attributes of its own.
+    public Spinner(SpinnerSize size) {
+        this(size, Attributes.NONE);
+    }
+
+    /// The same spinner at another size.
+    public Spinner sized(SpinnerSize value) {
+        return new Spinner(value, attributes);
     }
 
     @Override
     public Spinner withAttributes(Attributes attributes) {
-        return new Spinner(attributes);
+        return new Spinner(size, attributes);
     }
 
     @Override
@@ -90,9 +123,19 @@ public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Pai
         return attributes.id();
     }
 
+    /// The application's classes, and the size's own.
+    ///
+    /// Added here rather than asked of the caller, so that `spinner.large`
+    /// selects without anybody writing it — `message.danger`'s arrangement.
     @Override
     public Set<String> classes() {
-        return attributes.classes();
+        var declared = attributes.classes();
+        if (declared.isEmpty()) {
+            return Set.of(size.cssClass());
+        }
+        var all = new java.util.LinkedHashSet<>(declared);
+        all.add(size.cssClass());
+        return Set.copyOf(all);
     }
 
     @Override
@@ -112,8 +155,21 @@ public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Pai
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of()
                 .style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), THICKNESS))
+                .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), thicknessAt(style)))
                 .transform(angleAt(context));
+    }
+
+    /// The ring's stroke for the width the cascade resolved.
+    ///
+    /// Read off the **style** rather than off [SpinnerSize], so a stylesheet
+    /// that overrides the diameter gets a stroke to match it and the two numbers
+    /// cannot disagree. The size's own diameter is the fallback for a width that
+    /// is not a length a ring can be drawn from — `auto`, or a percentage of a
+    /// parent this widget knows nothing about.
+    private double thicknessAt(ComputedStyle style) {
+        var diameter =
+                style.width() instanceof Length.Points points && points.value() > 0 ? points.value() : size.diameter();
+        return SpinnerSize.thicknessFor(diameter);
     }
 
     /// A rotation about the box's centre, which is `transform-origin`'s default
@@ -133,10 +189,10 @@ public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Pai
 
     /// Builds a `spinner` from markup.
     ///
-    /// The one widget in the catalog with no attributes of its own: a spinner has
-    /// no value, no state and nothing to say. It still takes an id and classes,
-    /// because everything CSS-selectable does (§11).
+    /// `size` is the only attribute of its own a spinner has: it has no value,
+    /// no state and nothing to say. It still takes an id and classes, because
+    /// everything CSS-selectable does (§11).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Spinner(Attributes.of(node));
+        return new Spinner(SpinnerSize.of(node.stringProperty("size")), Attributes.of(node));
     }
 }

@@ -33,4 +33,13 @@ module io.github.digitalsmile.goldberry.common {
     /// through the same factory, and the ordering between them is what
     /// `Logs` exists to guarantee.
     exports io.github.digitalsmile.goldberry.log;
+
+    /// Where a message raised by a native library becomes an SLF4J event.
+    ///
+    /// Unqualified, unlike most of what `:natives` exports, and deliberately:
+    /// `NativeLogBridge.ROOT` is the logger name an application puts in its
+    /// `logback.xml`, and a constant nobody can read is a string that gets
+    /// copied. The bridges that call it are in `:natives`; what is here is the
+    /// destination and the naming convention alone.
+    exports io.github.digitalsmile.goldberry.log.bridge;
 }

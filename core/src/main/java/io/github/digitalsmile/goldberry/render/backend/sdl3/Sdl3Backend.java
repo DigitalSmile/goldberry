@@ -16,10 +16,12 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.natives.desktop.DesktopMotion;
+import io.github.digitalsmile.goldberry.natives.glib.GlibLog;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlLog;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlCursors;
@@ -191,6 +193,11 @@ public final class Sdl3Backend implements Backend {
     /// @throws BackendException if SDL cannot start — no display, no driver
     public Sdl3Backend() {
         try {
+            // First, and before SDL_Init below: "no video driver could be
+            // initialized" is written *during* initialization, and a bridge
+            // installed afterwards would miss the one SDL message worth having
+            // most (ADR-0443).
+            SdlLog.install();
             selectVideoDriver();
             pacePresentToTheDisplay();
             Startup.time("SDL video subsystem up", () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
@@ -270,6 +277,21 @@ public final class Sdl3Backend implements Backend {
         if ("x11".equals(videoDriver) || "wayland".equals(videoDriver)) {
             SdlVideo.get().preferGtkBackend(videoDriver);
         }
+    }
+
+    /// Points GLib's logging at SLF4J, before the first thing that loads GLib.
+    ///
+    /// Called from the three places that load it and from nowhere else: creating
+    /// a tray, which is libayatana-appindicator and the GTK 3 under it, and the
+    /// two ways of opening a page, which are WebKitGTK. Idempotent, so calling
+    /// it three times costs a synchronized read of a boolean.
+    ///
+    /// **Not in the constructor**, and that is the whole of why it is a method.
+    /// Finding GLib means `dlopen`ing it, and a Goldberry application with no
+    /// tray and no page should not map a library it will never call
+    /// ([ADR-0443]).
+    private static void bridgeGlibLogs() {
+        GlibLog.install();
     }
 
     private static void selectVideoDriver() {
@@ -1322,6 +1344,11 @@ public final class Sdl3Backend implements Backend {
             return Optional.empty();
         }
 
+        // Before the tray exists, because creating one is what loads
+        // libayatana-appindicator and the GTK 3 under it, and the deprecation
+        // notice it raises is written during that load (ADR-0443).
+        bridgeGlibLogs();
+
         var tray = Sdl3Tray.open(this, spec);
         if (tray.isEmpty()) {
             // No AppIndicator, no notification area, no shell. Absence rather
@@ -1349,6 +1376,7 @@ public final class Sdl3Backend implements Backend {
         requireUiThread();
         requireOpen();
         Objects.requireNonNull(spec, "spec");
+        bridgeGlibLogs();
         return WebViewEngine.open(spec);
     }
 
@@ -1375,6 +1403,7 @@ public final class Sdl3Backend implements Backend {
             LOG.debug("this window has no native handle, so no page can be embedded in it (Wayland)");
             return Optional.empty();
         }
+        bridgeGlibLogs();
         var page = WebViewEngine.openEmbedded(spec, parent.get(), x, y, width, height);
         page.ifPresent(opened -> {
             var pages = embeddedPages.computeIfAbsent(window, w -> new ArrayList<>());

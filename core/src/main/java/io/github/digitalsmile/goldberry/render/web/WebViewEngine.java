@@ -45,6 +45,7 @@ public final class WebViewEngine {
             if (!spec.title().isEmpty()) {
                 page.title(spec.title());
             }
+            bind(webview, spec);
             if (spec.url() != null) {
                 page.navigate(spec.url());
             } else if (spec.html() != null) {
@@ -76,6 +77,7 @@ public final class WebViewEngine {
         return Webview.openEmbedded(spec.debug(), parent.value(), translate(parent.kind()), x, y, width, height)
                 .map(webview -> {
                     var page = new NativeWebView(webview);
+                    bind(webview, spec);
                     if (spec.url() != null) {
                         page.navigate(spec.url());
                     } else if (spec.html() != null) {
@@ -115,6 +117,46 @@ public final class WebViewEngine {
     /// Reads a counter, so asking never loads anything.
     public static boolean hasOpenPages() {
         return Webview.hasOpenPages();
+    }
+
+    /// Makes the spec's callbacks callable from the page's own script.
+    ///
+    /// **Before the content**, which is the whole of the ordering that matters:
+    /// the engine injects each binding's glue at document start, so a name bound
+    /// after a page has loaded is not there for the script that already ran
+    /// ([ADR-0448]).
+    ///
+    /// A handler that cannot be bound is **logged and skipped** rather than
+    /// thrown: the only documented failure is a duplicate name, the page is
+    /// otherwise perfectly good, and refusing to open it would lose the content
+    /// over a binding the application can fix. The map is ordered, so which of
+    /// two duplicates won is the one declared first.
+    private static void bind(io.github.digitalsmile.goldberry.natives.webview.Webview webview, WebViewSpec spec) {
+        for (var entry : spec.callbacks().entrySet()) {
+            var handler = entry.getValue();
+            try {
+                webview.bind(entry.getKey(), handler::call);
+            } catch (RuntimeException e) {
+                LOG.warn("a page could not bind window.{}(): {}", entry.getKey(), e.getMessage());
+            }
+        }
+    }
+
+    private static final org.slf4j.Logger LOG = io.github.digitalsmile.goldberry.log.Logs.of(WebViewEngine.class);
+
+    /// [io.github.digitalsmile.goldberry.natives.webview.LoadState] in the
+    /// toolkit's own word for it.
+    ///
+    /// An exhaustive switch for [#translate(WebSize)]'s reason: the two enums
+    /// are deliberately separate types, and this is the line that fails to
+    /// compile when a constant is added to one and not the other.
+    static WebLoad translate(io.github.digitalsmile.goldberry.natives.webview.LoadState state) {
+        return switch (state) {
+            case UNKNOWN -> WebLoad.UNKNOWN;
+            case IDLE -> WebLoad.IDLE;
+            case LOADING -> WebLoad.LOADING;
+            case FINISHED -> WebLoad.FINISHED;
+        };
     }
 
     /// [WebSize] in `:natives`' word for it.

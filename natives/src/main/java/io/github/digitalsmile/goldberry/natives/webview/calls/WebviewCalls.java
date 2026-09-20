@@ -35,6 +35,9 @@ public record WebviewCalls(
         GtkConflict gtkConflict,
         CreateEmbedded createEmbedded,
         SetBounds setBounds,
+        LoadState loadState,
+        Bind bind,
+        Return answer,
         CanEmbed canEmbed) {
 
     /// Binds **only** the ABI probe.
@@ -74,6 +77,9 @@ public record WebviewCalls(
                 new GtkConflict(lookup),
                 new CreateEmbedded(lookup),
                 new SetBounds(lookup),
+                new LoadState(lookup),
+                new Bind(lookup),
+                new Return(lookup),
                 new CanEmbed(lookup));
     }
 
@@ -375,6 +381,107 @@ public record WebviewCalls(
                 return (int) FD_goldberry_webview_set_bounds.invokeExact(address, webview, x, y, width, height);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_webview_set_bounds", t);
+            }
+        }
+    }
+
+    /// How far through loading a page is.
+    ///
+    /// `int goldberry_webview_load_state(void* w)`
+    ///
+    /// -1 unknown, 0 not started, 1 loading, 2 finished —
+    /// [io.github.digitalsmile.goldberry.natives.webview.LoadState] names them.
+    ///
+    /// The one call in this record a *widget* makes every frame, and it is a
+    /// poll for that reason: the alternative is WebKit's `load-changed` signal,
+    /// which would need an upcall stub whose lifetime outlives the Java object
+    /// that owns it and a crossing from GLib's thread. The widget is already
+    /// calling [SetBounds] once a frame from its painter, so this rides along.
+    public static final class LoadState {
+
+        private static final MethodHandle FD_goldberry_webview_load_state =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        LoadState(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_load_state");
+        }
+
+        public int call(MemorySegment webview) {
+            try {
+                return (int) FD_goldberry_webview_load_state.invokeExact(address, webview);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_load_state", t);
+            }
+        }
+    }
+
+    /// Makes a name a global JavaScript function the page can call.
+    ///
+    /// ```c
+    /// int goldberry_webview_bind(void *w, const char *name,
+    ///                            void (*fn)(const char *id, const char *req, void *arg), void *arg);
+    /// ```
+    ///
+    /// The **third** upcall family in this module after Yoga's measure and SDL's
+    /// tray, and the first whose callback comes from a page's own script. The
+    /// glue is injected by the engine: `window.<name>(...)` in the page returns
+    /// a promise, and the handler is given a request id, the arguments as a JSON
+    /// array, and the `arg` the binding was made with.
+    ///
+    /// Bind **before** navigating — the glue runs at document start.
+    public static final class Bind {
+
+        private static final MethodHandle FD_goldberry_webview_bind =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        Bind(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_bind");
+        }
+
+        /// @param name     the JS function's name, a C string
+        /// @param callback an upcall stub of the handler's shape
+        /// @param userData handed back to the handler untouched — how one stub
+        ///        serves every binding in the process
+        /// @return 0 on success; non-zero for a duplicate name
+        public int call(MemorySegment webview, MemorySegment name, MemorySegment callback, MemorySegment userData) {
+            try {
+                return (int) FD_goldberry_webview_bind.invokeExact(address, webview, name, callback, userData);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_bind", t);
+            }
+        }
+    }
+
+    /// Answers one call to a bound function.
+    ///
+    /// `int goldberry_webview_return(void* w, const char* id, int status, const char* result)`
+    ///
+    /// Zero resolves the page's promise with `result`, which must be a valid
+    /// JSON value or an empty string for `undefined`; anything else rejects with
+    /// it. **Something must answer**, or the promise is pending for ever.
+    ///
+    /// Named `Return` for the C function and reached as `answer()`, because
+    /// `return` is not a name a Java method can have.
+    public static final class Return {
+
+        private static final MethodHandle FD_goldberry_webview_return =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        Return(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_return");
+        }
+
+        public int call(MemorySegment webview, MemorySegment id, int status, MemorySegment result) {
+            try {
+                return (int) FD_goldberry_webview_return.invokeExact(address, webview, id, status, result);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_return", t);
             }
         }
     }

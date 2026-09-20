@@ -49,6 +49,11 @@ final class NativeWebView implements BackendWebView {
     }
 
     @Override
+    public WebLoad loadState() {
+        return isClosed() ? WebLoad.UNKNOWN : WebViewEngine.translate(webview.loadState());
+    }
+
+    @Override
     public boolean isClosed() {
         return webview.isClosed();
     }

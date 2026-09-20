@@ -31,6 +31,17 @@
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 
+// For webkit_web_view_is_loading and the estimated progress beside it, which is
+// how `goldberry_webview_load_state` below answers. The engine's own header,
+// reached through `webview_get_native_handle` -- webview/webview exposes the
+// WebKitWebView it owns and promises nothing else about it, which is all this
+// needs.
+#if GTK_MAJOR_VERSION == 4
+#include <webkit/webkit.h>
+#else
+#include <webkit2/webkit2.h>
+#endif
+
 // The GTK this shim was compiled against, and therefore the one it must NOT
 // meet a different major of in the same process. See goldberry_webview_create.
 #if GTK_MAJOR_VERSION == 4
@@ -43,7 +54,7 @@
 // The contract Webview.java binds. Bump on any change to the shape of what is
 // exported below; Java refuses a library that disagrees rather than calling into
 // it, because a mismatched shim is undefined behaviour and not a missing feature.
-#define GOLDBERRY_WEBVIEW_ABI 4
+#define GOLDBERRY_WEBVIEW_ABI 6
 
 // SizeHint.java carries these four numbers. Checked here rather than trusted
 // there, which is the same move the layout table makes for every other binding:
@@ -250,20 +261,52 @@ static int goldberry_webview_embed_into(void *w, long long parent, int x, int y,
     if (window == nullptr) {
         return -1;
     }
-    // Undecorated, because the frame belongs to the Goldberry window now. Shown
-    // BEFORE the reparent: `gtk_widget_realize` alone creates the shell's window
-    // without mapping the WebKit widget inside it, and the result is a correctly
-    // positioned rectangle with nothing in it -- which is exactly what the first
-    // attempt produced.
+    // Undecorated, because the frame belongs to the Goldberry window now.
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
-    gtk_window_resize(GTK_WINDOW(window), width, height);
-    gtk_widget_show_all(window);
-    gtk_widget_realize(window);
 
+    // AND NEVER MANAGED BY THE WINDOW MANAGER AT ALL.
+    //
+    // This window is a toplevel for exactly as long as it takes to map it and
+    // reparent it, and for that instant the WM adopts it: it goes in the
+    // taskbar, in the dock, in the alt-tab list. The reparent then takes it off
+    // the root window, and what the shell is left holding is an entry for a
+    // window that is now somebody's child -- so it cannot be raised, cannot be
+    // focused and cannot be closed. A ghost, one per page opened, for the life
+    // of the session.
+    //
+    // The hints are the EWMH way to say it and the override-redirect flag is
+    // the X way, and both are set because they fail differently: a WM that
+    // ignores _NET_WM_STATE_SKIP_TASKBAR still honours override-redirect, since
+    // an override-redirect window is one it is told not to manage at all -- and
+    // this one genuinely is not for it to manage, because it is about to stop
+    // being a toplevel.
+    //
+    // Nothing is lost by it. An override-redirect window gets no decorations
+    // (already off), no WM focus (the page's focus comes from being a child of a
+    // window that has it) and no WM placement (it is positioned by
+    // XReparentWindow on the line below).
+    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_resize(GTK_WINDOW(window), width, height);
+
+    // Realize BEFORE show, which is the one reordering in this function and is
+    // required by the flag above: override-redirect is an attribute of the X
+    // window, so the X window has to exist, and it must be set before the map
+    // or the WM has already seen it. `gtk_widget_realize` creates the window
+    // without mapping it, which is exactly the gap that is wanted here.
+    gtk_widget_realize(window);
     GdkWindow *gdk = gtk_widget_get_window(window);
     if (gdk == nullptr || !GDK_IS_X11_WINDOW(gdk)) {
         return -1;
     }
+    gdk_window_set_override_redirect(gdk, TRUE);
+
+    // And NOW shown. `gtk_widget_realize` alone creates the shell's window
+    // without mapping the WebKit widget inside it, and the result is a correctly
+    // positioned rectangle with nothing in it -- which is exactly what the first
+    // attempt at this function produced. That is why the show is still here and
+    // still before the reparent.
+    gtk_widget_show_all(window);
     Display *display = gdk_x11_get_default_xdisplay();
     Window child = gdk_x11_window_get_xid(gdk);
     XReparentWindow(display, child, static_cast<Window>(parent), x, y);
@@ -328,6 +371,89 @@ GOLDBERRY_WEBVIEW_EXPORT void *goldberry_webview_create_embedded(
     // written because neither can be run here (ADR-0442).
     return nullptr;
 #endif
+}
+
+/// How far through loading a page is: -1 unknown, 0 not started, 1 loading,
+/// 2 finished.
+///
+/// **Why this exists.** A page is a platform window above the frame, so nothing
+/// Goldberry paints can cover it -- including a "loading" indicator. From the
+/// moment the window is mapped until the document paints, what the user sees is
+/// WebKit's default white, for as long as the network takes. The only way to
+/// show a spinner instead is to keep the page out of sight until it has
+/// something to show, and that needs someone to ask whether it does.
+///
+/// **Polled rather than signalled**, which is the whole reason it is one int.
+/// `load-changed` is a GObject signal and binding it would mean an upcall stub,
+/// a callback whose lifetime outlives the Java object that owns it, and a
+/// crossing from GLib's thread. The widget is already asking this library
+/// something once a frame -- it calls `set_bounds` from its painter -- so a
+/// question it can ask on the same pass costs nothing it was not already
+/// paying.
+///
+/// The two facts are combined **here** rather than in Java because the
+/// interesting state is the one neither of them reports on its own: a page that
+/// has been created but never navigated is not loading and has made no progress,
+/// and it is exactly as unready as one that is still fetching. Java would have
+/// to know that `estimated-load-progress` is 0 before the first load and stays
+/// at 1 after the last, which is WebKit's business and not the toolkit's.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_load_state(void *w) {
+    if (w == nullptr) {
+        return -1;
+    }
+#if defined(GOLDBERRY_WEBVIEW_GLIB)
+    void *controller = webview_get_native_handle(w, WEBVIEW_NATIVE_HANDLE_KIND_BROWSER_CONTROLLER);
+    if (controller == nullptr || !WEBKIT_IS_WEB_VIEW(controller)) {
+        return -1;
+    }
+    WebKitWebView *view = WEBKIT_WEB_VIEW(controller);
+    if (webkit_web_view_is_loading(view)) {
+        return 1;
+    }
+    // Not loading, and the progress says which kind of "not": 0 is a page that
+    // has never been asked for anything, anything above it is one whose last
+    // load ended -- successfully, or on the error document WebKit substitutes,
+    // which is still something worth showing rather than a spinner forever.
+    return webkit_web_view_get_estimated_load_progress(view) > 0.0 ? 2 : 0;
+#else
+    // UNVERIFIED on Windows and macOS, like the embedding itself: the calls are
+    // ICoreWebView2's NavigationCompleted and WKWebView's `loading`, and neither
+    // has been written because neither can be run here (ADR-0442).
+    return -1;
+#endif
+}
+
+/// Makes `name` a global JavaScript function the page can call.
+///
+/// `webview_bind` injects the glue itself: calling `window.<name>(...)` in the
+/// page returns a **promise**, and `fn` is handed a request id, the arguments as
+/// a JSON array, and the `arg` this was bound with. Answering is
+/// `goldberry_webview_return` below, and until something answers, the promise is
+/// pending.
+///
+/// Thin, like `navigate` and `eval` beside it: what this adds is the one naming
+/// convention and a `webview_error_t` that crosses as a plain int (sec. 3.1).
+///
+/// **Bind before navigating.** The glue runs at document start, so a binding
+/// made after a page has loaded is not there for the script that already ran.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_bind(
+        void *w, const char *name, void (*fn)(const char *id, const char *req, void *arg), void *arg) {
+    if (w == nullptr || name == nullptr || fn == nullptr) {
+        return -1;
+    }
+    return webview_bind(w, name, fn, arg);
+}
+
+/// Answers one call to a bound function, resolving or rejecting its promise.
+///
+/// `status` of zero resolves with `result`, which must be a valid JSON value or
+/// an empty string for `undefined`; anything else rejects with it. The id is the
+/// one the binding handler was given and is not valid after this call.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_return(void *w, const char *id, int status, const char *result) {
+    if (w == nullptr || id == nullptr) {
+        return -1;
+    }
+    return webview_return(w, id, status, result == nullptr ? "" : result);
 }
 
 /// Moves and resizes an embedded page within its parent.

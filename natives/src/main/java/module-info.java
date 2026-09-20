@@ -89,6 +89,17 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.sdl.window;
     exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
+    /// GLib's logging hooks, exported to `:core` alone (ADR-0443).
+    ///
+    /// Qualified like Yoga's and Blend2D's wrappers, and for the same reason: an
+    /// application configures the logger names, which are
+    /// `:common`'s to define, and never names a type of this module. The one
+    /// caller is the SDL backend, which installs the bridge immediately before
+    /// it does either of the two things that load GLib — creating a tray, and
+    /// opening a page.
+    exports io.github.digitalsmile.goldberry.natives.glib to
+            io.github.digitalsmile.goldberry.core;
+
     // What the desktop says that SDL does not ask it — reduce-motion, through
     // the settings portal, `user32` and `NSWorkspace` (ADR-0383). Its own
     // package beside `sdl.desktop` rather than inside it, because nothing here

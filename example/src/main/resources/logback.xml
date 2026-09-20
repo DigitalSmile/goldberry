@@ -24,6 +24,20 @@
          went. -->
     <logger name="io.github.digitalsmile.goldberry" level="${goldberry.log.level:-DEBUG}"/>
 
+    <!-- What the platform's own libraries say about themselves (ADR-0443).
+         GLib's messages arrive on `native.glib.<domain>` and SDL's on
+         `native.sdl.<category>`, so each is levelled, routed and silenced here
+         like anything else rather than being written to stderr from inside C.
+
+         The showcase keeps them at `warn` and shows them, because seeing the
+         libayatana-appindicator deprecation arrive as an ordinary log line *is*
+         the demonstration. An application that cannot act on it writes
+
+           <logger name="native.glib.libayatana-appindicator" level="off"/>
+
+         and never sees it again, which was impossible before. -->
+    <logger name="native" level="${goldberry.log.native.level:-WARN}"/>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
