@@ -474,3 +474,38 @@ tasks.register('nativeImage', Exec) {
                 new File(target.get().asFile, imageName).absolutePath)
     }
 }
+
+// The web pump probe (docs/web-pump-probe.md). Not part of any check: it opens
+// a real window, needs a real engine, and answers a question about *this*
+// machine rather than about the code. `:example:test` must stay able to run on
+// a machine with no WebKit at all, which is why this is its own task.
+//
+// Deliberately does NOT forward `goldberry.backend.videoDriver`: a probe run
+// against the dummy driver would measure a page nobody is compositing.
+tasks.register('webPumpProbe', JavaExec) {
+    group = 'verification'
+    description = "Measures an embedded page's own animation rate."
+
+    mainClass = 'io.github.digitalsmile.goldberry.example.webpump.PumpProbe'
+    mainModule = appModule
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '--enable-native-access=io.github.digitalsmile.goldberry.natives'
+
+    if (hostLibrary.isFile()) {
+        systemProperty 'goldberry.native.library', hostLibrary.absolutePath
+    }
+
+    // Forwarded for the reason the `run` task forwards its own: a property named
+    // on the `gradlew` command line otherwise reaches the daemon and stops there.
+    //
+    // Just the two. There is deliberately no flag here for `WEB_VIEW_TIMEOUT` or
+    // for the pump's iteration bound: ADR-0455 measured both and neither is what
+    // a slow page is waiting on, so a knob for them would invite tuning the one
+    // thing already known not to matter.
+    ['goldberry.log.level', 'goldberry.webpump.seconds'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+}

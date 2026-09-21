@@ -469,3 +469,4 @@
 - [ADR-0452 A refresh budget nobody has measured is not a gate](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)
 - [ADR-0453 A face that moved module takes its declaration with it](adr/0453-a-face-that-moved-module-takes-its-declaration-with-it.md)
 - [ADR-0454 A force-link list belongs in the object, not on the link line](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)
+- [ADR-0455 A page that will not animate is measured before it is blamed](adr/0455-a-page-that-will-not-animate-is-measured-before-it-is-blamed.md)
