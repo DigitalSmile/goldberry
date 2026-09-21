@@ -2509,6 +2509,396 @@ build with no `goldberry-emoji` on its path gets exactly what it got before, sil
 The showcase's emoji sheet is in colour, and it gained a line of ordinary prose with emoji in it that
 **names no font at all** — which is the thing an application actually writes. `MessageRows`' two rules go.
 
+
+### G59 — a virtualized list whose rows are not all the same height
+
+**What Tessera wants.** A chat timeline that costs the same to draw whether it holds fifty messages or
+five thousand. Today every message in a conversation is built on every frame, because the one
+virtualization the toolkit has cannot be used here.
+
+`ListView.virtualized()` says why, in its own words:
+
+> *"a list whose rows vary in height must not virtualize at all — the arithmetic is index × height and
+> there is no other way to know where row 4,000 begins without building the 3,999 above it."*
+
+That is exactly right and exactly the problem. A message is one line or twelve; it has a picture, an
+album of four, a quote, a reaction row, a retry card. No two are the same height and none of them can be
+known without measuring.
+
+```java
+/// What a variable-height list needs: the heights it has already measured, and an estimate for
+/// the ones it has not. Every list that does this keeps the same two things.
+ListView.of(items).virtualized(Measured.estimating(64))
+```
+
+**Why it is not Tessera's.** It is the same work `ListView` already does — a viewport, a scroll offset,
+a window of built rows — with a measured-height cache instead of a constant. Doing it in Tessera means a
+second virtualization inside an application, which is the line [ADR-0015](adr/0015-no-reimplementation-of-goldberry.md)
+draws; and it would have to re-derive the anchoring the toolkit
+already got right ([G48](#closed): open at the end, stay there, keep the reader's line on prepend).
+
+**What it costs today, measured.** Building the window's element tree for one conversation, five
+rebuilds averaged:
+
+| messages held | before TG15 | after TG15 |
+|---|---|---|
+| 100 | 21 ms | 19 ms |
+| 500 | 27 ms | 21 ms |
+| 2 000 | 130 ms | 77 ms |
+
+TG15 removed the **quadratic** part — two per-message hub calls that each read the whole conversation
+([ADR-0092](adr/0092-the-room-is-what-a-real-account-showed.md) addendum 9). What is left is linear and
+is this gap: at two thousand messages a rebuild is 77 ms, and the window rebuilds on every change.
+
+**Paging makes it worse over time, correctly.** Scrolling back now fetches older pages
+(`ChatHub.loadOlder`), so a conversation somebody reads for a while only grows. The client cannot stop
+holding them — that would be scrolling back that forgets — so the drawing is what has to stop being
+proportional.
+
+<a id="g58"></a>
+
+### G58 — a box that clips its children to its `border-radius`
+
+**What Tessera wants.** A round avatar. A face in this client is a 34px circle with somebody's initials
+in it; with a photo in it instead, the photo is drawn **square inside the round box**
+([ADR-0092](adr/0092-the-room-is-what-a-real-account-showed.md), TG14), so the one face that has a
+picture is the one face that is not a face.
+
+```css
+/* What is written, and what only half happens today. */
+.chat-face-picture { border-radius: 17px; overflow: hidden; }
+```
+
+**Why it is not Tessera's.** The clip is the painter's. `BoxPainter` ends `overflow: hidden` at
+`frame.clipTo(x, y, width, height)` — a **rectangle** — while the same class already builds rounded
+outlines for backgrounds and borders through `RoundRect.addTo`. The two are a few lines apart and the
+radius is already computed; nothing in Tessera can reach between them.
+
+The alternative Tessera would otherwise reach for is rounding the pixels itself before handing them to
+`image`, which is image processing in an application that has a toolkit precisely so it does not do
+image processing ([ADR-0015](adr/0015-no-reimplementation-of-goldberry.md)).
+
+**What it costs today.** Every avatar is a square. It is cosmetic and it is on the most-looked-at 34
+pixels in the client: the column of faces down a chat list.
+
+**Evidence**: `tessera-app/build/reports/shell/shell-chat-live.png` — the faces with pictures in the list
+and the timeline, beside the initials faces that are round.
+
+<a id="g57"></a>
+
+### G57 — a glyph the bundled faces do not have
+
+**What Tessera wants.** To draw a person's name. Telegram accounts are named in every script there is,
+and the ones that are not Latin, Cyrillic or Greek come out as **tofu**: `中文 名字`, `محمد` and
+`𝕳𝖊𝖘𝖘𝖆` are boxes, in a chat list, a timeline and a face's initials
+([ADR-0092](adr/0092-the-room-is-what-a-real-account-showed.md)).
+
+```java
+/// The same shape the emoji face already has: a service the application opts into, and the
+/// itemizer routes a run to it when the primary face has no glyph for it.
+public interface FallbackFont {
+    byte[] bytes();
+    /// Which scripts it answers for, so the itemizer does not have to probe every face.
+    Set<Character.UnicodeScript> covers();
+}
+```
+
+**Why it is not Tessera's.** Font selection is the toolkit's, and `Fonts` says so outright: *"§6.1 has no
+fallback **cascade** — a missing glyph is `.notdef` on purpose"*. Tessera cannot work around it by
+shipping a face, because `Fonts.of(Typography)` matches a shipped face **by family name** — a name typed
+by a stranger is drawn in whatever the stylesheet says, and there is no way to express *use this for the
+characters Inter lacks*.
+
+**The mechanism already exists for one script's worth of characters.** `Slot` calls it *"the emoji
+slot"*: the itemizer reads Unicode's emoji properties and routes an emoji run to a second face, which
+ships as `goldberry-emoji` and may be absent. This asks for the same thing driven by **coverage** rather
+than by one hard-coded property — which is also why the emoji face works and everything else does not.
+
+**What Tessera would ship if it landed.** One or two Noto faces as an opt-in artifact, exactly as
+`goldberry-emoji` is opted into, with the credit that comes with them.
+
+**What it costs today.** Nothing is drawn wrongly and nothing is lost — a name with no glyph is a row of
+boxes, and the id behind it is intact. It is the most visible unfixable thing in the client: it happens
+to *people's names*, in the one list somebody reads every day.
+
+**Evidence**: `tessera-app/build/reports/shell/shell-chat-text.png`, which draws six names in six
+scripts. Latin, Cyrillic and an emoji inside a name all render; CJK, Arabic and the mathematical
+alphanumerics do not.
+
+<a id="g56"></a>
+
+### G56 — a box that can be pressed
+
+**What Tessera wants.** To make an arbitrary widget the target of a click. A picture in a chat timeline,
+pressed, opens the viewer ([ADR-0092](adr/0092-the-room-is-what-a-real-account-showed.md), TG13).
+
+```java
+/// A press on anything, without wrapping it in a control that brings its own box.
+new Pressable(onPress, child).withAttributes(Attributes.NONE.name("Open photo.jpg"))
+
+// or, on the widget that has the obvious need:
+new ImageView(source, alt).onPress(() -> viewer.open(file))
+
+// or, smallest of the three: one more attribute, beside onPointerEnter and onPointerExit.
+Attributes.NONE.onPress(() -> viewer.open(file))
+```
+
+**Why it is not Tessera's.** Input routing is the toolkit's. `Attributes` already carries
+`onPointerEnter` and `onPointerExit` — G33, raised for the Palette's hover-hold Peek — so the hard half
+of this exists: a plain box can already be told the pointer is over it, and cannot be told it was
+pressed. Writing the missing half in Tessera means a widget implementing `Handles`, which is a second
+input layer beside the one the toolkit has.
+
+**What was tried, and what it cost.**
+
+| attempt | what happened |
+|---|---|
+| `ListView` of one row, `Selection.SINGLE`, `.selected("", …)` | Works as a press. Brings its own scrolling panel and its own layout: the picture was drawn **out of flow, across the whole timeline**, over the messages above it. Visible in the first render of ADR-0092 |
+| `Button` with no label, filling the picture's box in a `stack` | Refused at construction, correctly: *"a button with neither a label nor an icon has nothing to click on and nothing to read out"* (§13) |
+| `Button` labelled `Open`, filling the box in a `stack` | **What shipped.** Works. Costs four characters of chrome in the corner of every picture in every chat, on a translucent scrim so they read against any photo |
+
+**What taking it would delete.** `MessageRows.picture`'s stack, the `.chat-image-press` rule and the word
+`Open` from every picture in the client.
+
+**Not urgent.** The stopgap works and is arguably more discoverable than an invisible target; §13's rule
+is the reason it is visible and the rule is right. This is a gap because *the toolkit has no way to say
+"this is pressable"*, and a client that wants one ends up choosing between a control that reshapes its
+layout and a control that draws a word it did not want.
+
+<a id="g55"></a>
+
+### G55 — an animated sticker: Lottie (`tgs`) and VP9-with-alpha (`webm`)
+
+**What Tessera wants.** To draw a Telegram sticker. Somebody sends one and it moves; this client shows the
+emoji it stands for and offers the file.
+
+**Why it is not Tessera's.** A sticker is **three formats wearing one name**, and `Sticker.format` says
+which:
+
+| `StickerFormat` | the bytes | drawable today |
+|---|---|---|
+| `stickerFormatWebp` | a WebP image | **yes** — [G35](#closed) added the decoder |
+| `stickerFormatTgs` | **gzipped Lottie JSON** | no |
+| `stickerFormatWebm` | a **VP9 video** with an alpha channel | no |
+
+`image.ImageFormat` in the published snapshot is `PNG, JPEG, GIF, WEBP, QOI, UNKNOWN` — checked in the
+classes jar, not the sources one ([the lesson of G54](#withdrawn)). Neither of the two is in it, and
+neither could be: they are not raster formats at all. `image.anim.Animation` is a **list of frames with
+delays**, which is the right model for a GIF or an animated WebP and the wrong one for Lottie — Lottie is
+*vector*, and its whole point is that it renders at whatever size the box turns out to be, from a
+description of shapes and easing curves rather than from pixels.
+
+Tessera writing one would be a second rasterizer sitting next to the toolkit's, sharing none of its
+pipeline, its colour handling or its frame budget — which is
+[ADR-0015](adr/0015-no-reimplementation-of-goldberry.md) in one sentence. And the frame budget is the part
+that makes it clearly the toolkit's: a timeline can hold a dozen animated stickers, each of which wants a
+repaint per frame, and *how many of these may run at once* is a question only the thing that owns the frame
+loop can answer.
+
+This is also the **second** time a Telegram step has arrived at the same door and turned round:
+[telegram.md §5](telegram.md#5-what-this-needs-from-outside-tessera-chat) has named *"Lottie / `tgs`
+animation — Goldberry, and a large ask"* since that document was written, and said *static first, always*.
+TG9 did the static half. This is the ask, made from the step that hit it rather than in advance.
+
+**Proposed API.** Lottie first; the video sticker can wait on a player, which is a different and larger
+thing.
+
+```java
+/// A vector animation, rendered at whatever size it is asked for.
+///
+/// Unlike `image.anim.Animation`, which is frames and delays, this is a description: `imageAt` rasterises
+/// on demand, so the same document is crisp in a 32px reply chip and a 256px timeline row.
+public final class VectorAnimation {
+    /// From Lottie JSON, gzipped or not — `tgs` is the gzipped form and the two are otherwise identical.
+    public static VectorAnimation of(ByteBuffer lottie);
+
+    public long totalMillis();
+    public boolean isEndless();
+    /// Rasterised at this size, for this moment.
+    public Image imageAt(long millis, int width, int height);
+}
+```
+
+And the widget half, so an application does not write its own clock:
+
+```java
+/// `ImageView`'s moving sibling. Runs on the toolkit's frame loop, with the toolkit's budget.
+public final class AnimationView extends ... {
+    public AnimationView source(VectorAnimation animation);
+    /// Whether it plays without being asked, which is a setting people turn off.
+    public AnimationView autoplay(boolean value);
+}
+```
+
+A **smaller version that would also unblock this**: `VectorAnimation.of` alone, with no widget. An
+application could then rasterise into an existing `ImageView` on its own timer — worse for the frame
+budget, and enough to make a sticker move.
+
+**What Tessera does meanwhile.** What TG9 shipped, which is the honest half: the **format decides the
+kind**, so a `tgs` or a `webm` is an attachment that is a *file* rather than one claiming to be a picture;
+the message's words are **the emoji the sticker stands for**, which every sticker has; and the file can be
+fetched and saved like any other. A person sees `🎉` where a moving picture would be, and can get the
+bytes.
+
+The alternative — marking them pictures and letting the decoder fail — is what this client did until TG9,
+and it is the shape of failure worth naming: a message that arrived perfectly well, failing at the point of
+being drawn.
+
+<a id="g53"></a>
+
+### G53 — a paragraph whose runs are styled differently
+
+**What Tessera wants.** To draw a chat message the way the service sent it. Telegram's `formattedText` is a
+string plus **entities** — 23 kinds of them, bold, italic, underline, strikethrough, spoiler, code, pre,
+blockquote, a URL, a mention, a hashtag, a media timestamp — and a message that reads
+
+> see **the runbook** at example.com, and *don't* restart the relay first
+
+is one sentence with four spans in it, three of which are styled and one of which is a link. It wraps as
+one paragraph. Slack's `mrkdwn` and Mattermost's Markdown are the same shape with fewer kinds, and
+[telegram.md §2.3](telegram.md#23-text-is-a-string-and-telegrams-is-a-formattedtext) names this as the
+single largest unlock in that document: it blocks formatting, links, mentions, custom emoji, spoilers,
+code blocks, and sending any of them back.
+
+**Why it is not Tessera's.** `Paragraph.of(Font font, String text)` takes **one font and one string**, and
+`paint(frame, x, top, maxWidth, argb, flow)` takes **one colour and one flow** for all of it. `TextFlow`
+carries `white-space`, `text-overflow`, `text-align` and the decoration set for the whole box, and its own
+note explains why they are one value: *"the three are only ever read together, by the one method that draws
+a paragraph into a box."* That is right for a paragraph of one style and is exactly the assumption a styled
+run breaks.
+
+An application can already draw *one* run — `FontBook` resolves a face by family, weight and style since
+[G27](#g27) closed, and decorations land through `TextFlow`. What it cannot do is put several of them on
+one line and let them wrap **as one paragraph**. Splitting the message into a `Row` of labels gets the first
+line right and the second wrong: the break has to be chosen across the runs, which means measuring each run,
+finding the break, and re-splitting — which is line breaking, and line breaking lives in `:goldberry-core`
+next to HarfBuzz. Tessera doing it would be a second, worse line breaker that disagrees with the real one
+about every script it has not thought about.
+
+It is also the failure that is invisible until it is wrong: a wrapped message with a bold word in it looks
+fine at one width and comes apart at another.
+
+**Proposed API.** A paragraph built from runs, measured and painted as one:
+
+```java
+/// One span of a paragraph: its own face, colour and decorations.
+public record TextRun(String text, Font font, int argb, Set<TextDecoration> decorations) {}
+
+/// A paragraph whose runs may differ. `Paragraph.of(font, text)` stays as the one-run case.
+public static Paragraph of(List<TextRun> runs);
+```
+
+`layout(maxWidth)`, `measureFunction(flow)` and `paint(frame, x, top, maxWidth, flow)` would work as they do
+now, with the per-run colour replacing `paint`'s `argb` argument where runs are given. Everything else —
+wrapping, the ellipsis, alignment, bidi — is already there and would not change.
+
+A smaller version that would also unblock this: `Paragraph.of(Font, String)` plus a way to ask **where the
+lines broke** and **what x-range an offset range occupies** (`widthBetween` and `offsetAt` are most of the
+way there already), so an application could paint its own runs over one paragraph's layout. That keeps the
+line breaking in one place, which is the part that matters.
+
+**What Tessera does meanwhile.** Nothing, on purpose, and this is the second time that answer has been
+right for text ([G27](#g27) took it too). `chat.text` — the model — is Tessera's and is worth building
+regardless: the entities have to be parsed, held, round-tripped to three services and sent back, and none
+of that needs a renderer. **The renderer is where this stops**, and a message will keep arriving as plain
+text until it does. Drawing a `Row` of labels with a broken wrap would be worse than plain text, because
+plain text is honestly plain and a message that loses its second line is a bug somebody has to report.
+
+<a id="g52"></a>
+
+### G52 — a `breadcrumbs` whose crumb is wider than the trail
+
+**What Tessera wants.** The Header's trail to stay inside the Header at 900px, with a Room open, without
+painting a crumb past its own edge.
+
+**Why it is not Tessera's.** `controls.css` is explicit, and right: *"The row does not wrap and does not
+shrink its crumbs. A path that wrapped to two lines would put 'where you are' under 'where you started',
+which is the one arrangement a trail must not have; the answer to a narrow window is the overflow menu,
+which is why there is one (ADR-0306)."*
+
+But the overflow menu answers **too many crumbs**, and this is **one crumb too wide**: `Chat › #platform` is
+two crumbs, so the menu never triggers, and `crumb { flex-shrink: 0 }` then guarantees the overrun that
+`OverflowLog` reports. A trail of two crumbs in 200px has no answer in the widget today.
+
+**Proposed API.** Either of:
+
+```java
+new Breadcrumbs(...).eliding(true)     // the *current* crumb ellipsizes before the trail overflows
+```
+
+or a rule the stylesheet can already reach — `crumb { min-width: 0; text-overflow: ellipsis }` taking
+effect, which it does not today because the ellipsis belongs to the text inside the crumb rather than to the
+crumb itself. The second is the smaller change and would need no API at all.
+
+**What Tessera does meanwhile.** `#breadcrumb`, Tessera's own wrapper row, is `overflow: hidden`, so a trail
+too wide for the band is **clipped rather than painted over the controls beside it**. That is worse than
+eliding — the title loses its last letters with no `…` to say so — and it is the one of the three answers
+this window can pick from outside the widget. Marked as this entry's stopgap in `shell.css`.
+
+<a id="g50"></a>
+
+### G50 — a drag that leaves one widget and lands on another
+
+**What Tessera wants.** Two gestures the design leads with: a ticket card dragged from one kanban column to
+another is a status transition with an undo toast ([ux-design.md §4.2](ux-design.md#42-tickets--behavior));
+an event block dragged on the week grid is a move, and dragged onto another day is still a move
+([calendar.md §7.2](calendar.md#72-the-week)). Later, [ux-design.md §6](ux-design.md#6-cross-module-handoffs)
+wants a mail Conversation dragged onto the Calendar rail and a Doc dragged onto a Room in the Navigator.
+
+**Why it is not Tessera's.** The board's own drags never leave the `canvas`, so `Input.onPointer` inside one
+widget was enough. A column-to-column drag starts in one `card` and ends over another `column`; the pointer
+crosses widget boundaries and the router owns who hears what. The file drop ([G35](#closed)) was the same
+kind of question and was answered in the router.
+
+**Proposed API.** A widget-level drag source and target, in the spirit of `FileDrop`:
+
+```java
+Attributes.draggable(Object payload)                    // this widget can be picked up
+Attributes.dropTarget(Predicate<Object> accepts,
+                      Consumer<Drop> onDrop)            // this widget takes payloads, with where they landed
+record Drop(Object payload, LogicalPoint at)
+```
+
+with the router drawing the ghost (or asking the source for a widget to draw), `:drag-over` on the target
+for the stylesheet, and `Esc` cancelling. A `canvas` should be able to be a target too, so a drop's point
+reaches `Input`.
+
+**What Tessera does meanwhile.** A `→` on each kanban card and the Action row's `Move status` do the
+transition; the week's blocks do not move; an empty press on the grid opens quick-add instead. All three are
+marked as this entry's stopgap in the code.
+
+<a id="g51"></a>
+
+### G51 — a positioned layer of real widgets over a scrolling `canvas`
+
+**What Tessera wants.** The week's event blocks are painted, which is what
+[ux-design.md §10](ux-design.md#10-goldberry-mapping) asks for and what makes a 200-event week one draw. But
+[ux-design.md §12](ux-design.md#12-acceptance-checklist-per-scope-kind-before-it-ships) asks every control
+for a semantics name, a focus ring and focus order equal to visual order, and a painted rectangle has none
+of those. Today the canvas has one accessible name and the blocks are reached by pressing.
+
+**Why it is not Tessera's.** Whether a `canvas` may host children -- positioned by the painter's own
+geometry, scrolled with it, focusable and hit-tested as widgets -- is the canvas primitive's question. The
+board answers it by drawing its own text and carets, which is right for a drawing surface and wrong for a
+grid of things that are each a button.
+
+**Proposed API.** Either of:
+
+```java
+Canvas.overlay(Function<LogicalSize, List<Positioned>> children)   // a widget at a rect, per layout
+record Positioned(Widget widget, LogicalRect at)
+```
+
+so the week hands back one `button`-like widget per block, laid where the painter put it -- or a
+`week-grid` widget of the toolkit's own (a time axis, columns and blocks with focus and semantics), which
+[calendar.md §12](calendar.md#12-open-questions) q2 holds as the alternative. The first is smaller and
+serves the board's selection handles as well.
+
+**What Tessera does meanwhile.** `WeekCanvas.GridState` implements `Input` with one accessible name for the
+week; `WeekLayout.hit` answers a press. From the keyboard an event is reached through Home's agenda tile, the
+Navigator and the Palette rather than by tabbing across the grid.god
+
+
 ---
 
 **Nothing else, and nothing open.** All six of the latest were raised by building something rather
