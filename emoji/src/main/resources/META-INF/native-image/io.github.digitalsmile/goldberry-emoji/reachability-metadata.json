@@ -1,0 +1,28 @@
+{
+  "comment": [
+    "What :emoji ships that is read as a resource, declared by glob rather than",
+    "traced (ADR-0160, ADR-0453).",
+    "",
+    "One font, and it is the one :core's own metadata names as the example of",
+    "what a trace misses: 'Inter but neither JetBrains Mono nor OpenMoji --",
+    "because the run never switched theme and never drew mono text or an emoji'.",
+    "OpenMoji then moved out of :core into this module (ADR-0384) and its",
+    "declaration did not move with it, so `assets/fonts/*.ttf` over :core stopped",
+    "covering a face that now lives under `emoji/fonts` over :emoji and nothing",
+    "covered it at all. The showcase's native image died on the first paragraph",
+    "with an emoji in it, three hundred frames into a run that used to stop at",
+    "three.",
+    "",
+    "The path is this module's OWN package for the reason ADR-0387 gives: a",
+    "resource directory is a package to the module system, so the same font",
+    "directory in two modules is one package in two modules and the application",
+    "refuses to start. The glob follows the `--root` the asset step is given in",
+    "emoji/build.gradle, and OpenMojiFontResourceTest holds the two together.",
+    "",
+    "A glob rather than the one name, to match :core's and :widgets's spelling",
+    "and because the asset step's output is the authority on what it wrote."
+  ],
+  "resources": [
+    { "module": "io.github.digitalsmile.goldberry.emoji", "glob": "io/github/digitalsmile/goldberry/emoji/fonts/*.ttf" }
+  ]
+}

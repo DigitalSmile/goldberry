@@ -805,15 +805,35 @@ set_property(TARGET goldberry APPEND PROPERTY LINK_DEPENDS "${_symbols_file}")
 #
 # Three dialects, because each native toolchain spells this differently -- and
 # Mach-O needs the leading underscore that ELF does not.
-foreach(_symbol IN LISTS GOLDBERRY_EXPORTED_SYMBOLS)
-    if(MSVC)
-        target_link_options(goldberry PRIVATE "/INCLUDE:${_symbol}")
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        target_link_options(goldberry PRIVATE "LINKER:-u,_${_symbol}")
-    else()
-        target_link_options(goldberry PRIVATE "LINKER:-u,${_symbol}")
-    endif()
-endforeach()
+#
+# MSVC's goes in a RESPONSE FILE rather than on the command line, and the
+# reason is a hard limit rather than tidiness (ADR-0454). There are 253 of
+# these; at `/INCLUDE:` plus a name each they are 7.7 KB of an 8.5 KB link
+# line, and Ninja runs the link through `cmd.exe /C`, which refuses anything
+# over 8191 characters. It fails as "The command line is too long" with no
+# mention of what was too long. Every other platform below already writes its
+# symbol list to a file; this makes Windows the third rather than the
+# exception.
+if(MSVC)
+    set(_force_file "${CMAKE_BINARY_DIR}/goldberry.force")
+    set(_force_block "")
+    foreach(_symbol IN LISTS GOLDBERRY_EXPORTED_SYMBOLS)
+        string(APPEND _force_block "/INCLUDE:${_symbol}\n")
+    endforeach()
+    file(WRITE "${_force_file}" "${_force_block}")
+    # link.exe takes as many `@file`s as it is given, and CMake has already put
+    # the objects in one of its own.
+    target_link_options(goldberry PRIVATE "@${_force_file}")
+    set_property(TARGET goldberry APPEND PROPERTY LINK_DEPENDS "${_force_file}")
+else()
+    foreach(_symbol IN LISTS GOLDBERRY_EXPORTED_SYMBOLS)
+        if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            target_link_options(goldberry PRIVATE "LINKER:-u,_${_symbol}")
+        else()
+            target_link_options(goldberry PRIVATE "LINKER:-u,${_symbol}")
+        endif()
+    endforeach()
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # The `local: *` clause is what hides everything not listed. It is also

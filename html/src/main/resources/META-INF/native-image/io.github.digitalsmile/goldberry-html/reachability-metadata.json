@@ -1,0 +1,27 @@
+{
+  "comment": [
+    "What :html ships that is read as a resource, declared by glob rather than",
+    "traced (ADR-0160, ADR-0453).",
+    "",
+    "Two stylesheets, in two packages, because this module carries two views:",
+    "`markdown/view/markdown.css` and `html/view/html.css`. Both are read with",
+    "getResourceAsStream through Stylesheet.resource, and neither was declared",
+    "anywhere until ADR-0453.",
+    "",
+    "They worked anyway, and that is the part worth writing down: the showcase",
+    "traces a run, the traced run opens the Markdown and HTML screens, and the",
+    "trace recorded them. That is luck, and it is exactly the luck ADR-0160 says",
+    "not to build on -- an application that takes :html and builds an image",
+    "without tracing one of those screens got a module whose stylesheet is not",
+    "in the image, and the first document it renders throws. The emoji face in",
+    "the sibling module is the same defect with the luck running the other way.",
+    "",
+    "Two entries rather than one glob over the module root: `**` would match",
+    "every .class file as a resource and carry the module twice, which is the",
+    "reason :core's metadata gives for spelling its paths out."
+  ],
+  "resources": [
+    { "module": "io.github.digitalsmile.goldberry.html", "glob": "io/github/digitalsmile/goldberry/markdown/view/*.css" },
+    { "module": "io.github.digitalsmile.goldberry.html", "glob": "io/github/digitalsmile/goldberry/html/view/*.css" }
+  ]
+}

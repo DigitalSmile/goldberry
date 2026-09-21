@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry.natives;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -258,6 +260,48 @@ class ExportListTest {
                     "goldberry_webview.cc and the Java bindings in natives.webview disagree. A binding with no "
                             + "shim function raises an UnsatisfiedLinkError on the first call through it; a shim "
                             + "function nothing binds is dead code in a library whose whole point is to be small.");
+        }
+    }
+
+    /// The MSVC force-link list is a file, and this is the arithmetic that says
+    /// why (ADR-0454).
+    ///
+    /// Each exported symbol needs a `/INCLUDE:` on the Windows link so the
+    /// static archives contribute it. Written inline they were 7.7 KB of an
+    /// 8.5 KB command line, and Ninja runs the link through `cmd.exe /C`, which
+    /// refuses anything over 8191 characters -- "The command line is too long",
+    /// naming nothing. The Visual Studio generator does not go through `cmd`,
+    /// so `windows.yml` stayed green while the showcase's Ninja build did not:
+    /// one commit, two Windows jobs, opposite results.
+    ///
+    /// A guard on the shape rather than on the length, because the length is
+    /// the symptom and it moves every time a symbol is added.
+    @Test
+    @DisplayName("the MSVC force-link list goes in a response file")
+    void msvcForceLinkListIsAResponseFile() {
+        var cmake = read(projectDir.resolve("src/main/cmake/CMakeLists.txt"));
+        var inlineBytes = exported().stream()
+                .mapToInt(symbol -> "/INCLUDE:".length() + symbol.length() + 1)
+                .sum();
+        assertAll(
+                () -> assertFalse(
+                        cmake.contains("target_link_options(goldberry PRIVATE \"/INCLUDE:${_symbol}\")"),
+                        () -> "the " + exported().size() + " /INCLUDE: flags are on the command line again, which is "
+                                + inlineBytes + " bytes of it; cmd.exe stops at 8191. See ADR-0454."),
+                () -> assertTrue(
+                        cmake.contains("goldberry.force"),
+                        "the force-link list must be written to a response file -- see ADR-0454"),
+                () -> assertTrue(
+                        cmake.contains("target_link_options(goldberry PRIVATE \"@${_force_file}\")"),
+                        "the response file must reach link.exe as @file -- see ADR-0454"));
+    }
+
+    private static String read(Path path) {
+        assumeTrue(Files.isRegularFile(path), () -> "not readable: " + path);
+        try {
+            return Files.readString(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + path, e);
         }
     }
 }
