@@ -1,4 +1,4 @@
-# 452. A refresh budget needs a display somebody chose
+# 452. A refresh budget nobody has measured is not a gate
 
 Date: 2026-09-21
 
@@ -46,61 +46,102 @@ three machines on evidence from none, and then made a verdict.
 
 ## Decision
 
-**The budget is asserted where the display is pinned, which is Linux and only
-Linux.**
+**No budget is asserted, on any platform. All three run the identical walk and
+report what it cost.**
 
-The reason is already in the workflow, three lines under the budget:
+This is the second answer. The first kept the budget on Linux, on the grounds
+that `showcase.yml` pins that display and a refresh budget is a number about a
+display:
 
 ```yaml
 xvfb-run -a --server-args="-screen 0 1920x1200x24"
 ```
 
-A budget counts refreshes missed *against a display*. That is a number about a
-particular screen at a particular size and rate, so it compares across runs
-only where those are the same across runs — and Xvfb is the only one of the
-three this workflow chooses. macOS and Windows take whatever the runner has:
-the macOS window maximized to 1920×942 because that is the VM's screen, and
-nothing in this repository asked for it or would notice if it changed.
+The first Linux run to get past its own missing foreign registration
+([ADR-0451]) and its missing font ([ADR-0453]) printed the line that disproves
+it:
 
-macOS and Windows run the **identical** walk and report their summary into the
-step summary. They do not turn it into a verdict. The `painted 300 frame(s)`
-grep still fails them, so a hang, a crash or an image that will not start is
-still a red job — which is most of what the step was for.
+```
+frames: 302 frame(s) painted, 75 late; paint mean 10.14 ms,
+worst 1799.59 ms; display 0.0 Hz
+```
 
-### Why not give macOS a budget of its own
+**`display 0.0 Hz`.** Xvfb pins the geometry and reports no refresh rate at
+all, so `adoptDisplayRate` adopts nothing, the pacer keeps its default
+interval, and "late" counts missed ticks of a software timer. That is exactly
+what it counts on macOS. The carve-out was reasoning from a premise the
+evidence does not support, and it is left in this record rather than edited
+out because the premise was checkable before the run and was not checked.
 
-Because the only honest number would be an invented one. There is a single
-macOS measurement — 197 — and a budget has to sit above what the machine does
-and below what a regression does. One sample locates neither edge. Picking a
-number from it would repeat exactly the mistake this record is about, with one
-data point instead of none.
+What the legs actually measure, now that each has produced a number:
 
-### Why not lower the frame count on macOS instead
+| leg | frames | late | paint mean | worst | display |
+|---|---|---|---|---|---|
+| `linux-x64` | 302 | 75 | 10.14 ms | 1799.59 ms | 0.0 Hz |
+| `macos-aarch64` | 300 | 200 | 6.42 ms | 200.26 ms | 60.0 Hz |
 
-The walk is the interesting load and the reason ADR-0342 exists; running fewer
-frames would keep the verdict and throw away the measurement, which is backwards.
-macOS keeps the full three hundred and reports what they cost.
+Both are far over 30, neither is a regression, and on each the worst frame is
+start-up rather than anything the walk did. Two samples locate a ceiling no
+better than none: a budget has to sit above what the machine does and below
+what a regression does, and nothing here says where either edge is.
+
+### What still fails the step
+
+`grep -q "painted 300 frame(s); exiting"`. A hang, a crash, an image that will
+not start, or one that dies part-way — as Linux did on the emoji font — all
+still turn the job red. That is most of what the step was ever catching; the
+budget caught nothing, because it had never once been under.
+
+### A `--frames=300` run said "exiting" three times
+
+Found in the same log and fixed here, because it is the sort of thing that
+makes a number untrustworthy:
+
+```
+painted 300 frame(s); exiting
+painted 301 frame(s); exiting
+painted 302 frame(s); exiting
+```
+
+`Goldberry.stop()` ends the loop; it does not unschedule the frames already in
+flight, and by then the resize walk's zero-delay timer and an animating
+renderer have each asked for one. Those frames still paint, and each re-ran the
+`painted >= frames` branch. The launcher latches now, so the line is logged
+once. The count still reads 302 rather than 300, which is honest: three
+hundred and two frames were painted.
+
+**Unguarded by a test, deliberately.** The only observable difference is the
+log line — the latch changes no frame, no count and no exit code — and `:core`
+has no log-capture harness and no logback on its test classpath. Adding one
+for a single assertion about a line of INFO is a worse trade than saying here
+that this one is held by review. `LauncherEvidenceTest` already covers the
+thing that could actually break, which is that a frame-limited run still
+terminates.
 
 ## Consequences
 
-**The macOS and Windows showcase legs can go green**, on the same work they do
-now.
+**The showcase can go green on all three platforms** for the first time since
+the 300-frame walk was added.
 
-**A macOS frame regression stops being caught automatically**, and that is a
-real loss rather than a technicality. What replaces it is the summary line in
-the job's step summary, which a human reads. The honest position is that it was
-never caught automatically — the check has failed every time it has run — and a
-gate that is always red catches nothing either.
+**No frame regression is caught automatically**, and that is a real loss said
+plainly. What replaces it is the summary line in each job's step summary, which
+a human reads. The honest position is that nothing was caught automatically
+before either — the budget had failed every single time it ran, on every leg
+that reached it, which catches nothing and hides everything behind a red tick
+that means "this runner is a VM".
 
-**Linux keeps the verdict**, and once it has run green a few times there will
-be, for the first time, a measured distribution to set a ceiling from. That is
-also the moment to reconsider macOS and Windows: the note in `showcase.yml`
-says so, and says to tighten it once there are runs to set one from.
+**There is now a baseline.** Two legs have reported, and the third will. Once
+there are several green runs the numbers can be looked at as a distribution and
+a ceiling set from the top of it — per platform, since 75 and 200 are clearly
+not the same machine. The note in `showcase.yml` says so and carries the
+numbers.
 
-**The workflow's comment no longer claims evidence it does not have.** That
-claim is what made a guess look like a measurement, and it survived review
-because it was confidently phrased.
+**The ADR-0342 mechanism is untouched.** `--late-budget=N` still exists, still
+throws `FrameBudgetException`, and is still what a developer runs locally
+against a real display, which is where it was always meaningful. What changed
+is that CI stopped asserting a number nobody had measured.
 
 [ADR-0342]: 0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md
+[ADR-0453]: 0453-a-face-that-moved-module-takes-its-declaration-with-it.md
 [ADR-0450]: 0450-the-webview2-runtime-ships-with-windows-its-headers-do-not.md
 [ADR-0451]: 0451-a-shape-is-declared-where-it-can-be-reached-not-where-it-is-linked.md

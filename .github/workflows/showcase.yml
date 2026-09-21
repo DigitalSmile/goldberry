@@ -2,9 +2,8 @@
 #
 # Builds the showcase as a GraalVM native image on each desktop platform -- one
 # executable with libgoldberry inside it (ADR-0159) -- runs it for three
-# hundred frames while its window is resized a pixel a frame, fails on Linux if
-# more than the budget of them were late (ADR-0342, ADR-0452), and uploads it.
-# On a `v*` tag the three binaries are
+# hundred frames while its window is resized a pixel a frame, reports what that
+# cost (ADR-0342, ADR-0452), and uploads it. On a `v*` tag the three binaries are
 # also attached to the tag's GitHub Release, created as a draft so it is
 # published by hand beside the Central deployment (docs/releasing.md).
 #
@@ -159,47 +158,44 @@ jobs:
       # counts every refresh that went by with a frame wanted and undelivered
       # and exits non-zero past the budget (ADR-0342).
       #
-      # THE BUDGET IS ASSERTED ON LINUX ALONE, and the reason is three lines
-      # below it: `-screen 0 1920x1200x24`. A budget counts refreshes missed
-      # against a display, so it means something only where the display is the
-      # same every time -- and Xvfb is the only one of the three this workflow
-      # pins. macOS and Windows take whatever the runner has; the macOS window
-      # maximizes to 1920x942 because that is what that VM's screen happens to
-      # be, and nothing here chose it (ADR-0452).
+      # NO BUDGET IS ASSERTED, ON ANY PLATFORM, and this is the second answer
+      # to that question rather than the first (ADR-0452).
       #
-      # The line this replaced said the budget was "evidence about three
-      # platforms' drivers". It was not evidence about any of them. It was
-      # added with the 300-frame walk in ADR-0342 and no leg has ever completed
-      # the run: macOS was still on `--frames=3` until that commit and failed
-      # the budget the first time it was asked (197 of 300, ~27 fps), Windows
-      # has never got past the build, and Linux has never got past its own
-      # missing foreign registration. A ceiling nothing has ever measured
-      # against is a guess, and a guess that reds a job every time is worse
-      # than no check.
+      # The first said Linux could keep it because `-screen 0 1920x1200x24`
+      # pins the display and a refresh budget is a number about a display. The
+      # first run to get that far printed `display 0.0 Hz`: Xvfb pins the
+      # geometry and reports NO REFRESH RATE, so the pacer falls back to its
+      # default and "late" counts missed ticks of a software timer. That is the
+      # same thing it counts on macOS, so the carve-out was reasoning from a
+      # premise the evidence does not support.
       #
-      # So macOS and Windows run the identical walk and report their summary
-      # into the step summary, where a human reads the number and a regression
-      # is visible; they just do not turn it into a verdict. The
-      # "painted 300 frame(s)" grep still fails them, so a hang or a crash is
-      # still a red job -- which is most of what the step is for. Tighten this
-      # to a budget on either platform once there are runs to set one from.
+      # What the three legs actually measure, now that all three have run:
       #
-      # The budget is a tenth of the frames. A Linux run over it has regressed;
-      # a run well under it has not proved 60 fps on a desktop.
+      #   linux-x64     302 frames,  75 late, paint mean 10.14 ms, worst 1799.59 ms, display 0.0 Hz
+      #   macos-aarch64 300 frames, 200 late, paint mean  6.42 ms, worst  200.26 ms, display 60.0 Hz
+      #
+      # Both are far over 30, neither is a regression, and the worst frame on
+      # each is start-up rather than the walk. A budget of 30 was never measured
+      # against anything; these are the first numbers any leg has produced, and
+      # two samples locate a ceiling no better than none.
+      #
+      # So all three run the identical walk and report their summary into the
+      # step summary, where a human reads the number. The `painted 300 frame(s)`
+      # grep below is the gate and still fails a hang, a crash or an image that
+      # will not start, which is most of what this step is for. Set a budget
+      # here when there are enough green runs to set one from.
       - name: Run the native image (linux)
         if: runner.os == 'Linux'
         run: |
           xvfb-run -a --server-args="-screen 0 1920x1200x24" \
             ./example/build/native/goldberry-showcase-${{ matrix.target }} \
-              --frames=300 --resize=1580x1100 --late-budget=30 | tee native-run.log
+              --frames=300 --resize=1580x1100 | tee native-run.log
           grep -q "painted 300 frame(s); exiting" native-run.log \
             || { echo "::error::the native showcase did not present three hundred frames"; exit 1; }
           grep "frames: " native-run.log | sed 's/^.*frames: /Frames (${{ matrix.target }}): /' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the native image (macos)
         if: runner.os == 'macOS'
-        # No --late-budget: this runner's display is not pinned, so there is
-        # nothing to hold a refresh count to. See the note above.
         run: |
           ./example/build/native/goldberry-showcase-${{ matrix.target }} \
             --frames=300 --resize=1580x1100 | tee native-run.log
@@ -209,8 +205,6 @@ jobs:
 
       - name: Run the native image (windows)
         if: runner.os == 'Windows'
-        # No --late-budget: this runner's display is not pinned, so there is
-        # nothing to hold a refresh count to. See the note above.
         run: |
           ./example/build/native/goldberry-showcase-${{ matrix.target }}.exe \
             --frames=300 --resize=1580x1100 | tee native-run.log

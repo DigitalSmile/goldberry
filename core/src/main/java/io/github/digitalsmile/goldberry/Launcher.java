@@ -261,6 +261,17 @@ final class Launcher implements Host {
 
     private int painted;
 
+    /// Whether the frame limit has already been reached and [Goldberry#stop]
+    /// called.
+    ///
+    /// `stop()` ends the loop; it does not unschedule the frames already in
+    /// flight -- the resize walk's zero-delay timer and an animating renderer
+    /// have each asked for one by then. Those frames still paint, and without
+    /// this flag each of them reported "painted N frame(s); exiting" again. A
+    /// `--frames=300` run logged the line three times, at 300, 301 and 302,
+    /// which reads as three exits rather than one (ADR-0452).
+    private boolean stopping;
+
     /// The walk `--resize=` asked for, or null when the window is left alone.
     private ResizeWalk resizeWalk;
 
@@ -721,8 +732,9 @@ final class Launcher implements Host {
                 }
             });
         }
-        if (options.frames() > 0) {
+        if (options.frames() > 0 && !stopping) {
             if (painted >= options.frames()) {
+                stopping = true;
                 LOG.info("painted {} frame(s); exiting", painted);
                 Goldberry.stop();
             } else {
