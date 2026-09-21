@@ -468,4 +468,4 @@
 - [ADR-0451 A shape is declared where it can be reached, not where it is linked](adr/0451-a-shape-is-declared-where-it-can-be-reached-not-where-it-is-linked.md)
 - [ADR-0452 A refresh budget needs a display somebody chose](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)
 - [ADR-0453 A face that moved module takes its declaration with it](adr/0453-a-face-that-moved-module-takes-its-declaration-with-it.md)
-- [ADR-0454 A symbol list belongs in a file, on every platform](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)
+- [ADR-0454 A force-link list belongs in the object, not on the link line](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)

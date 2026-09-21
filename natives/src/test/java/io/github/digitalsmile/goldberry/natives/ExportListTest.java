@@ -263,22 +263,29 @@ class ExportListTest {
         }
     }
 
-    /// The MSVC force-link list is a file, and this is the arithmetic that says
-    /// why (ADR-0454).
+    /// The MSVC force-link directives are not on the link line, and this is the
+    /// arithmetic that says why (ADR-0454).
     ///
-    /// Each exported symbol needs a `/INCLUDE:` on the Windows link so the
-    /// static archives contribute it. Written inline they were 7.7 KB of an
-    /// 8.5 KB command line, and Ninja runs the link through `cmd.exe /C`, which
-    /// refuses anything over 8191 characters -- "The command line is too long",
-    /// naming nothing. The Visual Studio generator does not go through `cmd`,
-    /// so `windows.yml` stayed green while the showcase's Ninja build did not:
-    /// one commit, two Windows jobs, opposite results.
+    /// Each exported symbol needs a `/INCLUDE:` so the static archives
+    /// contribute it. Written inline they were 7.7 KB of an 8.5 KB command
+    /// line, and Ninja runs the link through `cmd.exe /C`, which refuses
+    /// anything over 8191 characters -- "The command line is too long", naming
+    /// nothing.
+    ///
+    /// A response file was the obvious answer and is checked for here as a
+    /// mistake, not as the fix: response files do not nest, the Visual Studio
+    /// generator already passes the link through one of MSBuild's, and an
+    /// `@file` inside it comes back as `LNK1104: cannot open file '@...'`. The
+    /// two generators disagree in both directions, so the answer has to be off
+    /// the command line entirely -- a `#pragma comment(linker, ...)` in a
+    /// generated source, which the compiler writes into the object's directive
+    /// section.
     ///
     /// A guard on the shape rather than on the length, because the length is
     /// the symptom and it moves every time a symbol is added.
     @Test
-    @DisplayName("the MSVC force-link list goes in a response file")
-    void msvcForceLinkListIsAResponseFile() {
+    @DisplayName("the MSVC force-link list is neither on the command line nor in a response file")
+    void msvcForceLinkListIsInTheObject() {
         var cmake = read(projectDir.resolve("src/main/cmake/CMakeLists.txt"));
         var inlineBytes = exported().stream()
                 .mapToInt(symbol -> "/INCLUDE:".length() + symbol.length() + 1)
@@ -288,12 +295,16 @@ class ExportListTest {
                         cmake.contains("target_link_options(goldberry PRIVATE \"/INCLUDE:${_symbol}\")"),
                         () -> "the " + exported().size() + " /INCLUDE: flags are on the command line again, which is "
                                 + inlineBytes + " bytes of it; cmd.exe stops at 8191. See ADR-0454."),
-                () -> assertTrue(
-                        cmake.contains("goldberry.force"),
-                        "the force-link list must be written to a response file -- see ADR-0454"),
-                () -> assertTrue(
+                () -> assertFalse(
                         cmake.contains("target_link_options(goldberry PRIVATE \"@${_force_file}\")"),
-                        "the response file must reach link.exe as @file -- see ADR-0454"));
+                        "a response file does not nest inside MSBuild's -- link.exe reads @file as a filename"
+                                + " and answers LNK1104. See ADR-0454."),
+                () -> assertTrue(
+                        cmake.contains("#pragma comment(linker, \\\"/INCLUDE:${_symbol}\\\")"),
+                        "the directives must be generated as pragmas -- see ADR-0454"),
+                () -> assertTrue(
+                        cmake.contains("target_sources(goldberry PRIVATE \"${_force_source}\")"),
+                        "the generated source must be compiled into the library -- see ADR-0454"));
     }
 
     private static String read(Path path) {
