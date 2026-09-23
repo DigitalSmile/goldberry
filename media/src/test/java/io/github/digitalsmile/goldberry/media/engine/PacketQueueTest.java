@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.Packet;
 import io.github.digitalsmile.goldberry.media.codec.Rational;
 
@@ -134,6 +135,28 @@ class PacketQueueTest {
         assertEquals(3, flush.serial());
         assertTrue(flush.accurate());
         assertNull(queue.takeFlush());
+    }
+
+    @Test
+    @DisplayName("says how far it reaches: the end of the latest packet, until a flush")
+    void reach() {
+        var queue = new PacketQueue(SECOND, 1 << 20);
+        assertEquals(Frame.NO_PTS, queue.endNanos());
+        queue.put(Packet.of(MemorySegment.NULL, 0, 100, 100, 20, true, MS), 0);
+        assertEquals(120_000_000L, queue.endNanos());
+        // Taking does not move it: the packet is still ahead of the clock.
+        queue.take(1, TimeUnit.SECONDS);
+        assertEquals(120_000_000L, queue.endNanos());
+        // No pts: its dts stands in. No timestamp at all: it does not move.
+        queue.put(Packet.of(MemorySegment.NULL, 0, Packet.NO_TIMESTAMP, 200, 0, true, MS), 0);
+        assertEquals(200_000_000L, queue.endNanos());
+        queue.put(Packet.of(MemorySegment.NULL, 0, Packet.NO_TIMESTAMP, Packet.NO_TIMESTAMP, 50, true, MS), 0);
+        assertEquals(200_000_000L, queue.endNanos());
+        // A packet out of order (B-frames) does not pull it back.
+        queue.put(Packet.of(MemorySegment.NULL, 0, 150, 150, 10, true, MS), 0);
+        assertEquals(200_000_000L, queue.endNanos());
+        queue.flush(1, 0, true);
+        assertEquals(Frame.NO_PTS, queue.endNanos());
     }
 
     @Test

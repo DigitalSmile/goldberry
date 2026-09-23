@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.media.audio;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -71,6 +72,27 @@ class SdlAudioSinkTest {
             sink.pause();
             sink.resume();
             assertThrows(IllegalStateException.class, () -> sink.open(FORMAT));
+        }
+    }
+
+    @Test
+    @DisplayName("plays faster at a rate, and refuses one SDL does not take")
+    void rate() throws InterruptedException {
+        try (var sink = new SdlAudioSink();
+                var arena = Arena.ofConfined()) {
+            // Before opening: kept, and applied when the stream opens.
+            assertTrue(sink.setRate(4f));
+            assertFalse(sink.setRate(0.001f));
+            assertFalse(sink.setRate(200f));
+            sink.open(FORMAT);
+            var samples = FORMAT.sampleRate();
+            sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
+            Thread.sleep(250);
+            // A quarter of a second at four times the speed is a second of audio;
+            // at 1 it would be a quarter. Half a second is a safe margin either way.
+            var drained = samples - sink.queuedSamples();
+            assertTrue(drained > samples / 2, "drained only " + drained + " of " + samples + " in 250 ms at 4x");
+            assertTrue(sink.setRate(1f));
         }
     }
 

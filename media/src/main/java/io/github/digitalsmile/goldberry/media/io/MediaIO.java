@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.media.io;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 
 /// A readable, optionally seekable stream of bytes: everything FFmpeg ever reads.
@@ -65,5 +67,37 @@ public interface MediaIO extends Closeable {
     /// front to back.
     default boolean isSeekable() {
         return true;
+    }
+
+    /// Whether the stream is live: it has no end to seek to and no length, only a
+    /// "now", as an internet radio station has. A player shows `LIVE` for one.
+    ///
+    /// Not the same as unseekable. An HTTP server that ignores `Range` serves a
+    /// file that cannot be sought but still ends.
+    default boolean isLive() {
+        return false;
+    }
+
+    /// The parts of the resource at hand without another request, in order and
+    /// disjoint: what a network stream has fetched ahead and not yet thrown away.
+    ///
+    /// Empty by default, and for a local file, where every byte is at hand and a
+    /// list saying so would say nothing. `HttpIO` reports its read-ahead cache,
+    /// which a player's seek bar shows as `bufferedRanges`
+    /// (`docs/goldberry-media.md` §4).
+    ///
+    /// Called from any thread, while another reads.
+    default List<ByteRange> buffered() {
+        return List.of();
+    }
+
+    /// What the stream says is playing now, when it says: the `StreamTitle` of an
+    /// ICY radio stream, for instance. Empty for a stream that carries no such
+    /// line.
+    ///
+    /// Called from any thread, while another reads. The Engine reads it after
+    /// each packet, and publishes a change as a new status.
+    default Optional<String> nowPlaying() {
+        return Optional.empty();
     }
 }

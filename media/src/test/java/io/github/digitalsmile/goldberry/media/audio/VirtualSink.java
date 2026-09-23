@@ -23,6 +23,7 @@ public final class VirtualSink implements AudioSink {
     private int clears;
     private boolean paused;
     private float gain = 1f;
+    private float rate = 1f;
     private boolean closed;
 
     /// A sink of `format`; `instant` plays everything as it is written.
@@ -80,6 +81,18 @@ public final class VirtualSink implements AudioSink {
     @Override
     public synchronized void close() {
         closed = true;
+    }
+
+    /// Takes any rate: the test says what is played, at whatever speed.
+    @Override
+    public synchronized boolean setRate(float rate) {
+        this.rate = rate;
+        return true;
+    }
+
+    /// The rate the Engine last set.
+    public synchronized float rate() {
+        return rate;
     }
 
     /// Plays `samples` more of what is queued.

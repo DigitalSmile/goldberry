@@ -70,12 +70,30 @@ class AudioPlayerTest {
         }
     }
 
+    /// Opens every `mem:` source as the one `MemoryIO` given, set up as a test
+    /// wants it.
+    record Configured(MemoryIO io) implements MediaIOProvider {
+        @Override
+        public Set<String> schemes() {
+            return Set.of("mem");
+        }
+
+        @Override
+        public MediaIO open(Source source) {
+            return io;
+        }
+    }
+
     private void open(byte[] wav, boolean instant) {
+        open(new Memory(wav), instant);
+    }
+
+    private void open(MediaIOProvider protocol, boolean instant) {
         FfmpegRequirement.enforce();
         sink = new VirtualSink(AudioFormat.DEFAULT, instant);
         player = MediaPlayer.builder()
                 .sink(() -> sink)
-                .ioProviders(List.of(new Memory(wav)))
+                .ioProviders(List.of(protocol))
                 .decoderProviders(List.of())
                 .build();
         player.open(Source.of(URI.create("mem:///clip.wav")));
@@ -185,6 +203,44 @@ class AudioPlayerTest {
         assertEquals(2.0, seek.max(), 1e-9);
         assertEquals(List.of("0:00", "-0:02"), texts(elements, "media-time"));
         assertFalse(button(elements, "media-play").disabled());
+    }
+
+    @Test
+    @DisplayName("a live stream: LIVE in place of the seek bar, and what is playing over the controls (S6)")
+    void live() {
+        var io = new MemoryIO(Wav.silence(AudioFormat.DEFAULT.sampleRate(), 2, AudioFormat.DEFAULT.sampleRate() * 2));
+        io.seekable = false;
+        io.live = true;
+        io.title = "Goldberry - Test Tone";
+        open(new Configured(io), false);
+        await(status ->
+                status.state() == PlaybackState.PLAYING && status.nowPlaying().isPresent());
+        var elements = mount(player);
+        assertTrue(withClass(elements, "media-seek").isEmpty());
+        assertEquals(List.of("LIVE"), texts(elements, "media-live"));
+        assertEquals(List.of("Goldberry - Test Tone"), texts(elements, "media-now-playing"));
+        // Over the controls: the title comes before the bar in the column.
+        var column = withClass(elements, "audio-player").getFirst();
+        assertTrue(column.children().getFirst().classes().contains("media-now-playing"));
+    }
+
+    @Test
+    @DisplayName("a source that cannot seek but ends: what remains, and no seek bar and no LIVE")
+    void unseekable() {
+        // FLAC says how long it is in its first bytes, so the length is known
+        // without the seek to the end a WAV would need.
+        var io = new MemoryIO(MediaWidgetsTest.fixture("tone.flac"));
+        io.seekable = false;
+        open(new Configured(io), false);
+        var playing = await(status -> status.state() == PlaybackState.PLAYING);
+        assertTrue(playing.duration().isPresent());
+        var elements = mount(player);
+        assertTrue(withClass(elements, "media-seek").isEmpty());
+        assertTrue(withClass(elements, "media-live").isEmpty());
+        assertTrue(withClass(elements, "media-now-playing").isEmpty());
+        var times = texts(elements, "media-time");
+        assertEquals(2, times.size(), times.toString());
+        assertTrue(times.getLast().startsWith("-"), times.toString());
     }
 
     @Test

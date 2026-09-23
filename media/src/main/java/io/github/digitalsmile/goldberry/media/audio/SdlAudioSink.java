@@ -29,11 +29,19 @@ import io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream;
 /// rate from the moment of the last pull, never by more than that pull took: what
 /// the device is playing, rather than what it last fetched. ffplay corrects its
 /// audio clock by the callback time for the same reason. Paused, the estimate
-/// stands still, and a clear starts it over.
+/// stands still, and a clear starts it over. At a [#setRate] other than 1 the
+/// device takes samples that much faster, and the estimate drains that much
+/// faster with it.
 public final class SdlAudioSink implements AudioSink {
+
+    /// The slowest and fastest SDL's stream resamples to.
+    static final float MIN_RATE = 0.01f;
+
+    static final float MAX_RATE = 100f;
 
     private @Nullable SdlAudioStream stream;
     private float gain = 1f;
+    private float rate = 1f;
     /// The raw queue as last seen, plus what has been written since.
     private long lastRaw;
     /// How many samples the last pull took: the most the estimate drains by.
@@ -55,6 +63,9 @@ public final class SdlAudioSink implements AudioSink {
         }
         var opened = SdlAudioStream.open(preferred.sampleRate(), preferred.channels());
         opened.gain(gain);
+        if (rate != 1f) {
+            opened.frequencyRatio(rate);
+        }
         opened.resume();
         stream = opened;
         sampleRate = preferred.sampleRate();
@@ -89,7 +100,7 @@ public final class SdlAudioSink implements AudioSink {
         }
         lastRaw = raw;
         var after = pausedAfter >= 0 ? pausedAfter : now - pulledAt;
-        var drained = Math.min(Math.round(after * (double) sampleRate / 1e9), pull);
+        var drained = Math.min(Math.round(after * (double) sampleRate * rate / 1e9), pull);
         return Math.max(raw - drained, 0);
     }
 
@@ -131,6 +142,28 @@ public final class SdlAudioSink implements AudioSink {
         if (stream != null) {
             stream.gain(gain);
         }
+    }
+
+    /// Resamples in SDL's stream, so the pitch moves with the speed. The estimate
+    /// between pulls keeps the part of the current pull it has already drained,
+    /// and drains the rest at the new rate.
+    @Override
+    public synchronized boolean setRate(float rate) {
+        if (!(rate >= MIN_RATE && rate <= MAX_RATE)) {
+            return false;
+        }
+        if (stream != null) {
+            stream.frequencyRatio(rate);
+            var scale = this.rate / rate;
+            if (pausedAfter >= 0) {
+                pausedAfter = Math.round(pausedAfter * (double) scale);
+            } else {
+                var now = System.nanoTime();
+                pulledAt = now - Math.round((now - pulledAt) * (double) scale);
+            }
+        }
+        this.rate = rate;
+        return true;
     }
 
     @Override

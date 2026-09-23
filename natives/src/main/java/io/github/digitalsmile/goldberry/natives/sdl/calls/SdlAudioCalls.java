@@ -25,6 +25,7 @@ public record SdlAudioCalls(
         GetAudioStreamQueued getAudioStreamQueued,
         ClearAudioStream clearAudioStream,
         SetAudioStreamGain setAudioStreamGain,
+        SetAudioStreamFrequencyRatio setAudioStreamFrequencyRatio,
         DestroyAudioStream destroyAudioStream) {
 
     /// `SDL_AUDIO_F32`: 32-bit float samples in native byte order, which on
@@ -47,6 +48,7 @@ public record SdlAudioCalls(
                 new GetAudioStreamQueued(lookup),
                 new ClearAudioStream(lookup),
                 new SetAudioStreamGain(lookup),
+                new SetAudioStreamFrequencyRatio(lookup),
                 new DestroyAudioStream(lookup));
     }
 
@@ -58,7 +60,8 @@ public record SdlAudioCalls(
     /// the caller pushes data. Answers null on failure, with `SDL_GetError` set.
     public static final class OpenAudioDeviceStream {
 
-        private static final MethodHandle FD_SDL_OpenAudioDeviceStream = Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS, ADDRESS));
+        private static final MethodHandle FD_SDL_OpenAudioDeviceStream =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS, ADDRESS));
 
         private final MemorySegment address;
 
@@ -68,7 +71,8 @@ public record SdlAudioCalls(
 
         public MemorySegment call(int device, MemorySegment spec, MemorySegment callback, MemorySegment userdata) {
             try {
-                return (MemorySegment) FD_SDL_OpenAudioDeviceStream.invokeExact(address, device, spec, callback, userdata);
+                return (MemorySegment)
+                        FD_SDL_OpenAudioDeviceStream.invokeExact(address, device, spec, callback, userdata);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_OpenAudioDeviceStream", t);
             }
@@ -78,7 +82,8 @@ public record SdlAudioCalls(
     /// `bool SDL_ResumeAudioStreamDevice(SDL_AudioStream *stream)`
     public static final class ResumeAudioStreamDevice {
 
-        private static final MethodHandle FD_SDL_ResumeAudioStreamDevice = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+        private static final MethodHandle FD_SDL_ResumeAudioStreamDevice =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
 
         private final MemorySegment address;
 
@@ -98,7 +103,8 @@ public record SdlAudioCalls(
     /// `bool SDL_PauseAudioStreamDevice(SDL_AudioStream *stream)`
     public static final class PauseAudioStreamDevice {
 
-        private static final MethodHandle FD_SDL_PauseAudioStreamDevice = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+        private static final MethodHandle FD_SDL_PauseAudioStreamDevice =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
 
         private final MemorySegment address;
 
@@ -120,7 +126,8 @@ public record SdlAudioCalls(
     /// Copies the bytes; the caller keeps its buffer.
     public static final class PutAudioStreamData {
 
-        private static final MethodHandle FD_SDL_PutAudioStreamData = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, JAVA_INT));
+        private static final MethodHandle FD_SDL_PutAudioStreamData =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -142,7 +149,8 @@ public record SdlAudioCalls(
     /// Bytes put and not yet consumed by the device, in the input format; -1 on failure.
     public static final class GetAudioStreamQueued {
 
-        private static final MethodHandle FD_SDL_GetAudioStreamQueued = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_SDL_GetAudioStreamQueued =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -162,7 +170,8 @@ public record SdlAudioCalls(
     /// `bool SDL_ClearAudioStream(SDL_AudioStream *stream)`
     public static final class ClearAudioStream {
 
-        private static final MethodHandle FD_SDL_ClearAudioStream = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+        private static final MethodHandle FD_SDL_ClearAudioStream =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
 
         private final MemorySegment address;
 
@@ -179,10 +188,35 @@ public record SdlAudioCalls(
         }
     }
 
+    /// `bool SDL_SetAudioStreamFrequencyRatio(SDL_AudioStream *stream, float ratio)`
+    ///
+    /// Plays the input `ratio` times as fast, from 0.01 to 100, by resampling it:
+    /// pitch moves with speed. [GetAudioStreamQueued] still counts input bytes.
+    public static final class SetAudioStreamFrequencyRatio {
+
+        private static final MethodHandle FD_SDL_SetAudioStreamFrequencyRatio =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT));
+
+        private final MemorySegment address;
+
+        SetAudioStreamFrequencyRatio(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetAudioStreamFrequencyRatio");
+        }
+
+        public boolean call(MemorySegment stream, float ratio) {
+            try {
+                return (boolean) FD_SDL_SetAudioStreamFrequencyRatio.invokeExact(address, stream, ratio);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetAudioStreamFrequencyRatio", t);
+            }
+        }
+    }
+
     /// `bool SDL_SetAudioStreamGain(SDL_AudioStream *stream, float gain)`
     public static final class SetAudioStreamGain {
 
-        private static final MethodHandle FD_SDL_SetAudioStreamGain = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT));
+        private static final MethodHandle FD_SDL_SetAudioStreamGain =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT));
 
         private final MemorySegment address;
 
@@ -204,7 +238,8 @@ public record SdlAudioCalls(
     /// Also closes the device it opened.
     public static final class DestroyAudioStream {
 
-        private static final MethodHandle FD_SDL_DestroyAudioStream = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_DestroyAudioStream =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 

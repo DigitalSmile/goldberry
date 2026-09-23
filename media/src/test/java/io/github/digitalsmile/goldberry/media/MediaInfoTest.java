@@ -51,7 +51,11 @@ class MediaInfoTest {
     @DisplayName("filters tracks by kind, in container order")
     void byType() {
         var info = new MediaInfo(
-                SOURCE, Optional.empty(), List.of(audio(0, false), video(1, false, false), audio(2, false)), true);
+                SOURCE,
+                Optional.empty(),
+                List.of(audio(0, false), video(1, false, false), audio(2, false)),
+                true,
+                false);
         assertEquals(
                 List.of(0, 2),
                 info.tracks(MediaType.AUDIO).stream().map(Track::index).toList());
@@ -61,9 +65,9 @@ class MediaInfoTest {
     @Test
     @DisplayName("starts with the track the container marks as default, else the first")
     void defaultTrack() {
-        var marked = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, false), audio(1, true)), true);
+        var marked = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, false), audio(1, true)), true, false);
         assertEquals(1, marked.defaultTrack(MediaType.AUDIO).orElseThrow().index());
-        var unmarked = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, false), audio(1, false)), true);
+        var unmarked = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, false), audio(1, false)), true, false);
         assertEquals(0, unmarked.defaultTrack(MediaType.AUDIO).orElseThrow().index());
         assertEquals(Optional.empty(), unmarked.defaultTrack(MediaType.VIDEO));
     }
@@ -71,7 +75,7 @@ class MediaInfoTest {
     @Test
     @DisplayName("never starts with cover art as the video, and finds it as the attached picture")
     void coverArt() {
-        var info = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, true), video(1, true, true)), true);
+        var info = new MediaInfo(SOURCE, Optional.empty(), List.of(audio(0, true), video(1, true, true)), true, false);
         assertEquals(Optional.empty(), info.defaultTrack(MediaType.VIDEO));
         assertEquals(1, info.attachedPicture().orElseThrow().index());
     }
@@ -80,7 +84,7 @@ class MediaInfoTest {
     @DisplayName("keeps a copy of the track list")
     void copies() {
         var tracks = new ArrayList<Track>(List.of(audio(0, true)));
-        var info = new MediaInfo(SOURCE, Optional.empty(), tracks, true);
+        var info = new MediaInfo(SOURCE, Optional.empty(), tracks, true, false);
         tracks.clear();
         assertEquals(1, info.tracks().size());
     }

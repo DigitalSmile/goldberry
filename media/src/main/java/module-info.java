@@ -33,6 +33,11 @@ module io.github.digitalsmile.goldberry.media {
     /// [io.github.digitalsmile.goldberry.media.view.AudioPlayer] is a widget.
     requires transitive io.github.digitalsmile.goldberry.widgets;
 
+    /// The JDK's HTTP client, which `HttpIO` fetches `http:` and `https:` sources
+    /// with (`docs/goldberry-media.md` §4). `transitive` because `HttpIO.open`
+    /// takes an `HttpClient`, for an application that brings its own.
+    requires transitive java.net.http;
+
     /// JSpecify's nullness annotations, for the packages under NullAway.
     requires transitive static org.jspecify;
 

@@ -8,6 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.Packet;
 
 /// The queue between the demux thread and one track's decode thread
@@ -32,6 +33,11 @@ import io.github.digitalsmile.goldberry.media.codec.Packet;
 /// decoder exactly once, at exactly the point where the new position's packets
 /// begin. A packet with a stale Serial that slipped past (read before the seek,
 /// queued after it) is dropped by the decode thread when it sees it.
+///
+/// **How far it reaches.** [#endNanos()] is the end of the latest packet queued
+/// since the last flush: how far into the stream the demux thread has read for
+/// this track. Less the clock, it is what the track can play without another
+/// byte, which is what the water marks are measured against.
 ///
 /// [#abort()] wakes the consumer for good. It is how the Engine stops.
 final class PacketQueue {
@@ -63,6 +69,7 @@ final class PacketQueue {
     private final long capacityBytes;
     private long queuedNanos;
     private long queuedBytes;
+    private long endNanos = Frame.NO_PTS;
     private boolean ended;
     private boolean aborted;
 
@@ -97,6 +104,7 @@ final class PacketQueue {
             items.addLast(data);
             queuedNanos += durationOf(data);
             queuedBytes += packet.data().byteSize();
+            endNanos = Math.max(endNanos, endOf(packet));
             ended = false;
             notEmpty.signalAll();
             return true;
@@ -146,6 +154,7 @@ final class PacketQueue {
         try {
             closeQueued();
             ended = false;
+            endNanos = Frame.NO_PTS;
             items.addLast(new Item.Flush(serial, targetNanos, accurate));
             notEmpty.signalAll();
         } finally {
@@ -245,6 +254,17 @@ final class PacketQueue {
         }
     }
 
+    /// The stream time just past the latest packet queued since the last flush,
+    /// or [Frame#NO_PTS] before one. A packet with no timestamp does not move it.
+    long endNanos() {
+        lock.lock();
+        try {
+            return endNanos;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /// Whether the end of the source has been queued and nothing has been queued
     /// after it: the queue will not refill without a seek.
     boolean ended() {
@@ -278,6 +298,16 @@ final class PacketQueue {
         items.clear();
         queuedNanos = 0;
         queuedBytes = 0;
+    }
+
+    /// Where `packet` ends: its presentation time, or its decoding time when it
+    /// has none, plus its duration.
+    private static long endOf(Packet packet) {
+        var time = packet.pts() != Packet.NO_TIMESTAMP ? packet.pts() : packet.dts();
+        if (time == Packet.NO_TIMESTAMP) {
+            return Frame.NO_PTS;
+        }
+        return packet.timeBase().toNanos(time + Math.max(packet.duration(), 0));
     }
 
     private static long durationOf(Item.Data data) {

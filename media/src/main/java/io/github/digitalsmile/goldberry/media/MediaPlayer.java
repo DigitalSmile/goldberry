@@ -46,6 +46,7 @@ public final class MediaPlayer implements AutoCloseable {
 
     private final Supplier<AudioSink> sinks;
     private final MediaClock clock;
+    private final Duration highWaterMark;
     private final List<DecoderProvider> decoderProviders;
     private final @Nullable List<MediaIOProvider> ioProviders;
     private final CopyOnWriteArrayList<Consumer<PlayerStatus>> listeners = new CopyOnWriteArrayList<>();
@@ -54,11 +55,13 @@ public final class MediaPlayer implements AutoCloseable {
     private @Nullable AudioSink sink;
     private volatile float volume = 1f;
     private volatile boolean muted;
+    private volatile float rate = 1f;
     private boolean closed;
 
     private MediaPlayer(Builder builder) {
         this.sinks = builder.sinks != null ? builder.sinks : SdlAudioSink::new;
         this.clock = builder.clock != null ? builder.clock : MediaClock.system();
+        this.highWaterMark = builder.highWaterMark;
         this.decoderProviders = builder.decoderProviders != null
                 ? List.copyOf(builder.decoderProviders)
                 : ServiceLoader.load(DecoderProvider.class).stream()
@@ -94,7 +97,16 @@ public final class MediaPlayer implements AutoCloseable {
             var newSink = sinks.get();
             newSink.setGain(gain());
             sink = newSink;
-            next = new Playback(ffmpeg, source, ioProviders, decoderProviders, newSink, clock, _ -> publish());
+            next = new Playback(
+                    ffmpeg,
+                    source,
+                    ioProviders,
+                    decoderProviders,
+                    newSink,
+                    clock,
+                    highWaterMark.toNanos(),
+                    _ -> publish());
+            next.setRate(rate);
             playback = next;
         }
         if (previous != null) {
@@ -161,6 +173,35 @@ public final class MediaPlayer implements AutoCloseable {
         applyGain();
     }
 
+    /// Plays `rate` times as fast, pitch and all (`docs/goldberry-media.md` §3,
+    /// "Rate"): 0.5 is half speed an octave down, 2 twice the speed an octave up.
+    /// Kept for the next source opened, as the volume is.
+    ///
+    /// @throws IllegalArgumentException outside 0.25 to 4
+    /// @throws IllegalStateException    when the sink cannot play at `rate`
+    public void setRate(float rate) {
+        if (!(rate >= Playback.MIN_RATE && rate <= Playback.MAX_RATE)) {
+            throw new IllegalArgumentException(
+                    "rate " + rate + " is not within " + Playback.MIN_RATE + " and " + Playback.MAX_RATE);
+        }
+        var current = current();
+        if (current.isPresent() && current.get().setRate(rate) != rate) {
+            throw new IllegalStateException("the audio sink cannot play at rate " + rate);
+        }
+        this.rate = rate;
+        publish();
+    }
+
+    /// Moves `count` pictures on, or back for a negative count, and pauses there:
+    /// the `.` and `,` of a player (`docs/goldberry-media.md` §6). The step is the
+    /// picture length the video has shown, so a step lands on the next picture's
+    /// first instant, and the picture covering it is shown.
+    ///
+    /// @return false when there is nothing to step: no video, or no picture yet
+    public boolean step(int count) {
+        return current().map(playback -> playback.step(count)).orElse(false);
+    }
+
     /// Silences the output, or restores it, keeping the volume.
     public void setMuted(boolean muted) {
         this.muted = muted;
@@ -178,7 +219,11 @@ public final class MediaPlayer implements AutoCloseable {
                     Optional.empty(),
                     volume,
                     muted,
+                    rate,
                     Optional.empty(),
+                    Optional.empty(),
+                    Duration.ZERO,
+                    List.of(),
                     Optional.empty());
         }
         var playback = current.get();
@@ -189,17 +234,21 @@ public final class MediaPlayer implements AutoCloseable {
                 Optional.ofNullable(playback.error()),
                 volume,
                 muted,
+                playback.rate(),
                 Optional.ofNullable(playback.decoderName()),
-                Optional.ofNullable(playback.videoDecoderName()));
+                Optional.ofNullable(playback.videoDecoderName()),
+                Duration.ofNanos(playback.bufferedAheadNanos()),
+                playback.bufferedRanges(),
+                Optional.ofNullable(playback.nowPlaying()));
     }
 
     /// Calls `listener` with every new status. **On the Engine's threads.**
     ///
     /// Position is not pushed: it changes continuously, so it is read from
-    /// [#status()] when it is needed. A status is pushed when the state, the
-    /// source's description, the error, a decoder, the volume or a seek changes,
-    /// and when the first picture after a seek is ready, so that a paused view
-    /// shows where it was moved to.
+    /// [#status()] when it is needed, as are the buffered stretches. A status is
+    /// pushed when the state, the source's description, the error, a decoder, the
+    /// volume, the stream's title or a seek changes, and when the first picture
+    /// after a seek is ready, so that a paused view shows where it was moved to.
     ///
     /// @return what removes the listener
     public AutoCloseable onStatus(Consumer<PlayerStatus> listener) {
@@ -262,6 +311,7 @@ public final class MediaPlayer implements AutoCloseable {
 
         private @Nullable Supplier<AudioSink> sinks;
         private @Nullable MediaClock clock;
+        private Duration highWaterMark = Duration.ofNanos(Playback.HIGH_WATER_NANOS);
         private @Nullable List<? extends DecoderProvider> decoderProviders;
         private @Nullable List<? extends MediaIOProvider> ioProviders;
 
@@ -278,6 +328,20 @@ public final class MediaPlayer implements AutoCloseable {
         /// unless a test hands in a clock it moves itself (§7, S5).
         public Builder clock(MediaClock clock) {
             this.clock = Objects.requireNonNull(clock, "clock");
+            return this;
+        }
+
+        /// How far ahead every track is demuxed before playback starts, and
+        /// before it plays on after a network stall (`docs/goldberry-media.md`
+        /// §4, the high water mark). One second unless set. A local file reaches
+        /// it at once; for a stream it is the cushion against the next stall, paid
+        /// for in start-up time. Zero starts as soon as there is anything to play.
+        public Builder highWaterMark(Duration highWaterMark) {
+            Objects.requireNonNull(highWaterMark, "highWaterMark");
+            if (highWaterMark.isNegative()) {
+                throw new IllegalArgumentException("highWaterMark " + highWaterMark);
+            }
+            this.highWaterMark = highWaterMark;
             return this;
         }
 

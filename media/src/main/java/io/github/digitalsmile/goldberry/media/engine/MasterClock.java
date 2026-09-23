@@ -22,6 +22,9 @@ import io.github.digitalsmile.goldberry.media.MediaClock;
 ///   audio has ended hands over to it at the audio's last position
 ///   ([#freeRunFrom]).
 ///
+/// At a [#setRate] other than 1 the free-running clock counts stream time that
+/// much faster than the [MediaClock] passes.
+///
 /// Thread-safe: the decode threads and the UI thread read it, and the Engine's
 /// threads steer it.
 final class MasterClock {
@@ -31,6 +34,7 @@ final class MasterClock {
     private long base;
     private long anchoredAt;
     private boolean running;
+    private double rate = 1;
 
     /// A free-running clock at zero, held, reading `time`.
     MasterClock(MediaClock time) {
@@ -42,7 +46,21 @@ final class MasterClock {
         if (audio != null) {
             return audio.getAsLong();
         }
-        return running ? base + Math.max(0, time.nanoTime() - anchoredAt) : base;
+        return running ? base + elapsed() : base;
+    }
+
+    /// Runs the free-running clock `rate` times as fast from now on. What it has
+    /// counted so far stays counted at the rate it ran at. The audio clock needs
+    /// no telling: the sink plays faster, and it is made of the sink.
+    synchronized void setRate(double rate) {
+        if (!(rate > 0)) {
+            throw new IllegalArgumentException("rate " + rate);
+        }
+        if (running) {
+            base += elapsed();
+            anchoredAt = time.nanoTime();
+        }
+        this.rate = rate;
     }
 
     /// Makes the audio clock the master.
@@ -81,9 +99,15 @@ final class MasterClock {
     /// Stops the free-running clock where it stands.
     synchronized void hold() {
         if (running) {
-            base += Math.max(0, time.nanoTime() - anchoredAt);
+            base += elapsed();
             running = false;
         }
+    }
+
+    /// Stream time since the anchor: wall time at the rate. Called with the
+    /// monitor held.
+    private long elapsed() {
+        return Math.round(Math.max(0, time.nanoTime() - anchoredAt) * rate);
     }
 
     /// Whether the clock is moving on its own: always, while audio is the master,

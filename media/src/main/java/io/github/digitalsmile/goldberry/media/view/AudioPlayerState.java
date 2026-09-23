@@ -17,7 +17,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// icons and whether the seek bar is being dragged.
 ///
 /// The controls are the same `media-controls` bar every media widget shows, so
-/// the keys work here too, with the error, when there is one, under it.
+/// the keys work here too. A stream's title, when it announces one, is a line
+/// over them, and the error, when there is one, is a line under them.
 final class AudioPlayerState extends FollowingState<AudioPlayer> {
 
     private final Transport transport = new Transport();
@@ -30,7 +31,8 @@ final class AudioPlayerState extends FollowingState<AudioPlayer> {
     @Override
     Widget build(BuildContext context, PlayerStatus status) {
         var player = widget().player();
-        var parts = new ArrayList<Widget>(2);
+        var parts = new ArrayList<Widget>(3);
+        Transport.nowPlaying(status).ifPresent(parts::add);
         parts.add(new MediaControlsBar(
                 transport.controls(player, status),
                 null,

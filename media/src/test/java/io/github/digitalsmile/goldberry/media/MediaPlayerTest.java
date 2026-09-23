@@ -1,7 +1,9 @@
 package io.github.digitalsmile.goldberry.media;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
+import io.github.digitalsmile.goldberry.media.audio.ForwardingSink;
 import io.github.digitalsmile.goldberry.media.audio.VirtualSink;
 import io.github.digitalsmile.goldberry.media.codec.AudioFrame;
 import io.github.digitalsmile.goldberry.media.codec.CodecId;
@@ -111,6 +114,16 @@ class MediaPlayerTest {
             }
         }
         throw new AssertionError("timed out; last status " + player.status() + ", states " + states);
+    }
+
+    private static void awaitTrue(java.util.function.BooleanSupplier condition) {
+        var deadline = System.nanoTime() + WAIT.toNanos();
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("timed out");
+            }
+            Thread.onSpinWait();
+        }
     }
 
     private PlayerStatus awaitState(PlaybackState state) {
@@ -207,6 +220,120 @@ class MediaPlayerTest {
         player.play();
         assertEquals(PlaybackState.PLAYING, player.status().state());
         assertTrue(!sink.paused());
+    }
+
+    @Test
+    @DisplayName("play straight after a paused seek starts the sink only once the old position's samples are gone")
+    void playAfterPausedSeek() {
+        var rate = FORMAT.sampleRate();
+        var inner = new VirtualSink(FORMAT, false);
+        // How many times the sink had been cleared, at each resume.
+        var clearsAtResume = Collections.synchronizedList(new ArrayList<Integer>());
+        var io = new MemoryIO(Wav.silence(rate, 2, rate * 3));
+        sink = inner;
+        player = MediaPlayer.builder()
+                .sink(() -> new ForwardingSink(inner) {
+                    @Override
+                    public void resume() {
+                        clearsAtResume.add(inner.clears());
+                        super.resume();
+                    }
+                })
+                .ioProviders(List.of(new MediaIOProvider() {
+                    @Override
+                    public Set<String> schemes() {
+                        return Set.of("mem");
+                    }
+
+                    @Override
+                    public MediaIO open(Source source) {
+                        return io;
+                    }
+                }))
+                .decoderProviders(List.of())
+                // No high water mark to wait for, so play() starts the output at
+                // once if the Engine lets it.
+                .highWaterMark(Duration.ZERO)
+                .build();
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        awaitState(PlaybackState.PLAYING);
+        await(status -> inner.queuedSamples() >= rate / 10);
+        player.pause();
+        // The sink holds samples from before the seek, and the demuxer is held
+        // in the middle of carrying it out.
+        io.holdSeeks();
+        player.seek(Duration.ofSeconds(2));
+        awaitTrue(io::seekHeld);
+        player.play();
+        assertEquals(PlaybackState.PLAYING, player.status().state());
+        assertTrue(inner.paused(), "the sink started with the old position's samples in it");
+
+        io.releaseSeeks();
+        await(status -> !inner.paused());
+        assertEquals(1, clearsAtResume.getLast(), clearsAtResume.toString());
+    }
+
+    @Test
+    @DisplayName("plays at a rate: the sink is told, the status says so, and the next source keeps it")
+    void rate() {
+        var rate = FORMAT.sampleRate();
+        // A new sink for every source, so the second starts empty.
+        player = MediaPlayer.builder()
+                .sink(() -> sink = new VirtualSink(FORMAT, false))
+                .ioProviders(List.of(new MemoryProtocol(Wav.silence(rate, 2, rate * 3))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        awaitState(PlaybackState.PLAYING);
+        assertEquals(1f, player.status().rate());
+        player.setRate(2f);
+        assertEquals(2f, sink.rate());
+        assertEquals(2f, player.status().rate());
+        // Twice the speed drains the sink twice as fast, so it keeps twice the
+        // stream time queued.
+        await(status -> sink.queuedSamples() >= rate * 3 / 10);
+
+        player.open(Source.of(URI.create("mem:///again.wav")));
+        awaitState(PlaybackState.PLAYING);
+        assertEquals(2f, sink.rate());
+        assertEquals(2f, player.status().rate());
+
+        assertThrows(IllegalArgumentException.class, () -> player.setRate(0.1f));
+        assertThrows(IllegalArgumentException.class, () -> player.setRate(5f));
+        assertThrows(IllegalArgumentException.class, () -> player.setRate(Float.NaN));
+        assertEquals(2f, player.status().rate());
+    }
+
+    @Test
+    @DisplayName("a sink that plays at 1 only refuses another rate, and nothing changes")
+    void rateRefused() {
+        var rate = FORMAT.sampleRate();
+        sink = new VirtualSink(FORMAT, false);
+        player = MediaPlayer.builder()
+                .sink(() -> new ForwardingSink(sink))
+                .ioProviders(List.of(new MemoryProtocol(Wav.silence(rate, 2, rate))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        awaitState(PlaybackState.PLAYING);
+        assertThrows(IllegalStateException.class, () -> player.setRate(1.5f));
+        assertEquals(1f, player.status().rate());
+        assertEquals(1f, sink.rate());
+        player.setRate(1f);
+    }
+
+    @Test
+    @DisplayName("stepping a picture needs a picture: audio alone, or nothing open, does not step")
+    void stepNeedsVideo() {
+        var rate = FORMAT.sampleRate();
+        try (var idle =
+                MediaPlayer.builder().sink(() -> new VirtualSink(FORMAT, true)).build()) {
+            assertFalse(idle.step(1));
+        }
+        open(Wav.silence(rate, 2, rate), false, List.of());
+        awaitState(PlaybackState.PLAYING);
+        assertFalse(player.step(1));
+        assertEquals(PlaybackState.PLAYING, player.status().state());
     }
 
     @Test

@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.media.ffi.Resampler;
 ///
 /// Takes packets, decodes, converts to the sink's format in one resampling pass,
 /// discards what lies before a seek target (an accurate seek), and writes to the
-/// sink. It keeps about [Playback#SINK_TARGET_NANOS] queued in the sink, which
+/// sink. It keeps about [Playback#sinkTargetNanos()] queued in the sink, which
 /// is both the latency and the cushion against a stall.
 ///
 /// **It owns the audio clock's inputs.** It records the sample index just past
@@ -160,6 +160,7 @@ final class AudioWorker {
         resampler.reset();
         playback.sink().clear();
         playback.audioWritten(format.samples(flush.targetNanos()), false);
+        playback.audioFlushed(serial);
     }
 
     /// Receives every frame the decoder has, converts, trims and writes each.
@@ -203,7 +204,7 @@ final class AudioWorker {
         playback.sink().write(data, samples);
         playback.audioWritten(startSample + samples, true);
         if (format.nanos(playback.sink().queuedSamples())
-                >= Math.min(Playback.START_THRESHOLD_NANOS, Playback.SINK_TARGET_NANOS)) {
+                >= Math.min(Playback.START_THRESHOLD_NANOS, playback.sinkTargetNanos())) {
             playback.audioReady();
         }
     }
@@ -212,7 +213,7 @@ final class AudioWorker {
     /// keeps the Engine a fixed distance ahead of the speaker.
     private void throttle() {
         while (!playback.stopping() && !playback.paused() && playback.latestSerial() == serial) {
-            var excess = format.nanos(playback.sink().queuedSamples()) - Playback.SINK_TARGET_NANOS;
+            var excess = format.nanos(playback.sink().queuedSamples()) - playback.sinkTargetNanos();
             if (excess <= 0) {
                 return;
             }

@@ -22,6 +22,7 @@ it waits for. **answered** means decided not to build, with the reason.
 | Not published yet. `:media` joins `PublishedModules` when its natives jar exists on all four targets | — | open |
 | Video is converted to BGRA as it is decoded, presented against the master clock by whoever asks, and painted when a picture falls due; the SDL sink's queue drains smoothly between pulls | 0463 | done |
 | `slider` says when a gesture ends (`onCommit`, `commit=`), so a seek bar scrubs while dragged and seeks exactly on release | 0464 | done |
+| Network media is read by one `HttpIO` through a read-ahead cache of extents, ICY is stripped inside it, and playback waits for a high water mark measured in demuxed time; the low water mark is empty | 0465 | done |
 
 ## Corrections to the design, found while building
 
@@ -40,6 +41,11 @@ The design document is kept in step with these. Each one is written into
 | §3 master clock | audio clock stepped by `SDL_GetAudioStreamQueued` | SDL drains in 1024-sample pulls, so the raw clock moves in 21 ms steps. `SdlAudioSink` reports the queue draining smoothly between pulls (ADR-0463) | done |
 | §3 master clock | "− device latency" | SDL 3 reports no device latency. Not subtracted; on Bluetooth output pictures lead the sound by up to ~200 ms | open: a per-platform latency query (CoreAudio, WASAPI, PulseAudio) or a user offset |
 | §7 S7 | an unsupported file errors | every chosen track is checked before any plays, so the error names every codec without a decoder, video first | done |
+| §4 MediaIO table | `IcyIO`, a MediaIO of `HttpIO` + ICY | ICY is a property of an HTTP response (`icy-metaint`), so `HttpIO` strips it itself, before the cache, where offsets are still audio bytes. No `IcyIO` class (ADR-0465) | done |
+| §4 buffering | BUFFERING below the low water mark | the low water mark is empty: a track stalls when its decoder runs out of packets with more to come. Above zero it would pause with media in hand, and flicker through BUFFERING after every local seek (ADR-0465) | done |
+| §4 `bufferedRanges` | real byte ranges mapped to time, "not an estimate" | the ranges are real; the mapping to time is in proportion to length and duration, exact for a constant bit rate. The container's index would make it exact at a cost in bindings | done |
+| §4 opening | not discussed | `avformat_find_stream_info` reads up to its analyse duration before anything plays: about 4.4 s (830 KB) of 48 kHz PCM, all of a short MP3. Over a slow link that is start-up time | open: a smaller `probesize` and `max_analyze_duration` for network sources, which needs `AVDictionary` options on `avformat_open_input` |
+| §4 `HttpIO` | reconnect "resuming at the last byte offset" | at the last byte the reader was *handed*. When a connection fails, the JDK's client drops what it had received and not yet handed on, so the resumed Range starts a little earlier than where the server broke off. Nothing is lost or repeated | done |
 | swscale | `sws_getContext` returns null for a conversion it cannot do | FFmpeg 8 **asserts** (aborts the process) on a format with no descriptor, such as `AV_PIX_FMT_NONE`. `VideoConverter` checks that both formats have names before asking | done |
 
 ## Local toolchain
@@ -120,7 +126,7 @@ DecoderProvider (a sine generator) is chosen over the built-in one by priority.
 | `MediaCapabilities` (`av_codec_iterate`, `av_demuxer_iterate`, providers) | done. Read from the loaded build. The test checks that the free codecs are there and the patent-pool ones are not |
 | Demux thread, packet queues, Serial | done: `Playback`'s demux thread and a duration-bounded `PacketQueue` with flush markers. A seek wakes a blocked producer, and seeks are coalesced |
 | Audio decode thread, swresample to interleaved f32 | done: decode on the track's own thread (the SPI's one-thread promise), one conversion to the sink's format, accurate-seek trimming to the sample, backpressure at 200 ms queued |
-| SDL audio: 8 `SDL_*AudioStream*` functions, `SDL_AudioSpec` and 2 constants in `libgoldberry`, with `natives.sdl.audio.SdlAudioStream` exported to `:media` alone | done (ADR-0462). `SdlAudioSink` is `MediaPlayer`'s default. Tests use SDL's `dummy` driver, so they are silent |
+| SDL audio: 9 `SDL_*AudioStream*` functions (the ninth, `SDL_SetAudioStreamFrequencyRatio`, for the rate in phase 7), `SDL_AudioSpec` and 2 constants in `libgoldberry`, with `natives.sdl.audio.SdlAudioStream` exported to `:media` alone | done (ADR-0462). `SdlAudioSink` is `MediaPlayer`'s default. Tests use SDL's `dummy` driver, so they are silent |
 | Clock SPI: audio master clock, monotonic clock, virtual clock | done: the audio clock is the sink's queue, counted in samples, smoothed between SDL's pulls. `MediaClock` is the SPI for the free-running clock a source with no audio uses, and a video after its audio ends. The virtual clocks are `VirtualSink` (ADR-0462) and a hand-moved `MediaClock` |
 | State machine `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` | done: `PlaybackState`, published as immutable `PlayerStatus` values |
 | Pause, seek (coalesced), volume, mute | done: the first sample after a seek is the target's, checked sample-exact (S2 for audio) |
@@ -162,18 +168,58 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | Seek modes and scrubbing (S2) | done: `SeekMode.ACCURATE` shows the picture covering the target, `KEYFRAME` the keyframe landed on. A paused player decodes one picture after each seek, and audio honours a paused seek (it used to replay up to 200 ms of the old position on play) |
 | S7 in `media-player` | done: the H.264/AAC fixture shows `no decoder for h264, aac` over the picture |
 | S8 with a fake video provider | done: grey I420 pictures and silence from a test provider for `h264` and `aac`, presented unchanged; failing mid-stream, it falls to nothing and errors naming `h264` |
-| Frame step (`,` `.` while paused), fullscreen (`F`) | open: phase 7, with the rest of the keys §6 lists |
+| Frame step (`,` `.`), fullscreen (`F`) | frame step done in phase 7 (below). Fullscreen **blocked**: `:core` has no call that makes a window fullscreen, and the backend SPI would need one first |
+| `VideoPlaybackTest` S2 ("scrubbing shows each keyframe…") flaky | done: it failed in about two of three full runs, before phase 6 as after. Traced to a race in the Engine, not the test: a play straight after a paused seek resumed the sink before the audio thread had taken the seek's flush, so the old position's samples were still in it (and a real device would pull them). The sink now starts only when no seek is pending or under way and the audio thread has honoured the latest one (`Playback.sinkCurrent`); the audio thread starts it itself when it catches up. The Serial is published before the queues are flushed. `MediaPlayerTest` holds a seek inside the demuxer to check it, and fails without the fix |
 | Device latency in the audio clock | open: see the corrections table |
-| Rate (`SDL_SetAudioStreamFrequencyRatio`) | open: phase 7 |
+| Rate (`SDL_SetAudioStreamFrequencyRatio`) | done in phase 7 (below) |
+
+## Phase 6 — network
+
+**Exit status: met.** S3 passes against a local server that drops connections,
+stalls, and ignores Range, with every sample of the played WAV checked in order,
+and against a fake `MediaIO` that stalls at an exact byte, so PLAYING →
+BUFFERING → PLAYING is seen at the moment it should be. S6 passes against the
+same server speaking ICY, through the built-in protocol, as an application gets
+it. 301 tests in `:media` with FFmpeg required, and 225 in the showcase. One
+older test was flaky; its cause, a race in the Engine, is fixed (phase 3's
+table). `:media:check`
+green with SpotBugs clean and the coverage floor raised to 0.88 of lines and 0.77
+of branches (89.5% and 78.9% measured).
+
+Exit: S3 and S6 pass with a fault-injecting fake MediaIO and against a local HTTP
+server.
+
+| Item | Status |
+|------|--------|
+| `HttpIO` | done (ADR-0465): the JDK's `HttpClient` (redirects, the default proxy selector and authenticator, HTTP/2 over TLS, HTTP/1.1 for plain `http:`). Range for seeking, `HttpStatusException` for an error status, `Options` for the read-ahead, cache, stall timeout, reconnects and ICY. A virtual thread fetches. `MediaIOs` opens `http:` and `https:` with it |
+| Read-ahead cache | done: `ReadAheadCache`, extents of 64 KB chunks that merge, fetched from the first byte the reader lacks, evicted farthest first. A seek inside it sends no request, which a test counts |
+| Reconnect with backoff | done: resumes by Range where the connection broke; a server that ignores Range is fetched again and skipped; a live stream carries on. Stalls are found by the reader, which drops a connection quiet for `stallTimeout`. A `4xx` is final. A read waits no longer than the Source's timeout. `close()` ends a blocked read, and `Playback.close()` now also closes a source that is still opening |
+| ICY | done: `IcyStream` strips the metadata and reads `StreamTitle`, values with quotes of their own included, UTF-8 or Latin-1. `nowPlaying` follows the demuxer's position |
+| `MediaIO` additions | done: `isLive()`, `buffered()`, `nowPlaying()` with defaults, so every existing protocol is unchanged. `ByteRange` |
+| Water marks | done: `PacketQueue.endNanos()`, `bufferedAhead`, `MediaPlayer.Builder.highWaterMark` (1 s). A video-only source stalls too, holding the free-running clock |
+| Status | done: `PlayerStatus.bufferedAhead`, `bufferedRanges` (`TimeRange`), `nowPlaying`, `live()`; `MediaInfo.live`. A new title is pushed as a status |
+| Widgets | done: `LIVE` only for a live source; an unseekable source that ends shows what remains; the title is `.media-now-playing`, over the controls in `audio-player` and in `media-player`'s overlay, with `--gb-media-now-playing-color` |
+| `bufferedRanges` on the seek bar | open: `slider` in `:widgets` has no second range to draw. The data is in the status |
+| Fault-injecting fakes | done: `MemoryIO` stalls at a byte, as often as it is moved on, and ends a stalled read on close; `TestHttpServer` drops, stalls, ignores Range, omits the length, answers with a status, and speaks ICY |
+| Showcase | done: the Audio tab's live sample says what is playing. Samples over a real HTTP server (a local one, so the showcase stays offline) are open |
+
+## Phase 7 — polish, in part
+
+| Item | Status |
+|------|--------|
+| Rate | done: `MediaPlayer.setRate` (0.25–4, kept across sources), `PlayerStatus.rate`, `AudioSink.setRate` with a default that plays at 1 only, `SdlAudioSink` over `SDL_SetAudioStreamFrequencyRatio` (a ninth SDL audio export in `libgoldberry`), the free-running clock at a rate, and the sink target scaled by it. Keys `<` `>` step through 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75 and 2, and `.media-rate` shows it when it is not 1, so no golden changed. Pitch-preserving tempo stays post-v1 |
+| Frame step | done: `MediaPlayer.step(n)` and the keys `,` `.`: pause, then an accurate seek to the shown picture plus `n` picture lengths, clamped to the first and last pictures |
+| Fullscreen (`F`) | blocked on `:core`: no window fullscreen call exists |
+| Track menus, subtitles | open |
 
 ## Phases 4–7
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | open |
-| 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | open |
-| 6 Network | `HttpIO` (Range, read-ahead cache, reconnect), `IcyIO`, water marks, live sources | open |
-| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, fullscreen | open |
+| 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's |
+| 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | open. Copy-back gives NV12, which CPU present takes, so it does not wait for phase 4; its exit criterion ("4K60 on GPU present") does |
+| 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
+| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | in progress: rate and frame step done (below); track menus and subtitles open; fullscreen blocked on `:core` |
 
 ## Documents kept in step
 
@@ -202,3 +248,6 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | 2026-09-23 | Phases 1 and 2 closed, CI excepted. The Windows superbuild hardened on review (MSYS2 `sh`, `dav1d.lib`, `nasm` and `sh` in the toolchain check), untested for want of a host. Paused seeks now clear the sink, and a failed playback closes its sink |
 | 2026-09-23 | Phase 3: swscale bindings and the probe's colour and pixel-format constants, `I010`, video from `FfmpegDecoder`, `VideoConverter`, and the Engine rebuilt around one packet queue per track, `AudioWorker`, `VideoWorker`, `FrameQueue` and `MasterClock` with `MediaClock`. `SeekMode`, `VideoPicture`, `untilNextPicture`. S2, S5, S7 and S8 pass: 248 tests with FFmpeg required |
 | 2026-09-23 | Phase 3 widgets: `video-view`, `media-controls`, `media-player`, the keys, and `slider`'s commit hook in `:widgets` (ADR-0464). Showcase Media tab plays video. Measured live, the view repainted at display rate (107 frames a second for 25 pictures); pacing it by the next picture, and smoothing SDL's stepped queue, brought that to 33 at about 1.5 ms (ADR-0463) |
+| 2026-09-23 | Phase 6: `HttpIO` with the read-ahead cache, reconnects, stalls and ICY; water marks in demuxed time; `bufferedAhead`, `bufferedRanges`, `nowPlaying` and `live` in the status; the title line in the widgets (ADR-0465). S3 and S6 pass. Phase 4 recorded as blocked on M4. The phase 3 S2 test found flaky under load, before and after this phase |
+| 2026-09-23 | The phase 3 S2 flake traced to a play after a paused seek resuming the sink before the audio thread dropped the old samples, and fixed in the Engine. 302 tests, three full runs green |
+| 2026-09-23 | Phase 7 in part: playback rate (`setRate`, `<` `>`, `SDL_SetAudioStreamFrequencyRatio`) and frame step (`step`, `,` `.`). Fullscreen recorded as blocked on `:core`. 314 tests, three full runs green |

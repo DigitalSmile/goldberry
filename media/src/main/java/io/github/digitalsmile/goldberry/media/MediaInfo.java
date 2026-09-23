@@ -16,7 +16,11 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 /// @param tracks   every stream, in container order
 /// @param seekable whether the source's bytes can be read out of order. Without
 ///                 that, seeking is impossible whatever the container allows
-public record MediaInfo(Source source, Optional<Duration> duration, List<Track> tracks, boolean seekable) {
+/// @param live     whether the source is live, such as an internet radio
+///                 station: it has only a "now", and a player shows `LIVE` for it
+///                 ([io.github.digitalsmile.goldberry.media.io.MediaIO#isLive()])
+public record MediaInfo(
+        Source source, Optional<Duration> duration, List<Track> tracks, boolean seekable, boolean live) {
 
     public MediaInfo {
         Objects.requireNonNull(source, "source");

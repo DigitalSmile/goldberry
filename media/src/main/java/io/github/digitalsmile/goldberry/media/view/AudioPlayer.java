@@ -19,9 +19,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// Play and pause, the elapsed and remaining time, a seek bar, mute, and volume,
 /// all built from the ordinary controls, so they take the theme and the keyboard
-/// focus like any other. The seek bar is left out for a source that cannot seek,
-/// such as a live stream, and a `LIVE` label stands in its place. In
-/// [io.github.digitalsmile.goldberry.media.PlaybackState#ERROR] the error's
+/// focus like any other. The seek bar is left out for a source that cannot seek.
+/// For a live stream a `LIVE` label stands in its place, and what the station
+/// says is playing (its ICY `StreamTitle`, §7 S6) is a line over the controls.
+/// In [io.github.digitalsmile.goldberry.media.PlaybackState#ERROR] the error's
 /// message is shown under the controls.
 ///
 /// ```java
@@ -39,8 +40,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// it reads the position four times a second.
 ///
 /// Parts, for a stylesheet: `.audio-player` on the whole, and `.media-play`,
-/// `.media-time`, `.media-seek`, `.media-live`, `.media-mute`, `.media-volume` and
-/// `.media-error` on its pieces. The state is on the root as `.is-playing`,
+/// `.media-time`, `.media-seek`, `.media-live`, `.media-rate`, `.media-mute`, `.media-volume`,
+/// `.media-now-playing` and `.media-error` on its pieces. The state is on the root as `.is-playing`,
 /// `.is-paused`, `.is-buffering`, `.is-ended` or `.is-error`.
 ///
 /// @param player     the player to show and drive

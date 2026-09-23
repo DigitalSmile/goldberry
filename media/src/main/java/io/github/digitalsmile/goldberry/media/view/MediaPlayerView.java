@@ -45,9 +45,11 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///   `.is-idle`: that is the player's own state before anything is opened.)
 /// - **A click on the picture plays or pauses.**
 /// - **The keys** of `media-controls` work anywhere in it once it has focus:
-///   `Space`/`K`, `←`/`→`, `↑`/`↓`, `M` and `Home`.
+///   `Space`/`K`, `←`/`→`, `↑`/`↓`, `M`, `Home`, `,`/`.` and `<`/`>`.
 /// - **A failure is shown over the picture**, in `.media-error`: an H.264 file
 ///   says which codecs it could not play (§7, S7).
+/// - **A stream's title**, when it announces one, is a line in the overlay, in
+///   `.media-now-playing` (§7, S6).
 ///
 /// Parts, for a stylesheet: `media-player` itself, the `video-view` in it, the
 /// `.media-overlay` column laid over the bottom, and `media-controls` in that.
@@ -128,7 +130,8 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
             var widget = widget();
             var player = widget.player();
 
-            var overlay = new ArrayList<Widget>(2);
+            var overlay = new ArrayList<Widget>(3);
+            Transport.nowPlaying(status).ifPresent(overlay::add);
             status.error()
                     .ifPresent(error -> overlay.add(new Text(error.message(), Attributes.NONE.classes("media-error"))));
             overlay.add(new MediaControlsBar(

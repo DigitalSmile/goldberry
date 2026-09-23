@@ -58,7 +58,7 @@ final class VideoWorker {
     private static final Logger LOG = Logs.of(VideoWorker.class);
 
     /// What a picture lasts when nothing has said otherwise: 25 fps.
-    private static final long DEFAULT_FRAME_NANOS = 40_000_000L;
+    static final long DEFAULT_FRAME_NANOS = 40_000_000L;
 
     private final Playback playback;
     private final Demuxer demuxer;
@@ -114,6 +114,11 @@ final class VideoWorker {
                 }
                 var item = queue.take(50, TimeUnit.MILLISECONDS);
                 if (item == null) {
+                    // Nothing to decode, nothing left to show, and more to come:
+                    // the source is not keeping up.
+                    if (queuedSinceFlush && !queue.ended() && frames.drained()) {
+                        playback.videoUnderrun();
+                    }
                     continue;
                 }
                 switch (item) {
@@ -205,6 +210,7 @@ final class VideoWorker {
                 : frame.ptsNanos();
         if (lastPts != Frame.NO_PTS && pts > lastPts) {
             frameNanos = pts - lastPts;
+            playback.videoFrameNanos(frameNanos);
         }
         lastPts = pts;
 

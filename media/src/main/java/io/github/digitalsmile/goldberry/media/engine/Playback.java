@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media.engine;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
 import io.github.digitalsmile.goldberry.media.MediaInfo;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
+import io.github.digitalsmile.goldberry.media.TimeRange;
 import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.VideoPicture;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
@@ -61,12 +63,24 @@ import io.github.digitalsmile.goldberry.media.io.UnsupportedSchemeException;
 /// a video whose audio ends first hands over to one at the audio's last position
 /// ([MasterClock]).
 ///
-/// ## Starting
+/// ## Starting, and the water marks
 ///
 /// The sink is opened paused. Playback starts, from [PlaybackState#BUFFERING] to
 /// [PlaybackState#PLAYING], when every track is ready: the sink holds
 /// [#START_THRESHOLD_NANOS] of audio, and the first picture is queued. So the
 /// first picture and the first sample leave together.
+///
+/// It also waits for the **high water mark** (§4): until every track has been
+/// demuxed that far past the clock ([#bufferedAheadNanos()]), or the source has
+/// ended, or the queues are full and the demux thread could not read more if it
+/// tried. For a local file that takes milliseconds; for a network source it is
+/// the cushion a stall is survived on.
+///
+/// The **low water mark is empty.** A track stalls when its decoder runs out of
+/// packets with the source not at its end, and only then does playback go back to
+/// [PlaybackState#BUFFERING]: the sink is paused and the free-running clock held,
+/// until the high water mark is reached again (S3). Pausing earlier, with media
+/// still in hand, would trade one long silence for a later one.
 ///
 /// ## Stopping
 ///
@@ -75,8 +89,16 @@ import io.github.digitalsmile.goldberry.media.io.UnsupportedSchemeException;
 /// the thread that used it.
 public final class Playback implements AutoCloseable {
 
-    /// How much decoded audio the audio thread keeps queued in the sink.
+    /// How much decoded audio the audio thread keeps queued in the sink, at a
+    /// rate of 1. Faster, it keeps more stream time, so the device waits no
+    /// shorter a wall-clock time for the next write ([#sinkTargetNanos()]).
     static final long SINK_TARGET_NANOS = 200_000_000L;
+
+    /// The slowest and fastest a player plays (§3, "Rate"): a quarter and four
+    /// times the speed.
+    public static final float MIN_RATE = 0.25f;
+
+    public static final float MAX_RATE = 4f;
 
     /// How much the sink must hold before audio counts as ready: the low water
     /// mark, for a local file.
@@ -84,6 +106,11 @@ public final class Playback implements AutoCloseable {
 
     /// How much media each packet queue holds.
     static final long QUEUE_NANOS = 2_000_000_000L;
+
+    /// How far ahead every track must be demuxed before playback starts, or
+    /// resumes after a stall, unless the player says otherwise. Above
+    /// [#QUEUE_NANOS] it is met when the queues fill.
+    public static final long HIGH_WATER_NANOS = 1_000_000_000L;
 
     /// How many bytes of packets the audio queue holds, for a container that does
     /// not say how long its packets are. Two seconds of 24-bit 96 kHz PCM.
@@ -111,6 +138,7 @@ public final class Playback implements AutoCloseable {
     private final AudioSink sink;
     private final Listener listener;
     private final MasterClock clock;
+    private final long highWaterNanos;
     private final AtomicReference<@Nullable SeekRequest> pendingSeek = new AtomicReference<>();
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition wake = lock.newCondition();
@@ -125,6 +153,14 @@ public final class Playback implements AutoCloseable {
     private volatile @Nullable String audioDecoderName;
     private volatile @Nullable String videoDecoderName;
     private volatile @Nullable Demuxer demuxer;
+    /// The source's bytes, once opened: what the buffered ranges and the title
+    /// come from.
+    private volatile @Nullable MediaIO io;
+    private volatile @Nullable String nowPlaying;
+    private volatile float rate = 1f;
+    /// How long a picture lasts, as the video thread last measured it; 0 before
+    /// it has.
+    private volatile long frameNanos;
     private volatile @Nullable PacketQueue audioQueue;
     private volatile @Nullable PacketQueue videoQueue;
     private volatile @Nullable FrameQueue frames;
@@ -137,10 +173,17 @@ public final class Playback implements AutoCloseable {
     /// The current Serial. The demux thread's alone; the decode threads learn it
     /// from the flush markers in their queues.
     private int serial;
-    /// The Serial of the latest seek, written by the demux thread when it flushes.
+    /// The Serial of the latest seek, written by the demux thread before it flushes.
     /// A decode thread compares it with the Serial it is playing, to stop waiting
     /// the moment its work has become stale.
     private volatile int latestSerial;
+    /// The Serial whose flush the audio thread has honoured: the sink holds
+    /// nothing older. Written by the audio thread.
+    private volatile int audioSerial;
+    /// Whether the demux thread has taken a seek request and not yet published
+    /// its Serial. Set before the request is taken, so a request is always
+    /// either pending or being carried out, never neither.
+    private volatile boolean seeking;
     /// The sample index, at the sink's rate, just past the last sample written to
     /// the sink. The audio clock is kept in samples so that it adds up exactly; it
     /// becomes nanoseconds only when it is read.
@@ -158,9 +201,11 @@ public final class Playback implements AutoCloseable {
 
     /// Opens `source` and starts playing it, on threads of its own.
     ///
-    /// @param ioProviders the protocols, or null for the ones `ServiceLoader`
-    ///                    finds
-    /// @param time        what a source with no audio is timed against
+    /// @param ioProviders    the protocols, or null for the ones `ServiceLoader`
+    ///                       finds
+    /// @param time           what a source with no audio is timed against
+    /// @param highWaterNanos how far ahead to demux before playing, and before
+    ///                       playing on after a stall
     public Playback(
             Ffmpeg ffmpeg,
             Source source,
@@ -168,13 +213,18 @@ public final class Playback implements AutoCloseable {
             List<? extends DecoderProvider> decoderProviders,
             AudioSink sink,
             MediaClock time,
+            long highWaterNanos,
             Listener listener) {
+        if (highWaterNanos < 0) {
+            throw new IllegalArgumentException("highWaterNanos " + highWaterNanos);
+        }
         this.ffmpeg = Objects.requireNonNull(ffmpeg, "ffmpeg");
         this.source = Objects.requireNonNull(source, "source");
         this.ioProviders = ioProviders;
         this.decoderProviders = List.copyOf(decoderProviders);
         this.sink = Objects.requireNonNull(sink, "sink");
         this.clock = new MasterClock(time);
+        this.highWaterNanos = highWaterNanos;
         this.listener = Objects.requireNonNull(listener, "listener");
         this.demuxThread =
                 Thread.ofPlatform().name("goldberry-media-demux").daemon().unstarted(this::demux);
@@ -220,6 +270,120 @@ public final class Playback implements AutoCloseable {
     /// the target while a seek settles.
     public long positionNanos() {
         return presentationNanos();
+    }
+
+    /// How much is demuxed past the position, in nanoseconds: the least any
+    /// playing track holds, or, once every track has reached the end of the
+    /// source, what is left of it. Zero before the first packet.
+    public long bufferedAheadNanos() {
+        var now = presentationNanos();
+        var least = Long.MAX_VALUE;
+        var most = 0L;
+        var queues = 0;
+        var ended = 0;
+        for (var queue : queues()) {
+            queues++;
+            var end = queue.endNanos();
+            var ahead = end == Frame.NO_PTS ? 0 : Math.max(end - now, 0);
+            most = Math.max(most, ahead);
+            if (queue.ended()) {
+                ended++;
+            } else {
+                least = Math.min(least, ahead);
+            }
+        }
+        if (queues == 0) {
+            return 0;
+        }
+        return ended == queues ? most : least;
+    }
+
+    /// What the source's bytes have fetched, as stretches of the presentation:
+    /// each byte range mapped in proportion to the source's length and duration.
+    /// Empty for a source that reports no ranges, or whose length or duration is
+    /// unknown.
+    public List<TimeRange> bufferedRanges() {
+        var bytes = io;
+        var described = info;
+        if (bytes == null || described == null || described.duration().isEmpty()) {
+            return List.of();
+        }
+        var size = bytes.size();
+        if (size.isEmpty() || size.getAsLong() <= 0) {
+            return List.of();
+        }
+        var ranges = bytes.buffered();
+        if (ranges.isEmpty()) {
+            return List.of();
+        }
+        var total = (double) size.getAsLong();
+        var duration = described.duration().get().toNanos();
+        var mapped = new ArrayList<TimeRange>(ranges.size());
+        for (var range : ranges) {
+            mapped.add(new TimeRange(
+                    Duration.ofNanos(Math.round(duration * Math.min(range.start() / total, 1))),
+                    Duration.ofNanos(Math.round(duration * Math.min(range.end() / total, 1)))));
+        }
+        return List.copyOf(mapped);
+    }
+
+    /// How fast playback runs: 1 is as recorded.
+    public float rate() {
+        return rate;
+    }
+
+    /// Plays `requested` times as fast, pitch and all, from now on: the sink
+    /// resamples, and the free-running clock counts faster (§3, "Rate").
+    ///
+    /// @return the rate playback runs at now: `requested`, or the old one when the
+    ///         sink cannot play at it
+    /// @throws IllegalArgumentException outside [#MIN_RATE] and [#MAX_RATE]
+    public float setRate(float requested) {
+        if (!(requested >= MIN_RATE && requested <= MAX_RATE)) {
+            throw new IllegalArgumentException("rate " + requested + " is not within " + MIN_RATE + " and " + MAX_RATE);
+        }
+        boolean changed;
+        synchronized (gate) {
+            changed = requested != rate && sink.setRate(requested);
+            if (changed) {
+                clock.setRate(requested);
+                rate = requested;
+            }
+        }
+        notifyIf(changed);
+        return rate;
+    }
+
+    /// Moves `count` pictures on, or back for a negative count, and pauses there:
+    /// an accurate seek to the shown picture's time plus `count` picture lengths,
+    /// which lands on the picture that starts there (§6, `,` and `.`).
+    ///
+    /// @return false when there is no picture to step from: no video, or none
+    ///         shown yet
+    public boolean step(int count) {
+        var queue = frames;
+        if (queue == null) {
+            return false;
+        }
+        var shown = queue.shownPtsNanos();
+        if (shown == Long.MIN_VALUE) {
+            return false;
+        }
+        var length = frameNanos > 0 ? frameNanos : VideoWorker.DEFAULT_FRAME_NANOS;
+        var target = Math.max(shown + count * length, 0);
+        var described = info;
+        if (described != null && described.duration().isPresent()) {
+            // Past the end is no picture at all: the last one is as far as it goes.
+            target = Math.min(target, Math.max(described.duration().get().toNanos() - length, 0));
+        }
+        pause();
+        seek(target, true);
+        return true;
+    }
+
+    /// What the stream says is playing now, such as an ICY `StreamTitle`.
+    public @Nullable String nowPlaying() {
+        return nowPlaying;
     }
 
     /// The picture to show now, handed out to a view that will draw it (see
@@ -300,6 +464,12 @@ public final class Playback implements AutoCloseable {
         var open = demuxer;
         if (open != null) {
             open.abort();
+        } else {
+            // Still opening: a network source may be waiting on a server. Closing
+            // its bytes ends a read FFmpeg is blocked in, and the interrupt ends a
+            // wait for the first response.
+            closeQuietly(io);
+            demuxThread.interrupt();
         }
         signal();
         join(demuxThread);
@@ -309,11 +479,15 @@ public final class Playback implements AutoCloseable {
     // ----------------------------------------------------------------- demux
 
     private void demux() {
-        MediaIO io = null;
+        MediaIO bytes = null;
         Demuxer opened = null;
         try {
-            io = ioProviders == null ? MediaIOs.open(source) : MediaIOs.open(source, ioProviders);
-            opened = Demuxer.open(ffmpeg, source, io);
+            bytes = ioProviders == null ? MediaIOs.open(source) : MediaIOs.open(source, ioProviders);
+            io = bytes;
+            if (stopping) {
+                return;
+            }
+            opened = Demuxer.open(ffmpeg, source, bytes);
             demuxer = opened;
             if (stopping) {
                 return;
@@ -349,13 +523,7 @@ public final class Playback implements AutoCloseable {
             if (opened != null) {
                 opened.close();
             }
-            if (io != null) {
-                try {
-                    io.close();
-                } catch (IOException e) {
-                    LOG.debug("closing {} failed", source.uri(), e);
-                }
-            }
+            closeQuietly(bytes);
         }
     }
 
@@ -410,9 +578,13 @@ public final class Playback implements AutoCloseable {
     private void readPackets(Demuxer opened, int audioStream, int videoStream) {
         var ended = false;
         while (!stopping) {
-            var request = pendingSeek.getAndSet(null);
-            if (request != null) {
-                seekTo(opened, request);
+            if (pendingSeek.get() != null) {
+                seeking = true;
+                var request = pendingSeek.getAndSet(null);
+                if (request != null) {
+                    seekTo(opened, request);
+                }
+                seeking = false;
                 ended = false;
                 continue;
             }
@@ -421,6 +593,8 @@ public final class Playback implements AutoCloseable {
                 continue;
             }
             if (mustWait()) {
+                // Full: as buffered as it will get.
+                startIfBuffered();
                 awaitWhile(() -> pendingSeek.get() == null && mustWait(), 10);
                 continue;
             }
@@ -428,6 +602,7 @@ public final class Playback implements AutoCloseable {
             if (packet == null) {
                 forEachQueue(queue -> queue.end(serial));
                 ended = true;
+                startIfBuffered();
                 continue;
             }
             var target = packet.streamIndex() == audioStream
@@ -438,18 +613,60 @@ public final class Playback implements AutoCloseable {
             } else if (!target.put(packet, serial) && stopping) {
                 return;
             }
+            startIfBuffered();
+            followTitle();
         }
+    }
+
+    /// Starts, or plays on after a stall, if buffering was all that held it.
+    private void startIfBuffered() {
+        if (state != PlaybackState.BUFFERING) {
+            return;
+        }
+        boolean changed;
+        synchronized (gate) {
+            changed = maybeStartLocked();
+        }
+        notifyIf(changed);
+    }
+
+    /// Publishes a new title when the stream announces one.
+    private void followTitle() {
+        var bytes = io;
+        if (bytes == null) {
+            return;
+        }
+        var title = bytes.nowPlaying().orElse(null);
+        if (!Objects.equals(title, nowPlaying)) {
+            nowPlaying = title;
+            listener.changed(this);
+        }
+    }
+
+    /// Whether every track has been demuxed to the high water mark, or cannot be
+    /// demuxed further: the source has ended, or the queues are full.
+    private boolean bufferedLocked() {
+        var queues = queues();
+        if (queues.isEmpty()) {
+            return true;
+        }
+        if (queues.stream().allMatch(PacketQueue::ended) || mustWait()) {
+            return true;
+        }
+        return bufferedAheadNanos() >= highWaterNanos;
     }
 
     private void seekTo(Demuxer opened, SeekRequest request) {
         opened.seek(request.targetNanos());
         serial++;
+        // Before the flushes, so a decode thread that takes its flush at once
+        // already finds the new Serial the latest.
+        latestSerial = serial;
         var pictures = frames;
         if (pictures != null) {
             pictures.flush(serial);
         }
         forEachQueue(queue -> queue.flush(serial, request.targetNanos(), request.accurate()));
-        latestSerial = serial;
         boolean changed = false;
         synchronized (gate) {
             audioDone = false;
@@ -474,8 +691,7 @@ public final class Playback implements AutoCloseable {
     /// Whether the demux thread should stop reading: every queue is full, or one
     /// has run far past its bound.
     private boolean mustWait() {
-        var queues = new ArrayList<PacketQueue>(2);
-        forEachQueue(queues::add);
+        var queues = queues();
         if (queues.isEmpty()) {
             return false;
         }
@@ -487,6 +703,13 @@ public final class Playback implements AutoCloseable {
             allFull &= queue.full();
         }
         return allFull;
+    }
+
+    /// The packet queues there are: none before the tracks are chosen.
+    private List<PacketQueue> queues() {
+        var queues = new ArrayList<PacketQueue>(2);
+        forEachQueue(queues::add);
+        return queues;
     }
 
     private void forEachQueue(java.util.function.Consumer<PacketQueue> action) {
@@ -538,6 +761,16 @@ public final class Playback implements AutoCloseable {
         return pendingSeek.get() != null;
     }
 
+    /// How much the audio thread keeps queued in the sink: [#SINK_TARGET_NANOS]
+    /// of stream time, more when playing faster.
+    long sinkTargetNanos() {
+        return Math.round(SINK_TARGET_NANOS * Math.max(1f, rate));
+    }
+
+    void videoFrameNanos(long nanos) {
+        frameNanos = nanos;
+    }
+
     boolean clockRunning() {
         return clock.running();
     }
@@ -573,6 +806,24 @@ public final class Playback implements AutoCloseable {
         listener.changed(this);
     }
 
+    /// The audio thread has honoured the flush of `forSerial`: the sink holds
+    /// nothing from before it. If playback was started meanwhile, the sink starts
+    /// now.
+    void audioFlushed(int forSerial) {
+        audioSerial = forSerial;
+        synchronized (gate) {
+            if (sinkCurrent() && state == PlaybackState.PLAYING && !paused) {
+                sink.resume();
+            }
+        }
+    }
+
+    /// Whether the sink holds nothing from before the latest seek: none is
+    /// waiting or under way, and the audio thread has honoured the last one.
+    private boolean sinkCurrent() {
+        return pendingSeek.get() == null && !seeking && audioSerial == latestSerial;
+    }
+
     /// The sink holds enough to start.
     void audioReady() {
         boolean changed;
@@ -583,12 +834,32 @@ public final class Playback implements AutoCloseable {
         notifyIf(changed);
     }
 
-    /// The audio queue ran dry mid-stream and the sink with it: a stall.
+    /// The audio queue ran dry mid-stream and the sink with it: a stall. The sink
+    /// is paused, so what arrives next waits for the high water mark rather than
+    /// playing a packet at a time.
     void audioUnderrun() {
         boolean changed = false;
         synchronized (gate) {
             audioReady = false;
             if (state == PlaybackState.PLAYING) {
+                sink.pause();
+                changed = setStateLocked(PlaybackState.BUFFERING);
+            }
+        }
+        notifyIf(changed);
+    }
+
+    /// The video queue ran dry mid-stream with no picture left to show: a stall,
+    /// when pictures run on the free-running clock. With audio playing, the
+    /// audio clock decides, and a picture short is only a picture late.
+    void videoUnderrun() {
+        boolean changed = false;
+        synchronized (gate) {
+            if (hasAudio && !audioDone) {
+                return;
+            }
+            if (state == PlaybackState.PLAYING) {
+                clock.hold();
                 changed = setStateLocked(PlaybackState.BUFFERING);
             }
         }
@@ -674,10 +945,10 @@ public final class Playback implements AutoCloseable {
     // ------------------------------------------------------------------ state
 
     private boolean readyLocked() {
-        return (!hasAudio || audioReady) && (!hasVideo || videoReady);
+        return (!hasAudio || audioReady) && (!hasVideo || videoReady) && bufferedLocked();
     }
 
-    /// BUFFERING becomes PLAYING when every track is ready.
+    /// BUFFERING becomes PLAYING when every track is ready and buffered.
     private boolean maybeStartLocked() {
         if (state != PlaybackState.BUFFERING || !readyLocked()) {
             return false;
@@ -701,8 +972,14 @@ public final class Playback implements AutoCloseable {
         return setStateLocked(PlaybackState.ENDED);
     }
 
+    /// Starts the sink and the free-running clock. The sink only once the audio
+    /// thread has honoured the latest seek: until then it may hold the old
+    /// position's samples, and a play right after a paused seek would let the
+    /// device pull them. [#audioFlushed] starts it then.
     private void startOutputLocked() {
-        sink.resume();
+        if (!hasAudio || sinkCurrent()) {
+            sink.resume();
+        }
         if (!clock.followingAudio()) {
             clock.run();
         }
@@ -760,6 +1037,17 @@ public final class Playback implements AutoCloseable {
             TimeUnit.NANOSECONDS.sleep(Math.max(nanos, 1_000_000L));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void closeQuietly(@Nullable MediaIO bytes) {
+        if (bytes == null) {
+            return;
+        }
+        try {
+            bytes.close();
+        } catch (IOException e) {
+            LOG.debug("closing {} failed", source.uri(), e);
         }
     }
 

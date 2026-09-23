@@ -291,6 +291,9 @@ SDL_PutAudioStreamData
 SDL_GetAudioStreamQueued
 SDL_ClearAudioStream
 SDL_SetAudioStreamGain
+# Playback rate: the stream resamples its input by the ratio, so pitch moves
+# with speed (docs/goldberry-media.md sec. 3, "Rate").
+SDL_SetAudioStreamFrequencyRatio
 SDL_DestroyAudioStream
 
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------

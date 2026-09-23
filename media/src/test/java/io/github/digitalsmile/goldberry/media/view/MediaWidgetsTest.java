@@ -226,6 +226,51 @@ class MediaWidgetsTest {
         }
 
         @Test
+        @DisplayName("comma and period step a picture back and on; shifted, they make it slower and faster")
+        void stepAndRate() {
+            open(fixture("clip-vp9.webm"), "clip-vp9.webm");
+            await(status -> status.state() == PlaybackState.PLAYING);
+            player.pause();
+            await(status -> player.currentPicture().isPresent());
+            bar().onKey(key(Key.PERIOD));
+            await(status -> player.currentPicture()
+                    .map(p -> p.ptsNanos() == 40_000_000L)
+                    .orElse(false));
+            bar().onKey(key(Key.COMMA));
+            await(status -> player.currentPicture().map(p -> p.ptsNanos() == 0L).orElse(false));
+            assertEquals(PlaybackState.PAUSED, player.status().state());
+
+            var shift = new Modifiers(true, false, false, false);
+            var faster = new KeyEvent(KeyEvent.Kind.PRESSED, Key.PERIOD, shift, false, null);
+            bar().onKey(faster);
+            assertTrue(faster.isConsumed());
+            assertEquals(1.25f, player.status().rate());
+            var labels = mount(new MediaControls(player)).stream()
+                    .filter(e -> e.classes().contains("media-rate"))
+                    .map(e -> ((Text) e.widget()).content())
+                    .toList();
+            assertEquals(List.of("1.25\u00d7"), labels);
+            for (var i = 0; i < 10; i++) {
+                bar().onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.COMMA, shift, false, null));
+            }
+            assertEquals(0.25f, player.status().rate(), "no slower than the slowest step");
+            bar().onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.COMMA, shift, false, null));
+            assertEquals(0.25f, player.status().rate());
+            // Back at 1 the label goes.
+            player.setRate(1f);
+            assertTrue(mount(new MediaControls(player)).stream()
+                    .noneMatch(e -> e.classes().contains("media-rate")));
+        }
+
+        @Test
+        @DisplayName("the rate label says as few digits as the rate needs")
+        void rateLabel() {
+            assertEquals("2\u00d7", Transport.rateLabel(2f));
+            assertEquals("0.75\u00d7", Transport.rateLabel(0.75f));
+            assertEquals("1.5\u00d7", Transport.rateLabel(1.5f));
+        }
+
+        @Test
         @DisplayName("consumes the keys it answers, and leaves the rest and every modified key alone")
         void consumes() {
             openPlaying();
@@ -375,6 +420,38 @@ class MediaWidgetsTest {
             assertTrue(box.classes().contains("is-playing"));
             assertTrue(elements.stream().anyMatch(e -> e.classes().contains("media-overlay")));
             first(elements, MediaControlsBar.class);
+        }
+
+        @Test
+        @DisplayName("a stream's title is a line in the overlay, over the controls (S6)")
+        void nowPlaying() {
+            var io = new MemoryIO(fixture("clip-vp9.webm"));
+            io.title = "Goldberry TV - The Mandelbrot Hour";
+            player = MediaPlayer.builder()
+                    .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
+                    .ioProviders(List.of(new MediaIOProvider() {
+                        @Override
+                        public Set<String> schemes() {
+                            return Set.of("mem");
+                        }
+
+                        @Override
+                        public MediaIO open(Source source) {
+                            return io;
+                        }
+                    }))
+                    .decoderProviders(List.of())
+                    .build();
+            player.open(Source.of(URI.create("mem:///clip-vp9.webm")));
+            await(status -> status.nowPlaying().isPresent());
+            var elements = mount(new MediaPlayerView(player));
+            var overlay = elements.stream()
+                    .filter(e -> e.classes().contains("media-overlay"))
+                    .findFirst()
+                    .orElseThrow();
+            var title = overlay.children().getFirst();
+            assertTrue(title.classes().contains("media-now-playing"));
+            assertEquals("Goldberry TV - The Mandelbrot Hour", ((Text) title.widget()).content());
         }
 
         @Test

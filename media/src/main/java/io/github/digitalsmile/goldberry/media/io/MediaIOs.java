@@ -9,8 +9,8 @@ import java.util.ServiceLoader;
 /// Turns a [Source] into a [MediaIO], by URI scheme.
 ///
 /// The order is: [MediaIOProvider]s that claim the scheme, highest priority first,
-/// then the built-in protocols. Today the only built-in protocol is `file:`.
-/// `http:` and `https:` arrive with `HttpIO` in phase 6 (`docs/media-plan.md`).
+/// then the built-in protocols: `file:` ([FileIO]), and `http:` and `https:`
+/// ([HttpIO], with ICY radio metadata when the server sends it).
 public final class MediaIOs {
 
     private MediaIOs() {}
@@ -48,6 +48,7 @@ public final class MediaIOs {
         }
         return switch (scheme) {
             case "file" -> FileIO.open(Path.of(source.uri()));
+            case "http", "https" -> HttpIO.open(source);
             default -> throw new UnsupportedSchemeException(scheme);
         };
     }

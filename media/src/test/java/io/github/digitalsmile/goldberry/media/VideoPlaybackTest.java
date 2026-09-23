@@ -156,13 +156,14 @@ class VideoPlaybackTest {
 
     /// Moves the audio clock to `nanos`, by letting the virtual speaker play up to
     /// it. The sink holds a fifth of a second, so this waits for the Engine to
-    /// write each step before playing it.
+    /// write each step before playing it. Like a device, it plays nothing while
+    /// the Engine holds the sink paused.
     private void playAudioTo(long nanos) {
         var target = FORMAT.samples(nanos);
         var played = 0L;
         var deadline = System.nanoTime() + WAIT.toNanos();
         while (played < target && System.nanoTime() < deadline) {
-            var step = Math.min(target - played, sink.queuedSamples());
+            var step = sink.paused() ? 0 : Math.min(target - played, sink.queuedSamples());
             if (step > 0) {
                 sink.advance(step);
                 played += step;
@@ -238,6 +239,57 @@ class VideoPlaybackTest {
         now.addAndGet(3 * FRAME);
         await(status -> status.state() == PlaybackState.ENDED);
         assertEquals(4 * FRAME, player.currentPicture().orElseThrow().ptsNanos());
+    }
+
+    @Test
+    @DisplayName("with no audio, at twice the speed, the clock counts twice the time the MediaClock passes")
+    void videoOnlyAtARate() {
+        var now = new AtomicLong(1_000_000_000L);
+        open("clip-vp9-10bit.webm", false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        player.setRate(2f);
+        assertEquals(2f, player.status().rate());
+        now.addAndGet(FRAME);
+        awaitPicture(2 * FRAME);
+        assertEquals(Duration.ofNanos(2 * FRAME), player.status().position());
+    }
+
+    @Test
+    @DisplayName("steps a picture at a time, on and back, paused, and no further than the last picture")
+    void frameStep() {
+        open("clip-vp9.webm", false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        player.pause();
+        awaitPicture(0);
+
+        assertTrue(player.step(1));
+        awaitPicture(FRAME);
+        assertEquals(Duration.ofNanos(FRAME), player.status().position());
+        assertEquals(PlaybackState.PAUSED, player.status().state());
+
+        player.step(3);
+        awaitPicture(4 * FRAME);
+        player.step(-2);
+        awaitPicture(2 * FRAME);
+        player.step(-10);
+        awaitPicture(0);
+        assertEquals(Duration.ZERO, player.status().position());
+
+        // The clip is 1.008 s: the last picture starts at 960 ms.
+        player.step(1_000);
+        awaitPicture(24 * FRAME);
+        assertEquals(PlaybackState.PAUSED, player.status().state());
+    }
+
+    @Test
+    @DisplayName("a step while playing pauses first")
+    void stepWhilePlaying() {
+        open("clip-vp9.webm", false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        awaitPicture(0);
+        player.step(2);
+        assertEquals(PlaybackState.PAUSED, player.status().state());
+        awaitPicture(2 * FRAME);
     }
 
     @Test

@@ -261,7 +261,7 @@ public final class Demuxer implements AutoCloseable {
                 1,
                 Math.toIntExact(constants.timeBase()),
                 constants.noPtsValue());
-        return new MediaInfo(source, duration, tracks, io.isSeekable());
+        return new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive());
     }
 
     private Track track(MemorySegment stream) {

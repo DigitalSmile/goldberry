@@ -32,11 +32,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// Play and pause, the elapsed and remaining time, a seek bar that scrubs to
 /// keyframes while dragged and lands exactly on release, mute, and volume, with
-/// the keys of [Transport]'s table: `Space`/`K`, `←`/`→`, `↑`/`↓`, `M` and `Home`.
+/// the keys of [Transport]'s table: `Space`/`K`, `←`/`→`, `↑`/`↓`, `M`, `Home`,
+/// `,`/`.` to step a picture, and `<`/`>` for the rate.
 /// All built from the ordinary controls, so they take the theme like any other.
 ///
 /// Parts, for a stylesheet: `media-controls` itself, and `.media-play`,
-/// `.media-time`, `.media-seek`, `.media-live`, `.media-mute` and `.media-volume`
+/// `.media-time`, `.media-seek`, `.media-live`, `.media-rate`, `.media-mute` and `.media-volume`
 /// on its pieces. The state is on it as `.is-playing`, `.is-paused`,
 /// `.is-buffering`, `.is-ended` or `.is-error`, and `.is-scrubbing` while the
 /// seek bar is held.

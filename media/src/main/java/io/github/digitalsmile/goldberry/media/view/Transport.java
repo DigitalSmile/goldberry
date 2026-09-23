@@ -1,12 +1,15 @@
 package io.github.digitalsmile.goldberry.media.view;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Optional;
 
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
@@ -40,6 +43,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// | `↑` / `↓` | volume up or down a twentieth |
 /// | `M` | mute or unmute |
 /// | `Home` | back to the start |
+/// | `,` / `.` | a picture back or on, pausing |
+/// | `<` / `>` (`Shift`+`,` / `.`) | slower or faster, through [#RATES] |
 ///
 /// Answered by the widget's own node, which takes focus when clicked and is where
 /// a key bubbles to from any control inside it. A focused seek bar keeps its
@@ -52,6 +57,9 @@ final class Transport {
 
     /// How far `↑` and `↓` move the volume.
     static final float KEY_VOLUME = 0.05f;
+
+    /// The rates `<` and `>` step through: the ones every player offers.
+    static final List<Float> RATES = List.of(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f);
 
     /// Icon size, the control slot's.
     static final double ICON_SIZE = 16;
@@ -80,7 +88,8 @@ final class Transport {
     }
 
     /// The controls for `status`, in order: play, elapsed, the seek bar and what
-    /// remains (or `LIVE`), mute, volume.
+    /// remains, mute, volume. A live source shows `LIVE` in place of the bar and
+    /// what remains, and one that cannot seek but ends shows only what remains.
     List<Widget> controls(MediaPlayer player, PlayerStatus status) {
         var controls = new ArrayList<Widget>(6);
         var playing = status.state() == PlaybackState.PLAYING
@@ -93,11 +102,8 @@ final class Transport {
                 !status.state().hasMedia(),
                 Attributes.NONE.classes("media-play")));
         controls.add(new Text(MediaTime.format(status.position()), Attributes.NONE.classes("media-time")));
-        var duration = status.duration();
-        if (status.state().hasMedia()
-                && status.seekable()
-                && duration.isPresent()
-                && !duration.get().isZero()) {
+        var duration = status.duration().filter(length -> !length.isZero());
+        if (status.state().hasMedia() && status.seekable() && duration.isPresent()) {
             var total = seconds(duration.get());
             controls.add(
                     new Slider(0, total, Math.min(seconds(status.position()), total), 0, value -> scrub(player, value))
@@ -105,8 +111,17 @@ final class Transport {
                             .withAttributes(Attributes.NONE.classes("media-seek")));
             controls.add(new Text(
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
-        } else if (status.state().hasMedia()) {
+        } else if (status.state().hasMedia() && status.live()) {
             controls.add(new Text("LIVE", Attributes.NONE.classes("media-live")));
+        } else if (status.state().hasMedia() && duration.isPresent()) {
+            // Plays to an end but cannot seek: a server that ignores Range. What
+            // remains still means something; a bar that cannot be moved does not.
+            controls.add(new Text(
+                    MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
+        }
+        if (status.rate() != 1f) {
+            // Only when it is not 1, so a player at normal speed looks as it did.
+            controls.add(new Text(rateLabel(status.rate()), Attributes.NONE.classes("media-rate")));
         }
         controls.add(new Button(
                 "",
@@ -119,14 +134,42 @@ final class Transport {
         return List.copyOf(controls);
     }
 
+    /// The stream's title as a line of its own, when it announces one (S6).
+    static Optional<Widget> nowPlaying(PlayerStatus status) {
+        return status.nowPlaying().map(title -> new Text(title, Attributes.NONE.classes("media-now-playing")));
+    }
+
     /// Answers the table above, and consumes what it answers.
     void onKey(MediaPlayer player, KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED) {
             return;
         }
         var status = player.status();
+        if (event.modifiers().only(Mod.SHIFT)) {
+            var handled =
+                    switch (event.key()) {
+                        case COMMA -> rateBy(player, status, -1);
+                        case PERIOD -> rateBy(player, status, 1);
+                        default -> false;
+                    };
+            if (handled) {
+                event.consume();
+            }
+            return;
+        }
+        if (!event.modifiers().none()) {
+            return;
+        }
         var handled =
                 switch (event.key()) {
+                    case COMMA -> {
+                        player.step(-1);
+                        yield true;
+                    }
+                    case PERIOD -> {
+                        player.step(1);
+                        yield true;
+                    }
                     case SPACE, K -> {
                         if (event.isRepeat()) {
                             yield true;
@@ -198,6 +241,30 @@ final class Transport {
         // Consumed either way: a live stream still owns its arrows rather than
         // handing them to whatever scrolls around the player.
         return true;
+    }
+
+    /// The next rate in [#RATES] up (`by` 1) or down (-1) from the current one;
+    /// a rate between two steps goes to the nearer one in that direction.
+    private static boolean rateBy(MediaPlayer player, PlayerStatus status, int by) {
+        var current = status.rate();
+        var next = by > 0
+                ? RATES.stream().filter(rate -> rate > current).findFirst()
+                : RATES.reversed().stream().filter(rate -> rate < current).findFirst();
+        next.ifPresent(rate -> {
+            try {
+                player.setRate(rate);
+            } catch (IllegalStateException e) {
+                // A sink that plays at 1 only: the key does nothing, as at the
+                // end of the list.
+            }
+        });
+        return true;
+    }
+
+    /// `1.5×`, `0.75×`, `2×`: as few digits as the rate needs.
+    static String rateLabel(float rate) {
+        var text = BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString();
+        return text + "\u00d7";
     }
 
     private static boolean volumeBy(MediaPlayer player, PlayerStatus status, float by) {

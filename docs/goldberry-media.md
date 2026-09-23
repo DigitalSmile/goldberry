@@ -10,7 +10,7 @@ Status: engine decided (FFmpeg-direct, supersedes libVLC). Two scope decisions: 
 |---|---|
 | **Engine** | The non-visual `MediaPlayer`: threads, queues, clock, state. No widget dependency. |
 | **Source** | A URL or path plus open options (headers, timeouts). |
-| **MediaIO** | Java SPI (`read`, `seek`, `size`, `close`) that supplies every byte FFmpeg reads, through a custom `AVIOContext`. Implementations: `FileIO`, `HttpIO`, `IcyIO`. |
+| **MediaIO** | Java SPI (`read`, `seek`, `size`, `close`, and `isLive`, `buffered`, `nowPlaying` with defaults) that supplies every byte FFmpeg reads, through a custom `AVIOContext`. Implementations: `FileIO`, `HttpIO` (which strips ICY metadata itself). |
 | **Decoder** | Java SPI (`send`, `receive`, `flush`, `close`) the decode threads talk to. Supplied by a **DecoderProvider**; the built-in FFmpeg provider is the default and lowest-priority one. |
 | **Read-ahead cache** | `HttpIO`'s byte-range cache; source of the buffered ranges shown on the seek slider. |
 | **Track** | One selectable audio, video or subtitle stream of a Source. |
@@ -22,7 +22,7 @@ Status: engine decided (FFmpeg-direct, supersedes libVLC). Two scope decisions: 
 | **Present path** | How a frame reaches the screen: **GPU present** (plane upload + shader) or **CPU present** (swscale → `BLImage`). |
 | **Fallback ladder** | Ordered degradation: HW decode → software decode; GPU present → CPU present. |
 | **Live Source** | Source with no duration and no seeking (Icecast-style radio, endless HTTP streams). |
-| **Water marks** | Low/high buffered-duration thresholds that drive BUFFERING ↔ PLAYING. |
+| **Water marks** | Buffered-duration thresholds that drive BUFFERING ↔ PLAYING, measured in demuxed time ahead of the clock. The high one is `highWaterMark` (1 s by default); the low one is empty (ADR-0465). |
 
 ## 2. Natives
 
@@ -104,9 +104,9 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 
 **State.** `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` from any state. Observable properties: `position`, `duration`, `bufferedAhead`, `volume`, `muted`, `rate`, `tracks`, `selectedTracks`, `videoSize`, `isLive`, `isSeekable`, `bufferedRanges`, `nowPlaying` (ICY), `error` (incl. `UNSUPPORTED_CODEC` with codec name).
 
-**Seeking.** Requests are coalesced (only the latest runs). `MediaPlayer.seek(position, SeekMode)`: `KEYFRAME` during a slider drag shows the keyframe; `ACCURATE` on release (and the default) decodes and discards to the target pts and shows the picture that covers it. A paused player still decodes one picture after each seek, so a paused seek, and a scrub, show where they landed; audio honours the seek while paused too, so play afterwards does not replay the old position's queued samples. The seek bar learns of the release from `slider`'s commit hook (ADR-0464). Paused: frame step forward (*not built yet*). An accurate seek is exact to the container's timestamps: FLAC, WAV and MP4 count in samples, so the first sample heard is the target's; Matroska counts in milliseconds, so it lands within half a millisecond (24 samples at 48 kHz). Both are tested against the fixture corpus.
+**Seeking.** Requests are coalesced (only the latest runs). `MediaPlayer.seek(position, SeekMode)`: `KEYFRAME` during a slider drag shows the keyframe; `ACCURATE` on release (and the default) decodes and discards to the target pts and shows the picture that covers it. A paused player still decodes one picture after each seek, so a paused seek, and a scrub, show where they landed; audio honours the seek while paused too, so play afterwards does not replay the old position's queued samples. A play that comes before the audio thread has caught up with the seek leaves the sink stopped until it has: the sink starts only when no seek is pending or under way and the audio thread has dropped what it held from before. The seek bar learns of the release from `slider`'s commit hook (ADR-0464). Frame step: `MediaPlayer.step(n)` pauses and makes an accurate seek to the shown picture's time plus `n` picture lengths (as the video thread measured them), which lands on the first instant of the picture `n` on; clamped to the first and last pictures. An accurate seek is exact to the container's timestamps: FLAC, WAV and MP4 count in samples, so the first sample heard is the target's; Matroska counts in milliseconds, so it lands within half a millisecond (24 samples at 48 kHz). Both are tested against the fixture corpus.
 
-**Rate.** v1 uses `SDL_SetAudioStreamFrequencyRatio` (pitch shifts with rate). Pitch-preserving tempo is post-v1.
+**Rate.** v1 uses `SDL_SetAudioStreamFrequencyRatio` (pitch shifts with rate). Pitch-preserving tempo is post-v1. As built: `MediaPlayer.setRate`, 0.25 to 4, kept for the next source. The sink resamples (`AudioSink.setRate`, which a sink that cannot answers false, and the player then refuses the rate); the audio clock needs no change, since the queue is counted in stream samples; the free-running clock counts stream time at the rate; and the audio thread keeps `200 ms × rate` queued, so the device waits no shorter a wall-clock time for its next write. `SdlAudioSink`'s smoothing between pulls drains at the rate too.
 
 ## 4. I/O and network streaming
 
@@ -115,11 +115,17 @@ FFmpeg performs no I/O of its own. Every Source resolves to a MediaIO:
 | MediaIO | Backing | Notes |
 |---|---|---|
 | `FileIO` | `FileChannel` | Same path as network, one code path to test. |
-| `HttpIO` | `java.net.http.HttpClient` | Range requests for seek; Read-ahead cache; reconnect with backoff resuming at the last byte offset; headers, auth, proxy, HTTP/2 and TLS from the JDK. Servers without Range support → `isSeekable = false`. |
-| `IcyIO` | `HttpIO` + ICY | Strips interleaved ICY metadata, publishes `nowPlaying`; Live Source. |
+| `HttpIO` | `java.net.http.HttpClient` | Range requests for seek; Read-ahead cache; reconnect with backoff resuming at the last byte offset; headers, auth, proxy, HTTP/2 and TLS from the JDK. Servers without Range support → `isSeekable = false`. ICY metadata stripped before the cache when the server sends `icy-metaint`, publishing `nowPlaying`; an ICY server's stream is a Live Source. |
 
-- Buffering: BUFFERING below the low Water mark, PLAYING resumes at the high Water mark. `bufferedRanges` comes from the Read-ahead cache (real byte ranges mapped to time), not an estimate.
+As built (ADR-0465):
+
+- **`HttpIO`.** The first request asks for `bytes=0-`: a `206` makes the stream seekable and gives its length, a `200` means the server ignores Range. A virtual thread fetches the first byte the reader lacks into the Read-ahead cache, at most `readAhead` (8 MB) past the reader, in a cache of `cacheSize` (32 MB) that evicts other extents farthest first and then what has been read. A seek inside the cache opens no connection; one outside it abandons the connection in hand and opens a Range at the new place. A connection that fails, closes short, or delivers nothing for `stallTimeout` (10 s) is made again after a doubling backoff (250 ms to 8 s, eight in a row), resuming at the byte it broke at; a `4xx` other than 408 and 429 is final at once. A read waits no longer than the Source's timeout. Plain `http:` speaks HTTP/1.1, so a radio server is never offered an `h2c` upgrade.
+- **ICY** is not a MediaIO of its own. `HttpIO` asks with `Icy-MetaData: 1`, and when `icy-metaint` comes back reads the body through `IcyStream`, which takes the metadata out before the cache. Titles are kept by the offset they took effect at, so `nowPlaying` is the title at the demuxer's position, not the fetcher's. A station that hangs up is a drop, and reconnected.
+- **Live.** `isLive` is true for an ICY server, or a response with neither a length nor Range. A server that ignores Range but gives a length is unseekable and not live: it ends.
+- **Buffering.** The high Water mark: BUFFERING becomes PLAYING when every track has been demuxed `highWaterMark` past the clock, the source has ended, or the queues are full. The low Water mark is empty: a track stalls when its decoder runs out of packets with more to come, and only then does playback go back to BUFFERING, with the sink paused and the free-running clock held. `bufferedAhead` is the least any playing track has demuxed past the clock.
+- **`bufferedRanges`** are the Read-ahead cache's real byte ranges, mapped to time in proportion to the source's length and duration: exact for a constant bit rate, close otherwise. Empty for a local file, and for a source whose length or duration is unknown. The seek bar does not draw them yet (`media-plan.md`).
 - WebM over HTTP: the demuxer seeks to the Cues at the tail on open; `HttpIO` serves that as one extra Range request and caches it.
+- FFmpeg's probe reads up to its analyse duration before anything plays: about 4 s of PCM, less of compressed audio. Over a slow link that is start-up time; a smaller `probesize` for network sources is open.
 - Out of scope by decision: RTSP/RTP (no free-codec content; would need a Java RTSP client).
 - Post-v1: HLS/DASH with playlist/manifest handling in Java feeding segments through MediaIO. Because segment selection is ours, ABR becomes possible. Free-codec HLS/DASH content is rare today, hence not v1.
 
@@ -170,7 +176,7 @@ I/O has the same shape already: a custom `MediaIO` registered for a URL scheme a
 | `media-player` | `video-view` + `media-controls` overlay + subtitle overlay. |
 | `audio-player` | Compact `media-controls`; optional cover art from the attached-picture stream; `nowPlaying` line for Live Sources. |
 
-Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start; *F fullscreen and `,` `.` frame step are phase 7*. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
+Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start, `,` `.` a picture back and on (pausing), `<` `>` slower and faster through 0.25–2; *F fullscreen waits for a window fullscreen call in `:core`, which has none yet*. The rate shows as `.media-rate` beside the times when it is not 1. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
 
 Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1.
 
@@ -188,7 +194,7 @@ Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Ico
 
 **S5. Deterministic golden test.** `hw-decode: off`, CPU present, virtual Master clock. Test advances the clock to fixed pts values and asserts byte-exact `BLImage` output (software H.264/HEVC/VP9/AV1 decode is bit-exact by specification).
 
-**S6. Live Source (internet radio).** Source resolves to `IcyIO` → `isLive = true`, `isSeekable = false`; `audio-player` hides the seek slider, shows a LIVE badge and the `nowPlaying` line from ICY metadata; after the initial BUFFERING the Water marks only trigger on network stalls.
+**S6. Live Source (internet radio).** Source resolves to `HttpIO`, which finds `icy-metaint` in the response → `isLive = true`, `isSeekable = false`; `audio-player` hides the seek slider, shows a LIVE badge and the `nowPlaying` line from ICY metadata (`media-player` shows it in its overlay); after the initial BUFFERING the Water marks only trigger on network stalls.
 
 **S7. Unsupported codec.** User opens an MP4 with H.264/AAC. `mov` demuxer lists the Tracks; no decoder exists for them → ERROR with `UNSUPPORTED_CODEC(h264, aac)`; `media-player` shows the codec names in its error state. Every chosen track is checked before any plays, so the error names every codec that has no decoder; a file where only one of the two is missing fails too, rather than playing half of it.
 
@@ -201,14 +207,14 @@ Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Ico
 3. **Video, software + CPU present.** Video decode thread, A/V sync, `video-view`, `media-controls`. Exit: S2, S5 and S7 pass; S8 passes with a fake video DecoderProvider.
 4. **GPU present.** Plane upload + shader, colorspace handling. Exit: visual parity with CPU present within tolerance on 601/709 content.
 5. **HW decode.** d3d11va / VideoToolbox / VAAPI for VP9/AV1 with Copy-back and the Fallback ladder. Exit: 4K60 VP9 without dropped frames on GPU present; S4 passes with injected failures.
-6. **Network.** `HttpIO` (Range, Read-ahead cache, reconnect), `IcyIO`, Water marks, Live Source. Exit: S3 and S6 pass with a fault-injecting fake MediaIO and against a local HTTP server.
+6. **Network.** `HttpIO` (Range, Read-ahead cache, reconnect, ICY), Water marks, Live Source. Exit: S3 and S6 pass with a fault-injecting fake MediaIO and against a local HTTP server.
 7. **Tracks, subtitles, rate, fullscreen, polish.**
 
 Post-v1: HLS/DASH in Java (with ABR), `goldberry-media-platform` DecoderProviders over OS decoders (Media Foundation / VideoToolbox / VAAPI), zero-copy GPU interop, HDR tone mapping, bitmap subtitles, pitch-preserving rate, playlists/gapless.
 
 ## 9. Testing
 
-Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per container/codec pair, ≤ 2 s each); fault-injecting fake MediaIO (stalls, drops, short reads, no-Range) for S3/S6; layout test against the superbuild-generated `offsetof` properties for every field in the §2 table; HW decode lane is smoke-only (non-deterministic surfaces), all goldens run on the software + CPU present path.
+Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per container/codec pair, ≤ 2 s each); fault-injecting fake MediaIO (stalls, drops, short reads, no-Range) for S3/S6, and a local HTTP server (`com.sun.net.httpserver`) that drops, stalls, ignores Range and speaks ICY; layout test against the superbuild-generated `offsetof` properties for every field in the §2 table; HW decode lane is smoke-only (non-deterministic surfaces), all goldens run on the software + CPU present path.
 
 ## 10. Risks
 

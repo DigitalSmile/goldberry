@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 /// - `showcase:` is a clip bundled in this jar, read as a seekable stream.
 /// - `live:` is the same clip read **front to back only**, with no length: what
 ///   an internet radio stream looks like to the engine. The player shows `LIVE`
-///   in place of the seek bar.
+///   in place of the seek bar, and the title it says is playing.
 /// - `generated:` is bytes made in Java: a chime in a WAV, which this
 ///   application's own [JavaPcmDecoder] plays, and bytes that are not media at
 ///   all.
@@ -71,7 +72,8 @@ public final class ShowcaseMedia implements MediaIOProvider {
                     "live",
                     "A live stream",
                     "The Opus clip, served with no length and no seeking, the way an internet radio stream"
-                            + " arrives. The seek bar gives way to LIVE.",
+                            + " arrives. The seek bar gives way to LIVE, and the station's title shows over the"
+                            + " controls, as an ICY stream's StreamTitle would.",
                     Source.of(URI.create("live:///arpeggio.opus"))),
             new Sample(
                     "java",
@@ -130,6 +132,9 @@ public final class ShowcaseMedia implements MediaIOProvider {
                 .decoderProviders(List.of())
                 .build();
     }
+
+    /// What the live sample says is playing.
+    static final String LIVE_TITLE = "Goldberry Radio - Arpeggio in A minor";
 
     private static Source showcase(String name) {
         return Source.of(URI.create("showcase:///" + name));
@@ -239,6 +244,18 @@ public final class ShowcaseMedia implements MediaIOProvider {
         @Override
         public boolean isSeekable() {
             return seekable;
+        }
+
+        /// The unseekable sample stands for a radio station, so it says it is live.
+        @Override
+        public boolean isLive() {
+            return !seekable;
+        }
+
+        /// And, like a station, what is on.
+        @Override
+        public Optional<String> nowPlaying() {
+            return seekable ? Optional.empty() : Optional.of(LIVE_TITLE);
         }
 
         @Override

@@ -28,7 +28,8 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlAudioCalls;
 public final class SdlAudioStream implements AutoCloseable {
 
     private static final class Holder {
-        private static final SdlAudioCalls CALLS = SdlAudioCalls.bind(NativeLibrary.get().lookup());
+        private static final SdlAudioCalls CALLS =
+                SdlAudioCalls.bind(NativeLibrary.get().lookup());
     }
 
     private final SdlAudioCalls calls;
@@ -62,7 +63,11 @@ public final class SdlAudioStream implements AutoCloseable {
             spec.set(JAVA_INT, Layouts.SDL_AUDIO_SPEC.offsetOf("channels"), channels);
             spec.set(JAVA_INT, Layouts.SDL_AUDIO_SPEC.offsetOf("freq"), sampleRate);
             var stream = calls.openAudioDeviceStream()
-                    .call(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, spec, MemorySegment.NULL, MemorySegment.NULL);
+                    .call(
+                            SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                            spec,
+                            MemorySegment.NULL,
+                            MemorySegment.NULL);
             if (stream.equals(MemorySegment.NULL)) {
                 var reason = sdl.lastError();
                 sdl.quitSubsystems(List.of(SdlSubsystem.AUDIO));
@@ -95,8 +100,8 @@ public final class SdlAudioStream implements AutoCloseable {
         }
         var frame = channels * Float.BYTES;
         if (samples.remaining() % frame != 0) {
-            throw new IllegalArgumentException(samples.remaining() + " bytes is not a whole number of "
-                    + channels + "-channel frames");
+            throw new IllegalArgumentException(
+                    samples.remaining() + " bytes is not a whole number of " + channels + "-channel frames");
         }
         ensureOpen();
         var data = MemorySegment.ofBuffer(samples);
@@ -132,6 +137,15 @@ public final class SdlAudioStream implements AutoCloseable {
     public void gain(float gain) {
         ensureOpen();
         check("SDL_SetAudioStreamGain", calls.setAudioStreamGain().call(stream, gain));
+    }
+
+    /// Plays the input `ratio` times as fast, by resampling it, so the pitch moves
+    /// with the speed. SDL takes 0.01 to 100.
+    public void frequencyRatio(float ratio) {
+        ensureOpen();
+        check(
+                "SDL_SetAudioStreamFrequencyRatio",
+                calls.setAudioStreamFrequencyRatio().call(stream, ratio));
     }
 
     /// Closes the stream and its device, and releases the audio subsystem.

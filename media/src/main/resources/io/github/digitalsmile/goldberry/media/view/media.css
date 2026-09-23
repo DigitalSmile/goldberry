@@ -11,6 +11,8 @@
     --gb-media-volume-width: 72px;
     --gb-media-time-color: var(--gb-text-muted);
     --gb-media-error-color: var(--gb-danger);
+    /* What a live stream says is playing: its ICY StreamTitle. */
+    --gb-media-now-playing-color: var(--gb-text);
     /* What shows around a letterboxed picture, and before the first one. */
     --gb-media-backdrop: #000000;
     /* The strip the controls sit on, over the picture. */
@@ -47,6 +49,16 @@ media-controls {
 
 .media-live {
     color: var(--gb-accent);
+}
+
+/* The playback rate, shown only when it is not 1. */
+.media-rate {
+    color: var(--gb-accent);
+    font-family: "JetBrains Mono";
+}
+
+.media-now-playing {
+    color: var(--gb-media-now-playing-color);
 }
 
 .media-error {

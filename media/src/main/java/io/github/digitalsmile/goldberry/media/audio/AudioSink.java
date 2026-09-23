@@ -14,8 +14,8 @@ import java.lang.foreign.MemorySegment;
 /// wrote. [#queuedSamples()] says how many of them have not been heard yet. The
 /// difference is what is playing now.
 ///
-/// Called from the audio thread, except [#setGain], [#pause] and [#resume], which
-/// may come from any thread.
+/// Called from the audio thread, except [#setGain], [#setRate], [#pause] and
+/// [#resume], which may come from any thread.
 public interface AudioSink extends AutoCloseable {
 
     /// Opens the output, asking for `preferred`.
@@ -41,6 +41,19 @@ public interface AudioSink extends AutoCloseable {
 
     /// Linear gain, 0 for silence and 1 for as decoded.
     void setGain(float gain);
+
+    /// Plays what is queued `rate` times as fast, pitch and all
+    /// (`docs/goldberry-media.md` §3, "Rate"): 2 is twice the speed, an octave
+    /// up. [#queuedSamples()] still counts samples as written, so the audio
+    /// clock stays in stream time and simply runs faster. May come from any
+    /// thread.
+    ///
+    /// By default a sink plays at 1 only, and says so.
+    ///
+    /// @return whether the sink plays at `rate` now; false leaves it as it was
+    default boolean setRate(float rate) {
+        return rate == 1f;
+    }
 
     /// Closes the output.
     @Override
