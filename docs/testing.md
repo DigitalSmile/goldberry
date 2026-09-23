@@ -226,6 +226,15 @@ status beside it reads as a description of what exists.
   was not a concession to the tool but a repair the tool found. The 59 doc lines
   still over 100 characters afterwards were re-wrapped at word boundaries,
   changing no word and skipping code fences, tables and box drawing.
+- **The unused-import remover is taught about `///`.** palantir's Spotless step
+  always removes unused imports, and its remover — like google-java-format's
+  behind `removeUnusedImports()` — reads `/** */` Javadoc but never `///`. An
+  import used only by a doc link such as `[ActionRegistry]` therefore looked
+  unused and was deleted: the file still compiled and the link quietly stopped
+  resolving. `spotlessCheck` failed that way across five modules. The palantir step
+  now runs wrapped in `KeepDocReferencedImports` (build-logic), which puts back
+  any import it dropped that a `///` comment still refers to; an import nothing
+  refers to is still removed, and the separate `removeUnusedImports()` step is gone.
 - **`ReferenceEquality` is off**, and `CloseResource` is out of the PMD set. Each
   was wrong every time it fired — the first on the thread-confinement check
   eighteen files make, the second on 47 sites where an owner holds a closeable

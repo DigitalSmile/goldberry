@@ -1,6 +1,7 @@
 import io.github.digitalsmile.goldberry.build.ci.BuildFailureAnnotation
 import io.github.digitalsmile.goldberry.build.ci.TestFailureAnnotations
 import io.github.digitalsmile.goldberry.build.ci.WorkflowCommand
+import io.github.digitalsmile.goldberry.build.format.KeepDocReferencedImports
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
@@ -284,13 +285,19 @@ spotless {
             exclude palantirCannotFormat
         }
 
-        palantirJavaFormat(catalog.findVersion('palantirFormat').get().requiredVersion)
-
-        // An import nothing uses is a dependency the file does not have, and the
-        // compiler does not say so. It used to throw inside its own parser on
-        // `TourState.java`; the cause was a javadoc reference split across two
-        // lines there, which is fixed, so the step runs.
-        removeUnusedImports()
+        // palantir-java-format, but not through `palantirJavaFormat(...)`: that
+        // step always removes unused imports before formatting, and its remover
+        // -- like google-java-format's behind `removeUnusedImports()`, which it
+        // makes redundant -- reads `/** */` Javadoc and never `///`. In a codebase
+        // whose doc comments are Markdown, every import used only by a doc link
+        // such as `[ActionRegistry]` looked unused and was deleted, breaking the
+        // link without breaking the build.
+        //
+        // `KeepDocReferencedImports` runs the same palantir step and puts back
+        // what it dropped that a `///` comment still refers to. An import nothing
+        // refers to anywhere is still removed: an import nothing uses is a
+        // dependency the file does not have, and the compiler does not say so.
+        addStep(KeepDocReferencedImports.palantir(catalog.findVersion('palantirFormat').get().requiredVersion))
 
         // Static imports first, which is where this codebase already puts them.
         // The formatter's own default puts them last, so adopting it would have
