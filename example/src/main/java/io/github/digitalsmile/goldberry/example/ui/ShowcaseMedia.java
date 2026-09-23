@@ -17,7 +17,8 @@ import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
 
-/// Where the **Media** screen's sounds come from, and the player that plays them.
+/// Where the **Audio** and **Video** screens' sounds and pictures come from, and
+/// the players that play them.
 ///
 /// Every sample is reached through a [MediaIOProvider], which is the point: FFmpeg
 /// performs no I/O in Goldberry, so a protocol is something an application
@@ -42,8 +43,8 @@ public final class ShowcaseMedia implements MediaIOProvider {
     /// @param source what the player opens
     public record Sample(String key, String title, String note, Source source) {}
 
-    /// Every sample, in picker order.
-    public static final List<Sample> SAMPLES = List.of(
+    /// The Audio screen's samples, in picker order.
+    public static final List<Sample> AUDIO_SAMPLES = List.of(
             new Sample(
                     "opus",
                     "Opus in Ogg",
@@ -79,12 +80,6 @@ public final class ShowcaseMedia implements MediaIOProvider {
                             + " rather than by FFmpeg. The Status card names the decoder.",
                     Source.of(URI.create("generated:///chime.wav"))),
             new Sample(
-                    "h264",
-                    "H.264 and AAC",
-                    "Patent-pool codecs, which the published natives do not build, by decision. The file"
-                            + " opens and its tracks are listed, and the error names the codec.",
-                    showcase("h264-aac.mp4")),
-            new Sample(
                     "broken",
                     "Not media at all",
                     "Bytes no demuxer recognises. The error says so.",
@@ -95,12 +90,44 @@ public final class ShowcaseMedia implements MediaIOProvider {
                     "A read that fails is an I/O error, with the message the file system gave.",
                     Source.of(Path.of(System.getProperty("java.io.tmpdir"), "goldberry-no-such-file.opus"))));
 
-    /// The player the screen and its markup share: every protocol above, and the
-    /// Java decoder, which takes PCM only while its switch is on.
-    public static MediaPlayer player(JavaPcmDecoder decoder) {
+    /// The Video screen's samples, in picker order.
+    public static final List<Sample> VIDEO_SAMPLES = List.of(
+            new Sample(
+                    "vp9",
+                    "VP9 and Opus in WebM",
+                    "A Mandelbrot zoom in VP9 with the arpeggio in Opus, in WebM. The pictures are timed by the"
+                            + " audio clock, converted to BGRA as they are decoded, and drawn by the media-player"
+                            + " above.",
+                    showcase("mandelbrot.webm")),
+            new Sample(
+                    "av1",
+                    "AV1 in Matroska, no sound",
+                    "The Game of Life in AV1, decoded by dav1d, with no audio track: the pictures are timed by"
+                            + " a free-running clock instead.",
+                    showcase("life.mkv")),
+            new Sample(
+                    "h264",
+                    "H.264 and AAC",
+                    "Patent-pool codecs, which the published natives do not build, by decision. The file"
+                            + " opens and its tracks are listed, and the error names the codec.",
+                    showcase("h264-aac.mp4")));
+
+    /// The Audio screen's player, which the screen and its markup share: every
+    /// protocol above, and the Java decoder, which takes PCM only while its switch
+    /// is on.
+    public static MediaPlayer audioPlayer(JavaPcmDecoder decoder) {
         return MediaPlayer.builder()
                 .ioProviders(List.of(new ShowcaseMedia()))
                 .decoderProviders(List.of(decoder))
+                .build();
+    }
+
+    /// The Video screen's player: every protocol above, and FFmpeg's decoders
+    /// only.
+    public static MediaPlayer videoPlayer() {
+        return MediaPlayer.builder()
+                .ioProviders(List.of(new ShowcaseMedia()))
+                .decoderProviders(List.of())
                 .build();
     }
 

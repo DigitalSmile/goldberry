@@ -219,7 +219,8 @@ public final class Showcase implements Application {
         // sheets rather than one on purpose: an application that renders notes and
         // never a page adds one of them (ADR-0298).
         sheets.add(HtmlStyles.stylesheet());
-        // And the media module's, for `audio-player` (goldberry-media.md sec. 6).
+        // And the media module's, for `audio-player` and `media-player`
+        // (goldberry-media.md sec. 6).
         sheets.add(MediaStyles.stylesheet());
         sheets.add(styles);
         return sheets;
@@ -684,9 +685,10 @@ public final class Showcase implements Application {
         }
         plusIcon.close();
         paletteIcon.close();
-        // Stops the engine's threads and closes the audio device, if a source was
+        // Stops the engines' threads and closes the audio devices, if a source was
         // ever opened.
-        model.mediaPlayer().close();
+        model.audioPlayer().close();
+        model.videoPlayer().close();
     }
 
     // --- the process ---------------------------------------------------------

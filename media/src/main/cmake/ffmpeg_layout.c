@@ -34,6 +34,7 @@
 #include <libavutil/pixfmt.h>
 #include <libavutil/samplefmt.h>
 #include <libswresample/version_major.h>
+#include <libswscale/swscale.h>
 #include <libswscale/version_major.h>
 
 #define STRUCT(T) \
@@ -184,6 +185,23 @@ int main(int argc, char **argv) {
     CONST("AV_PIX_FMT_NV12", AV_PIX_FMT_NV12);
     CONST("AV_PIX_FMT_P010LE", AV_PIX_FMT_P010LE);
     CONST("AV_PIX_FMT_BGRA", AV_PIX_FMT_BGRA);
+    CONST("AV_PIX_FMT_YUV420P10LE", AV_PIX_FMT_YUV420P10LE);
+    /* What CPU present converts with (phase 3): the colour a decoder tagged a
+     * frame with, and the swscale flags and coefficient tables that honour it. */
+    CONST("AVCOL_SPC_BT709", AVCOL_SPC_BT709);
+    CONST("AVCOL_SPC_UNSPECIFIED", AVCOL_SPC_UNSPECIFIED);
+    CONST("AVCOL_SPC_BT470BG", AVCOL_SPC_BT470BG);
+    CONST("AVCOL_SPC_SMPTE170M", AVCOL_SPC_SMPTE170M);
+    CONST("AVCOL_SPC_BT2020_NCL", AVCOL_SPC_BT2020_NCL);
+    CONST("AVCOL_SPC_BT2020_CL", AVCOL_SPC_BT2020_CL);
+    CONST("AVCOL_RANGE_JPEG", AVCOL_RANGE_JPEG);
+    CONST("SWS_BILINEAR", SWS_BILINEAR);
+    CONST("SWS_ACCURATE_RND", SWS_ACCURATE_RND);
+    CONST("SWS_BITEXACT", SWS_BITEXACT);
+    CONST("SWS_FULL_CHR_H_INT", SWS_FULL_CHR_H_INT);
+    CONST("SWS_CS_ITU601", SWS_CS_ITU601);
+    CONST("SWS_CS_ITU709", SWS_CS_ITU709);
+    CONST("SWS_CS_BT2020", SWS_CS_BT2020);
     CONST("AV_SAMPLE_FMT_NONE", AV_SAMPLE_FMT_NONE);
     CONST("AV_SAMPLE_FMT_U8", AV_SAMPLE_FMT_U8);
     CONST("AV_SAMPLE_FMT_S16", AV_SAMPLE_FMT_S16);

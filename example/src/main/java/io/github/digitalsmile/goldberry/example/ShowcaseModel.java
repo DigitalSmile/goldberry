@@ -956,18 +956,25 @@ public final class ShowcaseModel {
                 // neither a method nor a value that changes -- which is the third
                 // registry's whole job (ADR-0130, ADR-0300).
                 .bind("app.assets", assets)
-                // The Media screen's player, which `media.kdl` names and the
-                // screen's cards drive from Java at the same time.
-                .bind("media.player", mediaPlayer);
+                // The media screens' players, which `audio.kdl` and `video.kdl`
+                // name and each screen's cards drive from Java at the same time.
+                .bind("audio.player", audioPlayer)
+                .bind("video.player", videoPlayer);
     }
 
-    /// The Media screen's player. Made here and not opened: nothing loads FFmpeg or
+    /// The Audio screen's player. Made here and not opened: nothing loads FFmpeg or
     /// opens an audio device until a source is picked.
-    public io.github.digitalsmile.goldberry.media.MediaPlayer mediaPlayer() {
-        return mediaPlayer;
+    public io.github.digitalsmile.goldberry.media.MediaPlayer audioPlayer() {
+        return audioPlayer;
     }
 
-    /// The decoder the Media screen wrote in Java, with its switch.
+    /// The Video screen's player, a second one: the two screens play at the same
+    /// time if both are started, as two players in one application would.
+    public io.github.digitalsmile.goldberry.media.MediaPlayer videoPlayer() {
+        return videoPlayer;
+    }
+
+    /// The decoder the Audio screen wrote in Java, with its switch.
     public io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcmDecoder() {
         return javaPcm;
     }
@@ -975,8 +982,11 @@ public final class ShowcaseModel {
     private final io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcm =
             new io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder();
 
-    private final io.github.digitalsmile.goldberry.media.MediaPlayer mediaPlayer =
-            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.player(javaPcm);
+    private final io.github.digitalsmile.goldberry.media.MediaPlayer audioPlayer =
+            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.audioPlayer(javaPcm);
+
+    private final io.github.digitalsmile.goldberry.media.MediaPlayer videoPlayer =
+            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.videoPlayer();
 
     /// The one picture this application ships, for whichever document names it.
     private final DocumentAssets assets = new DocumentAssets();

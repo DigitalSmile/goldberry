@@ -37,28 +37,102 @@ import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
-/// The **Media** screen: `goldberry-media`'s `audio-player`, and everything around
-/// it that an application can reach.
+/// The **Audio** and **Video** screens: `goldberry-media`'s widgets, and everything
+/// around them that an application can reach. One screen written twice over by
+/// its [Kind], because the two show the same engine from two sides and the cards
+/// that drive and report on it are the same.
 ///
-/// The player itself comes from `media.kdl`, a markup document naming a
-/// `MediaPlayer` the model registered. The cards under it are the Java side:
-/// picking a source (bundled clips, a live stream, a file from disk, and the
-/// failures), driving the player from code, reading its status and the tracks
-/// the probe found, asking what this build decodes, and a decoder this
+/// Each screen has a player of its own, from a markup document naming a
+/// `MediaPlayer` the model registered: `audio.kdl`'s `audio-player` and
+/// `video.kdl`'s `media-player`. The cards under it are the Java side: picking a
+/// source (bundled clips, a file from disk, and the failures), driving the player
+/// from code, reading its status and the tracks the probe found, and asking what
+/// this build decodes. The Audio screen adds a live stream and a decoder this
 /// application wrote itself.
 ///
 /// FFmpeg may be absent: the natives are a separate build (`docs/media-plan.md`).
 /// Then the Capabilities card says why, and picking a source says the same.
-public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget playerPane)
+///
+/// @param kind        which of the two screens this is
+/// @param player      the screen's own player
+/// @param javaDecoder the application's decoder and its switch, for the Audio
+///                    screen; null for the Video screen, which has no card for it
+/// @param playerPane  the player widget, inflated from the screen's document
+public record MediaScreen(
+        Kind kind, MediaPlayer player, @Nullable JavaPcmDecoder javaDecoder, Widget playerPane)
         implements Widget.Stateful {
 
-    static final String NOTE = "Audio from `goldberry-media`: FFmpeg's demuxers and royalty-free decoders,"
-            + " driven from Java. Every byte reaches FFmpeg through a Java stream, so the bundled clips, the"
-            + " live stream and a file from disk are the same code path, and the engine's threads, clock and"
-            + " seeking are Java too. The player above is one markup node, `audio-player`, naming a"
-            + " MediaPlayer. The cards drive that same player from code, show what it reports, and include a"
-            + " decoder written in this application. Pick an error case too: an unsupported codec opens,"
-            + " lists its tracks, and says which codec it could not play.";
+    /// Which screen: what it is called, what it says, and what it offers to play.
+    ///
+    /// @param id         the screen's name in the gallery, and the prefix of every
+    ///                   id on it
+    /// @param title      its heading
+    /// @param note       the paragraph under the heading
+    /// @param filterName what its file dialog calls the files it offers
+    public enum Kind {
+        AUDIO(
+                "audio",
+                "Audio",
+                "Audio from `goldberry-media`: FFmpeg's demuxers and royalty-free decoders, driven from Java."
+                        + " Every byte reaches FFmpeg through a Java stream, so the bundled clips, the live stream"
+                        + " and a file from disk are the same code path, and the engine's threads, clock and"
+                        + " seeking are Java too. The player above is one markup node, `audio-player`, naming a"
+                        + " MediaPlayer; click it for the keys (Space, the arrows, M). The cards drive that same"
+                        + " player from code, show what it reports, and include a decoder written in this"
+                        + " application. Pick an error case too: bytes that are not media, and a file that is not"
+                        + " there.",
+                "Audio"),
+        VIDEO(
+                "video",
+                "Video",
+                "Video from `goldberry-media`: VP8, VP9 and AV1, decoded by FFmpeg and dav1d, converted to the"
+                        + " toolkit's pixels as they are decoded, and timed by the audio clock, or by a"
+                        + " free-running clock when there is no sound. The player above is one markup node,"
+                        + " `media-player`: the picture with its controls over it, which fade while it plays and"
+                        + " come back when the pointer moves. Click the picture to pause, or click it and use the"
+                        + " keys. Drag the seek bar: it shows keyframes while held and the exact picture on"
+                        + " release. Pick the H.264 file too: it opens, lists its tracks, and says which codecs"
+                        + " it could not play.",
+                "Video");
+
+        private final String id;
+        private final String title;
+        private final String note;
+        private final String filterName;
+
+        Kind(String id, String title, String note, String filterName) {
+            this.id = id;
+            this.title = title;
+            this.note = note;
+            this.filterName = filterName;
+        }
+
+        /// The screen's name in the gallery, and the prefix of every id on it.
+        public String id() {
+            return id;
+        }
+
+        /// The paragraph under the heading.
+        public String note() {
+            return note;
+        }
+
+        /// The bundled sources the picker lists.
+        public List<ShowcaseMedia.Sample> samples() {
+            return switch (this) {
+                case AUDIO -> ShowcaseMedia.AUDIO_SAMPLES;
+                case VIDEO -> ShowcaseMedia.VIDEO_SAMPLES;
+            };
+        }
+
+        /// The extensions the file dialog offers.
+        String[] extensions() {
+            return switch (this) {
+                case AUDIO -> new String[] {"opus", "ogg", "oga", "mp3", "flac", "wav", "mka", "m4a", "webm"};
+                case VIDEO -> new String[] {"webm", "mkv", "mp4", "mov"};
+            };
+        }
+    }
 
     @Override
     public State<?> createState() {
@@ -113,50 +187,50 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
             host = context.host().orElse(null);
             var status = widget().player().status();
             schedulePoll(status);
-            var cards = List.<Widget>of(
-                    sources(),
-                    control(status),
-                    statusCard(status),
-                    tracks(status),
-                    capabilitiesCard(),
-                    javaDecoderCard());
+            var kind = widget().kind();
+            var cards = new ArrayList<Widget>(
+                    List.of(sources(), control(status), statusCard(status), tracks(status), capabilitiesCard()));
+            var decoder = widget().javaDecoder();
+            if (decoder != null) {
+                cards.add(javaDecoderCard(decoder));
+            }
             return new Column(
                     List.of(
-                            new SectionHeader("Media"),
-                            new Text(NOTE, Attributes.NONE.classes("prose")),
+                            new SectionHeader(kind.title),
+                            new Text(kind.note(), Attributes.NONE.classes("prose")),
                             new Card(
                                     List.of(widget().playerPane()),
-                                    Attributes.NONE.id("media-player-card").classes("wall-card")),
+                                    Attributes.NONE.id(id("player-card")).classes("wall-card", "media-card")),
                             new Masonry(
                                     cards,
                                     2,
                                     Masonry.UNSET,
-                                    Attributes.NONE.id("media-wall").classes("wall"))),
-                    Attributes.NONE.id("screen-media").classes("screen"));
+                                    Attributes.NONE.id(id("wall")).classes("wall"))),
+                    Attributes.NONE.id("screen-" + kind.id()).classes("screen"));
         }
 
         // ---------------------------------------------------------------- cards
 
         private Widget sources() {
             var options = new ArrayList<Option>();
-            for (var sample : ShowcaseMedia.SAMPLES) {
+            for (var sample : widget().kind().samples()) {
                 options.add(new Option(sample.key(), sample.title()));
             }
             var dialogs = host != null && host.fileDialogs().supported();
             return card(
-                    "media-sources",
+                    id("sources"),
                     "Sources",
                     new Select(chosen, this::open, options.toArray(Option[]::new))
                             .placeholder("Choose a source…")
-                            .id("media-source"),
+                            .id(id("source")),
                     new Row(
                             List.of(
                                     new Button("Open a file…", this::openFile)
                                             .disabled(!dialogs)
-                                            .id("media-open-file"),
-                                    new Button("Close", this::closeSource).id("media-close")),
+                                            .id(id("open-file")),
+                                    new Button("Close", this::closeSource).id(id("close"))),
                             Attributes.NONE.classes("media-actions")),
-                    caption(message).id("media-source-note"));
+                    caption(message).id(id("source-note")));
         }
 
         private Widget control(PlayerStatus status) {
@@ -164,15 +238,15 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
             var seekable = status.seekable();
             var duration = status.duration().orElse(Duration.ZERO);
             return card(
-                    "media-control",
+                    id("control"),
                     "Driven from Java",
                     new Row(
                             List.of(
-                                    new Button("Play", player::play).id("media-java-play"),
-                                    new Button("Pause", player::pause).id("media-java-pause"),
+                                    new Button("Play", player::play).id(id("java-play")),
+                                    new Button("Pause", player::pause).id(id("java-pause")),
                                     new Button("From the top", () -> player.seek(Duration.ZERO))
                                             .disabled(!seekable)
-                                            .id("media-java-restart")),
+                                            .id(id("java-restart"))),
                             Attributes.NONE.classes("media-actions")),
                     new Row(
                             List.of(
@@ -186,7 +260,7 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
                                                     status.muted() ? "Unmute" : "Mute",
                                                     () -> player.setMuted(
                                                             !player.status().muted()))
-                                            .id("media-java-mute"),
+                                            .id(id("java-mute")),
                                     new Button("Volume 25%", () -> player.setVolume(0.25f)),
                                     new Button("50%", () -> player.setVolume(0.5f)),
                                     new Button("100%", () -> player.setVolume(1f))),
@@ -201,13 +275,14 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
             var lines = new ArrayList<Widget>();
             lines.add(line("State", status.state().name().toLowerCase(Locale.ROOT)));
             lines.add(line("Position", position));
-            lines.add(line("Decoder", status.audioDecoder().orElse("none yet")));
+            lines.add(line("Audio", status.audioDecoder().orElse("—")));
+            lines.add(line("Video", status.videoDecoder().orElse("—")));
             lines.add(line("Seekable", status.state().hasMedia() ? (status.seekable() ? "yes" : "no: live") : "—"));
             lines.add(line("Volume", Math.round(status.volume() * 100) + "%" + (status.muted() ? ", muted" : "")));
             status.error().ifPresent(error -> lines.add(line("Error", error.message())));
             lines.add(caption("One immutable PlayerStatus: pushed when the state changes, and read four times a"
                     + " second for the position while playing."));
-            return card("media-status", "Status", lines.toArray(Widget[]::new));
+            return card(id("status"), "Status", lines.toArray(Widget[]::new));
         }
 
         private Widget tracks(PlayerStatus status) {
@@ -224,13 +299,13 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
                             },
                             () -> lines.add(caption("Nothing open. The probe runs when a source opens, and lists every"
                                     + " track whether or not it can be played.")));
-            return card("media-tracks", "Tracks", lines.toArray(Widget[]::new));
+            return card(id("tracks"), "Tracks", lines.toArray(Widget[]::new));
         }
 
         private Widget capabilitiesCard() {
             if (capabilities == null) {
                 return card(
-                        "media-capabilities",
+                        id("capabilities"),
                         "This build",
                         new Text("FFmpeg is not loaded, so nothing can play.", Attributes.NONE.classes("media-error")),
                         caption("The natives are their own build: ./gradlew :media:ffmpegBuild, then run the"
@@ -239,7 +314,7 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
             }
             var found = capabilities;
             return card(
-                    "media-capabilities",
+                    id("capabilities"),
                     "This build",
                     line(
                             "Decodes",
@@ -256,14 +331,13 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
                             + " answers."));
         }
 
-        private Widget javaDecoderCard() {
-            var decoder = widget().javaDecoder();
+        private Widget javaDecoderCard(JavaPcmDecoder decoder) {
             return card(
-                    "media-java-decoder",
+                    id("java-decoder"),
                     "A decoder written in Java",
                     new Toggle("Decode PCM in Java", decoder.enabled(), on -> setState(() -> decoder.enabled(on)))
-                            .id("media-java-toggle"),
-                    new Button("Play the chime", () -> open("java")).id("media-java-chime"),
+                            .id(id("java-toggle")),
+                    new Button("Play the chime", () -> open("java")).id(id("java-chime")),
                     caption("A DecoderProvider is asked before FFmpeg's decoders: the SPI an application uses to"
                             + " bring a codec Goldberry does not ship. This one claims 16-bit PCM and copies it"
                             + " to the engine as frames; resampling, the clock and seeking are the engine's."
@@ -274,7 +348,7 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
         // ---------------------------------------------------------------- actions
 
         private void open(String key) {
-            var sample = ShowcaseMedia.SAMPLES.stream()
+            var sample = widget().kind().samples().stream()
                     .filter(s -> s.key().equals(key))
                     .findFirst();
             if (sample.isEmpty()) {
@@ -296,8 +370,8 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
                     FileDialogSpec.openFile()
                             .filters(
                                     FileFilter.of(
-                                            "Audio", "opus", "ogg", "oga", "mp3", "flac", "wav", "webm", "mkv", "mka",
-                                            "mp4", "m4a"),
+                                            widget().kind().filterName,
+                                            widget().kind().extensions()),
                                     FileFilter.everything("All files")),
                     choice -> {
                         if (choice instanceof FileChoice.Chosen(var paths, var ignored) && !paths.isEmpty()) {
@@ -335,6 +409,11 @@ public record MediaScreen(MediaPlayer player, JavaPcmDecoder javaDecoder, Widget
         }
 
         // ---------------------------------------------------------------- plumbing
+
+        /// `name`, prefixed with this screen's: `audio-sources`, `video-sources`.
+        private String id(String name) {
+            return widget().kind().id() + "-" + name;
+        }
 
         private void refresh() {
             if (isMounted()) {

@@ -1377,10 +1377,15 @@ chip.motion-entry {
   margin-left: auto;
 }
 
-/* --- Media screen ------------------------------------------------------- */
+/* --- Audio and Video screens --------------------------------------------- */
 
-#media-player-card {
+.media-card {
     margin-bottom: 12px;
+}
+
+/* A 16:9 stage for the samples, which are 320x180. */
+#video-player {
+    height: 360px;
 }
 
 .media-actions {

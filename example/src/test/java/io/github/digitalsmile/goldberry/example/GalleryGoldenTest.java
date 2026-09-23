@@ -318,15 +318,25 @@ class GalleryGoldenTest {
         paint("gallery-web", "web", Theme.NORD_DARK, 1200, 900);
     }
 
-    /// The Media screen, with **FFmpeg pinned off** by this module's test task
+    /// The Audio screen, with **FFmpeg pinned off** by this module's test task
     /// (`goldberry.media.libdir` points at a directory that cannot exist), for the
     /// Web screen's reason: whether a machine ran `:media:ffmpegBuild` is not
     /// something a golden may photograph. So this is the player idle, the cards
     /// around it, and the Capabilities card saying why nothing can play.
     @Test
-    @DisplayName("the Media screen, with FFmpeg absent on every machine")
-    void media() {
-        paint("gallery-media", "media", Theme.NORD_DARK, 1200, 1100);
+    @DisplayName("the Audio screen, with FFmpeg absent on every machine")
+    void audio() {
+        paint("gallery-audio", "audio", Theme.NORD_DARK, 1200, 1100);
+    }
+
+    /// The Video screen, with FFmpeg pinned off for the same reason: the
+    /// `media-player` with nothing open, its backdrop and its controls, and the
+    /// cards around it. Its picture is photographed in `:media`'s own goldens,
+    /// where FFmpeg is there by requirement.
+    @Test
+    @DisplayName("the Video screen, with FFmpeg absent on every machine")
+    void video() {
+        paint("gallery-video", "video", Theme.NORD_DARK, 1200, 1100);
     }
 
     /// **The one golden in the repository with no scale sweep behind it**, and the

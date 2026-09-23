@@ -12,8 +12,9 @@ import java.lang.foreign.MemorySegment;
 /// ([FfmpegStructs#AV_CODEC_PARAMETERS]).
 ///
 /// Reads what describes a track and what a provider's decoder needs. The colour
-/// fields are in the layout and verified with it, and get accessors when the
-/// present path reads them (phase 3).
+/// fields are in the layout and verified with it, but the present path reads
+/// colour from each decoded frame instead, which is what a decoder actually
+/// produced (`AvFrameView`).
 final class AvCodecParametersView {
 
     private static final long CODEC_TYPE = offset("codec_type");

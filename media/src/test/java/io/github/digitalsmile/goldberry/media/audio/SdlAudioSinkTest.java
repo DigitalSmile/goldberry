@@ -73,4 +73,36 @@ class SdlAudioSinkTest {
             assertThrows(IllegalStateException.class, () -> sink.open(FORMAT));
         }
     }
+
+    @Test
+    @DisplayName("drains smoothly between the device's pulls, never rising, and stands still while paused")
+    void drainsSmoothly() throws InterruptedException {
+        try (var sink = new SdlAudioSink();
+                var arena = Arena.ofConfined()) {
+            sink.open(FORMAT);
+            var samples = FORMAT.sampleRate() / 2;
+            sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
+            var seen = new java.util.TreeSet<Long>();
+            var last = Long.MAX_VALUE;
+            var deadline = System.nanoTime() + 150_000_000L;
+            while (System.nanoTime() < deadline) {
+                var queued = sink.queuedSamples();
+                assertTrue(queued <= last, "the queue rose from " + last + " to " + queued + " with nothing written");
+                last = queued;
+                seen.add(queued);
+                Thread.sleep(1);
+            }
+            // A pull is 1024 samples, about every 21 ms: stepping alone would give
+            // a handful of values in 150 ms, and the estimate gives many more.
+            assertTrue(seen.size() > 20, "only " + seen.size() + " distinct readings: " + seen);
+
+            sink.pause();
+            var paused = sink.queuedSamples();
+            Thread.sleep(40);
+            assertEquals(paused, sink.queuedSamples(), "paused, nothing drains");
+            sink.resume();
+            sink.clear();
+            assertEquals(0, sink.queuedSamples());
+        }
+    }
 }

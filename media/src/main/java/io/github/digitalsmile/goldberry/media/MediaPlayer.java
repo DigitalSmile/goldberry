@@ -21,13 +21,14 @@ import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
 
-/// Plays audio: the non-visual Engine of `docs/goldberry-media.md` §3, with no
-/// widget attached. `audio-player` and `media-player` are built over one.
+/// Plays audio and video: the non-visual Engine of `docs/goldberry-media.md` §3,
+/// with no widget attached. `audio-player`, `video-view`, `media-controls` and
+/// `media-player` are built over one.
 ///
 /// ```java
 /// var player = MediaPlayer.builder().build(); // plays on the default device
 /// player.onStatus(status -> ui.post(() -> render(status)));
-/// player.open(Source.of(Path.of("episode.opus")));
+/// player.open(Source.of(Path.of("episode.webm")));
 /// player.seek(Duration.ofMinutes(12));
 /// ```
 ///
@@ -36,13 +37,15 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 /// are called on those threads.** A UI hands the value to its own thread, or
 /// reads [#status()] on its frame tick, which is what the widgets do.
 ///
-/// Phase 2 plays the audio track of a source. Video joins in phase 3
-/// (`docs/media-plan.md`).
+/// The default audio track and the default video track play, whichever of the
+/// two the source has. Cover art is never played as video. The picture to show
+/// now is [#currentPicture()], which a view asks for on every frame it paints.
 public final class MediaPlayer implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(MediaPlayer.class);
 
     private final Supplier<AudioSink> sinks;
+    private final MediaClock clock;
     private final List<DecoderProvider> decoderProviders;
     private final @Nullable List<MediaIOProvider> ioProviders;
     private final CopyOnWriteArrayList<Consumer<PlayerStatus>> listeners = new CopyOnWriteArrayList<>();
@@ -55,6 +58,7 @@ public final class MediaPlayer implements AutoCloseable {
 
     private MediaPlayer(Builder builder) {
         this.sinks = builder.sinks != null ? builder.sinks : SdlAudioSink::new;
+        this.clock = builder.clock != null ? builder.clock : MediaClock.system();
         this.decoderProviders = builder.decoderProviders != null
                 ? List.copyOf(builder.decoderProviders)
                 : ServiceLoader.load(DecoderProvider.class).stream()
@@ -90,7 +94,7 @@ public final class MediaPlayer implements AutoCloseable {
             var newSink = sinks.get();
             newSink.setGain(gain());
             sink = newSink;
-            next = new Playback(ffmpeg, source, ioProviders, decoderProviders, newSink, _ -> publish());
+            next = new Playback(ffmpeg, source, ioProviders, decoderProviders, newSink, clock, _ -> publish());
             playback = next;
         }
         if (previous != null) {
@@ -98,6 +102,17 @@ public final class MediaPlayer implements AutoCloseable {
         }
         next.start();
         publish();
+    }
+
+    /// How long until a picture that is not yet due falls due, or empty when none
+    /// is waiting. A picture already due is not counted, since the next
+    /// [#currentPicture()] shows it. A view uses this to paint when the next
+    /// picture falls due rather than on every frame of a 120 Hz display.
+    public Optional<Duration> untilNextPicture() {
+        return current().flatMap(playback -> {
+            var nanos = playback.nanosUntilNextPicture();
+            return nanos.isPresent() ? Optional.of(Duration.ofNanos(nanos.getAsLong())) : Optional.empty();
+        });
     }
 
     /// Plays after [#pause()]. Does nothing when nothing is open.
@@ -110,13 +125,31 @@ public final class MediaPlayer implements AutoCloseable {
         current().ifPresent(Playback::pause);
     }
 
-    /// Seeks to `position`, clamped at zero. The first sample heard is the one at
-    /// `position`, not the keyframe before it. Seeks requested while one runs are
-    /// coalesced.
+    /// Seeks to `position`, clamped at zero. The first sample heard and the first
+    /// picture shown are the ones at `position`, not the keyframe before it
+    /// ([SeekMode#ACCURATE]). Seeks requested while one runs are coalesced.
     public void seek(Duration position) {
+        seek(position, SeekMode.ACCURATE);
+    }
+
+    /// Seeks to `position` the way `mode` says. [SeekMode#KEYFRAME] is what a seek
+    /// bar asks for while it is dragged: the keyframe at or before the position
+    /// is shown, fast. Seeks requested while one runs are coalesced.
+    public void seek(Duration position, SeekMode mode) {
         Objects.requireNonNull(position, "position");
-        current().ifPresent(playback -> playback.seek(position.toNanos()));
+        Objects.requireNonNull(mode, "mode");
+        current().ifPresent(playback -> playback.seek(position.toNanos(), mode == SeekMode.ACCURATE));
         publish();
+    }
+
+    /// The picture to show now: the newest decoded picture whose time has come on
+    /// the master clock. A view calls this on every frame it paints and draws what
+    /// it gets. See [VideoPicture] for how long its pixels stay put.
+    ///
+    /// Empty when nothing is open, when the source has no video, and before its
+    /// first picture is decoded.
+    public Optional<VideoPicture> currentPicture() {
+        return current().flatMap(Playback::currentPicture);
     }
 
     /// Sets the linear volume, 0 to 1.
@@ -145,6 +178,7 @@ public final class MediaPlayer implements AutoCloseable {
                     Optional.empty(),
                     volume,
                     muted,
+                    Optional.empty(),
                     Optional.empty());
         }
         var playback = current.get();
@@ -155,14 +189,17 @@ public final class MediaPlayer implements AutoCloseable {
                 Optional.ofNullable(playback.error()),
                 volume,
                 muted,
-                Optional.ofNullable(playback.decoderName()));
+                Optional.ofNullable(playback.decoderName()),
+                Optional.ofNullable(playback.videoDecoderName()));
     }
 
     /// Calls `listener` with every new status. **On the Engine's threads.**
     ///
     /// Position is not pushed: it changes continuously, so it is read from
     /// [#status()] when it is needed. A status is pushed when the state, the
-    /// source's description, the error, the decoder, the volume or a seek changes.
+    /// source's description, the error, a decoder, the volume or a seek changes,
+    /// and when the first picture after a seek is ready, so that a paused view
+    /// shows where it was moved to.
     ///
     /// @return what removes the listener
     public AutoCloseable onStatus(Consumer<PlayerStatus> listener) {
@@ -224,6 +261,7 @@ public final class MediaPlayer implements AutoCloseable {
     public static final class Builder {
 
         private @Nullable Supplier<AudioSink> sinks;
+        private @Nullable MediaClock clock;
         private @Nullable List<? extends DecoderProvider> decoderProviders;
         private @Nullable List<? extends MediaIOProvider> ioProviders;
 
@@ -233,6 +271,13 @@ public final class MediaPlayer implements AutoCloseable {
         /// an [SdlAudioSink] on the default playback device.
         public Builder sink(Supplier<AudioSink> sinks) {
             this.sinks = Objects.requireNonNull(sinks, "sinks");
+            return this;
+        }
+
+        /// What a source with no audio is timed against: [MediaClock#system()]
+        /// unless a test hands in a clock it moves itself (§7, S5).
+        public Builder clock(MediaClock clock) {
+            this.clock = Objects.requireNonNull(clock, "clock");
             return this;
         }
 

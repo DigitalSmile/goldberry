@@ -2,9 +2,12 @@ package io.github.digitalsmile.goldberry.media.ffi;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
@@ -12,8 +15,10 @@ import io.github.digitalsmile.goldberry.media.codec.AudioFrame;
 import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.Packet;
+import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.Rational;
 import io.github.digitalsmile.goldberry.media.codec.Received;
+import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
 
 /// The built-in decoder: one `AVCodecContext`, behind the [Decoder] SPI every
 /// provider implements (`docs/goldberry-media.md` §5).
@@ -29,28 +34,53 @@ import io.github.digitalsmile.goldberry.media.codec.Received;
 /// copies what it keeps. So the packet can come from any demuxer, and it can be
 /// closed as soon as `send` returns.
 ///
-/// **Frames are lent out.** An [AudioFrame]'s planes are the `AVFrame`'s own
-/// buffers, valid until the next call. That is the zero-copy half the frame
-/// contract allows.
+/// **Frames are lent out.** An [AudioFrame]'s planes, and a [VideoFrame]'s, are
+/// the `AVFrame`'s own buffers, valid until the next call. That is the zero-copy
+/// half the frame contract allows.
 ///
-/// Phase 2 decodes audio. A video frame is refused until CPU present (phase 3)
-/// maps pixel formats.
+/// **Pictures outside the contract are converted.** A decoder whose output is
+/// one of the [PixelFormat]s is lent as it is: 8-bit and 10-bit 4:2:0, which is
+/// what VP8, VP9 and dav1d produce for ordinary content. Anything else (4:2:2,
+/// 4:4:4, 12-bit, VP9's RGB profile) is converted to [PixelFormat#I420] into a
+/// buffer this decoder owns, so the present path knows four layouts and not every
+/// one FFmpeg has. The price is one copy, for content that is rare.
+///
+/// **Colour.** The matrix and range come from the frame's tags. A frame with no
+/// matrix tag is BT.709 from 720 rows up and BT.601 below, the convention every
+/// player follows for untagged video.
+///
+/// Video decoders are opened with FFmpeg's automatic thread count, one per core.
+/// That changes when frames arrive and never what is in them.
 public final class FfmpegDecoder implements Decoder {
+
+    /// Rows of the fallback conversion's planes start on this boundary, which is
+    /// what swscale's vector paths like best.
+    private static final int ALIGN = 64;
 
     private final Ffmpeg ffmpeg;
     private final MemorySegment context;
     private final MemorySegment packet;
     private final MemorySegment frame;
     private final Rational timeBase;
+    private final boolean video;
+    private final Arena arena = Arena.ofShared();
+    private @Nullable VideoConverter converter;
+    private MemorySegment converted = MemorySegment.NULL;
     private boolean closed;
 
     private FfmpegDecoder(
-            Ffmpeg ffmpeg, MemorySegment context, MemorySegment packet, MemorySegment frame, Rational timeBase) {
+            Ffmpeg ffmpeg,
+            MemorySegment context,
+            MemorySegment packet,
+            MemorySegment frame,
+            Rational timeBase,
+            boolean video) {
         this.ffmpeg = ffmpeg;
         this.context = context;
         this.packet = packet;
         this.frame = frame;
         this.timeBase = timeBase;
+        this.video = video;
     }
 
     /// Whether this build has a decoder for the codec `parameters` describe.
@@ -84,14 +114,27 @@ public final class FfmpegDecoder implements Decoder {
                     ffmpeg,
                     "avcodec_parameters_to_context",
                     ffmpeg.codec().parametersToContext().call(context, parameters));
-            AvCodecContextView.packetTimeBase(AvCodecContextView.of(context), timeBase);
+            var view = AvCodecContextView.of(context);
+            AvCodecContextView.packetTimeBase(view, timeBase);
+            var video = AvCodecParametersView.codecType(parameters)
+                    == ffmpeg.constants().mediaTypeVideo();
+            if (video) {
+                AvCodecContextView.threadCount(view, 0);
+            }
             check(ffmpeg, "avcodec_open2", ffmpeg.codec().open2().call(context, codec, MemorySegment.NULL));
             packet = ffmpeg.codec().packetAlloc().call();
             frame = ffmpeg.util().frameAlloc().call();
             if (packet.equals(MemorySegment.NULL) || frame.equals(MemorySegment.NULL)) {
                 throw new OutOfMemoryError("av_packet_alloc or av_frame_alloc failed");
             }
-            return new FfmpegDecoder(ffmpeg, context, AvPacketView.of(packet), AvFrameView.of(frame), timeBase);
+            return new FfmpegDecoder(
+                    ffmpeg,
+                    context,
+                    AvPacketView.of(packet),
+                    AvFrameView.of(frame),
+                    timeBase,
+                    AvCodecParametersView.codecType(parameters)
+                            == ffmpeg.constants().mediaTypeVideo());
         } catch (RuntimeException | Error e) {
             Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
             Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
@@ -154,7 +197,7 @@ public final class FfmpegDecoder implements Decoder {
             return Received.ENDED;
         }
         check(ffmpeg, "avcodec_receive_frame", result);
-        return new Received.Decoded(audioFrame());
+        return new Received.Decoded(video ? videoFrame() : audioFrame());
     }
 
     @Override
@@ -173,6 +216,112 @@ public final class FfmpegDecoder implements Decoder {
         Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
         Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
         Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
+        if (converter != null) {
+            converter.close();
+        }
+        arena.close();
+    }
+
+    private VideoFrame videoFrame() {
+        var video = ffmpeg.constants().video();
+        var width = AvFrameView.width(frame);
+        var height = AvFrameView.height(frame);
+        var avFormat = AvFrameView.format(frame);
+        var matrix = video.matrix(AvFrameView.colorSpace(frame))
+                .orElse(height >= 720 ? VideoFrame.ColorMatrix.BT709 : VideoFrame.ColorMatrix.BT601);
+        var fullRange = AvFrameView.colorRange(frame) == video.rangeJpeg();
+        var pts = ptsNanos();
+        var format = video.pixelFormat(avFormat);
+        if (format.isPresent() && lendable(format.get())) {
+            var planes = new ArrayList<MemorySegment>(format.get().planes());
+            var strides = new ArrayList<Integer>(format.get().planes());
+            for (var plane = 0; plane < format.get().planes(); plane++) {
+                var stride = AvFrameView.lineSize(frame, plane);
+                var size = (long) stride * (format.get().planeRows(plane, height) - 1)
+                        + format.get().planeRowBytes(plane, width);
+                planes.add(Pointers.array(AvFrameView.data(frame, plane), JAVA_BYTE, size));
+                strides.add(stride);
+            }
+            return new VideoFrame(format.get(), width, height, planes, strides, matrix, fullRange, pts);
+        }
+        return convertedFrame(avFormat, width, height, matrix, fullRange, pts);
+    }
+
+    /// Whether the `AVFrame` can be lent as `format`: every plane there, and rows
+    /// that run downwards. A negative line size is a bottom-up picture, which the
+    /// contract has no way to say.
+    private boolean lendable(PixelFormat format) {
+        for (var plane = 0; plane < format.planes(); plane++) {
+            if (AvFrameView.lineSize(frame, plane) <= 0
+                    || AvFrameView.data(frame, plane).equals(MemorySegment.NULL)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// A picture outside the contract, converted to I420 in this decoder's own
+    /// buffer, which the next call overwrites exactly as it would a lent frame.
+    private VideoFrame convertedFrame(
+            int avFormat, int width, int height, VideoFrame.ColorMatrix matrix, boolean fullRange, long pts) {
+        if (ffmpeg.pixelFormatName(avFormat).isEmpty()) {
+            throw new MediaException(new MediaError.InvalidData(
+                    "the decoder produced pixel format #" + avFormat + ", which this build does not know"));
+        }
+        var format = PixelFormat.I420;
+        var strides = new ArrayList<Integer>(3);
+        var offsets = new long[3];
+        var total = 0L;
+        for (var plane = 0; plane < 3; plane++) {
+            var stride = align(format.planeRowBytes(plane, width));
+            strides.add(stride);
+            offsets[plane] = total;
+            total += (long) stride * format.planeRows(plane, height);
+        }
+        if (converted.byteSize() < total) {
+            converted = arena.allocate(total, ALIGN);
+        }
+        var planes = new ArrayList<MemorySegment>(3);
+        for (var plane = 0; plane < 3; plane++) {
+            planes.add(converted.asSlice(offsets[plane], (long) strides.get(plane) * format.planeRows(plane, height)));
+        }
+        var sources = new ArrayList<MemorySegment>(4);
+        var sourceStrides = new ArrayList<Integer>(4);
+        for (var plane = 0; plane < 4; plane++) {
+            sources.add(AvFrameView.data(frame, plane));
+            sourceStrides.add(AvFrameView.lineSize(frame, plane));
+        }
+        if (converter == null) {
+            converter = new VideoConverter(ffmpeg);
+        }
+        var video = ffmpeg.constants().video();
+        converter.convert(
+                width,
+                height,
+                avFormat,
+                sources,
+                sourceStrides,
+                video.swsColorspace(matrix),
+                fullRange,
+                video.pixFmtYuv420p(),
+                planes,
+                strides);
+        return new VideoFrame(format, width, height, planes, strides, matrix, fullRange, pts);
+    }
+
+    private static int align(int bytes) {
+        return (bytes + ALIGN - 1) / ALIGN * ALIGN;
+    }
+
+    /// The frame's presentation time, falling back to its packet's decode time
+    /// when the decoder left the presentation time unset.
+    private long ptsNanos() {
+        var noPts = ffmpeg.constants().noPtsValue();
+        var pts = AvFrameView.pts(frame);
+        if (pts == noPts) {
+            pts = AvFrameView.packetDts(frame);
+        }
+        return pts == noPts ? Frame.NO_PTS : timeBase.toNanos(pts);
     }
 
     private AudioFrame audioFrame() {

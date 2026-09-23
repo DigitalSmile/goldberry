@@ -15,9 +15,9 @@ Status: engine decided (FFmpeg-direct, supersedes libVLC). Two scope decisions: 
 | **Read-ahead cache** | `HttpIO`'s byte-range cache; source of the buffered ranges shown on the seek slider. |
 | **Track** | One selectable audio, video or subtitle stream of a Source. |
 | **Packet queue** | Bounded per-Track queue of demuxed `AVPacket`s. |
-| **Frame queue** | Small (3–4) queue of decoded video frames with pts. |
+| **Frame queue** | Small queue (3) of pictures already converted for presentation, with pts, over a pool of at most seven reusable buffers. |
 | **Serial** | Integer bumped on every seek; packets/frames with a stale Serial are discarded. |
-| **Master clock** | The time base video is presented against. Audio clock when an audio Track plays, else monotonic; virtual in tests. |
+| **Master clock** | The time base video is presented against. Audio clock when an audio Track plays, else a free-running clock over the `MediaClock` (monotonic by default); virtual in tests. |
 | **Copy-back** | Transfer of a HW-decoded surface to system memory as NV12/P010. |
 | **Present path** | How a frame reaches the screen: **GPU present** (plane upload + shader) or **CPU present** (swscale → `BLImage`). |
 | **Fallback ladder** | Ordered degradation: HW decode → software decode; GPU present → CPU present. |
@@ -94,17 +94,17 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 
 **Codec resolution.** The Engine holds no codec whitelist. Per Track: ask DecoderProviders in priority order (`supports(codec, params)`), the built-in FFmpeg provider last, which answers from `avcodec_find_decoder` at runtime. No provider → `UNSUPPORTED_CODEC`. `MediaCapabilities` exposes the resolved decoder/demuxer set (`av_codec_iterate`, `av_demuxer_iterate` + providers) for apps and diagnostics.
 
-**Master clock.** Audio: pts of last queued sample − the sink's queued duration (`SDL_GetAudioStreamQueued` on the desktop) − device latency. Kept in samples, so it adds up exactly. No audio Track: monotonic. Tests: virtual clock via the Clock SPI.
+**Master clock.** Audio: pts of last queued sample − the sink's queued duration (`SDL_GetAudioStreamQueued` on the desktop). Kept in samples, so it adds up exactly. The SDL sink reports its queue draining smoothly between the device's 1024-sample pulls, never by more than a pull, so the clock moves continuously rather than in 21 ms steps (ADR-0463). No audio Track, or the rest of a video whose audio has ended: a free-running clock over `MediaClock`, the Clock SPI, which is `System.nanoTime` unless a test hands in its own. Tests: `VirtualSink` for audio, a hand-moved `MediaClock` otherwise. *Device latency is not subtracted yet: SDL 3 does not report it. On Bluetooth output that leaves pictures up to ~200 ms ahead of the sound; a per-platform latency query or a user offset is open in `media-plan.md`.*
 
-**Presentation.** On each Goldberry frame tick the `video-view` takes the newest frame with pts ≤ Master clock and drops older ones.
+**Presentation.** The `video-view` shows the newest picture with pts ≤ Master clock, and the ones it passed are dropped. As built (ADR-0463): the video decode thread converts each picture it keeps as it decodes it, so the queue holds pictures ready to blit and the borrowed frame is done with before the decoder's next call; whoever presents moves the queue on, the view when it paints and the decode thread while it waits for room, so a player with no view still reaches its end; and the view paints when the next picture falls due (`MediaPlayer.untilNextPicture()`), not on every display refresh. A picture late by a whole frame is dropped before conversion, unless it is the first since a seek or no packet waits after it.
 - GPU present: upload Y and UV planes, YUV→RGB in a shader; matrix (BT.601/709/2020) and range come from the frame's colorspace fields.
-- CPU present: swscale → PRGB32 → `BLImage`. Used by the CPU/headless backend and by all golden tests.
+- CPU present: swscale → PRGB32 → `BLImage`. Used by the CPU/headless backend and by all golden tests. Converted with `SWS_BITEXACT | SWS_ACCURATE_RND` at the decoded size, so the bytes are the same on every CPU; the blit scales.
 
 **Fallback ladder.** `hw-decode: auto|off`. HW device creation fails → software. Copy-back fails mid-stream → reopen codec in software, resume from last keyframe. GPU canvas unavailable → CPU present.
 
 **State.** `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` from any state. Observable properties: `position`, `duration`, `bufferedAhead`, `volume`, `muted`, `rate`, `tracks`, `selectedTracks`, `videoSize`, `isLive`, `isSeekable`, `bufferedRanges`, `nowPlaying` (ICY), `error` (incl. `UNSUPPORTED_CODEC` with codec name).
 
-**Seeking.** Requests are coalesced (only the latest runs). During slider drag: keyframe seek, show the keyframe. On release: accurate seek (decode-and-discard to target pts). Paused: frame step forward. An accurate seek is exact to the container's timestamps: FLAC, WAV and MP4 count in samples, so the first sample heard is the target's; Matroska counts in milliseconds, so it lands within half a millisecond (24 samples at 48 kHz). Both are tested against the fixture corpus.
+**Seeking.** Requests are coalesced (only the latest runs). `MediaPlayer.seek(position, SeekMode)`: `KEYFRAME` during a slider drag shows the keyframe; `ACCURATE` on release (and the default) decodes and discards to the target pts and shows the picture that covers it. A paused player still decodes one picture after each seek, so a paused seek, and a scrub, show where they landed; audio honours the seek while paused too, so play afterwards does not replay the old position's queued samples. The seek bar learns of the release from `slider`'s commit hook (ADR-0464). Paused: frame step forward (*not built yet*). An accurate seek is exact to the container's timestamps: FLAC, WAV and MP4 count in samples, so the first sample heard is the target's; Matroska counts in milliseconds, so it lands within half a millisecond (24 samples at 48 kHz). Both are tested against the fixture corpus.
 
 **Rate.** v1 uses `SDL_SetAudioStreamFrequencyRatio` (pitch shifts with rate). Pitch-preserving tempo is post-v1.
 
@@ -153,7 +153,7 @@ rank last.
 
 `CodecId` is Goldberry's own enum mapped from `AVCodecID` (the SPI never exposes FFmpeg types). `TrackParams` carries what `AVCodecParameters` holds: dimensions, pixel/sample format, profile, level, bit depth, sample rate, channel layout, colorspace. `Packet` and `Frame` wrap native `MemorySegment`s; a provider may decode straight from the packet buffer without copying.
 
-Frame contract: video as NV12 / I420 / P010 planes in `MemorySegment`s with pts, colorspace and range; audio in any of twelve `SampleFormat`s (u8, s16, s32, s64, f32, f64, each interleaved or planar) with pts, rate and channel count. The Engine's one resampling pass converts all of them, so no provider converts, and the built-in decoder lends FFmpeg's buffers without a copy. A frame is borrowed until the decoder's next call. A provider that decodes on the GPU performs its own Copy-back; a provider failing in `open` or mid-stream drops the Engine to the next provider (Fallback ladder extended: provider → next provider → built-in). HW decode inside a provider is the provider's business; the Engine's `hw-decode` option governs only the built-in provider.
+Frame contract: video as NV12 / I420 / P010 / I010 planes in native `MemorySegment`s with pts, colorspace and range (I010, 10-bit planar 4:2:0, joined in phase 3 because it is what dav1d and VP9 profile 2 produce; the built-in decoder converts any other format to I420); audio in any of twelve `SampleFormat`s (u8, s16, s32, s64, f32, f64, each interleaved or planar) with pts, rate and channel count. The Engine's one resampling pass converts all of them, so no provider converts, and the built-in decoder lends FFmpeg's buffers without a copy. A frame is borrowed until the decoder's next call. A provider that decodes on the GPU performs its own Copy-back; a provider failing in `open` or mid-stream drops the Engine to the next provider (Fallback ladder extended: provider → next provider → built-in). HW decode inside a provider is the provider's business; the Engine's `hw-decode` option governs only the built-in provider.
 
 Container reach: `mov` and `matroska` deliver whole frames plus container extradata (avcC/hvcC/esds), so H.264/HEVC/AAC in MP4/MKV reach a provider with the published natives untouched. Formats that need a parser to frame the stream (MPEG-TS, raw Annex B, ADTS) are out of scope: the published natives build no parsers for patented codecs and the `mpegts` demuxer is not built.
 
@@ -170,7 +170,7 @@ I/O has the same shape already: a custom `MediaIO` registered for a URL scheme a
 | `media-player` | `video-view` + `media-controls` overlay + subtitle overlay. |
 | `audio-player` | Compact `media-controls`; optional cover art from the attached-picture stream; `nowPlaying` line for Live Sources. |
 
-Keys: Space play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, F fullscreen, `,` `.` frame step when paused.
+Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start; *F fullscreen and `,` `.` frame step are phase 7*. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
 
 Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1.
 
@@ -190,7 +190,7 @@ Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Ico
 
 **S6. Live Source (internet radio).** Source resolves to `IcyIO` → `isLive = true`, `isSeekable = false`; `audio-player` hides the seek slider, shows a LIVE badge and the `nowPlaying` line from ICY metadata; after the initial BUFFERING the Water marks only trigger on network stalls.
 
-**S7. Unsupported codec.** User opens an MP4 with H.264/AAC. `mov` demuxer lists the Tracks; no decoder exists for them → ERROR with `UNSUPPORTED_CODEC(h264, aac)`; `media-player` shows the codec names in its error state.
+**S7. Unsupported codec.** User opens an MP4 with H.264/AAC. `mov` demuxer lists the Tracks; no decoder exists for them → ERROR with `UNSUPPORTED_CODEC(h264, aac)`; `media-player` shows the codec names in its error state. Every chosen track is checked before any plays, so the error names every codec that has no decoder; a file where only one of the two is missing fails too, rather than playing half of it.
 
 **S8. Bring your own codec.** An app adds a DecoderProvider for H.264/AAC on the classpath. User opens the MP4 from S7: `mov` lists the Tracks; Codec resolution finds the provider (`supports` → true), opens a Decoder per Track with the container extradata; decode threads run `send/receive` exactly as with the built-in provider; frames enter the Frame queue, Master clock and Present path unchanged. The provider fails mid-stream → Fallback ladder tries the next provider, finds none → ERROR `UNSUPPORTED_CODEC`.
 

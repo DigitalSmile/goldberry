@@ -56,6 +56,13 @@ $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a lib
 $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a flac -shortest -f mp4 \
     "$out/clip-av1.mp4"
 
+# Two pictures outside 8-bit 4:2:0, silent and a fifth of a second each: VP9
+# profile 1 (4:4:4), which the built-in decoder converts to I420, and profile 2
+# (10-bit 4:2:0), which it lends as I010.
+short="testsrc2=s=160x90:r=25:d=0.2"
+$ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p -b:v 200k "$out/clip-vp9-444.webm"
+$ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv420p10le -b:v 200k "$out/clip-vp9-10bit.webm"
+
 # --- The patent-pool pair the published natives deliberately do not decode
 # (goldberry-media.md S7): H.264 video and AAC audio in MP4. It opens, and it
 # must report UNSUPPORTED_CODEC naming both.

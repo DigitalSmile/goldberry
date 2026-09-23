@@ -36,8 +36,10 @@ module io.github.digitalsmile.goldberry.media {
     /// JSpecify's nullness annotations, for the packages under NullAway.
     requires transitive static org.jspecify;
 
-    /// The furniture: [io.github.digitalsmile.goldberry.media.MediaProbe] opens a
-    /// source and says what is in it, and the errors say why it could not.
+    /// The furniture: [io.github.digitalsmile.goldberry.media.MediaPlayer], which
+    /// plays, [io.github.digitalsmile.goldberry.media.MediaProbe], which says what
+    /// a source holds, the status and pictures a player reports, the Clock SPI,
+    /// and the errors.
     exports io.github.digitalsmile.goldberry.media;
 
     /// What a track *is*, in Goldberry's words rather than FFmpeg's: the codec, the
@@ -54,8 +56,8 @@ module io.github.digitalsmile.goldberry.media {
     /// writes. The desktop sink is SDL's. A test's sink plays in no time.
     exports io.github.digitalsmile.goldberry.media.audio;
 
-    /// The widgets: `audio-player` now, `video-view`, `media-controls` and
-    /// `media-player` in phase 3.
+    /// The widgets: `audio-player`, `video-view`, `media-controls` and
+    /// `media-player`.
     exports io.github.digitalsmile.goldberry.media.view;
 
     /// Opened to `:core`, which reads `media.css` out of this package.

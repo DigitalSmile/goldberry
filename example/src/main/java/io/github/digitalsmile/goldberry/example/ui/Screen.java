@@ -98,7 +98,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "emoji", "motion", "web", "media");
+            "canvas", "icons", "emoji", "motion", "web", "audio", "video");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -127,7 +127,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("emoji", "Emoji"),
             Map.entry("motion", "Motion"),
             Map.entry("web", "Web view"),
-            Map.entry("media", "Media"));
+            Map.entry("audio", "Audio"),
+            Map.entry("video", "Video"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -200,7 +201,10 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         /// [HtmlScreen].
         private Widget html;
 
-        private Widget media;
+        /// And the two media screens' players, each from its own document.
+        private Widget audio;
+
+        private Widget video;
 
         @Override
         protected void initState() {
@@ -211,7 +215,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             forms = Panes.forms(widget().inflater());
             markdown = Panes.markdown(widget().inflater());
             html = Panes.html(widget().inflater());
-            media = Panes.media(widget().inflater());
+            audio = Panes.audio(widget().inflater());
+            video = Panes.video(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
@@ -320,8 +325,11 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // moves (ADR-0354); the gallery is longer than ten digits now,
                     // so this screen has no accelerator.
                     new Tab("web", title("web"), new WebScreen()),
-                    new Tab("media", title("media"),
-                            scrolled(new MediaScreen(model.mediaPlayer(), model.javaPcmDecoder(), media)))))),
+                    new Tab("audio", title("audio"),
+                            scrolled(new MediaScreen(
+                                    MediaScreen.Kind.AUDIO, model.audioPlayer(), model.javaPcmDecoder(), audio))),
+                    new Tab("video", title("video"),
+                            scrolled(new MediaScreen(MediaScreen.Kind.VIDEO, model.videoPlayer(), null, video)))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

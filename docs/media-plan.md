@@ -20,6 +20,8 @@ it waits for. **answered** means decided not to build, with the reason.
 | `:media` binds its own libraries: the second module allowed to hold a `MemorySegment`, and the only one whose libraries are not `libgoldberry` | 0461 | done |
 | No preview features. The published jar must load on any JDK ≥ 25 without `--enable-preview` | — | done |
 | Not published yet. `:media` joins `PublishedModules` when its natives jar exists on all four targets | — | open |
+| Video is converted to BGRA as it is decoded, presented against the master clock by whoever asks, and painted when a picture falls due; the SDL sink's queue drains smoothly between pulls | 0463 | done |
+| `slider` says when a gesture ends (`onCommit`, `commit=`), so a seek bar scrubs while dragged and seeks exactly on release | 0464 | done |
 
 ## Corrections to the design, found while building
 
@@ -33,6 +35,12 @@ The design document is kept in step with these. Each one is written into
 | §2 packaging | classifiers `macos-x64`, `linux-arm64` | the project's matrix is `linux-x64`, `linux-aarch64`, `windows-x64`, `macos-aarch64` (ADR-0041). Media uses the same four names | done |
 | §2 constants | not discussed | `AVERROR(EAGAIN)` is −35 on macOS and −11 on Linux and Windows, so it is read from the probe output and never hard-coded | done |
 | §2 dav1d | listed as its own library in the size budget | linked statically into `avcodec`. There is one fewer file to load and nothing changes in the licence (BSD-2) | done |
+| §5 frame contract | NV12, I420, P010 | and **I010**, 10-bit planar 4:2:0, which dav1d and VP9 profile 2 produce: the common 10-bit case is lent without a copy. The built-in decoder converts any other format (4:2:2, 4:4:4, 12-bit, VP9's RGB) to I420. Planes must be native memory, since swscale reads their addresses | done |
+| §3 packet queues | bounded queues the demux thread blocks on | a blocking put deadlocks with two tracks: video's queue full, audio's empty, the audio clock stopped, video waiting for it. `put` never blocks; the demux thread waits only when **every** queue is full, or one has run four times past its bounds (ffplay's rule). Queues are bounded by bytes too, for containers that give no packet durations | done |
+| §3 master clock | audio clock stepped by `SDL_GetAudioStreamQueued` | SDL drains in 1024-sample pulls, so the raw clock moves in 21 ms steps. `SdlAudioSink` reports the queue draining smoothly between pulls (ADR-0463) | done |
+| §3 master clock | "− device latency" | SDL 3 reports no device latency. Not subtracted; on Bluetooth output pictures lead the sound by up to ~200 ms | open: a per-platform latency query (CoreAudio, WASAPI, PulseAudio) or a user offset |
+| §7 S7 | an unsupported file errors | every chosen track is checked before any plays, so the error names every codec without a decoder, video first | done |
+| swscale | `sws_getContext` returns null for a conversion it cannot do | FFmpeg 8 **asserts** (aborts the process) on a format with no descriptor, such as `AV_PIX_FMT_NONE`. `VideoConverter` checks that both formats have names before asking | done |
 
 ## Local toolchain
 
@@ -60,7 +68,7 @@ with the layout test green.
 | Java layouts | hand-declared `StructLayout`s for the nine structs, with unread fields as padding | done |
 | Layout check | `FfmpegLayoutCheck` compares Java with the probe output. It runs in a unit test against the committed fixture, and at start-up against the packaged file | done |
 | Library loading | `FfmpegLibraries`: `goldberry.media.libdir`, then the classifier jar. Loads in dependency order, checks majors before any struct access, then checks layouts | done |
-| Bindings | `AvUtilCalls`, `AvFormatCalls`, `AvCodecCalls`, `SwCalls` as holder records (ADR-0173 idiom), with errors translated to `FfmpegException` | in progress. The 18 functions probing needs are done. The rest of the ~60 arrive with the phase that calls them |
+| Bindings | `AvUtilCalls`, `AvFormatCalls`, `AvCodecCalls`, `SwCalls` as holder records (ADR-0173 idiom), with errors translated to `FfmpegException` | done for phases 1–3: 48 functions. Phase 3 added swscale's context, scale, colour details and coefficients, and the `AVFrame` picture fields (size, `linesize`, colour, duration) and `AVCodecContext.thread_count`. HW decode (phase 5) adds the `av_hwdevice_*` family and `get_format` |
 | MediaIO SPI | `MediaIO`, `MediaIOProvider` (ServiceLoader, by URI scheme), `Source`, `FileIO` | done |
 | Custom `AVIOContext` | `read_packet` and `seek` upcalls, one stub pair per context (ADR-0017), no exception crosses into C, `AVSEEK_SIZE`, abort by closing | done |
 | Codec vocabulary | `CodecId` (Goldberry's own, mapped by FFmpeg codec *name* rather than number), `MediaType`, sealed `TrackParams` | done |
@@ -73,7 +81,7 @@ with the layout test green.
 | Upcall benchmark | `read_packet` cost against a 32 KB block (§10) | done: `:media:benchmark`. 532 ns per 32 KB block through the stub against 462 ns for the same copy with no crossing, so about 70 ns per block for a Java→C→Java round trip (61 GB/s). FFmpeg pays only the C→Java half. The risk in §10 is closed |
 | Native-image metadata | the upcall shapes and the descriptors `FfmpegDowncalls` records, in `META-INF/native-image` (ADR-0339's generator, for this module) | done: `:media:foreignMetadata` generates it into the jar, with the natives jar's resources as a glob. No native image has been built against it yet |
 | Coverage floor | a `jacocoTestCoverageVerification` rule, measured with FFmpeg loaded, as `:html` has | done: lines 0.84 and branches 0.72, against 85.9% and 74.4% measured. It applies only where FFmpeg is built |
-| Linux and Windows | the superbuild and the loader on the other three targets. The Windows branch of `CMakeLists.txt` is written and untested | open |
+| Linux and Windows | the superbuild and the loader on the other three targets | written, untested: no Linux or Windows host was available. Linux uses the shared branch, with no rpath because the loader opens the five in dependency order. Windows was hardened on review: FFmpeg's `configure` runs through MSYS2's `sh` (`GOLDBERRY_SH`), dav1d's `libdav1d.a` is copied to `dav1d.lib` for MSVC's linker, and the toolchain check asks for `sh` on Windows and `nasm` on every x64 host. Verifying it needs the runners, which is CI's work |
 
 ## Phase 2 — audio player and Decoder SPI
 
@@ -113,17 +121,17 @@ DecoderProvider (a sine generator) is chosen over the built-in one by priority.
 | Demux thread, packet queues, Serial | done: `Playback`'s demux thread and a duration-bounded `PacketQueue` with flush markers. A seek wakes a blocked producer, and seeks are coalesced |
 | Audio decode thread, swresample to interleaved f32 | done: decode on the track's own thread (the SPI's one-thread promise), one conversion to the sink's format, accurate-seek trimming to the sample, backpressure at 200 ms queued |
 | SDL audio: 8 `SDL_*AudioStream*` functions, `SDL_AudioSpec` and 2 constants in `libgoldberry`, with `natives.sdl.audio.SdlAudioStream` exported to `:media` alone | done (ADR-0462). `SdlAudioSink` is `MediaPlayer`'s default. Tests use SDL's `dummy` driver, so they are silent |
-| Clock SPI: audio master clock, monotonic clock, virtual clock | in progress: the audio clock is the sink's queue, counted in samples. The virtual clock for audio is `VirtualSink` (ADR-0462). The monotonic clock arrives with video, for sources with no audio track |
+| Clock SPI: audio master clock, monotonic clock, virtual clock | done: the audio clock is the sink's queue, counted in samples, smoothed between SDL's pulls. `MediaClock` is the SPI for the free-running clock a source with no audio uses, and a video after its audio ends. The virtual clocks are `VirtualSink` (ADR-0462) and a hand-moved `MediaClock` |
 | State machine `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` | done: `PlaybackState`, published as immutable `PlayerStatus` values |
 | Pause, seek (coalesced), volume, mute | done: the first sample after a seek is the target's, checked sample-exact (S2 for audio) |
-| `audio-player` widget | done: `media.view.AudioPlayer` (`@Markup("audio-player")`, `player=` names the `MediaPlayer`). It has play/pause, elapsed and remaining time, a seek `slider`, mute and volume, `LIVE` in place of the seek bar for an unseekable source, and the error message in `ERROR`. It rebuilds on pushed status and reads the position every 250 ms while playing. `media.css` carries the `--gb-media-*` tokens. Still open: **keys** (Space, ←/→, ↑/↓, M) come with `media-controls` in phase 3. **Seek on release**: `slider` has no release hook, so each drag step is an accurate seek, which the Engine coalesces. §3's keyframe-while-dragging needs a release hook in `:widgets`. **Goldens:** `audio-player-playing` (one scale) and `audio-player-error` (full scale sweep). The playing one is checked at one scale for a measured reason: at 1.25x every differing pixel is on a slider groove's edges (4 px at 1x, 5 at 1.25x). That is `slider`'s rounding in `:widgets`, and it is a follow-up there |
+| `audio-player` widget | done: `media.view.AudioPlayer` (`@Markup("audio-player")`, `player=` names the `MediaPlayer`). It has play/pause, elapsed and remaining time, a seek `slider`, mute and volume, `LIVE` in place of the seek bar for an unseekable source, and the error message in `ERROR`. Since phase 3 its controls are the shared `media-controls` bar (`Transport`): the **keys** (Space/K, ←/→, ↑/↓, M, Home) work, and the seek bar **scrubs to keyframes while dragged and seeks exactly on release** through `slider`'s commit hook (ADR-0464). `media.css` carries the `--gb-media-*` tokens. **Goldens:** `audio-player-playing` (one scale) and `audio-player-error` (full scale sweep). The playing one is checked at one scale for a measured reason: at 1.25x every differing pixel is on a slider groove's edges (4 px at 1x, 5 at 1.25x). That is `slider`'s rounding in `:widgets`, and it is still a follow-up there |
 | Fixture corpus (≤ 2 s per clip) | done: 14 clips made by `media/src/test/fixtures/make-fixtures.sh` (`brew install ffmpeg`) from synthetic signals, so they carry no third-party licence. **Audio:** FLAC in FLAC, MP4 and Matroska (sample-exact, after a seek too), Opus in MP4, Ogg and WebM, Vorbis in Ogg, MP3, and MP3 with PNG cover art. **Video, ready for phase 3:** VP8 and VP9 in WebM, AV1 in Matroska and MP4. **S7:** H.264 and AAC in MP4, which opens, lists both tracks, and fails with `UNSUPPORTED_CODEC` |
 
 ## Showcase: the Media tab
 
 | Item | Status |
 |------|--------|
-| A fifteenth tab, **Media**, after Web view (no digit key: the first ten keep theirs) | done |
+| A fifteenth tab, **Media**, after Web view (no digit key: the first ten keep theirs) | done, then split into **Audio** and **Video** in phase 3 |
 | `audio-player` from markup: `media.kdl` names the model's `MediaPlayer` as a named object | done |
 | Sources: Opus, Vorbis, MP3 with cover art, FLAC at 24 kHz mono (resampled), a live unseekable stream, a WAV decoded in Java, H.264/AAC (unsupported), bytes that are not media, a missing file, and **Open a file…** through the desktop's dialog. Clips are made by `example/samples/make-media-samples.sh` | done |
 | Driven from Java: play, pause, restart, seek to 25/50/75 %, mute, volume | done |
@@ -131,18 +139,32 @@ DecoderProvider (a sine generator) is chosen over the built-in one by priority.
 | A decoder written in Java: `JavaPcmDecoder`, a `DecoderProvider` with a switch | done |
 | Golden `gallery-media`, FFmpeg pinned off in the showcase's tests (the Web tab's rule), plus the 16 gallery goldens re-taken for the new tab label | done |
 | Native image: the clips are globbed in the manual reachability metadata. FFmpeg itself is not in an image yet | open, with the natives jar's publication |
+| Video (phase 3): a `media-player` above the `audio-player`, both over the one player (since split, next row). Two more samples made by the same script from FFmpeg's synthetic sources: a Mandelbrot zoom in VP9 with the arpeggio in Opus (pictures on the audio clock), and the Game of Life in AV1 with no audio (the free-running clock). The Status card names both decoders, and the file dialog offers video | done. Measured live on macos-aarch64: in sync (the picture at 2.96 s after 2.97 s of play), 33 frames a second while a 25 fps clip plays (the pictures and the two position polls), about 1.5 ms each. The gallery golden `gallery-media` is re-taken for the new pane |
+| Separate **Audio** and **Video** tabs (sixteen screens): each has its own `MediaPlayer`, its own document (`audio.kdl` with the `audio-player`, `video.kdl` with the `media-player`) and its own samples. Audio keeps the live stream, the failure cases and the Java decoder; Video has VP9 with Opus, AV1 with no sound, and the H.264 error case. One `MediaScreen` with a `Kind` builds both, and every id on it is prefixed with the kind | done. `gallery-audio` and `gallery-video` replace `gallery-media`, and the other gallery goldens are re-taken for the new tab labels |
 
 ## Phase 3 — video, software decode, CPU present
+
+**Exit status: met.** S2, S5 and S7 pass against the fixtures, and S8 passes with a
+fake H.264/AAC `DecoderProvider`, including its failure mid-stream. 248 tests in
+`:media` with FFmpeg required, and `:media:check` green with SpotBugs clean and the
+coverage floor raised to 0.87 of lines and 0.75 of branches (88.9% and 77.1%
+measured).
 
 Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 
 | Item | Status |
 |------|--------|
-| Video decode thread, frame queue, A/V sync | open |
-| swscale → PRGB32 → `BLImage` (CPU present) | open |
-| `video-view` (`fit: contain \| cover \| fill`) | open |
-| `media-controls`, `media-player`; keys; `--gb-media-*` tokens | open |
-| Byte-exact goldens on a virtual clock | open |
+| Video decode thread, frame queue, A/V sync | done (ADR-0463): `VideoWorker` decodes and converts each picture it keeps into a buffer from `FrameQueue` (3 waiting, at most 7 buffers, reused; a handed-out picture is safe until two newer ones are handed out). Presented against the master clock by the view when it paints and by the decode thread while it waits, so a player with no view ends. Late pictures are dropped before conversion. `Playback` now runs one packet queue per track, starts only when every track is ready (the sink opens paused, so the first sample and the first picture leave together), ends when every track has played out, and hands the clock to the free-running one when the audio ends first. `AudioWorker` and `VideoWorker` are the two decode threads |
+| swscale → PRGB32 → `BLImage` (CPU present) | done: `VideoConverter`, bit-exact, colour from the frame's tags (untagged is BT.709 from 720 rows, BT.601 below). `FfmpegDecoder` lends I420, NV12, P010 and I010 without a copy, and converts anything else to I420. `VideoPicture` is the public, borrowed result; the widget wraps its buffer as an `Image` with no copy |
+| `video-view` (`fit: contain \| cover \| fill`) | done: `media.view.VideoView` (`@Markup("video-view")`, `player=`, `fit=`, and `none`), over `VideoSurface`. It paints when the next picture falls due, not every refresh |
+| `media-controls`, `media-player`; keys; `--gb-media-*` tokens | done: `MediaControls` (`@Markup("media-controls")`) and `MediaPlayerView` (`@Markup("media-player")`: the picture, the overlay with the error and the controls, click to play or pause, the controls fading on `.is-pointer-idle` after 2.5 s of a still pointer while playing). Both and `audio-player` share `Transport` and the focusable `media-controls` bar. New tokens `--gb-media-backdrop`, `--gb-media-overlay-background`, `--gb-media-overlay-padding`, `--gb-media-player-min-height` |
+| Byte-exact goldens on a virtual clock | done: `PictureGolden` compares decoded pictures pixel for pixel. Eight goldens: VP8, VP9 and AV1 at fixed times on the audio clock (`VirtualSink`), and VP9 10-bit on a hand-moved `MediaClock`. The widgets have tolerance goldens: `media-player-paused`, `media-player-error` (S7) and `video-view-cover` |
+| Seek modes and scrubbing (S2) | done: `SeekMode.ACCURATE` shows the picture covering the target, `KEYFRAME` the keyframe landed on. A paused player decodes one picture after each seek, and audio honours a paused seek (it used to replay up to 200 ms of the old position on play) |
+| S7 in `media-player` | done: the H.264/AAC fixture shows `no decoder for h264, aac` over the picture |
+| S8 with a fake video provider | done: grey I420 pictures and silence from a test provider for `h264` and `aac`, presented unchanged; failing mid-stream, it falls to nothing and errors naming `h264` |
+| Frame step (`,` `.` while paused), fullscreen (`F`) | open: phase 7, with the rest of the keys §6 lists |
+| Device latency in the audio clock | open: see the corrections table |
+| Rate (`SDL_SetAudioStreamFrequencyRatio`) | open: phase 7 |
 
 ## Phases 4–7
 
@@ -160,6 +182,9 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | `docs/content-widgets.md` | table row, §8 rewritten from libVLC to FFmpeg, §12 licence row | done |
 | `docs/goldberry-media.md` | the corrections above | done |
 | `docs/ARCHITECTURE.md` §3.1 and §15 | the second native boundary, and `:media` in the module list | done |
+| `docs/goldberry-media.md` §3, §5, §6, §7 | phase 3 as built: presentation, the clock, seek modes, I010, the keys, S7's strictness | done |
+| `docs/core-widgets.md` §3 | `slider`'s commit hook (ADR-0464) | done |
+| `docs/content-widgets.md` §8, `docs/ARCHITECTURE.md` module table | the four widgets built | done |
 | `THIRD-PARTY-NOTICES.md`, `licenses/` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | open |
 
 ## Log
@@ -174,3 +199,6 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | 2026-09-23 | Encoded fixtures: FLAC in FLAC, FLAC in MP4, Opus in MP4, through the whole Engine. 159 tests green |
 | 2026-09-23 | `audio-player` widget in `media.view`, in the generated widget catalog. 169 tests green with FFmpeg required, and `:media:check` passes with the coverage floor. Phase 2 is done except the MP3 and Vorbis fixtures |
 | 2026-09-23 | Fixtures from a full FFmpeg: 14 clips, all audio codecs and containers, and video for phase 3. Phase 2's exit is met. Showcase **Media** tab with every source, control and state. 196 media tests and 222 showcase tests green. A headless run of the showcase on the Media tab loads FFmpeg and paints cleanly |
+| 2026-09-23 | Phases 1 and 2 closed, CI excepted. The Windows superbuild hardened on review (MSYS2 `sh`, `dav1d.lib`, `nasm` and `sh` in the toolchain check), untested for want of a host. Paused seeks now clear the sink, and a failed playback closes its sink |
+| 2026-09-23 | Phase 3: swscale bindings and the probe's colour and pixel-format constants, `I010`, video from `FfmpegDecoder`, `VideoConverter`, and the Engine rebuilt around one packet queue per track, `AudioWorker`, `VideoWorker`, `FrameQueue` and `MasterClock` with `MediaClock`. `SeekMode`, `VideoPicture`, `untilNextPicture`. S2, S5, S7 and S8 pass: 248 tests with FFmpeg required |
+| 2026-09-23 | Phase 3 widgets: `video-view`, `media-controls`, `media-player`, the keys, and `slider`'s commit hook in `:widgets` (ADR-0464). Showcase Media tab plays video. Measured live, the view repainted at display rate (107 frames a second for 25 pictures); pacing it by the next picture, and smoothing SDL's stepped queue, brought that to 33 at about 1.5 ms (ADR-0463) |

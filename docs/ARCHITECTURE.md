@@ -443,7 +443,7 @@ natives jars and its own `THIRD-PARTY-NOTICES`, and an application opts in.
 | `goldberry-code` | `code-view` | Tree-sitter (MIT) | candidate |
 | `goldberry-terminal` | `terminal-view` | libvterm (MIT) + a PTY in the backend SPI | candidate |
 | `goldberry-vector` | `svg-view`, `lottie-view` | ThorVG (MIT) | candidate — closes the SVG deferral in §6.3 |
-| `goldberry-media` | `video-view`, `AudioPlayer` | libVLC (LGPL-2.1+, **dynamic**) | last; gated on a codec/patent note |
+| `goldberry-media` | `audio-player`, `video-view`, `media-controls`, `media-player` | FFmpeg + dav1d (LGPL-2.1+ **dynamic**, BSD-2), ADR-0460 | phases 1–3 built (audio, video with CPU present, the four widgets); not published until its natives jar exists on all four targets |
 | `goldberry-camera` | `camera-view` | SDL3 camera | needs `SDL_OpenCamera*` on the export list, as `tray-icon` needed `SDL_Tray*` |
 | `goldberry-mic` | `level-meter`, `waveform-view`, `spectrum-view` | SDL3 audio recording | needs the SDL audio symbols |
 | `goldberry-plot` | scatter/histogram/heatmap/contour | first-party, on the chart primitives | post-v1 |

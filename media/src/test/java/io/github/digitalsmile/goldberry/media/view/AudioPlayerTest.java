@@ -167,8 +167,8 @@ class AudioPlayerTest {
     @Test
     @DisplayName("every glyph it draws is in the bundled icon set")
     void glyphs() {
-        for (var glyph : AudioPlayerState.Glyph.values()) {
-            try (var icon = Icon.bundled(glyph.lucide, AudioPlayerState.ICON_SIZE)) {
+        for (var glyph : Transport.Glyph.values()) {
+            try (var icon = Icon.bundled(glyph.lucide, Transport.ICON_SIZE)) {
                 assertEquals(glyph.lucide, icon.name());
             }
         }

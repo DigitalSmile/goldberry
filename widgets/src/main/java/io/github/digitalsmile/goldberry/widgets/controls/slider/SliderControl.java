@@ -134,7 +134,8 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
         return "slider-track";
     }
 
-    /// A press jumps, and every move until the release follows — §3.1's "1:1".
+    /// A press jumps, every move until the release follows — §3.1's "1:1" — and
+    /// the release commits ([Slider#onCommit(DoubleConsumer)]).
     ///
     /// Both the press and the moves after it read the same thing, so there is no
     /// separate "am I dragging" state to keep: the router's implicit capture is
@@ -143,6 +144,15 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
     /// ignored here.
     @Override
     public void onPointer(PointerEvent event) {
+        // The end of a press or a drag: the router sends the release to the node
+        // that took the press, wherever the pointer is now, so this is exactly
+        // "the gesture on this slider ended". Its position is the value the last
+        // move asked for.
+        if (event.kind() == PointerEvent.Kind.RELEASED && event.button() == PointerEvent.Button.PRIMARY) {
+            slider.commit(slider.scale().toValue(fractionOf(event), slider.min(), slider.max()));
+            event.consume();
+            return;
+        }
         var dragging =
                 switch (event.kind()) {
                     case PRESSED -> event.button() == PointerEvent.Button.PRIMARY;
@@ -223,6 +233,8 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
             return;
         }
         slider.ask(moved);
+        // A key press is a whole gesture: it commits as it changes.
+        slider.commit(moved);
         // Always consumed, even when the value did not move -- a slider at its
         // maximum still owns Right, and letting it through would hand the key to
         // a focus scope and move focus off the control the user is adjusting

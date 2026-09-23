@@ -93,6 +93,15 @@ def superbuildTools = [
         'pkg-config': resolveTool('pkg-config'),
         make        : resolveTool('make'),
 ]
+// dav1d's x86 assembly is nasm's: without it meson's configure fails on an x64
+// host, long after this check could have said so.
+if (hostTargetId.endsWith('-x64')) {
+    superbuildTools.nasm = resolveTool('nasm')
+}
+// FFmpeg's configure is a shell script, which Windows has to be told how to run.
+if (hostTargetId.startsWith('windows-')) {
+    superbuildTools.sh = resolveTool('sh')
+}
 
 def checkMediaToolchain = tasks.register('checkMediaToolchain') {
     group = 'native'
@@ -139,7 +148,8 @@ def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
     ]
     // Handed over by path so the superbuild's ExternalProjects run the same
     // executables this build checked, rather than searching a PATH of their own.
-    [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', 'pkg-config': 'GOLDBERRY_PKG_CONFIG', make: 'GOLDBERRY_MAKE']
+    [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', 'pkg-config': 'GOLDBERRY_PKG_CONFIG', make: 'GOLDBERRY_MAKE',
+     sh: 'GOLDBERRY_SH']
             .each { tool, variable ->
                 if (superbuildTools[tool] != null) {
                     arguments << "-D${variable}=${superbuildTools[tool].absolutePath}".toString()
@@ -360,7 +370,8 @@ tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar }
 // ============================================================================
 // Coverage floor (docs/testing.md §3)
 //
-// Measured with FFmpeg loaded on 2026-09-23: 85.9% of lines, 74.4% of branches.
+// Measured with FFmpeg loaded on 2026-09-23, after phase 3: 88.9% of lines,
+// 77.1% of branches (phase 2 closed at 85.9% and 74.4%).
 // The floor sits just under both, as :html's does. Without FFmpeg every native
 // test skips and the figure falls by a third, a gate no Java-only build could
 // pass, so it applies only where the libraries are there -- `:html`'s condition,
@@ -373,8 +384,8 @@ tasks.named('jacocoTestCoverageVerification') {
     }
     violationRules {
         rule {
-            limit { counter = 'LINE'; minimum = 0.84 }
-            limit { counter = 'BRANCH'; minimum = 0.72 }
+            limit { counter = 'LINE'; minimum = 0.87 }
+            limit { counter = 'BRANCH'; minimum = 0.75 }
         }
     }
 }

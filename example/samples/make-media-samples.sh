@@ -2,9 +2,10 @@
 # Regenerates the Media screen's sample clips in
 # src/main/resources/io/github/digitalsmile/goldberry/example/media/.
 #
-# One synthetic piece, written sample by sample below: twelve seconds of a
+# One synthetic piece of audio, written sample by sample below: twelve seconds of a
 # plucked arpeggio over a drone, 48 kHz stereo, panned note by note. It is our own
-# content, so the clips carry no third-party licence. Encoded by a full FFmpeg on
+# content, so the clips carry no third-party licence. The video is FFmpeg's own
+# synthetic sources (a Mandelbrot zoom, the Game of Life), ours for the same reason. Encoded by a full FFmpeg on
 # the developer's machine (`brew install ffmpeg`); nothing of it ships.
 #
 # Run from this directory: ./make-media-samples.sh
@@ -12,6 +13,8 @@ set -eu
 out=../src/main/resources/io/github/digitalsmile/goldberry/example/media
 work=$(mktemp -d)
 ff="ffmpeg -hide_banner -loglevel error -y -bitexact"
+# SVT-AV1 logs through its own channel; 1 is errors only.
+export SVT_LOG=1
 
 python3 - "$work/arpeggio.wav" <<'PY'
 import math, struct, sys
@@ -52,6 +55,15 @@ $ff -f lavfi -i "gradients=s=192x192:c0=0x5e81ac:c1=0x88c0d0:x0=0:y0=0:x1=192:y1
     -frames:v 1 "$work/cover.png"
 $ff -i "$wav" -i "$work/cover.png" -map 0:a -map 1:v -c:a libmp3lame -b:a 128k -c:v png \
     -disposition:v attached_pic -metadata title="Arpeggio (MP3)" "$out/arpeggio.mp3"
+
+# Video, from FFmpeg's own synthetic sources so it is ours too. VP9 with the
+# arpeggio's first eight seconds as Opus: pictures timed by the audio clock.
+$ff -f lavfi -i "mandelbrot=s=320x180:rate=25:end_pts=300" -i "$wav" -t 8 -map 0:v -map 1:a \
+    -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 250k -row-mt 1 -g 50 -c:a libopus -b:a 64k \
+    -metadata title="Mandelbrot (VP9 and Opus)" "$out/mandelbrot.webm"
+# AV1 with no sound at all: pictures timed by the free-running clock.
+$ff -f lavfi -i "life=s=320x180:rate=25:mold=10:ratio=0.1:death_color=#2e3440:life_color=#88c0d0" -t 4 \
+    -c:v libsvtav1 -preset 10 -crf 55 -g 50 -metadata title="Life (AV1)" "$out/life.mkv"
 
 # The patent-pool pair the published natives do not decode: the error state.
 $ff -f lavfi -i "testsrc2=s=160x90:r=25:d=1" -f lavfi -i "sine=f=440:d=1" \

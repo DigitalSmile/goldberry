@@ -1,13 +1,11 @@
 package io.github.digitalsmile.goldberry.media.engine;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-
 import java.io.IOException;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -18,77 +16,93 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.media.MediaClock;
 import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
 import io.github.digitalsmile.goldberry.media.MediaInfo;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
+import io.github.digitalsmile.goldberry.media.Track;
+import io.github.digitalsmile.goldberry.media.VideoPicture;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.AudioSink;
-import io.github.digitalsmile.goldberry.media.codec.AudioFrame;
-import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.MediaType;
-import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.ffi.Decoders;
 import io.github.digitalsmile.goldberry.media.ffi.Demuxer;
 import io.github.digitalsmile.goldberry.media.ffi.Ffmpeg;
-import io.github.digitalsmile.goldberry.media.ffi.Resampler;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MediaIOs;
 import io.github.digitalsmile.goldberry.media.io.Source;
 import io.github.digitalsmile.goldberry.media.io.UnsupportedSchemeException;
 
-/// One source, open and playing: the demux thread, the audio thread, and the
-/// state they share (`docs/goldberry-media.md` §3).
+/// One source, open and playing: the demux thread, a decode thread per track, and
+/// the state they share (`docs/goldberry-media.md` §3).
 ///
-/// Phase 2 plays the audio track. The video thread joins it in phase 3.
+/// ## The threads
 ///
-/// ## The two threads
+/// **Demux** opens the source, chooses the tracks, checks that each can be
+/// decoded, opens the sink, and reads packets into one [PacketQueue] per track.
+/// It owns seeking: a request becomes `avformat_seek_file`, a new Serial and a
+/// flush of every queue. Requests that arrive while one runs are coalesced, so
+/// only the latest runs. It stops reading only when **every** queue is full,
+/// so that one track's full queue cannot starve the other's decoder.
 ///
-/// **Demux** opens the source, opens the audio decoder and the sink, then reads
-/// packets into the [PacketQueue] until the end. It owns seeking: a request
-/// becomes `avformat_seek_file`, a new Serial and a queue flush. Requests that
-/// arrive while one runs are coalesced, so only the latest runs.
-///
-/// **Audio** takes packets, decodes, converts to the sink's format, discards what
-/// lies before a seek target (an accurate seek), and writes to the sink. It keeps
-/// about [#SINK_TARGET_NANOS] queued in the sink, which is both the latency and
-/// the cushion against a stall.
+/// **Audio** ([AudioWorker]) decodes, converts and writes to the sink. **Video**
+/// ([VideoWorker]) decodes, converts to BGRA and queues pictures in a
+/// [FrameQueue], where they wait for the master clock.
 ///
 /// ## The clock
 ///
-/// The audio clock is the master clock (§3). The audio thread records the
-/// presentation time of the end of the last sample it wrote. The sink says how
-/// many samples are still queued, and the difference is the time playing now
-/// ([#positionNanos()]). Pausing the sink freezes it, and a seek resets it to the
-/// target.
+/// The master clock is the audio clock while there is audio: the presentation
+/// time just past the last sample written, less what the sink still holds. A
+/// source with no audio runs on a free-running clock over the [MediaClock], and
+/// a video whose audio ends first hands over to one at the audio's last position
+/// ([MasterClock]).
+///
+/// ## Starting
+///
+/// The sink is opened paused. Playback starts, from [PlaybackState#BUFFERING] to
+/// [PlaybackState#PLAYING], when every track is ready: the sink holds
+/// [#START_THRESHOLD_NANOS] of audio, and the first picture is queued. So the
+/// first picture and the first sample leave together.
 ///
 /// ## Stopping
 ///
-/// [#close()] aborts the queue and the demuxer's I/O, which wakes every blocked
-/// wait, joins both threads, then closes the sink. Every native object is freed
-/// by the thread that used it.
+/// [#close()] aborts the queues and the demuxer's I/O, which wakes every blocked
+/// wait, joins the threads, then closes the sink. Every native object is freed by
+/// the thread that used it.
 public final class Playback implements AutoCloseable {
 
     /// How much decoded audio the audio thread keeps queued in the sink.
     static final long SINK_TARGET_NANOS = 200_000_000L;
 
-    /// How much the sink must hold before [PlaybackState#BUFFERING] becomes
-    /// [PlaybackState#PLAYING]: the low water mark, for a local file.
+    /// How much the sink must hold before audio counts as ready: the low water
+    /// mark, for a local file.
     static final long START_THRESHOLD_NANOS = 100_000_000L;
 
-    /// How much media the packet queue holds.
+    /// How much media each packet queue holds.
     static final long QUEUE_NANOS = 2_000_000_000L;
+
+    /// How many bytes of packets the audio queue holds, for a container that does
+    /// not say how long its packets are. Two seconds of 24-bit 96 kHz PCM.
+    static final long AUDIO_QUEUE_BYTES = 2L << 20;
+
+    /// The same for video: two seconds of 4K VP9 at a generous bit rate.
+    static final long VIDEO_QUEUE_BYTES = 16L << 20;
 
     private static final Logger LOG = Logs.of(Playback.class);
 
     /// What the Engine tells its owner. Called on the Engine's threads.
     public interface Listener {
-        /// The state, or what the source holds, or the decoder, changed.
+        /// The state, or what the source holds, or a decoder, or the picture after
+        /// a seek, changed.
         void changed(Playback playback);
     }
+
+    /// A seek waiting for the demux thread.
+    private record SeekRequest(long targetNanos, boolean accurate) {}
 
     private final Ffmpeg ffmpeg;
     private final Source source;
@@ -96,58 +110,74 @@ public final class Playback implements AutoCloseable {
     private final List<? extends DecoderProvider> decoderProviders;
     private final AudioSink sink;
     private final Listener listener;
-    private final PacketQueue queue = new PacketQueue(QUEUE_NANOS);
-    private final AtomicReference<@Nullable Long> pendingSeek = new AtomicReference<>();
+    private final MasterClock clock;
+    private final AtomicReference<@Nullable SeekRequest> pendingSeek = new AtomicReference<>();
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition wake = lock.newCondition();
+    /// Guards the state and the readiness flags, which three threads change.
+    private final Object gate = new Object();
     private final Thread demuxThread;
-    private final Thread audioThread;
+    private final List<Thread> workers = new ArrayList<>(2);
 
     private volatile PlaybackState state = PlaybackState.OPENING;
     private volatile @Nullable MediaInfo info;
     private volatile @Nullable MediaError error;
-    private volatile @Nullable String decoderName;
+    private volatile @Nullable String audioDecoderName;
+    private volatile @Nullable String videoDecoderName;
     private volatile @Nullable Demuxer demuxer;
+    private volatile @Nullable PacketQueue audioQueue;
+    private volatile @Nullable PacketQueue videoQueue;
+    private volatile @Nullable FrameQueue frames;
     private volatile AudioFormat format = AudioFormat.DEFAULT;
     private volatile boolean paused;
     private volatile boolean stopping;
-    /// The current Serial. The demux thread's alone; the audio thread learns it
-    /// from the flush markers in the queue.
+    /// Set by [#close()] alone. Not [#stopping]: a failure stops the threads too,
+    /// and the playback still has to be closed after one.
+    private volatile boolean closed;
+    /// The current Serial. The demux thread's alone; the decode threads learn it
+    /// from the flush markers in their queues.
     private int serial;
+    /// The Serial of the latest seek, written by the demux thread when it flushes.
+    /// A decode thread compares it with the Serial it is playing, to stop waiting
+    /// the moment its work has become stale.
+    private volatile int latestSerial;
     /// The sample index, at the sink's rate, just past the last sample written to
-    /// the sink. The clock is kept in samples so that it adds up exactly; it
+    /// the sink. The audio clock is kept in samples so that it adds up exactly; it
     /// becomes nanoseconds only when it is read.
     private volatile long writtenEndSample;
-    /// The Serial of the latest seek, written by the demux thread when it flushes.
-    /// The audio thread compares it with the Serial it is playing, to stop waiting
-    /// on a full sink the moment its work has become stale.
-    private volatile int latestSerial;
-    /// The Serial the audio thread is playing. The audio thread's alone.
-    private int audioSerial;
-    /// What [#positionNanos()] reports while a seek settles: the target.
+    /// What the position reads while a seek settles: the target.
     private volatile long seekingToNanos = Frame.NO_PTS;
+
+    // Guarded by `gate`.
+    private boolean hasAudio;
+    private boolean hasVideo;
+    private boolean audioReady;
+    private boolean videoReady;
+    private boolean audioDone;
+    private boolean videoDone;
 
     /// Opens `source` and starts playing it, on threads of its own.
     ///
     /// @param ioProviders the protocols, or null for the ones `ServiceLoader`
     ///                    finds
+    /// @param time        what a source with no audio is timed against
     public Playback(
             Ffmpeg ffmpeg,
             Source source,
             @Nullable List<? extends MediaIOProvider> ioProviders,
             List<? extends DecoderProvider> decoderProviders,
             AudioSink sink,
+            MediaClock time,
             Listener listener) {
         this.ffmpeg = Objects.requireNonNull(ffmpeg, "ffmpeg");
         this.source = Objects.requireNonNull(source, "source");
         this.ioProviders = ioProviders;
         this.decoderProviders = List.copyOf(decoderProviders);
         this.sink = Objects.requireNonNull(sink, "sink");
+        this.clock = new MasterClock(time);
         this.listener = Objects.requireNonNull(listener, "listener");
         this.demuxThread =
                 Thread.ofPlatform().name("goldberry-media-demux").daemon().unstarted(this::demux);
-        this.audioThread =
-                Thread.ofPlatform().name("goldberry-media-audio").daemon().unstarted(this::audio);
     }
 
     /// Starts the threads. Separate from the constructor, so that no thread sees
@@ -173,7 +203,12 @@ public final class Playback implements AutoCloseable {
 
     /// The decoder playing the audio: a provider's name, or `ffmpeg`.
     public @Nullable String decoderName() {
-        return decoderName;
+        return audioDecoderName;
+    }
+
+    /// The decoder playing the video: a provider's name, or `ffmpeg`.
+    public @Nullable String videoDecoderName() {
+        return videoDecoderName;
     }
 
     /// The format the sink plays.
@@ -181,61 +216,93 @@ public final class Playback implements AutoCloseable {
         return format;
     }
 
-    /// What is playing now, in nanoseconds of stream time: the audio clock.
+    /// What is playing now, in nanoseconds of stream time: the master clock, or
+    /// the target while a seek settles.
     public long positionNanos() {
-        var seeking = seekingToNanos;
-        if (seeking != Frame.NO_PTS) {
-            return seeking;
+        return presentationNanos();
+    }
+
+    /// The picture to show now, handed out to a view that will draw it (see
+    /// [VideoPicture] for how long it stays valid), or empty before the first
+    /// picture, and for a source with no video.
+    public Optional<VideoPicture> currentPicture() {
+        var queue = frames;
+        return queue == null ? Optional.empty() : Optional.ofNullable(queue.present(presentationNanos(), true));
+    }
+
+    /// How long until a picture that is not yet due falls due, in nanoseconds of
+    /// stream time, or empty when none is waiting (nothing decoded yet, the end,
+    /// or no video). A picture already due is not counted: the next
+    /// [#currentPicture()] shows it.
+    public java.util.OptionalLong nanosUntilNextPicture() {
+        var queue = frames;
+        if (queue == null) {
+            return java.util.OptionalLong.empty();
         }
-        return format.nanos(Math.max(writtenEndSample - sink.queuedSamples(), 0));
+        var now = presentationNanos();
+        var next = queue.nextPtsAfter(now);
+        return next == Long.MIN_VALUE ? java.util.OptionalLong.empty() : java.util.OptionalLong.of(next - now);
     }
 
     /// Pauses. The sink keeps what it has queued, and the clock stops with it.
     public void pause() {
-        paused = true;
-        sink.pause();
-        if (state == PlaybackState.PLAYING || state == PlaybackState.BUFFERING) {
-            setState(PlaybackState.PAUSED);
+        boolean changed;
+        synchronized (gate) {
+            paused = true;
+            sink.pause();
+            clock.hold();
+            changed = (state == PlaybackState.PLAYING || state == PlaybackState.BUFFERING)
+                    && setStateLocked(PlaybackState.PAUSED);
         }
+        notifyIf(changed);
     }
 
     /// Plays after [#pause()].
     public void play() {
-        paused = false;
-        sink.resume();
-        signal();
-        if (state == PlaybackState.PAUSED) {
-            setState(PlaybackState.PLAYING);
+        boolean changed = false;
+        synchronized (gate) {
+            paused = false;
+            if (state == PlaybackState.PAUSED) {
+                if (readyLocked()) {
+                    startOutputLocked();
+                    changed = setStateLocked(PlaybackState.PLAYING);
+                } else {
+                    changed = setStateLocked(PlaybackState.BUFFERING);
+                }
+            } else if (state == PlaybackState.PLAYING || state == PlaybackState.ENDED) {
+                startOutputLocked();
+            }
         }
+        signal();
+        notifyIf(changed);
     }
 
     /// Seeks to `positionNanos`: the demux thread moves to the keyframe before
-    /// it, and the audio thread discards up to it, so the first sample heard is at
-    /// the target (an accurate seek, §3). Coalesced: while one seek runs, only the
-    /// latest request waits.
-    public void seek(long positionNanos) {
+    /// it; with `accurate`, the decode threads discard up to it, so the first
+    /// sample heard and the first picture shown are the target's (§3). Coalesced:
+    /// while one seek runs, only the latest request waits.
+    public void seek(long positionNanos, boolean accurate) {
         var target = Math.max(positionNanos, 0);
         seekingToNanos = target;
-        pendingSeek.set(target);
-        queue.wakeProducer();
+        pendingSeek.set(new SeekRequest(target, accurate));
         signal();
     }
 
-    /// Stops both threads, frees everything, and closes the sink. Idempotent.
+    /// Stops every thread, frees everything, and closes the sink. Idempotent.
     @Override
     public void close() {
-        if (stopping) {
+        if (closed) {
             return;
         }
+        closed = true;
         stopping = true;
-        queue.abort();
+        abortQueues();
         var open = demuxer;
         if (open != null) {
             open.abort();
         }
         signal();
         join(demuxThread);
-        join(audioThread);
         sink.close();
     }
 
@@ -251,29 +318,34 @@ public final class Playback implements AutoCloseable {
             if (stopping) {
                 return;
             }
-            info = opened.info();
-            var track = opened.info()
-                    .defaultTrack(MediaType.AUDIO)
-                    .orElseThrow(() -> new MediaException(new MediaError.InvalidData("no audio track to play")));
-            var stream = track.index();
-            opened.select(Set.of(stream));
-            format = sink.open(AudioFormat.DEFAULT);
-            audioInput = new AudioInput(opened, stream);
-            audioThread.start();
-            readPackets(opened);
+            var described = opened.info();
+            info = described;
+            var audio = described.defaultTrack(MediaType.AUDIO);
+            var video = described.defaultTrack(MediaType.VIDEO);
+            if (audio.isEmpty() && video.isEmpty()) {
+                throw new MediaException(new MediaError.InvalidData("nothing to play: no audio or video track"));
+            }
+            requireDecoders(opened, audio, video);
+            var selected = new HashSet<Integer>();
+            audio.ifPresent(track -> selected.add(track.index()));
+            video.ifPresent(track -> selected.add(track.index()));
+            opened.select(selected);
+            startWorkers(opened, audio, video);
+            readPackets(
+                    opened,
+                    audio.map(Track::index).orElse(-1),
+                    video.map(Track::index).orElse(-1));
         } catch (UnsupportedSchemeException e) {
             fail(new MediaError.UnsupportedScheme(e.scheme()), e);
         } catch (IOException e) {
             fail(new MediaError.Io(Objects.requireNonNullElse(e.getMessage(), e.toString())), e);
         } catch (MediaException e) {
-            if (!stopping) {
-                fail(e.error(), e);
-            }
+            fail(e.error(), e);
         } catch (RuntimeException e) {
             fail(new MediaError.InvalidData(e.toString()), e);
         } finally {
-            queue.abort();
-            join(audioThread);
+            abortQueues();
+            workers.forEach(Playback::join);
             if (opened != null) {
                 opened.close();
             }
@@ -287,242 +359,373 @@ public final class Playback implements AutoCloseable {
         }
     }
 
-    private void readPackets(Demuxer opened) {
+    /// Every track about to be played has a decoder, or the source fails naming
+    /// every codec that has none (§7, S7).
+    private void requireDecoders(Demuxer opened, Optional<Track> audio, Optional<Track> video) {
+        var unsupported = new ArrayList<String>(2);
+        for (var track : List.of(video, audio)) {
+            track.filter(chosen -> !Decoders.supports(ffmpeg, opened, chosen.index(), decoderProviders))
+                    .ifPresent(chosen -> unsupported.add(chosen.codecName()));
+        }
+        if (!unsupported.isEmpty()) {
+            throw new MediaException(new MediaError.UnsupportedCodec(unsupported));
+        }
+    }
+
+    private void startWorkers(Demuxer opened, Optional<Track> audio, Optional<Track> video) {
+        synchronized (gate) {
+            hasAudio = audio.isPresent();
+            hasVideo = video.isPresent();
+        }
+        if (audio.isPresent()) {
+            var queue = new PacketQueue(QUEUE_NANOS, AUDIO_QUEUE_BYTES);
+            audioQueue = queue;
+            format = sink.open(AudioFormat.DEFAULT);
+            // Opened paused: the first sample waits for the first picture.
+            sink.pause();
+            clock.followAudio(this::audioClockNanos);
+            workers.add(Thread.ofPlatform()
+                    .name("goldberry-media-audio")
+                    .daemon()
+                    .unstarted(new AudioWorker(this, opened, audio.get().index(), queue, format)::play));
+        }
+        if (video.isPresent()) {
+            var queue = new PacketQueue(QUEUE_NANOS, VIDEO_QUEUE_BYTES);
+            var pictures = new FrameQueue();
+            videoQueue = queue;
+            frames = pictures;
+            workers.add(Thread.ofPlatform()
+                    .name("goldberry-media-video")
+                    .daemon()
+                    .unstarted(new VideoWorker(this, opened, video.get().index(), queue, pictures)::play));
+        }
+        boolean changed;
+        synchronized (gate) {
+            changed = setStateLocked(paused ? PlaybackState.PAUSED : PlaybackState.BUFFERING);
+        }
+        notifyIf(changed);
+        workers.forEach(Thread::start);
+    }
+
+    private void readPackets(Demuxer opened, int audioStream, int videoStream) {
         var ended = false;
         while (!stopping) {
-            var target = pendingSeek.getAndSet(null);
-            if (target != null) {
-                opened.seek(target);
-                serial++;
-                queue.flush(serial, target);
-                latestSerial = serial;
+            var request = pendingSeek.getAndSet(null);
+            if (request != null) {
+                seekTo(opened, request);
                 ended = false;
-                if (state == PlaybackState.ENDED) {
-                    setState(paused ? PlaybackState.PAUSED : PlaybackState.BUFFERING);
-                }
                 continue;
             }
             if (ended) {
                 awaitWhile(() -> pendingSeek.get() == null);
                 continue;
             }
-            var packet = opened.read();
-            if (packet == null) {
-                queue.end(serial);
-                ended = true;
-            } else if (!queue.put(packet, serial) && stopping) {
-                return;
-            }
-        }
-    }
-
-    // ----------------------------------------------------------------- audio
-
-    /// What the demux thread hands the audio thread when it starts it.
-    private record AudioInput(Demuxer demuxer, int stream) {}
-
-    private volatile @Nullable AudioInput audioInput;
-
-    private void audio() {
-        var input = Objects.requireNonNull(audioInput);
-        Decoder decoder;
-        try {
-            // Opened here, on the thread that will use it: the SPI promises a
-            // decoder one thread (the track's decode thread), and a provider may
-            // hold thread-confined state.
-            var resolved = Decoders.open(ffmpeg, input.demuxer(), input.stream(), decoderProviders, 0);
-            decoder = resolved.decoder();
-            decoderName = resolved.provider();
-        } catch (MediaException e) {
-            if (!stopping) {
-                fail(e.error(), e);
-            }
-            return;
-        }
-        setState(paused ? PlaybackState.PAUSED : PlaybackState.BUFFERING);
-        var skip = 0;
-        var discardBeforeNanos = Frame.NO_PTS;
-        var nextPts = 0L;
-        try (var resampler = new Resampler(ffmpeg, format.sampleRate(), format.channels());
-                var arena = Arena.ofConfined()) {
-            var output = new OutputBuffer(arena, format);
-            while (!stopping) {
-                if (paused) {
-                    awaitWhile(() -> paused);
-                    continue;
-                }
-                var item = queue.take(50, TimeUnit.MILLISECONDS);
-                if (item == null) {
-                    underrun();
-                    continue;
-                }
-                switch (item) {
-                    case PacketQueue.Item.Flush(var newSerial, var target) -> {
-                        audioSerial = newSerial;
-                        decoder.flush();
-                        resampler.reset();
-                        sink.clear();
-                        discardBeforeNanos = target;
-                        nextPts = target;
-                        writtenEndSample = format.samples(target);
-                    }
-                    case PacketQueue.Item.Data(var packet, var packetSerial) -> {
-                        try (packet) {
-                            if (packetSerial != audioSerial) {
-                                continue;
-                            }
-                            try {
-                                while (!decoder.send(packet)) {
-                                    nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
-                                }
-                                nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
-                            } catch (MediaException e) {
-                                throw e;
-                            } catch (RuntimeException e) {
-                                // The fallback ladder's mid-stream rung: this decoder
-                                // is done; the next candidate takes over from the
-                                // next packet.
-                                LOG.warn("decoder {} failed mid-stream; trying the next", decoderName, e);
-                                decoder.close();
-                                skip++;
-                                var resolved =
-                                        Decoders.open(ffmpeg, input.demuxer(), input.stream(), decoderProviders, skip);
-                                decoder = resolved.decoder();
-                                decoderName = resolved.provider();
-                                listener.changed(this);
-                            }
-                        }
-                    }
-                    case PacketQueue.Item.End(var endSerial) -> {
-                        if (endSerial != audioSerial) {
-                            continue;
-                        }
-                        decoder.sendEnd();
-                        nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
-                        var tail = resampler.drain(output.segment(), output.capacity());
-                        write(output, tail, nextPts);
-                        playOut();
-                        decoder.flush();
-                    }
-                }
-            }
-        } catch (MediaException e) {
-            if (!stopping) {
-                fail(e.error(), e);
-            }
-        } catch (RuntimeException e) {
-            if (!stopping) {
-                fail(new MediaError.InvalidData(e.toString()), e);
-            }
-        } finally {
-            decoder.close();
-        }
-    }
-
-    /// Receives every frame the decoder has, converts, trims and writes each.
-    ///
-    /// @return the stream time after the last sample written
-    private long drainFrames(
-            Decoder decoder, Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
-        var pts = nextPts;
-        while (!stopping) {
-            var received = decoder.receive();
-            if (!(received instanceof Received.Decoded(var frame))) {
-                return pts;
-            }
-            if (!(frame instanceof AudioFrame audio)) {
+            if (mustWait()) {
+                awaitWhile(() -> pendingSeek.get() == null && mustWait(), 10);
                 continue;
             }
-            var framePts = audio.ptsNanos() == Frame.NO_PTS ? pts : audio.ptsNanos();
-            output.ensure(resampler.capacityFor(audio));
-            var written = resampler.convert(audio, output.segment(), output.capacity());
-            var startSample = format.samples(framePts);
-            var skipped = 0;
-            if (discardBeforeNanos != Frame.NO_PTS && framePts < discardBeforeNanos) {
-                skipped = (int) Math.min(written, format.samples(discardBeforeNanos) - startSample);
+            var packet = opened.read();
+            if (packet == null) {
+                forEachQueue(queue -> queue.end(serial));
+                ended = true;
+                continue;
             }
-            write(output.slice(skipped), written - skipped, startSample + skipped);
-            pts = format.nanos(startSample + written);
-        }
-        return pts;
-    }
-
-    private void write(OutputBuffer output, int samples, long nextPtsNanos) {
-        write(output.segment(), samples, format.samples(nextPtsNanos));
-    }
-
-    /// Writes `samples` samples that start at sample index `startSample`, after
-    /// waiting for room. Dropped if a seek made them stale while waiting.
-    private void write(MemorySegment data, int samples, long startSample) {
-        if (samples <= 0) {
-            return;
-        }
-        throttle();
-        if (stopping || latestSerial != audioSerial) {
-            return;
-        }
-        sink.write(data, samples);
-        writtenEndSample = startSample + samples;
-        seekingToNanos = Frame.NO_PTS;
-        if (state == PlaybackState.BUFFERING
-                && format.nanos(sink.queuedSamples()) >= Math.min(START_THRESHOLD_NANOS, SINK_TARGET_NANOS)) {
-            setState(PlaybackState.PLAYING);
-        }
-    }
-
-    /// Waits while the sink holds more than its target: the backpressure that
-    /// keeps the Engine a fixed distance ahead of the speaker.
-    private void throttle() {
-        while (!stopping && !paused && latestSerial == audioSerial) {
-            var excess = format.nanos(sink.queuedSamples()) - SINK_TARGET_NANOS;
-            if (excess <= 0) {
+            var target = packet.streamIndex() == audioStream
+                    ? audioQueue
+                    : packet.streamIndex() == videoStream ? videoQueue : null;
+            if (target == null) {
+                packet.close();
+            } else if (!target.put(packet, serial) && stopping) {
                 return;
             }
-            sleep(Math.min(excess / 2, 20_000_000L));
         }
     }
 
-    /// Plays out what the sink holds, then reports the end.
-    private void playOut() {
-        if (state == PlaybackState.BUFFERING) {
-            setState(PlaybackState.PLAYING);
+    private void seekTo(Demuxer opened, SeekRequest request) {
+        opened.seek(request.targetNanos());
+        serial++;
+        var pictures = frames;
+        if (pictures != null) {
+            pictures.flush(serial);
         }
-        while (!stopping && sink.queuedSamples() > 0 && pendingSeek.get() == null) {
-            sleep(10_000_000L);
+        forEachQueue(queue -> queue.flush(serial, request.targetNanos(), request.accurate()));
+        latestSerial = serial;
+        boolean changed = false;
+        synchronized (gate) {
+            audioDone = false;
+            videoDone = false;
+            videoReady = false;
+            if (hasAudio) {
+                clock.followAudio(this::audioClockNanos);
+            } else {
+                clock.set(request.targetNanos());
+            }
+            if (state == PlaybackState.ENDED) {
+                audioReady = false;
+                changed = setStateLocked(paused ? PlaybackState.PAUSED : PlaybackState.BUFFERING);
+            }
         }
-        if (!stopping && pendingSeek.get() == null) {
+        notifyIf(changed);
+        // The decode threads may be waiting while paused; the flush is theirs to
+        // take now.
+        signal();
+    }
+
+    /// Whether the demux thread should stop reading: every queue is full, or one
+    /// has run far past its bound.
+    private boolean mustWait() {
+        var queues = new ArrayList<PacketQueue>(2);
+        forEachQueue(queues::add);
+        if (queues.isEmpty()) {
+            return false;
+        }
+        var allFull = true;
+        for (var queue : queues) {
+            if (queue.overflowing()) {
+                return true;
+            }
+            allFull &= queue.full();
+        }
+        return allFull;
+    }
+
+    private void forEachQueue(java.util.function.Consumer<PacketQueue> action) {
+        var audio = audioQueue;
+        if (audio != null) {
+            action.accept(audio);
+        }
+        var video = videoQueue;
+        if (video != null) {
+            action.accept(video);
+        }
+    }
+
+    private void abortQueues() {
+        forEachQueue(PacketQueue::abort);
+        var pictures = frames;
+        if (pictures != null) {
+            pictures.abort();
+        }
+    }
+
+    // ------------------------------------------------- what the workers report
+
+    Ffmpeg ffmpeg() {
+        return ffmpeg;
+    }
+
+    List<? extends DecoderProvider> decoderProviders() {
+        return decoderProviders;
+    }
+
+    AudioSink sink() {
+        return sink;
+    }
+
+    boolean stopping() {
+        return stopping;
+    }
+
+    boolean paused() {
+        return paused;
+    }
+
+    int latestSerial() {
+        return latestSerial;
+    }
+
+    boolean seekPending() {
+        return pendingSeek.get() != null;
+    }
+
+    boolean clockRunning() {
+        return clock.running();
+    }
+
+    /// What pictures are presented against: the master clock, or the target
+    /// while a seek settles.
+    long presentationNanos() {
+        var seeking = seekingToNanos;
+        return seeking != Frame.NO_PTS ? seeking : clock.nanos();
+    }
+
+    /// The audio clock: what the sink is playing now.
+    private long audioClockNanos() {
+        return format.nanos(Math.max(writtenEndSample - sink.queuedSamples(), 0));
+    }
+
+    /// The audio thread wrote up to `endSample`, or (not `played`) moved there by
+    /// a seek. A write is the audio clock taking over from a seek's target.
+    void audioWritten(long endSample, boolean played) {
+        writtenEndSample = endSample;
+        if (played) {
             seekingToNanos = Frame.NO_PTS;
-            setState(PlaybackState.ENDED);
         }
     }
 
-    /// The queue ran dry and the source has not ended: a stall.
-    private void underrun() {
-        if (state == PlaybackState.PLAYING && !queue.ended() && sink.queuedSamples() == 0) {
-            setState(PlaybackState.BUFFERING);
+    void audioDecoder(String name) {
+        audioDecoderName = name;
+        listener.changed(this);
+    }
+
+    void videoDecoder(String name) {
+        videoDecoderName = name;
+        listener.changed(this);
+    }
+
+    /// The sink holds enough to start.
+    void audioReady() {
+        boolean changed;
+        synchronized (gate) {
+            audioReady = true;
+            changed = maybeStartLocked();
+        }
+        notifyIf(changed);
+    }
+
+    /// The audio queue ran dry mid-stream and the sink with it: a stall.
+    void audioUnderrun() {
+        boolean changed = false;
+        synchronized (gate) {
+            audioReady = false;
+            if (state == PlaybackState.PLAYING) {
+                changed = setStateLocked(PlaybackState.BUFFERING);
+            }
+        }
+        notifyIf(changed);
+    }
+
+    /// The audio of `forSerial` has been played to its last sample.
+    void audioDone(int forSerial) {
+        boolean changed;
+        synchronized (gate) {
+            if (forSerial != latestSerial) {
+                return;
+            }
+            audioDone = true;
+            audioReady = true;
+            if (hasVideo && !videoDone) {
+                // The picture outlasts the sound: time runs on without it.
+                clock.freeRunFrom(audioClockNanos(), !paused);
+            }
+            var started = maybeStartLocked();
+            var ended = maybeEndLocked();
+            changed = started || ended;
+        }
+        notifyIf(changed);
+    }
+
+    /// The first picture since `forSerial`'s seek (or the start) is queued.
+    void videoReady(int forSerial) {
+        synchronized (gate) {
+            if (forSerial != latestSerial) {
+                return;
+            }
+            videoReady = true;
+            if (!hasAudio || audioDone) {
+                // A free-running clock waits for the first picture of a seek; the
+                // audio clock waits for the first sample, which it does itself.
+                seekingToNanos = Frame.NO_PTS;
+                if (!paused && state == PlaybackState.PLAYING) {
+                    clock.run();
+                }
+            }
+            maybeStartLocked();
+        }
+        // Pushed whether or not the state moved: a paused view shows the picture
+        // a seek landed on only if it is told there is one.
+        listener.changed(this);
+    }
+
+    /// The last picture of `forSerial` has been shown for as long as a picture
+    /// lasts.
+    void videoDone(int forSerial) {
+        boolean changed;
+        synchronized (gate) {
+            if (forSerial != latestSerial) {
+                return;
+            }
+            videoDone = true;
+            videoReady = true;
+            var started = maybeStartLocked();
+            var ended = maybeEndLocked();
+            changed = started || ended;
+        }
+        notifyIf(changed);
+    }
+
+    /// Fails playback with `failure`, unless it is stopping anyway.
+    void fail(MediaError failure, Throwable cause) {
+        if (stopping) {
+            return;
+        }
+        LOG.debug("playback of {} failed: {}", source.uri(), failure.message(), cause);
+        error = failure;
+        boolean changed;
+        synchronized (gate) {
+            changed = setStateLocked(PlaybackState.ERROR);
+        }
+        stopping = true;
+        abortQueues();
+        signal();
+        notifyIf(changed);
+    }
+
+    // ------------------------------------------------------------------ state
+
+    private boolean readyLocked() {
+        return (!hasAudio || audioReady) && (!hasVideo || videoReady);
+    }
+
+    /// BUFFERING becomes PLAYING when every track is ready.
+    private boolean maybeStartLocked() {
+        if (state != PlaybackState.BUFFERING || !readyLocked()) {
+            return false;
+        }
+        if (!paused) {
+            startOutputLocked();
+        }
+        return setStateLocked(PlaybackState.PLAYING);
+    }
+
+    /// PLAYING becomes ENDED when every track has played out.
+    private boolean maybeEndLocked() {
+        if ((hasAudio && !audioDone) || (hasVideo && !videoDone)) {
+            return false;
+        }
+        if (state == PlaybackState.ERROR) {
+            return false;
+        }
+        clock.hold();
+        seekingToNanos = Frame.NO_PTS;
+        return setStateLocked(PlaybackState.ENDED);
+    }
+
+    private void startOutputLocked() {
+        sink.resume();
+        if (!clock.followingAudio()) {
+            clock.run();
+        }
+    }
+
+    /// Moves to `next`, and says whether that is a change. ERROR is final.
+    private boolean setStateLocked(PlaybackState next) {
+        if (state == next || (state == PlaybackState.ERROR && next != PlaybackState.ERROR)) {
+            return false;
+        }
+        state = next;
+        return true;
+    }
+
+    private void notifyIf(boolean changed) {
+        if (changed) {
+            listener.changed(this);
         }
     }
 
     // ----------------------------------------------------------------- shared
 
-    private void fail(MediaError failure, Throwable cause) {
-        LOG.debug("playback of {} failed: {}", source.uri(), failure.message(), cause);
-        error = failure;
-        setState(PlaybackState.ERROR);
-        stopping = true;
-        queue.abort();
-        signal();
-    }
-
-    private void setState(PlaybackState next) {
-        if (state == next || (state == PlaybackState.ERROR && next != PlaybackState.ERROR)) {
-            return;
-        }
-        state = next;
-        listener.changed(this);
-    }
-
-    private void signal() {
+    void signal() {
         lock.lock();
         try {
             wake.signalAll();
@@ -533,10 +736,14 @@ public final class Playback implements AutoCloseable {
 
     /// Waits while `condition` holds, for at most 50 ms: long enough not to
     /// spin, and short enough that a missed signal costs a frame, not a hang.
-    private void awaitWhile(BooleanSupplier condition) {
+    void awaitWhile(BooleanSupplier condition) {
+        awaitWhile(condition, 50);
+    }
+
+    private void awaitWhile(BooleanSupplier condition, long millis) {
         lock.lock();
         try {
-            var remaining = TimeUnit.MILLISECONDS.toNanos(50);
+            var remaining = TimeUnit.MILLISECONDS.toNanos(millis);
             while (!stopping && condition.getAsBoolean() && remaining > 0) {
                 remaining = wake.awaitNanos(remaining);
             }
@@ -548,7 +755,7 @@ public final class Playback implements AutoCloseable {
         }
     }
 
-    private static void sleep(long nanos) {
+    static void sleep(long nanos) {
         try {
             TimeUnit.NANOSECONDS.sleep(Math.max(nanos, 1_000_000L));
         } catch (InterruptedException e) {
@@ -564,40 +771,6 @@ public final class Playback implements AutoCloseable {
             thread.join(TimeUnit.SECONDS.toMillis(5));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-    }
-
-    /// The audio thread's conversion buffer, grown to the largest frame seen.
-    private static final class OutputBuffer {
-        private final Arena arena;
-        private final AudioFormat format;
-        private MemorySegment segment;
-        private int capacity;
-
-        OutputBuffer(Arena arena, AudioFormat format) {
-            this.arena = arena;
-            this.format = format;
-            this.capacity = 4096;
-            this.segment = arena.allocate(JAVA_FLOAT, (long) capacity * format.channels());
-        }
-
-        void ensure(int samples) {
-            if (samples > capacity) {
-                capacity = Integer.highestOneBit(samples) << 1;
-                segment = arena.allocate(JAVA_FLOAT, (long) capacity * format.channels());
-            }
-        }
-
-        MemorySegment segment() {
-            return segment;
-        }
-
-        int capacity() {
-            return capacity;
-        }
-
-        MemorySegment slice(int samples) {
-            return segment.asSlice((long) samples * format.bytesPerFrame());
         }
     }
 }

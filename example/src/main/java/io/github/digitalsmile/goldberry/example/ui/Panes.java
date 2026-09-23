@@ -99,10 +99,16 @@ public final class Panes {
         return inflate(inflater, "html.kdl");
     }
 
-    /// The **Media** screen's player: one `audio-player` node naming the model's
-    /// `MediaPlayer`. See `media.kdl`.
-    public static Widget media(KdlInflater<Widget> inflater) {
-        return inflate(inflater, "media.kdl");
+    /// The **Audio** screen's player: one `audio-player` node naming the model's
+    /// audio `MediaPlayer`. See `audio.kdl`.
+    public static Widget audio(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "audio.kdl");
+    }
+
+    /// The **Video** screen's player: one `media-player` node naming the model's
+    /// video `MediaPlayer`. See `video.kdl`.
+    public static Widget video(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "video.kdl");
     }
 
     /// A document whose root is a wall of cards.

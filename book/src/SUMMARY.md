@@ -477,3 +477,5 @@
 - [ADR-0460 Media is FFmpeg driven from Java, not libVLC](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)
 - [ADR-0461 A media engine binds its own libraries](adr/0461-a-media-engine-binds-its-own-libraries.md)
 - [ADR-0462 Media audio leaves through a sink, and the sink is SDL's](adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)
+- [ADR-0463 Video is converted as it is decoded, timed by the master clock, and painted when a picture falls due](adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
+- [ADR-0464 A slider says when a gesture ends](adr/0464-a-slider-says-when-a-gesture-ends.md)

@@ -1,5 +1,7 @@
-/// The media widgets (`docs/goldberry-media.md` §6): `audio-player` now;
-/// `video-view`, `media-controls` and `media-player` in phase 3.
+/// The media widgets (`docs/goldberry-media.md` §6): `audio-player`,
+/// `video-view`, `media-controls` and `media-player`, all over one
+/// [io.github.digitalsmile.goldberry.media.MediaPlayer] each, sharing one set of
+/// transport controls and keys.
 ///
 /// Built from the ordinary controls and styled by `media.css`
 /// ([io.github.digitalsmile.goldberry.media.view.MediaStyles]).

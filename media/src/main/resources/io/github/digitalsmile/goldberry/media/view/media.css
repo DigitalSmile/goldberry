@@ -11,13 +11,20 @@
     --gb-media-volume-width: 72px;
     --gb-media-time-color: var(--gb-text-muted);
     --gb-media-error-color: var(--gb-danger);
+    /* What shows around a letterboxed picture, and before the first one. */
+    --gb-media-backdrop: #000000;
+    /* The strip the controls sit on, over the picture. */
+    --gb-media-overlay-background: var(--gb-surface);
+    --gb-media-overlay-padding: 8px;
+    --gb-media-player-min-height: 180px;
 }
 
 .audio-player {
     gap: 4px;
 }
 
-.media-controls {
+/* The transport bar: a row, and a focus stop for the media keys. */
+media-controls {
     gap: var(--gb-media-gap);
     align-items: center;
 }
@@ -44,4 +51,35 @@
 
 .media-error {
     color: var(--gb-media-error-color);
+}
+
+/* The picture. It has no size of its own, like a canvas: it grows into what it
+   is given, and shows the backdrop where the picture does not reach. */
+video-view {
+    flex-grow: 1;
+    background: var(--gb-media-backdrop);
+}
+
+/* The picture with the controls over it. The picture sizes the box and the
+   overlay is out of flow, pinned to the bottom edge. */
+media-player {
+    flex-direction: column;
+    min-height: var(--gb-media-player-min-height);
+    background: var(--gb-media-backdrop);
+}
+
+.media-overlay {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    gap: 4px;
+    padding: var(--gb-media-overlay-padding);
+    background: var(--gb-media-overlay-background);
+    opacity: 1;
+    transition: opacity 200ms;
+}
+
+/* Playing, with the pointer still: the picture alone. */
+media-player.is-pointer-idle .media-overlay {
+    opacity: 0;
 }

@@ -947,6 +947,83 @@ class SliderTest {
     }
 
     @Nested
+    @DisplayName("the commit (a gesture ends)")
+    class Commit {
+
+        private final List<Double> committed = new ArrayList<>();
+
+        private Slider committing(double step) {
+            return slider(0, 100, 0, step).onCommit(committed::add);
+        }
+
+        @Test
+        @DisplayName("a drag asks on every step and commits once, on release, with the last value")
+        void dragCommitsOnRelease() {
+            var control = control(committing(0));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 20, 200));
+            control.onPointer(at(PointerEvent.Kind.MOVED, 100, 200));
+            control.onPointer(at(PointerEvent.Kind.MOVED, 150, 200));
+            assertEquals(3, asked.size());
+            assertTrue(committed.isEmpty(), "nothing is committed while the finger is down");
+
+            control.onPointer(at(PointerEvent.Kind.RELEASED, 150, 200));
+            assertEquals(1, committed.size());
+            assertEquals(asked.getLast(), committed.getFirst(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("a click is a press and a release: one ask, one commit, the same value")
+        void clickCommits() {
+            var control = control(committing(10));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 100, 200));
+            control.onPointer(at(PointerEvent.Kind.RELEASED, 100, 200));
+            assertEquals(List.of(asked.getFirst()), committed);
+            assertEquals(50.0, committed.getFirst(), 1e-9, "snapped like the ask");
+        }
+
+        @Test
+        @DisplayName("a key step commits as it changes")
+        void keyCommits() {
+            control(committing(10)).onKey(press(Key.RIGHT));
+            assertEquals(List.of(10.0), committed);
+            assertEquals(asked, committed);
+        }
+
+        @Test
+        @DisplayName("a release off the end commits the clamped end")
+        void releaseOffTheEndClamps() {
+            var control = control(committing(0));
+            control.onPointer(at(PointerEvent.Kind.PRESSED, 100, 200));
+            control.onPointer(at(PointerEvent.Kind.RELEASED, 500, 200));
+            assertEquals(List.of(100.0), committed);
+        }
+
+        @Test
+        @DisplayName("a disabled slider, or one with no handler, commits nothing")
+        void disabledCommitsNothing() {
+            var disabled =
+                    new Slider(0, 100, 0, 0, 0, null, null, null, asked::add, true, Attributes.NONE, committed::add);
+            control(disabled).onPointer(at(PointerEvent.Kind.RELEASED, 100, 200));
+            control(slider(0, 100, 0, 0)).onPointer(at(PointerEvent.Kind.RELEASED, 100, 200));
+            assertTrue(committed.isEmpty());
+        }
+
+        @Test
+        @DisplayName("the withers keep the commit handler")
+        void withersKeepIt() {
+            var slider = committing(0).ticks(3).format("%.0f").withAttributes(Attributes.NONE.id("s"));
+            control(slider).onKey(press(Key.END));
+            assertEquals(List.of(100.0), committed);
+        }
+
+        private PointerEvent at(PointerEvent.Kind kind, float x, float width) {
+            var event = new PointerEvent(kind, x, 16, PointerEvent.Button.PRIMARY, 1, 0, 16, null);
+            event.localTo(new PointerEvent.Local(x, 16, width, 32));
+            return event;
+        }
+    }
+
+    @Nested
     @DisplayName("markup")
     class Markup {
 
@@ -964,6 +1041,24 @@ class SliderTest {
             control(slider).onKey(press(Key.RIGHT));
 
             assertEquals(List.of("60.0"), got);
+        }
+
+        @Test
+        @DisplayName("a KDL commit= receives the settled value as a string")
+        void kdlCommit() {
+            var got = new ArrayList<String>();
+            var actions = ActionRegistry.strict()
+                    .bind("preview", (String value) -> {})
+                    .bind("settle", (String value) -> got.add(value));
+
+            var slider = (Slider) Widgets.inflater(actions, Icons.none(), BindingRegistry.none())
+                    .inflateAll(KdlParser.parse("""
+                            slider min=0 max=100 value=50 step=10 change="preview" commit="settle"
+                            """))
+                    .getFirst();
+            control(slider).onKey(press(Key.LEFT));
+
+            assertEquals(List.of("40.0"), got);
         }
 
         @Test

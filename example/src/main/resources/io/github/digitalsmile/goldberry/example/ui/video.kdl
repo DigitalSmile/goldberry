@@ -1,0 +1,10 @@
+// The **Video** screen's player, and it is one node.
+//
+// `media-player` is the picture with its controls laid over it: `video-view`
+// and `media-controls` in one box, found through the media module's catalog as
+// `audio-player` is. `fit=` is how the picture fills the box: `contain` shows
+// all of it, letterboxed.
+//
+// `player=` names the Video screen's own MediaPlayer, which the model registered
+// as a named object (ADR-0170), and which the cards drive from Java too.
+media-player id="video-player" player="video.player" fit="contain"

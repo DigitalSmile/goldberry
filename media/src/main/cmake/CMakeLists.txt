@@ -35,6 +35,10 @@ set(GOLDBERRY_MEDIA_DEPS_DIR "${CMAKE_BINARY_DIR}/deps" CACHE PATH
 set(GOLDBERRY_MESON "meson" CACHE FILEPATH "meson, for dav1d")
 set(GOLDBERRY_PKG_CONFIG "pkg-config" CACHE FILEPATH "pkg-config, for FFmpeg's configure to find dav1d")
 set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
+# FFmpeg's configure is a shell script. CMake starts it directly everywhere but
+# Windows, where there is no kernel support for `#!` and it has to be handed to
+# MSYS2's sh (docs/media-plan.md, "Local toolchain").
+set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Windows")
 
 # Phase 5 of docs/media-plan.md turns this on. Off until then, because enabling a
 # hwaccel pulls in a system library per platform (VAAPI on Linux is a -dev
@@ -106,6 +110,16 @@ ExternalProject_Add(dav1d
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
     UPDATE_DISCONNECTED TRUE)
 
+if(WIN32)
+    # UNTESTED: meson names a static library libdav1d.a with every compiler, and
+    # FFmpeg's MSVC toolchain turns pkg-config's -ldav1d into dav1d.lib. The copy
+    # is the name the linker will look for.
+    ExternalProject_Add_Step(dav1d msvc_library_name
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_stage}/lib/libdav1d.a" "${_stage}/lib/dav1d.lib"
+        DEPENDEES install
+        COMMENT "Naming dav1d's static library the way MSVC's linker asks for it")
+endif()
+
 # ----------------------------------------------------------------------------
 # FFmpeg: the configure line of goldberry-media.md §2, in one list so that the
 # NOTICE can quote exactly what was built.
@@ -157,6 +171,13 @@ foreach(_forbidden --enable-gpl --enable-nonfree --enable-version3)
     endif()
 endforeach()
 
+# The configure script, run the way this host can run it (see GOLDBERRY_SH).
+if(WIN32)
+    set(_configure ${GOLDBERRY_SH} <SOURCE_DIR>/configure)
+else()
+    set(_configure <SOURCE_DIR>/configure)
+endif()
+
 ExternalProject_Add(ffmpeg
     DEPENDS dav1d
     GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git
@@ -166,7 +187,7 @@ ExternalProject_Add(ffmpeg
     SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-src"
     BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-build"
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env PKG_CONFIG_PATH=${_stage}/lib/pkgconfig
-        <SOURCE_DIR>/configure --prefix=${_stage}
+        ${_configure} --prefix=${_stage}
         --pkg-config=${GOLDBERRY_PKG_CONFIG} --pkg-config-flags=--static
         ${GOLDBERRY_FFMPEG_CONFIGURE}
     BUILD_COMMAND ${GOLDBERRY_MAKE} -j${_jobs}

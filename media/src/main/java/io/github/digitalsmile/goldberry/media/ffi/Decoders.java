@@ -43,6 +43,25 @@ public final class Decoders {
 
     private Decoders() {}
 
+    /// Whether anything decodes `stream` of `demuxer`: a provider that says it
+    /// supports it, or the built-in decoders. Nothing is opened. The Engine asks
+    /// this for every track it is about to play before it plays any of them, so
+    /// that a file with two codecs it cannot play names both (§7, S7).
+    public static boolean supports(
+            Ffmpeg ffmpeg, Demuxer demuxer, int stream, List<? extends DecoderProvider> providers) {
+        var request = demuxer.request(stream);
+        for (var provider : providers) {
+            try {
+                if (provider.supports(request)) {
+                    return true;
+                }
+            } catch (RuntimeException e) {
+                LOG.warn("decoder provider {} failed to answer for {}", provider.name(), request.codecName(), e);
+            }
+        }
+        return FfmpegDecoder.supports(ffmpeg, demuxer.codecParameters(stream));
+    }
+
     /// Opens a decoder for `stream` of `demuxer`.
     ///
     /// @param providers the providers to ask, in any order; they are sorted here

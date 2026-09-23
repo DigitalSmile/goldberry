@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.SampleFormat;
+import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
 
 /// The FFmpeg constants the Engine compares against, **read from the layout
 /// probe** rather than written down.
@@ -49,6 +51,9 @@ import io.github.digitalsmile.goldberry.media.codec.SampleFormat;
 /// @param pktFlagKey             `AV_PKT_FLAG_KEY`
 /// @param sampleFormats          every `AV_SAMPLE_FMT_*` the Engine converts,
 ///                               by Goldberry's name for it
+/// @param video                  what video decode and CPU present compare
+///                               against: pixel formats, colour tags, and
+///                               swscale's flags
 public record FfmpegConstants(
         int averrorEof,
         int averrorExit,
@@ -75,10 +80,107 @@ public record FfmpegConstants(
         int seekFlagBackward,
         int seekFlagAny,
         int pktFlagKey,
-        Map<SampleFormat, Integer> sampleFormats) {
+        Map<SampleFormat, Integer> sampleFormats,
+        Video video) {
 
     public FfmpegConstants {
         sampleFormats = Map.copyOf(sampleFormats);
+        Objects.requireNonNull(video, "video");
+    }
+
+    /// The constants of the picture path (phase 3), kept apart from the audio and
+    /// container ones above so that neither list has to be read to find the other.
+    ///
+    /// @param pixFmtNone        `AV_PIX_FMT_NONE`
+    /// @param pixFmtYuv420p     `AV_PIX_FMT_YUV420P`: [PixelFormat#I420]
+    /// @param pixFmtNv12        `AV_PIX_FMT_NV12`: [PixelFormat#NV12]
+    /// @param pixFmtP010le      `AV_PIX_FMT_P010LE`: [PixelFormat#P010]
+    /// @param pixFmtYuv420p10le `AV_PIX_FMT_YUV420P10LE`: [PixelFormat#I010]
+    /// @param pixFmtBgra        `AV_PIX_FMT_BGRA`: what CPU present converts to,
+    ///                          which on a little-endian machine is the toolkit's
+    ///                          `0xAARRGGBB` in memory
+    /// @param spcBt709          `AVCOL_SPC_BT709`
+    /// @param spcUnspecified    `AVCOL_SPC_UNSPECIFIED`
+    /// @param spcBt470bg        `AVCOL_SPC_BT470BG`: BT.601, 625 lines
+    /// @param spcSmpte170m      `AVCOL_SPC_SMPTE170M`: BT.601, 525 lines
+    /// @param spcBt2020Ncl      `AVCOL_SPC_BT2020_NCL`
+    /// @param spcBt2020Cl       `AVCOL_SPC_BT2020_CL`
+    /// @param rangeJpeg         `AVCOL_RANGE_JPEG`: full range
+    /// @param swsBilinear       `SWS_BILINEAR`
+    /// @param swsAccurateRnd    `SWS_ACCURATE_RND`
+    /// @param swsBitexact       `SWS_BITEXACT`: the same bytes on every CPU, which
+    ///                          is what makes a golden portable
+    /// @param swsFullChrHInt    `SWS_FULL_CHR_H_INT`: chroma interpolated at full
+    ///                          horizontal resolution on the way to RGB
+    /// @param swsCsItu601       `SWS_CS_ITU601`
+    /// @param swsCsItu709       `SWS_CS_ITU709`
+    /// @param swsCsBt2020       `SWS_CS_BT2020`
+    public record Video(
+            int pixFmtNone,
+            int pixFmtYuv420p,
+            int pixFmtNv12,
+            int pixFmtP010le,
+            int pixFmtYuv420p10le,
+            int pixFmtBgra,
+            int spcBt709,
+            int spcUnspecified,
+            int spcBt470bg,
+            int spcSmpte170m,
+            int spcBt2020Ncl,
+            int spcBt2020Cl,
+            int rangeJpeg,
+            int swsBilinear,
+            int swsAccurateRnd,
+            int swsBitexact,
+            int swsFullChrHInt,
+            int swsCsItu601,
+            int swsCsItu709,
+            int swsCsBt2020) {
+
+        /// FFmpeg's `AVPixelFormat` for a frame-contract format.
+        public int avPixelFormat(PixelFormat format) {
+            return switch (format) {
+                case I420 -> pixFmtYuv420p;
+                case NV12 -> pixFmtNv12;
+                case P010 -> pixFmtP010le;
+                case I010 -> pixFmtYuv420p10le;
+            };
+        }
+
+        /// The frame-contract format an `AVPixelFormat` is, or empty for one a
+        /// decoder has to convert before handing it over.
+        public Optional<PixelFormat> pixelFormat(int avPixelFormat) {
+            for (var format : PixelFormat.values()) {
+                if (avPixelFormat(format) == avPixelFormat) {
+                    return Optional.of(format);
+                }
+            }
+            return Optional.empty();
+        }
+
+        /// swscale's coefficient table for a matrix.
+        public int swsColorspace(VideoFrame.ColorMatrix matrix) {
+            return switch (matrix) {
+                case BT601 -> swsCsItu601;
+                case BT709 -> swsCsItu709;
+                case BT2020 -> swsCsBt2020;
+            };
+        }
+
+        /// The matrix an `AVColorSpace` names, or empty when the decoder did not
+        /// say (`AVCOL_SPC_UNSPECIFIED`, or a space this list does not know).
+        public Optional<VideoFrame.ColorMatrix> matrix(int avColorSpace) {
+            if (avColorSpace == spcBt709) {
+                return Optional.of(VideoFrame.ColorMatrix.BT709);
+            }
+            if (avColorSpace == spcBt470bg || avColorSpace == spcSmpte170m) {
+                return Optional.of(VideoFrame.ColorMatrix.BT601);
+            }
+            if (avColorSpace == spcBt2020Ncl || avColorSpace == spcBt2020Cl) {
+                return Optional.of(VideoFrame.ColorMatrix.BT2020);
+            }
+            return Optional.empty();
+        }
     }
 
     /// FFmpeg's `AVSampleFormat` for `format`.
@@ -129,7 +231,28 @@ public record FfmpegConstants(
                 read.integer("AVSEEK_FLAG_BACKWARD"),
                 read.integer("AVSEEK_FLAG_ANY"),
                 read.integer("AV_PKT_FLAG_KEY"),
-                sampleFormats(read));
+                sampleFormats(read),
+                new Video(
+                        read.integer("AV_PIX_FMT_NONE"),
+                        read.integer("AV_PIX_FMT_YUV420P"),
+                        read.integer("AV_PIX_FMT_NV12"),
+                        read.integer("AV_PIX_FMT_P010LE"),
+                        read.integer("AV_PIX_FMT_YUV420P10LE"),
+                        read.integer("AV_PIX_FMT_BGRA"),
+                        read.integer("AVCOL_SPC_BT709"),
+                        read.integer("AVCOL_SPC_UNSPECIFIED"),
+                        read.integer("AVCOL_SPC_BT470BG"),
+                        read.integer("AVCOL_SPC_SMPTE170M"),
+                        read.integer("AVCOL_SPC_BT2020_NCL"),
+                        read.integer("AVCOL_SPC_BT2020_CL"),
+                        read.integer("AVCOL_RANGE_JPEG"),
+                        read.integer("SWS_BILINEAR"),
+                        read.integer("SWS_ACCURATE_RND"),
+                        read.integer("SWS_BITEXACT"),
+                        read.integer("SWS_FULL_CHR_H_INT"),
+                        read.integer("SWS_CS_ITU601"),
+                        read.integer("SWS_CS_ITU709"),
+                        read.integer("SWS_CS_BT2020")));
         if (!read.missing.isEmpty()) {
             throw new IllegalArgumentException("the layout file does not report " + read.missing);
         }

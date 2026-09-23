@@ -15,6 +15,8 @@ final class AvCodecContextView {
     private static final long PKT_TIMEBASE_DEN =
             FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("pkt_timebase"), groupElement("den"));
 
+    private static final long THREAD_COUNT = FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("thread_count"));
+
     private AvCodecContextView() {}
 
     static MemorySegment of(MemorySegment context) {
@@ -26,5 +28,12 @@ final class AvCodecContextView {
     static void packetTimeBase(MemorySegment context, Rational timeBase) {
         context.set(JAVA_INT, PKT_TIMEBASE_NUM, timeBase.num());
         context.set(JAVA_INT, PKT_TIMEBASE_DEN, timeBase.den());
+    }
+
+    /// How many threads the decoder may use; 0 lets FFmpeg choose one per core.
+    /// Set before `avcodec_open2`. Threading changes when frames arrive, never
+    /// what is in them: every decoder here is bit-exact whatever the count.
+    static void threadCount(MemorySegment context, int threads) {
+        context.set(JAVA_INT, THREAD_COUNT, threads);
     }
 }

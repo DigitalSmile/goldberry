@@ -1,4 +1,4 @@
-// The **Media** screen's player, and it is one node.
+// The **Audio** screen's player, and it is one node.
 //
 // `audio-player` is `goldberry-media`'s widget, and this document never says
 // where it comes from: the module is on the module path, its catalog declares
@@ -8,4 +8,4 @@
 // `player=` names a MediaPlayer the model registered as a **named object**
 // (ADR-0170). It is neither a value nor an action: a player is an object with a
 // life of its own, which the screen's cards drive from Java at the same time.
-audio-player id="media-player" player="media.player"
+audio-player id="audio-player" player="audio.player"

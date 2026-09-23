@@ -112,14 +112,28 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///                 for no label
 /// @param scale    the curve between the value and the position; `Scale#LINEAR`
 ///                 unless a fader says otherwise
+/// ## When a gesture ends
+///
+/// [#onChange()] fires on every step of a drag, which is what a thumb that
+/// follows the finger needs. Something expensive to redo per step wants to know
+/// when the user has **let go**: a media seek bar scrubs to keyframes while it is
+/// dragged and asks for one exact seek on release. [#onCommit(DoubleConsumer)]
+/// is that, with the same snapped, clamped value: once when a press or drag is
+/// released, and after every key step, since a key press is a whole gesture.
+///
+/// ```kdl
+/// slider max=100 change="volume.preview" commit="volume.set"
+/// ```
+///
 /// @param source   §9's `bind`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, already snapped and clamped
+/// @param onCommit what the user settled on when a gesture ended, or null
 @Markup("slider")
 public record Slider(
         double min, double max, double value, double step,
         int ticks, String format, Scale scale,
         Observable<?> source, DoubleConsumer onChange,
-        boolean disabled, Attributes attributes)
+        boolean disabled, Attributes attributes, DoubleConsumer onCommit)
         implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
 
     public Slider {
@@ -146,6 +160,15 @@ public record Slider(
             label(format, min);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+    }
+
+    /// Every component but [#onCommit()]: the canonical form before the commit
+    /// hook existed, which every slider that does not need one still uses.
+    public Slider(double min, double max, double value, double step,
+            int ticks, String format, Scale scale,
+            Observable<?> source, DoubleConsumer onChange,
+            boolean disabled, Attributes attributes) {
+        this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, null);
     }
 
     /// The eight-argument form every unlabelled, unticked, linear slider wants —
@@ -243,7 +266,7 @@ public record Slider(
     /// not one per `step`.
     public Slider ticks(int ticks) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes);
+                source, onChange, disabled, attributes, onCommit);
     }
 
     /// This slider with §3's optional value label, as a `String.format` pattern.
@@ -252,23 +275,32 @@ public record Slider(
     /// equality and two lambdas are never equal (ADR-0080).
     public Slider format(String format) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes);
+                source, onChange, disabled, attributes, onCommit);
     }
 
     /// This slider on a [Scale] — `fader`'s decibel mapping.
     public Slider scale(Scale scale) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes);
+                source, onChange, disabled, attributes, onCommit);
+    }
+
+    /// This slider, telling `value` what the user settled on each time a drag or a
+    /// press is released, and after each key step — see "When a gesture ends".
+    ///
+    /// @param value the handler, or null for none
+    public Slider onCommit(DoubleConsumer value) {
+        return new Slider(min, max, this.value, step, ticks, format, scale,
+                source, onChange, disabled, attributes, value);
     }
 
     @Override
     public Slider bound(Observable<?> source) {
-        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes);
+        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit);
     }
 
     @Override
     public Slider withAttributes(Attributes attributes) {
-        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes);
+        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit);
     }
 
     @Override
@@ -352,6 +384,14 @@ public record Slider(
         }
     }
 
+    /// Tells the application what the user settled on, snapped and clamped, when
+    /// a gesture ends. Package-private for [SliderControl]'s release and keys.
+    void commit(double raw) {
+        if (!disabled && onCommit != null) {
+            onCommit.accept(snap(clamp(raw)));
+        }
+    }
+
     private double clamp(double raw) {
         return raw < min ? min : raw > max ? max : raw;
     }
@@ -376,6 +416,9 @@ public record Slider(
 
     /// Builds a `slider` from markup.
     ///
+    /// `commit=` names an action, as `change=` does, told the settled value when a
+    /// gesture ends.
+    ///
     /// `ticks` is a count and `format` is a pattern, so both are values a
     /// document can carry — unlike an action or an icon, neither names anything
     /// the application has to have registered (ADR-0080). `scale=` is strict:
@@ -391,7 +434,7 @@ public record Slider(
                 node.stringProperty("format"),
                 Scale.of(node.stringProperty("scale")),
                 wiring.bound(node), wiring.numeric(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+                Wiring.disabled(node), Attributes.of(node), wiring.numeric(node, "commit"));
     }
 
 }

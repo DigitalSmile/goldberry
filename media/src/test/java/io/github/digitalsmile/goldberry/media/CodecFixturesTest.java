@@ -297,7 +297,7 @@ class CodecFixturesTest {
     }
 
     @Test
-    @DisplayName("an H.264/AAC MP4 opens, lists both tracks, and fails with UnsupportedCodec (S7)")
+    @DisplayName("an H.264/AAC MP4 opens, lists both tracks, and fails with UnsupportedCodec naming both (S7)")
     void patentPool() {
         var info = probe("clip-h264-aac.mp4");
         assertEquals(
@@ -313,7 +313,11 @@ class CodecFixturesTest {
                 .build();
         player.open(Source.of(URI.create("mem:///clip-h264-aac.mp4")));
         var failed = awaitState(PlaybackState.ERROR);
+        // Both, video first: every track about to play is checked before any
+        // plays, so the error is the whole answer and not the first half of it.
         assertEquals(
-                new MediaError.UnsupportedCodec(List.of("aac")), failed.error().orElseThrow());
+                new MediaError.UnsupportedCodec(List.of("h264", "aac")),
+                failed.error().orElseThrow());
+        assertTrue(failed.info().isPresent(), "the tracks are still listed");
     }
 }

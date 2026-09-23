@@ -19,8 +19,10 @@ is our own content and carries no third-party licence:
 | `tone.ogg` | Ogg | Vorbis | |
 | `tone.mp3` | MP3 | MP3 | |
 | `tone-cover.mp3` | MP3 | MP3, PNG cover art | the attached-picture track |
-| `clip-vp8.webm` | WebM | VP8, Opus | phase 3 |
+| `clip-vp8.webm` | WebM | VP8, Opus | phase 3: decode, and the byte-exact goldens of S5 |
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |
 | `clip-av1.mkv` | Matroska | AV1, Opus | phase 3 (dav1d) |
 | `clip-av1.mp4` | MP4 | AV1, FLAC | phase 3 |
+| `clip-vp9-444.webm` | WebM | VP9 profile 1 (4:4:4), 0.2 s, silent | the built-in decoder's conversion to I420 |
+| `clip-vp9-10bit.webm` | WebM | VP9 profile 2 (10-bit 4:2:0), 0.2 s, silent | I010, and video with no audio on the free-running clock |
 | `clip-h264-aac.mp4` | MP4 | H.264, AAC | S7: opens, and reports `UNSUPPORTED_CODEC` |
