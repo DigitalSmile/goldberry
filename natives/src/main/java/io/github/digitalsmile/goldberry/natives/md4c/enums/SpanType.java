@@ -1,6 +1,13 @@
 package io.github.digitalsmile.goldberry.natives.md4c.enums;
 
 /// An inline span — `MD_SPANTYPE`.
+///
+/// The values are md4c 0.6.0's, and they have a gap: 0.6.0 inserted `MD_SPAN_INS`
+/// at 5, between [#CODE] and [#DEL], and moved every span after it up by one.
+/// `MD_SPAN_INS` is not bound here — md4c emits it only under `MD_FLAG_INSERT`,
+/// which [MarkdownFlag] does not offer — so 5 stays unclaimed rather than taken by
+/// a constant nothing can produce. The same goes for the spans 0.6.0 appended
+/// (`MD_SPAN_SPOILER` onwards): each needs a flag these bindings do not expose.
 public enum SpanType implements Md4cEnum {
 
     /// `*emphasis*`.
@@ -20,21 +27,21 @@ public enum SpanType implements Md4cEnum {
     CODE(4, "MD_SPAN_CODE"),
 
     /// `~~struck through~~`. Needs [MarkdownFlag#STRIKETHROUGH].
-    DEL(5, "MD_SPAN_DEL"),
+    DEL(6, "MD_SPAN_DEL"),
 
     /// `$x$`. Needs [MarkdownFlag#LATEX_MATH].
-    LATEXMATH(6, "MD_SPAN_LATEXMATH"),
+    LATEXMATH(7, "MD_SPAN_LATEXMATH"),
 
     /// `$$x$$`. Needs [MarkdownFlag#LATEX_MATH].
-    LATEXMATH_DISPLAY(7, "MD_SPAN_LATEXMATH_DISPLAY"),
+    LATEXMATH_DISPLAY(8, "MD_SPAN_LATEXMATH_DISPLAY"),
 
     /// `[[target]]`. Needs [MarkdownFlag#WIKI_LINKS]. Detail:
     /// [io.github.digitalsmile.goldberry.natives.md4c.SpanDetail.WikiLink].
-    WIKILINK(8, "MD_SPAN_WIKILINK"),
+    WIKILINK(9, "MD_SPAN_WIKILINK"),
 
     /// `_underlined_`, when [MarkdownFlag#UNDERLINE] has taken `_` away from
     /// emphasis.
-    U(9, "MD_SPAN_U");
+    U(10, "MD_SPAN_U");
 
     private final int nativeValue;
     private final String nativeName;

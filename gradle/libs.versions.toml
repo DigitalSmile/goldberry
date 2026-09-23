@@ -73,11 +73,15 @@ blend2d = "6dbc2cefbc996379e07104e34519a440b49b15d7"
 asmjit = "0bd5787b54b575ed94bf32ac452153b34385c514"
 yoga = "v3.2.1"
 harfbuzz = "14.3.1"
-sdl3 = "release-3.4.14"
+sdl3 = "release-3.4.16"
 # md4c is the Markdown parser behind `goldberry-html`'s markdown half (ADR-0294).
 # One C file, MIT, CommonMark plus the four extensions GitHub's dialect adds, and
 # it is compiled straight into libgoldberry rather than into a native of its own.
-md4c = "release-0.5.3"
+#
+# Upstream's tags went from `release-X.Y.Z` to `vX.Y.Z` with 0.6.0; there is no
+# `release-0.6.0`. 0.6.0 also inserted MD_SPAN_INS into the middle of
+# MD_SPANTYPE, which is why `SpanType` moved with this pin.
+md4c = "v0.6.0"
 # libwebp is the reference WebP decoder, and it is here because the toolkit's
 # rasterizer ships PNG, JPEG and QOI and nothing else -- so a screenshot, which in
 # 2026 is what most tools write, does not decode (`docs/gaps.md` G35a, ADR-0329).

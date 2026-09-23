@@ -11,12 +11,12 @@ the export list are Goldberry's (ADR-0294). The compiled code is present in
 every binary artifact regardless, which is the redistribution this notice is
 about.
 
---- LICENSE.md at release-0.5.3 (472c417005c2c71b8617de4f7b8d6b30411d78f4), verbatim ---
+--- LICENSE.md at v0.6.0 (7fc1815a5eeba2af7d6120a76202bf59f3b6e6e4), verbatim ---
 
 
 # The MIT License (MIT)
 
-Copyright © 2016-2024 Martin Mitáš
+Copyright © 2016-2026 Martin Mitáš
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the “Software”),

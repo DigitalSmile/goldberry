@@ -960,7 +960,8 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
      * The Java side switches on every one of these while decoding the event
      * buffer, and md4c has already inserted a value into the middle of two of
      * these enums between releases -- MD_TEXT_NULLCHAR and MD_SPAN_LATEXMATH were
-     * both additions. A stream decoded against a shifted ordinal is not a crash:
+     * both additions, and 0.6.0 put MD_SPAN_INS in front of MD_SPAN_DEL, moving
+     * every span after it. A stream decoded against a shifted ordinal is not a crash:
      * it is a document whose headings render as block quotes.
      *
      * No struct rows. Every detail struct is read HERE, by the code the same

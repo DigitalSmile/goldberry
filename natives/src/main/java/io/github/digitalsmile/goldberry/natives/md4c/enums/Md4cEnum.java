@@ -9,7 +9,8 @@ import java.util.stream.Stream;
 /// The same contract [io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum]
 /// has, for the same reason, and md4c has the strongest case of the three wrapped
 /// libraries: it has inserted enumerators into the *middle* of these enums between
-/// releases — `MD_TEXT_NULLCHAR` and `MD_SPAN_LATEXMATH` were both additions — and
+/// releases — `MD_TEXT_NULLCHAR` and `MD_SPAN_LATEXMATH` were both additions, and
+/// 0.6.0 put `MD_SPAN_INS` in front of `MD_SPAN_DEL` — and
 /// a stream decoded against a shifted value does not crash. It renders a heading
 /// as a block quote.
 ///

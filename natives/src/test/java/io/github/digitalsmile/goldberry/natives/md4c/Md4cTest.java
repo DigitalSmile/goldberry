@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.md4c.enums.BlockType;
@@ -319,6 +321,49 @@ class Md4cTest {
         void nullIsRefused() {
             assertThrows(NullPointerException.class, () -> Md4c.get().parse(null, Set.of()));
             assertThrows(NullPointerException.class, () -> Md4c.get().parse("x", null));
+        }
+    }
+
+    /// The spans md4c 0.6.0 renumbered by inserting `MD_SPAN_INS` in front of
+    /// `MD_SPAN_DEL`.
+    ///
+    /// The layout verifier already holds each value to the compiler; this holds
+    /// the *wire* to it. A span decoded one ordinal off is not an error — `~~x~~`
+    /// arrives as LaTeX — so every one of them is parsed through the real library
+    /// and must come back as itself.
+    @Nested
+    @DisplayName("a span past md4c's MD_SPAN_INS")
+    class ShiftedSpans {
+
+        /// One span, the flag that enables it, and a document containing it.
+        record Case(SpanType expected, MarkdownFlag flag, String markdown) {
+            @Override
+            public String toString() {
+                return expected.name();
+            }
+        }
+
+        static List<Case> shifted() {
+            return List.of(
+                    new Case(SpanType.DEL, MarkdownFlag.STRIKETHROUGH, "a ~~b~~ c\n"),
+                    new Case(SpanType.LATEXMATH, MarkdownFlag.LATEX_MATH, "a $b$ c\n"),
+                    new Case(SpanType.LATEXMATH_DISPLAY, MarkdownFlag.LATEX_MATH, "a $$b$$ c\n"),
+                    new Case(SpanType.WIKILINK, MarkdownFlag.WIKI_LINKS, "a [[b]] c\n"),
+                    new Case(SpanType.U, MarkdownFlag.UNDERLINE, "a _b_ c\n"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("shifted")
+        @DisplayName("decodes as itself")
+        void decodesAsItself(Case c) {
+            var spans = Md4c.get().parse(c.markdown(), Set.of(c.flag())).stream()
+                    .<SpanType>mapMulti((e, sink) -> {
+                        if (e instanceof MarkdownEvent.EnterSpan(var type, var _)) {
+                            sink.accept(type);
+                        }
+                    })
+                    .toList();
+            assertEquals(List.of(c.expected()), spans);
         }
     }
 
