@@ -279,6 +279,20 @@ SDL_ShowOpenFileDialog
 SDL_ShowSaveFileDialog
 SDL_ShowOpenFolderDialog
 
+# Audio output, for goldberry-media's audio sink (docs/goldberry-media.md sec. 3,
+# ADR-0461). One stream per player, bound to the default playback device: the
+# media engine writes interleaved f32 into it and SDL converts to whatever the
+# device takes. Read back with GetAudioStreamQueued, which is what the engine's
+# audio clock is made of.
+SDL_OpenAudioDeviceStream
+SDL_ResumeAudioStreamDevice
+SDL_PauseAudioStreamDevice
+SDL_PutAudioStreamData
+SDL_GetAudioStreamQueued
+SDL_ClearAudioStream
+SDL_SetAudioStreamGain
+SDL_DestroyAudioStream
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

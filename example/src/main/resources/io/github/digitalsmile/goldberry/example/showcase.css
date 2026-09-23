@@ -1376,3 +1376,26 @@ chip.motion-entry {
 #web-callback {
   margin-left: auto;
 }
+
+/* --- Media screen ------------------------------------------------------- */
+
+#media-player-card {
+    margin-bottom: 12px;
+}
+
+.media-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.media-line {
+    gap: 12px;
+}
+
+.media-label {
+    min-width: 72px;
+}
+
+.media-value {
+    flex-shrink: 1;
+}

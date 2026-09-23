@@ -98,7 +98,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "emoji", "motion", "web");
+            "canvas", "icons", "emoji", "motion", "web", "media");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -126,7 +126,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("icons", "Icons"),
             Map.entry("emoji", "Emoji"),
             Map.entry("motion", "Motion"),
-            Map.entry("web", "Web view"));
+            Map.entry("web", "Web view"),
+            Map.entry("media", "Media"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -199,6 +200,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         /// [HtmlScreen].
         private Widget html;
 
+        private Widget media;
+
         @Override
         protected void initState() {
             bar = Panes.bar(widget().inflater());
@@ -208,6 +211,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             forms = Panes.forms(widget().inflater());
             markdown = Panes.markdown(widget().inflater());
             html = Panes.html(widget().inflater());
+            media = Panes.media(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
@@ -315,7 +319,9 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // page that stayed put. Last, after `motion`, so no digit
                     // moves (ADR-0354); the gallery is longer than ten digits now,
                     // so this screen has no accelerator.
-                    new Tab("web", title("web"), new WebScreen())))),
+                    new Tab("web", title("web"), new WebScreen()),
+                    new Tab("media", title("media"),
+                            scrolled(new MediaScreen(model.mediaPlayer(), model.javaPcmDecoder(), media)))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

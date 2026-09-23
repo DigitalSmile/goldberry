@@ -29,6 +29,7 @@ import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
+import io.github.digitalsmile.goldberry.media.view.MediaStyles;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -218,6 +219,8 @@ public final class Showcase implements Application {
         // sheets rather than one on purpose: an application that renders notes and
         // never a page adds one of them (ADR-0298).
         sheets.add(HtmlStyles.stylesheet());
+        // And the media module's, for `audio-player` (goldberry-media.md sec. 6).
+        sheets.add(MediaStyles.stylesheet());
         sheets.add(styles);
         return sheets;
     }
@@ -681,6 +684,9 @@ public final class Showcase implements Application {
         }
         plusIcon.close();
         paletteIcon.close();
+        // Stops the engine's threads and closes the audio device, if a source was
+        // ever opened.
+        model.mediaPlayer().close();
     }
 
     // --- the process ---------------------------------------------------------

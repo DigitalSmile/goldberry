@@ -47,6 +47,13 @@ rootProject.name = 'goldberry'
 // `book/src/TODO.md` says which symbols. An application opts in; nothing in
 // :core or :widgets depends on it (ADR-0294, ADR-0295).
 //
+// :media is `goldberry-media` (docs/goldberry-media.md, docs/media-plan.md):
+// audio and video over FFmpeg driven from Java (ADR-0460). It is the one module
+// besides :natives that binds a native library itself, and its libraries are
+// FFmpeg's own shared objects rather than libgoldberry, built by a superbuild of
+// its own in media/src/main/cmake (ADR-0461). Not published until its natives
+// jar exists on all four targets.
+//
 // :example is the showcase. It is a subproject rather than a separate build so
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
 // It is not published either.
@@ -63,6 +70,7 @@ include ':common',
         ':core',
         ':widgets',
         ':html',
+        ':media',
         ':emoji',
         ':gpu',
         ':bom',

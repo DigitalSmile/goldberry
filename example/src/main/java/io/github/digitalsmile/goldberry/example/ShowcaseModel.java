@@ -955,8 +955,28 @@ public final class ShowcaseModel {
                 // rather than an action or a binding, because an image source is
                 // neither a method nor a value that changes -- which is the third
                 // registry's whole job (ADR-0130, ADR-0300).
-                .bind("app.assets", assets);
+                .bind("app.assets", assets)
+                // The Media screen's player, which `media.kdl` names and the
+                // screen's cards drive from Java at the same time.
+                .bind("media.player", mediaPlayer);
     }
+
+    /// The Media screen's player. Made here and not opened: nothing loads FFmpeg or
+    /// opens an audio device until a source is picked.
+    public io.github.digitalsmile.goldberry.media.MediaPlayer mediaPlayer() {
+        return mediaPlayer;
+    }
+
+    /// The decoder the Media screen wrote in Java, with its switch.
+    public io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcmDecoder() {
+        return javaPcm;
+    }
+
+    private final io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcm =
+            new io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder();
+
+    private final io.github.digitalsmile.goldberry.media.MediaPlayer mediaPlayer =
+            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.player(javaPcm);
 
     /// The one picture this application ships, for whichever document names it.
     private final DocumentAssets assets = new DocumentAssets();

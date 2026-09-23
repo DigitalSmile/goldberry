@@ -1,0 +1,47 @@
+/*
+ * goldberry-media's widgets (docs/goldberry-media.md sec. 6).
+ *
+ * Written in the theme's tokens, so it follows whichever theme is on. The
+ * --gb-media-* tokens are this module's component tokens: an application
+ * restyles every player at once by setting them.
+ */
+:root {
+    --gb-media-gap: 8px;
+    --gb-media-seek-min-width: 120px;
+    --gb-media-volume-width: 72px;
+    --gb-media-time-color: var(--gb-text-muted);
+    --gb-media-error-color: var(--gb-danger);
+}
+
+.audio-player {
+    gap: 4px;
+}
+
+.media-controls {
+    gap: var(--gb-media-gap);
+    align-items: center;
+}
+
+.media-seek {
+    flex-grow: 1;
+    min-width: var(--gb-media-seek-min-width);
+}
+
+.media-volume {
+    width: var(--gb-media-volume-width);
+    min-width: var(--gb-media-volume-width);
+    flex-shrink: 0;
+}
+
+.media-time {
+    color: var(--gb-media-time-color);
+    font-family: "JetBrains Mono";
+}
+
+.media-live {
+    color: var(--gb-accent);
+}
+
+.media-error {
+    color: var(--gb-media-error-color);
+}

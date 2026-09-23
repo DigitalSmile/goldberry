@@ -474,3 +474,6 @@
 - [ADR-0457 A sheet is grouped by its upstream's own categories](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)
 - [ADR-0458 A page on macOS is a view, not a window](adr/0458-a-page-on-macos-is-a-view-not-a-window.md)
 - [ADR-0459 A key typed into a page is the page's](adr/0459-a-key-typed-into-a-page-is-the-pages.md)
+- [ADR-0460 Media is FFmpeg driven from Java, not libVLC](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)
+- [ADR-0461 A media engine binds its own libraries](adr/0461-a-media-engine-binds-its-own-libraries.md)
+- [ADR-0462 Media audio leaves through a sink, and the sink is SDL's](adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)

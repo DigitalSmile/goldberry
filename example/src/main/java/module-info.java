@@ -37,6 +37,10 @@ module io.github.digitalsmile.goldberry.example {
     /// service `:core` looks up, so what this line buys is a provider on the
     /// module path.
     requires io.github.digitalsmile.goldberry.emoji;
+
+    /// `goldberry-media`, for the Media screen: `audio-player` is found through
+    /// the module's widget catalog, and the screen drives a `MediaPlayer`.
+    requires io.github.digitalsmile.goldberry.media;
     requires org.slf4j;
 
     /// So the toolkit can read `showcase.css` and the seven KDL documents.

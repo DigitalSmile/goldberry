@@ -12,7 +12,6 @@ Status: engine decided (FFmpeg-direct, supersedes libVLC). Two scope decisions: 
 | **Source** | A URL or path plus open options (headers, timeouts). |
 | **MediaIO** | Java SPI (`read`, `seek`, `size`, `close`) that supplies every byte FFmpeg reads, through a custom `AVIOContext`. Implementations: `FileIO`, `HttpIO`, `IcyIO`. |
 | **Decoder** | Java SPI (`send`, `receive`, `flush`, `close`) the decode threads talk to. Supplied by a **DecoderProvider**; the built-in FFmpeg provider is the default and lowest-priority one. |
-| **Extended natives** | A user-built FFmpeg of the pinned major with extra decoders/demuxers, loaded via `goldberry.media.libdir`. Never published by Goldberry. |
 | **Read-ahead cache** | `HttpIO`'s byte-range cache; source of the buffered ranges shown on the seek slider. |
 | **Track** | One selectable audio, video or subtitle stream of a Source. |
 | **Packet queue** | Bounded per-Track queue of demuxed `AVPacket`s. |
@@ -27,13 +26,13 @@ Status: engine decided (FFmpeg-direct, supersedes libVLC). Two scope decisions: 
 
 ## 2. Natives
 
-FFmpeg (one pinned major, shared libraries) + dav1d. Built by the media superbuild via `ExternalProject_Add`; Windows builds run configure under msys2 (MSVC or mingw toolchain); dav1d builds with meson + nasm.
+FFmpeg (one pinned major, shared libraries) + dav1d. Pinned in `gradle/libs.versions.toml`: FFmpeg `n8.1.3` (avformat 62, avcodec 62, avutil 60, swresample 6, swscale 9) and dav1d `1.5.4`. Progress is tracked in `media-plan.md`. Built by the media superbuild via `ExternalProject_Add`; Windows builds run configure under msys2 (MSVC or mingw toolchain); dav1d builds with meson + nasm.
 
-Libraries: `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`. Not built: `avfilter`, `avdevice`, `postproc`, programs, docs, **network, all protocols**.
+Libraries: `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`. Not built: `avfilter`, `avdevice`, programs, docs, **network, all protocols**. (`postproc` no longer exists: FFmpeg 8.0 removed it, and `--disable-postproc` now fails configure.)
 
 ```
 --disable-everything --disable-programs --disable-doc --disable-network
---disable-avdevice --disable-avfilter --disable-postproc
+--disable-avdevice --disable-avfilter --disable-autodetect
 --enable-shared --disable-static
 --enable-demuxer=matroska,mov,ogg,flac,mp3,wav,srt,webvtt,ass
 --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,
@@ -55,15 +54,33 @@ FFmpeg's native `av1` decoder is hwaccel-only; dav1d is the software AV1 path an
 
 No TLS library on any platform: HTTPS is the JDK's (§4).
 
-Size budget per platform (stripped): avcodec 1.5–2.5, avformat ~0.6, avutil ~0.7, swscale ~0.6, swresample ~0.2, dav1d 1.5–2. **Target ≤ 6 MB**, CI fails the build above 7 MB.
+Size budget per platform (stripped): avcodec 1.5–2.5, avformat ~0.6, avutil ~0.7, swscale ~0.6, swresample ~0.2, dav1d 1.5–2 (linked statically into avcodec, so one fewer file to load). **Target ≤ 6 MB**, CI fails the build above 7 MB.
 
-Packaging: natives ship as `goldberry-ffmpeg-natives` classifiers (`windows-x64`, `macos-arm64`, `macos-x64`, `linux-x64`, `linux-arm64`), separate from `goldberry-media`. Each jar carries the LGPL text, dav1d's notice, and a `NOTICE` with the source tag and configure line. System property `goldberry.media.libdir` overrides the extracted libraries (LGPL replaceability, and the hook for Extended natives, §5).
+Packaging: natives ship as `goldberry-ffmpeg-natives` classifiers (`linux-x64`, `linux-aarch64`, `windows-x64`, `macos-aarch64`: the project's four targets, ADR-0041), separate from `goldberry-media`. Each jar carries the LGPL text, dav1d's notice, and a `NOTICE` with the source tag and configure line. System property `goldberry.media.libdir` overrides the extracted libraries. It exists for LGPL replaceability only; it is not an extension mechanism, and a library set that fails the startup check or the layout check is rejected.
 
-Startup check: `avformat_version()` / `avcodec_version()` / `avutil_version()` majors must equal the pinned majors, else the Engine refuses to load with a message naming expected and found versions (no struct access happens before this check).
+Startup check: the `*_version()` majors of all five libraries must equal the pinned majors, else the Engine refuses to load with a message naming expected and found versions (no struct access happens before this check).
 
-Superbuild option `-DGOLDBERRY_FFMPEG_EXTRA="decoder=...;demuxer=...;parser=...;bsf=...;hwaccel=..."` appends to the configure line, so Extended natives are built with the same scripts, toolchain and sonames as the published ones. Default empty; CI for published artifacts asserts it is empty.
+### Bindings (hand-written, no jextract)
 
-Bindings: jextract over the five headers, pinned to the FFmpeg major; covered by the layout-agreement checks in TESTING.md. Prefer `av_opt_set*` and accessor functions over direct struct field access where they exist.
+Package `goldberry.media.ffi`, one final class per library (`AvFormat`, `AvCodec`, `AvUtil`, `SwResample`, `SwScale`): `MethodHandle`s from `Linker.nativeLinker().downcallHandle(...)`, resolved lazily from a `SymbolLookup.libraryLookup` over the extracted libraries, each with a hand-written `FunctionDescriptor`. Expected surface is ~60 functions; every function is a one-line static wrapper with Java-typed parameters, and errors (`AVERROR_*`) are translated to a `FfmpegException` at the wrapper.
+
+Struct access is the risk, so it is minimised. Rule: use accessor functions (`av_opt_get/set`, `avcodec_parameters_*`, `av_packet_*`, `av_frame_*`, `av_hwdevice_*`) wherever FFmpeg provides them; touch a struct field directly only where no accessor exists. Each touched struct gets a small view class (`AvFrameView`, `AvPacketView`, ...) whose `VarHandle`s are built from a hand-declared `StructLayout`, with fields the Engine never reads declared as padding.
+
+| Struct | Fields touched directly |
+|---|---|
+| `AVFormatContext` | `nb_streams`, `streams`, `pb`, `duration`, `flags` |
+| `AVStream` | `index`, `codecpar`, `time_base`, `duration`, `disposition`, `discard`, `attached_pic` |
+| `AVCodecParameters` | `codec_type`, `codec_id`, `extradata`, `extradata_size`, `width`, `height`, `format`, `profile`, `level`, `bit_rate`, `sample_rate`, `ch_layout`, `color_*`, `chroma_location` |
+| `AVCodecContext` | `opaque`, `get_format`, `hw_device_ctx`, `pix_fmt`, `sample_fmt`, `pkt_timebase`, `thread_count`, `flags`, `codec_id` |
+| `AVPacket` | `data`, `size`, `pts`, `dts`, `duration`, `stream_index`, `flags` |
+| `AVFrame` | `data[]`, `linesize[]`, `width`, `height`, `nb_samples`, `format`, `pts`, `pkt_dts`, `duration`, `flags`, `hw_frames_ctx`, `color_*`, `chroma_location`, `sample_rate`, `ch_layout` |
+| `AVIOContext` | `buffer` only, to free it: `avio_alloc_context` may replace the buffer it was handed, so the one to free is the context's own |
+| `AVChannelLayout` | `order`, `nb_channels`, `u.mask` |
+| `AVRational` | `num`, `den` (by value) |
+
+Layout agreement: the media superbuild compiles a 40-line C program per platform that prints `sizeof` and `offsetof` for every field in the table above as a properties file; that file is packaged into the natives jar, and a test in `goldberry-media` (plus the same check at Engine startup, once, before any struct access) compares it with the Java layouts. A mismatch fails the build and refuses to load at runtime. Layouts are shared across the four 64-bit targets (FFmpeg's public structs use fixed-width integers and pointers), but the check runs per platform regardless.
+
+Upcalls (three, `Linker.upcallStub` with an `Arena` owned by the Engine): `read_packet` and `seek` for MediaIO, `get_format` for HW pixel-format negotiation. Their descriptors are the only entries needed in GraalVM reachability metadata.
 
 ## 3. Engine
 
@@ -72,12 +89,12 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 | Thread | Work |
 |---|---|
 | Demux | `av_read_frame` → Packet queues of selected Tracks. All bytes arrive through MediaIO: `avio_alloc_context` with `read_packet` and `seek` (incl. `AVSEEK_SIZE`) upcalls. Owns seek: `avformat_seek_file`, flush queues, bump Serial. Abort is Java-side: closing the MediaIO makes the pending upcall return `AVERROR_EXIT`. |
-| Audio decode | `Decoder.send/receive` → swresample to interleaved f32 at device rate → `SDL_PutAudioStreamData`. |
+| Audio decode | `Decoder.send/receive` → swresample to interleaved f32 at device rate → an `AudioSink`, which on the desktop is an SDL audio stream (ADR-0462). |
 | Video decode | `Decoder.send/receive`. In the built-in FFmpeg provider: `get_format` upcall selects the HW pixel format; HW frames go through Copy-back (`av_hwframe_transfer_data` → NV12, P010 for 10-bit) → Frame queue. |
 
 **Codec resolution.** The Engine holds no codec whitelist. Per Track: ask DecoderProviders in priority order (`supports(codec, params)`), the built-in FFmpeg provider last, which answers from `avcodec_find_decoder` at runtime. No provider → `UNSUPPORTED_CODEC`. `MediaCapabilities` exposes the resolved decoder/demuxer set (`av_codec_iterate`, `av_demuxer_iterate` + providers) for apps and diagnostics.
 
-**Master clock.** Audio: pts of last queued sample − `SDL_GetAudioStreamQueued` duration − device latency. No audio Track: monotonic. Tests: virtual clock via the Clock SPI.
+**Master clock.** Audio: pts of last queued sample − the sink's queued duration (`SDL_GetAudioStreamQueued` on the desktop) − device latency. Kept in samples, so it adds up exactly. No audio Track: monotonic. Tests: virtual clock via the Clock SPI.
 
 **Presentation.** On each Goldberry frame tick the `video-view` takes the newest frame with pts ≤ Master clock and drops older ones.
 - GPU present: upload Y and UV planes, YUV→RGB in a shader; matrix (BT.601/709/2020) and range come from the frame's colorspace fields.
@@ -87,7 +104,7 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 
 **State.** `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` from any state. Observable properties: `position`, `duration`, `bufferedAhead`, `volume`, `muted`, `rate`, `tracks`, `selectedTracks`, `videoSize`, `isLive`, `isSeekable`, `bufferedRanges`, `nowPlaying` (ICY), `error` (incl. `UNSUPPORTED_CODEC` with codec name).
 
-**Seeking.** Requests are coalesced (only the latest runs). During slider drag: keyframe seek, show the keyframe. On release: accurate seek (decode-and-discard to target pts). Paused: frame step forward.
+**Seeking.** Requests are coalesced (only the latest runs). During slider drag: keyframe seek, show the keyframe. On release: accurate seek (decode-and-discard to target pts). Paused: frame step forward. An accurate seek is exact to the container's timestamps: FLAC, WAV and MP4 count in samples, so the first sample heard is the target's; Matroska counts in milliseconds, so it lands within half a millisecond (24 samples at 48 kHz). Both are tested against the fixture corpus.
 
 **Rate.** v1 uses `SDL_SetAudioStreamFrequencyRatio` (pitch shifts with rate). Pitch-preserving tempo is post-v1.
 
@@ -108,28 +125,37 @@ FFmpeg performs no I/O of its own. Every Source resolves to a MediaIO:
 
 ## 5. Extensibility: bring your own codec
 
-Goldberry publishes only royalty-free natives and a neutral interface. Anything patented is brought, built and answered for by the app that wants it. Two levels:
+Goldberry publishes only royalty-free natives and a neutral interface. Anything patented is brought and answered for by the app that wants it. The single supported mechanism is the **Decoder SPI**; rebuilding or swapping the FFmpeg natives is not supported (the published codec set is the only one the Engine is tested against).
 
-**Level 1: Extended natives (no code).** Build FFmpeg with `GOLDBERRY_FFMPEG_EXTRA` (e.g. `decoder=h264,hevc,aac;demuxer=mpegts;parser=h264,hevc,aac;bsf=h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc;hwaccel=h264_d3d11va2,hevc_d3d11va2`), ship the result, point `goldberry.media.libdir` at it. Codec resolution (§3) picks the new decoders up automatically, HW decode and the Fallback ladder included. README states: never `--enable-gpl` (app becomes GPL) or `--enable-nonfree` (not redistributable; fdk-aac is the usual trap); patent licensing is the distributor's responsibility.
-
-**Level 2: Decoder SPI (Java).** Discovered via `ServiceLoader`, consulted before the built-in provider.
+**Decoder SPI.** Discovered via `ServiceLoader`, consulted before the built-in FFmpeg provider.
 
 ```java
 public interface DecoderProvider {
-    int priority();                                         // higher wins; built-in = 0
-    boolean supports(CodecId codec, TrackParams params);    // profile, size, bit depth, channels
-    Decoder open(TrackParams params, MemorySegment extradata);
+    String name();
+    default int priority() { return 0; }            // higher is asked first; built-ins rank below all
+    boolean supports(DecoderRequest request);       // codec, name, params, extradata, time base
+    Decoder open(DecoderRequest request);
 }
 public interface Decoder extends AutoCloseable {
-    void send(Packet packet);        // null = drain
-    boolean receive(Frame out);      // false = need more input
-    void flush();                    // on seek; frames carry the Serial of their packet
+    boolean send(Packet packet);     // false = full: receive first
+    void sendEnd();                  // drain
+    Received receive();              // Decoded(frame) | NeedsInput | Ended
+    void flush();                    // on seek
 }
 ```
 
-Frame contract: video as NV12 / I420 / P010 planes in `MemorySegment`s with pts, colorspace and range; audio as f32 (planar or interleaved) with pts, rate, layout. A provider that decodes on the GPU performs its own Copy-back; a provider failing in `open` or mid-stream drops the Engine to the next provider (Fallback ladder extended: provider → next provider → built-in).
+As built in phase 2 (`docs/media-plan.md` records why each differs from the first
+sketch): one `DecoderRequest` rather than separate arguments; a sealed `Received`
+rather than an out-parameter; the Serial kept by the Engine, which flushes the
+decoder on a seek, so a provider never sees one. The built-in FFmpeg decoders are
+not a `DecoderProvider`: they open from the stream's own `AVCodecParameters`, and
+rank last.
 
-Container reach: `mov` and `matroska` deliver whole frames plus container extradata (avcC/hvcC/esds), so H.264/HEVC/AAC in MP4/MKV reach a provider with the published natives untouched. MPEG-TS and raw elementary streams need parsers, i.e. Level 1.
+`CodecId` is Goldberry's own enum mapped from `AVCodecID` (the SPI never exposes FFmpeg types). `TrackParams` carries what `AVCodecParameters` holds: dimensions, pixel/sample format, profile, level, bit depth, sample rate, channel layout, colorspace. `Packet` and `Frame` wrap native `MemorySegment`s; a provider may decode straight from the packet buffer without copying.
+
+Frame contract: video as NV12 / I420 / P010 planes in `MemorySegment`s with pts, colorspace and range; audio in any of twelve `SampleFormat`s (u8, s16, s32, s64, f32, f64, each interleaved or planar) with pts, rate and channel count. The Engine's one resampling pass converts all of them, so no provider converts, and the built-in decoder lends FFmpeg's buffers without a copy. A frame is borrowed until the decoder's next call. A provider that decodes on the GPU performs its own Copy-back; a provider failing in `open` or mid-stream drops the Engine to the next provider (Fallback ladder extended: provider → next provider → built-in). HW decode inside a provider is the provider's business; the Engine's `hw-decode` option governs only the built-in provider.
+
+Container reach: `mov` and `matroska` deliver whole frames plus container extradata (avcC/hvcC/esds), so H.264/HEVC/AAC in MP4/MKV reach a provider with the published natives untouched. Formats that need a parser to frame the stream (MPEG-TS, raw Annex B, ADTS) are out of scope: the published natives build no parsers for patented codecs and the `mpegts` demuxer is not built.
 
 Intended providers (none shipped in v1): OS decoders in an optional `goldberry-media-platform` module (Media Foundation, VideoToolbox/AudioToolbox, VAAPI; the OS vendor holds the licences); a Cisco OpenH264 provider fetching Cisco's binary on first use (terms and profile support to be verified); commercial SDKs licensed by an app vendor.
 
@@ -166,13 +192,13 @@ Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Ico
 
 **S7. Unsupported codec.** User opens an MP4 with H.264/AAC. `mov` demuxer lists the Tracks; no decoder exists for them → ERROR with `UNSUPPORTED_CODEC(h264, aac)`; `media-player` shows the codec names in its error state.
 
-**S8. Bring your own codec.** An app adds a DecoderProvider for H.264/AAC on the classpath. User opens the MP4 from S7: `mov` lists the Tracks; Codec resolution finds the provider (`supports` → true), opens a Decoder per Track with the container extradata; decode threads run `send/receive` exactly as with the built-in provider; frames enter the Frame queue, Master clock and Present path unchanged. The provider fails mid-stream → Fallback ladder tries the next provider, finds none → ERROR `UNSUPPORTED_CODEC`. With Extended natives instead, the same file plays through the built-in provider with HW decode.
+**S8. Bring your own codec.** An app adds a DecoderProvider for H.264/AAC on the classpath. User opens the MP4 from S7: `mov` lists the Tracks; Codec resolution finds the provider (`supports` → true), opens a Decoder per Track with the container extradata; decode threads run `send/receive` exactly as with the built-in provider; frames enter the Frame queue, Master clock and Present path unchanged. The provider fails mid-stream → Fallback ladder tries the next provider, finds none → ERROR `UNSUPPORTED_CODEC`.
 
 ## 8. Phases and exit criteria
 
-1. **Natives + MediaIO.** FFmpeg + dav1d on all platforms in CI, jextract bindings, layout checks, size gate; custom `AVIOContext` over `FileIO`. Exit: Java probes a file through MediaIO and lists Tracks.
+1. **Natives + bindings + MediaIO.** FFmpeg + dav1d on all platforms in CI, size gate; hand-written `goldberry.media.ffi` bindings and struct views; `offsetof` properties generated by the superbuild and the layout test; custom `AVIOContext` over `FileIO`. Exit: Java probes a file through MediaIO and lists Tracks on all platforms with the layout test green.
 2. **Audio player + Decoder SPI.** Decoder/DecoderProvider interfaces, Codec resolution, built-in FFmpeg provider as the only implementation; demux + audio decode + SDL audio + Master clock; pause/seek/volume; `audio-player`. Exit: mp3/flac/opus/vorbis from file with seeking; a test-only fake DecoderProvider (sine generator) is selected over the built-in one by priority.
-3. **Video, software + CPU present.** Video decode thread, A/V sync, `video-view`, `media-controls`. Exit: S2, S5 and S7 pass; S8 passes with a fake video DecoderProvider and, in a non-published CI lane, with Extended natives.
+3. **Video, software + CPU present.** Video decode thread, A/V sync, `video-view`, `media-controls`. Exit: S2, S5 and S7 pass; S8 passes with a fake video DecoderProvider.
 4. **GPU present.** Plane upload + shader, colorspace handling. Exit: visual parity with CPU present within tolerance on 601/709 content.
 5. **HW decode.** d3d11va / VideoToolbox / VAAPI for VP9/AV1 with Copy-back and the Fallback ladder. Exit: 4K60 VP9 without dropped frames on GPU present; S4 passes with injected failures.
 6. **Network.** `HttpIO` (Range, Read-ahead cache, reconnect), `IcyIO`, Water marks, Live Source. Exit: S3 and S6 pass with a fault-injecting fake MediaIO and against a local HTTP server.
@@ -182,7 +208,7 @@ Post-v1: HLS/DASH in Java (with ABR), `goldberry-media-platform` DecoderProvider
 
 ## 9. Testing
 
-Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per container/codec pair, ≤ 2 s each); fault-injecting fake MediaIO (stalls, drops, short reads, no-Range) for S3/S6; layout-agreement checks for every accessed FFmpeg struct; HW decode lane is smoke-only (non-deterministic surfaces), all goldens run on the software + CPU present path.
+Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per container/codec pair, ≤ 2 s each); fault-injecting fake MediaIO (stalls, drops, short reads, no-Range) for S3/S6; layout test against the superbuild-generated `offsetof` properties for every field in the §2 table; HW decode lane is smoke-only (non-deterministic surfaces), all goldens run on the software + CPU present path.
 
 ## 10. Risks
 
@@ -191,9 +217,10 @@ Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per cont
 | Free-codec-only excludes most mainstream content (H.264/AAC MP4, public HLS, IP cameras) | Explicit scope; clear `UNSUPPORTED_CODEC` errors; both BYO levels available from v1 (§5); OS-decoder providers post-v1. |
 | Upcall cost on the I/O path | FFmpeg reads in 32 KB+ blocks, so upcall frequency is low; `HttpIO` serves from the Read-ahead cache without blocking when possible. Benchmarked in phase 1. |
 | Own HTTP streaming logic (Range, reconnect, cache) | Small, pure Java, fully testable with a fake MediaIO; no native network code at all. |
-| Extended natives built against a different FFmpeg major or with altered struct layout | Startup version check (§2); `GOLDBERRY_FFMPEG_EXTRA` keeps builds on the same scripts; unsupported configurations fail loudly before any struct access. |
+| Hand-written struct layouts drift from the built headers | Struct access limited to the §2 table; generated `offsetof` properties checked in tests and at startup; wrong layout fails before any struct access. |
+| Hand-written bindings miss a function or descriptor detail (by-value `AVRational`, variadics) | ~60 functions, each wrapped and unit-tested against a fixture file; no variadic FFmpeg functions are used (`av_log_set_callback` excluded, logging via `av_log_set_level` only). |
 | Decoder SPI adds an indirection on the hot path | One interface call per packet/frame, negligible against decode cost; frames stay in native memory (`MemorySegment`), no copies introduced by the SPI. |
-| FFmpeg struct ABI changes across majors | Pin the major; upgrade deliberately; layout checks fail fast. |
+| FFmpeg struct ABI changes across majors | Pin the major; upgrade deliberately by re-reviewing the §2 table; startup version check and layout test fail fast. |
 | Licensing | LGPL-2.1+ on every platform, dynamic linking only; never `--enable-gpl` / `--enable-nonfree` / `--enable-version3`. dav1d BSD-2. No patent-pool codecs shipped. |
 | GraalVM native-image | Three upcalls (`read_packet`, `seek`, `get_format`) need their function descriptors registered in reachability metadata. |
 | Windows build complexity (msys2 configure) | Isolated in the media superbuild; artifacts cached; core superbuild untouched. |
@@ -208,9 +235,9 @@ libVLC 3.0.x was the earlier choice (stable C API, vmem → `BLImage`, vlcj prec
 - **Determinism.** VLC owns its clocks and threads; FFmpeg-direct runs under Goldberry's Clock SPI, enabling byte-exact goldens.
 - **GPU path.** vmem forces CPU frames; the zero-copy API exists only in unreleased libVLC 4.
 
-Cost accepted: the Engine (§3) is ours to write and maintain.
+Cost accepted: the Engine (§3) and the FFM bindings (§2) are ours to write and maintain. Bindings are hand-written rather than generated: jextract would emit thousands of lines covering every FFmpeg struct and function, while the Engine touches ~60 functions and nine structs; a hand-written surface is reviewable, keeps struct access explicit and small, and matches how the rest of Goldberry binds its natives.
 
 Two further scope decisions:
 
-- **Royalty-free codecs only.** Removes patent-pool exposure for Goldberry and for apps that bundle the natives, removes the need for `full`/`free` build flavours, and shrinks avcodec. Cost: mainstream H.264/HEVC/AAC content does not play out of the box. Mitigated by §5: the Decoder SPI and Extended natives exist from v1, so the restriction is a default, not a ceiling, and the responsibility for patented codecs sits with whoever adds them.
+- **Royalty-free codecs only.** Removes patent-pool exposure for Goldberry and for apps that bundle the natives, removes the need for `full`/`free` build flavours, and shrinks avcodec. Cost: mainstream H.264/HEVC/AAC content does not play out of the box. Mitigated by §5: the Decoder SPI exists from v1, so the restriction is a default, not a ceiling, and the responsibility for patented codecs sits with whoever adds a provider. Swapping the natives is deliberately not a supported path: one tested codec set, one binding surface.
 - **No FFmpeg network layer.** All I/O through MediaIO in Java. Removes every TLS dependency (schannel / SecureTransport / mbedTLS) and with it the LGPL-3 build on Linux; gives real `bufferedRanges`, JDK proxy/auth/HTTP2, Java-side abort, and network tests without a server. Cost: RTSP is out; HLS/DASH must be written in Java (post-v1), which in return permits ABR.

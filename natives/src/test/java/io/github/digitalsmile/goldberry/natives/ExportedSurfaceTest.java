@@ -212,6 +212,8 @@ class ExportedSurfaceTest {
         }
         sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c", "io.github.digitalsmile.goldberry.html");
         sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c.enums", "io.github.digitalsmile.goldberry.html");
+        // SDL's audio streams, for goldberry-media's sink alone (ADR-0461).
+        sealedTo.put("io.github.digitalsmile.goldberry.natives.sdl.audio", "io.github.digitalsmile.goldberry.media");
 
         var descriptor = descriptor(classesRoot());
         var open = exportedPackages();

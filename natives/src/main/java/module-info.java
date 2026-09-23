@@ -134,6 +134,14 @@ module io.github.digitalsmile.goldberry.natives {
             io.github.digitalsmile.goldberry.html;
     exports io.github.digitalsmile.goldberry.natives.md4c.enums to
             io.github.digitalsmile.goldberry.html;
+    /// SDL's audio streams, exported to `:media` and to nobody else (ADR-0461).
+    ///
+    /// md4c's seal, for the media engine's audio sink: the toolkit plays no
+    /// audio itself, and SDL, already linked in, is a second audio library that
+    /// does not have to be shipped. What crosses is a direct `ByteBuffer` in and
+    /// frame counts out.
+    exports io.github.digitalsmile.goldberry.natives.sdl.audio to
+            io.github.digitalsmile.goldberry.media;
     /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,
     /// ADR-0329).
     ///

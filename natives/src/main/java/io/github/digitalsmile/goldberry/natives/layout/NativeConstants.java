@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlAudioCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -111,6 +112,12 @@ public final class NativeConstants {
         // bumps it refuses every animation, and a refusal is indistinguishable
         // from "these bytes are not one" (ADR-0385).
         constants.add(new NativeConstant("WEBP_DEMUX_ABI_VERSION", WebpCalls.DEMUX_ABI_VERSION));
+        // The sample format and device goldberry-media opens its audio stream with.
+        // The device is 0xFFFFFFFF, which is the one a signed `int` gets wrong.
+        constants.add(new NativeConstant("SDL_AUDIO_F32", SdlAudioCalls.SDL_AUDIO_F32));
+        constants.add(new NativeConstant(
+                "SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK",
+                Integer.toUnsignedLong(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK)));
         return List.copyOf(constants);
     }
 }

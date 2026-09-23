@@ -1,0 +1,210 @@
+# ============================================================================
+# The media superbuild: FFmpeg + dav1d for goldberry-media
+# (docs/goldberry-media.md §2, docs/media-plan.md, ADR-0460, ADR-0461)
+#
+# Separate from the libgoldberry superbuild in natives/src/main/cmake, and on
+# purpose:
+#
+#   - FFmpeg is LGPL-2.1+. It must stay a set of SHARED libraries that a user can
+#     replace, so it cannot be linked into libgoldberry the way every other upstream
+#     is.
+#   - Its build is autotools-style `configure` + make, and dav1d's is meson. Neither
+#     is a CMake project FetchContent can add_subdirectory, so both are
+#     ExternalProjects.
+#   - An application that plays no media should not need a toolchain that can
+#     build FFmpeg to build Goldberry.
+#
+# Output, in ${CMAKE_INSTALL_PREFIX}/lib:
+#   the five libraries under the names they link against each other by
+#     (libavcodec.62.dylib, libavcodec.so.62, avcodec-62.dll), stripped;
+#   ffmpeg-layout.properties, the layout probe's output for this target;
+#   ffmpeg-NOTICE.txt, with the tags and the configure line the LGPL asks for.
+#
+# Driven from Gradle by `:media:ffmpegBuild` for the host. CI invokes it directly
+# per runner, like the libgoldberry superbuild (ADR-0012).
+# ============================================================================
+cmake_minimum_required(VERSION 3.28)
+project(goldberry_media C)
+
+include(ExternalProject)
+include(ProcessorCount)
+
+set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
+set(GOLDBERRY_MEDIA_DEPS_DIR "${CMAKE_BINARY_DIR}/deps" CACHE PATH
+    "Where FFmpeg and dav1d are cloned and built; kept outside build/ by Gradle (ADR-0038)")
+set(GOLDBERRY_MESON "meson" CACHE FILEPATH "meson, for dav1d")
+set(GOLDBERRY_PKG_CONFIG "pkg-config" CACHE FILEPATH "pkg-config, for FFmpeg's configure to find dav1d")
+set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
+
+# Phase 5 of docs/media-plan.md turns this on. Off until then, because enabling a
+# hwaccel pulls in a system library per platform (VAAPI on Linux is a -dev
+# package) and nothing calls it yet.
+option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" OFF)
+
+# The size gate from goldberry-media.md §2: target 6 MB, fail above 7.
+set(GOLDBERRY_MEDIA_SIZE_LIMIT 7340032 CACHE STRING "Largest total size of the five stripped libraries, in bytes")
+
+# ----------------------------------------------------------------------------
+# Pins, read from gradle/libs.versions.toml and nowhere else (ADR-0035). The
+# reader is the libgoldberry superbuild's, repeated because the two builds share
+# no CMake code; a pin that floats is refused the same way (ADR-0030).
+# ----------------------------------------------------------------------------
+set(GOLDBERRY_VERSION_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/../../../../gradle/libs.versions.toml"
+    CACHE FILEPATH "gradle/libs.versions.toml -- the one place upstream refs are pinned")
+if(NOT EXISTS "${GOLDBERRY_VERSION_CATALOG}")
+    message(FATAL_ERROR "The version catalog is not at '${GOLDBERRY_VERSION_CATALOG}' (ADR-0035).")
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GOLDBERRY_VERSION_CATALOG}")
+file(STRINGS "${GOLDBERRY_VERSION_CATALOG}" _catalog_lines)
+
+function(goldberry_pin _key _out)
+    foreach(_line IN LISTS _catalog_lines)
+        if(_line MATCHES "^[ \t]*${_key}[ \t]*=[ \t]*\"([^\"]*)\"")
+            # Saved before the next MATCHES, which resets CMAKE_MATCH_1 whether or
+            # not it matches.
+            set(_value "${CMAKE_MATCH_1}")
+            if(_value MATCHES "^(master|main|HEAD|latest|trunk)$")
+                message(FATAL_ERROR "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats (ADR-0030).")
+            endif()
+            set(${_out} "${_value}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+    message(FATAL_ERROR "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions] (ADR-0035).")
+endfunction()
+
+goldberry_pin(ffmpeg GOLDBERRY_FFMPEG_REF)
+goldberry_pin(dav1d GOLDBERRY_DAV1D_REF)
+message(STATUS "goldberry-media pins: ffmpeg ${GOLDBERRY_FFMPEG_REF}, dav1d ${GOLDBERRY_DAV1D_REF}; target ${GOLDBERRY_TARGET_ID}")
+
+ProcessorCount(_jobs)
+if(_jobs EQUAL 0)
+    set(_jobs 4)
+endif()
+
+# Both upstreams install here, and the probe compiles against these headers.
+set(_stage "${GOLDBERRY_MEDIA_DEPS_DIR}/stage")
+
+# ----------------------------------------------------------------------------
+# dav1d: the software AV1 decoder, built static and position-independent so it
+# links INTO libavcodec. One fewer file to ship and load, and BSD-2 asks nothing
+# of that arrangement but the notice.
+# ----------------------------------------------------------------------------
+ExternalProject_Add(dav1d
+    GIT_REPOSITORY https://code.videolan.org/videolan/dav1d.git
+    GIT_TAG ${GOLDBERRY_DAV1D_REF}
+    GIT_SHALLOW TRUE
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d"
+    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d-src"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d-build"
+    CONFIGURE_COMMAND ${GOLDBERRY_MESON} setup <BINARY_DIR> <SOURCE_DIR>
+        --prefix=${_stage} --libdir=lib
+        --buildtype=release --default-library=static
+        -Db_staticpic=true
+        -Denable_tools=false -Denable_tests=false -Denable_examples=false -Denable_docs=false
+    BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
+    INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
+    UPDATE_DISCONNECTED TRUE)
+
+# ----------------------------------------------------------------------------
+# FFmpeg: the configure line of goldberry-media.md §2, in one list so that the
+# NOTICE can quote exactly what was built.
+#
+# --disable-autodetect is what keeps the result reproducible: without it configure
+# links whatever it finds on the build machine (iconv, SecureTransport, VAAPI,
+# zlib) and two runners produce two different libraries.
+# ----------------------------------------------------------------------------
+set(GOLDBERRY_FFMPEG_CONFIGURE
+    --disable-everything --disable-programs --disable-doc --disable-network
+    --disable-avdevice --disable-avfilter --disable-autodetect
+    --enable-shared --disable-static --enable-pic --disable-debug
+    --enable-demuxer=matroska,mov,ogg,flac,mp3,wav,srt,webvtt,ass
+    --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
+    --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio
+    --enable-bsf=vp9_superframe,vp9_superframe_split,av1_frame_merge
+    --enable-libdav1d)
+
+if(APPLE)
+    # The five libraries find each other beside themselves, wherever they are
+    # unpacked, rather than at this machine's install prefix.
+    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --install-name-dir=@loader_path)
+    if(GOLDBERRY_MEDIA_HWACCEL)
+        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-videotoolbox
+             --enable-hwaccel=vp9_videotoolbox,av1_videotoolbox)
+    endif()
+elseif(WIN32)
+    # UNTESTED: written from goldberry-media.md §2 on macOS. Configure runs under
+    # MSYS2's shell with MSVC as the compiler.
+    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64)
+    if(GOLDBERRY_MEDIA_HWACCEL)
+        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-d3d11va
+             --enable-hwaccel=vp9_d3d11va2,av1_d3d11va2)
+    endif()
+else()
+    # No rpath: FfmpegLibraries loads the five in dependency order, and glibc
+    # resolves a DT_NEEDED against an already-loaded soname before it searches.
+    if(GOLDBERRY_MEDIA_HWACCEL)
+        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-vaapi
+             --enable-hwaccel=vp8_vaapi,vp9_vaapi,av1_vaapi)
+    endif()
+endif()
+
+# Never --enable-gpl, --enable-nonfree or --enable-version3 (goldberry-media.md
+# §10). Checked rather than trusted, because the list above is edited by hand.
+foreach(_forbidden --enable-gpl --enable-nonfree --enable-version3)
+    if(_forbidden IN_LIST GOLDBERRY_FFMPEG_CONFIGURE)
+        message(FATAL_ERROR "${_forbidden} would change FFmpeg's licence away from LGPL-2.1+; see goldberry-media.md §10.")
+    endif()
+endforeach()
+
+ExternalProject_Add(ffmpeg
+    DEPENDS dav1d
+    GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git
+    GIT_TAG ${GOLDBERRY_FFMPEG_REF}
+    GIT_SHALLOW TRUE
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg"
+    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-src"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-build"
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env PKG_CONFIG_PATH=${_stage}/lib/pkgconfig
+        <SOURCE_DIR>/configure --prefix=${_stage}
+        --pkg-config=${GOLDBERRY_PKG_CONFIG} --pkg-config-flags=--static
+        ${GOLDBERRY_FFMPEG_CONFIGURE}
+    BUILD_COMMAND ${GOLDBERRY_MAKE} -j${_jobs}
+    INSTALL_COMMAND ${GOLDBERRY_MAKE} install
+    UPDATE_DISCONNECTED TRUE)
+
+# ----------------------------------------------------------------------------
+# The layout probe (ffmpeg_layout.c): compiled against the headers FFmpeg just
+# installed, and run on this machine, since every value it prints is a
+# compile-time constant of this target.
+# ----------------------------------------------------------------------------
+add_executable(ffmpeg_layout ffmpeg_layout.c)
+add_dependencies(ffmpeg_layout ffmpeg)
+target_include_directories(ffmpeg_layout PRIVATE "${_stage}/include")
+set_target_properties(ffmpeg_layout PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+
+set(_out "${CMAKE_INSTALL_PREFIX}/lib")
+string(REPLACE ";" " " _configure_line "${GOLDBERRY_FFMPEG_CONFIGURE}")
+
+add_custom_target(ffmpeg_package ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${_out}"
+    COMMAND ffmpeg_layout "${_out}/ffmpeg-layout.properties"
+    COMMAND ${CMAKE_COMMAND}
+        -DSTAGE=${_stage}
+        -DOUT=${_out}
+        -DSYSTEM=${CMAKE_SYSTEM_NAME}
+        -DSTRIP=${CMAKE_STRIP}
+        -DSIZE_LIMIT=${GOLDBERRY_MEDIA_SIZE_LIMIT}
+        -DFFMPEG_REF=${GOLDBERRY_FFMPEG_REF}
+        -DDAV1D_REF=${GOLDBERRY_DAV1D_REF}
+        "-DCONFIGURE_LINE=${_configure_line}"
+        -DTARGET_ID=${GOLDBERRY_TARGET_ID}
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/package.cmake"
+    DEPENDS ffmpeg ffmpeg_layout
+    VERBATIM
+    COMMENT "Packaging FFmpeg for ${GOLDBERRY_TARGET_ID}")
+
+# `cmake --build --target install` is what Gradle runs; the package target above
+# already wrote everything into the install prefix, so install() has nothing left
+# to do but exist.
+install(CODE "message(STATUS \"FFmpeg for ${GOLDBERRY_TARGET_ID} is in ${_out}\")")

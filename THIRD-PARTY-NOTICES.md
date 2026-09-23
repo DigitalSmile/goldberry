@@ -65,6 +65,27 @@ same artifact as the four above and is disclosed beside them
 was built without an engine under it — the HTML parser is Java — so no second
 native library and no second notice file were needed after all.
 
+## Dynamically linked, in `goldberry-ffmpeg-natives`
+
+The media engine's libraries (`docs/goldberry-media.md`, ADR-0460). They are
+**not** in `libgoldberry` and not in any artifact an application gets without
+asking: they ship in the `goldberry-ffmpeg-natives-<platform>` jar beside the
+optional `goldberry-media`, which is not published yet (`docs/media-plan.md`).
+
+| Component | Licence | Upstream | Notes |
+|---|---|---|---|
+| [FFmpeg](licenses/ffmpeg.txt) | LGPL-2.1-or-later | <https://ffmpeg.org> | `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`, shared and replaceable (ADR-0461) |
+| [dav1d](licenses/dav1d.txt) | BSD-2-Clause | <https://code.videolan.org/videolan/dav1d> | Software AV1 decoder, linked statically into `libavcodec` |
+
+FFmpeg is the only component here under a copyleft licence, and the whole
+arrangement is shaped by it: dynamic linking, a library directory an end user
+can point elsewhere (`-Dgoldberry.media.libdir`), and a `ffmpeg-NOTICE.txt` in
+every natives jar quoting the exact tag and configure line, so that "the same
+library, rebuilt" is something a user can actually produce. An application
+that ships `goldberry-ffmpeg-natives` owes its users the LGPL notice and that
+replaceability; it owes no patent review for codecs, because none from a patent
+pool is built.
+
 ## Embedded in the published jars
 
 | Component | Licence | Upstream | Notes |

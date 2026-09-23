@@ -435,6 +435,14 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_Rect, w),
     GB_FIELD(SDL_Rect, h),
 
+    /* What goldberry-media opens its audio stream with (ADR-0461). */
+    GB_STRUCT(SDL_AudioSpec),
+    GB_FIELD(SDL_AudioSpec, format),
+    GB_FIELD(SDL_AudioSpec, channels),
+    GB_FIELD(SDL_AudioSpec, freq),
+    GB_CONSTANT("SDL_AUDIO_F32", SDL_AUDIO_F32),
+    GB_CONSTANT("SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK", SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK),
+
     /* Event types Goldberry dispatches on. */
     GB_CONSTANT("SDL_EVENT_QUIT", SDL_EVENT_QUIT),
     GB_CONSTANT("SDL_EVENT_KEY_DOWN", SDL_EVENT_KEY_DOWN),

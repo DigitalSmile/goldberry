@@ -32,6 +32,9 @@ dependencies {
     // through a service, so this puts a provider on the module path and nothing
     // else.
     implementation project(':emoji')
+    // The Media screen (docs/media-plan.md). FFmpeg itself is a separate build,
+    // found at run time -- see `run` below.
+    implementation project(':media')
 
     // The golden-image harness and the renderer requirement, so the gallery can
     // be checked as pictures the way the catalog is (§14, ADR-0110).
@@ -131,6 +134,8 @@ application {
     // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
             '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+            // goldberry-media binds FFmpeg itself (ADR-0461).
+            '--enable-native-access=io.github.digitalsmile.goldberry.media',
     ]
 
     // macOS drives AppKit from the process's first thread, and the java launcher
@@ -199,9 +204,29 @@ tasks.named('test') {
     // state is what `:example:run` shows on a machine that has WebKit.
     systemProperty 'goldberry.webview.library', layout.buildDirectory
             .file('no-such-webview-library').get().asFile.absolutePath
+
+    // No FFmpeg either, for the same reason: the Media screen's Capabilities
+    // card photographs whether this machine ran `:media:ffmpegBuild`. A
+    // directory that cannot exist is reported through the loader's ordinary
+    // "not available" branch.
+    systemProperty 'goldberry.media.libdir', layout.buildDirectory
+            .dir('no-such-ffmpeg').get().asFile.absolutePath
 }
 
 tasks.named('run') {
+    // FFmpeg for the Media screen: an explicit directory wins, else what
+    // `:media:ffmpegBuild` produced on this machine. Without either the screen
+    // says FFmpeg is not available, which is a supported state.
+    def mediaLibdir = providers.systemProperty('goldberry.media.libdir')
+            .orElse(providers.gradleProperty('goldberry.media.libdir'))
+    def builtFfmpeg = project(':media').layout.buildDirectory
+            .dir("ffmpeg/${hostTarget}/install/lib").get().asFile
+    if (mediaLibdir.present) {
+        systemProperty 'goldberry.media.libdir', mediaLibdir.get()
+    } else if (builtFfmpeg.isDirectory()) {
+        systemProperty 'goldberry.media.libdir', builtFfmpeg.absolutePath
+    }
+
     // An explicitly supplied path wins, so CI can point at a downloaded
     // artifact. Otherwise fall back to whatever the local superbuild produced.
     def explicit = providers.systemProperty('goldberry.native.library')

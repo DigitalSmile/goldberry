@@ -99,6 +99,12 @@ public final class Panes {
         return inflate(inflater, "html.kdl");
     }
 
+    /// The **Media** screen's player: one `audio-player` node naming the model's
+    /// `MediaPlayer`. See `media.kdl`.
+    public static Widget media(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "media.kdl");
+    }
+
     /// A document whose root is a wall of cards.
     ///
     /// The cast is checked and the failure names the file, because the shape is

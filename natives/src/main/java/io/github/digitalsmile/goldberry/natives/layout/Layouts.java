@@ -418,6 +418,19 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("w"),
                     ValueLayout.JAVA_INT.withName("h")));
 
+    /// ```c
+    /// typedef struct SDL_AudioSpec { SDL_AudioFormat format; int channels; int freq; } SDL_AudioSpec;
+    /// ```
+    ///
+    /// What `goldberry-media`'s audio stream is opened with (ADR-0461).
+    /// `SDL_AudioFormat` is an enum, so an `int`.
+    public static final NativeStructLayout SDL_AUDIO_SPEC = new NativeStructLayout(
+            "SDL_AudioSpec",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("channels"),
+                    ValueLayout.JAVA_INT.withName("freq")));
+
     /// Blend2D's entire object model — `BLObjectDetail`.
     ///
     /// Every Blend2D "core" object is exactly one of these and nothing else:
@@ -919,6 +932,7 @@ public final class Layouts {
                 SDL_SURFACE,
                 SDL_DISPLAY_MODE,
                 SDL_RECT,
+                SDL_AUDIO_SPEC,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,

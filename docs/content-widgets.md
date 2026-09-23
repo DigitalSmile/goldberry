@@ -13,7 +13,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 | `goldberry-code`    | Tree-sitter             | small       | MIT                           | candidate |
 | `goldberry-terminal`| libvterm                | tiny        | MIT                           | candidate — strong for Scarlet |
 | `goldberry-vector`  | ThorVG                  | small       | MIT                           | candidate — resolves SVG deferral |
-| `goldberry-media`   | libVLC                  | large       | LGPL-2.1+ (**dynamic link**)  | engine decided; module gated on media doc |
+| `goldberry-media`   | FFmpeg + dav1d          | ≤ 6 MB      | LGPL-2.1+ (**dynamic link**), BSD-2 | **in progress** (2026-09-23, ADR-0460, ADR-0461). FFmpeg driven from Java replaces libVLC. Royalty-free codecs only, and no FFmpeg network layer. Design in `goldberry-media.md`, tracking in `media-plan.md` |
 | `goldberry-camera`  | SDL3 camera subsystem   | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-mic`     | SDL3 audio recording    | none new    | zlib (SDL3, already in core)  | planned |
 | ~~`goldberry-web`~~ | webview/webview         | none new    | MIT                           | **not a module** — built as §9's `web-view` in `:widgets` (ADR-0441). Servo was the blocker and not the only route: `webview/webview` drives the desktop's own engine, so there is nothing heavy to quarantine. See §11 |
@@ -288,12 +288,21 @@ Because everything is Blend2D, `Plot.renderTo(image)` gives publication-quality 
 
 ---
 
-## 8. `goldberry-media` — audio/video playback (libVLC) — engine decided, module still gated
+## 8. `goldberry-media` — audio/video playback (FFmpeg-direct)
 
-- **Engine: libVLC.** Chosen over libmpv on three grounds: official builds are **LGPL by default** (mpv is LGPL only via custom `-Dgpl=false` builds you'd have to own); the libVLC 3.x C API has been effectively stable for a decade; and the Java precedent is overwhelming — vlcj has shipped VLC-rendered video inside Java desktop apps for ~15 years via the same `vmem` callback path Goldberry uses (decoded frames in a requested pixel format → `BLImage` layers). Subtitles are rendered onto frames by the engine.
-- **Packaging (the known tax):** libVLC is `libvlc` + `libvlccore` + a **plugins directory** of many shared objects. The natives jars ship the plugin tree and the loader sets the plugin path explicitly at init. Dynamic linking throughout — which LGPL requires anyway.
-- **License:** LGPL-2.1+, dynamically linked (relink requirement satisfied). Apps that ship it owe the LGPL notice; documented loudly in the module README. Codec/patent exposure is per-app and gets its own document before this module gets code.
-- **Scope if built:** `video-view` (playback, seek, tracks, subtitles) and an `AudioPlayer` API — music, podcasts, and streams go through the same engine; audio-only playback is just libVLC without a video output.
+> **In progress, and not on libVLC.** The engine this section used to name was
+> replaced before any code was written
+> ([ADR-0460](../book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)).
+> The design is `goldberry-media.md` and the work is tracked in `media-plan.md`.
+> What follows is the summary. Where the two disagree, the design wins.
+
+- **Engine: FFmpeg, driven from Java.** Five of FFmpeg's libraries (`avformat`, `avcodec`, `avutil`, `swresample`, `swscale`) plus dav1d for software AV1, built by a media superbuild of its own. The threads, queues, clock and state machine are Java, running under Goldberry's Clock SPI, which is what makes byte-exact golden tests of video possible. libVLC lost on five counts, all recorded in the ADR: a pruned libVLC is 32–56 MB against ≤ 6 MB; its build is autotools plus about a hundred contribs and mingw-only on Windows; it bundles its own FreeType, HarfBuzz and gnutls; it owns its clocks; and `vmem` forces CPU frames.
+- **Royalty-free codecs only.** VP8, VP9, AV1, Opus, Vorbis, FLAC, MP3 and PCM; Matroska/WebM, MP4, Ogg, FLAC, MP3 and WAV containers; SRT, WebVTT and ASS subtitles. H.264, HEVC, AAC and AC-3 are **not built**. An MP4 carrying them opens and reports `UNSUPPORTED_CODEC` naming the codec. The restriction is a default, not a ceiling: a **Decoder SPI** exists from v1, so an application that wants a patented codec brings a provider for it and answers for it itself.
+- **No FFmpeg network layer.** FFmpeg performs no I/O of its own. Every byte arrives through a Java `MediaIO` (`FileIO`, `HttpIO`, `IcyIO`) over a custom `AVIOContext`. The JDK therefore supplies HTTPS, proxies, authentication and HTTP/2, no TLS library is shipped on any platform, and the seek bar shows the ranges that are really buffered.
+- **Bindings are this module's own.** FFmpeg is bound by hand in `goldberry-media` and not in `:natives`, and it is loaded from its own libraries rather than from `libgoldberry`. This is the second exception to §3.1's rule that no `MemorySegment` leaves `:natives`, and the reason is recorded ([ADR-0461](../book/src/adr/0461-a-media-engine-binds-its-own-libraries.md)). The rule's other half still holds: no FFmpeg type appears in the public API, and struct access is limited to one table checked against a probe compiled on every target.
+- **Packaging.** Shared libraries, dynamically linked, in a `goldberry-ffmpeg-natives-{platform}-{arch}` jar separate from `goldberry-media`. dav1d is linked statically into `avcodec`. `-Dgoldberry.media.libdir` replaces the libraries, which LGPL relinkability requires. Each jar carries the LGPL text, dav1d's notice, and the exact tag and configure line it was built from.
+- **Licence:** LGPL-2.1+ (never `--enable-gpl`, `--enable-nonfree` or `--enable-version3`), plus BSD-2 for dav1d. With no patent-pool codecs shipped, there is nothing per-app to review until an application adds a provider.
+- **Widgets:** `video-view` (surface only), `media-controls`, `media-player` (the two combined, plus subtitles), and `audio-player` (compact controls, cover art, and the "now playing" line for internet radio). Music, podcasts and streams go through the same engine; audio-only playback is the engine with no video track.
 - **UI sound effects do not belong here.** Short, low-latency effect sounds (clicks, notification chimes) should not drag in an LGPL media stack. SDL3 — already inside `libgoldberry` — has a full audio subsystem: a small `Sound` API in core plays WAV effects through SDL audio, with a tiny public-domain decoder (stb-class) if OGG effects are wanted. Zero new dependencies; the earlier miniaudio idea is retired.
 
 ---
@@ -383,7 +392,7 @@ quarantine case in its purest form — the same licence-and-provenance question
 | code      | MIT (Tree-sitter + grammars) | notice file only |
 | terminal  | MIT (libvterm)           | notice file only |
 | vector    | MIT (ThorVG)             | notice file only |
-| media     | LGPL-2.1+ (libVLC, dynamic) | LGPL notice + relinkability (dynamic linking satisfies); codec/patent review per app |
+| media     | LGPL-2.1+ (FFmpeg, dynamic), BSD-2 (dav1d) | LGPL notice + relinkability (dynamic linking and `goldberry.media.libdir` satisfy it). No patent-pool codec is shipped, so a codec/patent review falls only on an app that adds a DecoderProvider for one |
 | camera    | zlib (SDL3, already shipped) | none new; OS permission prompt + macOS usage-description key |
 | mic       | zlib (SDL3, already shipped) | none new; OS permission prompt + macOS usage-description key |
 | ~~web~~   | MIT (webview/webview)    | **not a module** — `web-view` ships in `:widgets` (ADR-0441). Notice file only, and nothing is vendored: the engine is the desktop's own WebKitGTK, WebView2 or WKWebView, under whatever licence the user's OS ships it |

@@ -92,7 +92,7 @@ class ShowcaseShellTest {
     /// What is still load-bearing is that the digits and the strip agree about
     /// the first ten, which is [GalleryOrderTest]'s.
     @Test
-    @DisplayName("fourteen screens; the first ten have a digit and the rest have the strip")
+    @DisplayName("fifteen screens; the first ten have a digit and the rest have the strip")
     void theGallery() {
         assertEquals(
                 List.of(
@@ -109,7 +109,8 @@ class ShowcaseShellTest {
                         "icons",
                         "emoji",
                         "motion",
-                        "web"),
+                        "web",
+                        "media"),
                 Screen.GALLERY);
 
         // A keyboard has ten digits and `Screen.GALLERY` may be longer. What must

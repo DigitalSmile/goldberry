@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
+import io.github.digitalsmile.goldberry.media.view.MediaStyles;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
@@ -158,6 +159,7 @@ class GalleryGoldenTest {
         // And the module's other half, which the HTML screen is entirely made of
         // (ADR-0298).
         sheets.add(HtmlStyles.stylesheet());
+        sheets.add(MediaStyles.stylesheet());
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         // The size and the scale are the harness's rather than captured here,
@@ -314,6 +316,17 @@ class GalleryGoldenTest {
     @DisplayName("the Web screen, whose subject is a window this image cannot contain")
     void web() {
         paint("gallery-web", "web", Theme.NORD_DARK, 1200, 900);
+    }
+
+    /// The Media screen, with **FFmpeg pinned off** by this module's test task
+    /// (`goldberry.media.libdir` points at a directory that cannot exist), for the
+    /// Web screen's reason: whether a machine ran `:media:ffmpegBuild` is not
+    /// something a golden may photograph. So this is the player idle, the cards
+    /// around it, and the Capabilities card saying why nothing can play.
+    @Test
+    @DisplayName("the Media screen, with FFmpeg absent on every machine")
+    void media() {
+        paint("gallery-media", "media", Theme.NORD_DARK, 1200, 1100);
     }
 
     /// **The one golden in the repository with no scale sweep behind it**, and the
