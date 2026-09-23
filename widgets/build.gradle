@@ -24,7 +24,7 @@ dependencies {
     // saying ":natives must not reach :core" can only be asserted somewhere that
     // can see both. :gpu is deliberately absent from that classpath (see below),
     // and is deliberately absent from the rules for the same reason.
-    testImplementation libs.archunit.junit5
+    testImplementation libs.archunit.junit6
 
     // jqwik, for the round-trip properties in docs/testing.md §1.1.
     testImplementation libs.jqwik

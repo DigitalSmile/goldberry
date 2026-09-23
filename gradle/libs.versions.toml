@@ -7,13 +7,13 @@ junit = "6.1.3"
 # --- The test tool-chain (docs/testing.md) -----------------------------------
 # ArchUnit asserts the module graph in ARCHITECTURE.md §2 and the boundary in
 # §3.1 -- rules that were prose until something enforced them (testing.md §2).
-archunit = "1.4.1"
+archunit = "1.5.0"
 # jqwik covers the round-trips in testing.md §1.1. It is a second JUnit engine
 # rather than a library, which is why the platform launcher matters below.
 jqwik = "1.9.3"
 # JaCoCo for testing.md §3. Pinned to a version that reads JDK 25 class files --
 # an older one fails with "Unsupported class file major version".
-jacoco = "0.8.14"
+jacoco = "0.8.15"
 
 # --- Publishing (ADR-0334) ----------------------------------------------------
 # Central Portal uploads, snapshots and in-memory signing. Resolved from Maven
@@ -34,11 +34,11 @@ spotbugs = "4.10.4"
 # PIT runs through its own command line rather than `gradle-pitest-plugin`, so
 # there is no plugin version here to go with it -- the `pitestPlugin` entry that
 # used to sit above was read by nothing (the 2026-09-18 review, B12).
-pitest = "1.20.5"
+pitest = "1.30.0"
 pitestJunit5 = "1.2.3"
 # The analyser the conventions plugin runs. In the catalog like every other tool
 # version, rather than a literal in the plugin.
-pmd = "7.19.0"
+pmd = "7.27.0"
 jmhPlugin = "0.7.3"
 jmh = "1.37"
 
@@ -111,7 +111,7 @@ junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
-archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+archunit-junit6 = { module = "com.tngtech.archunit:archunit-junit6", version.ref = "archunit" }
 errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorproneCore" }
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
