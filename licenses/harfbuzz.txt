@@ -4,7 +4,7 @@ Upstream:      https://github.com/harfbuzz/harfbuzz
 Licence file:  COPYING
 Bundled as:    statically linked into libgoldberry
 
---- COPYING at 14.3.1 (ab5ecbb83985034a76214ac0b2b833dcd590d774), verbatim ---
+--- COPYING at 14.5.0 (863d3f7787c6df18d20e4535c5906bf3eb803bd5), verbatim ---
 
 HarfBuzz is licensed under the so-called "Old MIT" license.  Details follow.
 For parts of HarfBuzz that are licensed under different licenses see individual
