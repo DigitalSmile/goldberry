@@ -472,3 +472,5 @@
 - [ADR-0455 A page that will not animate is measured before it is blamed](adr/0455-a-page-that-will-not-animate-is-measured-before-it-is-blamed.md)
 - [ADR-0456 The emoji face is Noto, drawn from its paint graphs](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)
 - [ADR-0457 A sheet is grouped by its upstream's own categories](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)
+- [ADR-0458 A page on macOS is a view, not a window](adr/0458-a-page-on-macos-is-a-view-not-a-window.md)
+- [ADR-0459 A key typed into a page is the page's](adr/0459-a-key-typed-into-a-page-is-the-pages.md)

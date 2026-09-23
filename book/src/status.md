@@ -7684,8 +7684,16 @@ And the two facts that make the first one cost more than it reads:
   declines rather than crashing. `web-view` and `tray-icon` are a **pair** on
   Linux now, which only a separate process would uncouple.
 
-  *Unverified on Windows and macOS*, in `tray-icon`'s sense: the design says SDL's
-  own pump services both and nothing here has run it. The Linux leg was built and
+  **macOS is built and run**: an embedded page there is the engine's `WKWebView`
+  added as a subview of SDL's content view, through a holder window, because
+  webview.h would otherwise replace that content view
+  ([ADR-0458](adr/0458-a-page-on-macos-is-a-view-not-a-window.md)). And a key
+  typed into it is the page's alone: SDL3 hands macOS key events to the
+  application *before* the focused view, so the backend drops them while a page
+  holds the keyboard and takes the keyboard back on the next press outside it
+  ([ADR-0459](adr/0459-a-key-typed-into-a-page-is-the-pages.md)). **Windows is
+  written and unverified**, in `tray-icon`'s sense: webview.h makes its own
+  `WS_CHILD` window inside SDL's, and nothing here has compiled or run it. The Linux leg was built and
   exercised on a Wayland session, through FFM and through a real `Host` with a
   real tray up — page opened, titled, sized, navigated, pumped and destroyed.
 

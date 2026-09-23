@@ -40,7 +40,7 @@ public final class Webview implements AutoCloseable {
     /// Bumped whenever the shim's exported functions change shape. A library
     /// found on a path the build did not choose — a distribution package, a `-D`
     /// override — is checked against this before anything is called through it.
-    public static final int ABI = 6;
+    public static final int ABI = 7;
 
     private static final Logger LOG = Logs.of(Webview.class);
 
@@ -199,10 +199,16 @@ public final class Webview implements AutoCloseable {
     /// window and that window becomes a child of the application's, so it takes
     /// part in the layout instead of floating beside it.
     ///
-    /// **X11 only, and that is permanent.** Wayland allows no cross-client
-    /// surface embedding — `xdg-foreign` is toplevel *parenting* and errors on
-    /// anything else — so a caller on Wayland gets empty and is expected to say
-    /// so rather than to open a loose window ([ADR-0442]).
+    /// **X11, Cocoa and Win32.** On X11 the engine's GTK window is reparented into
+    /// `parent`; on macOS the engine's `WKWebView` is added as a subview of the
+    /// window's content view, because a view rather than a window is the unit
+    /// of composition there ([ADR-0458]); on Win32 the engine makes its own
+    /// `WS_CHILD` window inside `parent` ([ADR-0459]).
+    ///
+    /// Wayland is a permanent no: it allows no cross-client surface embedding —
+    /// `xdg-foreign` is toplevel *parenting* and errors on anything else — so a
+    /// caller on Wayland never gets this far, and is expected to say so rather
+    /// than to open a loose window ([ADR-0442]).
     ///
     /// @param parent the platform's handle for the window to go inside
     /// @param kind   which window system that handle belongs to
@@ -225,8 +231,7 @@ public final class Webview implements AutoCloseable {
                 LOG.warn("no page was opened: this process already holds a different major version of GTK"
                         + " — see ADR-0441 and ADR-0442");
             } else {
-                LOG.info("no page could be opened inside the window: this session does not permit embedding."
-                        + " Wayland has no cross-client surface embedding; running on X11 or XWayland does");
+                LOG.info("no page could be opened inside the window: {}", embeddingRefused(kind));
             }
             return Optional.empty();
         }
@@ -234,10 +239,32 @@ public final class Webview implements AutoCloseable {
         return Optional.of(new Webview(bound, handle));
     }
 
+    /// Why the shim answered NULL for a parent of this `kind`, once a rival GTK
+    /// has been ruled out.
+    ///
+    /// Keyed on the handle's kind rather than on `os.name`, because the kind is
+    /// what the shim itself branched on. The one message this used to have was
+    /// the X11 one, and a Mac was told to run under XWayland.
+    ///
+    /// @param kind the window system the parent handle belongs to
+    /// @return a sentence for the log, naming the likely cause and what to do
+    static String embeddingRefused(NativeWindowHandle.Kind kind) {
+        return switch (kind) {
+            case X11 ->
+                "GTK came up on a display that is not X11, or the engine would not start. Wayland has no"
+                        + " cross-client surface embedding; running on X11 or XWayland does";
+            case COCOA -> "WKWebView would not start, or the window has no content view to add it to";
+            case WIN32 ->
+                "WebView2 would not start: the WebView2 Runtime is not installed, or this thread's COM"
+                        + " apartment is multi-threaded, which WebView2 refuses";
+        };
+    }
+
     /// Moves and resizes an embedded page within its parent.
     ///
-    /// Called whenever the widget's box changes. One X request and no round trip,
-    /// which is what makes it affordable every frame.
+    /// Called whenever the widget's box changes. One X request and no round trip
+    /// on X11, one `setFrame:` on macOS, which is what makes it affordable every
+    /// frame.
     public void bounds(int x, int y, int width, int height) {
         requireOpen();
         if (width <= 0 || height <= 0) {
@@ -259,6 +286,28 @@ public final class Webview implements AutoCloseable {
     public LoadState loadState() {
         requireOpen();
         return LoadState.of(calls.loadState().call(handle));
+    }
+
+    /// Whether the keyboard focus is inside this page.
+    ///
+    /// Asked once per key event of the parent window, so it is one downcall and
+    /// a pointer comparison or two on the other side. True only where the
+    /// window system hands the application a copy of what the page is typed —
+    /// macOS; X11 and Windows answer false because they never do ([ADR-0459]).
+    ///
+    /// @throws IllegalStateException if the page has been closed
+    public boolean hasFocus() {
+        requireOpen();
+        return calls.hasFocus().call(handle) != 0;
+    }
+
+    /// Takes the keyboard focus out of this page, if it has it, and gives it back
+    /// to the window the page is embedded in. Does nothing otherwise.
+    ///
+    /// @throws IllegalStateException if the page has been closed
+    public void blur() {
+        requireOpen();
+        calls.blur().call(handle);
     }
 
     /// Whether a page can be opened in this process at all.

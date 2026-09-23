@@ -86,6 +86,32 @@ public interface BackendWebView extends AutoCloseable {
         return WebLoad.UNKNOWN;
     }
 
+    /// Whether the keyboard focus is inside this page.
+    ///
+    /// Asked by the backend for every key and text event of the page's parent
+    /// window, and a yes drops the event: it was typed into the page, which has
+    /// already received it. That matters on macOS, where SDL handles a key before
+    /// the window delivers it to the focused view, so without this one keystroke
+    /// would type into the page **and** reach the application
+    /// ([ADR-0459](../../../../../../../../book/src/adr/0459-a-key-typed-into-a-page-is-the-pages.md)).
+    ///
+    /// False where the engine will not say, which is the behaviour every page
+    /// had before there was anything to ask.
+    default boolean hasKeyboardFocus() {
+        return false;
+    }
+
+    /// Gives the keyboard back to the application's window, if this page has it.
+    ///
+    /// Called by the backend for every button press in the parent window that
+    /// the backend itself saw. A press on the page is the page's and never
+    /// reaches the backend, so every press that does is one outside the page:
+    /// the user clicking back into the application.
+    ///
+    /// Does nothing where the engine cannot be asked, and nothing when the page
+    /// does not have the focus.
+    default void blur() {}
+
     /// Runs `script` in the page.
     ///
     /// Nothing comes back: the engine's call is asynchronous and its result

@@ -11,7 +11,7 @@ import java.lang.invoke.MethodHandle;
 
 import io.github.digitalsmile.goldberry.natives.Downcalls;
 
-/// The thirteen functions `libgoldberry-webview` exports.
+/// The eighteen functions `libgoldberry-webview` exports.
 ///
 /// None of them is `webview/webview`'s own, for the reason md4c's are not: the
 /// upstream C API returns a `webview_error_t` in an out-parameter shape this
@@ -38,7 +38,9 @@ public record WebviewCalls(
         LoadState loadState,
         Bind bind,
         Return answer,
-        CanEmbed canEmbed) {
+        CanEmbed canEmbed,
+        HasFocus hasFocus,
+        Blur blur) {
 
     /// Binds **only** the ABI probe.
     ///
@@ -80,7 +82,9 @@ public record WebviewCalls(
                 new LoadState(lookup),
                 new Bind(lookup),
                 new Return(lookup),
-                new CanEmbed(lookup));
+                new CanEmbed(lookup),
+                new HasFocus(lookup),
+                new Blur(lookup));
     }
 
     /// Creates a page and its window.
@@ -505,6 +509,56 @@ public record WebviewCalls(
                 return (int) FD_goldberry_webview_can_embed.invokeExact(address);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_webview_can_embed", t);
+            }
+        }
+    }
+
+    /// Whether the keyboard focus is inside a page.
+    ///
+    /// `int goldberry_webview_has_focus(void* w)`
+    ///
+    /// 1 or 0. Only macOS can answer 1 in a way that matters: it is the one
+    /// platform where SDL also receives the keys a focused page is typed
+    /// ([ADR-0459]).
+    public static final class HasFocus {
+
+        private static final MethodHandle FD_goldberry_webview_has_focus =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        HasFocus(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_has_focus");
+        }
+
+        public int call(MemorySegment webview) {
+            try {
+                return (int) FD_goldberry_webview_has_focus.invokeExact(address, webview);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_has_focus", t);
+            }
+        }
+    }
+
+    /// Gives the keyboard back from a page to the window it is embedded in.
+    ///
+    /// `void goldberry_webview_blur(void* w)`
+    public static final class Blur {
+
+        private static final MethodHandle FD_goldberry_webview_blur =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        Blur(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_blur");
+        }
+
+        public void call(MemorySegment webview) {
+            try {
+                FD_goldberry_webview_blur.invokeExact(address, webview);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_blur", t);
             }
         }
     }

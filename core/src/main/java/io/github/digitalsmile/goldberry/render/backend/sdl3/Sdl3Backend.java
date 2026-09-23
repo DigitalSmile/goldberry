@@ -970,6 +970,12 @@ public final class Sdl3Backend implements Backend {
             // The backing store moved without the logical size necessarily
             // moving. No event of its own: the resize or scale change that
             // caused it carries the news.
+        } else if (isTyping(type) && typedIntoAPage(embeddedPages.get(window))) {
+            // Typed into an embedded page, which has already received it. On
+            // macOS SDL handles every key event before the window delivers it
+            // to the focused view, so the same keystroke arrives here too -- and
+            // passing it on would type into the page and fire the application's
+            // shortcuts at once ([ADR-0459]).
         } else if (type == SdlEventType.KEY_DOWN.value()) {
             out.add(new BackendEvent.KeyPressed(
                     window, eventBuffer.keycode(), eventBuffer.keyModifiers(), eventBuffer.isRepeat()));
@@ -1001,6 +1007,11 @@ public final class Sdl3Backend implements Backend {
             out.add(new BackendEvent.PointerMoved(
                     window, at[0], at[1], Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
+            // A press SDL saw is a press OUTSIDE every embedded page -- one on a
+            // page is the page's and never reaches SDL -- so it is the user
+            // clicking back into the application, and the keyboard comes back
+            // with it ([ADR-0459]).
+            blurPagesOf(window);
             var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
             out.add(new BackendEvent.PointerPressed(
                     window,
@@ -1415,6 +1426,52 @@ public final class Sdl3Backend implements Backend {
             pages.add(opened);
         });
         return page;
+    }
+
+    /// Whether an SDL event of this type is one a page can have been typed.
+    ///
+    /// All four, not only the key presses: a key-up that reached the
+    /// application for a key-down it never saw is a stuck key to anything that
+    /// tracks them, and committed and composing text are the same keystrokes a
+    /// second time.
+    static boolean isTyping(int type) {
+        return type == SdlEventType.KEY_DOWN.value()
+                || type == SdlEventType.KEY_UP.value()
+                || type == SdlEventType.TEXT_INPUT.value()
+                || type == SdlEventType.TEXT_EDITING.value();
+    }
+
+    /// Whether one of `pages` holds the keyboard, and so whether a key event of
+    /// their window was typed into it rather than into the application.
+    ///
+    /// Static and handed the list, so the decision is testable without SDL or a
+    /// page. Null for a window with no page at all, which is nearly every window
+    /// and costs a map lookup.
+    static boolean typedIntoAPage(@Nullable List<BackendWebView> pages) {
+        if (pages == null) {
+            return false;
+        }
+        for (var page : pages) {
+            if (!page.isClosed() && page.hasKeyboardFocus()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Takes the keyboard back from every page embedded in `window`. A page
+    /// without it is left alone by [BackendWebView#blur], so this is safe to
+    /// call on every press.
+    private void blurPagesOf(BackendWindow window) {
+        var pages = embeddedPages.get(window);
+        if (pages == null) {
+            return;
+        }
+        for (var page : pages) {
+            if (!page.isClosed()) {
+                page.blur();
+            }
+        }
     }
 
     /// Closes every page embedded in `window`.

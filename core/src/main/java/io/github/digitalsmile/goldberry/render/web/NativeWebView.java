@@ -54,6 +54,18 @@ final class NativeWebView implements BackendWebView {
     }
 
     @Override
+    public boolean hasKeyboardFocus() {
+        return !isClosed() && webview.hasFocus();
+    }
+
+    @Override
+    public void blur() {
+        if (!isClosed()) {
+            webview.blur();
+        }
+    }
+
+    @Override
     public boolean isClosed() {
         return webview.isClosed();
     }

@@ -25,7 +25,9 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// The page is a real child window sitting over the widget's box, moved and
 /// resized with it — so it *is* the tab, which is what [ADR-0442][adr442] made
-/// possible.
+/// possible. On macOS it is a `WKWebView` subview of the window's content view
+/// rather than a child window ([ADR-0458][adr458]), and it looks and behaves the
+/// same.
 ///
 /// ## The button is the demonstration, not a convenience
 ///
@@ -60,6 +62,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// [adr442]: ../../../../../../../../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md
 /// [adr444]: ../../../../../../../../book/src/adr/0444-a-page-stands-aside-for-a-modal.md
+/// [adr458]: ../../../../../../../../book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md
 public record WebScreen() implements Widget.Stateful {
 
     /// What the tab shows when it opens.

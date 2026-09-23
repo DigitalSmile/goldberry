@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Stack;
 import io.github.digitalsmile.goldberry.widgets.core.canvas.Canvas;
 import io.github.digitalsmile.goldberry.widgets.overlay.message.Message;
 import io.github.digitalsmile.goldberry.widgets.shell.web.WebPage;
+import io.github.digitalsmile.goldberry.widgets.shell.web.WebViews;
 
 /// A web page **inside** the window — `docs/core-widgets.md` §9's `web-view` as a
 /// widget rather than a window.
@@ -125,10 +126,31 @@ import io.github.digitalsmile.goldberry.widgets.shell.web.WebPage;
 /// from 13 fps to 24. Software rasterisation costs pixels, so fewer animated
 /// pixels is the lever.
 ///
+/// ## How the page gets inside the window, per platform
+///
+/// | Platform | What the page is | Status |
+/// |---|---|---|
+/// | X11 (and XWayland) | a GTK window, `XReparentWindow`ed into this one | works |
+/// | macOS | a `WKWebView`, a subview of the window's content view | works ([ADR-0458]) |
+/// | Windows | a WebView2 `WS_CHILD` window the engine makes inside this one | written, unverified ([ADR-0459]) |
+/// | Wayland | — | never; says so |
+///
+/// [ADR-0458]: ../../../../../../../../book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md
+/// [ADR-0459]: ../../../../../../../../book/src/adr/0459-a-key-typed-into-a-page-is-the-pages.md
+///
+/// On macOS a parked page is **hidden** as well as moved, because an `NSView`
+/// does not reliably clip its subviews and a frame above the content view is in
+/// the title bar. Hiding keeps the document and its scroll position, which is
+/// what parking by moving was for.
+///
+/// Whenever no page opens, the box says why, and says the thing that applies to
+/// this platform — see [WebViewRefusal].
+///
 /// ## Wayland cannot do this, and says so
 ///
-/// Embedding means reparenting the engine's window into the application's. X11,
-/// Win32 and Cocoa allow that; **Wayland does not, and no protocol proposes it**
+/// Embedding means putting the engine's window or view inside the application's.
+/// X11 and Cocoa allow that, and so does Win32; **Wayland does not, and no
+/// protocol proposes it**
 /// — a surface belongs to the client that made it, `xdg-foreign` is toplevel
 /// *parenting* and errors on anything else, and the request has been open since
 /// 2012. On a Wayland session this widget therefore opens **nothing** and paints
@@ -140,11 +162,18 @@ import io.github.digitalsmile.goldberry.widgets.shell.web.WebPage;
 /// SDL for the x11 driver — `-Dgoldberry.backend.videoDriver=x11` — which runs
 /// the window under XWayland where reparenting works.
 ///
-/// ## Input needs no routing
+/// ## Input is the page's, and stays the page's
 ///
-/// The page is a real child window, so the window system delivers its clicks and
-/// keystrokes to WebKit directly. Nothing here forwards events, and the pointer
-/// router never sees them — which is correct: they were never this toolkit's.
+/// The page is a real child window — a real subview on macOS — so the window
+/// system delivers its clicks and keystrokes to the engine directly. Nothing
+/// here forwards events, and the pointer router never sees a click on the page.
+///
+/// **One platform also hands the application a copy of the keys.** SDL3 on macOS
+/// handles every key event before the window delivers it to the focused view,
+/// so a key typed into the page would type into it *and* fire this
+/// application's shortcuts. The backend therefore drops key and text events
+/// while a page of that window holds the keyboard, and a press anywhere outside
+/// the page gives the keyboard back to the application ([ADR-0459]).
 ///
 /// @param page       what to open
 /// @param attributes id, classes and styles, as for any widget
@@ -561,17 +590,13 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                 host.repaint();
                 return;
             }
-            // The three reasons are told apart further down — `Webview` logs which
-            // one — but the message on screen is the same, because the fix is the
-            // same and a user cannot act on the difference.
-            LOG.warn("web-view: no page could be put inside the window."
-                    + " Embedding needs a native window handle to reparent into, which X11, Win32 and Cocoa"
-                    + " give and Wayland does not. Run on X11 or XWayland"
-                    + " (-Dgoldberry.backend.videoDriver=x11), or check that Capability.WEB_VIEW is present");
-            show("This session cannot put a web page inside a window. Wayland has no cross-client surface"
-                    + " embedding and no protocol proposes one, so the page is not opened at all rather than"
-                    + " dropped on the desktop where the layout cannot reach it. Running under X11 or XWayland"
-                    + " — -Dgoldberry.backend.videoDriver=x11 — is what makes it work.");
+            // The exact cause is told apart further down — `Webview` logs it — and
+            // what is said here is the part a user can act on: whether the library
+            // is there at all, and what this platform needs. One message for every
+            // platform was a Mac being told to run under XWayland.
+            var refusal = WebViewRefusal.current(WebViews.isAvailable());
+            LOG.warn("web-view: {}", refusal.log());
+            show(refusal.notice());
         }
 
         /// Sets what the widget says and asks for a **rebuild**, not a repaint.
