@@ -108,9 +108,9 @@ and duration.
   `live()`; `MediaInfo` gains `live`. The widgets show `LIVE` only for a live
   source. One that cannot seek but ends shows what remains, and the title is a
   line over the controls.
-- FFmpeg's probe (`avformat_find_stream_info`) reads up to its default analyse
-  duration before anything plays: about 4 s of PCM, less for compressed audio.
-  Over a slow link that is start-up time. Lowering `probesize` for network
-  sources is left open.
+- FFmpeg's probe reads about 4 s of raw PCM before anything plays, and only
+  its first 32 KB of Opus, MP3 or FLAC (measured on 30–60 s files). A smaller
+  `probesize` for network sources was measured and not kept: it helped WAV
+  alone.
 - The seek bar did not draw `bufferedRanges` at first: `slider` in `:widgets`
   had no second range to show. ADR-0466 gave it one.
