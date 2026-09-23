@@ -19,6 +19,12 @@
     --gb-media-overlay-background: var(--gb-surface);
     --gb-media-overlay-padding: 8px;
     --gb-media-player-min-height: 180px;
+    /* Subtitles: light text on a dark band, legible on any picture, and how far
+       above the foot they sit with the controls showing and hidden. */
+    --gb-media-subtitle-color: #ffffff;
+    --gb-media-subtitle-background: rgba(0, 0, 0, 0.65);
+    --gb-media-subtitle-offset: 56px;
+    --gb-media-subtitle-offset-idle: 16px;
 }
 
 .audio-player {
@@ -89,6 +95,28 @@ media-player {
     background: var(--gb-media-overlay-background);
     opacity: 1;
     transition: opacity 200ms;
+}
+
+/* Subtitles, over the foot of the picture and never under the controls. Out of
+   flow like the overlay, and not in it, so they stay when the controls fade. */
+.media-subtitles {
+    left: 0;
+    right: 0;
+    bottom: var(--gb-media-subtitle-offset);
+    align-items: center;
+    gap: 2px;
+    padding: 0 16px;
+}
+
+media-player.is-pointer-idle .media-subtitles {
+    bottom: var(--gb-media-subtitle-offset-idle);
+}
+
+.media-subtitle {
+    color: var(--gb-media-subtitle-color);
+    background: var(--gb-media-subtitle-background);
+    padding: 2px 6px;
+    border-radius: 2px;
 }
 
 /* Playing, with the pointer still: the picture alone. */

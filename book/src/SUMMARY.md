@@ -482,3 +482,4 @@
 - [ADR-0465 Network media is read through a cache, and buffered to a high water mark](adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)
 - [ADR-0466 A slider marks spans of its range](adr/0466-a-slider-marks-spans-of-its-range.md)
 - [ADR-0467 An audio track is switched by retiring its thread and seeking](adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md)
+- [ADR-0468 Text subtitles are read in Java](adr/0468-text-subtitles-are-read-in-java.md)

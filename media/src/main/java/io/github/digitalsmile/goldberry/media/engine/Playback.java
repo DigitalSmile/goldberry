@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media.engine;
 
 import java.io.IOException;
+import java.lang.foreign.ValueLayout;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -22,14 +23,17 @@ import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
 import io.github.digitalsmile.goldberry.media.MediaInfo;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
+import io.github.digitalsmile.goldberry.media.SubtitleSource;
 import io.github.digitalsmile.goldberry.media.TimeRange;
 import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.VideoPicture;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.AudioSink;
+import io.github.digitalsmile.goldberry.media.codec.CodecId;
 import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.MediaType;
+import io.github.digitalsmile.goldberry.media.codec.Packet;
 import io.github.digitalsmile.goldberry.media.ffi.Decoders;
 import io.github.digitalsmile.goldberry.media.ffi.Demuxer;
 import io.github.digitalsmile.goldberry.media.ffi.Ffmpeg;
@@ -38,6 +42,8 @@ import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MediaIOs;
 import io.github.digitalsmile.goldberry.media.io.Source;
 import io.github.digitalsmile.goldberry.media.io.UnsupportedSchemeException;
+import io.github.digitalsmile.goldberry.media.subtitle.Cue;
+import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 
 /// One source, open and playing: the demux thread, a decode thread per track, and
 /// the state they share (`docs/goldberry-media.md` §3).
@@ -151,6 +157,12 @@ public final class Playback implements AutoCloseable {
     // The demux thread's own: what plays, and the audio thread playing it.
     private int audioStream = -1;
     private int videoStream = -1;
+    /// The subtitle track whose packets become cues, or -1. Written by any thread
+    /// ([#hideSubtitles], [#showSubtitles]) and read by the demux thread.
+    private volatile int subtitleStream = -1;
+    private volatile CodecId subtitleCodec = CodecId.UNKNOWN;
+    private final SubtitleTimeline cues = new SubtitleTimeline();
+    private volatile @Nullable SubtitleSource subtitles;
     private @Nullable AudioWorker audioWorker;
     private @Nullable Thread audioThread;
 
@@ -346,8 +358,37 @@ public final class Playback implements AutoCloseable {
         return videoTrack;
     }
 
+    /// Where the subtitles showing come from, or null when none show.
+    public @Nullable SubtitleSource subtitles() {
+        return subtitles;
+    }
+
+    /// The cues showing now: none when no subtitles are chosen.
+    public List<Cue> showingCues() {
+        return subtitles == null ? List.of() : cues.showing(Duration.ofNanos(presentationNanos()));
+    }
+
+    /// Shows the cues of `file`, read already, in place of whatever subtitles
+    /// show. A subtitle track of the source stops being read.
+    public void showSubtitles(SubtitleSource.External file, List<Cue> read) {
+        subtitleStream = -1;
+        cues.replace(read);
+        subtitles = file;
+        listener.changed(this);
+    }
+
+    /// Shows no subtitles.
+    public void hideSubtitles() {
+        subtitleStream = -1;
+        subtitles = null;
+        cues.clear();
+        listener.changed(this);
+    }
+
     /// Plays `track` in place of the audio track playing, from where playback is
-    /// (§6, track menus). The demux thread retires the audio thread, starts one
+    /// (§6, track menus). A subtitle track is shown instead, in place of any
+    /// subtitles showing: the demux thread selects it and seeks to the position,
+    /// so the cues around it are read. The demux thread retires the audio thread, starts one
     /// on `track`, and makes an accurate seek to the position, so the new track
     /// comes in at the right sample. A track with no decoder is refused there and
     /// the current one plays on. Requests coalesce: the latest wins.
@@ -360,8 +401,9 @@ public final class Playback implements AutoCloseable {
         if (described == null || !described.tracks().contains(track)) {
             throw new IllegalArgumentException("not a track of " + source.uri() + ": " + track);
         }
-        if (track.type() != MediaType.AUDIO) {
-            throw new IllegalArgumentException("only an audio track can be chosen; " + track.type() + " cannot yet");
+        if (track.type() != MediaType.AUDIO && track.type() != MediaType.SUBTITLE) {
+            throw new IllegalArgumentException(
+                    "an audio or subtitle track can be chosen; " + track.type() + " cannot yet");
         }
         pendingTrack.set(track);
         signal();
@@ -618,7 +660,11 @@ public final class Playback implements AutoCloseable {
         while (!stopping) {
             var track = pendingTrack.getAndSet(null);
             if (track != null) {
-                switchAudio(opened, track);
+                if (track.type() == MediaType.SUBTITLE) {
+                    showTrack(opened, track);
+                } else {
+                    switchAudio(opened, track);
+                }
                 continue;
             }
             if (pendingSeek.get() != null) {
@@ -648,6 +694,10 @@ public final class Playback implements AutoCloseable {
                 startIfBuffered();
                 continue;
             }
+            if (packet.streamIndex() == subtitleStream && packet.streamIndex() >= 0) {
+                takeCue(packet);
+                continue;
+            }
             var target = packet.streamIndex() == audioStream
                     ? audioQueue
                     : packet.streamIndex() == videoStream ? videoQueue : null;
@@ -659,6 +709,47 @@ public final class Playback implements AutoCloseable {
             startIfBuffered();
             followTitle();
         }
+    }
+
+    /// Turns one subtitle packet into a cue for the timeline, and frees it.
+    private void takeCue(Packet packet) {
+        try (packet) {
+            var start = packet.ptsNanos();
+            if (start == Frame.NO_PTS || packet.data().byteSize() == 0) {
+                return;
+            }
+            var end = start + packet.timeBase().toNanos(Math.max(packet.duration(), 0));
+            Subtitles.fromPacket(
+                            subtitleCodec,
+                            packet.data().toArray(ValueLayout.JAVA_BYTE),
+                            Duration.ofNanos(start),
+                            Duration.ofNanos(end))
+                    .ifPresent(cues::add);
+        }
+    }
+
+    /// Shows `track`'s cues in place of any subtitles showing: selects its stream
+    /// in the demuxer and seeks to where playback is, so its packets around the
+    /// position are read.
+    private void showTrack(Demuxer opened, Track track) {
+        if (subtitles instanceof SubtitleSource.Embedded(var showing) && showing.index() == track.index()) {
+            return;
+        }
+        cues.clear();
+        subtitleCodec = track.codec();
+        subtitleStream = track.index();
+        subtitles = new SubtitleSource.Embedded(track);
+        var selected = new HashSet<Integer>();
+        selected.add(track.index());
+        if (audioStream >= 0) {
+            selected.add(audioStream);
+        }
+        if (videoStream >= 0) {
+            selected.add(videoStream);
+        }
+        opened.select(selected);
+        seek(presentationNanos(), true);
+        listener.changed(this);
     }
 
     /// An audio thread on `track`, reading `queue`: made, not started.
@@ -709,6 +800,9 @@ public final class Playback implements AutoCloseable {
         selected.add(track.index());
         if (videoStream >= 0) {
             selected.add(videoStream);
+        }
+        if (subtitleStream >= 0) {
+            selected.add(subtitleStream);
         }
         opened.select(selected);
         synchronized (gate) {

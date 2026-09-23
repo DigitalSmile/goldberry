@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.SeekMode;
+import io.github.digitalsmile.goldberry.media.SubtitleSource;
 import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -48,6 +49,12 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// A source with more than one audio track gets a `select` of them in the bar
 /// (`.media-audio-track`), labelled by title and language; choosing one is
 /// [MediaPlayer#selectTrack]. A source with one gets none.
+///
+/// ## Subtitles
+///
+/// `media-player` and `media-controls` add a subtitles menu
+/// (`.media-subtitles-menu`) when the source has a subtitle track, or a file was
+/// loaded beside it: "Subtitles off", each track, and the file.
 ///
 /// ## What is buffered
 ///
@@ -112,6 +119,12 @@ final class Transport {
     /// remains, mute, volume. A live source shows `LIVE` in place of the bar and
     /// what remains, and one that cannot seek but ends shows only what remains.
     List<Widget> controls(MediaPlayer player, PlayerStatus status) {
+        return controls(player, status, false);
+    }
+
+    /// The controls, with the subtitles menu when `subtitleMenu`: for a widget
+    /// that draws subtitles, which `audio-player` does not.
+    List<Widget> controls(MediaPlayer player, PlayerStatus status, boolean subtitleMenu) {
         var controls = new ArrayList<Widget>(6);
         var playing = status.state() == PlaybackState.PLAYING
                 || status.state() == PlaybackState.BUFFERING
@@ -142,6 +155,9 @@ final class Transport {
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
         }
         audioTracks(player, status).ifPresent(controls::add);
+        if (subtitleMenu) {
+            subtitles(player, status).ifPresent(controls::add);
+        }
         if (status.rate() != 1f) {
             // Only when it is not 1, so a player at normal speed looks as it did.
             controls.add(new Text(rateLabel(status.rate()), Attributes.NONE.classes("media-rate")));
@@ -194,6 +210,52 @@ final class Transport {
                 .ifPresent(player::selectTrack);
         return Optional.of(new Select(chosen, choose, options.toArray(Option[]::new))
                 .withAttributes(Attributes.NONE.classes("media-audio-track")));
+    }
+
+    /// The value the subtitles menu gives "off".
+    static final String SUBTITLES_OFF = "off";
+
+    /// The value it gives a file loaded beside the source.
+    static final String SUBTITLES_FILE = "file";
+
+    /// The subtitles menu, when there is anything to choose: "off", each subtitle
+    /// track of the source, and a file loaded beside it. Choosing a track is
+    /// [MediaPlayer#selectTrack]; "off" is [MediaPlayer#hideSubtitles].
+    static Optional<Widget> subtitles(MediaPlayer player, PlayerStatus status) {
+        var tracks = status.info().map(info -> info.tracks(MediaType.SUBTITLE)).orElse(List.of());
+        var file = status.subtitles()
+                .filter(SubtitleSource.External.class::isInstance)
+                .map(SubtitleSource.External.class::cast);
+        if ((tracks.isEmpty() && file.isEmpty()) || !status.state().hasMedia()) {
+            return Optional.empty();
+        }
+        var locale = Locale.getDefault(Locale.Category.DISPLAY);
+        var options = new ArrayList<Option>(tracks.size() + 2);
+        options.add(new Option(SUBTITLES_OFF, "Subtitles off"));
+        for (var i = 0; i < tracks.size(); i++) {
+            var track = tracks.get(i);
+            options.add(new Option(Integer.toString(track.index()), trackLabel(track, i + 1, locale)));
+        }
+        file.ifPresent(loaded ->
+                options.add(new Option(SUBTITLES_FILE, loaded.file().fileName().orElse("Subtitle file"))));
+        var chosen =
+                switch (status.subtitles().orElse(null)) {
+                    case SubtitleSource.Embedded(var track) -> Integer.toString(track.index());
+                    case SubtitleSource.External _ -> SUBTITLES_FILE;
+                    case null -> SUBTITLES_OFF;
+                };
+        Consumer<String> choose = value -> {
+            if (value.equals(SUBTITLES_OFF)) {
+                player.hideSubtitles();
+                return;
+            }
+            tracks.stream()
+                    .filter(track -> Integer.toString(track.index()).equals(value))
+                    .findFirst()
+                    .ifPresent(player::selectTrack);
+        };
+        return Optional.of(new Select(chosen, choose, options.toArray(Option[]::new))
+                .withAttributes(Attributes.NONE.classes("media-subtitles-menu")));
     }
 
     /// What a track menu calls `track`, the `number`th of its kind: its title and

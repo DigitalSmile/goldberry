@@ -26,6 +26,8 @@ import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.VirtualSink;
+import io.github.digitalsmile.goldberry.media.codec.CodecId;
+import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
@@ -145,6 +147,31 @@ class MediaPlayerGoldenTest {
     void paused() {
         pausedAt400();
         assertGolden("media-player-paused", new MediaPlayerView(player), 584, 204);
+    }
+
+    @Test
+    @DisplayName("media-player with subtitles: a two-line cue over the foot, above the controls")
+    void subtitles() {
+        open("clip-vp9-subs.mkv", status -> status.state() == PlaybackState.PLAYING);
+        player.pause();
+        var french = player.status().info().orElseThrow().tracks(MediaType.SUBTITLE).stream()
+                .filter(track -> track.codec() == CodecId.ASS)
+                .findFirst()
+                .orElseThrow();
+        player.selectTrack(french);
+        awaitStatus(status -> status.subtitles().isPresent());
+        player.seek(Duration.ofMillis(300));
+        var deadline = System.nanoTime() + 10_000_000_000L;
+        while (System.nanoTime() < deadline) {
+            var picture = player.currentPicture();
+            if (picture.isPresent()
+                    && picture.get().ptsNanos() == 280_000_000L
+                    && !player.currentSubtitles().isEmpty()) {
+                break;
+            }
+            Thread.onSpinWait();
+        }
+        assertGolden("media-player-subtitles", new MediaPlayerView(player), 584, 204);
     }
 
     @Test

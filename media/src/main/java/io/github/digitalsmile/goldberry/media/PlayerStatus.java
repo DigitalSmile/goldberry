@@ -31,6 +31,7 @@ import java.util.Optional;
 ///                       station's `StreamTitle` (S6)
 /// @param audioTrack     the audio track playing, once the tracks are chosen
 /// @param videoTrack     the video track the player shows, never cover art
+/// @param subtitles      where the subtitles showing come from, when any show
 public record PlayerStatus(
         PlaybackState state,
         Duration position,
@@ -45,7 +46,8 @@ public record PlayerStatus(
         List<TimeRange> bufferedRanges,
         Optional<String> nowPlaying,
         Optional<Track> audioTrack,
-        Optional<Track> videoTrack) {
+        Optional<Track> videoTrack,
+        Optional<SubtitleSource> subtitles) {
 
     /// Before anything is opened.
     public static final PlayerStatus IDLE = new PlayerStatus(
@@ -62,6 +64,7 @@ public record PlayerStatus(
             List.of(),
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
             Optional.empty());
 
     public PlayerStatus {
@@ -75,6 +78,7 @@ public record PlayerStatus(
         Objects.requireNonNull(nowPlaying, "nowPlaying");
         Objects.requireNonNull(audioTrack, "audioTrack");
         Objects.requireNonNull(videoTrack, "videoTrack");
+        Objects.requireNonNull(subtitles, "subtitles");
         if (!(volume >= 0f && volume <= 1f)) {
             throw new IllegalArgumentException("volume " + volume);
         }

@@ -180,7 +180,7 @@ Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to t
 
 Audio track menu, as built (ADR-0467): a `select` of the audio tracks (`.media-audio-track`), for a source with two or more, labelled by title and language (`Track.title`, `Track.language` from the stream's metadata). Choosing one is `MediaPlayer.selectTrack`: the demux thread retires the audio thread, starts one on the new track and seeks accurately to the position. Video track switching is not built.
 
-Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1.
+Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1. As built (ADR-0468): no FFmpeg subtitle decoder; a text subtitle packet is one cue (SubRip, WebVTT, ASS's text field, `mov_text`), parsed in Java with external SubRip and WebVTT files into plain-line `Cue`s. The demux thread collects a chosen track's cues into a timeline; `MediaPlayer.selectTrack` chooses a subtitle track, `loadSubtitles` a file, `hideSubtitles` none, and `currentSubtitles()` is what shows at the clock. `media-player` draws the lines over the foot of the picture (`.media-subtitles`, `.media-subtitle`), above the controls or lower while they hide, and it and `media-controls` have a subtitles menu (`.media-subtitles-menu`).
 
 Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Icons from Lucide.
 

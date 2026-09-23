@@ -44,6 +44,8 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.core.image.Fit;
 import io.github.digitalsmile.goldberry.widgets.markup.Named;
@@ -127,6 +129,11 @@ class MediaWidgetsTest {
             all.addAll(walk(child));
         }
         return all;
+    }
+
+    /// Every element `widget` builds, the styled ones with their classes.
+    private static List<Element> elements(Widget widget) {
+        return mount(widget);
     }
 
     private static List<Element> mount(Widget widget) {
@@ -452,6 +459,72 @@ class MediaWidgetsTest {
             var title = overlay.children().getFirst();
             assertTrue(title.classes().contains("media-now-playing"));
             assertEquals("Goldberry TV - The Mandelbrot Hour", ((Text) title.widget()).content());
+        }
+
+        @Test
+        @DisplayName("subtitles: a menu of the tracks with off, the chosen cue as lines over the picture")
+        void subtitles() {
+            open(fixture("clip-vp9-subs.mkv"), "clip-vp9-subs.mkv");
+            await(status -> status.state() == PlaybackState.PLAYING);
+            player.pause();
+            var menu = elements(new MediaPlayerView(player)).stream()
+                    .map(Element::widget)
+                    .filter(Select.class::isInstance)
+                    .map(Select.class::cast)
+                    .filter(select -> select.attributes().classes().contains("media-subtitles-menu"))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("off", menu.value());
+            var labels = menu.children().stream()
+                    .map(Option.class::cast)
+                    .map(Option::label)
+                    .toList();
+            assertEquals(3, labels.size(), labels.toString());
+            assertEquals("Subtitles off", labels.getFirst());
+            var english = menu.children().stream()
+                    .map(Option.class::cast)
+                    .filter(option -> !option.value().equals("off"))
+                    .findFirst()
+                    .orElseThrow();
+            menu.onChange().accept(english.value());
+            await(status -> status.subtitles().isPresent());
+            player.seek(Duration.ofMillis(200));
+            await(status -> !player.currentSubtitles().isEmpty());
+            var lines = elements(new MediaPlayerView(player)).stream()
+                    .filter(e -> e.classes().contains("media-subtitle"))
+                    .map(e -> ((Text) e.widget()).content())
+                    .toList();
+            assertEquals(List.of("First line"), lines);
+
+            menu.onChange().accept("off");
+            assertTrue(player.status().subtitles().isEmpty());
+            assertTrue(elements(new MediaPlayerView(player)).stream()
+                    .noneMatch(e -> e.classes().contains("media-subtitles")));
+        }
+
+        @Test
+        @DisplayName("media-controls has the subtitles menu too, and audio-player, which draws no subtitles, does not")
+        void subtitleMenuWhereSubtitlesShow() {
+            open(fixture("clip-vp9-subs.mkv"), "clip-vp9-subs.mkv");
+            await(status -> status.state() == PlaybackState.PLAYING);
+            assertTrue(hasSubtitleMenu(new MediaControls(player)));
+            assertFalse(hasSubtitleMenu(new AudioPlayer(player)));
+        }
+
+        @Test
+        @DisplayName("a source with no subtitles gets no subtitles menu")
+        void noSubtitlesNoMenu() {
+            open(fixture("clip-vp9.webm"), "clip-vp9.webm");
+            await(status -> status.state() == PlaybackState.PLAYING);
+            assertFalse(hasSubtitleMenu(new MediaPlayerView(player)));
+        }
+
+        private boolean hasSubtitleMenu(Widget widget) {
+            return elements(widget).stream()
+                    .map(Element::widget)
+                    .filter(Select.class::isInstance)
+                    .map(Select.class::cast)
+                    .anyMatch(select -> select.attributes().classes().contains("media-subtitles-menu"));
         }
 
         @Test

@@ -79,6 +79,34 @@ $ff -i "$work/a440.wav" -i "$work/a880.wav" -map 0:a -map 1:a -c:a flac \
     -metadata:s:a:0 language=eng -metadata:s:a:0 title="Concert pitch" -metadata:s:a:1 language=fra \
     -disposition:a:0 default -disposition:a:1 0 "$out/tones-two-tracks.mkv"
 
+# --- Subtitles, for phase 7: the VP9 clip with a SubRip track tagged English and
+# an ASS track tagged French, whose overrides and \N the Engine takes out.
+cat > "$work/subs.srt" <<'SRT'
+1
+00:00:00,100 --> 00:00:00,400
+First line
+
+2
+00:00:00,500 --> 00:00:00,900
+<i>Second</i> line
+SRT
+cat > "$work/subs.ass" <<'ASS'
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 160
+PlayResY: 90
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,12,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.20,0:00:00.60,Default,,0,0,0,,{\i1}Première{\i0}\Nligne
+ASS
+$ff -i "$out/clip-vp9.webm" -i "$work/subs.srt" -i "$work/subs.ass" -map 0:v -map 1:s -map 2:s -c:v copy -c:s:0 srt \
+    -c:s:1 ass -metadata:s:s:0 language=eng -metadata:s:s:1 language=fra "$out/clip-vp9-subs.mkv"
+
 # --- The patent-pool pair the published natives deliberately do not decode
 # (goldberry-media.md S7): H.264 video and AAC audio in MP4. It opens, and it
 # must report UNSUPPORTED_CODEC naming both.

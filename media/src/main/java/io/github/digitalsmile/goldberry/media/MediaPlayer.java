@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.media;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +21,8 @@ import io.github.digitalsmile.goldberry.media.engine.Playback;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.subtitle.Cue;
+import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 
 /// Plays audio and video: the non-visual Engine of `docs/goldberry-media.md` §3,
 /// with no widget attached. `audio-player`, `video-view`, `media-controls` and
@@ -198,13 +201,47 @@ public final class MediaPlayer implements AutoCloseable {
     /// Engine's threads, and [PlayerStatus#audioTrack()] says when it has. A track
     /// with no decoder is refused there, and the playing one plays on.
     ///
-    /// @throws IllegalArgumentException when `track` is not an audio track of
-    ///                                  the open source
+    /// A subtitle track is shown in place of whatever subtitles show, and
+    /// [PlayerStatus#subtitles()] says so. Only text subtitles have cues (SubRip,
+    /// WebVTT, ASS, MP4 text); a bitmap track shows nothing.
+    ///
+    /// @throws IllegalArgumentException when `track` is not an audio or subtitle
+    ///                                  track of the open source
     /// @throws IllegalStateException    when nothing is open
     public void selectTrack(Track track) {
         current()
                 .orElseThrow(() -> new IllegalStateException("nothing is open"))
                 .select(track);
+    }
+
+    /// Shows no subtitles. Does nothing when nothing is open.
+    public void hideSubtitles() {
+        current().ifPresent(Playback::hideSubtitles);
+        publish();
+    }
+
+    /// Reads a SubRip or WebVTT file and shows it in place of whatever subtitles
+    /// show, for the source open now; opening another source drops it. The file
+    /// is read through the player's protocols, so `file` may be any scheme a
+    /// source may.
+    ///
+    /// **Reads the whole file on the calling thread**, so a network one is loaded
+    /// off the UI thread.
+    ///
+    /// @throws IOException           when the file cannot be read, or is neither
+    ///                               format
+    /// @throws IllegalStateException when nothing is open
+    public void loadSubtitles(Source file) throws IOException {
+        Objects.requireNonNull(file, "file");
+        var playback = current().orElseThrow(() -> new IllegalStateException("nothing is open"));
+        var read = Subtitles.read(file, ioProviders != null ? ioProviders : serviceProtocols());
+        playback.showSubtitles(new SubtitleSource.External(file), read);
+    }
+
+    /// The cues showing now, for a view to draw: none when no subtitles show, and
+    /// usually one. Read as a picture is, on every frame that paints.
+    public List<Cue> currentSubtitles() {
+        return current().map(Playback::showingCues).orElse(List.of());
     }
 
     /// Moves `count` pictures on, or back for a negative count, and pauses there:
@@ -241,6 +278,7 @@ public final class MediaPlayer implements AutoCloseable {
                     List.of(),
                     Optional.empty(),
                     Optional.empty(),
+                    Optional.empty(),
                     Optional.empty());
         }
         var playback = current.get();
@@ -258,7 +296,8 @@ public final class MediaPlayer implements AutoCloseable {
                 playback.bufferedRanges(),
                 Optional.ofNullable(playback.nowPlaying()),
                 Optional.ofNullable(playback.audioTrack()),
-                Optional.ofNullable(playback.videoTrack()));
+                Optional.ofNullable(playback.videoTrack()),
+                Optional.ofNullable(playback.subtitles()));
     }
 
     /// Calls `listener` with every new status. **On the Engine's threads.**
@@ -290,6 +329,12 @@ public final class MediaPlayer implements AutoCloseable {
             toClose.close();
         }
         publish();
+    }
+
+    private static List<MediaIOProvider> serviceProtocols() {
+        return ServiceLoader.load(MediaIOProvider.class).stream()
+                .map(ServiceLoader.Provider::get)
+                .toList();
     }
 
     private Optional<Playback> current() {

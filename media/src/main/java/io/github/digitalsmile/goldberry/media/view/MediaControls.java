@@ -110,7 +110,7 @@ public record MediaControls(MediaPlayer player, Attributes attributes)
             var widget = widget();
             var player = widget.player();
             return new MediaControlsBar(
-                    transport.controls(player, status),
+                    transport.controls(player, status, true),
                     widget.attributes().id(),
                     stateClasses(widget.attributes(), status, transport),
                     event -> transport.onKey(player, event));

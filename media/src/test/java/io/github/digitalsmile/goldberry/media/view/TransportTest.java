@@ -63,6 +63,7 @@ class TransportTest {
                 ranges,
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
                 Optional.empty());
     }
 

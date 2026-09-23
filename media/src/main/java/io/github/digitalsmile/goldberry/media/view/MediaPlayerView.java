@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -50,6 +51,10 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///   says which codecs it could not play (§7, S7).
 /// - **A stream's title**, when it announces one, is a line in the overlay, in
 ///   `.media-now-playing` (§7, S6).
+/// - **Subtitles**, once chosen from the subtitles menu or loaded with
+///   [MediaPlayer#loadSubtitles], are lines over the foot of the picture, in
+///   `.media-subtitles` and `.media-subtitle`: above the controls while they
+///   show, and lower while they hide.
 ///
 /// Parts, for a stylesheet: `media-player` itself, the `video-view` in it, the
 /// `.media-overlay` column laid over the bottom, and `media-controls` in that.
@@ -135,7 +140,7 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
             status.error()
                     .ifPresent(error -> overlay.add(new Text(error.message(), Attributes.NONE.classes("media-error"))));
             overlay.add(new MediaControlsBar(
-                    transport.controls(player, status),
+                    transport.controls(player, status, true),
                     null,
                     Set.of("media-controls"),
                     event -> transport.onKey(player, event)));
@@ -144,14 +149,25 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
             if (hidden(status)) {
                 classes.add("is-pointer-idle");
             }
+            var parts = new ArrayList<Widget>(3);
+            parts.add(new VideoSurface(player, widget.fit(), Attributes.NONE, () -> Transport.toggle(player)));
+            subtitleLines(player).ifPresent(parts::add);
+            parts.add(new Column(overlay, Attributes.NONE.classes("media-overlay")));
             return new MediaPlayerBox(
-                    List.of(
-                            new VideoSurface(player, widget.fit(), Attributes.NONE, () -> Transport.toggle(player)),
-                            new Column(overlay, Attributes.NONE.classes("media-overlay"))),
-                    widget.attributes().id(),
-                    classes,
-                    this::activity,
-                    event -> transport.onKey(player, event));
+                    parts, widget.attributes().id(), classes, this::activity, event -> transport.onKey(player, event));
+        }
+
+        /// The cues showing now, a line each, in a column over the foot of the
+        /// picture: above the controls while they show, and lower when they hide.
+        /// Nothing when no cue shows.
+        static Optional<Widget> subtitleLines(MediaPlayer player) {
+            var lines = player.currentSubtitles().stream()
+                    .flatMap(cue -> cue.text().lines())
+                    .map(line -> (Widget) new Text(line, Attributes.NONE.classes("media-subtitle")))
+                    .toList();
+            return lines.isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(new Column(lines, Attributes.NONE.classes("media-subtitles")));
         }
 
         /// Whether the controls are hidden: only while playing, with the pointer

@@ -212,7 +212,7 @@ server.
 | Fullscreen (`F`) | blocked on `:core`: no window fullscreen call exists |
 | Audio track menu | done (ADR-0467): `Track.language` and `title` from `AVStream.metadata` (`av_dict_get`; `AVStream.metadata` and `AVDictionaryEntry` added to the layout probe and check), `MediaPlayer.selectTrack`, `PlayerStatus.audioTrack` and `videoTrack`, and a `select` in the controls for two tracks or more, naming ISO 639-1, 639-2/T and 639-2/B languages. Fixture `tones-two-tracks.mkv`; a switch lands on the new track's sample within Matroska's millisecond |
 | Video track switching | open: refused for now. It needs the frame queue handed from one video thread to the next |
-| Subtitles | open |
+| Subtitles | done (ADR-0468): `…media.subtitle` (`Cue`, `Subtitles`: SubRip and WebVTT files, and SubRip, WebVTT, ASS and `mov_text` packets, down to plain lines), `SubtitleTimeline` filled by the demux thread, `MediaPlayer.selectTrack` for a subtitle track, `loadSubtitles`, `hideSubtitles`, `currentSubtitles`, `PlayerStatus.subtitles` (`SubtitleSource`). `media-player` draws the lines; it and `media-controls` have a subtitles menu. Fixture `clip-vp9-subs.mkv` (SubRip `eng`, ASS `fra`); golden `media-player-subtitles`. Bitmap subtitles stay post-v1 |
 
 ## Phases 4–7
 
@@ -221,7 +221,7 @@ server.
 | 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's |
 | 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | open. Copy-back gives NV12, which CPU present takes, so it does not wait for phase 4; its exit criterion ("4K60 on GPU present") does |
 | 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
-| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | in progress: rate, frame step and the audio track menu done (below); subtitles and video track switching open; fullscreen blocked on `:core` |
+| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | nearly: rate, frame step, the audio track menu and subtitles done (below); video track switching open; fullscreen blocked on `:core` |
 
 ## Documents kept in step
 
@@ -256,3 +256,4 @@ server.
 | 2026-09-23 | The seek bar draws what is buffered: `slider` spans in `:widgets` (ADR-0466) |
 | 2026-09-23 | A smaller probe for network sources measured and not kept: compressed audio already opens from 32 KB |
 | 2026-09-23 | Audio track switching and the track menu (ADR-0467); tracks carry their language and title. 321 tests |
+| 2026-09-23 | Text subtitles, read in Java (ADR-0468): tracks and external files, drawn by `media-player`, with a menu. 342 tests |

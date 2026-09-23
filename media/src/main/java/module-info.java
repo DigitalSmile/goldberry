@@ -57,6 +57,10 @@ module io.github.digitalsmile.goldberry.media {
     /// and an application adds a protocol by providing one.
     exports io.github.digitalsmile.goldberry.media.io;
 
+    /// Text subtitles: cues read from SubRip and WebVTT files and from a
+    /// container's subtitle track, as plain lines.
+    exports io.github.digitalsmile.goldberry.media.subtitle;
+
     /// Where audio goes: the sink the Engine writes to, and the one format it
     /// writes. The desktop sink is SDL's. A test's sink plays in no time.
     exports io.github.digitalsmile.goldberry.media.audio;
