@@ -178,6 +178,8 @@ I/O has the same shape already: a custom `MediaIO` registered for a URL scheme a
 
 Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start, `,` `.` a picture back and on (pausing), `<` `>` slower and faster through 0.25–2; *F fullscreen waits for a window fullscreen call in `:core`, which has none yet*. The rate shows as `.media-rate` beside the times when it is not 1. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
 
+Audio track menu, as built (ADR-0467): a `select` of the audio tracks (`.media-audio-track`), for a source with two or more, labelled by title and language (`Track.title`, `Track.language` from the stream's metadata). Choosing one is `MediaPlayer.selectTrack`: the demux thread retires the audio thread, starts one on the new track and seeks accurately to the position. Video track switching is not built.
+
 Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1.
 
 Java + KDL + CSS parity as for all widgets. Component tokens `--gb-media-*`. Icons from Lucide.

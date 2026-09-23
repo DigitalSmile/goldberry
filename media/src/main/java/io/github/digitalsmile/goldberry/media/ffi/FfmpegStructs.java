@@ -108,10 +108,17 @@ public final class FfmpegStructs {
                     paddingLayout(8), // nb_frames
                     JAVA_INT.withName("disposition"),
                     JAVA_INT.withName("discard"),
-                    paddingLayout(24), // sample_aspect_ratio, metadata, avg_frame_rate
+                    paddingLayout(8), // sample_aspect_ratio
+                    ADDRESS.withName("metadata"),
+                    paddingLayout(8), // avg_frame_rate
                     AV_PACKET.withName("attached_pic"),
                     paddingLayout(16)) // event_flags, r_frame_rate, pts_wrap_bits
             .withName("AVStream");
+
+    /// `AVDictionaryEntry`: one entry of a metadata dictionary, as `av_dict_get`
+    /// hands it back. Read for a track's `language` and `title`.
+    public static final StructLayout AV_DICTIONARY_ENTRY =
+            structLayout(ADDRESS.withName("key"), ADDRESS.withName("value")).withName("AVDictionaryEntry");
 
     /// `AVCodecParameters`: what the container says about a track's codec.
     public static final StructLayout AV_CODEC_PARAMETERS = structLayout(
@@ -203,6 +210,7 @@ public final class FfmpegStructs {
             AV_CODEC,
             AV_INPUT_FORMAT,
             AV_STREAM,
+            AV_DICTIONARY_ENTRY,
             AV_CODEC_PARAMETERS,
             AV_CODEC_CONTEXT,
             AV_PACKET,

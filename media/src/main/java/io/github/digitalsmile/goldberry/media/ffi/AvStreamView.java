@@ -19,6 +19,7 @@ final class AvStreamView {
     private static final long DURATION = offset("duration");
     private static final long DISPOSITION = offset("disposition");
     private static final long DISCARD = offset("discard");
+    private static final long METADATA = offset("metadata");
 
     private AvStreamView() {}
 
@@ -55,6 +56,11 @@ final class AvStreamView {
     /// The `AV_DISPOSITION_*` bits.
     static int disposition(MemorySegment stream) {
         return stream.get(JAVA_INT, DISPOSITION);
+    }
+
+    /// The stream's metadata dictionary (`AVDictionary *`), or null for none.
+    static MemorySegment metadata(MemorySegment stream) {
+        return stream.get(ADDRESS, METADATA);
     }
 
     /// Sets `AVDISCARD_*`: whether the demuxer hands this stream's packets over at

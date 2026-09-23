@@ -52,6 +52,9 @@ final class AudioWorker {
     private final AudioFormat format;
     /// The Serial this thread is playing. Its own.
     private int serial;
+    /// Set when another track takes over: the thread stops at its next check,
+    /// writes nothing more, and reports nothing more.
+    private volatile boolean retired;
 
     AudioWorker(Playback playback, Demuxer demuxer, int stream, PacketQueue queue, AudioFormat format) {
         this.playback = playback;
@@ -61,8 +64,20 @@ final class AudioWorker {
         this.format = format;
     }
 
+    /// Stops this thread for good, from any thread: another track plays now. The
+    /// caller then aborts the queue, which wakes a thread waiting on it.
+    void retire() {
+        retired = true;
+    }
+
+    /// Whether this thread still has work: the playback runs and no other track
+    /// has taken over.
+    private boolean running() {
+        return !playback.stopping() && !retired;
+    }
+
     /// The thread's whole life: open the decoder, then decode until the playback
-    /// stops.
+    /// stops, or another track takes over.
     void play() {
         Decoder decoder;
         var skip = 0;
@@ -82,7 +97,7 @@ final class AudioWorker {
         try (var resampler = new Resampler(playback.ffmpeg(), format.sampleRate(), format.channels());
                 var arena = Arena.ofConfined()) {
             var output = new OutputBuffer(arena, format);
-            while (!playback.stopping()) {
+            while (running()) {
                 if (playback.paused()) {
                     var flush = queue.takeFlush();
                     if (flush == null) {
@@ -145,9 +160,13 @@ final class AudioWorker {
                 }
             }
         } catch (MediaException e) {
-            playback.fail(e.error(), e);
+            if (!retired) {
+                playback.fail(e.error(), e);
+            }
         } catch (RuntimeException e) {
-            playback.fail(new MediaError.InvalidData(e.toString()), e);
+            if (!retired) {
+                playback.fail(new MediaError.InvalidData(e.toString()), e);
+            }
         } finally {
             decoder.close();
         }
@@ -169,7 +188,7 @@ final class AudioWorker {
     private long drainFrames(
             Decoder decoder, Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
         var pts = nextPts;
-        while (!playback.stopping()) {
+        while (running()) {
             var received = decoder.receive();
             if (!(received instanceof Received.Decoded(var frame))) {
                 return pts;
@@ -198,7 +217,7 @@ final class AudioWorker {
             return;
         }
         throttle();
-        if (playback.stopping() || playback.latestSerial() != serial) {
+        if (!running() || playback.latestSerial() != serial) {
             return;
         }
         playback.sink().write(data, samples);
@@ -212,7 +231,7 @@ final class AudioWorker {
     /// Waits while the sink holds more than its target: the backpressure that
     /// keeps the Engine a fixed distance ahead of the speaker.
     private void throttle() {
-        while (!playback.stopping() && !playback.paused() && playback.latestSerial() == serial) {
+        while (running() && !playback.paused() && playback.latestSerial() == serial) {
             var excess = format.nanos(playback.sink().queuedSamples()) - playback.sinkTargetNanos();
             if (excess <= 0) {
                 return;
@@ -226,20 +245,20 @@ final class AudioWorker {
         // A source shorter than the start threshold is ready when it has all been
         // written.
         playback.audioReady();
-        while (!playback.stopping()
+        while (running()
                 && playback.sink().queuedSamples() > 0
                 && playback.latestSerial() == serial
                 && !playback.seekPending()) {
             Playback.sleep(10_000_000L);
         }
-        if (!playback.stopping() && playback.latestSerial() == serial && !playback.seekPending()) {
+        if (running() && playback.latestSerial() == serial && !playback.seekPending()) {
             playback.audioDone(serial);
         }
     }
 
     /// The queue ran dry and the source has not ended: a stall.
     private void underrun() {
-        if (!queue.ended() && playback.sink().queuedSamples() == 0) {
+        if (running() && !queue.ended() && playback.sink().queuedSamples() == 0) {
             playback.audioUnderrun();
         }
     }

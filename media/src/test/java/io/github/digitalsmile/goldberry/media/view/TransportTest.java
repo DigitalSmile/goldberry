@@ -8,7 +8,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +22,21 @@ import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.TimeRange;
+import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.Wav;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.VirtualSink;
+import io.github.digitalsmile.goldberry.media.codec.CodecId;
+import io.github.digitalsmile.goldberry.media.codec.TrackParams;
+import io.github.digitalsmile.goldberry.media.io.MediaIO;
+import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
+import io.github.digitalsmile.goldberry.media.io.MemoryIO;
 import io.github.digitalsmile.goldberry.media.io.Source;
 import io.github.digitalsmile.goldberry.media.io.TestHttpServer;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 
 /// What the transport controls make of a network source's status: the seek
@@ -50,6 +61,8 @@ class TransportTest {
                 Optional.empty(),
                 Duration.ZERO,
                 ranges,
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty());
     }
 
@@ -107,6 +120,92 @@ class TransportTest {
                     .orElseThrow();
             assertFalse(seek.spans().isEmpty(), "no spans on " + seek);
             assertEquals(0, seek.spans().getFirst().from(), 1e-9);
+        }
+    }
+
+    private static Track audio(int index, String language, String title) {
+        return new Track(
+                index,
+                CodecId.FLAC,
+                "flac",
+                new TrackParams.Audio(48_000, 2, Optional.empty(), OptionalInt.empty(), OptionalLong.empty()),
+                Optional.empty(),
+                false,
+                false,
+                Optional.ofNullable(language),
+                Optional.ofNullable(title));
+    }
+
+    @Test
+    @DisplayName("a track is labelled by its title and language, either alone, or its number")
+    void labels() {
+        assertEquals("Commentary (English)", Transport.trackLabel(audio(0, "eng", "Commentary"), 1, Locale.ENGLISH));
+        assertEquals("French", Transport.trackLabel(audio(1, "fra", null), 2, Locale.ENGLISH));
+        assertEquals("Commentary", Transport.trackLabel(audio(1, null, "Commentary"), 2, Locale.ENGLISH));
+        assertEquals("Track 3", Transport.trackLabel(audio(2, null, null), 3, Locale.ENGLISH));
+        assertEquals(
+                "französisch".toLowerCase(Locale.ROOT),
+                Transport.languageName("fra", Locale.GERMAN).toLowerCase(Locale.ROOT));
+    }
+
+    @Test
+    @DisplayName("a language is named from ISO 639-1, 639-2/T and 639-2/B alike, and an unknown one is left as tagged")
+    void languages() {
+        assertEquals("French", Transport.languageName("fra", Locale.ENGLISH));
+        assertEquals("French", Transport.languageName("fre", Locale.ENGLISH));
+        assertEquals("French", Transport.languageName("fr", Locale.ENGLISH));
+        assertEquals("German", Transport.languageName("deu", Locale.ENGLISH));
+        assertEquals("German", Transport.languageName("GER", Locale.ENGLISH));
+        assertEquals("Portuguese", Transport.languageName("pt-BR", Locale.ENGLISH));
+        assertEquals("zzz", Transport.languageName("zzz", Locale.ENGLISH));
+    }
+
+    @Test
+    @DisplayName("the audio track menu is there for two tracks or more, and chooses through the player")
+    void menu() {
+        FfmpegRequirement.enforce();
+        try (var player = MediaPlayer.builder()
+                .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
+                .ioProviders(List.of(new MediaIOProvider() {
+                    @Override
+                    public java.util.Set<String> schemes() {
+                        return java.util.Set.of("mem");
+                    }
+
+                    @Override
+                    public MediaIO open(Source source) {
+                        return new MemoryIO(MediaWidgetsTest.fixture("tones-two-tracks.mkv"));
+                    }
+                }))
+                .decoderProviders(List.of())
+                .build()) {
+            assertTrue(Transport.audioTracks(player, PlayerStatus.IDLE).isEmpty());
+            player.open(Source.of(URI.create("mem:///tones.mkv")));
+            var deadline = System.nanoTime() + 10_000_000_000L;
+            while (player.status().state() != PlaybackState.PLAYING && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+            var menu = (Select) Transport.audioTracks(player, player.status()).orElseThrow();
+            assertTrue(menu.attributes().classes().contains("media-audio-track"));
+            assertEquals("0", menu.value());
+            var labels = menu.children().stream()
+                    .map(Option.class::cast)
+                    .map(Option::label)
+                    .toList();
+            assertEquals(2, labels.size());
+            assertTrue(labels.getFirst().startsWith("Concert pitch"), labels.toString());
+            menu.onChange().accept("1");
+            while (!player.status()
+                            .audioTrack()
+                            .map(track -> track.index() == 1)
+                            .orElse(false)
+                    && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+            assertEquals(1, player.status().audioTrack().orElseThrow().index());
+            assertEquals(
+                    "1",
+                    ((Select) Transport.audioTracks(player, player.status()).orElseThrow()).value());
         }
     }
 

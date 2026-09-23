@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -32,6 +33,7 @@ import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.codec.DecoderRequest;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
+import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.codec.Packet;
 import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.codec.SampleFormat;
@@ -334,6 +336,71 @@ class MediaPlayerTest {
         awaitState(PlaybackState.PLAYING);
         assertFalse(player.step(1));
         assertEquals(PlaybackState.PLAYING, player.status().state());
+    }
+
+    @Test
+    @DisplayName(
+            "switches the audio track mid-play: the new track comes in at the position, the old one's metadata read")
+    void selectTrack() {
+        var rate = FORMAT.sampleRate();
+        sink = new VirtualSink(FORMAT, false);
+        player = MediaPlayer.builder()
+                .sink(() -> sink)
+                .ioProviders(List.of(new MemoryProtocol(CodecFixturesTest.fixture("tones-two-tracks.mkv"))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///tones.mkv")));
+        var playing = awaitState(PlaybackState.PLAYING);
+        var tracks = playing.info().orElseThrow().tracks(MediaType.AUDIO);
+        assertEquals(2, tracks.size());
+        var english = tracks.get(0);
+        var french = tracks.get(1);
+        assertEquals(Optional.of("eng"), english.language());
+        assertEquals(Optional.of("Concert pitch"), english.title());
+        assertEquals(Optional.of("fra"), french.language());
+        assertEquals(Optional.empty(), french.title());
+        assertEquals(Optional.of(english), playing.audioTrack());
+        assertEquals(Optional.empty(), playing.videoTrack());
+
+        // Half a second of the first track, then the second.
+        var half = rate / 2;
+        var played = 0L;
+        while (played < half) {
+            var step = Math.min(half - played, sink.queuedSamples());
+            sink.advance(step);
+            played += step;
+            Thread.onSpinWait();
+        }
+        var clearsBefore = sink.clears();
+        player.selectTrack(french);
+        var switched = await(status -> status.audioTrack().equals(Optional.of(french))
+                && sink.clears() > clearsBefore
+                && sink.capturedSamples() > rate / 10);
+        assertEquals(PlaybackState.PLAYING, switched.state());
+
+        // The first samples after the switch are the 880 Hz tone at half a
+        // second, within Matroska's millisecond (48 samples at 48 kHz).
+        var captured = sink.captured();
+        var best = Long.MAX_VALUE;
+        for (var offset = -48; offset <= 48; offset++) {
+            var error = 0L;
+            for (var i = 0; i < 480; i++) {
+                var expected = Math.round(12_000 * Math.sin(2 * Math.PI * 880 * (half + offset + i) / rate));
+                error += Math.abs(Math.round(captured[2 * i] * 32768f) - expected);
+            }
+            best = Math.min(best, error);
+        }
+        assertTrue(best <= 480, "the switched-to samples are not the 880 Hz tone at 0.5 s; error " + best);
+
+        // Asking again for the playing track changes nothing.
+        var clears = sink.clears();
+        player.selectTrack(french);
+        assertEquals(clears, sink.clears());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> player.selectTrack(
+                        new Track(7, CodecId.FLAC, "flac", french.params(), Optional.empty(), false, false)));
     }
 
     @Test

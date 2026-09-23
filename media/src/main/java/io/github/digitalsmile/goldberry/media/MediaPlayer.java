@@ -192,6 +192,21 @@ public final class MediaPlayer implements AutoCloseable {
         publish();
     }
 
+    /// Plays `track`, one of the source's audio tracks, in place of the one
+    /// playing, from where playback is: a track menu's choice
+    /// (`docs/goldberry-media.md` §6). Returns at once; the switch happens on the
+    /// Engine's threads, and [PlayerStatus#audioTrack()] says when it has. A track
+    /// with no decoder is refused there, and the playing one plays on.
+    ///
+    /// @throws IllegalArgumentException when `track` is not an audio track of
+    ///                                  the open source
+    /// @throws IllegalStateException    when nothing is open
+    public void selectTrack(Track track) {
+        current()
+                .orElseThrow(() -> new IllegalStateException("nothing is open"))
+                .select(track);
+    }
+
     /// Moves `count` pictures on, or back for a negative count, and pauses there:
     /// the `.` and `,` of a player (`docs/goldberry-media.md` §6). The step is the
     /// picture length the video has shown, so a step lands on the next picture's
@@ -224,6 +239,8 @@ public final class MediaPlayer implements AutoCloseable {
                     Optional.empty(),
                     Duration.ZERO,
                     List.of(),
+                    Optional.empty(),
+                    Optional.empty(),
                     Optional.empty());
         }
         var playback = current.get();
@@ -239,7 +256,9 @@ public final class MediaPlayer implements AutoCloseable {
                 Optional.ofNullable(playback.videoDecoderName()),
                 Duration.ofNanos(playback.bufferedAheadNanos()),
                 playback.bufferedRanges(),
-                Optional.ofNullable(playback.nowPlaying()));
+                Optional.ofNullable(playback.nowPlaying()),
+                Optional.ofNullable(playback.audioTrack()),
+                Optional.ofNullable(playback.videoTrack()));
     }
 
     /// Calls `listener` with every new status. **On the Engine's threads.**

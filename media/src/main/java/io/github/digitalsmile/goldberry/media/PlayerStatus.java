@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import io.github.digitalsmile.goldberry.media.codec.MediaType;
-
 /// Everything a player shows, at one instant: one immutable value, so a control
 /// never reads a position from one moment and a state from the next.
 ///
@@ -31,6 +29,8 @@ import io.github.digitalsmile.goldberry.media.codec.MediaType;
 ///                       length or duration is unknown
 /// @param nowPlaying     what the stream says is playing, such as an ICY
 ///                       station's `StreamTitle` (S6)
+/// @param audioTrack     the audio track playing, once the tracks are chosen
+/// @param videoTrack     the video track the player shows, never cover art
 public record PlayerStatus(
         PlaybackState state,
         Duration position,
@@ -43,7 +43,9 @@ public record PlayerStatus(
         Optional<String> videoDecoder,
         Duration bufferedAhead,
         List<TimeRange> bufferedRanges,
-        Optional<String> nowPlaying) {
+        Optional<String> nowPlaying,
+        Optional<Track> audioTrack,
+        Optional<Track> videoTrack) {
 
     /// Before anything is opened.
     public static final PlayerStatus IDLE = new PlayerStatus(
@@ -58,6 +60,8 @@ public record PlayerStatus(
             Optional.empty(),
             Duration.ZERO,
             List.of(),
+            Optional.empty(),
+            Optional.empty(),
             Optional.empty());
 
     public PlayerStatus {
@@ -69,6 +73,8 @@ public record PlayerStatus(
         Objects.requireNonNull(videoDecoder, "videoDecoder");
         Objects.requireNonNull(bufferedAhead, "bufferedAhead");
         Objects.requireNonNull(nowPlaying, "nowPlaying");
+        Objects.requireNonNull(audioTrack, "audioTrack");
+        Objects.requireNonNull(videoTrack, "videoTrack");
         if (!(volume >= 0f && volume <= 1f)) {
             throw new IllegalArgumentException("volume " + volume);
         }
@@ -84,12 +90,6 @@ public record PlayerStatus(
     /// The whole presentation's length, when the source says.
     public Optional<Duration> duration() {
         return info.flatMap(MediaInfo::duration);
-    }
-
-    /// The video track the player shows, when the source has one: the default one,
-    /// and never cover art.
-    public Optional<Track> videoTrack() {
-        return info.flatMap(described -> described.defaultTrack(MediaType.VIDEO));
     }
 
     /// Whether the source has a picture to show.

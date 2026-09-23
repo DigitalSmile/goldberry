@@ -23,6 +23,11 @@ import io.github.digitalsmile.goldberry.media.codec.TrackParams;
 ///                        play when nobody chooses
 /// @param attachedPicture whether this "video" track is one still picture: the
 ///                        cover art of an audio file
+/// @param language        the track's language as the container tags it, most
+///                        often an ISO 639-2 code (`eng`, `fra`); empty when
+///                        untagged or `und`
+/// @param title           the track's own name, such as "Director's commentary",
+///                        when the container gives one
 public record Track(
         int index,
         CodecId codec,
@@ -30,7 +35,9 @@ public record Track(
         TrackParams params,
         Optional<Duration> duration,
         boolean isDefault,
-        boolean attachedPicture) {
+        boolean attachedPicture,
+        Optional<String> language,
+        Optional<String> title) {
 
     public Track {
         if (index < 0) {
@@ -40,6 +47,20 @@ public record Track(
         Objects.requireNonNull(codecName, "codecName");
         Objects.requireNonNull(params, "params");
         Objects.requireNonNull(duration, "duration");
+        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(title, "title");
+    }
+
+    /// A track with no language and no title: every component but those two.
+    public Track(
+            int index,
+            CodecId codec,
+            String codecName,
+            TrackParams params,
+            Optional<Duration> duration,
+            boolean isDefault,
+            boolean attachedPicture) {
+        this(index, codec, codecName, params, duration, isDefault, attachedPicture, Optional.empty(), Optional.empty());
     }
 
     /// The kind of stream: the parameters' kind.

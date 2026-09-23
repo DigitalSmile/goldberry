@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.media.ffi;
 
+import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -280,7 +282,27 @@ public final class Demuxer implements AutoCloseable {
                         AvStreamView.timeBaseDen(stream),
                         constants.noPtsValue()),
                 (disposition & constants.dispositionDefault()) != 0,
-                (disposition & constants.dispositionAttachedPic()) != 0);
+                (disposition & constants.dispositionAttachedPic()) != 0,
+                metadata(stream, "language").filter(language -> !language.equalsIgnoreCase("und")),
+                metadata(stream, "title"));
+    }
+
+    /// The stream's metadata entry named `key`, when it has one and it is not
+    /// blank.
+    private Optional<String> metadata(MemorySegment stream, String key) {
+        var dictionary = AvStreamView.metadata(stream);
+        if (dictionary.equals(MemorySegment.NULL)) {
+            return Optional.empty();
+        }
+        try (var scratch = Arena.ofConfined()) {
+            var entry = ffmpeg.util().dictGet().call(dictionary, scratch.allocateFrom(key), MemorySegment.NULL, 0);
+            if (entry.equals(MemorySegment.NULL)) {
+                return Optional.empty();
+            }
+            var value = Pointers.string(Pointers.struct(entry, FfmpegStructs.AV_DICTIONARY_ENTRY)
+                    .get(ADDRESS, FfmpegStructs.AV_DICTIONARY_ENTRY.byteOffset(groupElement("value"))));
+            return value == null || value.isBlank() ? Optional.empty() : Optional.of(value.strip());
+        }
     }
 
     private TrackParams params(MemorySegment parameters) {

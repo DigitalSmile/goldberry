@@ -13,7 +13,8 @@ import io.github.digitalsmile.goldberry.media.ffi.FfmpegDowncalls;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibrary;
 
 /// The functions of `libavutil` the Engine calls: the version, the allocator,
-/// error strings, the log level, format names, frames, and channel layouts.
+/// error strings, the log level, format names, frames, channel layouts, and
+/// reading a metadata dictionary.
 ///
 /// See [FfmpegDowncalls] for why each handle is a `static final` constant.
 public record AvUtilCalls(
@@ -27,7 +28,8 @@ public record AvUtilCalls(
         FrameAlloc frameAlloc,
         FrameFree frameFree,
         FrameUnref frameUnref,
-        ChannelLayoutDefault channelLayoutDefault) {
+        ChannelLayoutDefault channelLayoutDefault,
+        DictGet dictGet) {
 
     /// Binds every function above.
     ///
@@ -44,7 +46,8 @@ public record AvUtilCalls(
                 new FrameAlloc(lookup),
                 new FrameFree(lookup),
                 new FrameUnref(lookup),
-                new ChannelLayoutDefault(lookup));
+                new ChannelLayoutDefault(lookup),
+                new DictGet(lookup));
     }
 
     /// `unsigned avutil_version(void)`
@@ -110,6 +113,31 @@ public record AvUtilCalls(
                 FD_av_free.invokeExact(address, pointer);
             } catch (Throwable t) {
                 throw FfmpegDowncalls.failure("av_free", t);
+            }
+        }
+    }
+
+    /// `AVDictionaryEntry *av_dict_get(const AVDictionary *m, const char *key,`
+    /// `const AVDictionaryEntry *prev, int flags)`
+    ///
+    /// The entry named `key`, matched without regard to case with flags 0, or
+    /// null. A null dictionary has no entries.
+    public static final class DictGet {
+
+        private static final MethodHandle FD_av_dict_get =
+                FfmpegDowncalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        DictGet(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_dict_get");
+        }
+
+        public MemorySegment call(MemorySegment dictionary, MemorySegment key, MemorySegment previous, int flags) {
+            try {
+                return (MemorySegment) FD_av_dict_get.invokeExact(address, dictionary, key, previous, flags);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_dict_get", t);
             }
         }
     }

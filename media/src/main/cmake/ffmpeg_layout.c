@@ -95,7 +95,14 @@ int main(int argc, char **argv) {
     FIELD(AVStream, duration);
     FIELD(AVStream, disposition);
     FIELD(AVStream, discard);
+    FIELD(AVStream, metadata);
     FIELD(AVStream, attached_pic);
+
+    /* A track's language and title are entries of its metadata dictionary
+     * (av_dict_get), read to label a track menu. */
+    STRUCT(AVDictionaryEntry);
+    FIELD(AVDictionaryEntry, key);
+    FIELD(AVDictionaryEntry, value);
 
     STRUCT(AVCodecParameters);
     FIELD(AVCodecParameters, codec_type);

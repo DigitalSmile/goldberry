@@ -3,9 +3,14 @@ package io.github.digitalsmile.goldberry.media.view;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -14,9 +19,13 @@ import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.SeekMode;
+import io.github.digitalsmile.goldberry.media.Track;
+import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -33,6 +42,12 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// [SeekMode#ACCURATE] seek lands on the exact position, and a player that was
 /// playing plays on from there. A click is a press and a release, so it is one
 /// scrub step and one exact seek; a key on the bar is the same.
+///
+/// ## Which audio track
+///
+/// A source with more than one audio track gets a `select` of them in the bar
+/// (`.media-audio-track`), labelled by title and language; choosing one is
+/// [MediaPlayer#selectTrack]. A source with one gets none.
 ///
 /// ## What is buffered
 ///
@@ -126,6 +141,7 @@ final class Transport {
             controls.add(new Text(
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
         }
+        audioTracks(player, status).ifPresent(controls::add);
         if (status.rate() != 1f) {
             // Only when it is not 1, so a player at normal speed looks as it did.
             controls.add(new Text(rateLabel(status.rate()), Attributes.NONE.classes("media-rate")));
@@ -148,6 +164,63 @@ final class Transport {
         return status.bufferedRanges().stream()
                 .map(range -> new Slider.Span(seconds(range.start()), seconds(range.end())))
                 .toList();
+    }
+
+    /// The audio track menu, when the source has more than one audio track to
+    /// choose from: a `select` of their labels, choosing with
+    /// [MediaPlayer#selectTrack]. None otherwise, so a player of one track looks
+    /// as it always did.
+    static Optional<Widget> audioTracks(MediaPlayer player, PlayerStatus status) {
+        var tracks = status.info()
+                .map(info -> info.tracks(MediaType.AUDIO).stream()
+                        .filter(track -> !track.attachedPicture())
+                        .toList())
+                .orElse(List.of());
+        if (tracks.size() < 2 || !status.state().hasMedia()) {
+            return Optional.empty();
+        }
+        var locale = Locale.getDefault(Locale.Category.DISPLAY);
+        var options = new ArrayList<Option>(tracks.size());
+        for (var i = 0; i < tracks.size(); i++) {
+            var track = tracks.get(i);
+            options.add(new Option(Integer.toString(track.index()), trackLabel(track, i + 1, locale)));
+        }
+        var chosen = status.audioTrack()
+                .map(track -> Integer.toString(track.index()))
+                .orElse(null);
+        Consumer<String> choose = value -> tracks.stream()
+                .filter(track -> Integer.toString(track.index()).equals(value))
+                .findFirst()
+                .ifPresent(player::selectTrack);
+        return Optional.of(new Select(chosen, choose, options.toArray(Option[]::new))
+                .withAttributes(Attributes.NONE.classes("media-audio-track")));
+    }
+
+    /// What a track menu calls `track`, the `number`th of its kind: its title and
+    /// language, "Director's commentary (English)", or either alone, or "Track 2".
+    /// The language is named in `locale`, from the container's tag (`eng`, `fr`).
+    static String trackLabel(Track track, int number, Locale locale) {
+        var language = track.language().map(tag -> languageName(tag, locale));
+        var title = track.title();
+        if (title.isPresent() && language.isPresent()) {
+            return title.get() + " (" + language.get() + ")";
+        }
+        return title.or(() -> language).orElse("Track " + number);
+    }
+
+    /// Two-letter ISO 639-1 codes by their three-letter ISO 639-2/T codes, which
+    /// is what containers mostly write (`fra`, `deu`) and what the JDK does not
+    /// name on its own; it does name 639-1 and the bibliographic 639-2/B (`fre`).
+    private static final Map<String, String> ISO3 = Arrays.stream(Locale.getISOLanguages())
+            .collect(Collectors.toUnmodifiableMap(
+                    code -> Locale.of(code).getISO3Language(), code -> code, (first, second) -> first));
+
+    /// The name of the language `tag` names, in `locale`, or the tag itself when
+    /// it names none this JDK knows.
+    static String languageName(String tag, Locale locale) {
+        var code = ISO3.getOrDefault(tag.toLowerCase(Locale.ROOT), tag);
+        var name = Locale.forLanguageTag(code).getDisplayLanguage(locale);
+        return name.isBlank() ? tag : name;
     }
 
     /// The stream's title as a line of its own, when it announces one (S6).

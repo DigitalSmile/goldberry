@@ -25,4 +25,5 @@ is our own content and carries no third-party licence:
 | `clip-av1.mp4` | MP4 | AV1, FLAC | phase 3 |
 | `clip-vp9-444.webm` | WebM | VP9 profile 1 (4:4:4), 0.2 s, silent | the built-in decoder's conversion to I420 |
 | `clip-vp9-10bit.webm` | WebM | VP9 profile 2 (10-bit 4:2:0), 0.2 s, silent | I010, and video with no audio on the free-running clock |
+| `tones-two-tracks.mkv` | Matroska | FLAC twice: 440 Hz tagged `eng` and titled "Concert pitch", 880 Hz tagged `fra`; two seconds each | track selection: a switch lands on the new track's sample, and a track menu's labels |
 | `clip-h264-aac.mp4` | MP4 | H.264, AAC | S7: opens, and reports `UNSUPPORTED_CODEC` |

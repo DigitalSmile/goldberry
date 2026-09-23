@@ -140,12 +140,19 @@ public final class Playback implements AutoCloseable {
     private final MasterClock clock;
     private final long highWaterNanos;
     private final AtomicReference<@Nullable SeekRequest> pendingSeek = new AtomicReference<>();
+    /// A track to switch to, waiting for the demux thread.
+    private final AtomicReference<@Nullable Track> pendingTrack = new AtomicReference<>();
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition wake = lock.newCondition();
     /// Guards the state and the readiness flags, which three threads change.
     private final Object gate = new Object();
     private final Thread demuxThread;
     private final List<Thread> workers = new ArrayList<>(2);
+    // The demux thread's own: what plays, and the audio thread playing it.
+    private int audioStream = -1;
+    private int videoStream = -1;
+    private @Nullable AudioWorker audioWorker;
+    private @Nullable Thread audioThread;
 
     private volatile PlaybackState state = PlaybackState.OPENING;
     private volatile @Nullable MediaInfo info;
@@ -157,6 +164,8 @@ public final class Playback implements AutoCloseable {
     /// come from.
     private volatile @Nullable MediaIO io;
     private volatile @Nullable String nowPlaying;
+    private volatile @Nullable Track audioTrack;
+    private volatile @Nullable Track videoTrack;
     private volatile float rate = 1f;
     /// How long a picture lasts, as the video thread last measured it; 0 before
     /// it has.
@@ -325,6 +334,37 @@ public final class Playback implements AutoCloseable {
                     Duration.ofNanos(Math.round(duration * Math.min(range.end() / total, 1)))));
         }
         return List.copyOf(mapped);
+    }
+
+    /// The audio track playing, once the tracks are chosen.
+    public @Nullable Track audioTrack() {
+        return audioTrack;
+    }
+
+    /// The video track playing, once the tracks are chosen.
+    public @Nullable Track videoTrack() {
+        return videoTrack;
+    }
+
+    /// Plays `track` in place of the audio track playing, from where playback is
+    /// (§6, track menus). The demux thread retires the audio thread, starts one
+    /// on `track`, and makes an accurate seek to the position, so the new track
+    /// comes in at the right sample. A track with no decoder is refused there and
+    /// the current one plays on. Requests coalesce: the latest wins.
+    ///
+    /// @throws IllegalArgumentException when `track` is not one of the source's
+    ///                                  audio tracks, or the source is not open
+    public void select(Track track) {
+        Objects.requireNonNull(track, "track");
+        var described = info;
+        if (described == null || !described.tracks().contains(track)) {
+            throw new IllegalArgumentException("not a track of " + source.uri() + ": " + track);
+        }
+        if (track.type() != MediaType.AUDIO) {
+            throw new IllegalArgumentException("only an audio track can be chosen; " + track.type() + " cannot yet");
+        }
+        pendingTrack.set(track);
+        signal();
     }
 
     /// How fast playback runs: 1 is as recorded.
@@ -505,10 +545,7 @@ public final class Playback implements AutoCloseable {
             video.ifPresent(track -> selected.add(track.index()));
             opened.select(selected);
             startWorkers(opened, audio, video);
-            readPackets(
-                    opened,
-                    audio.map(Track::index).orElse(-1),
-                    video.map(Track::index).orElse(-1));
+            readPackets(opened);
         } catch (UnsupportedSchemeException e) {
             fail(new MediaError.UnsupportedScheme(e.scheme()), e);
         } catch (IOException e) {
@@ -545,6 +582,10 @@ public final class Playback implements AutoCloseable {
             hasAudio = audio.isPresent();
             hasVideo = video.isPresent();
         }
+        audioTrack = audio.orElse(null);
+        videoTrack = video.orElse(null);
+        audioStream = audio.map(Track::index).orElse(-1);
+        videoStream = video.map(Track::index).orElse(-1);
         if (audio.isPresent()) {
             var queue = new PacketQueue(QUEUE_NANOS, AUDIO_QUEUE_BYTES);
             audioQueue = queue;
@@ -552,10 +593,7 @@ public final class Playback implements AutoCloseable {
             // Opened paused: the first sample waits for the first picture.
             sink.pause();
             clock.followAudio(this::audioClockNanos);
-            workers.add(Thread.ofPlatform()
-                    .name("goldberry-media-audio")
-                    .daemon()
-                    .unstarted(new AudioWorker(this, opened, audio.get().index(), queue, format)::play));
+            workers.add(audioThread(opened, audio.get(), queue));
         }
         if (video.isPresent()) {
             var queue = new PacketQueue(QUEUE_NANOS, VIDEO_QUEUE_BYTES);
@@ -575,9 +613,14 @@ public final class Playback implements AutoCloseable {
         workers.forEach(Thread::start);
     }
 
-    private void readPackets(Demuxer opened, int audioStream, int videoStream) {
+    private void readPackets(Demuxer opened) {
         var ended = false;
         while (!stopping) {
+            var track = pendingTrack.getAndSet(null);
+            if (track != null) {
+                switchAudio(opened, track);
+                continue;
+            }
             if (pendingSeek.get() != null) {
                 seeking = true;
                 var request = pendingSeek.getAndSet(null);
@@ -589,13 +632,13 @@ public final class Playback implements AutoCloseable {
                 continue;
             }
             if (ended) {
-                awaitWhile(() -> pendingSeek.get() == null);
+                awaitWhile(() -> pendingSeek.get() == null && pendingTrack.get() == null);
                 continue;
             }
             if (mustWait()) {
                 // Full: as buffered as it will get.
                 startIfBuffered();
-                awaitWhile(() -> pendingSeek.get() == null && mustWait(), 10);
+                awaitWhile(() -> pendingSeek.get() == null && pendingTrack.get() == null && mustWait(), 10);
                 continue;
             }
             var packet = opened.read();
@@ -616,6 +659,67 @@ public final class Playback implements AutoCloseable {
             startIfBuffered();
             followTitle();
         }
+    }
+
+    /// An audio thread on `track`, reading `queue`: made, not started.
+    private Thread audioThread(Demuxer opened, Track track, PacketQueue queue) {
+        var worker = new AudioWorker(this, opened, track.index(), queue, format);
+        var thread = Thread.ofPlatform().name("goldberry-media-audio").daemon().unstarted(worker::play);
+        audioWorker = worker;
+        audioThread = thread;
+        return thread;
+    }
+
+    /// Plays `track` in place of the audio track playing: retires the audio
+    /// thread, starts one on `track`, and seeks to where playback is, so that
+    /// every queue starts over at one position and the new track comes in on the
+    /// right sample. The sink plays what the old thread wrote until the seek's
+    /// flush clears it, so the switch is not a silence.
+    private void switchAudio(Demuxer opened, Track track) {
+        var current = audioTrack;
+        if (current == null || current.index() == track.index()) {
+            return;
+        }
+        if (!Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
+            LOG.warn(
+                    "no decoder for {} on track {}; track {} plays on",
+                    track.codecName(),
+                    track.index(),
+                    current.index());
+            return;
+        }
+        var retiring = audioWorker;
+        var retiringThread = audioThread;
+        var retiringQueue = audioQueue;
+        if (retiring != null) {
+            retiring.retire();
+        }
+        if (retiringQueue != null) {
+            retiringQueue.abort();
+        }
+        if (retiringThread != null) {
+            join(retiringThread);
+            workers.remove(retiringThread);
+        }
+        var queue = new PacketQueue(QUEUE_NANOS, AUDIO_QUEUE_BYTES);
+        audioQueue = queue;
+        audioStream = track.index();
+        audioTrack = track;
+        var selected = new HashSet<Integer>();
+        selected.add(track.index());
+        if (videoStream >= 0) {
+            selected.add(videoStream);
+        }
+        opened.select(selected);
+        synchronized (gate) {
+            audioReady = false;
+            audioDone = false;
+        }
+        var thread = audioThread(opened, track, queue);
+        workers.add(thread);
+        thread.start();
+        seek(presentationNanos(), true);
+        listener.changed(this);
     }
 
     /// Starts, or plays on after a stall, if buffering was all that held it.

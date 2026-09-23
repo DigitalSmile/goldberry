@@ -63,6 +63,22 @@ short="testsrc2=s=160x90:r=25:d=0.2"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p -b:v 200k "$out/clip-vp9-444.webm"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv420p10le -b:v 200k "$out/clip-vp9-10bit.webm"
 
+# --- Two audio tracks, for track selection (phase 7): two seconds each, the
+# first at 440 Hz tagged English and titled, the second at 880 Hz tagged French,
+# both FLAC so a switch can be checked to the sample.
+python3 - "$work/a440.wav" "$work/a880.wav" <<'PY'
+import math, struct, sys
+rate, n = 48000, 96000
+for path, freq in ((sys.argv[1], 440), (sys.argv[2], 880)):
+    data = b"".join(struct.pack("<hh", *([round(12000 * math.sin(2 * math.pi * freq * i / rate))] * 2)) for i in range(n))
+    header = (b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVEfmt "
+              + struct.pack("<IHHIIHH", 16, 1, 2, rate, rate * 4, 4, 16) + b"data" + struct.pack("<I", len(data)))
+    open(path, "wb").write(header + data)
+PY
+$ff -i "$work/a440.wav" -i "$work/a880.wav" -map 0:a -map 1:a -c:a flac \
+    -metadata:s:a:0 language=eng -metadata:s:a:0 title="Concert pitch" -metadata:s:a:1 language=fra \
+    -disposition:a:0 default -disposition:a:1 0 "$out/tones-two-tracks.mkv"
+
 # --- The patent-pool pair the published natives deliberately do not decode
 # (goldberry-media.md S7): H.264 video and AAC audio in MP4. It opens, and it
 # must report UNSUPPORTED_CODEC naming both.
