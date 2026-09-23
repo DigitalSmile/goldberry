@@ -30,7 +30,11 @@
     "That happened once more with the canvas screen's five sample images, which",
     "were neither globbed here nor reached by the trace; DeclaredResourcesTest now",
     "holds this list to every file under src/main/resources, so a resource added",
-    "without a glob fails the build rather than the image."
+    "without a glob fails the build rather than the image.",
+    "",
+    "catalog/*.txt is generated rather than committed -- the category tables",
+    "`prepareCatalogs` compiles for the Icons and Emoji sheets -- so no test over",
+    "src/main/resources can see it, and it is declared here by hand."
   ],
   "resources": [
     {
@@ -43,6 +47,10 @@
     {
       "module": "io.github.digitalsmile.goldberry.example",
       "glob": "io/github/digitalsmile/goldberry/example/*.css"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/catalog/*.txt"
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",

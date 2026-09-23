@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.geom.Dasher;
@@ -368,6 +369,69 @@ public final class Frame {
     void fillPath(double x, double y, BlendPath path, BlendGradient gradient) {
         requireOpen();
         context.fillPath(x, y, path, gradient);
+    }
+
+    /// Fills `path` with a rasterizer gradient the caller built and will close.
+    ///
+    /// Package-private, for [ColourGlyphPainter]: a COLRv1 glyph's gradients are
+    /// radial and conic as well as linear, extend by repeating and reflecting as
+    /// well as padding, and carry a matrix of their own — none of which the
+    /// public [Gradient] value says, nor needs to for anything an application
+    /// draws (ADR-0456).
+    void fillPath(Path path, BlendGradient gradient) {
+        requireOpen();
+        Objects.requireNonNull(path, "path");
+        Objects.requireNonNull(gradient, "gradient");
+        if (path.isEmpty()) {
+            return;
+        }
+        var scratch = borrowPath();
+        try {
+            path.replayInto(scratch);
+            context.fillPath(0, 0, scratch, gradient);
+        } finally {
+            releasePath();
+        }
+    }
+
+    /// Composites `layer` at logical `(x, y)` with `compOp` rather than by
+    /// drawing it over.
+    ///
+    /// Package-private, for [ColourGlyphPainter]'s `PaintComposite`: a waving
+    /// flag is its stripes with a shading layer soft-lit onto them, and that is
+    /// one layer blitted onto another with an operator the font names
+    /// (ADR-0456). The operator is context state and goes back to source-over
+    /// before this returns, whatever the blit did.
+    void drawLayer(double x, double y, Layer layer, BlendCompOp compOp) {
+        requireOpen();
+        Objects.requireNonNull(layer, "layer");
+        Objects.requireNonNull(compOp, "compOp");
+        var size = layer.size();
+        var factor = scale.factor();
+        try (var view = BlendImage.wrapping(
+                layer.pixels().pixels(),
+                size.width(),
+                size.height(),
+                layer.pixels().stride())) {
+            context.compOp(compOp);
+            try {
+                context.blitScaled(x, y, size.width() / factor, size.height() / factor, view);
+            } finally {
+                context.compOp(BlendCompOp.SRC_OVER);
+            }
+        }
+    }
+
+    /// The transform in force, in logical coordinates — what [#transform] and
+    /// [#concat] have made of it.
+    ///
+    /// Package-private: a painter that renders part of a picture offscreen has
+    /// to know where on the device that part lands, so that the offscreen layer
+    /// is exactly as large as the part and lines up with the pixels it will be
+    /// composited back onto. Everything else composes with [#concat] and never
+    /// needs to read the matrix back.
+    Affine matrix() {
+        return matrix;
     }
 
     /// Strokes `path`, with the path's own origin placed at logical `(x, y)`.

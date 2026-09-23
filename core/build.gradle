@@ -54,9 +54,9 @@ dependencies {
 // Bundled assets (§6.1, §6.2, §6.3, ADR-0033)
 //
 // Inter and JetBrains Mono are the embedded UI and code faces, and Lucide is the
-// icon set. OpenMoji is **not** here: it ships as `goldberry-emoji`, because
-// CC BY-SA wants visible attribution and an application that never draws an
-// emoji should not inherit that obligation (ADR-0384). The work is done by :assets — an
+// icon set. The emoji face is **not** here: Noto Color Emoji ships as
+// `goldberry-emoji`, because an application that never draws an emoji should not
+// carry five megabytes of them (ADR-0384, ADR-0456). The work is done by :assets — an
 // ordinary Java tool with its own tests — and only invoked here.
 //
 // The archives are cached under ~/.gradle rather than in the project's build
@@ -85,8 +85,8 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
 
     classpath = configurations.assetTool
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
-    // Everything but OpenMoji, which ships as `goldberry-emoji` because CC BY-SA
-    // wants attribution a notice file cannot give (ADR-0384).
+    // Everything but the emoji face, which ships as `goldberry-emoji`
+    // (ADR-0384, ADR-0456).
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             '--only=inter,jetbrains-mono,lucide'

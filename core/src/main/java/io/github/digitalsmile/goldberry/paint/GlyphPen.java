@@ -2,11 +2,14 @@ package io.github.digitalsmile.goldberry.paint;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontMetrics;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.text.ShapedRun;
 import io.github.digitalsmile.goldberry.text.font.sfnt.ColorLayers;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorPaints;
 
 /// A [GlyphFace] at one size, and the thing that actually puts glyphs on a
 /// [Frame] — `docs/gaps.md` G14.
@@ -40,11 +43,30 @@ public final class GlyphPen implements AutoCloseable {
     /// The face's colour glyphs, shared with every other size over it.
     private final ColorLayers layers;
 
+    /// The painter for the face's `COLR` version 1 graphs, or null for a face
+    /// with none — which is every face but an emoji one.
+    private final @Nullable ColourGlyphPainter graphs;
+
+    /// Which glyphs have a graph — the one question asked per glyph.
+    private final ColorPaints paints;
+
+    /// Logical units per design unit at this size — `size / unitsPerEm` — for
+    /// placing a graph: its painter draws in design units and is told where the
+    /// glyph's origin is in logical ones.
+    private final double perUnit;
+
+    /// Whether any glyph of this face is coloured, asked once.
+    private final boolean coloured;
+
     private boolean closed;
 
     private GlyphPen(GlyphFace face, double size) {
         this.size = size;
         this.layers = face.layers();
+        this.coloured = face.hasColorGlyphs();
+        this.paints = face.paints();
+        this.graphs = paints.isEmpty() ? null : new ColourGlyphPainter(face);
+        this.perUnit = graphs == null ? 0 : size / face.unitsPerEm();
         this.font = BlendFont.on(face.handle(), size);
         try {
             this.glyphs = BlendGlyphBuffer.create();
@@ -134,7 +156,7 @@ public final class GlyphPen implements AutoCloseable {
             return;
         }
 
-        if (!layers.isEmpty()) {
+        if (coloured) {
             drawInColour(frame, x, baseline, run, from, to, argb);
             return;
         }
@@ -153,11 +175,18 @@ public final class GlyphPen implements AutoCloseable {
 
     /// The same range, out of a face that has colour glyphs in it.
     ///
+    /// A glyph with a `COLR` version 1 paint graph is drawn by
+    /// [ColourGlyphPainter]; one with version 0 layers is drawn a layer at a time
+    /// here; anything else is staged as the outline it is. A face may carry both
+    /// formats for one glyph — the older one for renderers that know no better —
+    /// and the graph wins, because it is the picture the font means (ADR-0456).
+    ///
     /// ## What it costs, and why that is acceptable
     ///
     /// One rasterizer call **per layer**, where the plain path above makes one
-    /// call for the whole range. An OpenMoji glyph averages fourteen layers, so a
-    /// reaction bar of ten emoji is a hundred and forty calls rather than ten.
+    /// call for the whole range. A Noto glyph is a dozen filled outlines, so a
+    /// reaction bar of ten emoji is over a hundred calls rather than ten, and a
+    /// flag adds two small offscreen layers for its composite.
     ///
     /// They are not, though, a hundred and forty *passes*: a layer is one small
     /// glyph, and what the rasterizer does is proportional to the ink. A face
@@ -179,12 +208,31 @@ public final class GlyphPen implements AutoCloseable {
         var penY = 0;
 
         for (var i = from; i < to; i++) {
-            var record = layers.find(run.glyphId(i));
+            var glyph = run.glyphId(i);
+            if (graphs != null && paints.has(glyph)) {
+                if (staged) {
+                    frame.drawGlyphs(x, baseline, font, glyphs, argb);
+                    glyphs.clear();
+                    staged = false;
+                }
+                // Design units y up, as the shaper reports them; the painter is
+                // told where the origin is in logical units, y down.
+                var originX = x + (penX + run.xOffset(i)) * perUnit;
+                var originY = baseline - (penY + run.yOffset(i)) * perUnit;
+                if (graphs.draw(frame, glyph, originX, originY, size, argb)) {
+                    penX += run.xAdvance(i);
+                    penY += run.yAdvance(i);
+                    continue;
+                }
+                // A graph that could not be read falls through to the older
+                // format, and then to the outline.
+            }
+            var record = layers.find(glyph);
             // A record claiming no layers at all is legal and says nothing, so
             // the glyph is drawn as the outline it also is. Skipping it instead
             // would drop a character because a font table was empty.
             if (record < 0 || layers.layerCount(record) == 0) {
-                glyphs.add(run.glyphId(i), penX + run.xOffset(i), penY + run.yOffset(i), 0, 0);
+                glyphs.add(glyph, penX + run.xOffset(i), penY + run.yOffset(i), 0, 0);
                 staged = true;
             } else {
                 if (staged) {

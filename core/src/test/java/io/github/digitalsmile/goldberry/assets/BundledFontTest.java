@@ -76,7 +76,7 @@ class BundledFontTest {
                     "bold code text would otherwise throw from inside a paint pass");
             assertSame(
                     BundledFont.EMOJI,
-                    BundledFont.of("OpenMoji", BundledFont.Weight.SEMI_BOLD, BundledFont.Style.ITALIC));
+                    BundledFont.of("Noto Color Emoji", BundledFont.Weight.SEMI_BOLD, BundledFont.Style.ITALIC));
         }
 
         @Test

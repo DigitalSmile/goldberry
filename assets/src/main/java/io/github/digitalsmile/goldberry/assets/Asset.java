@@ -29,6 +29,8 @@ import java.util.Objects;
 /// @param licenceUrl where to fetch the licence text when the archive does not
 ///                   carry one; null otherwise
 /// @param licenceAs  filename under `licenses/` for [#licenceUrl]
+/// @param packaging  whether [#url] is an archive to extract from or the one
+///                   file the asset is
 public record Asset(
         String name,
         String version,
@@ -37,7 +39,42 @@ public record Asset(
         Map<String, String> extract,
         Map<String, String> licence,
         String licenceUrl,
-        String licenceAs) {
+        String licenceAs,
+        Packaging packaging) {
+
+    /// What the pinned URL downloads.
+    ///
+    /// Most upstreams publish a release archive and the manifest names the
+    /// entries worth taking out of it. Some publish **no** archive holding only
+    /// the font: Noto's emoji release has no assets at all, and its source zip
+    /// is the whole repository — hundreds of megabytes of PNGs for one 5 MB
+    /// file. So the asset pins the file itself, by the tag in its URL and by its
+    /// checksum, which is the same promise an archive's checksum makes.
+    public enum Packaging {
+
+        /// A zip archive; [Asset#extract] maps entries in it to resources.
+        ZIP,
+
+        /// The download **is** the resource. [Asset#extract] holds at most one
+        /// entry, keyed by the upstream file name for the reader's benefit — or
+        /// none, for a file that is compiled rather than shipped, as Lucide's
+        /// archive is — and [Asset#licence] is empty because there is no archive
+        /// to take a licence out of.
+        FILE
+    }
+
+    /// An asset fetched as a zip archive — every upstream but one.
+    public Asset(
+            String name,
+            String version,
+            String url,
+            String sha256,
+            Map<String, String> extract,
+            Map<String, String> licence,
+            String licenceUrl,
+            String licenceAs) {
+        this(name, version, url, sha256, extract, licence, licenceUrl, licenceAs, Packaging.ZIP);
+    }
 
     public Asset {
         Objects.requireNonNull(name, "name");
@@ -55,11 +92,29 @@ public record Asset(
             throw new IllegalArgumentException(
                     name + ": a licence URL and its destination filename go together");
         }
+        Objects.requireNonNull(packaging, "packaging");
+        if (packaging == Packaging.FILE && (extract.size() > 1 || !licence.isEmpty())) {
+            // A single file is at most one resource, and there is no archive to
+            // find a licence entry in. Refused here, where the manifest is
+            // written, rather than discovered by a build that extracted nothing.
+            throw new IllegalArgumentException(
+                    name + ": a single-file asset is at most one resource and carries no licence entry");
+        }
     }
 
-    /// The filename the archive is cached under.
+    /// The filename the download is cached under.
+    ///
+    /// A single file keeps its own extension, so the cache directory says what
+    /// each entry is: `noto-emoji.ttf` beside `inter.zip`.
     public String archiveName() {
-        return name + ".zip";
+        return switch (packaging) {
+            case ZIP -> name + ".zip";
+            case FILE -> {
+                var file = url.substring(url.lastIndexOf('/') + 1);
+                var dot = file.lastIndexOf('.');
+                yield dot < 0 ? name : name + file.substring(dot);
+            }
+        };
     }
 
     // ------------------------------------------------------------------------
@@ -127,32 +182,52 @@ public record Asset(
             null,
             null);
 
-    /// OpenMoji — the emoji slot.
+    /// Noto Color Emoji — the emoji slot.
     ///
-    /// **The COLRv0 build**, which is the one the toolkit can draw: `COLR`
-    /// version 0 is a list of layer glyphs per base glyph and `CPAL` is the
-    /// colours they are filled with, and both are ordinary outlines underneath
-    /// (ADR-0393). The archive holds seven builds and the choice between them is
-    /// a choice of who does the compositing — the two SVG-in-OpenType variants
-    /// are 10 MB and need an SVG renderer inside the font pipeline, and the
-    /// bitmap ones (`CBDT`, `sbix`) are 6 MB of fixed-resolution strikes that
-    /// blur at 150%.
+    /// **The COLRv1 build**, `Noto-COLRv1.ttf`. Google publishes the same
+    /// pictures two ways and the choice between them is the one ADR-0393 made
+    /// for OpenMoji: the `CBDT` build is 10.7 MB of 136-pixel bitmap strikes that
+    /// blur at any size above that, and the COLRv1 build is 5 MB of outlines,
+    /// gradients and transforms that are crisp at every scale. The toolkit draws
+    /// the paint graph itself (`text.font.sfnt.ColorPaints`, ADR-0456).
     ///
-    /// 2.5 MB against 1.4 MB for the monochrome build it replaces. That is the
-    /// price of colour, and it is paid only by an application that adds
-    /// `goldberry-emoji` on purpose (ADR-0384).
+    /// **A single file, not an archive.** The release has no assets and its
+    /// source zip is the whole repository, so the font is pinned by the tag in
+    /// its URL and by its checksum ([Packaging#FILE]).
     ///
-    /// The font archive carries no licence file — only a README — so the CC BY-SA
-    /// text is fetched from the repository at the same tag.
-    public static final Asset OPENMOJI = new Asset(
-            "openmoji",
-            "15.0.0",
-            "https://github.com/hfg-gmuend/openmoji/releases/download/15.0.0/openmoji-font.zip",
-            "9c157abb27203a3e2f13d5e000c8773015e3e373d3da3c263c1ed917cacbb6de",
-            Map.of("OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.ttf", "fonts/OpenMoji-color.ttf"),
+    /// SIL OFL 1.1 — the font's own `LICENSE`, fetched from the same tag.
+    public static final Asset NOTO_EMOJI = new Asset(
+            "noto-emoji",
+            "2.051",
+            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/Noto-COLRv1.ttf",
+            "0ae57fe58645638523ba35f388d93739d292539a9acb84df5700c81b1e1a28d2",
+            Map.of("Noto-COLRv1.ttf", "fonts/NotoColorEmoji.ttf"),
             Map.of(),
-            "https://raw.githubusercontent.com/hfg-gmuend/openmoji/15.0.0/LICENSE.txt",
-            "openmoji.txt");
+            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/LICENSE",
+            "noto-emoji.txt",
+            Packaging.FILE);
+
+    /// Unicode's `emoji-test.txt` — which **group** each emoji is in.
+    ///
+    /// Not a font and not shipped as itself: the showcase's Emoji screen sorts
+    /// its sheet into Unicode's ten groups ("Smileys & Emotion", "Flags", …),
+    /// and the JDK carries every emoji property but that one. So the file is
+    /// compiled by [CatalogCompiler] into a table of code point and group, and
+    /// nothing is extracted.
+    ///
+    /// Version 17.0, the Unicode version Noto's pinned release draws; the JDK's
+    /// own tables may be a version behind, which costs nothing — a code point
+    /// the JDK does not call an emoji is never looked up.
+    public static final Asset UNICODE_EMOJI = new Asset(
+            "unicode-emoji",
+            "17.0",
+            "https://unicode.org/Public/17.0.0/emoji/emoji-test.txt",
+            "1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda",
+            Map.of(),
+            Map.of(),
+            "https://www.unicode.org/license.txt",
+            "unicode.txt",
+            Packaging.FILE);
 
     /// Lucide — the icon set.
     ///
@@ -170,6 +245,6 @@ public record Asset(
 
     /// Everything Goldberry bundles.
     public static List<Asset> all() {
-        return List.of(INTER, JETBRAINS_MONO, OPENMOJI, LUCIDE);
+        return List.of(INTER, JETBRAINS_MONO, NOTO_EMOJI, LUCIDE, UNICODE_EMOJI);
     }
 }

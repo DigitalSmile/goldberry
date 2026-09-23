@@ -220,10 +220,13 @@ different pixel grid.
 together. Inter and JetBrains Mono ship inside `goldberry-core`, so text renders
 identically on every machine without asking what fonts are installed
 ([ADR-0033](book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
-OpenMoji ships in `goldberry-emoji` rather than in the core, because CC BY-SA
-wants its attribution where the work is seen — an application opts into the
-face by putting that module on its path
+Noto Color Emoji ships in `goldberry-emoji` rather than in the core — it is five
+megabytes an application that never draws an emoji should not carry — and an
+application opts into the face by putting that module on its path
 ([ADR-0384](book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
+It is the COLRv1 build, drawn from its paint graphs, so an emoji is as sharp at
+400% as at 100%
+([ADR-0456](book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)).
 
 ```java
 try (var face = FontFace.bundled(BundledFont.UI);     // parsed once
@@ -1734,9 +1737,10 @@ Goldberry is licensed under the [Apache License 2.0](LICENSE).
 It bundles third-party software and assets under their own licenses, disclosed in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [`licenses/`](licenses/), and
 shipped inside every jar under `META-INF/`. Notably, the native libraries are
-statically linked into `libgoldberry`, and the bundled OpenMoji emoji font is a
-modified, share-alike (CC BY-SA 4.0) derivative — see
-[ADR-0015](book/src/adr/0015-licensing-and-third-party-disclosure.md).
+statically linked into `libgoldberry`, and the optional emoji font, Noto Color
+Emoji, is shipped unmodified under the SIL Open Font License 1.1 — see
+[ADR-0015](book/src/adr/0015-licensing-and-third-party-disclosure.md) and
+[ADR-0456](book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md).
 
 ```sh
 ./gradlew checkLicenses

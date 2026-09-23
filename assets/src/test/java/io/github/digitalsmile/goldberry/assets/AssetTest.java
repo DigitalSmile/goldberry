@@ -59,6 +59,28 @@ class AssetTest {
         }
 
         @Test
+        @DisplayName("a single file that claims several resources, or a licence entry inside itself")
+        void aSingleFileIsOneResource() {
+            var url = "https://example.invalid/Face.ttf";
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Asset("face", "1", url, GOOD_SHA,
+                            Map.of("a.ttf", "fonts/a.ttf", "b.ttf", "fonts/b.ttf"), Map.of(), null, null,
+                            Asset.Packaging.FILE),
+                    "one download is one file");
+            // None is legal: a file compiled rather than shipped extracts nothing.
+            new Asset("face", "1", url, GOOD_SHA, Map.of(), Map.of(), null, null, Asset.Packaging.FILE);
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Asset("face", "1", url, GOOD_SHA, Map.of("Face.ttf", "fonts/Face.ttf"),
+                            Map.of("OFL.txt", "face.txt"), null, null, Asset.Packaging.FILE),
+                    "a font file has no licence entry to take out of it");
+            assertThrows(
+                    NullPointerException.class,
+                    () -> new Asset("face", "1", url, GOOD_SHA, Map.of(), Map.of(), null, null, null));
+        }
+
+        @Test
         @DisplayName("a missing name, version, url or checksum")
         void theFourRequiredOnes() {
             assertThrows(
@@ -106,6 +128,20 @@ class AssetTest {
         @DisplayName("the archive is cached under the asset's own name")
         void theArchiveName() {
             assertEquals("inter.zip", asset(GOOD_SHA).archiveName());
+            assertEquals(Asset.Packaging.ZIP, asset(GOOD_SHA).packaging(), "an archive unless it says otherwise");
+        }
+
+        @Test
+        @DisplayName("and a single file under the asset's name with the file's own extension")
+        void theSingleFileName() {
+            var face = new Asset("noto-emoji", "1", "https://example.invalid/v1/fonts/Noto-COLRv1.ttf", GOOD_SHA,
+                    Map.of("Noto-COLRv1.ttf", "fonts/NotoColorEmoji.ttf"), Map.of(), null, null,
+                    Asset.Packaging.FILE);
+            assertEquals("noto-emoji.ttf", face.archiveName());
+
+            var bare = new Asset("bare", "1", "https://example.invalid/download", GOOD_SHA,
+                    Map.of("download", "fonts/bare.ttf"), Map.of(), null, null, Asset.Packaging.FILE);
+            assertEquals("bare", bare.archiveName(), "no extension to keep");
         }
     }
 

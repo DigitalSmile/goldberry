@@ -470,3 +470,5 @@
 - [ADR-0453 A face that moved module takes its declaration with it](adr/0453-a-face-that-moved-module-takes-its-declaration-with-it.md)
 - [ADR-0454 A force-link list belongs in the object, not on the link line](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)
 - [ADR-0455 A page that will not animate is measured before it is blamed](adr/0455-a-page-that-will-not-animate-is-measured-before-it-is-blamed.md)
+- [ADR-0456 The emoji face is Noto, drawn from its paint graphs](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)
+- [ADR-0457 A sheet is grouped by its upstream's own categories](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)

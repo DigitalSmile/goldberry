@@ -17,7 +17,10 @@
     "resource directory is a package to the module system, so the same font",
     "directory in two modules is one package in two modules and the application",
     "refuses to start. The glob follows the `--root` the asset step is given in",
-    "emoji/build.gradle, and OpenMojiFontResourceTest holds the two together.",
+    "emoji/build.gradle, and DeclaredFontResourceTest holds the two together.",
+    "",
+    "The face is Noto Color Emoji now (ADR-0456); the glob is by directory, so",
+    "it covered the new file without changing.",
     "",
     "A glob rather than the one name, to match :core's and :widgets's spelling",
     "and because the asset step's output is the authority on what it wrote."

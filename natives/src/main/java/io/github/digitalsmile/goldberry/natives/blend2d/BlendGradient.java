@@ -3,11 +3,17 @@ package io.github.digitalsmile.goldberry.natives.blend2d;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendExtendMode;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
-/// A linear gradient — a fill style that is not a colour (ADR-0207).
+/// A gradient — a fill style that is not a colour (ADR-0207).
+///
+/// Three shapes, which are Blend2D's three: [#linear] along a line, [#radial]
+/// between two circles and [#conic] around a point. The first is what a chart's
+/// band wants; the other two arrived with the COLRv1 emoji face, whose glyphs are
+/// filled with them (ADR-0456).
 ///
 /// Every drawing call on [BlendContext] until this one took its colour as an
 /// `0xAARRGGBB` argument, which is what keeps a frame free of style state
@@ -41,35 +47,48 @@ import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 /// it is given, so the context keeps its own reference.
 public final class BlendGradient implements AutoCloseable {
 
-    private static final long X0 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("x0");
-    private static final long Y0 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("y0");
-    private static final long X1 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("x1");
-    private static final long Y1 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("y1");
+    private static final long LINEAR_X0 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("x0");
+    private static final long LINEAR_Y0 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("y0");
+    private static final long LINEAR_X1 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("x1");
+    private static final long LINEAR_Y1 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("y1");
+
+    private static final long RADIAL_X0 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("x0");
+    private static final long RADIAL_Y0 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("y0");
+    private static final long RADIAL_X1 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("x1");
+    private static final long RADIAL_Y1 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("y1");
+    private static final long RADIAL_R0 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("r0");
+    private static final long RADIAL_R1 = Layouts.BL_RADIAL_GRADIENT_VALUES.offsetOf("r1");
+
+    private static final long CONIC_X0 = Layouts.BL_CONIC_GRADIENT_VALUES.offsetOf("x0");
+    private static final long CONIC_Y0 = Layouts.BL_CONIC_GRADIENT_VALUES.offsetOf("y0");
+    private static final long CONIC_ANGLE = Layouts.BL_CONIC_GRADIENT_VALUES.offsetOf("angle");
+    private static final long CONIC_REPEAT = Layouts.BL_CONIC_GRADIENT_VALUES.offsetOf("repeat");
 
     private final Blend2dGradient calls = Blend2dGradient.get();
     private final Arena arena;
     private final MemorySegment gradient;
+    private final String shape;
     private final Thread owner = Thread.currentThread();
 
     private boolean closed;
 
-    private BlendGradient(double x0, double y0, double x1, double y1) {
+    /// Writes one shape's values and constructs the gradient over them.
+    ///
+    /// Blend2D copies the values into the gradient's own Impl, so they are only
+    /// alive for the length of the call — but they live in this gradient's arena
+    /// rather than a confined one of their own, because a gradient is
+    /// constructed once and this is a few doubles.
+    @FunctionalInterface
+    private interface Shape {
+        void init(Blend2dGradient calls, Arena arena, MemorySegment gradient);
+    }
+
+    private BlendGradient(String shape, Shape init) {
+        this.shape = shape;
         this.arena = Arena.ofConfined();
         try {
             this.gradient = arena.allocate(Layouts.BL_GRADIENT_CORE.layout());
-            // Blend2D copies the values into the gradient's own Impl, so this
-            // allocation is only alive for the length of the call -- but it
-            // lives in the same arena rather than a confined one of its own,
-            // because a gradient is constructed once and this is four doubles.
-            var values = arena.allocate(Layouts.BL_LINEAR_GRADIENT_VALUES.layout());
-            values.set(ValueLayout.JAVA_DOUBLE, X0, x0);
-            values.set(ValueLayout.JAVA_DOUBLE, Y0, y0);
-            values.set(ValueLayout.JAVA_DOUBLE, X1, x1);
-            values.set(ValueLayout.JAVA_DOUBLE, Y1, y1);
-            // PAD, so the ends hold: a gradient covers the shape it was placed
-            // over and anything the clip lets past beyond it is the last stop
-            // rather than a second copy of the ramp.
-            calls.gradientInitLinear(gradient, values, BlendExtendMode.PAD);
+            init.init(calls, arena, gradient);
         } catch (RuntimeException | Error e) {
             arena.close();
             throw e;
@@ -81,16 +100,108 @@ public final class BlendGradient implements AutoCloseable {
     /// A gradient with no stops fills with nothing at all, which is what makes
     /// [#addStop] the next call rather than an option.
     ///
+    /// [BlendExtendMode#PAD], so the ends hold: a gradient covers the shape it
+    /// was placed over and anything the clip lets past beyond it is the last
+    /// stop rather than a second copy of the ramp.
+    ///
     /// @throws IllegalArgumentException if any coordinate is not finite. Blend2D
     ///         accepts a NaN and fills the shape with nothing, which is
     ///         indistinguishable from a band whose arithmetic went wrong
     ///         upstream — the same trap [BlendContext#fillRect] guards.
     public static BlendGradient linear(double x0, double y0, double x1, double y1) {
-        if (!Double.isFinite(x0) || !Double.isFinite(y0) || !Double.isFinite(x1) || !Double.isFinite(y1)) {
-            throw new IllegalArgumentException("a gradient runs between two finite points, and (" + x0 + "," + y0
-                    + ") to (" + x1 + "," + y1 + ") is not a pair of them");
+        return linear(x0, y0, x1, y1, BlendExtendMode.PAD, BlendMatrix.IDENTITY);
+    }
+
+    /// A linear gradient from `(x0, y0)` to `(x1, y1)` in the space `transform`
+    /// maps into the context's, extended beyond its ends by `extend`.
+    ///
+    /// @param transform where the gradient's own coordinates land in the
+    ///        context's; [BlendMatrix#IDENTITY] for none
+    /// @throws IllegalArgumentException if any coordinate is not finite
+    public static BlendGradient linear(
+            double x0, double y0, double x1, double y1, BlendExtendMode extend, BlendMatrix transform) {
+        requireFinite("a linear gradient runs between two finite points", x0, y0, x1, y1);
+        Objects.requireNonNull(extend, "extend");
+        Objects.requireNonNull(transform, "transform");
+        return new BlendGradient("linear", (calls, arena, gradient) -> {
+            var values = arena.allocate(Layouts.BL_LINEAR_GRADIENT_VALUES.layout());
+            values.set(ValueLayout.JAVA_DOUBLE, LINEAR_X0, x0);
+            values.set(ValueLayout.JAVA_DOUBLE, LINEAR_Y0, y0);
+            values.set(ValueLayout.JAVA_DOUBLE, LINEAR_X1, x1);
+            values.set(ValueLayout.JAVA_DOUBLE, LINEAR_Y1, y1);
+            calls.gradientInitLinear(gradient, values, extend, transform.toNative(arena));
+        });
+    }
+
+    /// A gradient between two circles: the **first stop on the focal circle**
+    /// `(focalX, focalY, focalRadius)` and the **last on the outer one**
+    /// `(x, y, radius)`.
+    ///
+    /// Named rather than numbered, because Blend2D's struct calls the outer
+    /// circle `0` and the focal one `1` while the first stop sits on circle `1`
+    /// — so "circle 0" means opposite things on the two sides of a COLRv1
+    /// conversion. This is SVG's `r`/`fr` pair, and the two-point conical
+    /// gradient every COLRv1 renderer draws (ADR-0456).
+    ///
+    /// @throws IllegalArgumentException if any number is not finite, or a
+    ///         radius is negative
+    public static BlendGradient radial(
+            double x,
+            double y,
+            double radius,
+            double focalX,
+            double focalY,
+            double focalRadius,
+            BlendExtendMode extend,
+            BlendMatrix transform) {
+        requireFinite("a radial gradient runs between two finite circles", x, y, radius, focalX, focalY, focalRadius);
+        if (radius < 0 || focalRadius < 0) {
+            throw new IllegalArgumentException(
+                    "a circle has a radius of zero or more, and " + radius + " and " + focalRadius + " are not both");
         }
-        return new BlendGradient(x0, y0, x1, y1);
+        Objects.requireNonNull(extend, "extend");
+        Objects.requireNonNull(transform, "transform");
+        return new BlendGradient("radial", (calls, arena, gradient) -> {
+            var values = arena.allocate(Layouts.BL_RADIAL_GRADIENT_VALUES.layout());
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_X0, x);
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_Y0, y);
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_R0, radius);
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_X1, focalX);
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_Y1, focalY);
+            values.set(ValueLayout.JAVA_DOUBLE, RADIAL_R1, focalRadius);
+            calls.gradientInitRadial(gradient, values, extend, transform.toNative(arena));
+        });
+    }
+
+    /// A ramp once around `(x, y)`, starting at `angle` radians and turning from
+    /// the positive x axis towards the positive y axis.
+    ///
+    /// One full turn per ramp: a COLRv1 sweep over less than a turn is placed
+    /// inside this one by where its stops fall, not by a second parameter
+    /// (ADR-0456).
+    ///
+    /// @throws IllegalArgumentException if any number is not finite
+    public static BlendGradient conic(double x, double y, double angle, BlendExtendMode extend, BlendMatrix transform) {
+        requireFinite("a conic gradient turns around a finite point from a finite angle", x, y, angle);
+        Objects.requireNonNull(extend, "extend");
+        Objects.requireNonNull(transform, "transform");
+        return new BlendGradient("conic", (calls, arena, gradient) -> {
+            var values = arena.allocate(Layouts.BL_CONIC_GRADIENT_VALUES.layout());
+            values.set(ValueLayout.JAVA_DOUBLE, CONIC_X0, x);
+            values.set(ValueLayout.JAVA_DOUBLE, CONIC_Y0, y);
+            values.set(ValueLayout.JAVA_DOUBLE, CONIC_ANGLE, angle);
+            values.set(ValueLayout.JAVA_DOUBLE, CONIC_REPEAT, 1.0);
+            calls.gradientInitConic(gradient, values, extend, transform.toNative(arena));
+        });
+    }
+
+    private static void requireFinite(String what, double... numbers) {
+        for (var number : numbers) {
+            if (!Double.isFinite(number)) {
+                throw new IllegalArgumentException(
+                        what + ", and " + java.util.Arrays.toString(numbers) + " are not all finite");
+            }
+        }
     }
 
     /// A gradient from `argb` at `(x0, y0)` to the same colour, fully
@@ -178,6 +289,6 @@ public final class BlendGradient implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "BlendGradient[linear" + (closed ? ", released" : "") + "]";
+        return "BlendGradient[" + shape + (closed ? ", released" : "") + "]";
     }
 }

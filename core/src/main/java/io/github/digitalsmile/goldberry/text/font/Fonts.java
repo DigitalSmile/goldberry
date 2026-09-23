@@ -244,14 +244,13 @@ public final class Fonts implements AutoCloseable {
             // The emoji face ships as `goldberry-emoji` and this application did
             // not add it (ADR-0384). Caught here for the reason `opens` below
             // catches its own failure: this runs inside a render pass, and a
-            // stylesheet that writes `font-family: OpenMoji` must not be able to
+            // stylesheet that writes `font-family: "Noto Color Emoji"` must not be able to
             // turn a window into no text at all. Said once, because a cascade
             // asks per element per frame.
             if (emojiReported.compareAndSet(false, true)) {
                 LOG.warn(
                         "the emoji face is not on the module path, so text asking for it is drawn in {}."
-                                + " Add io.github.digitalsmile:goldberry-emoji — and its credit — to draw emoji"
-                                + " (ADR-0384)",
+                                + " Add io.github.digitalsmile:goldberry-emoji to draw emoji (ADR-0384, ADR-0456)",
                         BundledFont.UI.family());
             }
             return faceFor(BundledFont.UI);

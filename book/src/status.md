@@ -13,11 +13,11 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **thirteen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1205 emoji of the face `goldberry-emoji` ships ([ADR-0386](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md)) — in a window that opens maximized and stops at 640×480 |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **thirteen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1212 emoji of the face `goldberry-emoji` ships, each grouped by its upstream's own categories with a chip row to choose one, and each tile opening a dialog of the glyph at five sizes ([ADR-0386](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md), [ADR-0457](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)) — in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
-| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: OpenMoji ships there because CC BY-SA wants attribution where the work is seen, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)). The other nine are unscheduled |
+| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). The other nine are unscheduled |
 
 ## Foundation
 
@@ -7495,13 +7495,15 @@ every file under the showcase's resources.
 ## Content modules
 
 **Two of eleven.** `:emoji` is the second and is unlike the first: no parser, no
-native, one font and the obligation that comes with it. OpenMoji is CC BY-SA,
-which asks for attribution *where the work is seen* — an about box, a credits
-screen — and no file inside a jar gives that, so the face left `:core` for an
-artifact an application adds on purpose. `:core` keeps the slot in §6.1's font
-chain and loads the face through an `EmojiFont` service;
+native, one font. It left `:core` when the face was OpenMoji, whose CC BY-SA
+asked for attribution where the work is seen; `:core` keeps the slot in §6.1's
+font chain and loads the face through an `EmojiFont` service, and
 `Font.bundled(EMOJI, …)` without the artifact fails with a sentence naming it
 ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
+The face is **Noto Color Emoji** now — the COLRv1 build, SIL OFL, 5 MB — drawn by
+`:core` from its paint graphs: gradients, transforms, and the composites its
+waving flags are made of
+([ADR-0456](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)).
 
 **One of eleven, and now all of it.** `docs/content-widgets.md` specifies
 eleven optional modules — HTML/markdown, PDF, plotting, code, terminal, vector,

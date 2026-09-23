@@ -72,37 +72,37 @@ native library and no second notice file were needed after all.
 | [Inter](licenses/inter.txt) | OFL 1.1 | <https://rsms.me/inter/> | Default UI font |
 | [JetBrains Mono](licenses/jetbrains-mono.txt) | OFL 1.1 | <https://www.jetbrains.com/lp/mono/> | Default monospace font |
 | [Lucide](licenses/lucide.txt) | ISC | <https://lucide.dev> | Icon set, compiled to a binary path table |
-| [OpenMoji](licenses/openmoji.txt) | **CC BY-SA 4.0** | <https://openmoji.org> | Emoji font — in **`goldberry-emoji`** and not in core, see below |
+| [Noto Color Emoji](licenses/noto-emoji.txt) | OFL 1.1 | <https://github.com/googlefonts/noto-emoji> | Emoji font — in **`goldberry-emoji`** and not in core, see below |
 
-### OpenMoji is the one that constrains us, and it is opt-in
+### The emoji face is opt-in, and asks for nothing on screen
 
-**It ships in `goldberry-emoji`, not in `goldberry-core`** (ADR-0384). CC BY-SA
-asks for attribution *where the work is seen*, and no file in a jar meets that —
-so the obligation travels with an artifact an application adds on purpose rather
-than with every application that ever depended on the toolkit. One that never
-draws an emoji owes nothing here.
+**It ships in `goldberry-emoji`, not in `goldberry-core`** (ADR-0384,
+ADR-0456): five megabytes of paint graphs is a lot for an application that never
+draws an emoji to inherit.
 
-What ships today is OpenMoji's own **monochrome** build, unmodified; §6.2's
-re-themed COLRv0 variant is opt-in and is not bundled, and were it bundled it
-would be a **derivative work** of a share-alike asset. Either way three
-obligations follow that no other component here imposes:
+What ships is Google's **COLRv1** build of Noto Color Emoji (`Noto-COLRv1.ttf`,
+release v2.051), **unmodified** — the toolkit draws its paint graphs itself and
+does not re-theme, subset or rename the file. It is under the SIL Open Font
+License 1.1, like Inter and JetBrains Mono, so the obligations are theirs: the
+licence text travels with the font (`licenses/noto-emoji.txt`, and `NOTICE`),
+and a *modified* version could not be distributed under the reserved name
+"Noto". `NotoColorEmojiFont.CREDIT` exists for an application that wants to name
+the face in an About box; the licence does not require it.
 
-1. **Attribution**, and a statement of changes where changes were made.
-   `NOTICE` and `licenses/openmoji.txt` carry the text; an application that adds
-   the artifact must put `OpenMojiFont.CREDIT` where a reader can see it.
-2. **Share-alike** — the re-themed font is licensed CC BY-SA 4.0 and must be
-   distributed as such. It cannot be relicensed Apache-2.0.
-3. **No additional restrictions** — Goldberry's own terms must not restrict what
-   CC BY-SA permits for the font.
+**This replaced OpenMoji** (CC BY-SA 4.0), whose share-alike and on-screen
+attribution obligations were why the emoji face became an artifact of its own.
+Those obligations no longer apply to anything Goldberry ships.
 
-**Share-alike reaches the font, not the toolkit.** The font is an embedded
-asset; CC BY-SA has no linking or combination clause of the kind copyleft
-software licences use, so Goldberry's Java and native code stay Apache-2.0.
+## Compiled into the showcase
 
-If that obligation is ever unwanted, the escape is to ship only the unmodified
-monochrome variant, or to swap the emoji font for a permissively licensed one —
-`docs/ARCHITECTURE.md` §6.1 already treats the emoji slot as one of exactly two
-font slots, so it is a replaceable component rather than a structural commitment.
+The showcase (`:example`) is an application rather than a library, and nothing
+here reaches a toolkit artifact. It groups its Icons and Emoji sheets by
+category, from two tables compiled at build time (`PrepareCatalogs`):
+
+| Component | Licence | Upstream | Notes |
+|---|---|---|---|
+| Lucide icon metadata | ISC | <https://lucide.dev> | Each icon's categories, from the same pinned archive as the icons ([licence](licenses/lucide.txt)) |
+| [Unicode emoji data](licenses/unicode.txt) | Unicode License v3 | <https://unicode.org/Public/17.0.0/emoji/emoji-test.txt> | Each emoji's group, compiled from `emoji-test.txt` 17.0 |
 
 ## Not distributed
 

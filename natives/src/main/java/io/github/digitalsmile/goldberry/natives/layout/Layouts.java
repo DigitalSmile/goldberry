@@ -625,6 +625,46 @@ public final class Layouts {
                     ValueLayout.JAVA_DOUBLE.withName("x1"),
                     ValueLayout.JAVA_DOUBLE.withName("y1")));
 
+    /// Two circles a radial gradient runs between — `BLRadialGradientValues`.
+    ///
+    /// ```c
+    /// struct BLRadialGradientValues { double x0, y0, x1, y1, r0, r1; };
+    /// ```
+    ///
+    /// **The order is not the order a reader expects**, which is why every field
+    /// is named. `(x0, y0, r0)` is the *outer* circle, where the last stop sits,
+    /// and `(x1, y1, r1)` is the focal circle where the first one does — SVG's
+    /// `cx`/`cy`/`r` and `fx`/`fy`/`fr`. A COLRv1 radial is the same two-circle
+    /// gradient with its circles the other way round, so the one place they are
+    /// swapped is the one place a test can see it (ADR-0456).
+    public static final NativeStructLayout BL_RADIAL_GRADIENT_VALUES = new NativeStructLayout(
+            "BLRadialGradientValues",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_DOUBLE.withName("x0"),
+                    ValueLayout.JAVA_DOUBLE.withName("y0"),
+                    ValueLayout.JAVA_DOUBLE.withName("x1"),
+                    ValueLayout.JAVA_DOUBLE.withName("y1"),
+                    ValueLayout.JAVA_DOUBLE.withName("r0"),
+                    ValueLayout.JAVA_DOUBLE.withName("r1")));
+
+    /// A sweep around a centre — `BLConicGradientValues`.
+    ///
+    /// ```c
+    /// struct BLConicGradientValues { double x0, y0, angle, repeat; };
+    /// ```
+    ///
+    /// Four doubles like [#BL_LINEAR_GRADIENT_VALUES], in a different order and
+    /// meaning — which is exactly the mix-up a `const void*` cannot catch.
+    /// `repeat` is how many times the ramp goes round in one turn; one, for a
+    /// COLRv1 sweep (ADR-0456).
+    public static final NativeStructLayout BL_CONIC_GRADIENT_VALUES = new NativeStructLayout(
+            "BLConicGradientValues",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_DOUBLE.withName("x0"),
+                    ValueLayout.JAVA_DOUBLE.withName("y0"),
+                    ValueLayout.JAVA_DOUBLE.withName("angle"),
+                    ValueLayout.JAVA_DOUBLE.withName("repeat")));
+
     /// A run of positioned glyphs, as Blend2D reads one — `BLGlyphRun`.
     ///
     /// A **descriptor**, not a container: two pointers into memory the caller
@@ -891,6 +931,8 @@ public final class Layouts {
                 BL_MATRIX2D,
                 BL_GRADIENT_CORE,
                 BL_LINEAR_GRADIENT_VALUES,
+                BL_RADIAL_GRADIENT_VALUES,
+                BL_CONIC_GRADIENT_VALUES,
                 BL_GLYPH_RUN,
                 BL_GLYPH_PLACEMENT,
                 BL_FONT_METRICS,

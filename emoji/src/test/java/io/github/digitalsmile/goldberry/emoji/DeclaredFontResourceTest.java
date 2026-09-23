@@ -23,17 +23,21 @@ import org.junit.jupiter.api.TestInstance;
 /// and its declaration did not follow, so nothing covered it and the showcase's
 /// native image died on the first paragraph containing an emoji.
 ///
+/// The face has since changed to Noto Color Emoji (ADR-0456) and the guard
+/// stayed, because it guards the directory rather than the name: a glob over
+/// `emoji/fonts/*.ttf` covers whichever face the asset step writes there.
+///
 /// Read as text rather than through `native-image`, because there is no
 /// GraalVM in an ordinary test run and the property worth guarding is an
 /// agreement between three files: the glob, the `--root` the asset step is
-/// given, and the path [OpenMojiFont] asks for.
+/// given, and the path [NotoColorEmojiFont] asks for.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("the declared font resource")
 class DeclaredFontResourceTest {
 
-    /// What `OpenMojiFont.RESOURCE` names, without its leading slash — the form
-    /// a `glob` in the metadata is written in.
-    private static final String FONT = "io/github/digitalsmile/goldberry/emoji/fonts/OpenMoji-color.ttf";
+    /// What `NotoColorEmojiFont.RESOURCE` names, without its leading slash —
+    /// the form a `glob` in the metadata is written in.
+    private static final String FONT = "io/github/digitalsmile/goldberry/emoji/fonts/NotoColorEmoji.ttf";
 
     private final Path projectDir = locateProjectDir();
 
@@ -51,12 +55,12 @@ class DeclaredFontResourceTest {
     private static Path locateProjectDir() {
         var directory = Path.of("").toAbsolutePath();
         while (directory != null) {
-            if (Files.isRegularFile(
-                    directory.resolve("src/main/java/io/github/digitalsmile/goldberry/emoji/OpenMojiFont.java"))) {
+            if (Files.isRegularFile(directory.resolve(
+                    "src/main/java/io/github/digitalsmile/goldberry/emoji/NotoColorEmojiFont.java"))) {
                 return directory;
             }
             if (Files.isRegularFile(directory.resolve(
-                    "emoji/src/main/java/io/github/digitalsmile/goldberry/emoji/OpenMojiFont.java"))) {
+                    "emoji/src/main/java/io/github/digitalsmile/goldberry/emoji/NotoColorEmojiFont.java"))) {
                 return directory.resolve("emoji");
             }
             directory = directory.getParent();
@@ -95,7 +99,7 @@ class DeclaredFontResourceTest {
     @DisplayName("the glob, the asset step's root and the read path agree")
     void theThreeSpellingsAgree() {
         // The asset step writes under `--root=…`; the metadata globs under the
-        // same directory; OpenMojiFont reads a file inside it. Any two of the
+        // same directory; NotoColorEmojiFont reads a file inside it. Any two of the
         // three can be changed without the build noticing, and the symptom is a
         // native image that is fine until something draws an emoji.
         var build = read(projectDir.resolve("build.gradle"));
@@ -113,7 +117,7 @@ class DeclaredFontResourceTest {
         // The declaration is worth nothing if it names a file the asset step
         // does not produce. This is the half a text comparison cannot cover.
         assertNotNull(
-                OpenMojiFont.class.getResourceAsStream("/" + FONT),
+                NotoColorEmojiFont.class.getResourceAsStream("/" + FONT),
                 FONT + " is not on the classpath — the asset step did not write it, or wrote it elsewhere");
     }
 }

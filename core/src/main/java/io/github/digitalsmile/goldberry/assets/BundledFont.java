@@ -55,12 +55,14 @@ public enum BundledFont implements Face {
     /// asks for one.
     CODE("fonts/JetBrainsMono.ttf", "JetBrains Mono", Weight.REGULAR, Style.UPRIGHT),
 
-    /// OpenMoji, monochrome — the emoji slot (§6.2).
+    /// Noto Color Emoji — the emoji slot (§6.2).
     ///
-    /// The black variant by default, matching the toolkit's aesthetic and
-    /// costing a fifth of what the colour build does. Colour is opt-in per text
-    /// style and is not bundled until something can draw layered outlines.
-    EMOJI("fonts/OpenMoji-black.ttf", "OpenMoji", Weight.REGULAR, Style.UPRIGHT);
+    /// The COLRv1 build, drawn from its paint graphs, and **not in this jar**:
+    /// it ships as `goldberry-emoji` and reaches the toolkit through
+    /// [EmojiFont], so the resource name here is the one that module writes and
+    /// nothing in `:core` reads it (ADR-0384, ADR-0456). The family is the
+    /// face's own name-table family, which is what a stylesheet writes.
+    EMOJI("fonts/NotoColorEmoji.ttf", "Noto Color Emoji", Weight.REGULAR, Style.UPRIGHT);
 
     /// The two weights `docs/design-system.md` §1.4 ships.
     ///

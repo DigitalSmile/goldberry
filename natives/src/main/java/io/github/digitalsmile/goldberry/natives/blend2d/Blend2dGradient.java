@@ -32,28 +32,53 @@ final class Blend2dGradient {
 
     /// Constructs a **linear** gradient over the four doubles in `values`.
     ///
-    /// Restricted to one type for [Blend2dContext#contextTransform]'s reason:
+    /// One method per shape, for [Blend2dContext#contextTransform]'s reason:
     /// the operand crosses as `const void*` and the type is what says how much
     /// of it to read, so a method that took any [BlendGradientType] would let a
     /// radial gradient read six doubles out of a four-double allocation and
-    /// report success. A second shape here is a second method, with its own
-    /// layout row beside it.
+    /// report success. Each shape has its own method and its own layout row.
     ///
-    /// No stops and no transform: `NULL` for both, because
-    /// [#gradientAddStop] is how stops arrive and nothing has wanted a gradient
-    /// with a matrix of its own.
-    void gradientInitLinear(MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode) {
+    /// No stops: `NULL`, because [#gradientAddStop] is how stops arrive.
+    ///
+    /// @param transform a `BLMatrix2D` placing the gradient in user space, or
+    ///        `NULL` for none
+    void gradientInitLinear(
+            MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode, MemorySegment transform) {
+        init(gradient, BlendGradientType.LINEAR, values, extendMode, transform);
+    }
+
+    /// Constructs a **radial** gradient over the six doubles in `values` — a
+    /// `BLRadialGradientValues`, and nothing smaller (ADR-0456).
+    void gradientInitRadial(
+            MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode, MemorySegment transform) {
+        init(gradient, BlendGradientType.RADIAL, values, extendMode, transform);
+    }
+
+    /// Constructs a **conic** gradient over the four doubles in `values` — a
+    /// `BLConicGradientValues`, whose four doubles mean something else entirely
+    /// from a linear gradient's (ADR-0456).
+    void gradientInitConic(
+            MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode, MemorySegment transform) {
+        init(gradient, BlendGradientType.CONIC, values, extendMode, transform);
+    }
+
+    private void init(
+            MemorySegment gradient,
+            BlendGradientType type,
+            MemorySegment values,
+            BlendExtendMode extendMode,
+            MemorySegment transform) {
         check(
                 "bl_gradient_init_as",
                 calls.gradientInitAs()
                         .call(
                                 gradient,
-                                BlendGradientType.LINEAR.nativeValue(),
+                                type.nativeValue(),
                                 values,
                                 extendMode.nativeValue(),
                                 MemorySegment.NULL,
                                 0,
-                                MemorySegment.NULL));
+                                transform));
     }
 
     void gradientDestroy(MemorySegment gradient) {

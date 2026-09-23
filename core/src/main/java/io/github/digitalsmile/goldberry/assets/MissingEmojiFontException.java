@@ -12,9 +12,8 @@ public final class MissingEmojiFontException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     MissingEmojiFontException() {
-        super("the emoji face is not on the module path. OpenMoji is CC BY-SA, which wants attribution a"
-                + " notice file cannot give, so it ships as its own artifact: add"
-                + " io.github.digitalsmile:goldberry-emoji and put its credit somewhere a reader can see it"
-                + " (docs/content-widgets.md §11.1, ADR-0384).");
+        super("the emoji face is not on the module path. Noto Color Emoji ships as its own artifact, so an"
+                + " application that never draws an emoji does not carry it: add"
+                + " io.github.digitalsmile:goldberry-emoji to draw emoji (ADR-0384, ADR-0456).");
     }
 }

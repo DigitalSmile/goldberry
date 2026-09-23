@@ -62,9 +62,9 @@ class BundledAssetsTest {
     @EnumSource(value = BundledFont.class, names = "EMOJI", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("every bundled font is present and is a real font file")
     void fontsAreBundled(BundledFont font) {
-        // Every one but the emoji face, which is not in this jar: OpenMoji is
-        // CC BY-SA and ships as `goldberry-emoji`, so the face and the test that
-        // shapes with it both live there ([ADR-0384]).
+        // Every one but the emoji face, which is not in this jar: it ships as
+        // `goldberry-emoji`, so the face and the test that shapes with it both
+        // live there ([ADR-0384], [ADR-0456]).
         var bytes = BundledAssets.font(font);
 
         assertTrue(bytes.length > 10_000, () -> font + " is only " + bytes.length + " bytes");
@@ -202,15 +202,14 @@ class BundledAssetsTest {
     @Test
     @DisplayName("the emoji face is not in this jar, and says which artifact it is in")
     void emojiIsItsOwnArtifact() {
-        // The obligation is the reason: CC BY-SA wants credit where the work is
-        // seen, which a notice file cannot give — so an application that draws
-        // emoji adds the artifact and meets it on purpose ([ADR-0384]). What is
-        // asserted here is that the failure *says* so: a missing resource would
-        // be a puzzle, and this is an instruction.
+        // An application that draws emoji adds the artifact on purpose, and one
+        // that never does carries none of its five megabytes ([ADR-0384],
+        // [ADR-0456]). What is asserted here is that the failure *says* so: a
+        // missing resource would be a puzzle, and this is an instruction.
         assertFalse(BundledAssets.hasEmojiFont(), "goldberry-emoji is not on this test's path");
 
         var thrown = assertThrows(MissingEmojiFontException.class, () -> BundledAssets.font(BundledFont.EMOJI));
         assertTrue(thrown.getMessage().contains("goldberry-emoji"), thrown.getMessage());
-        assertTrue(thrown.getMessage().contains("CC BY-SA"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("Noto Color Emoji"), "it names the face: " + thrown.getMessage());
     }
 }

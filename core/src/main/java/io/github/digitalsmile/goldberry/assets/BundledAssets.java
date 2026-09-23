@@ -48,9 +48,8 @@ public final class BundledAssets {
     public static byte[] font(BundledFont font) {
         Objects.requireNonNull(font, "font");
         if (font == BundledFont.EMOJI) {
-            // Not in this jar. OpenMoji is CC BY-SA and wants visible
-            // attribution, so it ships as `goldberry-emoji` and reaches this
-            // through a service (ADR-0384).
+            // Not in this jar. The emoji face ships as `goldberry-emoji` and
+            // reaches this through a service (ADR-0384, ADR-0456).
             var provider = EmojiFont.provider();
             if (provider == null) {
                 throw new MissingEmojiFontException();

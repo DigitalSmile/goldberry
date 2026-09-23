@@ -35,13 +35,27 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// would parse 221 KiB of path data per frame. [IconsScreen] keeps the cache
 /// (ADR-0043).
 ///
-/// @param name what a document would write in `icon="…"` — the caption, and the
-///             thing a reader is actually here for
-/// @param icon the glyph, already at the size it is drawn at (ADR-0034)
-record IconTile(String name, Icon icon, Attributes attributes) implements Widget.Leaf, Styled, Paints {
+/// ## Pressing it opens the icon's sizes
+///
+/// A [PressableTile]: a click, `Space` or `Enter` runs `onOpen`, which the
+/// screen answers with a dialog of this icon at five sizes. The tile does not
+/// open the dialog itself — a dialog needs the window, and the tile is a value
+/// with no window in it (ADR-0106).
+///
+/// @param name   what a document would write in `icon="…"` — the caption, and
+///               the thing a reader is actually here for
+/// @param icon   the glyph, already at the size it is drawn at (ADR-0034)
+/// @param onOpen what pressing the tile does
+record IconTile(String name, Icon icon, Runnable onOpen, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, PressableTile {
 
     IconTile(String name, Icon icon) {
-        this(name, icon, Attributes.NONE);
+        this(name, icon, () -> {}, Attributes.NONE);
+    }
+
+    @Override
+    public String accessibleName() {
+        return name;
     }
 
     @Override

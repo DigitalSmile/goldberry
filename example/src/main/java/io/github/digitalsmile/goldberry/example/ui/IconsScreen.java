@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
@@ -20,11 +24,31 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs;
 import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
-/// The **Icons** screen: all 1544 of them, and a field to find one.
+/// The **Icons** screen: all 1544 of them, grouped by category, a row of chips
+/// to choose one, a field to find one, and a dialog of any of them at five sizes.
+///
+/// ## Grouped by Lucide's own categories
+///
+/// Lucide files every icon under one or more of 43 categories — `arrows`,
+/// `devices`, `food-beverage` — in the metadata beside each SVG, and the build
+/// compiles that into a table ([Catalogs]). The sheet shows each category under
+/// a heading, and a chip per category narrows it to one; **All** puts them back.
+/// An icon in three categories is under three headings, which is what Lucide's
+/// own site does and what a reader looking under "Arrows" for an arrow that is
+/// also a navigation icon expects. The headings are rows of the same pitch as the
+/// tiles, so the sheet is still one virtualized list ([CategorySheet]).
+///
+/// ## Pressing a tile opens its sizes
+///
+/// A tile is a [PressableTile]: a click, `Space` or `Enter` opens a dialog of
+/// the icon at 16, 24, 32, 48 and 64 points ([Specimens]) — which is the
+/// question a reader choosing an icon actually has, and one a sheet at a single
+/// size cannot answer.
 ///
 /// The eleventh screen, and the first one the gallery's `Ctrl+<n>` cannot reach —
 /// there are ten digits. That is not an oversight being tolerated: `Ctrl+0` is
@@ -138,19 +162,47 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
     /// the window's opening width.
     static final double ICON_SIZE = 20;
 
-    /// A row of the sheet, which is what the `list` virtualizes over.
+    /// Every bundled icon in its categories — the sheet's groups before any
+    /// chip or search narrows them.
     ///
-    /// Identified by its **first name**, which is unique because the names are
-    /// and because a row's first name is nobody else's: that is the key the
-    /// reconciler and the list's own focus run through, and an index would make
-    /// every row a different row the moment a letter is typed.
-    ///
-    /// @param names up to `columns` of them; the last row has fewer
-    record IconRow(List<String> names) {
+    /// An icon the category table does not know — a table from another Lucide
+    /// version, or a build that skipped the step — is filed under "other" rather
+    /// than left off the sheet: every name `BundledAssets` has is on it somewhere.
+    private static final class Groups {
+        private static final List<CategorySheet.Group<String>> ALL = build();
 
-        String id() {
-            return names.getFirst();
+        private static List<CategorySheet.Group<String>> build() {
+            var table = Catalogs.iconCategories();
+            var filed = new java.util.TreeMap<String, List<String>>();
+            for (var name : BundledAssets.iconNames()) {
+                filed.put(name, table.getOrDefault(name, List.of("other")));
+            }
+            return Catalogs.iconGroups(filed);
         }
+    }
+
+    /// How many rows the sheet has for `category` and `query` at `columns` —
+    /// headings included.
+    ///
+    /// Static and public for [#columnsFor]'s reason: a virtualized sheet is as
+    /// tall as its **model**, and `IconsScreenTest` asserts that by multiplying
+    /// this by [#ROW_PITCH].
+    ///
+    /// @param category a category's name, or `""` for all of them
+    public static int rowsFor(String category, String query, int columns) {
+        return CategorySheet.rows(CategorySheet.narrow(Groups.ALL, category, matcher(query)), columns, name -> name)
+                .size();
+    }
+
+    /// The category names, in the order their chips and headings appear.
+    public static List<String> categories() {
+        return Groups.ALL.stream().map(CategorySheet.Group::name).toList();
+    }
+
+    /// What a search keeps: names containing the query, lower-cased and trimmed.
+    private static java.util.function.Predicate<String> matcher(String query) {
+        var needle = query.trim().toLowerCase(Locale.ROOT);
+        return needle.isEmpty() ? name -> true : name -> name.contains(needle);
     }
 
     /// How many tiles fit across `width`.
@@ -187,27 +239,36 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// bottom of has paid the whole cost once rather than once per visit.
         private final Map<String, Icon> icons = new HashMap<>(2048);
 
-        /// Every bundled name, **sorted here**.
-        ///
-        /// `BundledAssets.iconNames()` is the key set of a `Map.copyOf`, which is
-        /// a hash order — it promises no order and does not have one, and the
-        /// first drawing of this sheet duly opened on `book-lock, calendar-off,
-        /// badge, list-start`. A sheet a reader scans has to be alphabetical, and
-        /// sorting 1544 strings once when the screen is created is the whole
-        /// cost.
-        private final List<String> all =
-                BundledAssets.iconNames().stream().sorted().toList();
+        /// How many icons there are, for the count — each counted once, though
+        /// most are under several headings.
+        private final int total = BundledAssets.iconNames().size();
 
-        /// The query the names were last filtered for, and what came out.
+        /// The chosen category, or [CategorySheet#ALL].
         ///
-        /// Banked because filtering 1544 strings runs in `build` and `build` runs
-        /// on every frame this screen is rebuilt for — which includes every
-        /// keystroke *and* every unrelated `setState` in the window. Recomputing
-        /// a stable answer is the cheapest kind of waste and also the easiest to
-        /// leave in.
-        private String filteredFor;
+        /// The screen's own state rather than the model's: unlike the query, no
+        /// field binds to it, and a chip row that reports to the screen that
+        /// drew it is the whole of the wiring.
+        private String category = CategorySheet.ALL;
 
-        private List<String> matching = List.of();
+        /// The query and category the groups were last narrowed for, and what
+        /// came out.
+        ///
+        /// Banked because narrowing runs in `build` and `build` runs on every
+        /// frame this screen is rebuilt for — which includes every keystroke
+        /// *and* every unrelated `setState` in the window. Recomputing a stable
+        /// answer is the cheapest kind of waste and also the easiest to leave in.
+        private @Nullable String filteredFor;
+
+        private @Nullable String filteredCategory;
+
+        private List<CategorySheet.Group<String>> matching = List.of();
+
+        /// The window, for the specimen dialog — read off the build context,
+        /// because a dialog is put on a host and not in this tree.
+        private @Nullable Host host;
+
+        /// The open specimen dialog, or null.
+        private @Nullable Overlay specimen;
 
         /// How many columns the last frame's width allows.
         ///
@@ -234,31 +295,38 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                 watching.close();
                 watching = null;
             }
+            // Takes the dialog with the screen, so switching tabs does not leave
+            // a modal over a sheet nobody is looking at — WebScreen's rule.
+            closeSpecimen();
         }
 
         @Override
         public Widget build(BuildContext context) {
+            host = context.host().orElse(null);
             var query = widget().model().iconQuery();
             refilter(query);
 
             return new Column(List.of(header(query), scrolledSheet()), Attributes.NONE.id("icons-screen"));
         }
 
-        /// The title, the field and the count.
+        /// The title, the chips, the field and the count.
         ///
         /// The count is prose rather than a `badge`, because it is a sentence
         /// about a search — "42 of 1544" — and a badge is a number beside the
-        /// thing it counts.
+        /// thing it counts. It counts **icons**, each once, not tiles: an icon
+        /// under three headings is one icon.
         private Widget header(String query) {
-            var found = matching.size();
+            var found = CategorySheet.distinct(matching);
             return new Column(
                     List.of(
                             new Text("Every bundled icon", Attributes.NONE.classes("screen-title")),
                             new Text(
-                                    "Lucide's " + all.size() + " icons, compiled into one path table at build"
-                                            + " time (ADR-0033). The name under each is what a document"
-                                            + " writes in icon=\"…\" and what Icon.bundled(name, size) takes.",
+                                    "Lucide's " + total + " icons in " + Groups.ALL.size() + " categories,"
+                                            + " compiled into one path table at build time (ADR-0033). The name"
+                                            + " under each is what a document writes in icon=\"…\"; press one to"
+                                            + " see it at five sizes.",
                                     Attributes.NONE.classes("screen-note")),
+                            CategorySheet.chips(Groups.ALL, category, this::choose, "icon-category"),
                             new Row(
                                     List.of(
                                             TextInput.of(
@@ -267,9 +335,7 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                                     .placeholder("Search 1544 icons — try \"arrow\"")
                                                     .id("icon-search"),
                                             new Text(
-                                                    query.isEmpty()
-                                                            ? all.size() + " icons"
-                                                            : found + " of " + all.size(),
+                                                    count(query, found),
                                                     Attributes.NONE
                                                             .id("icon-count")
                                                             .classes("caption"))),
@@ -327,7 +393,10 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                 + " \"chevron-right\", \"square-pen\", \"file-text\".",
                         Attributes.NONE.id("icons-empty").classes("screen-note"));
             }
-            var grid = new ListView<>(rows(), IconRow::id, this::rowOf)
+            var grid = new ListView<>(
+                            CategorySheet.rows(matching, columns, name -> name),
+                            CategorySheet.SheetRow::id,
+                            this::rowOf)
                     .selection(Selection.NONE)
                     .virtualized(ROW_PITCH)
                     .id("icon-wall");
@@ -337,33 +406,67 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     Attributes.NONE.id("icon-viewport"));
         }
 
-        /// [#matching], chunked into rows of [#columns].
-        ///
-        /// Rebuilt on every build of this screen, which is a slice of a list per
-        /// row and 221 of them — against the 1544 widgets the chunking used to
-        /// produce, of which forty were ever drawn.
-        private List<IconRow> rows() {
-            var rows = new ArrayList<IconRow>(matching.size() / columns + 1);
-            for (var from = 0; from < matching.size(); from += columns) {
-                rows.add(new IconRow(matching.subList(from, Math.min(from + columns, matching.size()))));
+        /// "1544 icons", "200 in Arrows", or "42 of 1544" — what the sheet is
+        /// showing, in the words a reader would use.
+        private String count(String query, int found) {
+            if (!query.isBlank()) {
+                return found + " of " + total;
             }
-            return rows;
+            return category.equals(CategorySheet.ALL)
+                    ? total + " icons"
+                    : found + " in " + CategorySheet.label(category);
         }
 
-        /// One row of tiles, padded to [#columns] so it divides the width the way
-        /// a full row does.
-        private Widget rowOf(IconRow row) {
-            var cells = new ArrayList<Widget>(columns);
-            for (var name : row.names()) {
-                // Keyed by name, so filtering and reflowing reconcile the tiles
-                // that survived rather than rebuilding the row (ADR-0004).
-                cells.add(new IconTile(name, iconFor(name), Attributes.NONE.key(name)));
+        /// A heading, or a row of tiles padded to [#columns] so it divides the
+        /// width the way a full row does.
+        private Widget rowOf(CategorySheet.SheetRow<String> row) {
+            return switch (row) {
+                case CategorySheet.Heading<String> heading ->
+                    new CategorySheet.SheetHeading(
+                            CategorySheet.label(heading.group()),
+                            heading.count(),
+                            Attributes.NONE.classes("icon-heading"));
+                case CategorySheet.Tiles<String> tiles -> {
+                    var cells = new ArrayList<Widget>(columns);
+                    for (var name : tiles.items()) {
+                        // Keyed by name, so filtering and reflowing reconcile the
+                        // tiles that survived rather than rebuilding the row
+                        // (ADR-0004).
+                        cells.add(new IconTile(name, iconFor(name), () -> open(name), Attributes.NONE.key(name)));
+                    }
+                    CategorySheet.pad(cells, columns);
+                    yield new Row(cells, Attributes.NONE.classes("icon-row"));
+                }
+            };
+        }
+
+        /// A chip was pressed: show `chosen`, or every category for
+        /// [CategorySheet#ALL].
+        private void choose(String chosen) {
+            if (!chosen.equals(category)) {
+                setState(() -> category = chosen);
             }
-            for (var pad = row.names().size(); pad < columns; pad++) {
-                cells.add(new Row(
-                        List.of(), Attributes.NONE.classes("icon-cell-filler").key("pad-" + pad)));
+        }
+
+        /// Opens the specimen dialog for `name`, replacing one already open.
+        ///
+        /// Does nothing without a host — a tree built for a test with no window
+        /// has nowhere to put a modal — which is the same answer `WebScreen`
+        /// gives.
+        private void open(String name) {
+            if (host == null) {
+                return;
             }
-            return new Row(cells, Attributes.NONE.classes("icon-row"));
+            closeSpecimen();
+            var categories = Catalogs.iconCategories().getOrDefault(name, List.of("other"));
+            specimen = Dialogs.show(host, Specimens.icon(name, categories, this::closeSpecimen));
+        }
+
+        private void closeSpecimen() {
+            if (specimen != null) {
+                specimen.remove();
+                specimen = null;
+            }
         }
 
         /// Told how wide the sheet came out, and asks for a rebuild only when
@@ -385,24 +488,15 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             return icons.computeIfAbsent(name, key -> Icon.bundled(key, ICON_SIZE));
         }
 
-        /// Rebuilds [#matching] when the query has changed, and not otherwise.
+        /// Rebuilds [#matching] when the query or the category has changed, and
+        /// not otherwise.
         private void refilter(String query) {
-            if (query.equals(filteredFor)) {
+            if (query.equals(filteredFor) && category.equals(filteredCategory)) {
                 return;
             }
             filteredFor = query;
-            var needle = query.trim().toLowerCase(Locale.ROOT);
-            if (needle.isEmpty()) {
-                matching = all;
-                return;
-            }
-            var found = new ArrayList<String>(64);
-            for (var name : all) {
-                if (name.contains(needle)) {
-                    found.add(name);
-                }
-            }
-            matching = List.copyOf(found);
+            filteredCategory = category;
+            matching = CategorySheet.narrow(Groups.ALL, category, matcher(query));
         }
     }
 }

@@ -22,8 +22,13 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.EmojiScreen;
 import io.github.digitalsmile.goldberry.example.ui.IconsScreen;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.FaceCoverage;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -31,6 +36,8 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.widgets.controls.chip.Chip;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialog;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The Emoji screen, driven rather than photographed — [ADR-0386].
@@ -71,6 +78,8 @@ class EmojiScreenTest {
 
         private final ElementTree tree;
         private final WidgetRenderer renderer;
+        private final PointerRouter router = new PointerRouter();
+        private final RecordingHost host = new RecordingHost();
         private final ShowcaseModel model;
         private final ShowcaseModel.Actions actions;
 
@@ -96,14 +105,73 @@ class EmojiScreenTest {
             model = modelOf(showcase, ShowcaseModel.class);
             actions = modelOf(showcase, ShowcaseModel.Actions.class);
             actions.setEmojiQuery(query);
-            tree = new ElementTree(new EmojiScreen(model, actions));
+            tree = new ElementTree(new EmojiScreen(model, actions), host.host);
             render = RenderTree.create();
+            router.focusRoot(tree.root());
+            router.windowBounds(LogicalRect.of(0, 0, width, height));
             settle();
         }
 
         void frame() {
             tree.flush();
             render.update(target.frame(), renderer.render(tree));
+            router.updateRegions(HitTest.capture(render));
+        }
+
+        /// The sheet's rows of tiles — the `icon-row` in each `list-row` that
+        /// is not a heading.
+        List<Element> tileRows() {
+            return byType("list-row").stream()
+                    .map(row -> row.children().getFirst())
+                    .filter(row -> row.classes().contains("icon-row"))
+                    .toList();
+        }
+
+        List<String> headings() {
+            return byType("sheet-heading").stream()
+                    .map(heading -> heading.children().getFirst().widget().toString())
+                    // `SheetHeadingLabel[text=Arrows  ·  200]`, read back to
+                    // what is on screen — the record is the showcase's own and
+                    // package-private.
+                    .map(label -> label.substring(label.indexOf("text=") + 5, label.length() - 1))
+                    .toList();
+        }
+
+        /// The tiles' Unicode names, in the order the tree holds them — which is
+        /// reading order, a row at a time.
+        List<String> names() {
+            return byType("emoji-tile").stream()
+                    .map(tile -> tile.children().getLast().widget().toString())
+                    .toList();
+        }
+
+        void choose(String id) {
+            var chip = byId(id);
+            assertNotNull(chip, "no chip " + id);
+            ((Chip) chip.widget()).onPress().run();
+            settle();
+        }
+
+        void click(Element element) {
+            var found = new ArrayList<LogicalRect>();
+            render.forEachPlacedBox(placed -> {
+                if (placed.box().owner() == element) {
+                    var m = placed.transform();
+                    var l = placed.layout();
+                    found.add(LogicalRect.of(
+                            (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
+                            (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
+                            l.width(),
+                            l.height()));
+                }
+            });
+            assertEquals(1, found.size(), "expected exactly one box for that element");
+            var rect = found.getFirst();
+            var x = rect.left() + rect.size().width() / 2;
+            var y = rect.top() + rect.size().height() / 2;
+            router.pointerPressed(x, y, PointerEvent.Button.PRIMARY, 1, Modifiers.NONE);
+            router.pointerReleased(x, y, PointerEvent.Button.PRIMARY, 1, Modifiers.NONE);
+            settle();
         }
 
         void settle() {
@@ -160,7 +228,7 @@ class EmojiScreenTest {
         void theFaceIsThere() {
             // `:example` depends on `:emoji`, and this is the assertion that says
             // so: without the artifact the sheet is empty and the screen says why
-            // instead of drawing 1205 blanks (ADR-0384).
+            // instead of drawing a sheet of blanks (ADR-0384).
             assertTrue(BundledAssets.hasEmojiFont(), "goldberry-emoji is on the showcase's module path");
         }
 
@@ -194,14 +262,14 @@ class EmojiScreenTest {
         }
 
         @Test
-        @DisplayName("the count says how many, and the note carries the credit CC BY-SA asks for")
+        @DisplayName("the count says how many, and the note names the face and its licence")
         void theCreditIsOnScreen() {
             var harness = new Harness(1200, 900);
 
             assertNotNull(harness.byId("emoji-count"));
-            // The obligation the artifact carries, met where a reader can see it —
-            // which is the whole reason the face is an artifact (ADR-0384).
-            // Read off the widget rather than out of its `toString`: what is on
+            // What an About box would say, where a reader can see it. Noto's OFL
+            // does not require it the way OpenMoji's CC BY-SA did (ADR-0384), and
+            // the screen says it anyway (ADR-0456). Read off the widget rather than out of its `toString`: what is on
             // screen is the `Text`'s content, and a record's printed form is a
             // debugging convenience that may stop containing it (the 2026-09-18
             // review, §11.3).
@@ -209,10 +277,10 @@ class EmojiScreenTest {
                     .map(element -> element.widget())
                     .filter(Text.class::isInstance)
                     .map(widget -> ((Text) widget).content())
-                    .filter(content -> content != null && content.contains("OpenMoji"))
+                    .filter(content -> content != null && content.contains("Noto Color Emoji"))
                     .findFirst();
-            assertTrue(note.isPresent(), "the screen names OpenMoji somewhere a reader can see");
-            assertTrue(note.orElseThrow().contains("CC BY-SA"), note.orElseThrow());
+            assertTrue(note.isPresent(), "the screen names the face somewhere a reader can see");
+            assertTrue(note.orElseThrow().contains("Open Font License"), note.orElseThrow());
         }
     }
 
@@ -251,6 +319,120 @@ class EmojiScreenTest {
     }
 
     @Nested
+    @DisplayName("the groups are Unicode's")
+    class Groups {
+
+        @Test
+        @DisplayName("the sheet is in Unicode's emoji order, not code point order")
+        void unicodeOrder() {
+            // Code point order would open on U+231A WATCH. Unicode's opens on the
+            // grinning face, which is what a picker is meant to show first.
+            var harness = new Harness(1200, 900);
+
+            assertTrue(
+                    harness.headings().getFirst().startsWith("Smileys & Emotion"),
+                    harness.headings().toString());
+            assertTrue(
+                    harness.names().getFirst().contains("grinning face"),
+                    harness.names().getFirst());
+        }
+
+        @Test
+        @DisplayName("one chip per group, All first, and 'Other' last for what Unicode groups nowhere")
+        void aChipPerGroup() {
+            var chips = new Harness(1200, 900)
+                    .byType("chip").stream().map(Element::id).toList();
+
+            assertEquals("emoji-category-all", chips.getFirst());
+            assertTrue(chips.contains("emoji-category-smileys-emotion"), chips.toString());
+            assertTrue(chips.contains("emoji-category-animals-nature"), chips.toString());
+            assertTrue(chips.contains("emoji-category-flags"), chips.toString());
+        }
+
+        @Test
+        @DisplayName("choosing a group shows that group alone, in Unicode's order within it")
+        void choosingNarrows() {
+            var harness = new Harness(1200, 900);
+
+            harness.choose("emoji-category-animals-nature");
+
+            assertEquals(1, harness.headings().size(), harness.headings().toString());
+            assertTrue(
+                    harness.headings().getFirst().contains("Animals & Nature"),
+                    harness.headings().getFirst());
+            assertTrue(
+                    harness.names().getFirst().contains("monkey face"),
+                    harness.names().getFirst());
+            var count = ((Text) harness.byId("emoji-count").widget()).content();
+            assertTrue(count.endsWith(" in Animals & Nature"), count);
+        }
+
+        @Test
+        @DisplayName("a search inside a group finds only that group's")
+        void searchWithinAGroup() {
+            var harness = new Harness(1200, 900, "cat");
+            var everywhere = harness.names().size();
+
+            harness.choose("emoji-category-animals-nature");
+
+            assertTrue(harness.names().size() <= everywhere);
+            assertTrue(
+                    harness.names().stream().allMatch(name -> name.contains("cat")),
+                    harness.names().toString());
+            assertEquals(1, harness.headings().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("pressing a tile")
+    class Specimens {
+
+        @Test
+        @DisplayName("opens the emoji at five sizes, and in a line of text at five more")
+        void opensTheSizes() {
+            var harness = new Harness(1200, 900);
+
+            harness.click(harness.byType("emoji-tile").getFirst());
+
+            var dialog = (Dialog) harness.host.last();
+            assertEquals("emoji-specimen", dialog.attributes().id());
+            assertEquals("Grinning face", dialog.title(), "titled with Unicode's name");
+
+            var contents = new ElementTree(dialog);
+            contents.flush();
+            var glyphs = new ArrayList<Element>();
+            collect(contents.root(), "specimen-emoji", glyphs);
+            assertEquals(5, glyphs.size(), "five sizes");
+            assertEquals(
+                    List.of("size-16", "size-24", "size-32", "size-48", "size-64"),
+                    glyphs.stream()
+                            .map(glyph -> glyph.classes().iterator().next())
+                            .toList(),
+                    "each styled at its own size");
+
+            var lines = new ArrayList<Element>();
+            collect(contents.root(), "text", lines);
+            var samples = lines.stream()
+                    .filter(line -> line.classes().contains("specimen-sample"))
+                    .map(line -> ((Text) line.widget()).content())
+                    .toList();
+            assertEquals(5, samples.size(), "five lines of text");
+            assertTrue(samples.stream().allMatch(line -> line.contains("😀")), "each with the emoji in it: " + samples);
+
+            // And how to write it: a KDL block and a Java block, each naming it.
+            for (var id : List.of("emoji-specimen-kdl", "emoji-specimen-java")) {
+                var block = find(contents.root(), id);
+                assertNotNull(block, "no " + id);
+                assertTrue(
+                        block.children().stream()
+                                .map(line -> ((Text) line.widget()).content())
+                                .anyMatch(line -> line.contains("😀")),
+                        id + " writes the emoji");
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("the layout is the icon sheet's")
     class Layout {
 
@@ -260,8 +442,7 @@ class EmojiScreenTest {
             // Shared rather than reimplemented: one arithmetic, two sheets
             // (ADR-0386).
             var wide = new Harness(1200, 900);
-            var columns =
-                    wide.byType("list-row").getFirst().children().getFirst().children();
+            var columns = wide.tileRows().getFirst().children();
 
             assertEquals(IconsScreen.columnsFor(columns.size() > 0 ? measuredWidth(wide) : 0), columns.size());
         }

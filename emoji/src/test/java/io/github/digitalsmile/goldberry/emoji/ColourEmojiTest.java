@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.emoji;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -24,51 +24,161 @@ import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.FontFace;
 import io.github.digitalsmile.goldberry.text.font.sfnt.ColorLayers;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorPaint;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorPaints;
+import io.github.digitalsmile.goldberry.text.font.sfnt.CompositeMode;
+import io.github.digitalsmile.goldberry.text.font.sfnt.GlyphOutlines;
+import io.github.digitalsmile.goldberry.text.font.sfnt.OutlineSink;
 
-/// The half of [ADR-0393] that can only be checked against the real face: that
-/// the shipped build has colour in it, and that the pixels come out coloured.
+/// The half of [ADR-0393] and [ADR-0456] that can only be checked against the
+/// real face: that the shipped build's colour is readable, and that the pixels
+/// come out coloured.
 ///
-/// Every assertion here is about **pixels**, not about calls. A layered glyph
-/// that drew every layer in the text colour would satisfy any test that counted
-/// draws, and would look exactly like the silhouette this replaced.
+/// Every assertion about drawing is about **pixels**, not about calls. A paint
+/// graph drawn with every fill in the text colour would satisfy any test that
+/// counted draws, and would look exactly like a silhouette.
 class ColourEmojiTest {
 
     /// Big enough that a glyph's interior is several pixels of each colour, and
     /// small enough to scan in a test.
     private static final int SIZE = 96;
 
-    @Test
-    @DisplayName("the shipped face is the COLRv0 build, with a palette in it")
-    void theFaceHasColourInIt() {
-        var layers = ColorLayers.read(BundledAssets.font(BundledFont.EMOJI));
-
-        assertFalse(layers.isEmpty(), "the monochrome build would read as no layers at all");
-        assertTrue(layers.size() > 1000, () -> "only " + layers.size() + " colour glyphs");
-        assertEquals(35, layers.paletteSize(), "OpenMoji draws everything from one 35-colour palette");
+    private static byte[] face() {
+        return BundledAssets.font(BundledFont.EMOJI);
     }
 
     @Test
-    @DisplayName("every layer of a glyph is an ordinary glyph in the same face")
-    void layersAreGlyphs() {
-        var layers = ColorLayers.read(BundledAssets.font(BundledFont.EMOJI));
+    @DisplayName("the shipped face is COLRv1, with a palette, and has no version 0 layers to fall back on")
+    void theFaceIsVersionOne() {
+        var paints = ColorPaints.read(face());
+
+        assertTrue(paints.size() > 3000, () -> "only " + paints.size() + " colour glyphs");
+        assertTrue(paints.paletteSize() > 1000, () -> "a " + paints.paletteSize() + "-colour palette");
+        // Which is why reading version 1 was not optional: the version 0 reader
+        // alone finds nothing here, and every emoji would be its bare outline.
+        assertTrue(ColorLayers.read(face()).isEmpty(), "Noto ships no version 0 records");
+    }
+
+    @Test
+    @DisplayName("every graph in the face is read, and every outline one of them clips to exists")
+    void everyGraphReads() {
+        var bytes = face();
+        var paints = ColorPaints.read(bytes);
+        var outlines = GlyphOutlines.read(bytes);
+        assertEquals(1024, outlines.unitsPerEm(), "Noto is 1024 units to the em");
+
+        // A malformed graph answers null and is drawn as its outline, which is
+        // correct for a broken font and a silent regression for this one -- so
+        // every base glyph in the shipped face must come back as a graph.
+        var read = 0;
+        var clips = new HashSet<Integer>();
+        for (var glyph = 0; glyph < outlines.glyphCount(); glyph++) {
+            if (!paints.has(glyph)) {
+                continue;
+            }
+            var graph = paints.paint(glyph);
+            assertNotNull(graph, "glyph " + glyph + " has a graph that did not read");
+            read++;
+            collectGlyphs(graph, clips);
+        }
+        assertEquals(paints.size(), read, "every graph the index lists");
+
+        for (var glyph : clips) {
+            var sink = new CountingSink();
+            assertTrue(outlines.outline(glyph, sink), "the outline of glyph " + glyph + " reads");
+            assertTrue(sink.segments > 0, "and is a shape: glyph " + glyph);
+        }
+    }
+
+    @Test
+    @DisplayName("a flag is a composite, soft-lit, which is the one node drawn offscreen")
+    void aFlagIsAComposite() {
         RendererRequirement.enforce();
 
         try (var face = FontFace.bundled(BundledFont.EMOJI);
                 var font = Font.on(face, 16)) {
+            var flag = font.shape("🇺🇸");
+            assertEquals(1, flag.length(), "two regional indicators ligate into one flag");
 
-            var popper = font.shape("🎉");
-            assertEquals(1, popper.length(), "one glyph for one code point");
-
-            var record = layers.find(popper.glyphId(0));
-            assertNotEquals(-1, record, "the party popper is drawn as layers");
-            assertTrue(layers.layerCount(record) > 1, "and as more than one of them");
-
-            // The point of the format: a layer is a glyph id the rasterizer
-            // already knows how to draw, so nothing new rasterizes anything.
-            for (var i = 0; i < layers.layerCount(record); i++) {
-                assertTrue(layers.layerGlyph(record, i) > 0, "layer " + i + " is a real glyph");
-            }
+            var graph = ColorPaints.read(face()).paint(flag.glyphId(0));
+            var composite = assertInstanceOf(ColorPaint.Composite.class, graph);
+            assertEquals(CompositeMode.SOFT_LIGHT, composite.mode());
         }
+    }
+
+    @Test
+    @DisplayName("a flag paints in its own colours, through the composite")
+    void aFlagIsColoured() {
+        RendererRequirement.enforce();
+
+        try (var face = FontFace.bundled(BundledFont.EMOJI);
+                var font = Font.on(face, 64)) {
+
+            var hues = paint(frame -> font.draw(frame, 8, 72, "🇺🇸", 0xFF000000));
+
+            assertTrue(hues.size() > 3, () -> "a flag came out in " + hues.size() + " hues");
+        }
+    }
+
+    @Test
+    @DisplayName("a face is shaded with gradients, not filled flat")
+    void gradientsAreDrawn() {
+        RendererRequirement.enforce();
+
+        // The grinning face is a radial gradient from yellow to orange. Flat
+        // fills of its layers give a handful of hues; a gradient gives a ramp of
+        // them. Forty is well above what the flat layers alone produce.
+        try (var face = FontFace.bundled(BundledFont.EMOJI);
+                var font = Font.on(face, 80)) {
+
+            var hues = paint(frame -> font.draw(frame, 4, 76, "😀", 0xFF000000));
+
+            assertTrue(hues.size() > 40, () -> "the face came out in " + hues.size() + " hues, which is flat");
+        }
+    }
+
+    /// Every glyph id a graph clips to, following layers, transforms and
+    /// composites but not references to other graphs.
+    private static void collectGlyphs(ColorPaint node, Set<Integer> into) {
+        switch (node) {
+            case ColorPaint.Layers layers -> layers.layers().forEach(layer -> collectGlyphs(layer, into));
+            case ColorPaint.Glyph glyph -> {
+                into.add(glyph.glyphId());
+                collectGlyphs(glyph.paint(), into);
+            }
+            case ColorPaint.Transform transform -> collectGlyphs(transform.paint(), into);
+            case ColorPaint.Composite composite -> {
+                collectGlyphs(composite.source(), into);
+                collectGlyphs(composite.backdrop(), into);
+            }
+            case ColorPaint.ColrGlyph _,
+                    ColorPaint.Solid _,
+                    ColorPaint.LinearGradient _,
+                    ColorPaint.RadialGradient _,
+                    ColorPaint.SweepGradient _ -> {}
+        }
+    }
+
+    /// Counts what an outline sends, for "is this a shape at all".
+    private static final class CountingSink implements OutlineSink {
+
+        private int segments;
+
+        @Override
+        public void moveTo(double x, double y) {}
+
+        @Override
+        public void lineTo(double x, double y) {
+            segments++;
+        }
+
+        @Override
+        public void quadTo(double cx, double cy, double x, double y) {
+            segments++;
+        }
+
+        @Override
+        public void close() {}
     }
 
     @Test
@@ -118,7 +228,7 @@ class ColourEmojiTest {
         RendererRequirement.enforce();
 
         // The one arithmetic mistake this design can make. Inter is 2048 design
-        // units to the em and OpenMoji is 1024, so appending one face's advances
+        // units to the em and Noto is 1024, so appending one face's advances
         // to the other's without rescaling them makes every emoji come out at
         // half its width — which is a *plausible* number, and would show up as
         // text that overlaps a picture rather than as anything obviously broken.

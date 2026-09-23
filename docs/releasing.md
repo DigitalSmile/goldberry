@@ -58,7 +58,7 @@ dependencies {
     implementation platform('io.github.digitalsmile:goldberry-bom:2026.1-SNAPSHOT')
     implementation 'io.github.digitalsmile:goldberry'                // common, natives, core, widgets
     implementation 'io.github.digitalsmile:goldberry-html'           // optional: Markdown and HTML
-    implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the OpenMoji face (CC BY-SA)
+    implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the Noto Color Emoji face (OFL)
     // All four: `NativeLibrary` picks the right one at run time by `os.name` and
     // `os.arch`, so this works on every machine the application is built or run
     // on. Slim it to one line for a single target deliberately -- see below.

@@ -678,6 +678,28 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
      */
     GB_STRUCT(BLGradientCore),
     GB_STRUCT(BLLinearGradientValues),
+
+    /*
+     * The other two shapes bl_gradient_init_as reads through the same
+     * `const void*` (ADR-0456). A COLRv1 emoji face fills with radial
+     * gradients -- two circles, the FOCAL one first in time and second in
+     * this struct -- and may fill with sweeps. Six doubles and four, and every
+     * field named: a radial read as a linear, or r0 and r1 swapped, is a
+     * gradient that renders and is wrong.
+     */
+    GB_STRUCT(BLRadialGradientValues),
+    GB_FIELD(BLRadialGradientValues, x0),
+    GB_FIELD(BLRadialGradientValues, y0),
+    GB_FIELD(BLRadialGradientValues, x1),
+    GB_FIELD(BLRadialGradientValues, y1),
+    GB_FIELD(BLRadialGradientValues, r0),
+    GB_FIELD(BLRadialGradientValues, r1),
+
+    GB_STRUCT(BLConicGradientValues),
+    GB_FIELD(BLConicGradientValues, x0),
+    GB_FIELD(BLConicGradientValues, y0),
+    GB_FIELD(BLConicGradientValues, angle),
+    GB_FIELD(BLConicGradientValues, repeat),
     GB_FIELD(BLLinearGradientValues, x0),
     GB_FIELD(BLLinearGradientValues, y0),
     GB_FIELD(BLLinearGradientValues, x1),
@@ -806,6 +828,36 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     /* SRC_COPY overwrites rather than blends -- what clearing a frame means. */
     GB_CONSTANT("BL_COMP_OP_SRC_OVER", BL_COMP_OP_SRC_OVER),
     GB_CONSTANT("BL_COMP_OP_SRC_COPY", BL_COMP_OP_SRC_COPY),
+
+    /*
+     * The rest of what a COLRv1 PaintComposite may name (ADR-0456). Positional
+     * enumerators, so one inserted upstream shifts every one after it -- and a
+     * waving flag composited with the wrong operator is still a flag, just the
+     * wrong colour. Every one the font format can ask for is checked, not only
+     * the two the shipped face uses.
+     */
+    GB_CONSTANT("BL_COMP_OP_SRC_IN", BL_COMP_OP_SRC_IN),
+    GB_CONSTANT("BL_COMP_OP_SRC_OUT", BL_COMP_OP_SRC_OUT),
+    GB_CONSTANT("BL_COMP_OP_SRC_ATOP", BL_COMP_OP_SRC_ATOP),
+    GB_CONSTANT("BL_COMP_OP_DST_OVER", BL_COMP_OP_DST_OVER),
+    GB_CONSTANT("BL_COMP_OP_DST_COPY", BL_COMP_OP_DST_COPY),
+    GB_CONSTANT("BL_COMP_OP_DST_IN", BL_COMP_OP_DST_IN),
+    GB_CONSTANT("BL_COMP_OP_DST_OUT", BL_COMP_OP_DST_OUT),
+    GB_CONSTANT("BL_COMP_OP_DST_ATOP", BL_COMP_OP_DST_ATOP),
+    GB_CONSTANT("BL_COMP_OP_XOR", BL_COMP_OP_XOR),
+    GB_CONSTANT("BL_COMP_OP_CLEAR", BL_COMP_OP_CLEAR),
+    GB_CONSTANT("BL_COMP_OP_PLUS", BL_COMP_OP_PLUS),
+    GB_CONSTANT("BL_COMP_OP_MULTIPLY", BL_COMP_OP_MULTIPLY),
+    GB_CONSTANT("BL_COMP_OP_SCREEN", BL_COMP_OP_SCREEN),
+    GB_CONSTANT("BL_COMP_OP_OVERLAY", BL_COMP_OP_OVERLAY),
+    GB_CONSTANT("BL_COMP_OP_DARKEN", BL_COMP_OP_DARKEN),
+    GB_CONSTANT("BL_COMP_OP_LIGHTEN", BL_COMP_OP_LIGHTEN),
+    GB_CONSTANT("BL_COMP_OP_COLOR_DODGE", BL_COMP_OP_COLOR_DODGE),
+    GB_CONSTANT("BL_COMP_OP_COLOR_BURN", BL_COMP_OP_COLOR_BURN),
+    GB_CONSTANT("BL_COMP_OP_HARD_LIGHT", BL_COMP_OP_HARD_LIGHT),
+    GB_CONSTANT("BL_COMP_OP_SOFT_LIGHT", BL_COMP_OP_SOFT_LIGHT),
+    GB_CONSTANT("BL_COMP_OP_DIFFERENCE", BL_COMP_OP_DIFFERENCE),
+    GB_CONSTANT("BL_COMP_OP_EXCLUSION", BL_COMP_OP_EXCLUSION),
 
     /*
      * Which points a path encloses (ADR-0427). Two values, and the wrong one is

@@ -9,16 +9,17 @@ import org.jspecify.annotations.Nullable;
 ///
 /// ## Why it is not
 ///
-/// OpenMoji is CC BY-SA, and that licence wants *visible* attribution: an about
-/// box or a credits screen, not a line in a notice file. `content-widgets.md`
-/// quarantines it in an optional artifact for exactly that reason, and core
-/// carried it anyway — so every application that shipped Goldberry inherited an
-/// obligation whether or not it ever drew an emoji ([ADR-0384]).
+/// The face moved out when it was OpenMoji, which is CC BY-SA and wants
+/// *visible* attribution — so every application that shipped Goldberry
+/// inherited an obligation whether or not it ever drew an emoji ([ADR-0384]).
+/// The face is Noto Color Emoji now, under the SIL OFL, which asks for no such
+/// thing; it stays out because it is 5 MB of paint graphs that an application
+/// that never draws an emoji should not carry ([ADR-0456]).
 ///
-/// It is `goldberry-emoji` now. An application that wants emoji adds the
-/// artifact and accepts the obligation with it; one that does not carries
-/// neither, and [io.github.digitalsmile.goldberry.text.font.Font#bundled] says
-/// so by name when it is asked for a face that is not there.
+/// It is `goldberry-emoji`. An application that wants emoji adds the artifact;
+/// one that does not carries none of it, and
+/// [io.github.digitalsmile.goldberry.text.font.Font#bundled] says so by name
+/// when it is asked for a face that is not there.
 ///
 /// ## Why a service and not a resource
 ///

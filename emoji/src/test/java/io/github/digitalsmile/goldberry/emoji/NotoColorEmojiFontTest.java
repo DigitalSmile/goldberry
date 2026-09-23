@@ -14,18 +14,18 @@ import io.github.digitalsmile.goldberry.assets.EmojiFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 
-/// The face this artifact exists to carry — [ADR-0384].
+/// The face this artifact exists to carry — [ADR-0384], [ADR-0456].
 ///
 /// The shaping half moved here from `:core`'s `BundledAssetsTest` with the font
 /// itself: "emoji shape through the emoji face" is a test of the thing that
 /// ships the face, and `:core` now tests the *absence* instead.
-class OpenMojiFontTest {
+class NotoColorEmojiFontTest {
 
     @Test
     @DisplayName("the face is found through the service, which is what `:core` asks")
     void providerIsFound() {
         assertTrue(BundledAssets.hasEmojiFont(), "goldberry-emoji is on this test's module path");
-        assertEquals(OpenMojiFont.class, EmojiFont.provider().getClass());
+        assertEquals(NotoColorEmojiFont.class, EmojiFont.provider().getClass());
     }
 
     @Test
@@ -66,7 +66,7 @@ class OpenMojiFontTest {
             var throughEmoji = buffer.shape(emoji);
 
             assertEquals(1, throughEmoji.length());
-            assertNotEquals(0, throughEmoji.glyphId(0), "OpenMoji has this character");
+            assertNotEquals(0, throughEmoji.glyphId(0), "Noto has this character");
 
             // The same character through the UI face, which is the point of
             // having two slots: §6.1 says the chain is primary then emoji and
@@ -87,17 +87,23 @@ class OpenMojiFontTest {
         // The failure nobody finds until a user does: the asset step did not
         // run, and the jar is a provider with nothing behind it.
         var thrown = org.junit.jupiter.api.Assertions.assertThrows(
-                java.io.UncheckedIOException.class, () -> OpenMojiFont.read("/no/such/font.ttf"));
+                java.io.UncheckedIOException.class, () -> NotoColorEmojiFont.read("/no/such/font.ttf"));
         assertTrue(thrown.getMessage().contains("asset step"), thrown.getMessage());
     }
 
     @Test
-    @DisplayName("the credit is a constant, so an application need not transcribe it")
+    @DisplayName("the credit is a constant, and names the face and its licence")
     void credit() {
-        // CC BY-SA asks for attribution where the work is *seen*. The licence
-        // text in `licenses/` is not that, which is the whole reason this is an
-        // artifact rather than a file in core.
-        assertTrue(OpenMojiFont.CREDIT.contains("OpenMoji"));
-        assertTrue(OpenMojiFont.CREDIT.contains("CC BY-SA"));
+        // Optional under the OFL, unlike OpenMoji's CC BY-SA -- but an
+        // application that puts one in an about box should not have to
+        // transcribe it, and should not be handed the old face's.
+        assertTrue(NotoColorEmojiFont.CREDIT.contains("Noto Color Emoji"));
+        assertTrue(NotoColorEmojiFont.CREDIT.contains("Open Font License"));
+    }
+
+    @Test
+    @DisplayName("the face is Noto's, by its own name table's family, which is what a stylesheet writes")
+    void theFamilyIsNoto() {
+        assertEquals("Noto Color Emoji", BundledFont.EMOJI.family());
     }
 }

@@ -37,7 +37,7 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 /// resolves on [ComputedStyle] beside the other text-flow properties.
 ///
 /// @param family     the family name, matched against [BundledFont#of] — Inter,
-///                   JetBrains Mono, OpenMoji
+///                   JetBrains Mono, Noto Color Emoji
 /// @param size       the em size in logical pixels
 /// @param weight     which of the two shipped weights
 /// @param style      upright or italic

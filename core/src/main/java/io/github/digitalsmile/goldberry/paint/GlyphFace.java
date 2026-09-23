@@ -1,9 +1,14 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontFace;
 import io.github.digitalsmile.goldberry.text.font.sfnt.ColorLayers;
+import io.github.digitalsmile.goldberry.text.font.sfnt.ColorPaints;
+import io.github.digitalsmile.goldberry.text.font.sfnt.GlyphOutlines;
+import io.github.digitalsmile.goldberry.text.font.sfnt.OutlineSink;
 
 /// A typeface, as the **rasterizer** sees it — `docs/gaps.md` G14.
 ///
@@ -41,12 +46,30 @@ public final class GlyphFace implements AutoCloseable {
     /// the thing ADR-0044 split this type out to stop.
     private final ColorLayers layers;
 
+    /// The face's `COLR` version 1 paint graphs — Noto Color Emoji's pictures —
+    /// indexed once per typeface for [#layers]'s reason, and each graph parsed
+    /// on first use (ADR-0456).
+    private final ColorPaints paints;
+
+    /// The face's outlines, read in Java — but only for a face with paint graphs
+    /// in it, because only a graph clips a fill to a glyph's shape. A face of
+    /// letters goes to the rasterizer's own glyph call and never builds a path.
+    private final GlyphOutlines outlines;
+
+    /// Each glyph's outline as a [Path], built the first time a graph clips to
+    /// it. A Noto glyph is a dozen outlines and the same eyes and mouths recur
+    /// across faces, so a reaction bar redrawn at sixty frames a second reads
+    /// `glyf` once per shape rather than once per frame.
+    private final Map<Integer, Path> paths = new ConcurrentHashMap<>();
+
     private boolean closed;
 
     private GlyphFace(String name, byte[] data) {
         this.name = name;
         this.face = BlendFontFace.fromBytes(data);
         this.layers = ColorLayers.read(data);
+        this.paints = ColorPaints.read(data);
+        this.outlines = paints.isEmpty() ? GlyphOutlines.NONE : GlyphOutlines.read(data);
     }
 
     /// Parses a typeface out of a font file's bytes.
@@ -66,13 +89,13 @@ public final class GlyphFace implements AutoCloseable {
         return name;
     }
 
-    /// Whether any glyph in this face is drawn as coloured layers rather than as
-    /// one outline.
+    /// Whether any glyph in this face is drawn in colour — as layers (`COLR`
+    /// version 0) or as a paint graph (version 1) — rather than as one outline.
     ///
     /// True of an emoji face and of nothing else anybody ships, which is why a
     /// [GlyphPen] asks once and then never pays for it again.
     public boolean hasColorGlyphs() {
-        return !layers.isEmpty();
+        return !layers.isEmpty() || !paints.isEmpty();
     }
 
     /// Whether it has been closed.
@@ -93,6 +116,50 @@ public final class GlyphFace implements AutoCloseable {
     /// for [#handle()]'s reason.
     ColorLayers layers() {
         return layers;
+    }
+
+    /// The face's paint graphs, for the pen. Package-private for [#handle()]'s
+    /// reason.
+    ColorPaints paints() {
+        return paints;
+    }
+
+    /// Design units to the em, as the face's own `head` table says — what a
+    /// paint graph's coordinates are scaled by. Known only for a face with paint
+    /// graphs, which is the only one that asks.
+    int unitsPerEm() {
+        return outlines.unitsPerEm();
+    }
+
+    /// Glyph `glyphId`'s outline in design units, y up — or [Path#EMPTY] when the
+    /// face has no such glyph or its data cannot be read, which a painter fills
+    /// as nothing.
+    Path outline(int glyphId) {
+        return paths.computeIfAbsent(glyphId, id -> {
+            var builder = Path.builder();
+            var read = outlines.outline(id, new OutlineSink() {
+                @Override
+                public void moveTo(double x, double y) {
+                    builder.moveTo(x, y);
+                }
+
+                @Override
+                public void lineTo(double x, double y) {
+                    builder.lineTo(x, y);
+                }
+
+                @Override
+                public void quadTo(double cx, double cy, double x, double y) {
+                    builder.quadTo(cx, cy, x, y);
+                }
+
+                @Override
+                public void close() {
+                    builder.close();
+                }
+            });
+            return read ? builder.build() : Path.EMPTY;
+        });
     }
 
     /// The rasterizer's own handle. Package-private, which is the whole point:

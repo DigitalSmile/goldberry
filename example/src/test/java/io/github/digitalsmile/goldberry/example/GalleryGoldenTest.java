@@ -404,9 +404,9 @@ class GalleryGoldenTest {
     /// The Emoji sheet, drawn through a **font book** — the one golden in this
     /// file that is not taken with the one-font renderer ([ADR-0386]).
     ///
-    /// It has to be. The screen's whole subject is `font-family: OpenMoji`
-    /// reaching §6.1's emoji slot, and a renderer that ignores the property would
-    /// photograph 1845 tiles of `.notdef` and call it a picture of an emoji
+    /// It has to be. The screen's whole subject is `font-family: "Noto Color
+    /// Emoji"` reaching §6.1's emoji slot, and a renderer that ignores the
+    /// property would photograph a sheet of `.notdef` and call it a picture of an emoji
     /// sheet. So this one opens a book, which is also what proves the face is on
     /// the module path: without `goldberry-emoji` the glyphs would fall back to
     /// Inter and this image would move.

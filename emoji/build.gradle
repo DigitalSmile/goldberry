@@ -4,17 +4,17 @@ plugins {
     id 'goldberry.publish'
 }
 
-description = 'Goldberry emoji: the OpenMoji face, and the attribution that comes with it'
+description = 'Goldberry emoji: the Noto Color Emoji face, drawn from its COLRv1 paint graphs'
 
 // ============================================================================
-// The font with an obligation on it (ADR-0384)
+// The emoji face, opted into (ADR-0384, ADR-0456)
 //
-// `docs/content-widgets.md` §11.1 quarantines anything carrying an attribution
-// obligation into an artifact an application opts into, and OpenMoji is the one
-// entry on that list that had been shipping inside `:core` anyway: CC BY-SA
-// wants *visible* attribution — an about box, a credits screen — which a notice
-// file cannot give. An application that never draws an emoji should not inherit
-// that, and one that does should meet it on purpose.
+// The face is Noto Color Emoji's COLRv1 build: 5 MB of paint graphs that `:core`
+// draws itself. It moved out of `:core` in the first place because the face it
+// replaced, OpenMoji, was CC BY-SA and wanted attribution on screen; Noto is SIL
+// OFL and asks for no such thing. It stays an artifact of its own for the other
+// half of that reason — an application that never draws an emoji should not
+// carry five megabytes of them.
 //
 // So this module is the face and nothing else. There is no code here beyond the
 // provider that hands its bytes to `:core` through a service, because a font is
@@ -44,7 +44,7 @@ tasks.withType(Test).configureEach {
     // Without `goldberry.native.required` this module's suite *aborts* every test
     // when there is no rasterizer, and a job that passes `-Pgoldberry.skipNative`
     // reports green having asserted nothing -- which is how `ColourEmojiTest` and
-    // `OpenMojiFontTest.emojiNeedTheEmojiFace` ran in no CI lane at all until the
+    // `emojiNeedTheEmojiFace` (then in `OpenMojiFontTest`) ran in no CI lane at all until the
     // 2026-09-18 review read the workflow (B3).
     ['goldberry.golden.update', 'goldberry.golden.scales',
      'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
@@ -87,12 +87,12 @@ dependencies {
     assetTool project(':assets')
 }
 
-// The same tool `:core` runs, told which asset it means. One archive, one file:
-// `--only=openmoji` is what keeps this module from fetching 90 MB of fonts it
-// does not ship.
+// The same tool `:core` runs, told which asset it means. One file:
+// `--only=noto-emoji` is what keeps this module from fetching the fonts it does
+// not ship.
 def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     group = 'assets'
-    description = 'Fetches the pinned OpenMoji release and prepares it as a resource.'
+    description = 'Fetches the pinned Noto Color Emoji release and prepares it as a resource.'
 
     classpath = configurations.assetTool
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
@@ -102,16 +102,17 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     // the application refuses to start (ADR-0387).
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
-            '--only=openmoji',
+            '--only=noto-emoji',
             '--root=io/github/digitalsmile/goldberry/emoji'
 
     inputs.files configurations.assetTool
     outputs.dir assetResources
 
     // The directory is emptied first, so a file this build no longer prepares
-    // does not survive in it. OpenMoji moving to `:emoji` is exactly that case:
-    // without this, an incremental build kept shipping the face `:core` had
-    // stopped fetching (ADR-0384).
+    // does not survive in it. OpenMoji moving to `:emoji`, and then being
+    // replaced by Noto, are exactly that case: without this, an incremental
+    // build kept shipping the face the manifest had stopped naming (ADR-0384,
+    // ADR-0456).
     doFirst {
         delete assetResources
     }
@@ -119,18 +120,18 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
 
 sourceSets.main.resources.srcDir(prepareAssets.map { assetResources.get() })
 
-/// Vendors OpenMoji's licence text into licenses/, the way :core does for the
-/// assets it still carries.
+/// Vendors Noto Color Emoji's licence text into licenses/, the way :core does
+/// for the assets it still carries.
 tasks.register('vendorLicences', JavaExec) {
     group = 'assets'
-    description = 'Copies OpenMoji\'s licence into licenses/ from the pinned archive.'
+    description = 'Copies Noto Color Emoji\'s licence into licenses/ from the pinned release.'
 
     classpath = configurations.assetTool
     mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
-            '--only=openmoji',
+            '--only=noto-emoji',
             '--root=io/github/digitalsmile/goldberry/emoji'
 }
 

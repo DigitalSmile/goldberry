@@ -34,11 +34,11 @@ rootProject.name = 'goldberry'
 // ordinary Java rather than build-script code because compiling 1544 SVGs into
 // path data is real logic that deserves real tests (ADR-0033).
 //
-// :emoji is the OpenMoji face and nothing else. It is its own artifact because
-// CC BY-SA asks for attribution where the work is *seen*, which no file inside a
-// jar gives — so the obligation travels with a dependency an application adds on
-// purpose rather than with every application that ever used the toolkit. The
-// face reaches :core through an `EmojiFont` service (ADR-0384).
+// :emoji is the Noto Color Emoji face and nothing else. It is its own artifact
+// because it is 5 MB of paint graphs that an application which never draws an
+// emoji should not carry; it became one when the face was OpenMoji, whose CC
+// BY-SA asked for credit on screen. The face reaches :core through an
+// `EmojiFont` service (ADR-0384, ADR-0456).
 //
 // :html is the first of `docs/content-widgets.md`'s optional content modules
 // (ADR-0190). Markdown is what it ships today -- md4c, through the four

@@ -487,6 +487,22 @@ public final class BlendContext implements AutoCloseable {
         calls.contextGlobalAlpha(context, alpha);
     }
 
+    /// How everything drawn afterwards combines with what is already there.
+    ///
+    /// **Context state, like [#globalAlpha(double)]**, and for the same reason
+    /// the caller sets it back: a context left on [BlendCompOp#SRC_IN] turns the
+    /// next fill in the frame into a mask, and the bug shows up somewhere else
+    /// entirely. [#save()] and [#restore()] carry it too.
+    ///
+    /// The one caller outside this class is a COLRv1 colour glyph's
+    /// `PaintComposite`, which blits one offscreen layer onto another with the
+    /// operator the font names (ADR-0456).
+    public void compOp(BlendCompOp compOp) {
+        requireUsable();
+        java.util.Objects.requireNonNull(compOp, "compOp");
+        calls.contextCompOp(context, compOp);
+    }
+
     /// Restricts drawing to `(x, y, width, height)` in logical coordinates.
     ///
     /// Intersected with whatever clip is in force, which is Blend2D's behaviour

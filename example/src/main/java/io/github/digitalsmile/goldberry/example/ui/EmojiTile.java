@@ -21,16 +21,26 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// the glyph is a `Box.text` whose `font-family` the stylesheet chooses, and
 /// what this tile carries is a `String` rather than an object with a lifetime.
 ///
-/// That difference is the demonstration. `.emoji-glyph { font-family: OpenMoji }`
+/// That difference is the demonstration. `.emoji-glyph { font-family: "Noto Color Emoji" }`
 /// is the whole of how an application reaches the emoji slot in §6.1's font
 /// chain — no API, no registry, one declaration — and the face behind it is
 /// `goldberry-emoji`, which this application opts into ([ADR-0384]).
+///
+/// Pressing it opens the emoji at five sizes, and in a line of text at five
+/// more — [PressableTile], for [IconTile]'s reason.
 ///
 /// @param character  the emoji itself, as a string because a code point above
 ///                   the BMP is two chars
 /// @param name       what Unicode calls it, which is the caption and what a
 ///                   search matches on
-record EmojiTile(String character, String name, Attributes attributes) implements Widget.Leaf, Styled, Paints {
+/// @param onOpen     what pressing the tile does
+record EmojiTile(String character, String name, Runnable onOpen, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, PressableTile {
+
+    @Override
+    public String accessibleName() {
+        return name;
+    }
 
     @Override
     public String cssType() {
@@ -66,7 +76,7 @@ record EmojiTile(String character, String name, Attributes attributes) implement
     }
 
     /// The character, drawn through whatever `font-family` the stylesheet picks
-    /// for it — which is `OpenMoji`.
+    /// for it — which is `Noto Color Emoji`.
     record EmojiGlyph(String character) implements Widget.Leaf, Styled, Paints {
 
         @Override

@@ -29,20 +29,13 @@ The following assets are embedded in goldberry-core:
 
 And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
 
-  OpenMoji             CC BY-SA 4.0                https://openmoji.org
+  Noto Color Emoji     SIL Open Font License 1.1   https://github.com/googlefonts/noto-emoji
 
-OpenMoji is in an artifact of its own because CC BY-SA asks for attribution
-where the work is SEEN — an about box, a credits screen — which a notice file
-cannot give. An application that adds goldberry-emoji takes that obligation on:
-io.github.digitalsmile.goldberry.emoji.OpenMojiFont.CREDIT is the sentence to
-display. An application that does not add it ships no emoji font and owes
-nothing (ADR-0384).
-
-The face shipped is OpenMoji's own monochrome build, unmodified. Should a
-re-themed colour variant ship later, it would be a derivative work under
-CC BY-SA 4.0 and the modification would have to be disclosed here. The
-Apache-2.0 licence of Goldberry's own code is unaffected either way — the font
-is an embedded asset, not linked code.
+Noto Color Emoji is in an artifact of its own because it is five megabytes an
+application that never draws an emoji should not carry (ADR-0384, ADR-0456).
+The face shipped is Google's COLRv1 build, release v2.051, unmodified. The
+Apache-2.0 licence of Goldberry's own code is unaffected — the font is an
+embedded asset, not linked code.
 
 Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
 and the licenses/ directory.

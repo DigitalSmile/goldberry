@@ -26,9 +26,9 @@ dependencies {
     // `Showcase.stylesheets()` adds beside the toolkit's own.
     implementation project(':html')
 
-    // The emoji face (ADR-0384). An application adds this on purpose, because
-    // OpenMoji is CC BY-SA and the credit goes on screen -- the Emoji screen
-    // carries it. Nothing here names a type of it: the face reaches `:core`
+    // The emoji face (ADR-0384, ADR-0456). An application adds this on
+    // purpose; the Emoji screen names the face and its licence anyway, as an
+    // About box would. Nothing here names a type of it: the face reaches `:core`
     // through a service, so this puts a provider on the module path and nothing
     // else.
     implementation project(':emoji')
@@ -46,6 +46,65 @@ dependencies {
     // provider, so choosing one is the application's call -- this is what making
     // that call looks like (ADR-0023).
     runtimeOnly libs.logback.classic
+}
+
+// ============================================================================
+// The category tables the Icons and Emoji sheets are grouped by
+//
+// Lucide files each icon under its categories in a JSON file beside the SVG, and
+// Unicode files each emoji under a group in `emoji-test.txt`. Neither is worth
+// shipping as it comes -- 1544 JSON files and 650 KB of sequences the sheet never
+// shows -- so `:assets` compiles both into one line per entry, the way it
+// compiles the icons themselves (ADR-0033).
+//
+// Under this module's **own** package, for ADR-0387's reason: a resource
+// directory is a package to the module system, and a table written somewhere
+// another module also writes is a split package and a showcase that will not
+// open.
+// ============================================================================
+configurations {
+    assetTool
+}
+
+dependencies {
+    assetTool project(':assets')
+}
+
+def assetCache = layout.settingsDirectory.dir('.gradle/assets')
+def catalogResources = layout.buildDirectory.dir('generated/catalogs')
+
+def prepareCatalogs = tasks.register('prepareCatalogs', JavaExec) {
+    group = 'assets'
+    description = 'Compiles the icon categories and emoji groups the showcase sheets are grouped by.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareCatalogs'
+    args assetCache.asFile.absolutePath,
+            catalogResources.get().dir('io/github/digitalsmile/goldberry/example/catalog').asFile.absolutePath
+
+    inputs.files configurations.assetTool
+    outputs.dir catalogResources
+
+    doFirst {
+        delete catalogResources
+    }
+}
+
+sourceSets.main.resources.srcDir(prepareCatalogs.map { catalogResources.get() })
+
+/// Vendors Unicode's licence into licenses/, for the emoji groups the showcase
+/// compiles out of `emoji-test.txt`.
+tasks.register('vendorLicences', JavaExec) {
+    group = 'assets'
+    description = 'Copies the Unicode licence into licenses/.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    args assetCache.asFile.absolutePath,
+            layout.buildDirectory.dir('generated/unused').get().asFile.absolutePath,
+            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
+            '--only=unicode-emoji',
+            '--root=io/github/digitalsmile/goldberry/example'
 }
 
 // Where a locally built libgoldberry lives, for a run straight from the source

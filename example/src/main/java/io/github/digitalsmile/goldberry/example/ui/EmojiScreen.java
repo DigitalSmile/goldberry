@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.bind.Subscription;
@@ -19,12 +23,32 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs;
 import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
-/// The **Emoji** screen: every character the shipped emoji face has, and a field
-/// to find one — [ADR-0386].
+/// The **Emoji** screen: every character the shipped emoji face has, grouped as
+/// Unicode groups them, a row of chips to choose a group, a field to find one,
+/// and a dialog of any of them at five sizes — [ADR-0386].
+///
+/// ## Grouped as Unicode groups them
+///
+/// Unicode files every emoji under one of ten groups — "Smileys & Emotion",
+/// "Animals & Nature", "Flags" — in `emoji-test.txt`, and in an order within
+/// each that is the order a picker is meant to show: the grinning face before
+/// the tears of joy, the cat before the lion. The JDK carries every emoji
+/// property but that one, so the build compiles the file into a table
+/// ([Catalogs]) and the sheet shows each group under a heading, in Unicode's
+/// order. A chip per group narrows it to one. Code points Unicode groups
+/// nowhere go under "Other", last.
+///
+/// ## Pressing a tile opens its sizes
+///
+/// A [PressableTile], as on the icon sheet: the dialog shows the emoji at five
+/// sizes **and** in a line of ordinary text at five more ([Specimens]) — the
+/// second being the half that shows an emoji routed out of prose and back
+/// ([ADR-0393]), sharp at every size ([ADR-0456]).
 ///
 /// ## Why it is beside the Icons screen and not part of it
 ///
@@ -32,20 +56,20 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// **path** the application holds and hands to a box; an emoji is **text**, a
 /// code point drawn through a face the cascade picked with `font-family`. So the
 /// Icons screen is about an asset with an API, and this one is about §6.1's font
-/// chain: one declaration — `.emoji-glyph { font-family: OpenMoji }` — is the
-/// whole of how an application reaches the emoji slot.
+/// chain: one declaration — `.emoji-glyph { font-family: "Noto Color Emoji" }`
+/// — is the whole of how an application reaches the emoji slot.
 ///
 /// It is also where the showcase *opts into* `goldberry-emoji`. The face is not
-/// in `goldberry-core`, because CC BY-SA asks for attribution where the work is
-/// seen ([ADR-0384]) — so this screen carries the credit the licence asks for,
-/// in the note under its title, which is what an application's About box would
-/// do.
+/// in `goldberry-core` ([ADR-0384]); it is Noto Color Emoji, under the SIL OFL,
+/// drawn from its COLRv1 paint graphs ([ADR-0456]). The licence asks for no
+/// credit on screen, and this screen names the face under its title anyway,
+/// which is what an application's About box would do.
 ///
 /// ## Where the list comes from
 ///
-/// The face's own `cmap`, read by [FaceCoverage] — 1845 characters in OpenMoji's
-/// colour build — filtered to the ones whose **default presentation is
-/// emoji**, which is 1205 of them. Not a list transcribed into this file: a
+/// The face's own `cmap`, read by [FaceCoverage] — 1499 characters in Noto's
+/// COLRv1 build — filtered to the ones whose **default presentation is
+/// emoji**, which is 1212 of them. Not a list transcribed into this file: a
 /// transcription is a second copy of the font's contents that goes stale the
 /// first time the pinned version moves.
 ///
@@ -74,28 +98,13 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
     /// The size the glyphs are drawn at, in logical pixels.
     ///
     /// 24 rather than the icon sheet's 20: an emoji is a picture rather than a
-    /// stroke, and OpenMoji is drawn with detail that closes up below this —
-    /// more so in colour, where a fourteen-layer glyph has fourteen things to
-    /// tell apart.
+    /// stroke, and a Noto glyph is a dozen shaded shapes that close up into one
+    /// blur below this.
     static final double GLYPH_SIZE = 24;
 
     @Override
     public State<?> createState() {
         return new EmojiState();
-    }
-
-    /// One row of the sheet, which is what the `list` virtualizes over.
-    ///
-    /// Identified by its **first code point**, which is unique for
-    /// [IconsScreen.IconRow]'s reason: an index would make every row a different
-    /// row the moment a letter is typed.
-    ///
-    /// @param entries up to `columns` of them; the last row has fewer
-    record EmojiRow(List<Entry> entries) {
-
-        String id() {
-            return Integer.toHexString(entries.getFirst().codePoint());
-        }
     }
 
     /// One emoji: the code point, the string to draw, and Unicode's name for it.
@@ -125,9 +134,24 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// ([ADR-0384]).
         private final boolean available = BundledAssets.hasEmojiFont();
 
-        private String filteredFor;
+        /// [#all], filed under Unicode's groups in Unicode's order.
+        private final List<CategorySheet.Group<Entry>> groups =
+                Catalogs.emojiGroups(all, Entry::codePoint, Catalogs.emojiGroups());
 
-        private List<Entry> matching = List.of();
+        /// The chosen group, or [CategorySheet#ALL] — the screen's own state,
+        /// for the icon sheet's reason.
+        private String category = CategorySheet.ALL;
+
+        private @Nullable String filteredFor;
+
+        private @Nullable String filteredCategory;
+
+        private List<CategorySheet.Group<Entry>> matching = List.of();
+
+        private @Nullable Host host;
+
+        /// The open specimen dialog, or null.
+        private @Nullable Overlay specimen;
 
         private int columns = IconsScreen.DEFAULT_COLUMNS;
 
@@ -147,10 +171,12 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                 watching.close();
                 watching = null;
             }
+            closeSpecimen();
         }
 
         @Override
         public Widget build(BuildContext context) {
+            host = context.host().orElse(null);
             var query = widget().model().emojiQuery();
             refilter(query);
 
@@ -160,7 +186,8 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// One line of ordinary prose with emoji in it, in **no particular
         /// font** — [ADR-0393]'s half of this screen.
         ///
-        /// The sheet below is every emoji drawn through `font-family: OpenMoji`,
+        /// The sheet below is every emoji drawn through
+        /// `font-family: "Noto Color Emoji"`,
         /// which is an application choosing the face. This is the other thing,
         /// and it is the one an application actually writes: a sentence in the UI
         /// face, with the pictures routed out of it by the itemizer and back into
@@ -175,18 +202,19 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// The title, the credit the licence asks for, the field and the count.
         private Widget header(String query) {
             var note = available
-                    ? "OpenMoji's " + all.size() + " emoji, read out of the face's own cmap and drawn in"
-                            + " colour from its COLRv0 layers. Emoji artwork by OpenMoji (openmoji.org),"
-                            + " CC BY-SA 4.0 — the credit this application owes for adding goldberry-emoji"
-                            + " (ADR-0384)."
+                    ? "Noto Color Emoji's " + all.size() + " emoji, read out of the face's own cmap and"
+                            + " drawn in colour from its COLRv1 paint graphs — gradients, transforms and"
+                            + " composites, sharp at any scale; press one to see it at five sizes."
+                            + " Noto Color Emoji by Google, SIL Open Font License 1.1 (ADR-0456)."
                     : "The emoji face is not on this build's module path. It ships as goldberry-emoji,"
-                            + " because CC BY-SA asks for attribution where the work is seen — add the"
-                            + " artifact and its credit to draw these (ADR-0384).";
+                            + " so an application that never draws an emoji does not carry it — add the"
+                            + " artifact to draw these (ADR-0384).";
             return new Column(
                     List.of(
                             new Text("Every bundled emoji", Attributes.NONE.classes("screen-title")),
                             new Text(note, Attributes.NONE.classes("screen-note")),
                             routed(),
+                            CategorySheet.chips(groups, category, this::choose, "emoji-category"),
                             new Row(
                                     List.of(
                                             TextInput.of(
@@ -195,9 +223,7 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                                     .placeholder("Search by Unicode name — try \"cat\" or \"1f6\"")
                                                     .id("emoji-search"),
                                             new Text(
-                                                    query.isEmpty()
-                                                            ? all.size() + " emoji"
-                                                            : matching.size() + " of " + all.size(),
+                                                    count(query),
                                                     Attributes.NONE
                                                             .id("emoji-count")
                                                             .classes("caption"))),
@@ -215,7 +241,10 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                 : "Nothing to show without the face.",
                         Attributes.NONE.id("emoji-empty").classes("screen-note"));
             }
-            var grid = new ListView<>(rows(), EmojiRow::id, this::rowOf)
+            var grid = new ListView<>(
+                            CategorySheet.rows(matching, columns, entry -> Integer.toHexString(entry.codePoint())),
+                            CategorySheet.SheetRow::id,
+                            this::rowOf)
                     .selection(Selection.NONE)
                     .virtualized(IconsScreen.ROW_PITCH)
                     .id("emoji-wall");
@@ -225,26 +254,61 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     Attributes.NONE.id("emoji-viewport"));
         }
 
-        private List<EmojiRow> rows() {
-            var rows = new ArrayList<EmojiRow>(matching.size() / columns + 1);
-            for (var from = 0; from < matching.size(); from += columns) {
-                rows.add(new EmojiRow(matching.subList(from, Math.min(from + columns, matching.size()))));
+        /// "1212 emoji", "169 in Smileys & Emotion", or "12 of 1212".
+        private String count(String query) {
+            var found = CategorySheet.distinct(matching);
+            if (!query.isBlank()) {
+                return found + " of " + all.size();
             }
-            return rows;
+            return category.equals(CategorySheet.ALL) ? all.size() + " emoji" : found + " in " + category;
         }
 
-        /// One row of tiles, padded to [#columns] so it divides the width the way
-        /// a full row does.
-        private Widget rowOf(EmojiRow row) {
-            var cells = new ArrayList<Widget>(columns);
-            for (var entry : row.entries()) {
-                cells.add(new EmojiTile(entry.character(), entry.name(), Attributes.NONE.key(entry.codePoint())));
+        /// A heading, or a row of tiles padded to [#columns].
+        private Widget rowOf(CategorySheet.SheetRow<Entry> row) {
+            return switch (row) {
+                case CategorySheet.Heading<Entry> heading ->
+                    new CategorySheet.SheetHeading(
+                            heading.group(), heading.count(), Attributes.NONE.classes("emoji-heading"));
+                case CategorySheet.Tiles<Entry> tiles -> {
+                    var cells = new ArrayList<Widget>(columns);
+                    for (var entry : tiles.items()) {
+                        cells.add(new EmojiTile(
+                                entry.character(),
+                                entry.name(),
+                                () -> open(entry),
+                                Attributes.NONE.key(entry.codePoint())));
+                    }
+                    CategorySheet.pad(cells, columns);
+                    yield new Row(cells, Attributes.NONE.classes("icon-row"));
+                }
+            };
+        }
+
+        /// A chip was pressed.
+        private void choose(String chosen) {
+            if (!chosen.equals(category)) {
+                setState(() -> category = chosen);
             }
-            for (var pad = row.entries().size(); pad < columns; pad++) {
-                cells.add(new Row(
-                        List.of(), Attributes.NONE.classes("icon-cell-filler").key("pad-" + pad)));
+        }
+
+        /// Opens the specimen dialog for `entry`, replacing one already open —
+        /// and does nothing without a host, for the icon sheet's reason.
+        private void open(Entry entry) {
+            if (host == null) {
+                return;
             }
-            return new Row(cells, Attributes.NONE.classes("icon-row"));
+            closeSpecimen();
+            var group = Catalogs.emojiGroups().getOrDefault(entry.codePoint(), Catalogs.OTHER);
+            specimen = Dialogs.show(
+                    host,
+                    Specimens.emoji(entry.character(), entry.name(), entry.codePoint(), group, this::closeSpecimen));
+        }
+
+        private void closeSpecimen() {
+            if (specimen != null) {
+                specimen.remove();
+                specimen = null;
+            }
         }
 
         private void measured(double width) {
@@ -255,29 +319,25 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             setState(() -> columns = next);
         }
 
-        /// Rebuilds [#matching] when the query has changed, and not otherwise.
+        /// Rebuilds [#matching] when the query or the group has changed, and not
+        /// otherwise.
         ///
         /// Matched against the Unicode name **and** the hex code point, because
         /// both are how somebody looks for an emoji: by what it is called, and by
         /// the `U+1F6…` they read in a bug report.
         private void refilter(String query) {
-            if (query.equals(filteredFor)) {
+            if (query.equals(filteredFor) && category.equals(filteredCategory)) {
                 return;
             }
             filteredFor = query;
+            filteredCategory = category;
             var needle = query.trim().toLowerCase(Locale.ROOT);
-            if (needle.isEmpty()) {
-                matching = all;
-                return;
-            }
-            var found = new ArrayList<Entry>(64);
-            for (var entry : all) {
-                if (entry.name().toLowerCase(Locale.ROOT).contains(needle)
-                        || Integer.toHexString(entry.codePoint()).contains(needle)) {
-                    found.add(entry);
-                }
-            }
-            matching = List.copyOf(found);
+            matching = CategorySheet.narrow(
+                    groups,
+                    category,
+                    entry -> needle.isEmpty()
+                            || entry.name().contains(needle)
+                            || Integer.toHexString(entry.codePoint()).contains(needle));
         }
 
         /// The face's characters, named.

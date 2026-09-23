@@ -91,9 +91,9 @@ public final class PrepareAssets {
     /// Which assets to prepare — everything, or the `--only=` list.
     ///
     /// Two modules fetch assets now rather than one: `:core` takes the faces and
-    /// the icons, and `:emoji` takes OpenMoji alone, because the font that
-    /// carries an attribution obligation is an artifact an application opts into
-    /// ([ADR-0384]). The selection is by name so that a build script says which
+    /// the icons, and `:emoji` takes the emoji face alone, because a 5 MB font
+    /// that most applications never draw is an artifact an application opts into
+    /// ([ADR-0384], [ADR-0456]). The selection is by name so that a build script says which
     /// assets it means rather than an index into a list.
     /// Package-private for [#root(String[])]'s reason.
     static java.util.Set<String> selection(String[] args) {
@@ -113,9 +113,20 @@ public final class PrepareAssets {
         return Asset.all().stream().map(Asset::name).collect(java.util.stream.Collectors.toSet());
     }
 
-    /// Pulls the individual entries an asset contributes out of its archive.
-    private static void extract(Asset asset, Path archive, Path resources) throws IOException {
+    /// Pulls the individual entries an asset contributes out of its archive —
+    /// or, for a [Asset.Packaging#FILE] asset, puts the download itself where
+    /// its one entry says.
+    static void extract(Asset asset, Path archive, Path resources) throws IOException {
         if (asset.extract().isEmpty()) {
+            return;
+        }
+        if (asset.packaging() == Asset.Packaging.FILE) {
+            var destination = asset.extract().values().iterator().next();
+            var target = resources.resolve(destination);
+            Files.createDirectories(target.getParent());
+            Files.copy(archive, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("  " + asset.name() + " -> " + destination
+                    + " (" + Files.size(target) / 1024 + " KiB)");
             return;
         }
         try (var zip = new ZipFile(archive.toFile())) {

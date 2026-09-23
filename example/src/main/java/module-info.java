@@ -28,10 +28,10 @@ module io.github.digitalsmile.goldberry.example {
     requires io.github.digitalsmile.goldberry.html;
 
     /// The emoji face, which is an artifact an application opts into rather than
-    /// something `:core` carries: OpenMoji is CC BY-SA and wants attribution
-    /// where the work is seen, so adding this line is also taking that on — the
-    /// Emoji screen carries the credit, which is what an About box would do
-    /// (ADR-0384, ADR-0386).
+    /// something `:core` carries: Noto Color Emoji is five megabytes an
+    /// application that never draws an emoji should not inherit. The Emoji
+    /// screen names the face and its licence, which is what an About box would
+    /// do (ADR-0384, ADR-0386, ADR-0456).
     ///
     /// Nothing in this module names a type of it. The face arrives through a
     /// service `:core` looks up, so what this line buys is a provider on the

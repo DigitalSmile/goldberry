@@ -817,11 +817,22 @@ icon-tile {
   transition: background var(--gb-motion-fast);
 }
 
-/* Nothing here is pressable, and the wash is still worth having: a sheet of a
-   thousand glyphs is read by moving the pointer across it, and the highlight is
-   what keeps a reader's place while they look from the glyph to its name. */
+/* A tile is pressable -- it opens the icon at five sizes -- and the wash is
+   also what keeps a reader's place on a sheet of a thousand glyphs while they
+   look from the glyph to its name. */
 icon-tile:hover {
   background: var(--gb-overlay-hover);
+}
+
+icon-tile, emoji-tile {
+  cursor: pointer;
+}
+
+/* The ring every pressable thing gets from the keyboard (§2.2), for two types
+   the toolkit's own rule cannot name because the showcase declared them. */
+icon-tile:focus-visible, emoji-tile:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
 }
 
 icon-tile-name {
@@ -911,13 +922,13 @@ emoji-tile:hover {
 /* **The whole demonstration is this declaration.** §6.1's font chain is a
    primary family and an emoji slot, and `font-family` is how a document reaches
    the second one — no API, no registry, one rule. The face behind it is
-   `goldberry-emoji`, which this application opts into and credits on the screen
-   (ADR-0384, ADR-0386).
+   `goldberry-emoji` -- Noto Color Emoji -- which this application opts into and
+   names on the screen (ADR-0384, ADR-0386, ADR-0456).
 
    A build without that artifact draws these in the UI face instead and says so
    once in the log, rather than failing to open a window. */
 emoji-glyph {
-  font-family: OpenMoji;
+  font-family: "Noto Color Emoji";
   font-size: 24px;
   line-height: 28px;
   flex-shrink: 0;
@@ -928,6 +939,131 @@ emoji-tile-name {
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
   flex-shrink: 1;
+}
+
+/* --- categories and specimens --------------------------------------------- */
+
+/* The chip row over each sheet. It wraps, for the filter row's reason below:
+   forty-odd categories are wider than any window, and a row that cannot shrink
+   has to be the row that wraps. */
+.category-chips {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* A group's heading is a row of the sheet's own pitch -- the virtualized list
+   is told one pitch and trusts it -- so the label sits at the bottom of the row,
+   on the tiles it heads, and the space above it is the gap between two groups. */
+sheet-heading {
+  height: 68px;
+  flex-grow: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 4px 4px 4px;
+}
+
+sheet-heading-label {
+  color: var(--gb-text);
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* The dialog a tile opens: five sizes on a common line of captions. */
+.specimen-sizes {
+  flex-direction: row;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 12px 0;
+}
+
+specimen-cell {
+  width: 80px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+specimen-icon {
+  color: var(--gb-text);
+}
+
+/* The same face the sheet's glyphs name, at the size the cell's class asks. */
+specimen-emoji {
+  font-family: "Noto Color Emoji";
+}
+
+specimen-emoji.size-16 { font-size: 16px; line-height: 20px; }
+specimen-emoji.size-24 { font-size: 24px; line-height: 28px; }
+specimen-emoji.size-32 { font-size: 32px; line-height: 38px; }
+specimen-emoji.size-48 { font-size: 48px; line-height: 56px; }
+specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
+
+.specimen-caption {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* The emoji in a line of text, at five sizes. No font-family: the line is in
+   the UI face and the emoji is routed out of it (ADR-0393), which is the point. */
+.specimen-text {
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.specimen-sample {
+  color: var(--gb-text);
+}
+
+.sample-12 { font-size: 12px; line-height: 16px; }
+.sample-14 { font-size: 14px; line-height: 20px; }
+.sample-16 { font-size: 16px; line-height: 22px; }
+.sample-20 { font-size: 20px; line-height: 28px; }
+.sample-24 { font-size: 24px; line-height: 32px; }
+
+/* How to write the emoji, in KDL and in Java, side by side and wrapping under
+   each other when the dialog is too narrow for both. */
+.specimen-code-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  padding-bottom: 8px;
+}
+
+.specimen-code-column {
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* A code block: the code face on a sunken surface. The emoji in it are still
+   routed to the emoji face -- JetBrains Mono has none, and the itemizer does
+   not care which face the prose is in (ADR-0393). */
+.specimen-code {
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--gb-surface-sunken);
+}
+
+.code-line, .code-comment {
+  font-family: "JetBrains Mono";
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.code-line {
+  color: var(--gb-text);
+}
+
+.code-comment {
+  color: var(--gb-text-muted);
 }
 
 /* --- the chip rows (ADR-0305) ---------------------------------------------- */

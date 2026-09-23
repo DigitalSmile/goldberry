@@ -228,9 +228,9 @@ public final class Paragraph {
     ///   clusters count from that substring's start and every offset here counts
     ///   from the paragraph's.
     /// - **The advances are rescaled.** A design unit is a fraction of an em and
-    ///   the fraction differs per face — Inter is 2048 to the em and OpenMoji is
-    ///   1000 — so appending one face's numbers to another's would make an emoji
-    ///   twice as wide as it is. Every measurement in this class is a prefix sum
+    ///   the fraction differs per face — Inter is 2048 to the em and Noto Color
+    ///   Emoji is 1024 — so appending one face's numbers to another's would make
+    ///   an emoji half as wide as it is. Every measurement in this class is a prefix sum
     ///   over this array, and a prefix sum needs one unit.
     ///
     /// The rounding is to the nearest design unit, which at 2048 to the em is a
