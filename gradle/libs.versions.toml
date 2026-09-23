@@ -57,20 +57,24 @@ logback = "1.6.3"
 # here -- it is a better one, since a tag can be moved and a SHA cannot. The cost
 # is that moving either forward is a deliberate edit, which is the point.
 #
-# Whoever moves them: update this file, the defaults in
-# natives/src/main/cmake/CMakeLists.txt, and the three CI workflows, then rebuild
-# from a clean _deps. `./gradlew :natives:checkPinnedRefs` fails if the four
-# disagree.
+# Whoever moves them: update this file and nothing else -- CMakeLists.txt reads
+# it directly and the CI workflows pass no refs (ADR-0035) -- then rebuild from a
+# clean _deps (`./gradlew :natives:cleanNativeDeps`). `./gradlew
+# :natives:checkPinnedRefs` fails if a second copy of any ref reappears.
 #
-# Blend2D master @ 2025-11-29 -- "[doc] Updated documentation (changed links)".
-blend2d = "6dbc2cefbc996379e07104e34519a440b49b15d7"
+# Blend2D master @ 2026-09-05 -- "[ver] Blend2D v0.21.3" ("Adapted to a new AsmJit
+# version"), the only commit past the previous pin.
+blend2d = "58ca9460b4138af6e793184682e9324e0a8053b2"
 # AsmJit is Blend2D's JIT backend, embedded into it rather than linked, so
 # Blend2D compiles asmjit's sources directly and the two refs must suit each
 # other. There is no manifest saying which pairs work -- only that this pair
 # builds and links, which is exactly why both are pinned together.
 #
-# AsmJit master @ 2026-03-26 -- "[bug] Fixed new_gpw() using kUIntPtr ... (#510)".
-asmjit = "0bd5787b54b575ed94bf32ac452153b34385c514"
+# AsmJit master @ 2026-09-05 -- "[abi] ABI tag updated to v1_22 to reflect version
+# 1.22.0", the commit Blend2D v0.21.3 was adapted to. Later AsmJit commits (the
+# v1.23 arm64e ABI bump among them) postdate that Blend2D release, so nothing
+# upstream says they pair with it yet.
+asmjit = "6a6cca88d6dccef4c5c1d258b9e12d8699dff842"
 yoga = "v3.2.1"
 harfbuzz = "14.5.0"
 sdl3 = "release-3.4.16"

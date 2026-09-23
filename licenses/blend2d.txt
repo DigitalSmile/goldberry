@@ -4,7 +4,7 @@ Upstream:      https://github.com/blend2d/blend2d
 Licence file:  LICENSE.md
 Bundled as:    statically linked into libgoldberry
 
---- LICENSE.md at 6dbc2cefbc996379e07104e34519a440b49b15d7 (6dbc2cefbc996379e07104e34519a440b49b15d7), verbatim ---
+--- LICENSE.md at 58ca9460b4138af6e793184682e9324e0a8053b2 (58ca9460b4138af6e793184682e9324e0a8053b2), verbatim ---
 
 Copyright (c) 2017-2025 Petr Kobalicek, Fabian Yzerman
 
