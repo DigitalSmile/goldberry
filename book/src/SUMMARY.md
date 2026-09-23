@@ -480,3 +480,4 @@
 - [ADR-0463 Video is converted as it is decoded, timed by the master clock, and painted when a picture falls due](adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
 - [ADR-0464 A slider says when a gesture ends](adr/0464-a-slider-says-when-a-gesture-ends.md)
 - [ADR-0465 Network media is read through a cache, and buffered to a high water mark](adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)
+- [ADR-0466 A slider marks spans of its range](adr/0466-a-slider-marks-spans-of-its-range.md)

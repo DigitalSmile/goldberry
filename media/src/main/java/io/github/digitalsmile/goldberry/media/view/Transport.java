@@ -34,6 +34,12 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// playing plays on from there. A click is a press and a release, so it is one
 /// scrub step and one exact seek; a key on the bar is the same.
 ///
+/// ## What is buffered
+///
+/// A network source's [PlayerStatus#bufferedRanges()] are the seek bar's
+/// [Slider#spans()]: drawn in the groove under the fill, so a user sees where a
+/// seek will land without waiting.
+///
 /// ## The keys
 ///
 /// | Key | Does |
@@ -108,6 +114,7 @@ final class Transport {
             controls.add(
                     new Slider(0, total, Math.min(seconds(status.position()), total), 0, value -> scrub(player, value))
                             .onCommit(value -> settle(player, value))
+                            .spans(buffered(status))
                             .withAttributes(Attributes.NONE.classes("media-seek")));
             controls.add(new Text(
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
@@ -132,6 +139,15 @@ final class Transport {
         controls.add(new Slider(0, 1, status.volume(), 0, value -> player.setVolume((float) value))
                 .withAttributes(Attributes.NONE.classes("media-volume")));
         return List.copyOf(controls);
+    }
+
+    /// What a network source has fetched, as the seek bar's spans, in seconds:
+    /// the stretches a seek lands in without a request (§4, S3). None for a local
+    /// file.
+    static List<Slider.Span> buffered(PlayerStatus status) {
+        return status.bufferedRanges().stream()
+                .map(range -> new Slider.Span(seconds(range.start()), seconds(range.end())))
+                .toList();
     }
 
     /// The stream's title as a line of its own, when it announces one (S6).

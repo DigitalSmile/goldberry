@@ -114,7 +114,8 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
     @Override
     public List<Widget> children() {
         var children = new ArrayList<Widget>(2);
-        children.add(new SliderTrack(slider.fraction(), slider.ticks(), slider.disabled()));
+        children.add(new SliderTrack(
+                slider.fraction(), slider.ticks(), slider.disabled(), slider.spanFractions(), slider.isVertical()));
         if (slider.format() != null) {
             children.add(new SliderValue(slider.text(), slider.disabled()));
         }

@@ -434,6 +434,10 @@
      on a dark surface, and what says "this much". */
   --gb-slider-track-bg: var(--gb-border);
   --gb-slider-fill-bg: var(--gb-accent);
+  /* A marked stretch of the groove (Slider.spans): an alpha over the groove it
+     lies on, `--gb-border-strong`'s technique, so a step lighter than the groove
+     and well short of the accent. It reads as "there" and never as "chosen". */
+  --gb-slider-span-bg: rgba(236, 239, 244, 0.30);
   --gb-slider-thumb-bg: var(--nord6);
   --gb-slider-thumb-bg-hover: #ffffff;
   --gb-slider-thumb-bg-active: var(--nord4);

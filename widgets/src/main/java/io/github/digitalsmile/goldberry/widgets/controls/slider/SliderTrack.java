@@ -30,7 +30,14 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param ticks    how many marks to draw under it; `0` for none
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
-record SliderTrack(double fraction, int ticks, boolean disabled) implements Widget.Leaf, Styled, Paints {
+/// @param spans    the slider's spans as fractions of the groove, passed to it
+/// @param vertical whether the groove runs bottom to top
+record SliderTrack(double fraction, int ticks, boolean disabled, List<Slider.Span> spans, boolean vertical)
+        implements Widget.Leaf, Styled, Paints {
+
+    SliderTrack {
+        spans = List.copyOf(spans);
+    }
 
     @Override
     public String cssType() {
@@ -50,7 +57,7 @@ record SliderTrack(double fraction, int ticks, boolean disabled) implements Widg
     @Override
     public List<Widget> children() {
         var children = new ArrayList<Widget>(2);
-        children.add(new SliderGroove(fraction, disabled));
+        children.add(new SliderGroove(fraction, disabled, spans, vertical));
         if (ticks >= 2) {
             children.add(new SliderTicks(ticks, disabled));
         }

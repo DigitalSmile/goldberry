@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -38,10 +39,21 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// It also produces the filled portion for free, as a box the cascade can reach.
 ///
+/// The slider's [Slider#spans()] come first, as [SliderSpan]s placed out of flow,
+/// so they take no part in the ratio and are painted under the fill and the
+/// thumb.
+///
 /// @param fraction where the thumb sits, `0..1`
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
-record SliderGroove(double fraction, boolean disabled) implements Widget.Leaf, Styled, Paints {
+/// @param spans    stretches to mark, as fractions of the groove
+/// @param vertical whether it runs bottom to top, which the spans' insets follow
+record SliderGroove(double fraction, boolean disabled, List<Slider.Span> spans, boolean vertical)
+        implements Widget.Leaf, Styled, Paints {
+
+    SliderGroove {
+        spans = List.copyOf(spans);
+    }
 
     @Override
     public String cssType() {
@@ -60,7 +72,14 @@ record SliderGroove(double fraction, boolean disabled) implements Widget.Leaf, S
 
     @Override
     public List<Widget> children() {
-        return List.of(new SliderFill(fraction, disabled), new SliderThumb(disabled), new SliderRest(1 - fraction));
+        var children = new ArrayList<Widget>(spans.size() + 3);
+        for (var span : spans) {
+            children.add(new SliderSpan(span.from(), span.to(), vertical, disabled));
+        }
+        children.add(new SliderFill(fraction, disabled));
+        children.add(new SliderThumb(disabled));
+        children.add(new SliderRest(1 - fraction));
+        return List.copyOf(children);
     }
 
     @Override

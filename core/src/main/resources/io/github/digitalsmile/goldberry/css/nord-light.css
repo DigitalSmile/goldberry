@@ -421,6 +421,9 @@
      lesson ADR-0075 paid for twice on the switch, applied here for free. */
   --gb-slider-track-bg: var(--nord4);
   --gb-slider-fill-bg: var(--gb-accent);
+  /* A marked stretch of the groove (Slider.spans): an alpha over the groove it
+     lies on, so a step darker than the groove and well short of the accent. */
+  --gb-slider-span-bg: rgba(46, 52, 64, 0.25);
   --gb-slider-thumb-bg: #ffffff;
   --gb-slider-thumb-bg-hover: var(--nord5);
   --gb-slider-thumb-bg-active: var(--nord4);

@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.Scale;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.DoubleConsumer;
@@ -128,13 +129,28 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param source   §9's `bind`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, already snapped and clamped
 /// @param onCommit what the user settled on when a gesture ended, or null
+/// @param spans    stretches of the range to mark in the groove, under the fill
+///                 and the thumb: what a media player has buffered, say. In the
+///                 slider's own units; empty for none
 @Markup("slider")
 public record Slider(
         double min, double max, double value, double step,
         int ticks, String format, Scale scale,
         Observable<?> source, DoubleConsumer onChange,
-        boolean disabled, Attributes attributes, DoubleConsumer onCommit)
+        boolean disabled, Attributes attributes, DoubleConsumer onCommit, List<Span> spans)
         implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
+
+    /// A stretch of a slider's range, `from` up to `to`, in the slider's units.
+    ///
+    /// @param from where it starts
+    /// @param to   where it ends, not before `from`
+    public record Span(double from, double to) {
+        public Span {
+            if (!Double.isFinite(from) || !Double.isFinite(to) || to < from) {
+                throw new IllegalArgumentException("not a span: [" + from + ", " + to + "]");
+            }
+        }
+    }
 
     public Slider {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
@@ -160,6 +176,16 @@ public record Slider(
             label(format, min);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        spans = spans == null ? List.of() : List.copyOf(spans);
+    }
+
+    /// Every component but [#spans()]: the canonical form before spans existed,
+    /// which every slider that marks nothing still uses.
+    public Slider(double min, double max, double value, double step,
+            int ticks, String format, Scale scale,
+            Observable<?> source, DoubleConsumer onChange,
+            boolean disabled, Attributes attributes, DoubleConsumer onCommit) {
+        this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, List.of());
     }
 
     /// Every component but [#onCommit()]: the canonical form before the commit
@@ -266,7 +292,7 @@ public record Slider(
     /// not one per `step`.
     public Slider ticks(int ticks) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit);
+                source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider with §3's optional value label, as a `String.format` pattern.
@@ -275,13 +301,13 @@ public record Slider(
     /// equality and two lambdas are never equal (ADR-0080).
     public Slider format(String format) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit);
+                source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider on a [Scale] — `fader`'s decibel mapping.
     public Slider scale(Scale scale) {
         return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit);
+                source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider, telling `value` what the user settled on each time a drag or a
@@ -290,17 +316,41 @@ public record Slider(
     /// @param value the handler, or null for none
     public Slider onCommit(DoubleConsumer value) {
         return new Slider(min, max, this.value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, value);
+                source, onChange, disabled, attributes, value, spans);
+    }
+
+    /// This slider marking `spans` in its groove, in its own units: a media seek
+    /// bar's buffered stretches. Each is clamped to the range when drawn, and one
+    /// wholly outside it is not drawn.
+    public Slider spans(List<Span> spans) {
+        return new Slider(min, max, value, step, ticks, format, scale,
+                source, onChange, disabled, attributes, onCommit, spans);
+    }
+
+    /// The spans as fractions of the groove, `0..1`, through the [#scale()],
+    /// clamped to the range; empty ones are left out.
+    List<Span> spanFractions() {
+        var fractions = new ArrayList<Span>(spans.size());
+        for (var span : spans) {
+            var from = scale.toFraction(clamp(span.from()), min, max);
+            var to = scale.toFraction(clamp(span.to()), min, max);
+            if (to > from) {
+                fractions.add(new Span(from, to));
+            }
+        }
+        return List.copyOf(fractions);
     }
 
     @Override
     public Slider bound(Observable<?> source) {
-        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     @Override
     public Slider withAttributes(Attributes attributes) {
-        return new Slider(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     @Override

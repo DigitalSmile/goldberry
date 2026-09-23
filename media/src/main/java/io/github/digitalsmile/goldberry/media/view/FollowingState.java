@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media.view;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
@@ -8,6 +9,7 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
+import io.github.digitalsmile.goldberry.media.TimeRange;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -19,7 +21,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// Every build reads the player's status afresh, so what is on screen is never a
 /// stale copy. What this adds is *when* to rebuild: when the player pushes a
 /// status (on the Engine's threads, so the rebuild is posted to the UI thread),
-/// and every [#POSITION_INTERVAL] while playing, because position is not pushed.
+/// and every [#POSITION_INTERVAL] while playing, because position is not pushed,
+/// and while a network source is still fetching, paused or not, because the
+/// buffered stretches on the seek bar are not pushed either.
 /// A state that shows pictures ([#showsPictures()]) also rebuilds when the next
 /// picture falls due, on a timer set from [MediaPlayer#untilNextPicture()]. So a
 /// 25 fps video paints 25 frames a second, not one per display refresh.
@@ -72,7 +76,7 @@ abstract class FollowingState<W extends Widget> extends State<W> {
     public final Widget build(BuildContext context) {
         var status = player(widget()).status();
         var playing = status.state() == PlaybackState.PLAYING;
-        if (playing && poll == null) {
+        if ((playing || fetching(status)) && poll == null) {
             context.host()
                     .ifPresent(host -> poll = host.after(POSITION_INTERVAL, () -> {
                         poll = null;
@@ -89,6 +93,19 @@ abstract class FollowingState<W extends Widget> extends State<W> {
                     }));
         }
         return build(context, status);
+    }
+
+    /// Whether a network source has fetched part of the presentation and not all
+    /// of it: its buffered stretches are still growing.
+    static boolean fetching(PlayerStatus status) {
+        if (!status.state().hasMedia() || status.bufferedRanges().isEmpty()) {
+            return false;
+        }
+        // Ranges come only with a duration to map them onto; the guard is for
+        // a status built by hand.
+        return status.duration()
+                .map(duration -> !status.bufferedRanges().equals(List.of(new TimeRange(Duration.ZERO, duration))))
+                .orElse(true);
     }
 
     @Override

@@ -1067,6 +1067,16 @@ slider-rest {
   height: 4px;
 }
 
+/* A stretch the application marks along the groove -- a media seek bar's
+   buffered ranges (Slider.spans). Placed by the widget, out of flow and inset by
+   its fractions, so it takes no part in the ratio that places the thumb; its
+   height is the groove's, since the widget insets it to nothing across. Drawn
+   under the fill and the thumb, between the groove's colour and the fill's. */
+slider-span {
+  border-radius: 2px;
+  background: var(--gb-slider-span-bg);
+}
+
 /* §3's thumb 16 at `full` radius -- `border-radius: 8px` on a 16px box, through
    the four cubics ADR-0064 already ships, so no native symbol and no new drawing
    code. It carries no transform at all, which is the whole difference from

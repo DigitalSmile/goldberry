@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,7 +31,9 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.layout.Insets;
 import io.github.digitalsmile.goldberry.layout.Length;
+import io.github.digitalsmile.goldberry.layout.Position;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -595,6 +599,87 @@ class SliderTest {
             var event = new PointerEvent(kind, x, 16, PointerEvent.Button.PRIMARY, 1, 0, 16, null);
             event.localTo(new PointerEvent.Local(x, 16, width, 32));
             return event;
+        }
+    }
+
+    @Nested
+    @DisplayName("spans: stretches of the range marked in the groove")
+    class Spans {
+
+        private static final Slider.Span WHOLE = new Slider.Span(0, 1);
+
+        @Test
+        @DisplayName("none unless asked for, and a slider without them is the slider it always was")
+        void noneByDefault() {
+            var plain = slider(0, 100, 25, 0);
+            assertEquals(List.of(), plain.spans());
+            assertEquals(3, groove(plain).children().size(), "fill, thumb, rest");
+            assertEquals(plain, plain.spans(List.of()));
+        }
+
+        @Test
+        @DisplayName("come first in the groove, as fractions of it, so they are painted under the fill and the thumb")
+        void firstAsFractions() {
+            var slider = slider(0, 200, 50, 0).spans(List.of(new Slider.Span(0, 50), new Slider.Span(100, 150)));
+            var parts = groove(slider).children();
+            assertEquals(5, parts.size());
+            assertEquals(new SliderSpan(0, 0.25, false, false), parts.get(0));
+            assertEquals(new SliderSpan(0.5, 0.75, false, false), parts.get(1));
+            assertInstanceOf(SliderFill.class, parts.get(2));
+            assertInstanceOf(SliderThumb.class, parts.get(3));
+            assertInstanceOf(SliderRest.class, parts.get(4));
+        }
+
+        @Test
+        @DisplayName("are clamped to the range, and one wholly outside it, or empty, is not drawn")
+        void clamped() {
+            var slider = slider(0, 100, 50, 0)
+                    .spans(List.of(
+                            new Slider.Span(-50, 10),
+                            new Slider.Span(90, 400),
+                            new Slider.Span(200, 300),
+                            new Slider.Span(40, 40)));
+            assertEquals(List.of(new Slider.Span(0, 0.1), new Slider.Span(0.9, 1)), slider.spanFractions());
+        }
+
+        @Test
+        @DisplayName("go through the scale, as the thumb does")
+        void throughTheScale() {
+            var fader = new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, null, false, null)
+                    .spans(List.of(new Slider.Span(0, 0.5)));
+            var fraction = fader.spanFractions().getFirst();
+            assertEquals(0, fraction.from(), 1e-9);
+            assertEquals(fader.fraction(), fraction.to(), 1e-9, "a span to the value ends where the thumb is");
+        }
+
+        @Test
+        @DisplayName("a span is out of flow, inset by its fractions: along the row, or up a fader")
+        void placedByInsets() {
+            var style = styleOf(slider(0, 100, 50, 0).spans(List.of(WHOLE)), 0, 0, 0);
+            var across = new SliderSpan(0.25, 0.75, false, false).render(style, List.of(), new TokenContext(16));
+            assertEquals(Position.ABSOLUTE, across.position());
+            assertEquals(
+                    new Insets(Length.points(0), Length.percent(25), Length.points(0), Length.percent(25)),
+                    across.inset());
+            var up = new SliderSpan(0.1, 0.6, true, false).render(style, List.of(), new TokenContext(16));
+            assertEquals(
+                    new Insets(Length.percent(40), Length.points(0), Length.percent(10), Length.points(0)), up.inset());
+        }
+
+        @Test
+        @DisplayName("the theme colours them, between the groove and the fill")
+        void themed() {
+            var style = styleOf(slider(0, 100, 50, 0).spans(List.of(WHOLE)), 0, 0, 0);
+            assertNotEquals(0, style.background() >>> 24, "a span with no colour would say nothing");
+            assertEquals("slider-span", new SliderSpan(0, 1, false, true).cssType());
+            assertTrue(new SliderSpan(0, 1, false, true).isDisabled());
+        }
+
+        @Test
+        @DisplayName("a span that is not one is refused")
+        void refused() {
+            assertThrows(IllegalArgumentException.class, () -> new Slider.Span(5, 4));
+            assertThrows(IllegalArgumentException.class, () -> new Slider.Span(Double.NaN, 4));
         }
     }
 

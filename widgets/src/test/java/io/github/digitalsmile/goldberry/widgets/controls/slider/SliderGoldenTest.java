@@ -104,6 +104,28 @@ class SliderGoldenTest {
                 new Column(List.of(at(0, "a"), at(0.25, "b"), at(0.5, "c"), at(0.75, "d"), at(1, "e")), id("scene")));
     }
 
+    /// Spans marked in the groove, as a media seek bar marks what it has
+    /// buffered: under the fill and the thumb, one reaching past the thumb, one
+    /// wholly ahead of it, and one at the very end.
+    private static List<Widget> spanned() {
+        return List.of(
+                at(0.3, "a").spans(List.of(new Slider.Span(0, 60))),
+                at(0.5, "b").spans(List.of(new Slider.Span(0, 20), new Slider.Span(40, 70), new Slider.Span(90, 100))),
+                at(0, "c").spans(List.of(new Slider.Span(0, 100))));
+    }
+
+    @Test
+    @DisplayName("spans sit in the groove under the fill and the thumb")
+    void spans() {
+        paint("slider-spans", Theme.NORD_DARK, 300, 140, new Column(spanned(), id("scene")));
+    }
+
+    @Test
+    @DisplayName("spans on light")
+    void spansLight() {
+        paint("slider-spans-light", Theme.NORD_LIGHT, 300, 140, new Column(spanned(), id("scene")));
+    }
+
     @Test
     @DisplayName("the same on light, which is a different set of tokens")
     void light() {

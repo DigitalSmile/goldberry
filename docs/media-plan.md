@@ -199,7 +199,7 @@ server.
 | Water marks | done: `PacketQueue.endNanos()`, `bufferedAhead`, `MediaPlayer.Builder.highWaterMark` (1 s). A video-only source stalls too, holding the free-running clock |
 | Status | done: `PlayerStatus.bufferedAhead`, `bufferedRanges` (`TimeRange`), `nowPlaying`, `live()`; `MediaInfo.live`. A new title is pushed as a status |
 | Widgets | done: `LIVE` only for a live source; an unseekable source that ends shows what remains; the title is `.media-now-playing`, over the controls in `audio-player` and in `media-player`'s overlay, with `--gb-media-now-playing-color` |
-| `bufferedRanges` on the seek bar | open: `slider` in `:widgets` has no second range to draw. The data is in the status |
+| `bufferedRanges` on the seek bar | done (ADR-0466): `slider` gained `spans`, drawn in the groove under the fill as `slider-span`; `Transport` passes the buffered ranges, and the widgets rebuild every quarter second while a source is still fetching, paused or not. Goldens `slider-spans` and `slider-spans-light` |
 | Fault-injecting fakes | done: `MemoryIO` stalls at a byte, as often as it is moved on, and ends a stalled read on close; `TestHttpServer` drops, stalls, ignores Range, omits the length, answers with a status, and speaks ICY |
 | Showcase | done: the Audio tab's live sample says what is playing. Samples over a real HTTP server (a local one, so the showcase stays offline) are open |
 
@@ -251,3 +251,4 @@ server.
 | 2026-09-23 | Phase 6: `HttpIO` with the read-ahead cache, reconnects, stalls and ICY; water marks in demuxed time; `bufferedAhead`, `bufferedRanges`, `nowPlaying` and `live` in the status; the title line in the widgets (ADR-0465). S3 and S6 pass. Phase 4 recorded as blocked on M4. The phase 3 S2 test found flaky under load, before and after this phase |
 | 2026-09-23 | The phase 3 S2 flake traced to a play after a paused seek resuming the sink before the audio thread dropped the old samples, and fixed in the Engine. 302 tests, three full runs green |
 | 2026-09-23 | Phase 7 in part: playback rate (`setRate`, `<` `>`, `SDL_SetAudioStreamFrequencyRatio`) and frame step (`step`, `,` `.`). Fullscreen recorded as blocked on `:core`. 314 tests, three full runs green |
+| 2026-09-23 | The seek bar draws what is buffered: `slider` spans in `:widgets` (ADR-0466) |

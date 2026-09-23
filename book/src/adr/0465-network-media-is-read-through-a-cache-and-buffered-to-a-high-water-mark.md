@@ -112,6 +112,5 @@ and duration.
   duration before anything plays: about 4 s of PCM, less for compressed audio.
   Over a slow link that is start-up time. Lowering `probesize` for network
   sources is left open.
-- The seek bar does not draw `bufferedRanges` yet. `slider` in `:widgets` has
-  no second range to show, so the data is in the status and the drawing is left
-  open.
+- The seek bar did not draw `bufferedRanges` at first: `slider` in `:widgets`
+  had no second range to show. ADR-0466 gave it one.
