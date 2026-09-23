@@ -1669,7 +1669,7 @@ Goldberry logs through **SLF4J** and binds no implementation. Add one and the
 toolkit's diagnostics appear:
 
 ```groovy
-runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
+runtimeOnly 'ch.qos.logback:logback-classic:1.6.3'
 ```
 
 Add nothing and you get silence — including from SLF4J itself, which otherwise

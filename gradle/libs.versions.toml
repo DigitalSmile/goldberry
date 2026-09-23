@@ -21,8 +21,8 @@ jacoco = "0.8.15"
 mavenPublishPlugin = "0.37.0"
 
 # --- Static analysis (docs/testing.md §2) ------------------------------------
-spotless = "8.10.1"
-palantirFormat = "2.97.0"
+spotless = "8.10.2"
+palantirFormat = "2.98.0"
 errorprone = "5.1.1"
 errorproneCore = "2.50.0"
 nullaway = "0.14.1"
@@ -45,7 +45,7 @@ jmh = "1.37"
 # SLF4J is the only compile-time logging dependency the toolkit has: a facade, so
 # applications choose the implementation. Goldberry binds no backend of its own
 # (ADR-0023). Logback is the showcase's choice, and reaches nothing else.
-slf4j = "2.0.18"
+slf4j = "2.0.19"
 logback = "1.6.3"
 
 # --- Native dependencies (docs/ARCHITECTURE.md §3) ---------------------------
