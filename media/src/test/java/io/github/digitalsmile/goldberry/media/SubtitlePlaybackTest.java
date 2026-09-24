@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.media;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.net.URI;
@@ -89,15 +88,26 @@ class SubtitlePlaybackTest {
     }
 
     /// Moves the clock to `millis` of stream time, and says what shows there.
+    ///
+    /// In steps of at most [#STEP], each waited for: while a seek settles the
+    /// position reads its target and does not move with the clock, and a clock
+    /// moved the whole way at once would run past the target when the seek lands.
     private List<String> at(long millis) {
         var target = Duration.ofMillis(millis);
         var deadline = System.nanoTime() + 10_000_000_000L;
         while (player.status().position().compareTo(target) < 0 && System.nanoTime() < deadline) {
-            now.addAndGet(Math.max(target.minus(player.status().position()).toNanos(), 1_000_000));
-            Thread.onSpinWait();
+            var before = player.status().position();
+            now.addAndGet(Math.min(target.minus(before).toNanos(), STEP.toNanos()));
+            var settle = System.nanoTime() + 50_000_000L;
+            while (player.status().position().equals(before) && System.nanoTime() < settle) {
+                Thread.onSpinWait();
+            }
         }
         return player.currentSubtitles().stream().map(Cue::text).toList();
     }
+
+    /// The most [#at] moves the clock before it looks again.
+    private static final Duration STEP = Duration.ofMillis(5);
 
     private Track subtitleTrack(CodecId codec) {
         return player.status().info().orElseThrow().tracks(MediaType.SUBTITLE).stream()
@@ -151,9 +161,13 @@ class SubtitlePlaybackTest {
     }
 
     @Test
-    @DisplayName("a video track still cannot be chosen")
-    void videoRefused() {
+    @DisplayName("choosing the video track that shows changes nothing, and the subtitles stay")
+    void sameVideoTrack() {
+        player.selectTrack(subtitleTrack(CodecId.SUBRIP));
+        await(status -> status.subtitles().isPresent());
         var video = player.status().videoTrack().orElseThrow();
-        assertThrows(IllegalArgumentException.class, () -> player.selectTrack(video));
+        player.selectTrack(video);
+        assertEquals(Optional.of(video), player.status().videoTrack());
+        assertEquals(List.of("First line"), at(200));
     }
 }

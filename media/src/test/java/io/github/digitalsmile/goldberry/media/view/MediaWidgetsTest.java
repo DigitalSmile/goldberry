@@ -30,6 +30,7 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.media.FfmpegRequirement;
+import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
@@ -88,6 +89,7 @@ class MediaWidgetsTest {
 
     private void open(byte[] data, String name) {
         player = MediaPlayer.builder()
+                .hardwareDecoding(HardwareDecoding.OFF)
                 .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
                 .ioProviders(List.of(new Memory(data)))
                 .decoderProviders(List.of())
@@ -435,6 +437,7 @@ class MediaWidgetsTest {
             var io = new MemoryIO(fixture("clip-vp9.webm"));
             io.title = "Goldberry TV - The Mandelbrot Hour";
             player = MediaPlayer.builder()
+                    .hardwareDecoding(HardwareDecoding.OFF)
                     .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
                     .ioProviders(List.of(new MediaIOProvider() {
                         @Override

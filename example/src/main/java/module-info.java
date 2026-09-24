@@ -41,6 +41,9 @@ module io.github.digitalsmile.goldberry.example {
     /// `goldberry-media`, for the Media screen: `audio-player` is found through
     /// the module's widget catalog, and the screen drives a `MediaPlayer`.
     requires io.github.digitalsmile.goldberry.media;
+
+    // The local server the network samples are played from, so they play offline.
+    requires jdk.httpserver;
     requires org.slf4j;
 
     /// So the toolkit can read `showcase.css` and the seven KDL documents.

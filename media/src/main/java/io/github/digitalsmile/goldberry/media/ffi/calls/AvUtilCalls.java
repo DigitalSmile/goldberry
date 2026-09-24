@@ -13,8 +13,9 @@ import io.github.digitalsmile.goldberry.media.ffi.FfmpegDowncalls;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibrary;
 
 /// The functions of `libavutil` the Engine calls: the version, the allocator,
-/// error strings, the log level, format names, frames, channel layouts, and
-/// reading a metadata dictionary.
+/// error strings, the log level, format names, frames, channel layouts, reading
+/// a metadata dictionary, and hardware devices and the copy back from them
+/// (phase 5).
 ///
 /// See [FfmpegDowncalls] for why each handle is a `static final` constant.
 public record AvUtilCalls(
@@ -29,7 +30,12 @@ public record AvUtilCalls(
         FrameFree frameFree,
         FrameUnref frameUnref,
         ChannelLayoutDefault channelLayoutDefault,
-        DictGet dictGet) {
+        DictGet dictGet,
+        HwDeviceFindTypeByName hwDeviceFindTypeByName,
+        HwDeviceCtxCreate hwDeviceCtxCreate,
+        HwFrameTransferData hwFrameTransferData,
+        FrameCopyProps frameCopyProps,
+        BufferUnref bufferUnref) {
 
     /// Binds every function above.
     ///
@@ -47,7 +53,12 @@ public record AvUtilCalls(
                 new FrameFree(lookup),
                 new FrameUnref(lookup),
                 new ChannelLayoutDefault(lookup),
-                new DictGet(lookup));
+                new DictGet(lookup),
+                new HwDeviceFindTypeByName(lookup),
+                new HwDeviceCtxCreate(lookup),
+                new HwFrameTransferData(lookup),
+                new FrameCopyProps(lookup),
+                new BufferUnref(lookup));
     }
 
     /// `unsigned avutil_version(void)`
@@ -320,6 +331,128 @@ public record AvUtilCalls(
                 FD_av_channel_layout_default.invokeExact(address, layout, channels);
             } catch (Throwable t) {
                 throw FfmpegDowncalls.failure("av_channel_layout_default", t);
+            }
+        }
+    }
+
+    /// `enum AVHWDeviceType av_hwdevice_find_type_by_name(const char *name)`
+    ///
+    /// The device type called `name` (`videotoolbox`, `d3d11va`, `vaapi`), or
+    /// `AV_HWDEVICE_TYPE_NONE`. Asked by name so that no enum value is written
+    /// down here.
+    public static final class HwDeviceFindTypeByName {
+
+        private static final MethodHandle FD_av_hwdevice_find_type_by_name =
+                FfmpegDowncalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        HwDeviceFindTypeByName(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_hwdevice_find_type_by_name");
+        }
+
+        public int call(MemorySegment name) {
+            try {
+                return (int) FD_av_hwdevice_find_type_by_name.invokeExact(address, name);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_hwdevice_find_type_by_name", t);
+            }
+        }
+    }
+
+    /// `int av_hwdevice_ctx_create(AVBufferRef **device_ctx, enum AVHWDeviceType type, const char *device, AVDictionary
+    /// *opts, int flags)`
+    ///
+    /// Opens the system's default device of `type`. The reference written to
+    /// `*device_ctx` is handed to the codec context, which unreferences it when
+    /// it is freed.
+    public static final class HwDeviceCtxCreate {
+
+        private static final MethodHandle FD_av_hwdevice_ctx_create =
+                FfmpegDowncalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        HwDeviceCtxCreate(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_hwdevice_ctx_create");
+        }
+
+        public int call(MemorySegment deviceContext, int type, MemorySegment device, MemorySegment options, int flags) {
+            try {
+                return (int)
+                        FD_av_hwdevice_ctx_create.invokeExact(address, deviceContext, type, device, options, flags);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_hwdevice_ctx_create", t);
+            }
+        }
+    }
+
+    /// `int av_hwframe_transfer_data(AVFrame *dst, const AVFrame *src, int flags)`
+    ///
+    /// Copy-back: a hardware surface into system memory. `dst` is empty, so
+    /// FFmpeg allocates it in the device's preferred software format, which is
+    /// NV12 for 8-bit and P010 for 10-bit video.
+    public static final class HwFrameTransferData {
+
+        private static final MethodHandle FD_av_hwframe_transfer_data =
+                FfmpegDowncalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        HwFrameTransferData(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_hwframe_transfer_data");
+        }
+
+        public int call(MemorySegment destination, MemorySegment source, int flags) {
+            try {
+                return (int) FD_av_hwframe_transfer_data.invokeExact(address, destination, source, flags);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_hwframe_transfer_data", t);
+            }
+        }
+    }
+
+    /// `int av_frame_copy_props(AVFrame *dst, const AVFrame *src)`
+    ///
+    /// The timestamps and colour tags, which a transfer does not copy.
+    public static final class FrameCopyProps {
+
+        private static final MethodHandle FD_av_frame_copy_props =
+                FfmpegDowncalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        FrameCopyProps(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_frame_copy_props");
+        }
+
+        public int call(MemorySegment destination, MemorySegment source) {
+            try {
+                return (int) FD_av_frame_copy_props.invokeExact(address, destination, source);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_frame_copy_props", t);
+            }
+        }
+    }
+
+    /// `void av_buffer_unref(AVBufferRef **buf)`
+    ///
+    /// Drops a device reference that was never handed to a codec context.
+    public static final class BufferUnref {
+
+        private static final MethodHandle FD_av_buffer_unref = FfmpegDowncalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        BufferUnref(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVUTIL, "av_buffer_unref");
+        }
+
+        public void call(MemorySegment buffer) {
+            try {
+                FD_av_buffer_unref.invokeExact(address, buffer);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_buffer_unref", t);
             }
         }
     }

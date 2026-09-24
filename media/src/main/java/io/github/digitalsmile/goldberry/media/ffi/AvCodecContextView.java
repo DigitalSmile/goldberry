@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media.ffi;
 
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
+import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import java.lang.foreign.MemorySegment;
@@ -16,6 +17,10 @@ final class AvCodecContextView {
             FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("pkt_timebase"), groupElement("den"));
 
     private static final long THREAD_COUNT = FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("thread_count"));
+
+    private static final long GET_FORMAT = FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("get_format"));
+
+    private static final long HW_DEVICE_CTX = FfmpegStructs.AV_CODEC_CONTEXT.byteOffset(groupElement("hw_device_ctx"));
 
     private AvCodecContextView() {}
 
@@ -35,5 +40,17 @@ final class AvCodecContextView {
     /// what is in them: every decoder here is bit-exact whatever the count.
     static void threadCount(MemorySegment context, int threads) {
         context.set(JAVA_INT, THREAD_COUNT, threads);
+    }
+
+    /// The pixel-format callback: an upcall stub that picks the device's format
+    /// when the decoder offers it (phase 5). Set before `avcodec_open2`.
+    static void getFormat(MemorySegment context, MemorySegment callback) {
+        context.set(ADDRESS, GET_FORMAT, callback);
+    }
+
+    /// The device the decoder decodes on: an `AVBufferRef*` the context owns from
+    /// here on, and unreferences when it is freed. Set before `avcodec_open2`.
+    static void hwDeviceContext(MemorySegment context, MemorySegment device) {
+        context.set(ADDRESS, HW_DEVICE_CTX, device);
     }
 }

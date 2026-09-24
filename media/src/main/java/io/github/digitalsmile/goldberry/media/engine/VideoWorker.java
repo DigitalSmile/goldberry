@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
 import io.github.digitalsmile.goldberry.media.ffi.Decoders;
 import io.github.digitalsmile.goldberry.media.ffi.Demuxer;
+import io.github.digitalsmile.goldberry.media.ffi.FfmpegDecoder;
 import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
 
 /// The video decode thread of one [Playback] (`docs/goldberry-media.md` §3,
@@ -45,6 +46,30 @@ import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
 /// Everything here but the constructor runs on the video thread, so its fields
 /// are that thread's alone. The constructor runs on the demux thread before
 /// `Thread.start`, which publishes it.
+///
+/// ## Retiring
+///
+/// A switch of video track (§6) [#retire]s this thread and starts another on the
+/// same [FrameQueue]. A retired thread stops at its next check, queues and
+/// reports nothing more, and closes its decoder and converter on the way out;
+/// the picture it showed last stays up until the new thread's first replaces it.
+///
+/// ## Hardware, and falling back
+///
+/// The decoder is opened with the playback's [io.github.digitalsmile.goldberry.media.ffi.Hardware],
+/// so the built-in one may decode on a device (ADR-0470). What it reports as its
+/// name follows what it does: `ffmpeg (videotoolbox)` while pictures come from the
+/// device, `ffmpeg` once they do not.
+///
+/// A decoder that fails mid-stream is closed and the next rung of the ladder
+/// opened, a provider's or the built-in one's, on the device or in software. The
+/// next decoder cannot start from where the last one stopped, since it has none
+/// of the pictures the next one refers to, so the thread asks for an accurate
+/// seek to the position, and drops the packets queued before it. The demuxer
+/// goes back to the keyframe before the position, and the new decoder shows the
+/// picture that covers it (S4). A decoder that fails before its first picture
+/// since a seek, which is how a device that has no engine for the codec fails,
+/// resumes from that seek's target, or from the start.
 ///
 /// ## Late pictures
 ///
@@ -78,6 +103,19 @@ final class VideoWorker {
     private boolean queuedSinceFlush;
     private long lastPts = Frame.NO_PTS;
     private long frameNanos = DEFAULT_FRAME_NANOS;
+    /// The decoder's name as last reported, so a change is reported once.
+    private @Nullable String reportedName;
+    /// How many rungs of the fallback ladder have failed on this track.
+    private int skip;
+    /// Set after a fallback: the packets queued before the seek it asked for are
+    /// dropped, since the new decoder cannot decode from the middle of a group of
+    /// pictures. The seek's flush clears it.
+    private boolean awaitingKeyframe;
+    /// Where the last flush moved to: the start before the first.
+    private long flushTargetNanos;
+    /// Set when another track takes over: the thread stops at its next check,
+    /// queues nothing more, and reports nothing more.
+    private volatile boolean retired;
 
     VideoWorker(Playback playback, Demuxer demuxer, int stream, PacketQueue queue, FrameQueue frames) {
         this.playback = playback;
@@ -87,26 +125,39 @@ final class VideoWorker {
         this.frames = frames;
     }
 
+    /// Stops this thread for good, from any thread: another video track plays now.
+    /// The caller then releases the frame queue's waiters and aborts the packet
+    /// queue, which wake a thread waiting on either.
+    void retire() {
+        retired = true;
+    }
+
+    /// Whether this thread still has work: the playback runs and no other track
+    /// has taken over.
+    private boolean running() {
+        return !playback.stopping() && !retired;
+    }
+
     /// The thread's whole life: open the decoder, then decode until the playback
-    /// stops.
+    /// stops, or another track takes over.
     void play() {
         Decoder decoder;
-        var skip = 0;
         try {
-            var resolved = Decoders.open(playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), 0);
+            var resolved = Decoders.open(
+                    playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), playback.hardware(), 0);
             decoder = resolved.decoder();
-            playback.videoDecoder(resolved.provider());
+            report(resolved.provider());
         } catch (MediaException e) {
             playback.fail(e.error(), e);
             return;
         }
         try {
             converter = new VideoConverter(playback.ffmpeg());
-            while (!playback.stopping()) {
+            while (running()) {
                 if (playback.paused() && queuedSinceFlush) {
                     var flush = queue.takeFlush();
                     if (flush == null) {
-                        playback.awaitWhile(() -> playback.paused() && !queue.flushQueued());
+                        playback.awaitWhile(() -> !retired && playback.paused() && !queue.flushQueued());
                     } else {
                         flushTo(flush, decoder);
                     }
@@ -116,7 +167,7 @@ final class VideoWorker {
                 if (item == null) {
                     // Nothing to decode, nothing left to show, and more to come:
                     // the source is not keeping up.
-                    if (queuedSinceFlush && !queue.ended() && frames.drained()) {
+                    if (running() && queuedSinceFlush && !queue.ended() && frames.drained()) {
                         playback.videoUnderrun();
                     }
                     continue;
@@ -125,7 +176,7 @@ final class VideoWorker {
                     case PacketQueue.Item.Flush flush -> flushTo(flush, decoder);
                     case PacketQueue.Item.Data(var packet, var packetSerial) -> {
                         try (packet) {
-                            if (packetSerial != serial) {
+                            if (packetSerial != serial || awaitingKeyframe) {
                                 continue;
                             }
                             try {
@@ -136,26 +187,31 @@ final class VideoWorker {
                             } catch (MediaException e) {
                                 throw e;
                             } catch (RuntimeException e) {
-                                // The fallback ladder's mid-stream rung, as for audio.
-                                // The next decoder starts from the next packet, which
-                                // may not be a keyframe: a picture or two of damage
-                                // until one arrives, rather than stopping.
-                                LOG.warn("video decoder failed mid-stream; trying the next", e);
-                                decoder.close();
-                                skip++;
-                                var resolved = Decoders.open(
-                                        playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), skip);
-                                decoder = resolved.decoder();
-                                playback.videoDecoder(resolved.provider());
+                                if (retired) {
+                                    return;
+                                }
+                                decoder = fallBack(decoder, e);
                             }
                         }
                     }
                     case PacketQueue.Item.End(var endSerial) -> {
-                        if (endSerial != serial) {
+                        if (endSerial != serial || awaitingKeyframe) {
                             continue;
                         }
-                        decoder.sendEnd();
-                        drainFrames(decoder);
+                        try {
+                            decoder.sendEnd();
+                            drainFrames(decoder);
+                        } catch (MediaException e) {
+                            throw e;
+                        } catch (RuntimeException e) {
+                            // A device that fails while it drains: the same rung
+                            // down, and the tail decoded again from its keyframe.
+                            if (retired) {
+                                return;
+                            }
+                            decoder = fallBack(decoder, e);
+                            continue;
+                        }
                         queuePending();
                         playOut();
                         decoder.flush();
@@ -163,9 +219,13 @@ final class VideoWorker {
                 }
             }
         } catch (MediaException e) {
-            playback.fail(e.error(), e);
+            if (!retired) {
+                playback.fail(e.error(), e);
+            }
         } catch (RuntimeException e) {
-            playback.fail(new MediaError.InvalidData(e.toString()), e);
+            if (!retired) {
+                playback.fail(new MediaError.InvalidData(e.toString()), e);
+            }
         } finally {
             if (pending != null) {
                 frames.recycle(pending);
@@ -178,8 +238,29 @@ final class VideoWorker {
         }
     }
 
+    /// The fallback ladder's mid-stream rung: closes the decoder that failed,
+    /// opens the next one, and seeks back to the keyframe before where to resume,
+    /// since the next decoder has none of the pictures the coming packets refer
+    /// to. The packets queued before the seek are dropped until its flush.
+    ///
+    /// @return the next decoder
+    /// @throws MediaException when no rung is left, which fails the playback
+    private Decoder fallBack(Decoder failed, RuntimeException failure) {
+        LOG.warn("video decoder failed mid-stream; trying the next", failure);
+        failed.close();
+        skip++;
+        var resolved = Decoders.open(
+                playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), playback.hardware(), skip);
+        report(resolved.provider());
+        awaitingKeyframe = true;
+        playback.reseek(resumeNanos());
+        return resolved.decoder();
+    }
+
     private void flushTo(PacketQueue.Item.Flush flush, Decoder decoder) {
         serial = flush.serial();
+        awaitingKeyframe = false;
+        flushTargetNanos = flush.targetNanos();
         decoder.flush();
         if (pending != null) {
             frames.recycle(pending);
@@ -191,13 +272,16 @@ final class VideoWorker {
     }
 
     private void drainFrames(Decoder decoder) {
-        while (!playback.stopping()) {
+        while (running()) {
             var received = decoder.receive();
             if (!(received instanceof Received.Decoded(var frame))) {
                 return;
             }
             if (frame instanceof VideoFrame video) {
                 picture(video);
+                if (decoder instanceof FfmpegDecoder builtIn) {
+                    report(builtIn.describe());
+                }
             }
         }
     }
@@ -210,7 +294,9 @@ final class VideoWorker {
                 : frame.ptsNanos();
         if (lastPts != Frame.NO_PTS && pts > lastPts) {
             frameNanos = pts - lastPts;
-            playback.videoFrameNanos(frameNanos);
+            if (!retired) {
+                playback.videoFrameNanos(frameNanos);
+            }
         }
         lastPts = pts;
 
@@ -252,6 +338,22 @@ final class VideoWorker {
         queue(slot, pts);
     }
 
+    /// Where a decoder that takes over mid-stream starts: where the clock is, or,
+    /// before any picture has been shown since the last seek (a device that
+    /// could not decode the first packet), that seek's target. Nothing has been
+    /// played from there yet, so nothing is heard twice.
+    private long resumeNanos() {
+        return queuedSinceFlush ? playback.presentationNanos() : flushTargetNanos;
+    }
+
+    /// Tells the playback which decoder plays the video, when that has changed.
+    private void report(String name) {
+        if (!retired && !name.equals(reportedName)) {
+            reportedName = name;
+            playback.videoDecoder(name);
+        }
+    }
+
     private void queuePending() {
         var ready = pending;
         pending = null;
@@ -261,6 +363,10 @@ final class VideoWorker {
     }
 
     private void queue(FrameQueue.Slot slot, long pts) {
+        if (retired) {
+            frames.recycle(slot);
+            return;
+        }
         if (frames.put(slot, pts, serial) && !queuedSinceFlush) {
             queuedSinceFlush = true;
             playback.videoReady(serial);
@@ -278,7 +384,7 @@ final class VideoWorker {
     /// been shown for as long as a picture lasts.
     private void playOut() {
         var end = lastPts == Frame.NO_PTS ? 0 : lastPts + frameNanos;
-        while (!playback.stopping() && playback.latestSerial() == serial && !playback.seekPending()) {
+        while (running() && playback.latestSerial() == serial && !playback.seekPending()) {
             var now = playback.presentationNanos();
             frames.present(now, false);
             if (frames.drained() && now >= end) {

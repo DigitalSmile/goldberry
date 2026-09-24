@@ -35,6 +35,7 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 import io.github.digitalsmile.goldberry.media.io.TestHttpServer;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
@@ -208,6 +209,71 @@ class TransportTest {
                     "1",
                     ((Select) Transport.audioTracks(player, player.status()).orElseThrow()).value());
         }
+    }
+
+    @Test
+    @DisplayName(
+            "the video track menu is there for two video tracks, only beside a picture, and chooses through the player")
+    void videoMenu() {
+        FfmpegRequirement.enforce();
+        try (var player = MediaPlayer.builder()
+                .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
+                .ioProviders(List.of(new MediaIOProvider() {
+                    @Override
+                    public java.util.Set<String> schemes() {
+                        return java.util.Set.of("mem");
+                    }
+
+                    @Override
+                    public MediaIO open(Source source) {
+                        return new MemoryIO(MediaWidgetsTest.fixture("clip-two-angles.mkv"));
+                    }
+                }))
+                .decoderProviders(List.of())
+                .build()) {
+            assertTrue(Transport.videoTracks(player, PlayerStatus.IDLE).isEmpty());
+            player.open(Source.of(URI.create("mem:///angles.mkv")));
+            var deadline = System.nanoTime() + 10_000_000_000L;
+            while (player.status().state() != PlaybackState.PLAYING && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+            var status = player.status();
+            // One audio track: no audio menu.
+            assertTrue(Transport.audioTracks(player, status).isEmpty());
+            var menu = (Select) Transport.videoTracks(player, status).orElseThrow();
+            assertTrue(menu.attributes().classes().contains("media-video-track"));
+            assertEquals("0", menu.value());
+            assertEquals(
+                    List.of("Wide", "Close"),
+                    menu.children().stream()
+                            .map(Option.class::cast)
+                            .map(Option::label)
+                            .toList());
+
+            // Beside a picture only: audio-player's controls have no video menu.
+            var transport = new Transport();
+            assertTrue(hasClass(transport.controls(player, status, true), "media-video-track"));
+            assertFalse(hasClass(transport.controls(player, status), "media-video-track"));
+
+            menu.onChange().accept("1");
+            while (!player.status()
+                            .videoTrack()
+                            .map(track -> track.index() == 1)
+                            .orElse(false)
+                    && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+            assertEquals(1, player.status().videoTrack().orElseThrow().index());
+            assertEquals(
+                    "1",
+                    ((Select) Transport.videoTracks(player, player.status()).orElseThrow()).value());
+        }
+    }
+
+    private static boolean hasClass(List<Widget> controls, String name) {
+        return controls.stream()
+                .anyMatch(control -> control instanceof Select select
+                        && select.attributes().classes().contains(name));
     }
 
     private static List<Element> walk(Element root) {

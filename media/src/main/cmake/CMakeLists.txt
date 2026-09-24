@@ -40,10 +40,19 @@ set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
 # MSYS2's sh (docs/media-plan.md, "Local toolchain").
 set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Windows")
 
-# Phase 5 of docs/media-plan.md turns this on. Off until then, because enabling a
-# hwaccel pulls in a system library per platform (VAAPI on Linux is a -dev
-# package) and nothing calls it yet.
-option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" OFF)
+# The VP9/AV1 hardware decoders (phase 5, ADR-0470). On by default where the
+# hwaccel needs only what the OS ships: VideoToolbox on macOS and D3D11 on
+# Windows are system frameworks. Off by default on Linux: VAAPI is libva, which
+# libavutil would then link directly, so a machine without libva could not load
+# FFmpeg at all, not even to play audio. `:media:ffmpegConfigure` passes the
+# value explicitly (-Pgoldberry.media.hwaccel), so a cached OFF from an older
+# build does not linger.
+if(APPLE OR WIN32)
+    set(_hwaccel_default ON)
+else()
+    set(_hwaccel_default OFF)
+endif()
+option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" ${_hwaccel_default})
 
 # The size gate from goldberry-media.md §2: target 6 MB, fail above 7.
 set(GOLDBERRY_MEDIA_SIZE_LIMIT 7340032 CACHE STRING "Largest total size of the five stripped libraries, in bytes")
@@ -132,7 +141,7 @@ set(GOLDBERRY_FFMPEG_CONFIGURE
     --disable-everything --disable-programs --disable-doc --disable-network
     --disable-avdevice --disable-avfilter --disable-autodetect
     --enable-shared --disable-static --enable-pic --disable-debug
-    --enable-demuxer=matroska,mov,ogg,flac,mp3,wav,srt,webvtt,ass
+    --enable-demuxer=matroska,mov,avi,ogg,flac,mp3,wav,srt,webvtt,ass
     --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
     --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio
     --enable-bsf=vp9_superframe,vp9_superframe_split,av1_frame_merge

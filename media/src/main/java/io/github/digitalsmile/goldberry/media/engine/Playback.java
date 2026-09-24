@@ -37,6 +37,7 @@ import io.github.digitalsmile.goldberry.media.codec.Packet;
 import io.github.digitalsmile.goldberry.media.ffi.Decoders;
 import io.github.digitalsmile.goldberry.media.ffi.Demuxer;
 import io.github.digitalsmile.goldberry.media.ffi.Ffmpeg;
+import io.github.digitalsmile.goldberry.media.ffi.Hardware;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MediaIOs;
@@ -87,6 +88,15 @@ import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 /// [PlaybackState#BUFFERING]: the sink is paused and the free-running clock held,
 /// until the high water mark is reached again (S3). Pausing earlier, with media
 /// still in hand, would trade one long silence for a later one.
+///
+/// ## Switching tracks
+///
+/// A track menu's choice ([#select]) is the demux thread's to carry out, between
+/// two packets. An audio or video track is switched by **retiring** the decode
+/// thread playing the old one and starting one on the new, then seeking to where
+/// playback is: the seek is the whole of the synchronisation (ADR-0467 for audio,
+/// ADR-0469 for video). A video switch keeps the [FrameQueue], so the picture on
+/// screen stays up until the new track's first picture replaces it.
 ///
 /// ## Stopping
 ///
@@ -141,11 +151,15 @@ public final class Playback implements AutoCloseable {
     private final Source source;
     private final @Nullable List<? extends MediaIOProvider> ioProviders;
     private final List<? extends DecoderProvider> decoderProviders;
+    private final Hardware hardware;
     private final AudioSink sink;
     private final Listener listener;
     private final MasterClock clock;
     private final long highWaterNanos;
     private final AtomicReference<@Nullable SeekRequest> pendingSeek = new AtomicReference<>();
+    /// Makes a seek's two writes, the position it pins and the request, one step,
+    /// so [#reseek] can tell whether the application's seek is waiting.
+    private final Object seekLock = new Object();
     /// A track to switch to, waiting for the demux thread.
     private final AtomicReference<@Nullable Track> pendingTrack = new AtomicReference<>();
     private final ReentrantLock lock = new ReentrantLock();
@@ -165,6 +179,8 @@ public final class Playback implements AutoCloseable {
     private volatile @Nullable SubtitleSource subtitles;
     private @Nullable AudioWorker audioWorker;
     private @Nullable Thread audioThread;
+    private @Nullable VideoWorker videoWorker;
+    private @Nullable Thread videoThread;
 
     private volatile PlaybackState state = PlaybackState.OPENING;
     private volatile @Nullable MediaInfo info;
@@ -224,6 +240,8 @@ public final class Playback implements AutoCloseable {
     ///
     /// @param ioProviders    the protocols, or null for the ones `ServiceLoader`
     ///                       finds
+    /// @param hardware       whether the built-in decoder tries a device for
+    ///                       video (ADR-0470)
     /// @param time           what a source with no audio is timed against
     /// @param highWaterNanos how far ahead to demux before playing, and before
     ///                       playing on after a stall
@@ -232,6 +250,7 @@ public final class Playback implements AutoCloseable {
             Source source,
             @Nullable List<? extends MediaIOProvider> ioProviders,
             List<? extends DecoderProvider> decoderProviders,
+            Hardware hardware,
             AudioSink sink,
             MediaClock time,
             long highWaterNanos,
@@ -243,6 +262,7 @@ public final class Playback implements AutoCloseable {
         this.source = Objects.requireNonNull(source, "source");
         this.ioProviders = ioProviders;
         this.decoderProviders = List.copyOf(decoderProviders);
+        this.hardware = Objects.requireNonNull(hardware, "hardware");
         this.sink = Objects.requireNonNull(sink, "sink");
         this.clock = new MasterClock(time);
         this.highWaterNanos = highWaterNanos;
@@ -385,25 +405,39 @@ public final class Playback implements AutoCloseable {
         listener.changed(this);
     }
 
-    /// Plays `track` in place of the audio track playing, from where playback is
-    /// (§6, track menus). A subtitle track is shown instead, in place of any
-    /// subtitles showing: the demux thread selects it and seeks to the position,
-    /// so the cues around it are read. The demux thread retires the audio thread, starts one
-    /// on `track`, and makes an accurate seek to the position, so the new track
-    /// comes in at the right sample. A track with no decoder is refused there and
-    /// the current one plays on. Requests coalesce: the latest wins.
+    /// Plays `track` in place of the track of its kind playing, from where
+    /// playback is (§6, track menus).
+    ///
+    /// - An **audio** or **video** track: the demux thread retires the decode
+    ///   thread of that kind, starts one on `track`, and makes an accurate seek
+    ///   to the position, so the new track comes in at the right sample or on the
+    ///   picture that covers the position. A track with no decoder is refused
+    ///   there and the current one plays on.
+    /// - A **subtitle** track is shown in place of any subtitles showing: the
+    ///   demux thread selects it and seeks to the position, so the cues around it
+    ///   are read.
+    ///
+    /// Requests coalesce: the latest wins.
     ///
     /// @throws IllegalArgumentException when `track` is not one of the source's
-    ///                                  audio tracks, or the source is not open
+    ///                                  tracks, is cover art, or is of a kind
+    ///                                  that does not play
     public void select(Track track) {
         Objects.requireNonNull(track, "track");
         var described = info;
         if (described == null || !described.tracks().contains(track)) {
             throw new IllegalArgumentException("not a track of " + source.uri() + ": " + track);
         }
-        if (track.type() != MediaType.AUDIO && track.type() != MediaType.SUBTITLE) {
-            throw new IllegalArgumentException(
-                    "an audio or subtitle track can be chosen; " + track.type() + " cannot yet");
+        switch (track.type()) {
+            case AUDIO, SUBTITLE -> {}
+            case VIDEO -> {
+                if (track.attachedPicture()) {
+                    throw new IllegalArgumentException("cover art is not played as video: " + track);
+                }
+            }
+            case ATTACHMENT, DATA ->
+                throw new IllegalArgumentException(
+                        "an audio, video or subtitle track can be chosen; " + track.type() + " cannot");
         }
         pendingTrack.set(track);
         signal();
@@ -529,8 +563,25 @@ public final class Playback implements AutoCloseable {
     /// while one seek runs, only the latest request waits.
     public void seek(long positionNanos, boolean accurate) {
         var target = Math.max(positionNanos, 0);
-        seekingToNanos = target;
-        pendingSeek.set(new SeekRequest(target, accurate));
+        synchronized (seekLock) {
+            seekingToNanos = target;
+            pendingSeek.set(new SeekRequest(target, accurate));
+        }
+        signal();
+    }
+
+    /// An accurate seek the Engine makes for itself, after a track switch, a
+    /// subtitle track chosen, or a decoder that fell back. Unlike [#seek], it never
+    /// replaces a seek the application asked for that has not run yet. That seek
+    /// moves every queue anyway, and it is where the application wants to be.
+    void reseek(long positionNanos) {
+        var target = Math.max(positionNanos, 0);
+        synchronized (seekLock) {
+            if (pendingSeek.get() == null) {
+                seekingToNanos = target;
+                pendingSeek.set(new SeekRequest(target, true));
+            }
+        }
         signal();
     }
 
@@ -642,10 +693,7 @@ public final class Playback implements AutoCloseable {
             var pictures = new FrameQueue();
             videoQueue = queue;
             frames = pictures;
-            workers.add(Thread.ofPlatform()
-                    .name("goldberry-media-video")
-                    .daemon()
-                    .unstarted(new VideoWorker(this, opened, video.get().index(), queue, pictures)::play));
+            workers.add(videoThread(opened, video.get(), queue, pictures));
         }
         boolean changed;
         synchronized (gate) {
@@ -660,10 +708,13 @@ public final class Playback implements AutoCloseable {
         while (!stopping) {
             var track = pendingTrack.getAndSet(null);
             if (track != null) {
-                if (track.type() == MediaType.SUBTITLE) {
-                    showTrack(opened, track);
-                } else {
-                    switchAudio(opened, track);
+                switch (track.type()) {
+                    case SUBTITLE -> showTrack(opened, track);
+                    case VIDEO -> switchVideo(opened, track);
+                    case AUDIO -> switchAudio(opened, track);
+                    case ATTACHMENT, DATA -> {
+                        // Refused by select(); nothing plays them.
+                    }
                 }
                 continue;
             }
@@ -738,17 +789,11 @@ public final class Playback implements AutoCloseable {
         cues.clear();
         subtitleCodec = track.codec();
         subtitleStream = track.index();
+        selectStreams(opened);
+        reseek(presentationNanos());
+        // Published after the seek is asked for, so an application that waits for
+        // it and then seeks is not undone by the Engine's own seek.
         subtitles = new SubtitleSource.Embedded(track);
-        var selected = new HashSet<Integer>();
-        selected.add(track.index());
-        if (audioStream >= 0) {
-            selected.add(audioStream);
-        }
-        if (videoStream >= 0) {
-            selected.add(videoStream);
-        }
-        opened.select(selected);
-        seek(presentationNanos(), true);
         listener.changed(this);
     }
 
@@ -796,15 +841,7 @@ public final class Playback implements AutoCloseable {
         audioQueue = queue;
         audioStream = track.index();
         audioTrack = track;
-        var selected = new HashSet<Integer>();
-        selected.add(track.index());
-        if (videoStream >= 0) {
-            selected.add(videoStream);
-        }
-        if (subtitleStream >= 0) {
-            selected.add(subtitleStream);
-        }
-        opened.select(selected);
+        selectStreams(opened);
         synchronized (gate) {
             audioReady = false;
             audioDone = false;
@@ -812,8 +849,83 @@ public final class Playback implements AutoCloseable {
         var thread = audioThread(opened, track, queue);
         workers.add(thread);
         thread.start();
-        seek(presentationNanos(), true);
+        reseek(presentationNanos());
         listener.changed(this);
+    }
+
+    /// A video thread on `track`, reading `queue` and filling `pictures`: made,
+    /// not started.
+    private Thread videoThread(Demuxer opened, Track track, PacketQueue queue, FrameQueue pictures) {
+        var worker = new VideoWorker(this, opened, track.index(), queue, pictures);
+        var thread = Thread.ofPlatform().name("goldberry-media-video").daemon().unstarted(worker::play);
+        videoWorker = worker;
+        videoThread = thread;
+        return thread;
+    }
+
+    /// Shows `track` in place of the video track playing: retires the video
+    /// thread, starts one on `track` over the same [FrameQueue], and seeks to
+    /// where playback is. The picture on screen stays up until the new track's
+    /// first picture, the one covering the position, replaces it, so the switch
+    /// is a cut and not a frame of black (ADR-0469).
+    private void switchVideo(Demuxer opened, Track track) {
+        var current = videoTrack;
+        var pictures = frames;
+        if (current == null || pictures == null || current.index() == track.index()) {
+            return;
+        }
+        if (!Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
+            LOG.warn(
+                    "no decoder for {} on track {}; track {} plays on",
+                    track.codecName(),
+                    track.index(),
+                    current.index());
+            return;
+        }
+        var retiring = videoWorker;
+        var retiringThread = videoThread;
+        var retiringQueue = videoQueue;
+        if (retiring != null) {
+            retiring.retire();
+        }
+        // Wakes a thread waiting for a picture buffer, and one waiting for a
+        // packet; the frame queue itself goes on to the next thread.
+        pictures.releaseWaiters();
+        if (retiringQueue != null) {
+            retiringQueue.abort();
+        }
+        if (retiringThread != null) {
+            join(retiringThread);
+            workers.remove(retiringThread);
+        }
+        var queue = new PacketQueue(QUEUE_NANOS, VIDEO_QUEUE_BYTES);
+        videoQueue = queue;
+        videoStream = track.index();
+        videoTrack = track;
+        // The new track measures its own picture length.
+        frameNanos = 0;
+        selectStreams(opened);
+        synchronized (gate) {
+            videoReady = false;
+            videoDone = false;
+        }
+        var thread = videoThread(opened, track, queue, pictures);
+        workers.add(thread);
+        thread.start();
+        reseek(presentationNanos());
+        listener.changed(this);
+    }
+
+    /// Tells the demuxer to read the streams that play: the audio, the video and
+    /// the subtitle track chosen now. The rest are discarded.
+    private void selectStreams(Demuxer opened) {
+        var selected = new HashSet<Integer>();
+        for (var stream : List.of(audioStream, videoStream, subtitleStream)) {
+            if (stream >= 0) {
+                selected.add(stream);
+            }
+        }
+        opened.select(selected);
     }
 
     /// Starts, or plays on after a stall, if buffering was all that held it.
@@ -937,6 +1049,11 @@ public final class Playback implements AutoCloseable {
 
     List<? extends DecoderProvider> decoderProviders() {
         return decoderProviders;
+    }
+
+    /// Whether the built-in decoder tries a device, for the video thread.
+    Hardware hardware() {
+        return hardware;
     }
 
     AudioSink sink() {

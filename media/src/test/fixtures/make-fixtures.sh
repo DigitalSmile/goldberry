@@ -79,6 +79,15 @@ $ff -i "$work/a440.wav" -i "$work/a880.wav" -map 0:a -map 1:a -c:a flac \
     -metadata:s:a:0 language=eng -metadata:s:a:0 title="Concert pitch" -metadata:s:a:1 language=fra \
     -disposition:a:0 default -disposition:a:1 0 "$out/tones-two-tracks.mkv"
 
+# --- Two video tracks, for video track switching (phase 7): the VP9 `testsrc2`
+# at 160x90 titled "Wide" and marked default, and SMPTE bars in VP8 at 96x54
+# titled "Close", so a switch shows in the picture's size alone; the tone in
+# Opus, so the switch is timed on the audio clock.
+$ff -f lavfi -i "$pattern" -f lavfi -i "smptebars=s=96x54:r=25:d=1" -i "$tone" -map 0:v -map 1:v -map 2:a \
+    -c:v:0 libvpx-vp9 -b:v:0 200k -c:v:1 libvpx -b:v:1 100k -c:a libopus -b:a 64k -shortest \
+    -metadata:s:v:0 title=Wide -metadata:s:v:1 title=Close -disposition:v:0 default -disposition:v:1 0 \
+    "$out/clip-two-angles.mkv"
+
 # --- Subtitles, for phase 7: the VP9 clip with a SubRip track tagged English and
 # an ASS track tagged French, whose overrides and \N the Engine takes out.
 cat > "$work/subs.srt" <<'SRT'
@@ -112,6 +121,15 @@ $ff -i "$out/clip-vp9.webm" -i "$work/subs.srt" -i "$work/subs.ass" -map 0:v -ma
 # must report UNSUPPORTED_CODEC naming both.
 $ff -f lavfi -i "$pattern" -i "$tone" -c:v libx264 -preset ultrafast -c:a aac -b:a 64k -shortest \
     "$out/clip-h264-aac.mp4"
+
+# --- Containers (ADR-0471). AVI is demuxed: an Xvid and AC-3 rip opens and names
+# both codecs it cannot decode, and MP3 in AVI plays. MPEG-TS and FLV have no
+# demuxer in this build, and are named from their first bytes.
+tiny="testsrc2=s=160x90:r=25:d=0.2"
+$ff -f lavfi -i "$tiny" -i "$tone" -t 0.2 -c:v mpeg4 -vtag XVID -c:a ac3 -b:a 96k "$out/clip-xvid-ac3.avi"
+$ff -i "$tone" -c:a libmp3lame -b:a 128k -f avi "$out/tone-mp3.avi"
+$ff -f lavfi -i "$tiny" -i "$tone" -t 0.2 -c:v mpeg2video -c:a mp2 -f mpegts "$out/clip-mpeg2.ts"
+$ff -f lavfi -i "$tiny" -c:v flv1 -an -f flv "$out/clip-flv1.flv"
 
 rm -r "$work"
 ls -l "$out"

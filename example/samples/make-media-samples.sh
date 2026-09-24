@@ -65,6 +65,90 @@ $ff -f lavfi -i "mandelbrot=s=320x180:rate=25:end_pts=300" -i "$wav" -t 8 -map 0
 $ff -f lavfi -i "life=s=320x180:rate=25:mold=10:ratio=0.1:death_color=#2e3440:life_color=#88c0d0" -t 4 \
     -c:v libsvtav1 -preset 10 -crf 55 -g 50 -metadata title="Life (AV1)" "$out/life.mkv"
 
+# --- Phase 7 samples: track menus and subtitles. ------------------------------
+# The arpeggio an octave down (half the rate, half the speed, so its first twelve
+# seconds), as a second voice for the track menus.
+$ff -i "$wav" -af "asetrate=24000,aresample=48000" -t 12 "$work/octave.wav"
+
+# Two audio tracks, in Matroska audio: the arpeggio tagged English and titled,
+# and the octave below tagged French. The audio-player's track menu names both.
+$ff -i "$wav" -i "$work/octave.wav" -map 0:a -map 1:a -c:a libopus -b:a 96k \
+    -metadata:s:a:0 language=eng -metadata:s:a:0 title="Concert pitch" \
+    -metadata:s:a:1 language=fra -metadata:s:a:1 title="Une octave plus bas" \
+    -disposition:a:0 default -disposition:a:1 0 -metadata title="Arpeggio, two voices" \
+    "$out/arpeggio-two-voices.mka"
+
+# Subtitles: the Mandelbrot zoom with a SubRip track tagged English and an ASS
+# track tagged French, whose styling the engine strips to plain lines. The same
+# cues as files, for "Load subtitles": SubRip and WebVTT.
+cat > "$out/mandelbrot.srt" <<'SRT'
+1
+00:00:00,500 --> 00:00:02,000
+A Mandelbrot zoom, in VP9
+
+2
+00:00:02,300 --> 00:00:04,000
+<i>Every picture</i> is timed
+by the audio clock
+
+3
+00:00:04,300 --> 00:00:06,000
+Subtitles are read in Java
+
+4
+00:00:06,300 --> 00:00:07,800
+and drawn over the picture
+SRT
+cat > "$out/mandelbrot.vtt" <<'VTT'
+WEBVTT
+
+00:00.500 --> 00:02.000
+Loaded from a WebVTT file
+
+00:02.300 --> 00:04.000
+<b>Cues</b> from a file
+replace a track's
+
+00:04.300 --> 00:06.000
+"Hide subtitles" takes them away
+
+00:06.300 --> 00:07.800
+and the menu offers them again
+VTT
+cat > "$work/mandelbrot-fra.ass" <<'ASS'
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 320
+PlayResY: 180
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,14,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.50,0:00:02.00,Default,,0,0,0,,Un zoom sur {\i1}Mandelbrot{\i0}
+Dialogue: 0,0:00:02.30,0:00:04.00,Default,,0,0,0,,Chaque image suit\Nl'horloge audio
+Dialogue: 0,0:00:04.30,0:00:06.00,Default,,0,0,0,,{\b1}Sous-titres{\b0} lus en Java
+Dialogue: 0,0:00:06.30,0:00:07.80,Default,,0,0,0,,et dessinés sur l'image
+ASS
+$ff -i "$out/mandelbrot.webm" -i "$out/mandelbrot.srt" -i "$work/mandelbrot-fra.ass" \
+    -map 0:v -map 0:a -map 1:s -map 2:s -c:v copy -c:a copy -c:s:0 srt -c:s:1 ass \
+    -metadata:s:s:0 language=eng -metadata:s:s:1 language=fra \
+    -metadata title="Mandelbrot, subtitled" "$out/mandelbrot-subtitled.mkv"
+
+# Two angles: the Mandelbrot zoom and a Sierpinski carpet at 4:3, each with a
+# title, over the two voices of the arpeggio. Both track menus, one file.
+$ff -f lavfi -i "sierpinski=s=240x180:rate=25:type=carpet" -t 8 \
+    -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 200k -row-mt 1 -g 50 "$work/carpet.webm"
+$ff -i "$out/mandelbrot.webm" -i "$work/carpet.webm" -i "$work/octave.wav" \
+    -map 0:v -map 1:v -map 0:a -map 2:a -t 8 -c:v copy -c:a:0 copy -c:a:1 libopus -b:a:1 64k \
+    -metadata:s:v:0 title="Zoom" -metadata:s:v:1 title="Carpet" \
+    -disposition:v:0 default -disposition:v:1 0 \
+    -metadata:s:a:0 language=eng -metadata:s:a:1 language=fra -metadata:s:a:1 title="Une octave plus bas" \
+    -disposition:a:0 default -disposition:a:1 0 -metadata title="Two angles, two voices" \
+    "$out/two-angles.mkv"
+
 # The patent-pool pair the published natives do not decode: the error state.
 $ff -f lavfi -i "testsrc2=s=160x90:r=25:d=1" -f lavfi -i "sine=f=440:d=1" \
     -c:v libx264 -preset ultrafast -c:a aac -b:a 48k -shortest "$out/h264-aac.mp4"

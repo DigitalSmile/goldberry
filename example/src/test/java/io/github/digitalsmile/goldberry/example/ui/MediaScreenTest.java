@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
@@ -13,11 +16,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
+import io.github.digitalsmile.goldberry.media.Track;
+import io.github.digitalsmile.goldberry.media.codec.CodecId;
+import io.github.digitalsmile.goldberry.media.codec.TrackParams;
 import io.github.digitalsmile.goldberry.media.io.MediaIOs;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -44,6 +52,16 @@ class MediaScreenTest {
     void tearDown() {
         player.close();
         videoPlayer.close();
+        ShowcaseMedia.shutdown();
+    }
+
+    private static Button button(List<Element> elements, String id) {
+        return elements.stream()
+                .filter(e -> id.equals(e.id()))
+                .map(Element::widget)
+                .map(Button.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no button #" + id));
     }
 
     private List<Element> mount() {
@@ -153,10 +171,21 @@ class MediaScreenTest {
                 "video-control",
                 "video-status",
                 "video-tracks",
+                "video-subtitles",
+                "video-hardware",
                 "video-capabilities")) {
             assertTrue(elements.stream().anyMatch(e -> id.equals(e.id())), "no #" + id);
         }
         assertFalse(elements.stream().anyMatch(e -> "video-java-decoder".equals(e.id())));
+        for (var id : List.of(
+                "video-step-back",
+                "video-step-on",
+                "video-subtitles-srt",
+                "video-subtitles-vtt",
+                "video-subtitles-file",
+                "video-subtitles-hide")) {
+            assertTrue(button(elements, id).disabled(), "#" + id + " with nothing open");
+        }
         assertFalse(elements.stream().anyMatch(e -> e.id() != null && e.id().startsWith("audio-")));
         var picker = elements.stream()
                 .map(Element::widget)
@@ -178,10 +207,86 @@ class MediaScreenTest {
         var video = ShowcaseMedia.VIDEO_SAMPLES.stream()
                 .map(ShowcaseMedia.Sample::key)
                 .toList();
-        assertEquals(List.of("opus", "vorbis", "mp3", "flac", "live", "java", "broken", "missing"), audio);
-        assertEquals(List.of("vp9", "av1", "h264"), video);
+        assertEquals(
+                List.of("opus", "vorbis", "mp3", "flac", "voices", "live", "served", "java", "broken", "missing"),
+                audio);
+        assertEquals(List.of("vp9", "subtitled", "angles", "served", "av1", "h264"), video);
         assertEquals(MediaScreen.Kind.AUDIO.samples(), ShowcaseMedia.AUDIO_SAMPLES);
         assertEquals(MediaScreen.Kind.VIDEO.samples(), ShowcaseMedia.VIDEO_SAMPLES);
+    }
+
+    @Test
+    @DisplayName("the Audio screen has no subtitles, hardware or picture-step controls")
+    void audioScreenHasNoPictureControls() {
+        var elements = mount();
+        for (var id : List.of("audio-subtitles", "audio-hardware", "audio-step-back", "audio-step-on")) {
+            assertFalse(elements.stream().anyMatch(e -> id.equals(e.id())), "#" + id);
+        }
+    }
+
+    @Test
+    @DisplayName("the speed buttons set the player's rate, which it keeps for the next source")
+    void speeds() {
+        var elements = mountVideo();
+        button(elements, "video-speed-150").onPress().run();
+        assertEquals(1.5f, videoPlayer.status().rate());
+        button(elements, "video-speed-50").onPress().run();
+        assertEquals(0.5f, videoPlayer.status().rate());
+        button(elements, "video-speed-100").onPress().run();
+        assertEquals(1f, videoPlayer.status().rate());
+        assertEquals(
+                List.of("0.5×", "1×", "1.5×", "2×"),
+                MediaScreen.MediaState.SPEEDS.stream()
+                        .map(MediaScreen.MediaState::speedLabel)
+                        .toList());
+    }
+
+    @Test
+    @DisplayName("the Hardware card's switch is the player's hardware decoding, on by default")
+    void hardwareSwitch() {
+        assertEquals(HardwareDecoding.AUTO, videoPlayer.hardwareDecoding());
+        var toggle = mountVideo().stream()
+                .filter(e -> "video-hardware-toggle".equals(e.id()))
+                .map(Element::widget)
+                .map(Toggle.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(toggle.on());
+        toggle.onChange().accept(false);
+        assertEquals(HardwareDecoding.OFF, videoPlayer.hardwareDecoding());
+        toggle.onChange().accept(true);
+        assertEquals(HardwareDecoding.AUTO, videoPlayer.hardwareDecoding());
+        assertEquals(PlaybackState.IDLE, videoPlayer.status().state(), "nothing open, nothing reopened");
+    }
+
+    @Test
+    @DisplayName("a track is named by its index, codec, title and language")
+    void trackNames() {
+        var params = new TrackParams.Audio(48_000, 2, Optional.empty(), OptionalInt.empty(), OptionalLong.empty());
+        var titled = new Track(
+                2,
+                CodecId.OPUS,
+                "opus",
+                params,
+                Optional.empty(),
+                false,
+                false,
+                Optional.of("fra"),
+                Optional.of("Une octave plus bas"));
+        assertEquals("#2 opus \"Une octave plus bas\" (fra)", MediaScreen.MediaState.trackName(titled));
+        var bare = new Track(0, CodecId.OPUS, "opus", params, Optional.empty(), true, false);
+        assertEquals("#0 opus", MediaScreen.MediaState.trackName(bare));
+    }
+
+    @Test
+    @DisplayName("the bundled subtitle files resolve through the showcase's protocols")
+    void subtitleFilesResolve() throws Exception {
+        for (var file : ShowcaseMedia.SUBTITLE_FILES) {
+            try (var io = MediaIOs.open(file.source(), List.of(new ShowcaseMedia()))) {
+                var buffer = java.nio.ByteBuffer.allocate(64);
+                assertTrue(io.read(buffer) > 0, file.key());
+            }
+        }
     }
 
     private static <T> List<T> concat(List<T> first, List<T> second) {

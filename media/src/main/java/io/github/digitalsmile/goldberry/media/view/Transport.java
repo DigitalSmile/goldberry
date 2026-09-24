@@ -44,11 +44,14 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// playing plays on from there. A click is a press and a release, so it is one
 /// scrub step and one exact seek; a key on the bar is the same.
 ///
-/// ## Which audio track
+/// ## Which audio and video track
 ///
 /// A source with more than one audio track gets a `select` of them in the bar
 /// (`.media-audio-track`), labelled by title and language; choosing one is
-/// [MediaPlayer#selectTrack]. A source with one gets none.
+/// [MediaPlayer#selectTrack]. A source with one gets none. `media-player` and
+/// `media-controls`, which go with a picture, do the same for video tracks
+/// (`.media-video-track`): camera angles, or a signed version. Cover art is
+/// never offered.
 ///
 /// ## Subtitles
 ///
@@ -122,9 +125,9 @@ final class Transport {
         return controls(player, status, false);
     }
 
-    /// The controls, with the subtitles menu when `subtitleMenu`: for a widget
-    /// that draws subtitles, which `audio-player` does not.
-    List<Widget> controls(MediaPlayer player, PlayerStatus status, boolean subtitleMenu) {
+    /// The controls, with the video track and subtitles menus when `withPicture`:
+    /// for a widget that goes with a picture, which `audio-player` does not.
+    List<Widget> controls(MediaPlayer player, PlayerStatus status, boolean withPicture) {
         var controls = new ArrayList<Widget>(6);
         var playing = status.state() == PlaybackState.PLAYING
                 || status.state() == PlaybackState.BUFFERING
@@ -155,7 +158,8 @@ final class Transport {
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
         }
         audioTracks(player, status).ifPresent(controls::add);
-        if (subtitleMenu) {
+        if (withPicture) {
+            videoTracks(player, status).ifPresent(controls::add);
             subtitles(player, status).ifPresent(controls::add);
         }
         if (status.rate() != 1f) {
@@ -187,8 +191,21 @@ final class Transport {
     /// [MediaPlayer#selectTrack]. None otherwise, so a player of one track looks
     /// as it always did.
     static Optional<Widget> audioTracks(MediaPlayer player, PlayerStatus status) {
+        return trackMenu(player, status, MediaType.AUDIO, status.audioTrack(), "media-audio-track");
+    }
+
+    /// The video track menu, the same for video tracks: when the source has more
+    /// than one to show, not counting cover art.
+    static Optional<Widget> videoTracks(MediaPlayer player, PlayerStatus status) {
+        return trackMenu(player, status, MediaType.VIDEO, status.videoTrack(), "media-video-track");
+    }
+
+    /// A `select` of the source's tracks of `type`, `playing` chosen, with the
+    /// class `styleClass`; none for fewer than two, or with nothing open.
+    private static Optional<Widget> trackMenu(
+            MediaPlayer player, PlayerStatus status, MediaType type, Optional<Track> playing, String styleClass) {
         var tracks = status.info()
-                .map(info -> info.tracks(MediaType.AUDIO).stream()
+                .map(info -> info.tracks(type).stream()
                         .filter(track -> !track.attachedPicture())
                         .toList())
                 .orElse(List.of());
@@ -201,15 +218,13 @@ final class Transport {
             var track = tracks.get(i);
             options.add(new Option(Integer.toString(track.index()), trackLabel(track, i + 1, locale)));
         }
-        var chosen = status.audioTrack()
-                .map(track -> Integer.toString(track.index()))
-                .orElse(null);
+        var chosen = playing.map(track -> Integer.toString(track.index())).orElse(null);
         Consumer<String> choose = value -> tracks.stream()
                 .filter(track -> Integer.toString(track.index()).equals(value))
                 .findFirst()
                 .ifPresent(player::selectTrack);
         return Optional.of(new Select(chosen, choose, options.toArray(Option[]::new))
-                .withAttributes(Attributes.NONE.classes("media-audio-track")));
+                .withAttributes(Attributes.NONE.classes(styleClass)));
     }
 
     /// The value the subtitles menu gives "off".

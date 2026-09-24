@@ -172,6 +172,12 @@ public final class FfmpegStructs {
                     paddingLayout(204))
             .withName("AVCodecContext");
 
+    /// `AVCodecHWConfig`: one way a decoder can use a hardware device, as
+    /// `avcodec_get_hw_config` lists them (phase 5, ADR-0470).
+    public static final StructLayout AV_CODEC_HW_CONFIG = structLayout(
+                    JAVA_INT.withName("pix_fmt"), JAVA_INT.withName("methods"), JAVA_INT.withName("device_type"))
+            .withName("AVCodecHWConfig");
+
     /// `AVFrame`: one decoded picture or run of samples.
     public static final StructLayout AV_FRAME = structLayout(
                     sequenceLayout(8, ADDRESS).withName("data"),
@@ -213,6 +219,7 @@ public final class FfmpegStructs {
             AV_DICTIONARY_ENTRY,
             AV_CODEC_PARAMETERS,
             AV_CODEC_CONTEXT,
+            AV_CODEC_HW_CONFIG,
             AV_PACKET,
             AV_FRAME);
 }

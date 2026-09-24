@@ -81,7 +81,10 @@ public final class Demuxer implements AutoCloseable {
     /// Opens a demuxer over `io`, which `source` names. `io` is not closed by the
     /// demuxer; its opener closes it after the demuxer.
     ///
-    /// @throws MediaException [MediaError.InvalidData] for bytes no demuxer reads,
+    /// @throws MediaException [MediaError.UnsupportedContainer] for a container this
+    ///                        build has no demuxer for, recognised by its first
+    ///                        bytes, [MediaError.InvalidData] for other bytes no
+    ///                        demuxer reads,
     ///                        [MediaError.Io] when a read fails, [MediaError.Aborted]
     ///                        when `io` was closed during the open
     public static Demuxer open(Ffmpeg ffmpeg, Source source, MediaIO io) {
@@ -356,6 +359,13 @@ public final class Demuxer implements AutoCloseable {
                     new MediaError.Io(
                             message != null ? message : ioFailure.getClass().getSimpleName()),
                     ioFailure);
+        }
+        if (code == constants.averrorInvalidData()) {
+            var container = ContainerSniffer.identify(callbacks.head(), FfmpegCapabilities.demuxers(ffmpeg));
+            if (container.isPresent()) {
+                return new MediaException(
+                        new MediaError.UnsupportedContainer(container.get().name()), cause);
+            }
         }
         return new MediaException(new MediaError.InvalidData(ffmpeg.describe(code)), cause);
     }

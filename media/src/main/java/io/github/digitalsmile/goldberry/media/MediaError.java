@@ -72,6 +72,22 @@ public sealed interface MediaError {
         }
     }
 
+    /// The source is a container this build has no demuxer for, recognised by its
+    /// first bytes: MPEG-TS, FLV, ASF and the like (ADR-0471). A container the
+    /// build reads that is damaged is [InvalidData] instead.
+    ///
+    /// @param format what the container is, such as `MPEG-TS`
+    record UnsupportedContainer(String format) implements MediaError {
+        public UnsupportedContainer {
+            Objects.requireNonNull(format, "format");
+        }
+
+        @Override
+        public String message() {
+            return "no demuxer for " + format + " in this build";
+        }
+    }
+
     /// The bytes are not media any demuxer here reads, or they are damaged.
     ///
     /// @param detail FFmpeg's description of what went wrong

@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.media.FfmpegRequirement;
+import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
@@ -94,6 +95,7 @@ class MediaPlayerGoldenTest {
             throw new UncheckedIOException(e);
         }
         player = MediaPlayer.builder()
+                .hardwareDecoding(HardwareDecoding.OFF)
                 .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
                 .ioProviders(List.of(new Memory(data)))
                 .decoderProviders(List.of())

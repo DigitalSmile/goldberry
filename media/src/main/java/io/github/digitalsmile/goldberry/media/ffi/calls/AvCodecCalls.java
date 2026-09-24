@@ -12,7 +12,8 @@ import io.github.digitalsmile.goldberry.media.ffi.FfmpegDowncalls;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibrary;
 
 /// The functions of `libavcodec` the Engine calls: naming codecs, listing
-/// decoders, and the send/receive decode loop.
+/// decoders, the send/receive decode loop, and what hardware decode asks of a
+/// decoder (phase 5).
 ///
 /// See [FfmpegDowncalls] for why each handle is a `static final` constant.
 public record AvCodecCalls(
@@ -29,7 +30,9 @@ public record AvCodecCalls(
         FlushBuffers flushBuffers,
         FreeContext freeContext,
         PacketAlloc packetAlloc,
-        PacketFree packetFree) {
+        PacketFree packetFree,
+        GetHwConfig getHwConfig,
+        DefaultGetFormat defaultGetFormat) {
 
     /// Binds every function above.
     ///
@@ -49,7 +52,9 @@ public record AvCodecCalls(
                 new FlushBuffers(lookup),
                 new FreeContext(lookup),
                 new PacketAlloc(lookup),
-                new PacketFree(lookup));
+                new PacketFree(lookup),
+                new GetHwConfig(lookup),
+                new DefaultGetFormat(lookup));
     }
 
     /// `unsigned avcodec_version(void)`
@@ -361,6 +366,56 @@ public record AvCodecCalls(
                 FD_av_packet_free.invokeExact(address, packetPointer);
             } catch (Throwable t) {
                 throw FfmpegDowncalls.failure("av_packet_free", t);
+            }
+        }
+    }
+
+    /// `const AVCodecHWConfig *avcodec_get_hw_config(const AVCodec *codec, int index)`
+    ///
+    /// The `index`th way `codec` can decode on a device, or null past the last:
+    /// how the built-in decoder learns whether a codec has a hardware path, and
+    /// which pixel format a hardware frame comes in.
+    public static final class GetHwConfig {
+
+        private static final MethodHandle FD_avcodec_get_hw_config =
+                FfmpegDowncalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        GetHwConfig(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVCODEC, "avcodec_get_hw_config");
+        }
+
+        public MemorySegment call(MemorySegment codec, int index) {
+            try {
+                return (MemorySegment) FD_avcodec_get_hw_config.invokeExact(address, codec, index);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("avcodec_get_hw_config", t);
+            }
+        }
+    }
+
+    /// `enum AVPixelFormat avcodec_default_get_format(struct AVCodecContext *s, const enum AVPixelFormat *fmt)`
+    ///
+    /// What `get_format` does when nobody sets it: the first software format
+    /// offered. The hardware decoder's `get_format` hands a list over to it when
+    /// the device's format is not there.
+    public static final class DefaultGetFormat {
+
+        private static final MethodHandle FD_avcodec_default_get_format =
+                FfmpegDowncalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        DefaultGetFormat(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVCODEC, "avcodec_default_get_format");
+        }
+
+        public int call(MemorySegment context, MemorySegment formats) {
+            try {
+                return (int) FD_avcodec_default_get_format.invokeExact(address, context, formats);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("avcodec_default_get_format", t);
             }
         }
     }

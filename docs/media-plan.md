@@ -23,6 +23,8 @@ it waits for. **answered** means decided not to build, with the reason.
 | Video is converted to BGRA as it is decoded, presented against the master clock by whoever asks, and painted when a picture falls due; the SDL sink's queue drains smoothly between pulls | 0463 | done |
 | `slider` says when a gesture ends (`onCommit`, `commit=`), so a seek bar scrubs while dragged and seeks exactly on release | 0464 | done |
 | Network media is read by one `HttpIO` through a read-ahead cache of extents, ICY is stripped inside it, and playback waits for a high water mark measured in demuxed time; the low water mark is empty | 0465 | done |
+| AVI is demuxed, so an AVI rip names its codecs (S7); a container with no demuxer is named from its first bytes (`UnsupportedContainer`) rather than called invalid data | 0471 | done |
+| Hardware decode is a rung of the built-in decoder, always copied back to NV12/P010; the hardware rung picks its own decoder (FFmpeg's `av1` for AV1), `get_format` is an upcall, device failures fall to software with a seek back to the keyframe, and what failed is remembered per process | 0470 | done |
 
 ## Corrections to the design, found while building
 
@@ -46,6 +48,10 @@ The design document is kept in step with these. Each one is written into
 | §4 `bufferedRanges` | real byte ranges mapped to time, "not an estimate" | the ranges are real; the mapping to time is in proportion to length and duration, exact for a constant bit rate. The container's index would make it exact at a cost in bindings | done |
 | §4 opening | not discussed | `avformat_find_stream_info` reads up to its analyse duration before anything plays: about 4.4 s (830 KB) of 48 kHz PCM, all of a short MP3. Over a slow link that is start-up time | answered: measured on 30–60 s files, Opus in WebM, MP3 and FLAC each open from their first 32 KB, local or remote; only raw PCM reads far (830 KB). A 1 MB `probesize` and 1 s `analyzeduration` for remote sources, through `AVDictionary` options, cut WAV to 544 KB and changed nothing else, and 256 KB would risk a 4K keyframe that FFmpeg decodes to learn the pixel format. Not worth a binding and a `MediaIO` method, so not kept |
 | §4 `HttpIO` | reconnect "resuming at the last byte offset" | at the last byte the reader was *handed*. When a connection fails, the JDK's client drops what it had received and not yet handed on, so the resumed Range starts a little earlier than where the server broke off. Nothing is lost or repeated | done |
+| §2 HW decode table | VAAPI on Linux alongside VideoToolbox and D3D11VA | on by default where the OS provides the hwaccel (macOS, Windows). Off by default on Linux: VAAPI makes `libavutil` link `libva`, and a machine without it could not load FFmpeg at all. `-Pgoldberry.media.hwaccel=true` builds it (ADR-0470) | open: a decision about `libva` before Linux has it by default |
+| §2 dav1d, §3 codec resolution | the built-in decoder is `avcodec_find_decoder`'s | that is the software rung. The hardware rung looks through every decoder of the codec for a device configuration, because `avcodec_find_decoder(AV1)` is `libdav1d`, which has none, and FFmpeg's `av1` is hardware only | done |
+| §3 fallback ladder | "copy-back fails mid-stream → reopen codec in software, resume from last keyframe" | a failure anywhere on the device (send, receive, copy-back, drain) is thrown for the ladder, the next rung opens, and the video thread drops the queued packets and makes an accurate seek, to the position, or to the last seek's target when no picture has shown since. The seek restarts the audio at the position too. An Engine seek never replaces one the application asked for (`Playback.reseek`) | done |
+| §3 fallback ladder | "HW device creation fails → software" | also a device that opens and cannot decode the codec: VideoToolbox on an M1 has no AV1 engine and fails on the first packet. What failed is remembered per process, so the first AV1 file pays for it once | done |
 | swscale | `sws_getContext` returns null for a conversion it cannot do | FFmpeg 8 **asserts** (aborts the process) on a format with no descriptor, such as `AV_PIX_FMT_NONE`. `VideoConverter` checks that both formats have names before asking | done |
 
 ## Local toolchain
@@ -57,7 +63,7 @@ The media superbuild needs more than `:natives` does. Nothing here runs in
 | Host | Install |
 |------|---------|
 | macOS | `brew install meson pkg-config nasm` (`nasm` is only used by x86 builds, but meson's dav1d configure looks for it) |
-| Debian/Ubuntu | `sudo apt install meson ninja-build nasm pkg-config make` |
+| Debian/Ubuntu | `sudo apt install meson ninja-build nasm pkg-config make`, and `libva-dev` for `-Pgoldberry.media.hwaccel=true` |
 | Fedora | `sudo dnf install meson ninja-build nasm pkgconf-pkg-config make` |
 | Windows | MSYS2: `pacman -S make diffutils pkgconf mingw-w64-x86_64-meson mingw-w64-x86_64-nasm`, then run from a Developer Command Prompt with MSYS2's `usr/bin` on `PATH` (untested) |
 
@@ -74,7 +80,7 @@ with the layout test green.
 | Java layouts | hand-declared `StructLayout`s for the nine structs, with unread fields as padding | done |
 | Layout check | `FfmpegLayoutCheck` compares Java with the probe output. It runs in a unit test against the committed fixture, and at start-up against the packaged file | done |
 | Library loading | `FfmpegLibraries`: `goldberry.media.libdir`, then the classifier jar. Loads in dependency order, checks majors before any struct access, then checks layouts | done |
-| Bindings | `AvUtilCalls`, `AvFormatCalls`, `AvCodecCalls`, `SwCalls` as holder records (ADR-0173 idiom), with errors translated to `FfmpegException` | done for phases 1–3: 48 functions. Phase 3 added swscale's context, scale, colour details and coefficients, and the `AVFrame` picture fields (size, `linesize`, colour, duration) and `AVCodecContext.thread_count`. HW decode (phase 5) adds the `av_hwdevice_*` family and `get_format` |
+| Bindings | `AvUtilCalls`, `AvFormatCalls`, `AvCodecCalls`, `SwCalls` as holder records (ADR-0173 idiom), with errors translated to `FfmpegException` | done: 55 functions. Phase 3 added swscale's context, scale, colour details and coefficients, and the `AVFrame` picture fields (size, `linesize`, colour, duration) and `AVCodecContext.thread_count`. Phase 5 added `avcodec_get_hw_config`, `avcodec_default_get_format`, `av_hwdevice_find_type_by_name`, `av_hwdevice_ctx_create`, `av_hwframe_transfer_data`, `av_frame_copy_props` and `av_buffer_unref`, the struct `AVCodecHWConfig`, and the `get_format` and `hw_device_ctx` fields of `AVCodecContext` |
 | MediaIO SPI | `MediaIO`, `MediaIOProvider` (ServiceLoader, by URI scheme), `Source`, `FileIO` | done |
 | Custom `AVIOContext` | `read_packet` and `seek` upcalls, one stub pair per context (ADR-0017), no exception crosses into C, `AVSEEK_SIZE`, abort by closing | done |
 | Codec vocabulary | `CodecId` (Goldberry's own, mapped by FFmpeg codec *name* rather than number), `MediaType`, sealed `TrackParams` | done |
@@ -85,7 +91,7 @@ with the layout test green.
 | Natives jar | `goldberry-ffmpeg-natives-<classifier>` with the licences and an `ffmpeg-NOTICE.txt` holding the tag and configure line | done: `:media:ffmpegNativesJar<Target>`, and `:media:testNativesJar` loads FFmpeg from the jar with no `libdir` set. It runs in its own JVM, is part of `check`, and skips where FFmpeg is not built. `licenses/ffmpeg.txt` and `licenses/dav1d.txt` are vendored verbatim and listed in `THIRD-PARTY-NOTICES.md`. Publishing waits for all four targets |
 | CI | the media superbuild on the four runners, cached, with the size gate | in progress: `.github/workflows/media.yml` builds and runs `:media:check` with FFmpeg required on macos-aarch64 and linux-x64. It has not run yet: it runs when pushed. Windows and linux-aarch64 join later |
 | Upcall benchmark | `read_packet` cost against a 32 KB block (§10) | done: `:media:benchmark`. 532 ns per 32 KB block through the stub against 462 ns for the same copy with no crossing, so about 70 ns per block for a Java→C→Java round trip (61 GB/s). FFmpeg pays only the C→Java half. The risk in §10 is closed |
-| Native-image metadata | the upcall shapes and the descriptors `FfmpegDowncalls` records, in `META-INF/native-image` (ADR-0339's generator, for this module) | done: `:media:foreignMetadata` generates it into the jar, with the natives jar's resources as a glob. No native image has been built against it yet |
+| Native-image metadata | the upcall shapes and the descriptors `FfmpegDowncalls` records, in `META-INF/native-image` (ADR-0339's generator, for this module) | done: `:media:foreignMetadata` generates it into the jar, with the natives jar's resources as a glob, and the three upcall shapes (`read_packet`, `seek`, and phase 5's `get_format`). No native image has been built against it yet |
 | Coverage floor | a `jacocoTestCoverageVerification` rule, measured with FFmpeg loaded, as `:html` has | done: lines 0.84 and branches 0.72, against 85.9% and 74.4% measured. It applies only where FFmpeg is built |
 | Linux and Windows | the superbuild and the loader on the other three targets | written, untested: no Linux or Windows host was available. Linux uses the shared branch, with no rpath because the loader opens the five in dependency order. Windows was hardened on review: FFmpeg's `configure` runs through MSYS2's `sh` (`GOLDBERRY_SH`), dav1d's `libdav1d.a` is copied to `dav1d.lib` for MSVC's linker, and the toolchain check asks for `sh` on Windows and `nasm` on every x64 host. Verifying it needs the runners, which is CI's work |
 
@@ -146,6 +152,7 @@ DecoderProvider (a sine generator) is chosen over the built-in one by priority.
 | Golden `gallery-media`, FFmpeg pinned off in the showcase's tests (the Web tab's rule), plus the 16 gallery goldens re-taken for the new tab label | done |
 | Native image: the clips are globbed in the manual reachability metadata. FFmpeg itself is not in an image yet | open, with the natives jar's publication |
 | Video (phase 3): a `media-player` above the `audio-player`, both over the one player (since split, next row). Two more samples made by the same script from FFmpeg's synthetic sources: a Mandelbrot zoom in VP9 with the arpeggio in Opus (pictures on the audio clock), and the Game of Life in AV1 with no audio (the free-running clock). The Status card names both decoders, and the file dialog offers video | done. Measured live on macos-aarch64: in sync (the picture at 2.96 s after 2.97 s of play), 33 frames a second while a 25 fps clip plays (the pictures and the two position polls), about 1.5 ms each. The gallery golden `gallery-media` is re-taken for the new pane |
+| Phases 5–7 in the showcase | done. New samples, made by `make-media-samples.sh` without touching the old clips: two voices in one Matroska audio file, the Mandelbrot clip with SubRip and ASS subtitle tracks, and two angles over two voices; `mandelbrot.srt` and `mandelbrot.vtt` to load beside a source. Cards: speeds (0.5× to 2×) on both tabs and a picture back and on on Video; a Play or Show button on every track that can be chosen; the Status card's speed, tracks, subtitles, what is fetched and how far ahead; a **Subtitles** card (the bundled files, a file from disk, hide, the cue showing now); a **Hardware decoding** card whose switch reopens the source where it was (`MediaPlayer.setHardwareDecoding`, from the next source opened). `gallery-audio` and `gallery-video` re-taken. Checked live against FFmpeg on macos-aarch64: every new sample plays, the track and subtitle switches land, the HTTP sample buffers after a seek past what has arrived, and the switch moves VP9 from `ffmpeg (videotoolbox)` to `ffmpeg` at the same position |
 | Separate **Audio** and **Video** tabs (sixteen screens): each has its own `MediaPlayer`, its own document (`audio.kdl` with the `audio-player`, `video.kdl` with the `media-player`) and its own samples. Audio keeps the live stream, the failure cases and the Java decoder; Video has VP9 with Opus, AV1 with no sound, and the H.264 error case. One `MediaScreen` with a `Kind` builds both, and every id on it is prefixed with the kind | done. `gallery-audio` and `gallery-video` replace `gallery-media`, and the other gallery goldens are re-taken for the new tab labels |
 
 ## Phase 3 — video, software decode, CPU present
@@ -172,6 +179,30 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | `VideoPlaybackTest` S2 ("scrubbing shows each keyframe…") flaky | done: it failed in about two of three full runs, before phase 6 as after. Traced to a race in the Engine, not the test: a play straight after a paused seek resumed the sink before the audio thread had taken the seek's flush, so the old position's samples were still in it (and a real device would pull them). The sink now starts only when no seek is pending or under way and the audio thread has honoured the latest one (`Playback.sinkCurrent`); the audio thread starts it itself when it catches up. The Serial is published before the queues are flushed. `MediaPlayerTest` holds a seek inside the demuxer to check it, and fails without the fix |
 | Device latency in the audio clock | open: see the corrections table |
 | Rate (`SDL_SetAudioStreamFrequencyRatio`) | done in phase 7 (below) |
+
+## Phase 5 — hardware decode
+
+**Exit status: met except what waits on phase 4.** S4 passes with injected
+failures: a device that will not open, copy-back failing mid-stream, and a
+device with no engine for the codec (AV1 on an M1, for real). VP9 decodes on
+VideoToolbox, 8-bit and 10-bit, with the software decoder's luma byte for byte
+and the software goldens passing. "4K60 without dropped frames on GPU present"
+waits on phase 4. 364 tests in `:media` with FFmpeg required, five full runs
+green.
+
+| Item | Status |
+|------|--------|
+| Superbuild | done: `GOLDBERRY_MEDIA_HWACCEL` on by default for macOS and Windows, off for Linux, and passed explicitly by `:media:ffmpegConfigure` (`-Pgoldberry.media.hwaccel`). macos-aarch64 grows by 43 KB to 5032 KB and links VideoToolbox, CoreMedia and CoreVideo, all system frameworks |
+| Bindings and layout | done: seven functions, `AVCodecHWConfig` in the probe and the check, `AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX` and `AV_HWDEVICE_TYPE_NONE`. The committed layout fixture is re-taken |
+| `HardwareDecoder` | done: chooses a decoder with a `HW_DEVICE_CTX` configuration for the platform's device type, opens the device, points `get_format` at an upcall bound to itself, and copies surfaces back with `av_hwframe_transfer_data` and `av_frame_copy_props`. `get_format` takes the surface format when offered, hands the list to `avcodec_default_get_format` when not, answers `NONE` to an empty list rather than let FFmpeg read before it, and never throws into C |
+| `FfmpegDecoder` on a device | done: one thread (the device does the work); failures on the device are `FfmpegException` for the ladder; `describe()` is `ffmpeg (videotoolbox)` while pictures come from the device |
+| `Hardware` policy | done: `HardwareDecoding.AUTO` (the platform's device type, one policy per process) and `OFF`; remembers a codec and device type that failed before a picture; `Hardware.Calls` is where a test injects failures |
+| Ladder | done: `Decoders` counts a hardware rung and a software rung for the built-in decoder; the rung is counted even after it has failed, so a fallback's index does not move. `VideoWorker.fallBack` for packets and for the drain at the end, `awaitingKeyframe`, and `resumeNanos` |
+| Public API | done: `MediaPlayer.Builder.hardwareDecoding(HardwareDecoding)`, `AUTO` by default. The picture goldens and the widget tests ask for `OFF` |
+| Measured | on an M1 Pro, 300 pictures (5 s) of synthetic 4K60 VP9 (`testsrc2`, 20 Mb/s) through `FfmpegDecoder`, copy-back included and conversion to BGRA not: software 2.4–3.0 s of CPU (about 520 pictures a second on 4.6 cores, since `testsrc2` is easy content), VideoToolbox 0.42–0.50 s of CPU (96 pictures a second on 0.15 cores). A sixth of the CPU, and 1.6 times real time |
+| Races found on the way | done: a subtitle track chosen published itself before asking for its seek, so an application that waited for it and then seeked could have its seek replaced by the Engine's (the `media-player-subtitles` golden failed so). Engine seeks now never replace a pending one (`Playback.reseek`), and the track is published after. `SubtitlePlaybackTest.at()` moved the clock past a cue while a seek pinned the position; it now moves in 5 ms steps |
+| GPU present, zero-copy | blocked on phase 4 |
+| Linux (VAAPI), Windows (D3D11VA) | written, untested: Linux is opt-in (see the corrections), Windows is on by default and has no runner yet |
 
 ## Phase 6 — network
 
@@ -201,7 +232,7 @@ server.
 | Widgets | done: `LIVE` only for a live source; an unseekable source that ends shows what remains; the title is `.media-now-playing`, over the controls in `audio-player` and in `media-player`'s overlay, with `--gb-media-now-playing-color` |
 | `bufferedRanges` on the seek bar | done (ADR-0466): `slider` gained `spans`, drawn in the groove under the fill as `slider-span`; `Transport` passes the buffered ranges, and the widgets rebuild every quarter second while a source is still fetching, paused or not. Goldens `slider-spans` and `slider-spans-light` |
 | Fault-injecting fakes | done: `MemoryIO` stalls at a byte, as often as it is moved on, and ends a stalled read on close; `TestHttpServer` drops, stalls, ignores Range, omits the length, answers with a status, and speaks ICY |
-| Showcase | done: the Audio tab's live sample says what is playing. Samples over a real HTTP server (a local one, so the showcase stays offline) are open |
+| Showcase | done: the Audio tab's live sample says what is playing. Both tabs have an "Over HTTP, throttled" sample from `ShowcaseServer`, a server inside the showcase on the loopback address that answers ranges and sends 64 KB a second, read through `HttpIO`: the seek bar shades what has arrived, and a seek past it buffers |
 
 ## Phase 7 — polish, in part
 
@@ -211,7 +242,7 @@ server.
 | Frame step | done: `MediaPlayer.step(n)` and the keys `,` `.`: pause, then an accurate seek to the shown picture plus `n` picture lengths, clamped to the first and last pictures |
 | Fullscreen (`F`) | blocked on `:core`: no window fullscreen call exists |
 | Audio track menu | done (ADR-0467): `Track.language` and `title` from `AVStream.metadata` (`av_dict_get`; `AVStream.metadata` and `AVDictionaryEntry` added to the layout probe and check), `MediaPlayer.selectTrack`, `PlayerStatus.audioTrack` and `videoTrack`, and a `select` in the controls for two tracks or more, naming ISO 639-1, 639-2/T and 639-2/B languages. Fixture `tones-two-tracks.mkv`; a switch lands on the new track's sample within Matroska's millisecond |
-| Video track switching | open: refused for now. It needs the frame queue handed from one video thread to the next |
+| Video track switching | done (ADR-0469): `MediaPlayer.selectTrack` takes a video track (not cover art). The demux thread retires the video thread, releases the frame queue's waiters (`FrameQueue.releaseWaiters`, which leaves the queue working, unlike `abort`), starts a new thread on the same frame queue, and seeks accurately to the position, so the old picture stays up until the new track's covering picture replaces it. `media-player` and `media-controls` gain `.media-video-track`; the two track menus share `Transport.trackMenu`. Fixture `clip-two-angles.mkv` (VP9 160×90 "Wide", VP8 96×54 "Close", Opus) |
 | Subtitles | done (ADR-0468): `…media.subtitle` (`Cue`, `Subtitles`: SubRip and WebVTT files, and SubRip, WebVTT, ASS and `mov_text` packets, down to plain lines), `SubtitleTimeline` filled by the demux thread, `MediaPlayer.selectTrack` for a subtitle track, `loadSubtitles`, `hideSubtitles`, `currentSubtitles`, `PlayerStatus.subtitles` (`SubtitleSource`). `media-player` draws the lines; it and `media-controls` have a subtitles menu. Fixture `clip-vp9-subs.mkv` (SubRip `eng`, ASS `fra`); golden `media-player-subtitles`. Bitmap subtitles stay post-v1 |
 
 ## Phases 4–7
@@ -219,9 +250,9 @@ server.
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's |
-| 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | open. Copy-back gives NV12, which CPU present takes, so it does not wait for phase 4; its exit criterion ("4K60 on GPU present") does |
+| 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | done on macOS (ADR-0470), above; its exit criterion's "on GPU present" waits on phase 4, and Linux is opt-in |
 | 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
-| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | nearly: rate, frame step, the audio track menu and subtitles done (below); video track switching open; fullscreen blocked on `:core` |
+| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | done but fullscreen: rate, frame step, both track menus and subtitles done (below); fullscreen blocked on `:core` |
 
 ## Documents kept in step
 
@@ -257,3 +288,7 @@ server.
 | 2026-09-23 | A smaller probe for network sources measured and not kept: compressed audio already opens from 32 KB |
 | 2026-09-23 | Audio track switching and the track menu (ADR-0467); tracks carry their language and title. 321 tests |
 | 2026-09-23 | Text subtitles, read in Java (ADR-0468): tracks and external files, drawn by `media-player`, with a menu. 342 tests |
+| 2026-09-23 | Video track switching over the same frame queue, and a video track menu (ADR-0469). Phase 7 is done but fullscreen. 351 tests |
+| 2026-09-24 | An Xvid/AC-3 AVI reported "Invalid data": no AVI demuxer. The AVI demuxer is built (+17 KB) and unknown containers are named (ADR-0471). A folder of real rips now reports `no decoder for mpeg4, ac3` and `no decoder for h264, aac` |
+| 2026-09-23 | The showcase shows phases 5–7: subtitles, both track menus, speed, picture step, hardware decoding with its switch, and a throttled HTTP sample from a server inside the showcase |
+| 2026-09-23 | Phase 5: hardware decode on VideoToolbox with copy-back, the hardware rung of the ladder, S4 with injected failures (ADR-0470). Two seek races fixed on the way. 364 tests, five full runs green; the committed code before the session, four runs green |

@@ -42,6 +42,15 @@ import io.github.digitalsmile.goldberry.media.VideoPicture;
 /// shown stays on screen until the first picture of the new position replaces
 /// it, which it does whatever its time: a seek shows its target at once rather
 /// than a frame of black.
+///
+/// ## Handed from one video thread to the next
+///
+/// A switch of video track (§6) retires the video thread and starts another on
+/// the same queue. [#releaseWaiters()] ends the retiring thread's wait in
+/// [#obtain] without [#abort()]ing the queue, which is for good. The picture
+/// shown stays up through the switch, and the seek that follows it flushes what
+/// the old track queued, so the new track's first picture replaces the old one's
+/// last, whatever their sizes.
 final class FrameQueue {
 
     /// How many converted pictures may wait for their time.
@@ -104,19 +113,23 @@ final class FrameQueue {
     private int serial;
     private int created;
     private boolean aborted;
+    /// Counts [#releaseWaiters()] calls: a waiting [#obtain] that sees it move
+    /// gives up.
+    private int releases;
 
     /// A buffer for a `width × height` picture of `forSerial`, waiting while the
     /// queue is full or every buffer is in use. While it waits it presents against
     /// `clock` itself, so the queue drains with no view to drain it.
     ///
     /// @return the buffer, or null when the queue was aborted, or flushed to a
-    ///         newer Serial while this waited
+    ///         newer Serial, or its waiters released, while this waited
     @Nullable
     Slot obtain(int width, int height, int forSerial, LongSupplier clock) {
         lock.lock();
         try {
+            var released = releases;
             while (true) {
-                if (aborted || forSerial != serial) {
+                if (aborted || forSerial != serial || released != releases) {
                     return null;
                 }
                 if (queue.size() < CAPACITY) {
@@ -292,6 +305,19 @@ final class FrameQueue {
         lock.lock();
         try {
             return shown == null ? Long.MIN_VALUE : shown.ptsNanos();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /// Ends every [#obtain] waiting now, which returns null, and leaves the queue
+    /// working: the thread that waited is being retired, and the next one uses the
+    /// queue as it is. A later [#obtain] waits as before.
+    void releaseWaiters() {
+        lock.lock();
+        try {
+            releases++;
+            changed.signalAll();
         } finally {
             lock.unlock();
         }

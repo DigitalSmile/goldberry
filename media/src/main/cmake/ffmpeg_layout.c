@@ -31,6 +31,7 @@
 #include <libavformat/avio.h>
 #include <libavutil/avutil.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/hwcontext.h>
 #include <libavutil/pixfmt.h>
 #include <libavutil/samplefmt.h>
 #include <libswresample/version_major.h>
@@ -134,6 +135,13 @@ int main(int argc, char **argv) {
     FIELD(AVCodecContext, pkt_timebase);
     FIELD(AVCodecContext, hw_device_ctx);
 
+    /* Phase 5, hardware decode (ADR-0470): avcodec_get_hw_config hands these
+     * back, one per way a decoder can use a device, and there is no accessor. */
+    STRUCT(AVCodecHWConfig);
+    FIELD(AVCodecHWConfig, pix_fmt);
+    FIELD(AVCodecHWConfig, methods);
+    FIELD(AVCodecHWConfig, device_type);
+
     STRUCT(AVPacket);
     FIELD(AVPacket, pts);
     FIELD(AVPacket, dts);
@@ -231,5 +239,7 @@ int main(int argc, char **argv) {
     CONST("AVSEEK_FLAG_BACKWARD", AVSEEK_FLAG_BACKWARD);
     CONST("AVSEEK_FLAG_ANY", AVSEEK_FLAG_ANY);
     CONST("AVMEDIA_TYPE_DATA", AVMEDIA_TYPE_DATA);
+    CONST("AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX", AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX);
+    CONST("AV_HWDEVICE_TYPE_NONE", AV_HWDEVICE_TYPE_NONE);
     return 0;
 }

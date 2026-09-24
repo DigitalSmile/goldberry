@@ -483,3 +483,6 @@
 - [ADR-0466 A slider marks spans of its range](adr/0466-a-slider-marks-spans-of-its-range.md)
 - [ADR-0467 An audio track is switched by retiring its thread and seeking](adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md)
 - [ADR-0468 Text subtitles are read in Java](adr/0468-text-subtitles-are-read-in-java.md)
+- [ADR-0469 A video track is switched over the same frame queue](adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)
+- [ADR-0470 Hardware decode is a rung of the built-in decoder, copied back](adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)
+- [ADR-0471 AVI is demuxed, and a container with no demuxer is named](adr/0471-avi-is-demuxed-and-an-unknown-container-is-named.md)

@@ -13,7 +13,9 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
+import io.github.digitalsmile.goldberry.media.io.HttpIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
@@ -23,17 +25,22 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 ///
 /// Every sample is reached through a [MediaIOProvider], which is the point: FFmpeg
 /// performs no I/O in Goldberry, so a protocol is something an application
-/// writes in a few lines. Three schemes are served here:
+/// writes in a few lines. Four schemes are served here:
 ///
 /// - `showcase:` is a clip bundled in this jar, read as a seekable stream.
 /// - `live:` is the same clip read **front to back only**, with no length: what
 ///   an internet radio stream looks like to the engine. The player shows `LIVE`
 ///   in place of the seek bar, and the title it says is playing.
+/// - `served:` is a bundled clip fetched over real HTTP from [ShowcaseServer], a
+///   throttled server on the loopback address, through Goldberry's own
+///   [HttpIO], the one behind `http:` and `https:`. So the network path (range
+///   requests, the read-ahead cache, the seek bar's buffered stretches,
+///   BUFFERING) is shown offline.
 /// - `generated:` is bytes made in Java: a chime in a WAV, which this
 ///   application's own [JavaPcmDecoder] plays, and bytes that are not media at
 ///   all.
 ///
-/// `file:` needs no provider; it is built in.
+/// `file:`, `http:` and `https:` need no provider; they are built in.
 public final class ShowcaseMedia implements MediaIOProvider {
 
     /// One entry of the screen's source picker.
@@ -69,12 +76,26 @@ public final class ShowcaseMedia implements MediaIOProvider {
                             + " 48 kHz stereo in the engine's one resampling pass.",
                     showcase("arpeggio.flac")),
             new Sample(
+                    "voices",
+                    "Two voices, one file",
+                    "Two Opus tracks in Matroska audio: the arpeggio, tagged English and titled, and the octave"
+                            + " below it, tagged French. The player grows a track menu that names both by title"
+                            + " and language; switching keeps the position, to the sample.",
+                    showcase("arpeggio-two-voices.mka")),
+            new Sample(
                     "live",
                     "A live stream",
                     "The Opus clip, served with no length and no seeking, the way an internet radio stream"
                             + " arrives. The seek bar gives way to LIVE, and the station's title shows over the"
                             + " controls, as an ICY stream's StreamTitle would.",
                     Source.of(URI.create("live:///arpeggio.opus"))),
+            new Sample(
+                    "served",
+                    "Over HTTP, throttled",
+                    "The Opus clip from an HTTP server inside this application, sent at 64 KB a second:"
+                            + " Goldberry's own HTTP reader, with range requests and a read-ahead cache. The seek"
+                            + " bar shades what has arrived; seek past it and the player buffers, then plays on.",
+                    served("arpeggio.opus")),
             new Sample(
                     "java",
                     "Decoded in Java",
@@ -102,6 +123,27 @@ public final class ShowcaseMedia implements MediaIOProvider {
                             + " above.",
                     showcase("mandelbrot.webm")),
             new Sample(
+                    "subtitled",
+                    "Subtitles: SubRip and ASS",
+                    "The same zoom with two subtitle tracks, SubRip in English and ASS in French, read in"
+                            + " Java and drawn over the picture. Pick one from the player's subtitles menu or the"
+                            + " Subtitles card; the ASS styling is taken down to plain lines.",
+                    showcase("mandelbrot-subtitled.mkv")),
+            new Sample(
+                    "angles",
+                    "Two angles, two voices",
+                    "Two video tracks, the zoom and a Sierpinski carpet at 4:3, over two audio tracks. The"
+                            + " player grows a menu for each; a new angle comes in on the picture that covers the"
+                            + " position, with no black frame between.",
+                    showcase("two-angles.mkv")),
+            new Sample(
+                    "served",
+                    "Over HTTP, throttled",
+                    "The zoom from an HTTP server inside this application, sent at 64 KB a second, a little"
+                            + " faster than it plays. The seek bar shades what has arrived; seek past it and the"
+                            + " player buffers, then plays on.",
+                    served("mandelbrot.webm")),
+            new Sample(
                     "av1",
                     "AV1 in Matroska, no sound",
                     "The Game of Life in AV1, decoded by dav1d, with no audio track: the pictures are timed by"
@@ -114,6 +156,25 @@ public final class ShowcaseMedia implements MediaIOProvider {
                             + " opens and its tracks are listed, and the error names the codec.",
                     showcase("h264-aac.mp4")));
 
+    /// A subtitle file the Video screen's Subtitles card can load beside a source.
+    ///
+    /// @param key    what the card's buttons report
+    /// @param title  what they say
+    /// @param source the file, read through the player's protocols
+    public record SubtitleFile(String key, String title, Source source) {}
+
+    /// The bundled subtitle files: the Mandelbrot clip's cues as SubRip and as
+    /// WebVTT, which the Subtitles card loads over whatever is playing.
+    public static final List<SubtitleFile> SUBTITLE_FILES = List.of(
+            new SubtitleFile("srt", "mandelbrot.srt", showcase("mandelbrot.srt")),
+            new SubtitleFile("vtt", "mandelbrot.vtt", showcase("mandelbrot.vtt")));
+
+    /// Stops what the showcase's protocols started: the local HTTP server, if a
+    /// network sample was played.
+    public static void shutdown() {
+        ShowcaseServer.stopShared();
+    }
+
     /// The Audio screen's player, which the screen and its markup share: every
     /// protocol above, and the Java decoder, which takes PCM only while its switch
     /// is on.
@@ -124,12 +185,14 @@ public final class ShowcaseMedia implements MediaIOProvider {
                 .build();
     }
 
-    /// The Video screen's player: every protocol above, and FFmpeg's decoders
-    /// only.
+    /// The Video screen's player: every protocol above, FFmpeg's decoders only,
+    /// and the GPU's video engine where there is one, which the screen's Hardware
+    /// card switches off and on.
     public static MediaPlayer videoPlayer() {
         return MediaPlayer.builder()
                 .ioProviders(List.of(new ShowcaseMedia()))
                 .decoderProviders(List.of())
+                .hardwareDecoding(HardwareDecoding.AUTO)
                 .build();
     }
 
@@ -140,9 +203,13 @@ public final class ShowcaseMedia implements MediaIOProvider {
         return Source.of(URI.create("showcase:///" + name));
     }
 
+    private static Source served(String name) {
+        return Source.of(URI.create("served:///" + name));
+    }
+
     @Override
     public Set<String> schemes() {
-        return Set.of("showcase", "live", "generated");
+        return Set.of("showcase", "live", "served", "generated");
     }
 
     @Override
@@ -151,6 +218,7 @@ public final class ShowcaseMedia implements MediaIOProvider {
         return switch (source.scheme()) {
             case "showcase" -> new Bytes(resource(name), true);
             case "live" -> new Bytes(resource(name), false);
+            case "served" -> HttpIO.open(Source.of(ShowcaseServer.shared().uri(name)));
             case "generated" -> new Bytes(generated(name), true);
             default -> throw new IOException("not a showcase scheme: " + source.scheme());
         };

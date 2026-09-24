@@ -127,6 +127,13 @@ def checkMediaToolchain = tasks.register('checkMediaToolchain') {
     }
 }
 
+// The hardware decoders (phase 5, ADR-0470): on where they need nothing but the
+// OS (VideoToolbox, D3D11), off on Linux, where VAAPI would make libavutil need
+// libva. -Pgoldberry.media.hwaccel=true|false overrides either way.
+def hwaccel = providers.gradleProperty('goldberry.media.hwaccel')
+        .map { it.toBoolean() }
+        .getOrElse(!hostTargetId.startsWith('linux-'))
+
 def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
     group = 'native'
     description = "Configures the FFmpeg + dav1d superbuild for ${hostTargetId}."
@@ -135,6 +142,7 @@ def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
     inputs.dir superbuildSource
     inputs.file catalogFile
     inputs.property 'targetId', hostTargetId
+    inputs.property 'hwaccel', hwaccel
     outputs.file superbuildWorkDir.map { it.file('CMakeCache.txt') }
 
     def arguments = [
@@ -145,6 +153,7 @@ def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
             "-DCMAKE_INSTALL_PREFIX=${superbuildInstallDir.get().asFile.absolutePath}".toString(),
             "-DGOLDBERRY_TARGET_ID=${hostTargetId}".toString(),
             "-DGOLDBERRY_MEDIA_DEPS_DIR=${depsDir.get().absolutePath}".toString(),
+            "-DGOLDBERRY_MEDIA_HWACCEL=${hwaccel ? 'ON' : 'OFF'}".toString(),
     ]
     // Handed over by path so the superbuild's ExternalProjects run the same
     // executables this build checked, rather than searching a PATH of their own.

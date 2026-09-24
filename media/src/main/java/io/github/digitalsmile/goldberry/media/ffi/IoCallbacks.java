@@ -1,8 +1,11 @@
 package io.github.digitalsmile.goldberry.media.ffi;
 
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.ClosedChannelException;
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
@@ -45,6 +48,10 @@ final class IoCallbacks {
     private final FfmpegConstants constants;
     private volatile boolean aborted;
     private volatile @Nullable IOException failure;
+    /// The source's first bytes, as FFmpeg read them, for naming a container
+    /// no demuxer recognised ([ContainerSniffer]).
+    private final byte[] head = new byte[ContainerSniffer.HEAD_BYTES];
+    private int headLength;
 
     IoCallbacks(MediaIO io, FfmpegConstants constants) {
         this.io = Objects.requireNonNull(io, "io");
@@ -65,10 +72,13 @@ final class IoCallbacks {
             return constants.averrorExit();
         }
         try {
-            var target = buffer.reinterpret(size).asByteBuffer();
+            var segment = buffer.reinterpret(size);
+            var target = segment.asByteBuffer();
+            var at = io.position();
             for (var attempt = 0; attempt < EMPTY_READ_RETRIES; attempt++) {
                 var read = io.read(target);
                 if (read > 0) {
+                    keepHead(at, segment, read);
                     return read;
                 }
                 if (read < 0) {
@@ -130,6 +140,22 @@ final class IoCallbacks {
         } catch (RuntimeException | Error e) {
             return fail(new IOException(e));
         }
+    }
+
+    /// Keeps what a read from `at` brought in, when it continues the source's first
+    /// bytes. Reads elsewhere (a probe that seeks to the end) are not the head.
+    private void keepHead(long at, MemorySegment segment, int read) {
+        if (headLength < head.length && at == headLength) {
+            var count = Math.min(read, head.length - headLength);
+            MemorySegment.copy(segment, JAVA_BYTE, 0, head, headLength, count);
+            headLength += count;
+        }
+    }
+
+    /// The source's first bytes as far as FFmpeg read them, up to
+    /// [ContainerSniffer#HEAD_BYTES].
+    byte[] head() {
+        return Arrays.copyOf(head, headLength);
     }
 
     /// Makes every pending and future callback answer `AVERROR_EXIT`, and closes

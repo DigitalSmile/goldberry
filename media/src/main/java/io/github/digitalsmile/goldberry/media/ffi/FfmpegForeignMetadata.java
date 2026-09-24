@@ -40,9 +40,10 @@ public final class FfmpegForeignMetadata {
     static final List<Class<?>> CALLS = List.of(
             AvUtilCalls.class, AvFormatCalls.class, AvCodecCalls.class, SwResampleCalls.class, SwScaleCalls.class);
 
-    /// Every upcall shape: the two `AVIOContext` callbacks. `get_format` joins in
-    /// phase 5.
-    static final List<FunctionDescriptor> UPCALLS = List.of(AvioBridge.READ_PACKET, AvioBridge.SEEK);
+    /// Every upcall shape: the two `AVIOContext` callbacks, and the hardware
+    /// decoder's `get_format` (phase 5).
+    static final List<FunctionDescriptor> UPCALLS =
+            List.of(AvioBridge.READ_PACKET, AvioBridge.SEEK, HardwareDecoder.GET_FORMAT);
 
     private FfmpegForeignMetadata() {}
 

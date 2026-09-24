@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,27 @@ class IoCallbacksTest {
     @Nested
     @DisplayName("read_packet")
     class Read {
+
+        @Test
+        @DisplayName("keeps the source's first bytes for naming its container, and not what is read after a seek")
+        void keepsTheHead() throws Exception {
+            var data = new byte[ContainerSniffer.HEAD_BYTES + 100];
+            for (var i = 0; i < data.length; i++) {
+                data[i] = (byte) i;
+            }
+            var io = new MemoryIO(data);
+            var callbacks = new IoCallbacks(io, C);
+            var buffer = buffer(600);
+            assertEquals(600, callbacks.read(MemorySegment.NULL, buffer, 600));
+            assertArrayEquals(Arrays.copyOf(data, 600), callbacks.head());
+            // A probe that looks at the end is not the head.
+            callbacks.seek(MemorySegment.NULL, 900, IoCallbacks.SEEK_SET);
+            callbacks.read(MemorySegment.NULL, buffer, 100);
+            assertEquals(600, callbacks.head().length);
+            callbacks.seek(MemorySegment.NULL, 600, IoCallbacks.SEEK_SET);
+            callbacks.read(MemorySegment.NULL, buffer, 600);
+            assertArrayEquals(Arrays.copyOf(data, ContainerSniffer.HEAD_BYTES), callbacks.head(), "capped");
+        }
 
         @Test
         @DisplayName("copies into FFmpeg's buffer and answers the count, then AVERROR_EOF")

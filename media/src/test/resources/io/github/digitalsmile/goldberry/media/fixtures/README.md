@@ -26,5 +26,10 @@ is our own content and carries no third-party licence:
 | `clip-vp9-444.webm` | WebM | VP9 profile 1 (4:4:4), 0.2 s, silent | the built-in decoder's conversion to I420 |
 | `clip-vp9-10bit.webm` | WebM | VP9 profile 2 (10-bit 4:2:0), 0.2 s, silent | I010, and video with no audio on the free-running clock |
 | `tones-two-tracks.mkv` | Matroska | FLAC twice: 440 Hz tagged `eng` and titled "Concert pitch", 880 Hz tagged `fra`; two seconds each | track selection: a switch lands on the new track's sample, and a track menu's labels |
+| `clip-two-angles.mkv` | Matroska | VP9 `testsrc2` at 160×90 titled "Wide" (default), VP8 SMPTE bars at 96×54 titled "Close", Opus tone; one second | video track switching: which track shows is the picture's size |
 | `clip-vp9-subs.mkv` | Matroska | the VP9 of `clip-vp9.webm`, a SubRip track tagged `eng` (two cues, one in `<i>`), an ASS track tagged `fra` (one cue with `{\i1}` overrides and a `\N` break) | subtitles: a track's cues at their times, markup taken out |
 | `clip-h264-aac.mp4` | MP4 | H.264, AAC | S7: opens, and reports `UNSUPPORTED_CODEC` |
+| `clip-xvid-ac3.avi` | AVI | MPEG-4 Part 2 (`XVID`), AC-3; 0.2 s | ADR-0471: an AVI rip opens and names both codecs |
+| `tone-mp3.avi` | AVI | MP3 | the AVI demuxer plays what the build decodes |
+| `clip-mpeg2.ts` | MPEG-TS | MPEG-2 video, MP2; 0.2 s | ADR-0471: no demuxer, named `MPEG-TS` from its sync bytes |
+| `clip-flv1.flv` | FLV | Sorenson H.263; 0.2 s | ADR-0471: no demuxer, named `FLV` |

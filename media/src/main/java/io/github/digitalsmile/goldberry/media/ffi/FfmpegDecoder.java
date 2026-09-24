@@ -49,8 +49,18 @@ import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
 /// matrix tag is BT.709 from 720 rows up and BT.601 below, the convention every
 /// player follows for untagged video.
 ///
-/// Video decoders are opened with FFmpeg's automatic thread count, one per core.
-/// That changes when frames arrive and never what is in them.
+/// **Hardware** (phase 5, ADR-0470). Opened with a [Hardware] that is enabled,
+/// a video decoder decodes on the platform's device where it can
+/// ([HardwareDecoder]), and every picture is copied back to system memory and
+/// lent like a software one. On the hardware path a failure is thrown as an
+/// [FfmpegException] and not as a [MediaException], so the Engine's fallback
+/// ladder reopens the track in software rather than failing the playback. A
+/// failure before the first hardware picture also tells the [Hardware] that
+/// this device cannot decode this codec.
+///
+/// Video decoders are opened with FFmpeg's automatic thread count, one per core,
+/// and with one thread on a device, which does the work itself. That changes
+/// when frames arrive and never what is in them.
 public final class FfmpegDecoder implements Decoder {
 
     /// Rows of the fallback conversion's planes start on this boundary, which is
@@ -63,7 +73,14 @@ public final class FfmpegDecoder implements Decoder {
     private final MemorySegment frame;
     private final Rational timeBase;
     private final boolean video;
+    private final @Nullable HardwareDecoder hardware;
+    /// What [#describe()] answers when the pictures come from the device.
+    private final String hardwareName;
     private final Arena arena = Arena.ofShared();
+    /// Whether the last picture was decoded on the device, and whether any was.
+    /// The first starts true on a device, until a picture says otherwise.
+    private boolean hardwareFrames;
+    private boolean producedHardwareFrame;
     private @Nullable VideoConverter converter;
     private MemorySegment converted = MemorySegment.NULL;
     private boolean closed;
@@ -74,13 +91,35 @@ public final class FfmpegDecoder implements Decoder {
             MemorySegment packet,
             MemorySegment frame,
             Rational timeBase,
-            boolean video) {
+            boolean video,
+            @Nullable HardwareDecoder hardware) {
         this.ffmpeg = ffmpeg;
         this.context = context;
         this.packet = packet;
         this.frame = frame;
         this.timeBase = timeBase;
         this.video = video;
+        this.hardware = hardware;
+        this.hardwareName = hardware == null ? Decoders.BUILT_IN : describe(hardware.deviceName());
+        this.hardwareFrames = hardware != null;
+    }
+
+    /// The name a decoder decoding on `deviceName` goes by: `ffmpeg
+    /// (videotoolbox)`.
+    static String describe(String deviceName) {
+        return Decoders.BUILT_IN + " (" + deviceName + ")";
+    }
+
+    /// Whether codec `parameters` is video with a hardware path in this build for
+    /// one of `policy`'s device types: whether the ladder has a hardware rung for
+    /// it. That it failed before does not remove the rung, so the rungs stay put
+    /// between the first open and a fallback. The rung then opens in software.
+    /// Nothing is opened.
+    static boolean hardwareCandidate(Ffmpeg ffmpeg, MemorySegment parameters, Hardware policy) {
+        return policy.enabled()
+                && AvCodecParametersView.codecType(parameters)
+                        == ffmpeg.constants().mediaTypeVideo()
+                && HardwareDecoder.choose(ffmpeg, AvCodecParametersView.codecId(parameters), policy, false) != null;
     }
 
     /// Whether this build has a decoder for the codec `parameters` describe.
@@ -98,13 +137,30 @@ public final class FfmpegDecoder implements Decoder {
     ///                        decoder for it, and [MediaError.InvalidData] when the
     ///                        decoder refuses the parameters
     static FfmpegDecoder open(Ffmpeg ffmpeg, MemorySegment parameters, Rational timeBase) {
+        return open(ffmpeg, parameters, timeBase, Hardware.OFF);
+    }
+
+    /// Opens a decoder for the stream `parameters` describe, on a device of
+    /// `policy`'s when it is video and one opens, and in software otherwise.
+    ///
+    /// @throws MediaException as [#open(Ffmpeg, MemorySegment, Rational)]
+    static FfmpegDecoder open(Ffmpeg ffmpeg, MemorySegment parameters, Rational timeBase, Hardware policy) {
         var codecId = AvCodecParametersView.codecId(parameters);
-        var codec = ffmpeg.codec().findDecoder().call(codecId);
+        var isVideo = AvCodecParametersView.codecType(parameters)
+                == ffmpeg.constants().mediaTypeVideo();
+        var choice = isVideo && policy.enabled() ? HardwareDecoder.choose(ffmpeg, codecId, policy, true) : null;
+        var hardware = choice == null ? null : HardwareDecoder.open(ffmpeg, policy, choice);
+        var codec = hardware != null
+                ? hardware.codec()
+                : ffmpeg.codec().findDecoder().call(codecId);
         if (codec.equals(MemorySegment.NULL)) {
             throw new MediaException(new MediaError.UnsupportedCodec(List.of(ffmpeg.codecName(codecId))));
         }
         var context = ffmpeg.codec().allocContext3().call(codec);
         if (context.equals(MemorySegment.NULL)) {
+            if (hardware != null) {
+                hardware.close();
+            }
             throw new OutOfMemoryError("avcodec_alloc_context3 failed");
         }
         var packet = MemorySegment.NULL;
@@ -116,29 +172,33 @@ public final class FfmpegDecoder implements Decoder {
                     ffmpeg.codec().parametersToContext().call(context, parameters));
             var view = AvCodecContextView.of(context);
             AvCodecContextView.packetTimeBase(view, timeBase);
-            var video = AvCodecParametersView.codecType(parameters)
-                    == ffmpeg.constants().mediaTypeVideo();
-            if (video) {
+            if (hardware != null) {
+                hardware.attachTo(view);
+                AvCodecContextView.threadCount(view, 1);
+            } else if (isVideo) {
                 AvCodecContextView.threadCount(view, 0);
             }
-            check(ffmpeg, "avcodec_open2", ffmpeg.codec().open2().call(context, codec, MemorySegment.NULL));
+            var opened = ffmpeg.codec().open2().call(context, codec, MemorySegment.NULL);
+            if (opened < 0 && hardware != null) {
+                hardware.markFailed();
+                throw new FfmpegException("avcodec_open2", opened, ffmpeg.describe(opened));
+            }
+            check(ffmpeg, "avcodec_open2", opened);
             packet = ffmpeg.codec().packetAlloc().call();
             frame = ffmpeg.util().frameAlloc().call();
             if (packet.equals(MemorySegment.NULL) || frame.equals(MemorySegment.NULL)) {
                 throw new OutOfMemoryError("av_packet_alloc or av_frame_alloc failed");
             }
             return new FfmpegDecoder(
-                    ffmpeg,
-                    context,
-                    AvPacketView.of(packet),
-                    AvFrameView.of(frame),
-                    timeBase,
-                    AvCodecParametersView.codecType(parameters)
-                            == ffmpeg.constants().mediaTypeVideo());
+                    ffmpeg, context, AvPacketView.of(packet), AvFrameView.of(frame), timeBase, isVideo, hardware);
         } catch (RuntimeException | Error e) {
             Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
             Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
             Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
+            // After the context: it may still call the stub while it is freed.
+            if (hardware != null) {
+                hardware.close();
+            }
             throw e;
         }
     }
@@ -170,7 +230,7 @@ public final class FfmpegDecoder implements Decoder {
         if (result == ffmpeg.constants().averrorEagain()) {
             return false;
         }
-        check(ffmpeg, "avcodec_send_packet", result);
+        checkDecode("avcodec_send_packet", result);
         return true;
     }
 
@@ -180,7 +240,7 @@ public final class FfmpegDecoder implements Decoder {
         var result = ffmpeg.codec().sendPacket().call(context, MemorySegment.NULL);
         // EOF: already draining. Sending the end twice is not an error here.
         if (result != ffmpeg.constants().averrorEof()) {
-            check(ffmpeg, "avcodec_send_packet", result);
+            checkDecode("avcodec_send_packet", result);
         }
     }
 
@@ -196,8 +256,54 @@ public final class FfmpegDecoder implements Decoder {
         if (result == constants.averrorEof()) {
             return Received.ENDED;
         }
-        check(ffmpeg, "avcodec_receive_frame", result);
-        return new Received.Decoded(video ? videoFrame() : audioFrame());
+        checkDecode("avcodec_receive_frame", result);
+        return new Received.Decoded(video ? videoFrame(pictureSource()) : audioFrame());
+    }
+
+    /// What this decoder is: [Decoders#BUILT_IN], or `ffmpeg (videotoolbox)` and
+    /// the like while it decodes on a device. It can change after a picture, when
+    /// the device declines the stream and FFmpeg decodes it in software instead.
+    public String describe() {
+        return hardwareFrames ? hardwareName : Decoders.BUILT_IN;
+    }
+
+    /// The frame to lend the picture from: the decoded one, or its copy in system
+    /// memory when it is a surface on the device.
+    private MemorySegment pictureSource() {
+        var device = hardware;
+        if (device == null) {
+            return frame;
+        }
+        if (device.isHardwareFrame(frame)) {
+            var copied = device.copyBack(frame);
+            hardwareFrames = true;
+            producedHardwareFrame = true;
+            return copied;
+        }
+        // The device declined the stream, and FFmpeg decodes it in software: the
+        // next decoder of this codec need not try the device.
+        if (!producedHardwareFrame && !device.negotiated()) {
+            device.markFailed();
+        }
+        hardwareFrames = false;
+        return frame;
+    }
+
+    /// [#check] for the decode calls: on the device a failure is the fallback
+    /// ladder's to handle, so it is an [FfmpegException], and one before the first
+    /// hardware picture means the device cannot decode this codec.
+    private void checkDecode(String function, int result) {
+        if (result >= 0) {
+            return;
+        }
+        var device = hardware;
+        if (device != null) {
+            if (!producedHardwareFrame) {
+                device.markFailed();
+            }
+            throw new FfmpegException(function, result, ffmpeg.describe(result));
+        }
+        check(ffmpeg, function, result);
     }
 
     @Override
@@ -216,13 +322,17 @@ public final class FfmpegDecoder implements Decoder {
         Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
         Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
         Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
+        // After the context, which may call the stub while it is freed.
+        if (hardware != null) {
+            hardware.close();
+        }
         if (converter != null) {
             converter.close();
         }
         arena.close();
     }
 
-    private VideoFrame videoFrame() {
+    private VideoFrame videoFrame(MemorySegment frame) {
         var video = ffmpeg.constants().video();
         var width = AvFrameView.width(frame);
         var height = AvFrameView.height(frame);
@@ -230,9 +340,9 @@ public final class FfmpegDecoder implements Decoder {
         var matrix = video.matrix(AvFrameView.colorSpace(frame))
                 .orElse(height >= 720 ? VideoFrame.ColorMatrix.BT709 : VideoFrame.ColorMatrix.BT601);
         var fullRange = AvFrameView.colorRange(frame) == video.rangeJpeg();
-        var pts = ptsNanos();
+        var pts = ptsNanos(frame);
         var format = video.pixelFormat(avFormat);
-        if (format.isPresent() && lendable(format.get())) {
+        if (format.isPresent() && lendable(frame, format.get())) {
             var planes = new ArrayList<MemorySegment>(format.get().planes());
             var strides = new ArrayList<Integer>(format.get().planes());
             for (var plane = 0; plane < format.get().planes(); plane++) {
@@ -244,13 +354,13 @@ public final class FfmpegDecoder implements Decoder {
             }
             return new VideoFrame(format.get(), width, height, planes, strides, matrix, fullRange, pts);
         }
-        return convertedFrame(avFormat, width, height, matrix, fullRange, pts);
+        return convertedFrame(frame, avFormat, width, height, matrix, fullRange, pts);
     }
 
     /// Whether the `AVFrame` can be lent as `format`: every plane there, and rows
     /// that run downwards. A negative line size is a bottom-up picture, which the
     /// contract has no way to say.
-    private boolean lendable(PixelFormat format) {
+    private static boolean lendable(MemorySegment frame, PixelFormat format) {
         for (var plane = 0; plane < format.planes(); plane++) {
             if (AvFrameView.lineSize(frame, plane) <= 0
                     || AvFrameView.data(frame, plane).equals(MemorySegment.NULL)) {
@@ -263,7 +373,13 @@ public final class FfmpegDecoder implements Decoder {
     /// A picture outside the contract, converted to I420 in this decoder's own
     /// buffer, which the next call overwrites exactly as it would a lent frame.
     private VideoFrame convertedFrame(
-            int avFormat, int width, int height, VideoFrame.ColorMatrix matrix, boolean fullRange, long pts) {
+            MemorySegment frame,
+            int avFormat,
+            int width,
+            int height,
+            VideoFrame.ColorMatrix matrix,
+            boolean fullRange,
+            long pts) {
         if (ffmpeg.pixelFormatName(avFormat).isEmpty()) {
             throw new MediaException(new MediaError.InvalidData(
                     "the decoder produced pixel format #" + avFormat + ", which this build does not know"));
@@ -315,7 +431,7 @@ public final class FfmpegDecoder implements Decoder {
 
     /// The frame's presentation time, falling back to its packet's decode time
     /// when the decoder left the presentation time unset.
-    private long ptsNanos() {
+    private long ptsNanos(MemorySegment frame) {
         var noPts = ffmpeg.constants().noPtsValue();
         var pts = AvFrameView.pts(frame);
         if (pts == noPts) {

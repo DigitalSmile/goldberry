@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.media.audio.SdlAudioSink;
 import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.engine.Playback;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
+import io.github.digitalsmile.goldberry.media.ffi.Hardware;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
 import io.github.digitalsmile.goldberry.media.subtitle.Cue;
@@ -52,6 +53,7 @@ public final class MediaPlayer implements AutoCloseable {
     private final Duration highWaterMark;
     private final List<DecoderProvider> decoderProviders;
     private final @Nullable List<MediaIOProvider> ioProviders;
+    private volatile HardwareDecoding hardwareDecoding;
     private final CopyOnWriteArrayList<Consumer<PlayerStatus>> listeners = new CopyOnWriteArrayList<>();
     private final Object lock = new Object();
     private @Nullable Playback playback;
@@ -71,6 +73,7 @@ public final class MediaPlayer implements AutoCloseable {
                         .map(ServiceLoader.Provider::get)
                         .toList();
         this.ioProviders = builder.ioProviders == null ? null : List.copyOf(builder.ioProviders);
+        this.hardwareDecoding = builder.hardwareDecoding;
     }
 
     /// A builder. The sink defaults to [SdlAudioSink], the default playback
@@ -105,6 +108,7 @@ public final class MediaPlayer implements AutoCloseable {
                     source,
                     ioProviders,
                     decoderProviders,
+                    Hardware.of(hardwareDecoding),
                     newSink,
                     clock,
                     highWaterMark.toNanos(),
@@ -195,18 +199,36 @@ public final class MediaPlayer implements AutoCloseable {
         publish();
     }
 
-    /// Plays `track`, one of the source's audio tracks, in place of the one
-    /// playing, from where playback is: a track menu's choice
+    /// Whether the built-in decoder may decode video on the platform's video
+    /// engine: what [Builder#hardwareDecoding] set, or [#setHardwareDecoding].
+    public HardwareDecoding hardwareDecoding() {
+        return hardwareDecoding;
+    }
+
+    /// Decodes video on the platform's video engine, or not, **from the next
+    /// source opened** (ADR-0470): the decoder of the source playing now is
+    /// already chosen. To apply it at once, open the same source again and seek
+    /// to where it was.
+    public void setHardwareDecoding(HardwareDecoding mode) {
+        this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
+    }
+
+    /// Plays `track`, one of the source's audio or video tracks, in place of the
+    /// one of its kind playing, from where playback is: a track menu's choice
     /// (`docs/goldberry-media.md` §6). Returns at once; the switch happens on the
-    /// Engine's threads, and [PlayerStatus#audioTrack()] says when it has. A track
-    /// with no decoder is refused there, and the playing one plays on.
+    /// Engine's threads, and [PlayerStatus#audioTrack()] or
+    /// [PlayerStatus#videoTrack()] says when it has. A track with no decoder is
+    /// refused there, and the playing one plays on. A new video track comes in on
+    /// the picture that covers the position; until it does, the old track's last
+    /// picture stays up.
     ///
     /// A subtitle track is shown in place of whatever subtitles show, and
     /// [PlayerStatus#subtitles()] says so. Only text subtitles have cues (SubRip,
     /// WebVTT, ASS, MP4 text); a bitmap track shows nothing.
     ///
-    /// @throws IllegalArgumentException when `track` is not an audio or subtitle
-    ///                                  track of the open source
+    /// @throws IllegalArgumentException when `track` is not an audio, video or
+    ///                                  subtitle track of the open source, or is
+    ///                                  its cover art
     /// @throws IllegalStateException    when nothing is open
     public void selectTrack(Track track) {
         current()
@@ -378,6 +400,7 @@ public final class MediaPlayer implements AutoCloseable {
         private Duration highWaterMark = Duration.ofNanos(Playback.HIGH_WATER_NANOS);
         private @Nullable List<? extends DecoderProvider> decoderProviders;
         private @Nullable List<? extends MediaIOProvider> ioProviders;
+        private HardwareDecoding hardwareDecoding = HardwareDecoding.AUTO;
 
         private Builder() {}
 
@@ -413,6 +436,16 @@ public final class MediaPlayer implements AutoCloseable {
         /// finds.
         public Builder decoderProviders(List<? extends DecoderProvider> providers) {
             this.decoderProviders = List.copyOf(providers);
+            return this;
+        }
+
+        /// Whether the built-in decoder may decode video on the platform's video
+        /// engine (§3, "Fallback ladder"; ADR-0470). [HardwareDecoding#AUTO]
+        /// unless set: every failure on the device falls back to software without
+        /// the application seeing it. [HardwareDecoding#OFF] is for tests that
+        /// compare pictures byte for byte.
+        public Builder hardwareDecoding(HardwareDecoding mode) {
+            this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
             return this;
         }
 

@@ -115,6 +115,12 @@ public record FfmpegConstants(
     /// @param swsCsItu601       `SWS_CS_ITU601`
     /// @param swsCsItu709       `SWS_CS_ITU709`
     /// @param swsCsBt2020       `SWS_CS_BT2020`
+    /// @param hwConfigMethodHwDeviceCtx `AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX`:
+    ///                          the decoder takes a device in `hw_device_ctx`, the
+    ///                          one way hardware decode is set up here
+    /// @param hwDeviceTypeNone  `AV_HWDEVICE_TYPE_NONE`: what
+    ///                          `av_hwdevice_find_type_by_name` answers for a name
+    ///                          it does not know
     public record Video(
             int pixFmtNone,
             int pixFmtYuv420p,
@@ -135,7 +141,9 @@ public record FfmpegConstants(
             int swsFullChrHInt,
             int swsCsItu601,
             int swsCsItu709,
-            int swsCsBt2020) {
+            int swsCsBt2020,
+            int hwConfigMethodHwDeviceCtx,
+            int hwDeviceTypeNone) {
 
         /// FFmpeg's `AVPixelFormat` for a frame-contract format.
         public int avPixelFormat(PixelFormat format) {
@@ -252,7 +260,9 @@ public record FfmpegConstants(
                         read.integer("SWS_FULL_CHR_H_INT"),
                         read.integer("SWS_CS_ITU601"),
                         read.integer("SWS_CS_ITU709"),
-                        read.integer("SWS_CS_BT2020")));
+                        read.integer("SWS_CS_BT2020"),
+                        read.integer("AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX"),
+                        read.integer("AV_HWDEVICE_TYPE_NONE")));
         if (!read.missing.isEmpty()) {
             throw new IllegalArgumentException("the layout file does not report " + read.missing);
         }

@@ -22,13 +22,20 @@ import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 /// to open is logged and passed over: the first rung of the fallback ladder
 /// ("provider → next provider → built-in").
 ///
+/// The built-in decoders are two rungs when hardware decode is on and the codec
+/// has a hardware path (phase 5, ADR-0470): FFmpeg on the device, then FFmpeg in
+/// software. A mid-stream failure on the device walks one rung down, like a
+/// provider's.
+///
 /// Nothing supports it → [MediaError.UnsupportedCodec], naming the codec.
 public final class Decoders {
 
     /// What [#open] chose.
     ///
     /// @param decoder  the open decoder, which the caller closes
-    /// @param provider the provider's [DecoderProvider#name], or [#BUILT_IN]
+    /// @param provider the provider's [DecoderProvider#name], or [#BUILT_IN], or
+    ///                 `ffmpeg (videotoolbox)` and the like for the built-in
+    ///                 decoder on a device
     public record Resolved(Decoder decoder, String provider) {
         public Resolved {
             Objects.requireNonNull(decoder, "decoder");
@@ -62,16 +69,29 @@ public final class Decoders {
         return FfmpegDecoder.supports(ffmpeg, demuxer.codecParameters(stream));
     }
 
+    /// Opens a decoder for `stream` of `demuxer`, in software for the built-in
+    /// decoders.
+    public static Resolved open(
+            Ffmpeg ffmpeg, Demuxer demuxer, int stream, List<? extends DecoderProvider> providers, int skip) {
+        return open(ffmpeg, demuxer, stream, providers, Hardware.OFF, skip);
+    }
+
     /// Opens a decoder for `stream` of `demuxer`.
     ///
     /// @param providers the providers to ask, in any order; they are sorted here
+    /// @param hardware  whether the built-in decoder tries a device first
     /// @param skip      how many candidates that would open to pass over: 0 for the
     ///                  first open, and one more for each decoder that has failed
     ///                  mid-stream on this track, which walks the fallback ladder
     /// @throws MediaException [MediaError.UnsupportedCodec] when no candidate is
     ///                        left
     public static Resolved open(
-            Ffmpeg ffmpeg, Demuxer demuxer, int stream, List<? extends DecoderProvider> providers, int skip) {
+            Ffmpeg ffmpeg,
+            Demuxer demuxer,
+            int stream,
+            List<? extends DecoderProvider> providers,
+            Hardware hardware,
+            int skip) {
         var request = demuxer.request(stream);
         var ordered = new ArrayList<DecoderProvider>(providers);
         ordered.sort(Comparator.comparingInt(DecoderProvider::priority).reversed());
@@ -107,6 +127,23 @@ public final class Decoders {
             }
         }
         var parameters = demuxer.codecParameters(stream);
+        if (FfmpegDecoder.hardwareCandidate(ffmpeg, parameters, hardware)) {
+            if (remaining == 0) {
+                // A device that will not open is software already, and says so. One
+                // that opens and fails to start the decoder is the next rung's.
+                try {
+                    var decoder = FfmpegDecoder.open(ffmpeg, parameters, demuxer.timeBase(stream), hardware);
+                    return new Resolved(decoder, decoder.describe());
+                } catch (FfmpegException e) {
+                    LOG.info(
+                            "the hardware decoder for {} did not start ({}); decoding in software",
+                            request.codecName(),
+                            e.getMessage());
+                }
+            } else {
+                remaining--;
+            }
+        }
         if (remaining == 0 && FfmpegDecoder.supports(ffmpeg, parameters)) {
             return new Resolved(FfmpegDecoder.open(ffmpeg, parameters, demuxer.timeBase(stream)), BUILT_IN);
         }

@@ -34,7 +34,7 @@ Libraries: `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`. Not built: 
 --disable-everything --disable-programs --disable-doc --disable-network
 --disable-avdevice --disable-avfilter --disable-autodetect
 --enable-shared --disable-static
---enable-demuxer=matroska,mov,ogg,flac,mp3,wav,srt,webvtt,ass
+--enable-demuxer=matroska,mov,avi,ogg,flac,mp3,wav,srt,webvtt,ass
 --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,
                  pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
 --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio
@@ -42,7 +42,7 @@ Libraries: `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`. Not built: 
 --enable-libdav1d
 ```
 
-Codec policy: royalty-free or patent-expired only. **Not built, by decision:** H.264, HEVC, AAC, AC-3/E-AC-3, MPEG-2/4, MPEG-TS demuxer. The `mov` demuxer stays because MP4 legitimately carries AV1/VP9/Opus/FLAC; an MP4 with H.264/AAC opens, and the Engine reports `UNSUPPORTED_CODEC` naming the codec.
+Codec policy: royalty-free or patent-expired only. **Not built, by decision:** H.264, HEVC, AAC, AC-3/E-AC-3, MPEG-2/4, MPEG-TS demuxer. The `mov` demuxer stays because MP4 legitimately carries AV1/VP9/Opus/FLAC; an MP4 with H.264/AAC opens, and the Engine reports `UNSUPPORTED_CODEC` naming the codec. The `avi` demuxer is built for the same reason (ADR-0471): an Xvid and AC-3 rip opens and reports `no decoder for mpeg4, ac3`. A container with no demuxer in the build (MPEG-TS, FLV, ASF, …) is recognised from its first bytes and reported as `UnsupportedContainer`, not as invalid data.
 
 | Platform | HW decode |
 |---|---|
@@ -51,6 +51,8 @@ Codec policy: royalty-free or patent-expired only. **Not built, by decision:** H
 | Linux | `--enable-vaapi`, hwaccels `{vp8,vp9,av1}_vaapi` |
 
 FFmpeg's native `av1` decoder is hwaccel-only; dav1d is the software AV1 path and, given how recent AV1 hardware is, the common one.
+
+As built (ADR-0470): on by default on macOS and Windows, where the hwaccel needs only the OS. Off by default on Linux, because VAAPI makes `libavutil` link `libva`, and a machine without it could not load FFmpeg at all; `-Pgoldberry.media.hwaccel=true` builds it. The hardware rung chooses its own decoder, the first with a `HW_DEVICE_CTX` configuration for the device type, which for AV1 is FFmpeg's `av1` and not `libdav1d`.
 
 No TLS library on any platform: HTTPS is the JDK's (§4).
 
@@ -72,6 +74,7 @@ Struct access is the risk, so it is minimised. Rule: use accessor functions (`av
 | `AVStream` | `index`, `codecpar`, `time_base`, `duration`, `disposition`, `discard`, `attached_pic` |
 | `AVCodecParameters` | `codec_type`, `codec_id`, `extradata`, `extradata_size`, `width`, `height`, `format`, `profile`, `level`, `bit_rate`, `sample_rate`, `ch_layout`, `color_*`, `chroma_location` |
 | `AVCodecContext` | `opaque`, `get_format`, `hw_device_ctx`, `pix_fmt`, `sample_fmt`, `pkt_timebase`, `thread_count`, `flags`, `codec_id` |
+| `AVCodecHWConfig` | `pix_fmt`, `methods`, `device_type`: what `avcodec_get_hw_config` lists, with no accessor (phase 5) |
 | `AVPacket` | `data`, `size`, `pts`, `dts`, `duration`, `stream_index`, `flags` |
 | `AVFrame` | `data[]`, `linesize[]`, `width`, `height`, `nb_samples`, `format`, `pts`, `pkt_dts`, `duration`, `flags`, `hw_frames_ctx`, `color_*`, `chroma_location`, `sample_rate`, `ch_layout` |
 | `AVIOContext` | `buffer` only, to free it: `avio_alloc_context` may replace the buffer it was handed, so the one to free is the context's own |
@@ -101,6 +104,8 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 - CPU present: swscale → PRGB32 → `BLImage`. Used by the CPU/headless backend and by all golden tests. Converted with `SWS_BITEXACT | SWS_ACCURATE_RND` at the decoded size, so the bytes are the same on every CPU; the blit scales.
 
 **Fallback ladder.** `hw-decode: auto|off`. HW device creation fails → software. Copy-back fails mid-stream → reopen codec in software, resume from last keyframe. GPU canvas unavailable → CPU present.
+
+As built (ADR-0470): `MediaPlayer.Builder.hardwareDecoding(HardwareDecoding.AUTO | OFF)`, `AUTO` by default. The ladder is *providers → FFmpeg on the device → FFmpeg in software*. Every hardware frame is copied back (NV12, P010 for 10-bit) and presented as a software one. On the device, any failure of send, receive, copy-back or the final drain is thrown for the ladder rather than as a playback error. The video thread opens the next rung, drops the queued packets, and makes an accurate seek to the position, or to the last seek's target when no picture has shown since, so a device that cannot decode the codec (AV1 on an M1) costs the first packet and nothing heard. A codec and device type that failed before a picture are remembered for the rest of the process. The decoder's name follows what it does: `ffmpeg (videotoolbox)` on the device, `ffmpeg` in software. A seek the Engine makes for itself (a track switch, a subtitle track, a fallback) never replaces one the application asked for.
 
 **State.** `IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED`, `ERROR` from any state. Observable properties: `position`, `duration`, `bufferedAhead`, `volume`, `muted`, `rate`, `tracks`, `selectedTracks`, `videoSize`, `isLive`, `isSeekable`, `bufferedRanges`, `nowPlaying` (ICY), `error` (incl. `UNSUPPORTED_CODEC` with codec name).
 
@@ -178,7 +183,9 @@ I/O has the same shape already: a custom `MediaIO` registered for a URL scheme a
 
 Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start, `,` `.` a picture back and on (pausing), `<` `>` slower and faster through 0.25–2; *F fullscreen waits for a window fullscreen call in `:core`, which has none yet*. The rate shows as `.media-rate` beside the times when it is not 1. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
 
-Audio track menu, as built (ADR-0467): a `select` of the audio tracks (`.media-audio-track`), for a source with two or more, labelled by title and language (`Track.title`, `Track.language` from the stream's metadata). Choosing one is `MediaPlayer.selectTrack`: the demux thread retires the audio thread, starts one on the new track and seeks accurately to the position. Video track switching is not built.
+Audio track menu, as built (ADR-0467): a `select` of the audio tracks (`.media-audio-track`), for a source with two or more, labelled by title and language (`Track.title`, `Track.language` from the stream's metadata). Choosing one is `MediaPlayer.selectTrack`: the demux thread retires the audio thread, starts one on the new track and seeks accurately to the position.
+
+Video track menu, as built (ADR-0469): the same for video tracks (`.media-video-track`), in `media-player` and `media-controls` only, cover art never offered. The demux thread retires the video thread, releases the frame queue's waiters, starts a new thread on the **same** frame queue and seeks accurately to the position, so the old track's last picture stays up until the new track's picture covering the position replaces it.
 
 Subtitles: text formats decode to ASS events → tags stripped → drawn by Goldberry's text stack as an overlay. External `.srt` / `.vtt`. Bitmap subtitles (PGS/DVB): post-v1. As built (ADR-0468): no FFmpeg subtitle decoder; a text subtitle packet is one cue (SubRip, WebVTT, ASS's text field, `mov_text`), parsed in Java with external SubRip and WebVTT files into plain-line `Cue`s. The demux thread collects a chosen track's cues into a timeline; `MediaPlayer.selectTrack` chooses a subtitle track, `loadSubtitles` a file, `hideSubtitles` none, and `currentSubtitles()` is what shows at the clock. `media-player` draws the lines over the foot of the picture (`.media-subtitles`, `.media-subtitle`), above the controls or lower while they hide, and it and `media-controls` have a subtitles menu (`.media-subtitles-menu`).
 

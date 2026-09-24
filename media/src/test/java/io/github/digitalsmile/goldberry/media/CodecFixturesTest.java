@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -284,6 +285,59 @@ class CodecFixturesTest {
     void playsVideoSound(String name) {
         play(name, true);
         assertTrue(Math.abs(sink.capturedSamples() - FORMAT.sampleRate()) <= 2 * 1152);
+    }
+
+    /// Opens `name` and waits for its error.
+    private MediaError error(String name) {
+        sink = new VirtualSink(FORMAT, true);
+        player = MediaPlayer.builder()
+                .sink(() -> sink)
+                .ioProviders(List.of(new Fixture(fixture(name))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///" + name)));
+        return awaitState(PlaybackState.ERROR).error().orElseThrow();
+    }
+
+    @Test
+    @DisplayName("an Xvid and AC-3 AVI opens, lists both tracks, and names both codecs it cannot decode (ADR-0471)")
+    void aviOfPatentPoolCodecs() {
+        var info = probe("clip-xvid-ac3.avi");
+        assertEquals("mpeg4", info.defaultTrack(MediaType.VIDEO).orElseThrow().codecName());
+        assertEquals("ac3", info.defaultTrack(MediaType.AUDIO).orElseThrow().codecName());
+        assertEquals(new MediaError.UnsupportedCodec(List.of("mpeg4", "ac3")), error("clip-xvid-ac3.avi"));
+    }
+
+    @Test
+    @DisplayName("MP3 in AVI plays to the end: the AVI demuxer is built")
+    void mp3InAvi() {
+        play("tone-mp3.avi", true);
+        assertSine(sink.captured(), sink.capturedSamples(), "MP3 in AVI");
+    }
+
+    @ParameterizedTest(name = "{0} is {1}")
+    @CsvSource({"clip-mpeg2.ts, MPEG-TS", "clip-flv1.flv, FLV"})
+    @DisplayName("a container this build has no demuxer for is named, not called invalid data (ADR-0471)")
+    void unsupportedContainer(String name, String format) {
+        var error = error(name);
+        assertEquals(new MediaError.UnsupportedContainer(format), error);
+        assertEquals("no demuxer for " + format + " in this build", error.message());
+    }
+
+    @Test
+    @DisplayName("bytes that are no container at all are still invalid data")
+    void notMedia() {
+        sink = new VirtualSink(FORMAT, true);
+        player = MediaPlayer.builder()
+                .sink(() -> sink)
+                .ioProviders(List.of(new Fixture(
+                        "These are notes about music, not music.\n".repeat(200).getBytes(StandardCharsets.UTF_8))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///notes.bin")));
+        assertInstanceOf(
+                MediaError.InvalidData.class,
+                awaitState(PlaybackState.ERROR).error().orElseThrow());
     }
 
     @Test

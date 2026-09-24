@@ -23,6 +23,7 @@ class MediaErrorTest {
             case MediaError.NativesUnavailable _ -> "natives";
             case MediaError.UnsupportedScheme(var scheme) -> "scheme " + scheme;
             case MediaError.UnsupportedCodec(var codecs) -> "codec " + String.join(",", codecs);
+            case MediaError.UnsupportedContainer(var format) -> "container " + format;
             case MediaError.InvalidData _ -> "data";
             case MediaError.Io _ -> "io";
             case MediaError.Aborted _ -> "aborted";
@@ -38,6 +39,7 @@ class MediaErrorTest {
         assertTrue(new MediaError.UnsupportedScheme("s3").message().contains("s3:"));
         assertTrue(new MediaError.NativesUnavailable("no jar").message().contains("no jar"));
         assertEquals("aborted", new MediaError.Aborted().message());
+        assertEquals("no demuxer for MPEG-TS in this build", new MediaError.UnsupportedContainer("MPEG-TS").message());
     }
 
     @Test
@@ -46,6 +48,7 @@ class MediaErrorTest {
         assertEquals("scheme s3", kind(new MediaError.UnsupportedScheme("s3")));
         assertEquals("codec h264", kind(new MediaError.UnsupportedCodec(List.of("h264"))));
         assertEquals("io", kind(new MediaError.Io("reset")));
+        assertEquals("container FLV", kind(new MediaError.UnsupportedContainer("FLV")));
     }
 
     @Test

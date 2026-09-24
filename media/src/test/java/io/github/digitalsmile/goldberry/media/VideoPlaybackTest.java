@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -52,6 +54,9 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 ///   and the accurate seek on release shows the picture that covers the target.
 /// - **S7** is in `CodecFixturesTest`; **S8**, bring your own codec, is here with
 ///   a fake H.264 and AAC provider.
+/// - **Track switching** (§6, ADR-0469): `clip-two-angles.mkv` has the VP9 clip
+///   at 160×90 and SMPTE bars in VP8 at 96×54, so which track shows is the
+///   picture's width.
 ///
 /// The clips are `fixtures/`'s `testsrc2` at 160×90, 25 fps: one picture every
 /// 40 ms, and a single keyframe at zero.
@@ -105,6 +110,7 @@ class VideoPlaybackTest {
     private void open(String name, boolean instant, MediaClock clock, List<? extends DecoderProvider> providers) {
         sink = new VirtualSink(FORMAT, instant);
         player = MediaPlayer.builder()
+                .hardwareDecoding(HardwareDecoding.OFF)
                 .sink(() -> sink)
                 .clock(clock)
                 .ioProviders(List.of(new Fixture(fixture(name))))
@@ -138,13 +144,18 @@ class VideoPlaybackTest {
 
     /// The picture shown once it is the one at `ptsNanos`, asking as a view does.
     private VideoPicture awaitPicture(long ptsNanos) {
+        return awaitPicture(ptsNanos, picture -> true);
+    }
+
+    /// The picture shown once it is the one at `ptsNanos` and `wanted` holds of it.
+    private VideoPicture awaitPicture(long ptsNanos, Predicate<VideoPicture> wanted) {
         var deadline = System.nanoTime() + WAIT.toNanos();
         VideoPicture last = null;
         while (System.nanoTime() < deadline) {
             var picture = player.currentPicture();
             if (picture.isPresent()) {
                 last = picture.get();
-                if (last.ptsNanos() == ptsNanos) {
+                if (last.ptsNanos() == ptsNanos && wanted.test(last)) {
                     return last;
                 }
             }
@@ -152,6 +163,16 @@ class VideoPlaybackTest {
         }
         throw new AssertionError(
                 "no picture at " + ptsNanos + " ns; the last was " + last + ", status " + player.status());
+    }
+
+    /// A picture of the `Wide` track of `clip-two-angles.mkv`.
+    private static boolean wide(VideoPicture picture) {
+        return picture.width() == 160 && picture.height() == 90;
+    }
+
+    /// A picture of its `Close` track.
+    private static boolean close(VideoPicture picture) {
+        return picture.width() == 96 && picture.height() == 54;
     }
 
     /// Moves the audio clock to `nanos`, by letting the virtual speaker play up to
@@ -346,6 +367,106 @@ class VideoPlaybackTest {
         assertEquals(PlaybackState.PAUSED, player.status().state());
         player.play();
         await(status -> status.state() == PlaybackState.ENDED);
+    }
+
+    @Test
+    @DisplayName("switches the video track mid-play: the new track's picture at the position, on the same clock")
+    void switchVideoTrack() {
+        open("clip-two-angles.mkv", false);
+        var playing = await(status -> status.state() == PlaybackState.PLAYING);
+        var tracks = playing.info().orElseThrow().tracks(MediaType.VIDEO);
+        assertEquals(2, tracks.size());
+        var wide = tracks.get(0);
+        var close = tracks.get(1);
+        assertEquals(Optional.of("Wide"), wide.title());
+        assertEquals(Optional.of("Close"), close.title());
+        assertEquals(Optional.of(wide), playing.videoTrack());
+
+        playAudioTo(10 * FRAME + FRAME / 2);
+        awaitPicture(10 * FRAME, VideoPlaybackTest::wide);
+
+        // The switch seeks to where the clock is, 420 ms: the new track comes in
+        // on the picture that covers it, and the clock goes on from there. Until
+        // the audio thread takes the seek's flush, the sink still plays what it
+        // held, so the speaker is moved on only after the sink has been cleared.
+        var clears = sink.clears();
+        player.selectTrack(close);
+        await(status -> status.videoTrack().equals(Optional.of(close)) && sink.clears() > clears);
+        awaitPicture(10 * FRAME, VideoPlaybackTest::close);
+        assertEquals(PlaybackState.PLAYING, player.status().state());
+        // Within Matroska's millisecond, as any accurate seek of its Opus.
+        var drift =
+                player.status().position().minusNanos(10 * FRAME + FRAME / 2).abs();
+        assertTrue(drift.compareTo(Duration.ofMillis(1)) <= 0, "the clock moved " + drift + " on the switch");
+        assertEquals("ffmpeg", player.status().videoDecoder().orElseThrow());
+        playAudioTo(4 * FRAME);
+        awaitPicture(14 * FRAME, VideoPlaybackTest::close);
+
+        // Asking for the track that shows changes nothing.
+        player.selectTrack(close);
+        assertEquals(Optional.of(close), player.status().videoTrack());
+
+        // And plays to the end on the new track.
+        while (player.status().state() != PlaybackState.ENDED) {
+            sink.advance(sink.queuedSamples());
+            sleep();
+        }
+        assertTrue(close(player.currentPicture().orElseThrow()));
+        assertEquals(24 * FRAME, player.currentPicture().orElseThrow().ptsNanos());
+    }
+
+    @Test
+    @DisplayName("switches the video track while paused: the new track's picture shows, and it stays paused")
+    void switchVideoTrackPaused() {
+        open("clip-two-angles.mkv", false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        playAudioTo(5 * FRAME + FRAME / 2);
+        awaitPicture(5 * FRAME, VideoPlaybackTest::wide);
+        player.pause();
+
+        var close = player.status().info().orElseThrow().tracks(MediaType.VIDEO).get(1);
+        player.selectTrack(close);
+        awaitPicture(5 * FRAME, VideoPlaybackTest::close);
+        assertEquals(PlaybackState.PAUSED, player.status().state());
+
+        // A frame step moves through the new track's pictures.
+        assertTrue(player.step(2));
+        awaitPicture(7 * FRAME, VideoPlaybackTest::close);
+
+        // And back again, still paused.
+        var wide = player.status().info().orElseThrow().tracks(MediaType.VIDEO).get(0);
+        player.selectTrack(wide);
+        awaitPicture(7 * FRAME, VideoPlaybackTest::wide);
+        assertEquals(PlaybackState.PAUSED, player.status().state());
+        assertEquals(Optional.of(wide), player.status().videoTrack());
+    }
+
+    @Test
+    @DisplayName("hardware decoding is AUTO unless built otherwise, and a change applies from the next source")
+    void hardwareDecodingSetting() {
+        sink = new VirtualSink(FORMAT, true);
+        player = MediaPlayer.builder()
+                .sink(() -> sink)
+                .ioProviders(List.of(new Fixture(fixture("clip-vp9.webm"))))
+                .decoderProviders(List.of())
+                .build();
+        assertEquals(HardwareDecoding.AUTO, player.hardwareDecoding());
+        player.setHardwareDecoding(HardwareDecoding.OFF);
+        assertEquals(HardwareDecoding.OFF, player.hardwareDecoding());
+        player.open(Source.of(URI.create("mem:///clip-vp9.webm")));
+        var ended = await(status -> status.state() == PlaybackState.ENDED);
+        assertEquals("ffmpeg", ended.videoDecoder().orElseThrow(), "decoded in software, as set before the open");
+        assertThrows(NullPointerException.class, () -> player.setHardwareDecoding(null));
+    }
+
+    @Test
+    @DisplayName("cover art cannot be chosen as the video track")
+    void coverArtCannotBeChosen() {
+        open("tone-cover.mp3", false);
+        var playing = await(status -> status.state() == PlaybackState.PLAYING);
+        var cover = playing.info().orElseThrow().attachedPicture().orElseThrow();
+        assertThrows(IllegalArgumentException.class, () -> player.selectTrack(cover));
+        assertEquals(Optional.empty(), player.status().videoTrack());
     }
 
     @Test

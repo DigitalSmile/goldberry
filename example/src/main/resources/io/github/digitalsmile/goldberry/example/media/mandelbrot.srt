@@ -1,0 +1,16 @@
+1
+00:00:00,500 --> 00:00:02,000
+A Mandelbrot zoom, in VP9
+
+2
+00:00:02,300 --> 00:00:04,000
+<i>Every picture</i> is timed
+by the audio clock
+
+3
+00:00:04,300 --> 00:00:06,000
+Subtitles are read in Java
+
+4
+00:00:06,300 --> 00:00:07,800
+and drawn over the picture

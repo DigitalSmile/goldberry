@@ -689,6 +689,7 @@ public final class Showcase implements Application {
         // ever opened.
         model.audioPlayer().close();
         model.videoPlayer().close();
+        io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.shutdown();
     }
 
     // --- the process ---------------------------------------------------------
