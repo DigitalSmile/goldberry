@@ -6,11 +6,12 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPresentMode;
-import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
+import io.github.digitalsmile.goldberry.render.composite.Claim;
 import io.github.digitalsmile.goldberry.render.composite.Compositor;
 
 /// `:gpu`'s [Compositor], which the sdl3 backend finds by `ServiceLoader`
@@ -46,9 +47,12 @@ public final class SdlCompositor implements Compositor {
     public SdlCompositor() {}
 
     @Override
-    public Optional<CompositedWindow> claim(SdlWindowHandle window) {
-        if (closed || !open()) {
-            return Optional.empty();
+    public Claim claim(SdlWindowHandle window) {
+        if (closed) {
+            return new Claim.Refused("the compositor is closed");
+        }
+        if (!open()) {
+            return new Claim.Refused(unavailable == null ? "no GPU device" : unavailable);
         }
         var gpu = requireDevice();
         try {
@@ -61,10 +65,9 @@ public final class SdlCompositor implements Compositor {
                     }
                 }
             }
-            return Optional.of(new SdlCompositedWindow(gpu, claimed, requireStaging(), requireComposite()));
+            return new Claim.Claimed(new SdlCompositedWindow(gpu, claimed, requireStaging(), requireComposite()));
         } catch (SdlException | IllegalStateException e) {
-            LOG.debug("{} would not claim {}: {}", gpu, window, e.getMessage());
-            return Optional.empty();
+            return new Claim.Refused(gpu.driver() + " would not claim the window: " + e.getMessage());
         }
     }
 
@@ -74,8 +77,9 @@ public final class SdlCompositor implements Compositor {
         return Optional.ofNullable(device);
     }
 
-    @Override
-    public Optional<String> unavailable() {
+    /// Why there is no device, or empty when there is one or none was asked for
+    /// yet.
+    Optional<String> unavailable() {
         return Optional.ofNullable(unavailable);
     }
 
@@ -89,17 +93,26 @@ public final class SdlCompositor implements Compositor {
         }
         var options = DeviceOptions.fromProperties();
         SdlGpuDevice made = null;
+        var started = System.nanoTime();
         try {
-            made = SdlGpuDevice.create(options);
+            made = Startup.time("GPU device created", () -> SdlGpuDevice.create(options));
             made.setAllowedFramesInFlight(FRAMES_IN_FLIGHT);
             staging = new StagingBuffer(made);
             composite = new UiComposite(made);
             device = made;
-            LOG.info("composited windows present through {} ({})", made.driver(), made.shaderFormats());
+            LOG.info(
+                    "GPU device ready in {} ms: {}{}, taking {}; windows present through it",
+                    (System.nanoTime() - started) / 1_000_000,
+                    made.driver(),
+                    options.debugMode() ? " with validation" : "",
+                    made.shaderFormats());
             return true;
         } catch (SdlException | IllegalStateException | IllegalArgumentException e) {
-            unavailable = "no GPU device: " + e.getMessage();
-            LOG.warn("windows present on the CPU: {}", unavailable);
+            unavailable = "no GPU device (" + e.getMessage() + ")";
+            LOG.warn(
+                    "{}: windows present on the CPU. {} names a driver; -Dgoldberry.gpu=off stops asking",
+                    unavailable,
+                    DeviceOptions.DRIVER_PROPERTY);
             if (made != null) {
                 made.close();
             }

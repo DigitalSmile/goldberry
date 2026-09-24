@@ -1,6 +1,7 @@
 # ADR-0002: CPU rasterization with Blend2D
 
 - **Status:** Accepted (recorded retroactively)
+- **Superseded in part by ADR-0480:** a window's painted frame is presented through the GPU by default, so an application with `goldberry-gpu` on its module path loads a driver at its first frame. Rasterization is still Blend2D's, on the CPU.
 - **Date:** 2026-08-15
 - **Relates to:** `docs/ARCHITECTURE.md` §1, §3, §5
 

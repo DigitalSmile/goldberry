@@ -5,6 +5,8 @@ Date: 2026-09-24
 ## Status
 
 Accepted. `docs/gpu-plan.md`'s phase 3, and D3 on macOS. It corrects D5.
+Its default policy (`auto`, compositing nothing until GPU layers exist) is
+superseded by ADR-0480: windows are composited by default.
 
 ## Context
 

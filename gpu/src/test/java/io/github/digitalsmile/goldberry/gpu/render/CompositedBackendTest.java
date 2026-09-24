@@ -20,9 +20,10 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
-/// The whole path, through the sdl3 backend: with `goldberry.gpu.composite=always`
-/// a window finds `:gpu`'s compositor by `ServiceLoader`, lends no surface, and
-/// presents its frames through the GPU (ADR-0479).
+/// The whole path, through the sdl3 backend: by default a window finds `:gpu`'s
+/// compositor by `ServiceLoader`, lends no surface, and presents its frames
+/// through the GPU; with `goldberry.gpu=off` it presents through its surface
+/// (ADR-0479, ADR-0480).
 ///
 /// A window that did not become composited would lend its surface, so
 /// `acquireFrame` being empty is what says it did.
@@ -33,7 +34,6 @@ class CompositedBackendTest {
     @BeforeEach
     void composite() {
         NativeLibraryRequirement.enforce();
-        System.setProperty("goldberry.gpu.composite", "always");
         var videoDriver = System.getProperty(GpuDeviceRequirement.VIDEO_DRIVER_PROPERTY, "");
         if (!videoDriver.isBlank()) {
             System.setProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY, videoDriver);
@@ -42,12 +42,12 @@ class CompositedBackendTest {
 
     @AfterEach
     void restore() {
-        System.clearProperty("goldberry.gpu.composite");
+        System.clearProperty("goldberry.gpu");
         System.clearProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
     }
 
     @Test
-    @DisplayName("lends no surface and presents frames, whole and then damaged, through the GPU")
+    @DisplayName("by default lends no surface and presents frames, whole and then damaged, through the GPU")
     void presentsThroughTheGpu() {
         try (var backend = new Sdl3Backend()) {
             var window = backend.createWindow(WindowSpec.of("composited", LogicalSize.of(120, 80)));
@@ -62,6 +62,20 @@ class CompositedBackendTest {
                 assertTrue(window.acquireFrame().isEmpty(), "and stays composited");
                 window.present(frame, List.of(new DamageRect(step, step, 10, 10)));
             }
+            window.close();
+        }
+    }
+
+    @Test
+    @DisplayName("with the GPU off, lends its surface and presents through it as before")
+    void gpuOff() {
+        System.setProperty("goldberry.gpu", "off");
+        try (var backend = new Sdl3Backend()) {
+            var window = backend.createWindow(WindowSpec.of("on the CPU", LogicalSize.of(120, 80)));
+            var surface = window.acquireFrame();
+            assertTrue(surface.isPresent(), "a window on the CPU lends its surface");
+            window.present(surface.get(), List.of(DamageRect.all(window.physicalSize())));
+            assertTrue(!window.lastPresent().composited(), "and reports no GPU present");
             window.close();
         }
     }

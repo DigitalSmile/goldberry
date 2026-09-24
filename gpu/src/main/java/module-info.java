@@ -28,9 +28,10 @@ module io.github.digitalsmile.goldberry.gpu {
     exports io.github.digitalsmile.goldberry.gpu;
 
     /// The composited window (`docs/gpu-plan.md`, phase 3; ADR-0479): the sdl3
-    /// backend finds this with `ServiceLoader` when a window is to present
-    /// through the GPU. Being on the module path is enough; an application
-    /// need not require this module for its windows to be composited.
+    /// backend finds this with `ServiceLoader`, and by default every window
+    /// presents through it, falling back to the CPU where it cannot (ADR-0480).
+    /// Being on the module path is enough; an application need not require
+    /// this module for its windows to be composited.
     provides io.github.digitalsmile.goldberry.render.composite.Compositor with
             io.github.digitalsmile.goldberry.gpu.render.SdlCompositor;
 

@@ -84,7 +84,7 @@ against its reference and composites a 4K picture a frame at under 1.4 ms of CPU
 at 120 Hz (§4.1). The renderer has no I010, so it is not of equal fidelity and
 its cost was not measured.
 
-### D2. One device per process, created on first need
+### D2. One device per process, created on first need (amended by ADR-0480)
 
 `GpuDevice` is owned by the backend and created by the first GPU layer to attach,
 never at startup. ADR-0002's promise stands: an application that never shows a
@@ -93,6 +93,11 @@ GPU layer never loads a driver.
 - Creation goes through `SDL_CreateGPUDeviceWithProperties`, with the shader formats we ship (SPIR-V, MSL, DXIL), `PREFERLOWPOWER` by default, and `-Dgoldberry.gpu.driver=vulkan|metal|direct3d12` to override the driver.
 - A device that fails to create is remembered for the process, as `Hardware` remembers a failed codec (ADR-0470), and every consumer drops to its fallback rung.
 - `-Dgoldberry.gpu=off|auto` is the switch; `auto` is the default.
+
+**Amended (ADR-0480):** windows are composited by default, so "first need" is
+the first frame of the first window. With `goldberry-gpu` on the module path an
+application loads a driver then, in about 20 ms, measured here. Without it,
+nothing changes.
 
 ### D3. Composition is per window, entered when a GPU layer attaches (decided on macOS, ADR-0479)
 
@@ -122,7 +127,8 @@ in a CPU window use readback.
 
 **Decided on macOS (ADR-0479):** the switch is made at a window's first frame
 after it is wanted, in `acquireFrame`. `goldberry.gpu.composite=always` wants it
-from the first frame. A window with an embedded page stays on the CPU. A claim
+from the first frame, and **is the default** (ADR-0480). Popups, which are
+transparent windows SDL will not claim, stay on the CPU. A window with an embedded page stays on the CPU. A claim
 or a present that fails sends the window back to the CPU for good. Leaving on
 a timer after the last layer detaches waits for phase 4, which is when layers
 attach and detach.
@@ -542,6 +548,7 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | Phase 2 in part (ADR-0476): shaders, samplers, pipelines and render passes bound (13 more exports, 13 structs and 13 enumerators verified); three HLSL shaders compiled by DXC and SPIRV-Cross into SPIR-V, DXIL and MSL, committed with their sources' hashes; `:gpu:gpuTest`, whose five draws read back exact on Metal |
 | 2026-09-24 | D1 decided (ADR-0477): `SDL_GPU` directly. Y'CbCr shaders for NV12, I420, P010 and I010, exact against a Java reference for every matrix and range on Metal; a 4K layer composited under the UI at under 1.4 ms of CPU a frame at 120 Hz |
 | 2026-09-24 | The GPU lane written: lavapipe under `offscreen` on both Linux targets, device required; macOS runners asked, not required. Not yet run |
+| 2026-09-24 | ADR-0480: windows present through the GPU by default, and on the CPU wherever it cannot be used. Each fallback is logged where it is known; a claim answers with a sealed `Claim` that carries the refusal's reason; popups are not composited. Measured: device 19.5–21.3 ms at the first frame, first frame on screen 1016.9 ms median against 1013.4 ms with `goldberry.gpu=off` |
 | 2026-09-24 | Phase 3's statistics: `PresentTimings` moved to `render` and reported by `BackendWindow.lastPresent()`; `FrameRing` banks it per frame and sums it for a `presents:` exit line; the `hud` gained `upload`, `acquire`, `submit` and `readings="present"`. The showcase composited: 91 of 240 frames through the GPU, 0.79 ms and 9.3 MB a frame uploaded |
 | 2026-09-24 | Phase 3 begun (ADR-0479): `:core` declares `render.composite`, exported to `:gpu` alone, and `:gpu`'s `SdlCompositor` provides it through `ServiceLoader`. `goldberry.gpu.composite=always` composites every window: it lends no surface, and its frames' damage goes up to a UI texture drawn over black onto the swapchain. D5 corrected: layers and `GpuSurface` move to phase 4. Found: stepping `FramePacer` aside let undamaged frames spin 1 ms apart, so it stays on. The showcase runs composited on Metal and paces like the CPU. `:gpu:gpuTest` 37 green, the backend end to end among them |
 | 2026-09-24 | Phase 2's public API (ADR-0478): `io.github.digitalsmile.goldberry.gpu` exported, with resources made from records, frames of scoped passes, staged uploads and readback, one thread, misuse refused in Java. Under it, ten more exports (buffers, indexed draws, debug groups: 56 `SDL_GPU` functions), seven structs and the pipeline enumerators verified. Phase 2's exit met on Metal: a vertex-buffer triangle against a Java reference. `:natives:check` and `:gpu:check` green, with 27 and 28 GPU tests on Metal |

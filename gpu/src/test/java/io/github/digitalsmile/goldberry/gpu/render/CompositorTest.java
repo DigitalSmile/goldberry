@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.gpu.render;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,6 +35,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.PresentTimings;
+import io.github.digitalsmile.goldberry.render.composite.Claim;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 
@@ -177,7 +179,7 @@ class CompositorTest {
         @Test
         @DisplayName("uploads a first frame whole, then only the damage, and keeps the rest of the texture")
         void damageOnly() {
-            var claimed = (SdlCompositedWindow) compositor.claim(window).orElseThrow();
+            var claimed = claimed(compositor, window);
             var first = premultiplied(32, 16, 1);
             var second = premultiplied(32, 16, 2);
             claimed.present(frame(first, 32, 16), List.of(new DamageRect(0, 0, 4, 4)));
@@ -202,7 +204,7 @@ class CompositorTest {
         @Test
         @DisplayName("remakes its texture when the frame changes size, and uploads that frame whole")
         void resize() {
-            var claimed = (SdlCompositedWindow) compositor.claim(window).orElseThrow();
+            var claimed = claimed(compositor, window);
             claimed.present(frame(premultiplied(32, 16, 3), 32, 16), List.of(new DamageRect(0, 0, 32, 16)));
             claimed.present(frame(premultiplied(40, 20, 4), 40, 20), List.of(new DamageRect(0, 0, 1, 1)));
             assertEquals(40 * 20 * 4, claimed.lastPresent().uploadBytes());
@@ -213,7 +215,7 @@ class CompositorTest {
         @Test
         @DisplayName("presents nothing for no damage, and refuses to present once given back")
         void noDamageAndClosed() {
-            var claimed = compositor.claim(window).orElseThrow();
+            var claimed = claimed(compositor, window);
             var frame = frame(premultiplied(8, 8, 5), 8, 8);
             claimed.present(frame, List.of(new DamageRect(0, 0, 8, 8)));
             claimed.present(frame, List.of());
@@ -227,25 +229,23 @@ class CompositorTest {
         @Test
         @DisplayName("gives the window back, so its surface can be painted again, and can claim it once more")
         void givesTheWindowBack() {
-            var claimed = compositor.claim(window).orElseThrow();
+            var claimed = claimed(compositor, window);
             claimed.close();
             var surface = SdlVideo.get().acquireSurface(window);
             assertTrue(surface.width() >= 64 && surface.height() >= 48, "a surface of the window's size");
             SdlVideo.get().invalidateSurface(window);
-            var again = compositor.claim(window);
-            assertTrue(again.isPresent());
-            again.get().close();
+            claimed(compositor, window).close();
         }
 
         @Test
         @DisplayName("makes one device for every window, and none until the first claim")
         void oneDevice() {
             assertTrue(compositor.device().isEmpty(), "no device before a claim");
-            var claimed = compositor.claim(window).orElseThrow();
+            var claimed = claimed(compositor, window);
             var made = compositor.device().orElseThrow();
             var other = SdlVideo.get().createWindow("second", 32, 32, EnumSet.of(SdlWindowFlag.HIDDEN));
             try {
-                var second = compositor.claim(other).orElseThrow();
+                var second = claimed(compositor, other);
                 assertEquals(made, compositor.device().orElseThrow());
                 second.close();
             } finally {
@@ -263,10 +263,11 @@ class CompositorTest {
         System.setProperty(DeviceOptions.DRIVER_PROPERTY, "no-such-driver");
         var compositor = new SdlCompositor();
         try {
-            assertTrue(compositor.claim(window).isEmpty());
+            var refused = assertInstanceOf(Claim.Refused.class, compositor.claim(window));
+            assertTrue(refused.reason().contains("no GPU device"), refused.reason());
             assertTrue(compositor.unavailable().orElseThrow().contains("no GPU device"));
             System.clearProperty(DeviceOptions.DRIVER_PROPERTY);
-            assertTrue(compositor.claim(window).isEmpty(), "not asked again");
+            assertInstanceOf(Claim.Refused.class, compositor.claim(window), "not asked again");
             assertFalse(compositor.device().isPresent());
         } finally {
             System.clearProperty(DeviceOptions.DRIVER_PROPERTY);
@@ -276,6 +277,14 @@ class CompositorTest {
     }
 
     // --- helpers ---------------------------------------------------------------
+
+    /// `window`, claimed by `compositor`, or the test fails with the reason.
+    private static SdlCompositedWindow claimed(SdlCompositor compositor, SdlWindowHandle window) {
+        return switch (compositor.claim(window)) {
+            case Claim.Claimed(var claimed) -> (SdlCompositedWindow) claimed;
+            case Claim.Refused(var reason) -> throw new AssertionError("refused: " + reason);
+        };
+    }
 
     /// Random premultiplied BGRA: every channel at most its pixel's alpha.
     static byte[] premultiplied(int width, int height, long seed) {

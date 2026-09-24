@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.PresentTimings;
+import io.github.digitalsmile.goldberry.render.composite.Claim;
 import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -276,7 +277,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             gpu.present(frame, damage);
             lastPresent = gpu.lastPresent();
         } catch (RuntimeException e) {
-            LOG.warn("the GPU failed presenting \"{}\"; it presents on the CPU from now on", title, e);
+            LOG.warn("the GPU failed presenting \"{}\": it presents on the CPU from now on", title, e);
             leaveComposited("its GPU present failed: " + e.getMessage());
             try {
                 video().present(
@@ -298,23 +299,30 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// Gives the window surface up and has the compositor claim the window. A
     /// refusal is remembered, so it is asked once, and the window stays on the
     /// CPU.
+    ///
+    /// Every window logs where it presents, and why when it is the CPU: the
+    /// reason comes from the compositor, which knows whether there was no device
+    /// or what the driver said (ADR-0480).
     private void enterComposited() {
         var compositor = backend.compositor();
         if (compositor.isEmpty()) {
-            cpuOnly = "no compositor";
+            cpuOnly = "no GPU compositor";
             return;
         }
         // Before the claim: SDL will not claim a window whose surface is held,
-        // since the two cannot both present it.
+        // since the two cannot both present it. A refused claim loses nothing:
+        // the next acquire makes the surface again.
         video().invalidateSurface(handle);
-        var claimed = compositor.get().claim(handle);
-        if (claimed.isEmpty()) {
-            cpuOnly = compositor.get().unavailable().orElse("the GPU would not claim it");
-            LOG.debug("\"{}\" presents on the CPU: {}", title, cpuOnly);
-            return;
+        switch (compositor.get().claim(handle)) {
+            case Claim.Claimed(var window) -> {
+                composited = window;
+                LOG.info("\"{}\" presents through the GPU", title);
+            }
+            case Claim.Refused(var reason) -> {
+                cpuOnly = reason;
+                LOG.info("\"{}\" presents on the CPU: {}", title, reason);
+            }
         }
-        composited = claimed.get();
-        LOG.debug("\"{}\" presents through the GPU", title);
     }
 
     /// Gives the window back to its surface, for good: `reason` is why.
@@ -337,7 +345,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     void stayOnTheCpu(String reason) {
         backend.requireUiThread();
         if (composited != null) {
-            LOG.debug("\"{}\" leaves the GPU: {}", title, reason);
+            LOG.info("\"{}\" presents on the CPU from now on: {}", title, reason);
         }
         leaveComposited(reason);
     }

@@ -224,6 +224,7 @@ public final class Sdl3Backend implements Backend {
             if (pacer.isPacing()) {
                 LOG.info("frame loop paced to one frame per {}", pacer.interval());
             }
+            LOG.info("{}", composition.describe());
             // Asked once the driver is known, since it is only a question on
             // Wayland, and answered here rather than at window creation so the
             // filesystem is read once per process rather than once per window.
@@ -1361,9 +1362,16 @@ public final class Sdl3Backend implements Backend {
     }
 
     /// Whether `window` should present through the GPU from its next frame: the
-    /// policy says so, and it has no page embedded in it.
+    /// policy says so, it is not a popup, and it has no page embedded in it.
+    ///
+    /// A popup is a transparent window, so its menu's rounded corners and
+    /// shadow can show the desktop through, and SDL refuses to claim a
+    /// transparent window for the GPU. Asking would cost a surface torn down and
+    /// rebuilt for every menu opened, to be told no.
     boolean wantsComposited(Sdl3Window window) {
-        return composition == Composition.ALWAYS && !embeddedPages.containsKey(window);
+        return composition == Composition.ALWAYS
+                && !(window instanceof Sdl3Popup)
+                && !embeddedPages.containsKey(window);
     }
 
     /// `:gpu`'s compositor, found the first time it is asked for; empty when
@@ -1374,11 +1382,8 @@ public final class Sdl3Backend implements Backend {
             compositor = ServiceLoader.load(Compositor.class).findFirst().orElse(null);
             compositorAbsent = compositor == null;
             if (compositorAbsent) {
-                LOG.info(
-                        "{}={} asks for composited windows, and no compositor is on the module path"
-                                + " (goldberry-gpu); presenting on the CPU",
-                        Composition.COMPOSITE_PROPERTY,
-                        composition.name().toLowerCase(Locale.ROOT));
+                LOG.info("no GPU compositor on the module path (add goldberry-gpu to use the GPU):"
+                        + " windows present on the CPU");
             }
         }
         return Optional.ofNullable(compositor);

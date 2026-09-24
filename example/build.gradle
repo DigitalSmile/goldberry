@@ -40,10 +40,11 @@ dependencies {
     // (ADR-0472). On other systems it supports nothing and the H.264 sample
     // errors as before.
     implementation project(':media-platform')
-    // The GPU (docs/gpu-plan.md, ADR-0479). Runtime only: nothing here names a
-    // type of it yet, and being on the module path is what lets the sdl3
-    // backend find its compositor, so `-Pgoldberry.gpu.composite=always` runs
-    // every window through the GPU. The GPU tab (phase 5) makes it a dependency.
+    // The GPU (docs/gpu-plan.md, ADR-0479, ADR-0480). Runtime only: nothing
+    // here names a type of it yet, and being on the module path is what lets
+    // the sdl3 backend find its compositor, so the showcase's windows present
+    // through the GPU, or on the CPU with `-Pgoldberry.gpu=off`. The GPU tab
+    // (phase 5) makes it a dependency.
     runtimeOnly project(':gpu')
 
     // The golden-image harness and the renderer requirement, so the gallery can
