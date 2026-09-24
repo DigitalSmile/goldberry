@@ -24,6 +24,7 @@ public final class VirtualSink implements AudioSink {
     private boolean paused;
     private float gain = 1f;
     private float rate = 1f;
+    private long latencyNanos;
     private boolean closed;
 
     /// A sink of `format`; `instant` plays everything as it is written.
@@ -93,6 +94,17 @@ public final class VirtualSink implements AudioSink {
     /// The rate the Engine last set.
     public synchronized float rate() {
         return rate;
+    }
+
+    /// A speaker `nanos` behind the queue, as a Bluetooth headset is: what
+    /// [#latencyNanos()] reports from now on.
+    public synchronized void latency(long nanos) {
+        latencyNanos = nanos;
+    }
+
+    @Override
+    public synchronized long latencyNanos() {
+        return latencyNanos;
     }
 
     /// Plays `samples` more of what is queued.

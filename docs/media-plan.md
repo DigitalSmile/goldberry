@@ -41,7 +41,7 @@ The design document is kept in step with these. Each one is written into
 | §5 frame contract | NV12, I420, P010 | and **I010**, 10-bit planar 4:2:0, which dav1d and VP9 profile 2 produce: the common 10-bit case is lent without a copy. The built-in decoder converts any other format (4:2:2, 4:4:4, 12-bit, VP9's RGB) to I420. Planes must be native memory, since swscale reads their addresses | done |
 | §3 packet queues | bounded queues the demux thread blocks on | a blocking put deadlocks with two tracks: video's queue full, audio's empty, the audio clock stopped, video waiting for it. `put` never blocks; the demux thread waits only when **every** queue is full, or one has run four times past its bounds (ffplay's rule). Queues are bounded by bytes too, for containers that give no packet durations | done |
 | §3 master clock | audio clock stepped by `SDL_GetAudioStreamQueued` | SDL drains in 1024-sample pulls, so the raw clock moves in 21 ms steps. `SdlAudioSink` reports the queue draining smoothly between pulls (ADR-0463) | done |
-| §3 master clock | "− device latency" | SDL 3 reports no device latency. Not subtracted; on Bluetooth output pictures lead the sound by up to ~200 ms | open: a per-platform latency query (CoreAudio, WASAPI, PulseAudio) or a user offset |
+| §3 master clock | "− device latency" | SDL 3 reports no device latency. Two stretches lie between the queue and the ear: SDL's buffers (three pulls on macOS, 64 ms at 48 kHz: the smoothing's one, and two AudioQueue buffers) and the system's, which a Bluetooth headset here reports as 264 ms. So pictures led the sound by about a third of a second, not ~200 ms | done (ADR-0474): `AudioSink.latencyNanos()`, the `OutputLatency` SPI with CoreAudio's provider in `:media-platform`, `MediaPlayer.setAudioDelay` by hand. The clock is floored at a seek's target and runs through the tail at the end. WASAPI and PulseAudio providers open |
 | §7 S7 | an unsupported file errors | every chosen track is checked before any plays, so the error names every codec without a decoder, video first | done |
 | §4 MediaIO table | `IcyIO`, a MediaIO of `HttpIO` + ICY | ICY is a property of an HTTP response (`icy-metaint`), so `HttpIO` strips it itself, before the cache, where offsets are still audio bytes. No `IcyIO` class (ADR-0465) | done |
 | §4 buffering | BUFFERING below the low water mark | the low water mark is empty: a track stalls when its decoder runs out of packets with more to come. Above zero it would pause with media in hand, and flicker through BUFFERING after every local seek (ADR-0465) | done |
@@ -177,7 +177,7 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | S8 with a fake video provider | done: grey I420 pictures and silence from a test provider for `h264` and `aac`, presented unchanged; failing mid-stream, it falls to nothing and errors naming `h264` |
 | Frame step (`,` `.`), fullscreen (`F`) | done in phase 7 (below) |
 | `VideoPlaybackTest` S2 ("scrubbing shows each keyframe…") flaky | done: it failed in about two of three full runs, before phase 6 as after. Traced to a race in the Engine, not the test: a play straight after a paused seek resumed the sink before the audio thread had taken the seek's flush, so the old position's samples were still in it (and a real device would pull them). The sink now starts only when no seek is pending or under way and the audio thread has honoured the latest one (`Playback.sinkCurrent`); the audio thread starts it itself when it catches up. The Serial is published before the queues are flushed. `MediaPlayerTest` holds a seek inside the demuxer to check it, and fails without the fix |
-| Device latency in the audio clock | open: see the corrections table |
+| Device latency in the audio clock | done (ADR-0474): see the corrections table |
 | Rate (`SDL_SetAudioStreamFrequencyRatio`) | done in phase 7 (below) |
 
 ## Phase 5 — hardware decode
@@ -268,7 +268,9 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | Failures: bad packets dropped, a run fails the decoder; invalid session replaced; open failures clean up | done |
 | S8 with real decoders: `MediaPlayer` plays H.264 + AAC and HEVC to the end | done |
 | CI: `:media-platform:check` in the Media workflow, required on macOS | done, not yet run on a runner |
+| Output latency (ADR-0474): `CoreAudioLatency`, an `OutputLatency` over `AudioObjectGetPropertyData`, the default output's device latency, safety offset, IO buffer and stream latency, bound apart from the decoders' frameworks | done: measured on a Bluetooth headset as 264 ms (11166 + 0 + 512 + 0 frames at 44.1 kHz) |
 | Windows (Media Foundation), Linux (VAAPI) | open |
+| Output latency on Windows (WASAPI) and Linux (PulseAudio), and SDL's buffering on those backends read as closely as macOS's | open |
 | Native-image metadata for the upcalls | open |
 
 ## Documents kept in step
@@ -283,7 +285,7 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | `docs/content-widgets.md` §8, `docs/ARCHITECTURE.md` module table | the four widgets built | done |
 | `THIRD-PARTY-NOTICES.md`, `licenses/` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | open |
 | `docs/goldberry-media.md` §5, `docs/ARCHITECTURE.md` §15 | the platform decoders shipped, and `:media-platform` in the module list (ADR-0472) | done |
-| `docs/goldberry-media.md` §6, `docs/core-widgets.md` §6 | `F` and `Esc`, and window fullscreen (ADR-0473) | done |
+| `docs/goldberry-media.md` §3, §6; `docs/core-widgets.md` §6 | device latency in the master clock (ADR-0474); `F` and `Esc`, and window fullscreen (ADR-0473) | done |
 
 ## Log
 
@@ -313,3 +315,4 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | 2026-09-23 | Phase 5: hardware decode on VideoToolbox with copy-back, the hardware rung of the ladder, S4 with injected failures (ADR-0470). Two seek races fixed on the way. 364 tests, five full runs green; the committed code before the session, four runs green |
 | 2026-09-24 | Platform decoders (ADR-0472): `:media-platform` with `videotoolbox` and `audiotoolbox` over FFM. VideoToolbox measured to emit in decoding order, and to guess colour unless the format description is built from the parameter sets; both handled. 88 tests, `check` green with the coverage floor |
 | 2026-09-24 | Fullscreen (ADR-0473): window fullscreen in `:core` (`SDL_SetWindowFullscreen`, two event constants checked against the header, `Window`/`Host` API), and `F`/`Esc`/a button in `media-player` over a `Host.fill` copy. A test on the dummy driver found SDL defers a hidden window's request until it is shown. Phase 7 is done |
+| 2026-09-24 | Device latency (ADR-0474): the audio clock is what is heard. SDL's buffers read from `SDL_coreaudio.m` (three pulls), CoreAudio's four properties through an `OutputLatency` provider, `setAudioDelay`, a floor at a seek's target, and an `AudioTail` so a track ends when heard. This Mac's Bluetooth headset: 264 ms from the system, about 330 ms in all. `:media:check` and `:media-platform:check` green |

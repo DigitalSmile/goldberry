@@ -65,7 +65,9 @@ import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 /// ## The clock
 ///
 /// The master clock is the audio clock while there is audio: the presentation
-/// time just past the last sample written, less what the sink still holds. A
+/// time just past the last sample written, less what the sink still holds, less
+/// how long a sample takes from there to the ear ([AudioSink#latencyNanos()] and
+/// [#setAudioDelay], ADR-0474). A
 /// source with no audio runs on a free-running clock over the [MediaClock], and
 /// a video whose audio ends first hands over to one at the audio's last position
 /// ([MasterClock]).
@@ -225,6 +227,18 @@ public final class Playback implements AutoCloseable {
     /// the sink. The audio clock is kept in samples so that it adds up exactly; it
     /// becomes nanoseconds only when it is read.
     private volatile long writtenEndSample;
+    /// The sample the audio clock never reads before: the target of the last
+    /// seek. Taking the device's latency off the clock would otherwise show a
+    /// seek landing, then the position stepping back by the latency while the
+    /// first samples travel to the ear.
+    private volatile long audioFloorSample;
+    /// The application's correction to the device's latency, in wall-clock
+    /// nanoseconds (ADR-0474): positive when the sound is heard later than the
+    /// device says.
+    private volatile long audioDelayNanos;
+    /// The time since the queue emptied at the end of the track, which the
+    /// latency is still counting down.
+    private final AudioTail tail;
     /// What the position reads while a seek settles: the target.
     private volatile long seekingToNanos = Frame.NO_PTS;
 
@@ -265,6 +279,7 @@ public final class Playback implements AutoCloseable {
         this.hardware = Objects.requireNonNull(hardware, "hardware");
         this.sink = Objects.requireNonNull(sink, "sink");
         this.clock = new MasterClock(time);
+        this.tail = new AudioTail(time);
         this.highWaterNanos = highWaterNanos;
         this.listener = Objects.requireNonNull(listener, "listener");
         this.demuxThread =
@@ -530,6 +545,7 @@ public final class Playback implements AutoCloseable {
         synchronized (gate) {
             paused = true;
             sink.pause();
+            tail.pause();
             clock.hold();
             changed = (state == PlaybackState.PLAYING || state == PlaybackState.BUFFERING)
                     && setStateLocked(PlaybackState.PAUSED);
@@ -1097,14 +1113,61 @@ public final class Playback implements AutoCloseable {
         return seeking != Frame.NO_PTS ? seeking : clock.nanos();
     }
 
-    /// The audio clock: what the sink is playing now.
+    /// The audio clock: what is heard now (ADR-0474). What has left the sink's
+    /// queue, less how long it takes to reach the ear: the sink's latency and
+    /// the application's delay, which are wall-clock time and so count
+    /// [#rate()] times as much stream time. Once the queue has emptied at the
+    /// end, the [AudioTail] counts the latency down, so the clock reaches the end
+    /// as the last sample is heard. Never before the last seek's target.
     private long audioClockNanos() {
-        return format.nanos(Math.max(writtenEndSample - sink.queuedSamples(), 0));
+        var left = format.nanos(Math.max(writtenEndSample - sink.queuedSamples(), 0));
+        var latency = audioLatencyNanos();
+        var inTail = tail.elapsedNanos();
+        if (inTail != AudioTail.NONE) {
+            latency = Math.max(latency - inTail, 0);
+        }
+        var heard = left - Math.round(latency * (double) rate);
+        return Math.max(heard, format.nanos(audioFloorSample));
+    }
+
+    /// The audio thread found the queue empty at the end of the track: the tail
+    /// starts, and lasts the latency.
+    void audioTailStarted() {
+        synchronized (gate) {
+            tail.start(paused);
+        }
+    }
+
+    /// Whether the last samples are still on their way to the ear.
+    boolean audioTailPending() {
+        var inTail = tail.elapsedNanos();
+        return inTail != AudioTail.NONE && inTail < audioLatencyNanos();
+    }
+
+    /// How long a sample takes from leaving the sink's queue to being heard, in
+    /// wall-clock nanoseconds: [AudioSink#latencyNanos()] and
+    /// [#setAudioDelay]'s delay.
+    public long audioLatencyNanos() {
+        return sink.latencyNanos() + audioDelayNanos;
+    }
+
+    /// Corrects the sink's latency by `nanos`: positive holds pictures back for
+    /// sound heard later than the device says, negative brings them forward for
+    /// a picture that is itself late, as on a television.
+    public void setAudioDelay(long nanos) {
+        audioDelayNanos = nanos;
     }
 
     /// The audio thread wrote up to `endSample`, or (not `played`) moved there by
     /// a seek. A write is the audio clock taking over from a seek's target.
     void audioWritten(long endSample, boolean played) {
+        tail.reset();
+        if (!played) {
+            // Before the end moves: after a seek backwards, a reading between the
+            // two would otherwise find the new end held up by the old floor, a
+            // target this seek has left behind.
+            audioFloorSample = endSample;
+        }
         writtenEndSample = endSample;
         if (played) {
             seekingToNanos = Frame.NO_PTS;
@@ -1295,6 +1358,7 @@ public final class Playback implements AutoCloseable {
         if (!hasAudio || sinkCurrent()) {
             sink.resume();
         }
+        tail.resume();
         if (!clock.followingAudio()) {
             clock.run();
         }

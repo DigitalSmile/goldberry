@@ -30,6 +30,21 @@ public interface AudioSink extends AutoCloseable {
     /// Samples per channel written and not yet played.
     long queuedSamples();
 
+    /// How long, in wall-clock nanoseconds, a sample takes from leaving
+    /// [#queuedSamples()] to being heard (ADR-0474): the buffers of the audio
+    /// library behind the queue, and the operating system's and the device's
+    /// after them. Bluetooth is most of it where there is Bluetooth.
+    ///
+    /// The Engine takes it off the audio clock, so a picture is shown with the
+    /// sound that is heard with it rather than the sound that has left the
+    /// queue. May come from any thread, and is read on every clock reading, so it
+    /// must be cheap: a sink that asks the system keeps the answer.
+    ///
+    /// 0 by default, which is right for a sink that plays in no time.
+    default long latencyNanos() {
+        return 0;
+    }
+
     /// Drops everything queued: the Engine seeked.
     void clear();
 

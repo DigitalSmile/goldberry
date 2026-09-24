@@ -36,4 +36,8 @@ module io.github.digitalsmile.goldberry.media.platform {
     provides io.github.digitalsmile.goldberry.media.codec.DecoderProvider with
             io.github.digitalsmile.goldberry.media.platform.macos.VideoToolboxProvider,
             io.github.digitalsmile.goldberry.media.platform.macos.AudioToolboxProvider;
+
+    /// The default output device's latency, taken off the audio clock (ADR-0474).
+    provides io.github.digitalsmile.goldberry.media.audio.OutputLatency with
+            io.github.digitalsmile.goldberry.media.platform.macos.CoreAudioLatency;
 }

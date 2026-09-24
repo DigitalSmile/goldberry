@@ -251,6 +251,18 @@ final class AudioWorker {
                 && !playback.seekPending()) {
             Playback.sleep(10_000_000L);
         }
+        // Then the last samples on their way to the ear (ADR-0474): done is when
+        // they are heard, not when they left, or a track followed by another
+        // would lose its last 200 ms over Bluetooth.
+        if (running() && playback.latestSerial() == serial && !playback.seekPending()) {
+            playback.audioTailStarted();
+        }
+        while (running()
+                && playback.audioTailPending()
+                && playback.latestSerial() == serial
+                && !playback.seekPending()) {
+            Playback.sleep(5_000_000L);
+        }
         if (running() && playback.latestSerial() == serial && !playback.seekPending()) {
             playback.audioDone(serial);
         }

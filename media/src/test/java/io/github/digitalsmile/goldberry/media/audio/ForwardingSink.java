@@ -29,6 +29,11 @@ public class ForwardingSink implements AudioSink {
     }
 
     @Override
+    public long latencyNanos() {
+        return delegate.latencyNanos();
+    }
+
+    @Override
     public void clear() {
         delegate.clear();
     }

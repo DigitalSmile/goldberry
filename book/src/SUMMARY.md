@@ -488,3 +488,4 @@
 - [ADR-0471 AVI is demuxed, and a container with no demuxer is named](adr/0471-avi-is-demuxed-and-an-unknown-container-is-named.md)
 - [ADR-0472 The platform decoders are the system's own, bound with FFM](adr/0472-the-platform-decoders-bind-the-system-frameworks.md)
 - [ADR-0473 A window is fullscreen when the platform says so](adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)
+- [ADR-0474 The audio clock is what is heard](adr/0474-the-audio-clock-is-what-is-heard.md)

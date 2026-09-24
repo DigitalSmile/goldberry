@@ -82,4 +82,8 @@ module io.github.digitalsmile.goldberry.media {
 
     /// A decoder an application brings, consulted before the built-in ones.
     uses io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
+
+    /// What the operating system says its playback device's latency is, taken
+    /// off the audio clock (ADR-0474). `goldberry-media-platform` has CoreAudio's.
+    uses io.github.digitalsmile.goldberry.media.audio.OutputLatency;
 }

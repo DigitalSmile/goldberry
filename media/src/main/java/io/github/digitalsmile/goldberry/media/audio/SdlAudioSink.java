@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry.media.audio;
 
 import java.lang.foreign.MemorySegment;
+import java.time.Duration;
+import java.util.Locale;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
@@ -32,7 +34,43 @@ import io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream;
 /// stands still, and a clear starts it over. At a [#setRate] other than 1 the
 /// device takes samples that much faster, and the estimate drains that much
 /// faster with it.
+///
+/// ## Latency
+///
+/// [#latencyNanos()] is how far behind that estimate the sound actually is
+/// (ADR-0474), in two parts:
+///
+/// - **SDL's own buffers**, counted in pulls ([#pullsAhead]). The estimate above
+///   drains the pull *after* the last one, so it runs one pull ahead of what SDL
+///   has handed over by construction. On macOS SDL's CoreAudio backend then keeps
+///   three AudioQueue buffers, the one playing and two waiting, and a pull fills
+///   the one that has just finished: a sample is heard two pulls after SDL takes
+///   it. Three pulls in all, 64 ms at 48 kHz. Elsewhere only the first is
+///   counted, until SDL's WASAPI and PulseAudio backends are read as closely.
+/// - **The operating system's**, from [OutputLatency]: the device, its safety
+///   offset and its stream, where Bluetooth spends 150–250 ms. Asked every
+///   [#REFRESH] from the audio thread, so a headset connected mid-song is in the
+///   clock within a second.
 public final class SdlAudioSink implements AudioSink {
+
+    /// How often the system's latency is asked again: the default device can
+    /// change under a playing stream, and SDL follows it.
+    public static final Duration REFRESH = Duration.ofSeconds(1);
+
+    /// The providers on the path, found once per process: a sink is made for
+    /// every source opened, and a `ServiceLoader` scan each time is work for
+    /// nothing.
+    private static final class Installed {
+        static final OutputLatency LATENCY = OutputLatency.installed();
+    }
+
+    private final OutputLatency outputLatency;
+    private final int pullsAhead = pullsAhead(System.getProperty("os.name", ""));
+    /// What the system last said, in nanoseconds; 0 when it said nothing.
+    private long systemLatency;
+    /// When the system was last asked, on [System#nanoTime()], or never.
+    private long askedAt;
+    private boolean asked;
 
     /// The slowest and fastest SDL's stream resamples to.
     static final float MIN_RATE = 0.01f;
@@ -52,8 +90,26 @@ public final class SdlAudioSink implements AudioSink {
     private long pausedAfter = -1;
     private int sampleRate;
 
-    /// A sink that opens nothing until [#open].
-    public SdlAudioSink() {}
+    /// A sink that opens nothing until [#open], and asks the installed
+    /// [OutputLatency] providers for the system's latency.
+    public SdlAudioSink() {
+        this(Installed.LATENCY);
+    }
+
+    /// A sink that asks `outputLatency` for the system's latency: [OutputLatency#NONE]
+    /// for one that counts SDL's buffers only.
+    public SdlAudioSink(OutputLatency outputLatency) {
+        this.outputLatency = Objects.requireNonNull(outputLatency, "outputLatency");
+    }
+
+    /// How many pulls behind the smoothed queue a sample is heard, before the
+    /// system's latency: three on macOS, where SDL keeps three AudioQueue buffers,
+    /// and elsewhere the one the smoothing runs ahead by (see the class note).
+    ///
+    /// @param osName the `os.name` property
+    static int pullsAhead(String osName) {
+        return osName.toLowerCase(Locale.ROOT).startsWith("mac") ? 3 : 1;
+    }
 
     @Override
     public synchronized AudioFormat open(AudioFormat preferred) {
@@ -73,6 +129,8 @@ public final class SdlAudioSink implements AudioSink {
         pull = 0;
         pulledAt = System.nanoTime();
         pausedAfter = -1;
+        asked = false;
+        refreshLatency();
         return preferred;
     }
 
@@ -83,6 +141,30 @@ public final class SdlAudioSink implements AudioSink {
         var bytes = (long) samples * stream().channels() * Float.BYTES;
         stream().put(data.asSlice(0, bytes).asByteBuffer());
         lastRaw += samples;
+        refreshLatency();
+    }
+
+    /// SDL's buffers, as pulls of the size last seen, and the system's latency as
+    /// last asked. See the class note.
+    @Override
+    public synchronized long latencyNanos() {
+        if (stream == null || sampleRate == 0) {
+            return 0;
+        }
+        var sdl = Math.round(pullsAhead * (double) pull * 1e9 / (sampleRate * (double) rate));
+        return sdl + systemLatency;
+    }
+
+    /// Asks the system again if [#REFRESH] has passed. Called with the monitor
+    /// held, from the audio thread: a few system calls, once a second.
+    private void refreshLatency() {
+        var now = System.nanoTime();
+        if (asked && now - askedAt < REFRESH.toNanos()) {
+            return;
+        }
+        asked = true;
+        askedAt = now;
+        systemLatency = outputLatency.defaultOutput().map(Duration::toNanos).orElse(0L);
     }
 
     /// The samples written and not yet played, drained smoothly between the

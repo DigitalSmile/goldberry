@@ -26,7 +26,8 @@ enum Framework {
     CORE_MEDIA("CoreMedia"),
     CORE_VIDEO("CoreVideo"),
     VIDEO_TOOLBOX("VideoToolbox"),
-    AUDIO_TOOLBOX("AudioToolbox");
+    AUDIO_TOOLBOX("AudioToolbox"),
+    CORE_AUDIO("CoreAudio");
 
     private static final Linker LINKER = Linker.nativeLinker();
 

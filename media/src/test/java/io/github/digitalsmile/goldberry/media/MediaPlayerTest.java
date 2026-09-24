@@ -174,6 +174,105 @@ class MediaPlayerTest {
         assertEquals(Duration.ofMillis(100), player.status().position());
     }
 
+    /// ADR-0474: the audio clock is what is heard, so a speaker 50 ms behind the
+    /// queue holds the position, and the pictures timed by it, 50 ms back.
+    @Test
+    @DisplayName("the position is what is heard: the sink's latency is taken off it")
+    void positionIsWhatIsHeard() {
+        open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate() * 2), false, List.of());
+        awaitState(PlaybackState.PLAYING);
+        await(status -> sink.queuedSamples() >= FORMAT.sampleRate() / 5);
+        sink.latency(Duration.ofMillis(50).toNanos());
+
+        assertEquals(Duration.ZERO, player.status().position(), "nothing heard yet, and never before the start");
+        sink.advance(FORMAT.sampleRate() / 10);
+        assertEquals(Duration.ofMillis(50), player.status().position());
+        assertEquals(Duration.ofMillis(50), player.audioLatency());
+    }
+
+    /// Without the floor, a seek would land on its target and then step back by
+    /// the latency while the first samples after it travel to the ear.
+    @Test
+    @DisplayName("after a seek the position holds at the target while the first samples travel")
+    void latencyNeverStepsBackPastASeek() {
+        var rate = FORMAT.sampleRate();
+        open(Wav.silence(rate, 2, rate * 3), false, List.of());
+        awaitState(PlaybackState.PLAYING);
+        sink.latency(Duration.ofMillis(200).toNanos());
+        player.seek(Duration.ofMillis(1500));
+        await(status -> sink.clears() > 0 && sink.capturedSamples() >= rate / 5);
+
+        sink.advance(rate / 10);
+        assertEquals(Duration.ofMillis(1500), player.status().position(), "1600 left the queue, 1400 is heard");
+        // The throttle keeps about 200 ms queued: wait for the next 200 before
+        // playing them.
+        await(status -> sink.queuedSamples() >= rate / 5);
+        sink.advance(rate / 5);
+        assertEquals(Duration.ofMillis(1600), player.status().position());
+    }
+
+    @Test
+    @DisplayName("an audio delay adds to the sink's latency, either way, and is kept for the next source")
+    void audioDelay() {
+        open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate() * 2), false, List.of());
+        awaitState(PlaybackState.PLAYING);
+        await(status -> sink.queuedSamples() >= FORMAT.sampleRate() / 5);
+        sink.latency(Duration.ofMillis(20).toNanos());
+        sink.advance(FORMAT.sampleRate() / 5);
+
+        player.setAudioDelay(Duration.ofMillis(30));
+        assertEquals(Duration.ofMillis(50), player.audioLatency());
+        assertEquals(Duration.ofMillis(150), player.status().position());
+
+        // A television that is late with its picture: the pictures come forward.
+        player.setAudioDelay(Duration.ofMillis(-50));
+        assertEquals(Duration.ofMillis(230), player.status().position());
+
+        assertThrows(IllegalArgumentException.class, () -> player.setAudioDelay(Duration.ofSeconds(3)));
+        assertEquals(Duration.ofMillis(-50), player.audioDelay(), "a refused delay leaves the last one");
+
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        assertEquals(Duration.ofMillis(-50), player.audioDelay());
+    }
+
+    /// Once the queue is empty nothing leaves it, so without the tail the clock
+    /// would stop a latency short, and the track end before its last samples
+    /// were heard: a player that opens the next one then cuts them off.
+    @Test
+    @DisplayName("a track ends when its last sample is heard, not when it leaves the queue")
+    void endsWhenHeard() {
+        sink = new VirtualSink(FORMAT, true);
+        sink.latency(Duration.ofMillis(150).toNanos());
+        player = MediaPlayer.builder()
+                .sink(() -> sink)
+                .ioProviders(List.of(new MemoryProtocol(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate() / 5))))
+                .decoderProviders(List.of())
+                .build();
+        var started = System.nanoTime();
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        var ended = awaitState(PlaybackState.ENDED);
+
+        assertTrue(
+                System.nanoTime() - started >= Duration.ofMillis(150).toNanos(),
+                "an instant sink ended before its latency had passed");
+        assertEquals(Duration.ofMillis(200), ended.position(), "the clock ran on through the tail to the end");
+    }
+
+    /// The latency is wall-clock time: at twice the speed the device plays twice
+    /// the stream in it, so twice the stream time is still on its way.
+    @Test
+    @DisplayName("at a rate, the latency is that much more stream time")
+    void latencyAtARate() {
+        open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate() * 2), false, List.of());
+        awaitState(PlaybackState.PLAYING);
+        player.setRate(2f);
+        await(status -> sink.queuedSamples() >= FORMAT.sampleRate() / 5);
+        sink.latency(Duration.ofMillis(50).toNanos());
+
+        sink.advance(FORMAT.sampleRate() / 5);
+        assertEquals(Duration.ofMillis(100), player.status().position());
+    }
+
     @Test
     @DisplayName("seeks accurately: the first sample written after a seek is the target's (S2)")
     void seeksAccurately() {

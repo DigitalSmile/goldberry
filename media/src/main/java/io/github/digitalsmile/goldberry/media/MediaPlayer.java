@@ -61,6 +61,7 @@ public final class MediaPlayer implements AutoCloseable {
     private volatile float volume = 1f;
     private volatile boolean muted;
     private volatile float rate = 1f;
+    private volatile Duration audioDelay = Duration.ZERO;
     private boolean closed;
 
     private MediaPlayer(Builder builder) {
@@ -114,6 +115,7 @@ public final class MediaPlayer implements AutoCloseable {
                     highWaterMark.toNanos(),
                     _ -> publish());
             next.setRate(rate);
+            next.setAudioDelay(audioDelay.toNanos());
             playback = next;
         }
         if (previous != null) {
@@ -197,6 +199,49 @@ public final class MediaPlayer implements AutoCloseable {
         }
         this.rate = rate;
         publish();
+    }
+
+    /// The largest [#setAudioDelay] takes either way: more than any device's
+    /// latency, and less than a correction that would be a different problem.
+    public static final Duration MAX_AUDIO_DELAY = Duration.ofSeconds(2);
+
+    /// Corrects how late the sound is heard, for keeping pictures with it
+    /// (`docs/goldberry-media.md` §3, "Master clock", ADR-0474). Kept for the
+    /// next source opened, as the rate is.
+    ///
+    /// The audio clock already takes off what the sink reports
+    /// ([#audioLatency()]): SDL's buffers everywhere, and the device's own
+    /// latency where a provider can read it (CoreAudio, with
+    /// `goldberry-media-platform`). This is for the rest: a system with no
+    /// provider yet, a Bluetooth device that under-reports, a receiver between
+    /// the computer and the speakers. **Positive** when the sound is heard later
+    /// than that, which holds the pictures back to meet it. **Negative** when the
+    /// picture is the late one, as on a television that processes it, which
+    /// brings the pictures forward.
+    ///
+    /// @throws IllegalArgumentException beyond [#MAX_AUDIO_DELAY] either way
+    public void setAudioDelay(Duration delay) {
+        Objects.requireNonNull(delay, "delay");
+        if (delay.abs().compareTo(MAX_AUDIO_DELAY) > 0) {
+            throw new IllegalArgumentException("an audio delay of " + delay + " is beyond " + MAX_AUDIO_DELAY);
+        }
+        this.audioDelay = delay;
+        current().ifPresent(playback -> playback.setAudioDelay(delay.toNanos()));
+    }
+
+    /// What [#setAudioDelay] set: zero by default.
+    public Duration audioDelay() {
+        return audioDelay;
+    }
+
+    /// How long a sample takes from leaving the player to being heard, as the
+    /// audio clock counts it now: the sink's latency and [#audioDelay()]. What
+    /// the pictures are held back by, which a status panel can show. Zero with
+    /// nothing open.
+    public Duration audioLatency() {
+        return current()
+                .map(playback -> Duration.ofNanos(playback.audioLatencyNanos()))
+                .orElse(Duration.ZERO);
     }
 
     /// Whether the built-in decoder may decode video on the platform's video

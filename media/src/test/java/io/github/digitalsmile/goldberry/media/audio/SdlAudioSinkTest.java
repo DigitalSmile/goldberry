@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.foreign.Arena;
+import java.time.Duration;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -125,6 +127,66 @@ class SdlAudioSinkTest {
             sink.resume();
             sink.clear();
             assertEquals(0, sink.queuedSamples());
+        }
+    }
+
+    @Test
+    @DisplayName("counts three pulls of SDL's buffers on macOS, and the one the smoothing runs ahead elsewhere")
+    void pullsAhead() {
+        assertEquals(3, SdlAudioSink.pullsAhead("Mac OS X"));
+        assertEquals(1, SdlAudioSink.pullsAhead("Linux"));
+        assertEquals(1, SdlAudioSink.pullsAhead("Windows 11"));
+    }
+
+    /// ADR-0474: SDL's buffers, counted in pulls of the size the device takes,
+    /// plus what the system says, asked once on open and then at most once a
+    /// [SdlAudioSink#REFRESH] however often the Engine writes.
+    @Test
+    @DisplayName("reports SDL's buffers and the system's latency, asking the system at most once a second")
+    void latency() throws InterruptedException {
+        var asked = new int[1];
+        OutputLatency system = () -> {
+            asked[0]++;
+            return Optional.of(Duration.ofMillis(100));
+        };
+        try (var sink = new SdlAudioSink(system);
+                var arena = Arena.ofConfined()) {
+            assertEquals(0, sink.latencyNanos(), "a sink not open has no latency");
+            sink.open(FORMAT);
+            assertEquals(1, asked[0]);
+            assertEquals(Duration.ofMillis(100).toNanos(), sink.latencyNanos(), "no pull yet: the system's alone");
+
+            var samples = FORMAT.sampleRate() / 100;
+            for (var i = 0; i < 20; i++) {
+                sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
+            }
+            assertEquals(1, asked[0], "twenty writes in a moment ask the system once");
+
+            // Let the dummy device take a pull, which says how big one is.
+            var deadline = System.nanoTime() + 500_000_000L;
+            while (sink.latencyNanos() == Duration.ofMillis(100).toNanos() && System.nanoTime() < deadline) {
+                sink.queuedSamples();
+                Thread.sleep(2);
+            }
+            var sdl = sink.latencyNanos() - Duration.ofMillis(100).toNanos();
+            var pulls = SdlAudioSink.pullsAhead(System.getProperty("os.name", ""));
+            assertTrue(sdl > 0, "no pull was seen");
+            // A pull is SDL's device buffer, about 1024 frames at 48 kHz; the first
+            // one seen can be a little shorter or longer. Between 5 and 50 ms a
+            // pull is what SDL takes, and a count of them is what is reported.
+            var perPull = sdl / pulls;
+            assertTrue(
+                    perPull >= 5_000_000L && perPull <= 50_000_000L,
+                    "SDL's part is " + sdl + " ns for " + pulls + " pulls");
+        }
+    }
+
+    @Test
+    @DisplayName("with no system latency it counts SDL's buffers alone")
+    void noSystemLatency() {
+        try (var sink = new SdlAudioSink(OutputLatency.NONE)) {
+            sink.open(FORMAT);
+            assertEquals(0, sink.latencyNanos(), "no pull yet, and nothing from the system");
         }
     }
 }
