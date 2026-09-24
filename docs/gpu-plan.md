@@ -407,7 +407,7 @@ are open.
 | No swapchain texture (minimized, occluded): the upload is still submitted and nothing is presented, and the frame counts as presented for the budget | done: the upload is submitted, `PresentTimings.shown` is false, and `Window.paint` records the frame as before |
 | Pacing: swapchain VSYNC; `FramePacer` steps aside where phase 0 says it should; `SetGPUAllowedFramesInFlight(2)` by default | done (ADR-0479): VSYNC (MAILBOX or IMMEDIATE when `goldberry.backend.vsync=false`), two frames in flight. **`FramePacer` does not step aside.** Stepping aside let frames with no damage, which wait for no swapchain texture, spin about 1 ms apart. With it on, the showcase's 240 frames took 2.9 s composited and 2.8 s on the CPU, 14 and 13 late |
 | `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | done: `BackendWindow.lastPresent()` reports `PresentTimings`, `Window.paint` banks it beside its frame, and `FrameStats` gives `upload()`, `acquire()`, `submit()`, `uploadBytes()` and `compositedFrames()`, over the composited frames alone. The `hud` has `upload`, `acquire` (never coloured: it is the display's wait) and `submit` readings, and `readings="present"`; a window on its surface reads dashes. The launcher logs a `presents:` line at exit beside `frames:` |
-| **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | in part: the composite pass keeps every colour byte of random premultiplied frames and makes them opaque, which is what the window surface shows (`CompositorTest`); a damage-only upload keeps every pixel outside the damage. The gallery screens against their goldens are open |
+| **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | done in a stronger form (`CompositorTest`): the composite pass keeps every colour byte of random premultiplied frames, and makes them opaque, which is what the window surface shows. That holds at 64×32 and at 1920×1080, 3024×1842 and 2561×1599, to the far corner; a damage-only upload keeps every pixel outside the damage. The pass is a per-pixel 1:1 copy, so random bytes at window sizes cover whatever a gallery screen holds, exactly rather than within a tolerance. The gallery screens themselves were not put through it: that would take a GPU test harness in `:example` to show the same thing again |
 
 **Exit:** the showcase runs composited (forced on with
 `-Dgoldberry.gpu.composite=always`) with every tab indistinguishable from CPU
@@ -423,8 +423,7 @@ upload of 0.79 ms and 9.3 MB (the showcase's animations damage most of a
 3024×1842 frame), and a mean acquire of 0.18 ms, since the pacer waits in the
 pump before a frame is emitted.
 
-Open: the tab-by-tab comparison by eye; the gallery goldens against the
-composited path; the caret's upload bytes, which no unattended run can take,
+Open: the tab-by-tab comparison by eye; the caret's upload bytes, which no unattended run can take,
 since no screen focuses a field without a click (`hud readings="present"`
 shows them live); and every platform but macOS.
 

@@ -96,6 +96,41 @@ class CompositorTest {
             }
         }
 
+        /// At the sizes real windows are: nearest sampling 1:1 has to pick each
+        /// pixel's own texel at the far edge of a 3K frame as well as at the
+        /// origin, where a texture coordinate's rounding would show first. Odd
+        /// sizes too, since a window's pixels need not be even.
+        @Test
+        @DisplayName("keeps every byte at full window sizes, even and odd, to the far corner")
+        void windowSizes() {
+            for (var size : new int[][] {{1920, 1080}, {3024, 1842}, {2561, 1599}}) {
+                var width = size[0];
+                var height = size[1];
+                var frame = premultiplied(width, height, width);
+                try (var composite = new UiComposite(device);
+                        var ui = upload(frame, width, height);
+                        var target = device.createTexture(
+                                SdlGpuTextureFormat.B8G8R8A8_UNORM,
+                                width,
+                                height,
+                                EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET, SdlGpuTextureUsage.SAMPLER))) {
+                    var commands = device.acquireCommandBuffer();
+                    composite.draw(commands, target, target.format(), ui);
+                    commands.submit();
+                    var back = readBack(device, target);
+                    var wrong = 0;
+                    for (var i = 0; i < width * height; i++) {
+                        for (var channel = 0; channel < 3; channel++) {
+                            if (frame[i * 4 + channel] != back[i * 4 + channel]) {
+                                wrong++;
+                            }
+                        }
+                    }
+                    assertEquals(0, wrong, width + "x" + height + ": colour bytes that changed");
+                }
+            }
+        }
+
         @Test
         @DisplayName("draws a smaller UI at the top left and leaves the rest black, as a resize mid-frame does")
         void smallerUi() {
