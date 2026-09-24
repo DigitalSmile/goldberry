@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 /// A copy pass of a [GpuFrame]: CPU memory into textures and buffers, usable
 /// only inside the body [GpuFrame#copyPass] runs it in.
 ///
-/// Every upload goes through the device's staging memory ([Upload]): the bytes
+/// Every upload goes through the device's staging memory: the bytes
 /// are copied out of the caller's buffer before the method returns, so the
 /// buffer can be reused at once, and nothing waits for the GPU.
 ///
@@ -91,7 +91,6 @@ public final class CopyPass {
             throw new IllegalArgumentException("rows of " + rowBytes + " bytes are shorter than " + destination + "'s");
         }
         var nonEmpty = new ArrayList<PhysicalRect>(regions.size());
-        var total = 0L;
         for (var region : regions) {
             if (region.isEmpty()) {
                 continue;
@@ -105,43 +104,22 @@ public final class CopyPass {
                         region + " ends at byte " + end + ", and the source holds " + source.remaining());
             }
             nonEmpty.add(region);
-            total += (long) region.width() * region.height() * pixel;
         }
         if (nonEmpty.isEmpty()) {
             return;
         }
-        var upload = device.upload();
-        var bytes = total;
-        var staging = GpuDevice.call(() -> upload.map(bytes));
-        var base = source.position();
-        var at = 0;
-        var offsets = new int[nonEmpty.size()];
-        try {
-            for (var i = 0; i < nonEmpty.size(); i++) {
-                var region = nonEmpty.get(i);
-                offsets[i] = at;
-                var row = region.width() * pixel;
-                for (var y = region.y(); y < region.bottom(); y++) {
-                    staging.put(at, source, base + y * rowBytes + region.x() * pixel, row);
-                    at += row;
-                }
-            }
-        } finally {
-            // Unmapped whatever happened, so the next upload can map again.
-            upload.unmap();
+        var regionsToCopy = new ArrayList<SdlGpuRegion>(nonEmpty.size());
+        for (var region : nonEmpty) {
+            regionsToCopy.add(new SdlGpuRegion(region.x(), region.y(), region.width(), region.height()));
         }
+        var upload = device.upload();
+        var offsets = GpuDevice.call(() -> upload.stage(source, rowBytes, pixel, regionsToCopy));
         var transfer = upload.buffer();
         var whole = nonEmpty.size() == 1
                 && nonEmpty.getFirst().width() == destination.width()
                 && nonEmpty.getFirst().height() == destination.height();
-        for (var i = 0; i < nonEmpty.size(); i++) {
-            var region = nonEmpty.get(i);
-            sdl.upload(
-                    transfer,
-                    offsets[i],
-                    texture,
-                    new SdlGpuRegion(region.x(), region.y(), region.width(), region.height()),
-                    whole);
+        for (var i = 0; i < regionsToCopy.size(); i++) {
+            sdl.upload(transfer, offsets[i], texture, regionsToCopy.get(i), whole);
         }
     }
 
@@ -164,12 +142,7 @@ public final class CopyPass {
             throw new IllegalArgumentException(size + " bytes from offset " + offset + " do not fit " + destination);
         }
         var upload = device.upload();
-        var staging = GpuDevice.call(() -> upload.map(size));
-        try {
-            staging.put(0, source, source.position(), size);
-        } finally {
-            upload.unmap();
-        }
+        GpuDevice.run(() -> upload.stage(source));
         var transfer = upload.buffer();
         sdl.uploadToBuffer(transfer, 0, buffer, offset, size, offset == 0 && size == destination.size());
     }

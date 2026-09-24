@@ -94,7 +94,7 @@ GPU layer never loads a driver.
 - A device that fails to create is remembered for the process, as `Hardware` remembers a failed codec (ADR-0470), and every consumer drops to its fallback rung.
 - `-Dgoldberry.gpu=off|auto` is the switch; `auto` is the default.
 
-### D3. Composition is per window, entered when a GPU layer attaches (to measure)
+### D3. Composition is per window, entered when a GPU layer attaches (decided on macOS, ADR-0479)
 
 A window is in one of three modes:
 
@@ -119,6 +119,13 @@ flip modes on every frame.
 If a switch cannot be made reliable, the fallback decision is that a window
 chooses its mode when it is created (`Window.Builder.gpu(true)`) and GPU layers
 in a CPU window use readback.
+
+**Decided on macOS (ADR-0479):** the switch is made at a window's first frame
+after it is wanted, in `acquireFrame`. `goldberry.gpu.composite=always` wants it
+from the first frame. A window with an embedded page stays on the CPU. A claim
+or a present that fails sends the window back to the CPU for good. Leaving on
+a timer after the last layer detaches waits for phase 4, which is when layers
+attach and detach.
 
 ### D4. Z-order by hole-punching
 
@@ -166,6 +173,14 @@ public interface GpuLayer {                  // implemented by canvas3d and vide
 `HeadlessWindow` returns a `GpuSurface` in readback mode when a device can be
 created, and empty otherwise. That lets a test of `canvas3d` run on lavapipe with
 no window.
+
+**Corrected in phase 3 (ADR-0479):** `:gpu` requires `:core`, so a
+`GpuLayer.render(GpuFrame …)` cannot be declared in `:core`. `GpuFrame` is a
+`:gpu` type (ADR-0478). `:core` declares a seam of its own instead,
+`render.composite` (`Compositor`, `CompositedWindow`), exported to `:gpu` alone
+and found by `ServiceLoader`. `GpuSurface`, `GpuLayer` and `CompositionMode`
+arrive with phase 4, their consumer: the layer interface will be `:gpu`'s, and
+`:core` will hold opaque slots in paint order.
 
 **Corrected in phase 1 (ADR-0475):** no device can be created under SDL's
 `dummy` video driver, which the headless tests use. A headless `GpuSurface`
@@ -385,19 +400,26 @@ are open.
 
 | Item | Status |
 |------|--------|
-| `GpuSurface`, `GpuLayer`, `CompositionMode` in `:core`'s SPI (D5); `BackendWindow.gpuSurface()` on `Sdl3Window` and `HeadlessWindow` | open |
-| `Window.paint` in composited mode: the owned `PixelBuffer` (so `retainsFrameContents` is true and partial repaint keeps working), the damage uploaded to the UI texture, then the composite pass: clear, layers, UI quad (premultiplied `ONE, ONE_MINUS_SRC_ALPHA`) | open |
-| The UI quad's shader pair, `ui.vert`/`ui.frag` (D7). The UI texture is `B8G8R8A8_UNORM` so the Blend2D bytes upload unconverted | open |
-| Mode entry and exit with hysteresis (D3); resize (UI texture recreated, full upload, ADR-0158); HiDPI (swapchain and UI texture in physical pixels, `DisplayScale`) | open |
-| No swapchain texture (minimized, occluded): the upload is still submitted and nothing is presented, and the frame counts as presented for the budget | open |
-| Pacing: swapchain VSYNC; `FramePacer` steps aside where phase 0 says it should; `SetGPUAllowedFramesInFlight(2)` by default | open |
-| `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | open |
-| **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | open |
+| `GpuSurface`, `GpuLayer`, `CompositionMode` in `:core`'s SPI (D5); `BackendWindow.gpuSurface()` on `Sdl3Window` and `HeadlessWindow` | moved to phase 4, their consumer (D5 corrected, ADR-0479). What phase 3 needed instead: `render.composite` in `:core`, exported to `:gpu` alone and provided by `:gpu`'s `SdlCompositor` through `ServiceLoader`; `Composition` (`goldberry.gpu`, `goldberry.gpu.composite`) |
+| `Window.paint` in composited mode: the owned `PixelBuffer` (so `retainsFrameContents` is true and partial repaint keeps working), the damage uploaded to the UI texture, then the composite pass: clear, layers, UI quad (premultiplied `ONE, ONE_MINUS_SRC_ALPHA`) | done (ADR-0479). `Window.paint` is unchanged: a composited `Sdl3Window` lends no surface, so the frame loop paints into its own buffer, which it keeps; `present` goes to `SdlCompositedWindow`. The composite pass is `UiComposite`: clear to opaque black, then the UI quad. Layers go between the two in phase 4 |
+| The UI quad's shader pair, `ui.vert`/`ui.frag` (D7). The UI texture is `B8G8R8A8_UNORM` so the Blend2D bytes upload unconverted | done without a pair of its own: `quad.vert` and `texture.frag`, sampled nearest, which phase 2 proved byte for byte. The UI texture is `B8G8R8A8_UNORM` |
+| Mode entry and exit with hysteresis (D3); resize (UI texture recreated, full upload, ADR-0158); HiDPI (swapchain and UI texture in physical pixels, `DisplayScale`) | in part: entry at the first frame wanted; exit on failure, for good; a page embedded pulls a window back to the CPU; resize recreates the UI texture and uploads the frame whole; physical pixels throughout. The hysteresis waits for phase 4's attach and detach |
+| No swapchain texture (minimized, occluded): the upload is still submitted and nothing is presented, and the frame counts as presented for the budget | done: the upload is submitted, `PresentTimings.shown` is false, and `Window.paint` records the frame as before |
+| Pacing: swapchain VSYNC; `FramePacer` steps aside where phase 0 says it should; `SetGPUAllowedFramesInFlight(2)` by default | done (ADR-0479): VSYNC (MAILBOX or IMMEDIATE when `goldberry.backend.vsync=false`), two frames in flight. **`FramePacer` does not step aside.** Stepping aside let frames with no damage, which wait for no swapchain texture, spin about 1 ms apart. With it on, the showcase's 240 frames took 2.9 s composited and 2.8 s on the CPU, 14 and 13 late |
+| `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | in part: each composited present records `PresentTimings` (upload, acquire wait, submit, bytes, shown); `FrameStats` and the `hud` are open |
+| **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | in part: the composite pass keeps every colour byte of random premultiplied frames and makes them opaque, which is what the window surface shows (`CompositorTest`); a damage-only upload keeps every pixel outside the damage. The gallery screens against their goldens are open |
 
 **Exit:** the showcase runs composited (forced on with
 `-Dgoldberry.gpu.composite=always`) with every tab indistinguishable from CPU
 mode, parity tests green on the GPU lane, and damage-only uploads measured (the
 bytes uploaded per frame while the caret blinks).
+
+**Status:** the showcase runs composited on Metal
+(`./gradlew :example:run -Pgoldberry.gpu.composite=always`). Its 240-frame run
+paints and paces like the CPU one. `CompositedBackendTest` drives the whole
+path through `Sdl3Backend` in `:gpu:gpuTest`. Open: the tab-by-tab comparison
+by eye, the gallery goldens, the caret's upload bytes, `FrameStats` and the
+`hud`, and every platform but macOS.
 
 ### Phase 4 — GPU layers in the tree
 
@@ -494,7 +516,7 @@ items are either done or recorded as waiting on a host.
 | Document | What changes | Status |
 |----------|--------------|--------|
 | `docs/ARCHITECTURE.md` §12 | "day 1 in the SPI" corrected; the three modes as built; frost over GPU content (D4) | open |
-| `docs/ARCHITECTURE.md` §3.1, §15 | `natives.sdl.gpu`'s qualified export (D6) | open |
+| `docs/ARCHITECTURE.md` §3.1, §15 | `natives.sdl.gpu`'s qualified export (D6); `:core`'s `render.composite` exported to `:gpu` (ADR-0479) | open |
 | ADR-0002, ADR-0019 | a note linking the ADRs that replace their day-1 claims | open |
 | ADR-0280 | amended for `:gpu`'s export, as ADR-0461 was for `:media` | open |
 | `docs/goldberry-media.md` §3, §8 | GPU present as built; phase 4 exit | open |
@@ -514,4 +536,5 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | Phase 2 in part (ADR-0476): shaders, samplers, pipelines and render passes bound (13 more exports, 13 structs and 13 enumerators verified); three HLSL shaders compiled by DXC and SPIRV-Cross into SPIR-V, DXIL and MSL, committed with their sources' hashes; `:gpu:gpuTest`, whose five draws read back exact on Metal |
 | 2026-09-24 | D1 decided (ADR-0477): `SDL_GPU` directly. Y'CbCr shaders for NV12, I420, P010 and I010, exact against a Java reference for every matrix and range on Metal; a 4K layer composited under the UI at under 1.4 ms of CPU a frame at 120 Hz |
 | 2026-09-24 | The GPU lane written: lavapipe under `offscreen` on both Linux targets, device required; macOS runners asked, not required. Not yet run |
+| 2026-09-24 | Phase 3 begun (ADR-0479): `:core` declares `render.composite`, exported to `:gpu` alone, and `:gpu`'s `SdlCompositor` provides it through `ServiceLoader`. `goldberry.gpu.composite=always` composites every window: it lends no surface, and its frames' damage goes up to a UI texture drawn over black onto the swapchain. D5 corrected: layers and `GpuSurface` move to phase 4. Found: stepping `FramePacer` aside let undamaged frames spin 1 ms apart, so it stays on. The showcase runs composited on Metal and paces like the CPU. `:gpu:gpuTest` 37 green, the backend end to end among them |
 | 2026-09-24 | Phase 2's public API (ADR-0478): `io.github.digitalsmile.goldberry.gpu` exported, with resources made from records, frames of scoped passes, staged uploads and readback, one thread, misuse refused in Java. Under it, ten more exports (buffers, indexed draws, debug groups: 56 `SDL_GPU` functions), seven structs and the pipeline enumerators verified. Phase 2's exit met on Metal: a vertex-buffer triangle against a Java reference. `:natives:check` and `:gpu:check` green, with 27 and 28 GPU tests on Metal |

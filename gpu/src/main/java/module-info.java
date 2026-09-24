@@ -27,6 +27,13 @@ module io.github.digitalsmile.goldberry.gpu {
     /// nothing of `:natives`.
     exports io.github.digitalsmile.goldberry.gpu;
 
+    /// The composited window (`docs/gpu-plan.md`, phase 3; ADR-0479): the sdl3
+    /// backend finds this with `ServiceLoader` when a window is to present
+    /// through the GPU. Being on the module path is enough; an application
+    /// need not require this module for its windows to be composited.
+    provides io.github.digitalsmile.goldberry.render.composite.Compositor with
+            io.github.digitalsmile.goldberry.gpu.render.SdlCompositor;
+
     /// SDL_GPU's wrappers, which `:natives` exports to this module and to
     /// `:core` alone (ADR-0475). Not `transitive`: no type of `:natives` is in
     /// this module's public surface.

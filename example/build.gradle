@@ -40,6 +40,11 @@ dependencies {
     // (ADR-0472). On other systems it supports nothing and the H.264 sample
     // errors as before.
     implementation project(':media-platform')
+    // The GPU (docs/gpu-plan.md, ADR-0479). Runtime only: nothing here names a
+    // type of it yet, and being on the module path is what lets the sdl3
+    // backend find its compositor, so `-Pgoldberry.gpu.composite=always` runs
+    // every window through the GPU. The GPU tab (phase 5) makes it a dependency.
+    runtimeOnly project(':gpu')
 
     // The golden-image harness and the renderer requirement, so the gallery can
     // be checked as pictures the way the catalog is (§14, ADR-0110).
@@ -270,7 +275,8 @@ tasks.named('run') {
     // GNOME Shell down with it (see book/src/status.md).
     ['goldberry.paint.threads', 'goldberry.backend.vsync', 'goldberry.frame.rate',
      'goldberry.backend.videoDriver', 'goldberry.trace.frames',
-     'goldberry.trace.input'].each { name ->
+     'goldberry.trace.input', 'goldberry.gpu', 'goldberry.gpu.composite',
+     'goldberry.gpu.driver', 'goldberry.gpu.debug'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

@@ -493,3 +493,4 @@
 - [ADR-0476 Shaders are HLSL, compiled by DXC and SPIRV-Cross, and committed](adr/0476-shaders-are-hlsl-compiled-by-dxc-and-spirv-cross-and-committed.md)
 - [ADR-0477 The GPU composites with SDL_GPU directly, and converts Y'CbCr itself](adr/0477-the-gpu-composites-with-sdl-gpu-directly.md)
 - [ADR-0478 The GPU API is confined to one thread, scoped by pass, and checked in Java](adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)
+- [ADR-0479 A window is composited through a seam :core declares and :gpu provides](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)

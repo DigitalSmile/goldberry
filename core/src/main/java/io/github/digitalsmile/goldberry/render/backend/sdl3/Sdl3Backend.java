@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ import io.github.digitalsmile.goldberry.platform.PlatformCapabilities;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.composite.Compositor;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
@@ -127,6 +129,20 @@ public final class Sdl3Backend implements Backend {
     private final java.util.IdentityHashMap<BackendWindow, List<BackendWebView>> embeddedPages =
             new java.util.IdentityHashMap<>();
     private final FramePacer pacer = FramePacer.fromProperties();
+
+    /// When windows present through the GPU (ADR-0479). Read once: a window's
+    /// mode is decided at its first frame, and a policy that changed under a
+    /// running loop would decide two windows two ways.
+    private final Composition composition = Composition.fromProperties();
+
+    /// `:gpu`'s compositor, found the first time a window is to be composited,
+    /// and null until then -- which, by default, is forever (D2: no device until
+    /// something needs one).
+    private @Nullable Compositor compositor;
+
+    /// Whether looking for a compositor found none: `:gpu` is not on the module
+    /// path. Remembered, so the service catalogue is read once.
+    private boolean compositorAbsent;
 
     /// The system cursors, created on first use.
     ///
@@ -757,6 +773,11 @@ public final class Sdl3Backend implements Backend {
     /// @return how many frames were emitted
     private int emitDueFrames(EventSink sink) {
         var now = System.nanoTime();
+        // Composited windows too. Their present waits for the swapchain, so
+        // after a frame that presented, the interval is already spent and this
+        // holds nothing back; after one that presented nothing -- no damage, so
+        // no swapchain texture was waited for -- this is all that stops the loop
+        // painting unseen frames at a thousand a second (ADR-0479).
         if (!pacer.isDue(now)) {
             return 0;
         }
@@ -1329,8 +1350,38 @@ public final class Sdl3Backend implements Backend {
             cursors.close();
             cursors = null;
         }
+        // After the windows, which gave their claims back as they closed, and
+        // before SDL_Quit, which the device has to be destroyed ahead of.
+        if (compositor != null) {
+            compositor.close();
+            compositor = null;
+        }
         eventBuffer.close();
         Sdl.get().quit();
+    }
+
+    /// Whether `window` should present through the GPU from its next frame: the
+    /// policy says so, and it has no page embedded in it.
+    boolean wantsComposited(Sdl3Window window) {
+        return composition == Composition.ALWAYS && !embeddedPages.containsKey(window);
+    }
+
+    /// `:gpu`'s compositor, found the first time it is asked for; empty when
+    /// `:gpu` is not on the module path.
+    Optional<Compositor> compositor() {
+        requireUiThread();
+        if (compositor == null && !compositorAbsent) {
+            compositor = ServiceLoader.load(Compositor.class).findFirst().orElse(null);
+            compositorAbsent = compositor == null;
+            if (compositorAbsent) {
+                LOG.info(
+                        "{}={} asks for composited windows, and no compositor is on the module path"
+                                + " (goldberry-gpu); presenting on the CPU",
+                        Composition.COMPOSITE_PROPERTY,
+                        composition.name().toLowerCase(Locale.ROOT));
+            }
+        }
+        return Optional.ofNullable(compositor);
     }
 
     /// Closes every popup belonging to `owner`, before the platform does it for
@@ -1421,6 +1472,14 @@ public final class Sdl3Backend implements Backend {
         bridgeGlibLogs();
         var page = WebViewEngine.openEmbedded(spec, parent.get(), x, y, width, height);
         page.ifPresent(opened -> {
+            // A page is a native view over the window's content, and a swapchain
+            // claims the same content view: which of the two shows on top is the
+            // platform's to decide, and phase 0 left it unmeasured. So a window
+            // with a page presents on the CPU, where the answer is known
+            // (ADR-0479).
+            if (window instanceof Sdl3Window sdl) {
+                sdl.stayOnTheCpu("a page is embedded in it");
+            }
             var pages = embeddedPages.computeIfAbsent(window, w -> new ArrayList<>());
             // A widget that goes away closes its own page — switching tabs does
             // exactly that — and this list would otherwise keep the corpse until

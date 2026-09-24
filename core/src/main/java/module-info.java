@@ -7,6 +7,12 @@
 /// The `natives` module is required for the `sdl3` backend. It exports only its
 /// wrapper packages, so nothing here can reach a raw `MemorySegment` even by
 /// accident -- the boundary in §3.1 is the module graph, not a convention.
+///
+/// `@SuppressWarnings("module")` for the one qualified export to a module built
+/// after this one, `render.composite` to `:gpu`, which javac cannot find while
+/// compiling `:core` and warns about. `:natives` does the same, for the same
+/// reason; the export still works, because the name is resolved at run time.
+@SuppressWarnings("module")
 module io.github.digitalsmile.goldberry.core {
     // **Not `transitive`, and that is the end of ADR-0280** (ADR-0290). No type
     // of `:natives` appears in a signature this module exports, so nothing that
@@ -269,6 +275,14 @@ module io.github.digitalsmile.goldberry.core {
     /// `:widgets` puts the door on top of it.
     exports io.github.digitalsmile.goldberry.render.web;
     exports io.github.digitalsmile.goldberry.render.window;
+    /// The compositor seam (`docs/gpu-plan.md`, phase 3; ADR-0479): what the
+    /// sdl3 backend asks of `:gpu` to present a window through the GPU, found by
+    /// `ServiceLoader` below. Exported to `:gpu` alone, because its signatures name
+    /// `:natives`' window handle and nothing in it is for an application.
+    exports io.github.digitalsmile.goldberry.render.composite to
+            io.github.digitalsmile.goldberry.gpu;
+
+    uses io.github.digitalsmile.goldberry.render.composite.Compositor;
     exports io.github.digitalsmile.goldberry.render.event;
     exports io.github.digitalsmile.goldberry.render;
     exports io.github.digitalsmile.goldberry.stats;

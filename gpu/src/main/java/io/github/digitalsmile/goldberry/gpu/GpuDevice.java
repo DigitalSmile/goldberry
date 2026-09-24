@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.gpu.render.StagingBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPipelineDescription;
@@ -38,7 +39,7 @@ public final class GpuDevice {
     private final SdlGpuDevice sdl;
     private final Thread owner;
     private final Set<ShaderFormat> shaderFormats;
-    private @Nullable Upload upload;
+    private @Nullable StagingBuffer upload;
 
     private GpuDevice(SdlGpuDevice sdl, Thread owner) {
         this.sdl = sdl;
@@ -212,10 +213,10 @@ public final class GpuDevice {
     }
 
     /// The staging memory uploads pass through, made the first time one does.
-    Upload upload() {
+    StagingBuffer upload() {
         var current = upload;
         if (current == null) {
-            current = new Upload(sdl());
+            current = new StagingBuffer(sdl());
             upload = current;
         }
         return current;

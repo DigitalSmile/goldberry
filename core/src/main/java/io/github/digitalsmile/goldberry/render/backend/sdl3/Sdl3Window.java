@@ -18,6 +18,8 @@ import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
+import io.github.digitalsmile.goldberry.render.composite.PresentTimings;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -76,6 +78,15 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// The floor last asked for, so [#minimumSize] needs no second native call.
     private LogicalSize minimumSize = WindowSpec.NO_MINIMUM;
+
+    /// The compositor's hold on this window while it presents through the GPU,
+    /// and null while it presents through its window surface (ADR-0479).
+    private @Nullable CompositedWindow composited;
+
+    /// Why this window presents on the CPU whatever the policy says, once
+    /// something has decided it must: a claim refused, a present that failed, a
+    /// page embedded in it. Null while it may still be composited.
+    private @Nullable String cpuOnly;
 
     /// The handle, for a subclass that has to make its own SDL calls.
     final SdlWindowHandle handle() {
@@ -154,10 +165,24 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return true;
     }
 
+    /// The window surface, while this window presents through it. Empty while it
+    /// is composited: the frame loop then paints into a buffer of its own,
+    /// which it keeps between frames, so partial repaint goes on working.
+    ///
+    /// Where a window enters the composited mode, because this is the one call
+    /// made before a frame is painted: the surface is given up and the window
+    /// claimed before anything is drawn into either.
     @Override
     public Optional<PixelBuffer> acquireFrame() {
         backend.requireUiThread();
         requireOpen();
+        if (composited == null && cpuOnly == null && backend.wantsComposited(this)) {
+            enterComposited();
+        }
+        if (composited != null) {
+            acquired = null;
+            return Optional.empty();
+        }
         try {
             var surface = video().acquireSurface(handle);
             acquired = new PixelBuffer(
@@ -191,6 +216,11 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             if (!rect.fitsWithin(expected)) {
                 throw new IllegalArgumentException("damage " + rect + " falls outside the " + expected + " frame");
             }
+        }
+
+        if (composited != null) {
+            presentComposited(frame, damage, expected);
+            return;
         }
 
         var rects = new int[damage.size() * 4];
@@ -234,6 +264,95 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // made by the painter *during* this frame, which is how an animation stops
         // after one frame.
     }
+
+    /// Hands the frame to the compositor, or, if the GPU fails, leaves the
+    /// composited mode for good and presents this same frame on the CPU, whole.
+    private void presentComposited(PixelBuffer frame, List<DamageRect> damage, PhysicalSize size) {
+        var gpu = composited;
+        if (gpu == null) {
+            return;
+        }
+        try {
+            gpu.present(frame, damage);
+            lastPresent = gpu.lastPresent();
+        } catch (RuntimeException e) {
+            LOG.warn("the GPU failed presenting \"{}\"; it presents on the CPU from now on", title, e);
+            leaveComposited("its GPU present failed: " + e.getMessage());
+            try {
+                video().present(
+                                handle,
+                                frame.pixels().duplicate(),
+                                frame.stride(),
+                                new SdlVideo.SdlSize(size.width(), size.height()),
+                                new int[] {0, 0, size.width(), size.height()});
+            } catch (SdlException fallback) {
+                throw new BackendException("presenting a frame failed", fallback);
+            }
+        }
+        if (!shown) {
+            shown = true;
+            video().showWindow(handle);
+        }
+    }
+
+    /// Gives the window surface up and has the compositor claim the window. A
+    /// refusal is remembered, so it is asked once, and the window stays on the
+    /// CPU.
+    private void enterComposited() {
+        var compositor = backend.compositor();
+        if (compositor.isEmpty()) {
+            cpuOnly = "no compositor";
+            return;
+        }
+        // Before the claim: SDL will not claim a window whose surface is held,
+        // since the two cannot both present it.
+        video().invalidateSurface(handle);
+        var claimed = compositor.get().claim(handle);
+        if (claimed.isEmpty()) {
+            cpuOnly = compositor.get().unavailable().orElse("the GPU would not claim it");
+            LOG.debug("\"{}\" presents on the CPU: {}", title, cpuOnly);
+            return;
+        }
+        composited = claimed.get();
+        LOG.debug("\"{}\" presents through the GPU", title);
+    }
+
+    /// Gives the window back to its surface, for good: `reason` is why.
+    private void leaveComposited(String reason) {
+        cpuOnly = reason;
+        var gpu = composited;
+        composited = null;
+        lastPresent = PresentTimings.NONE;
+        if (gpu != null) {
+            try {
+                gpu.close();
+            } catch (RuntimeException e) {
+                LOG.debug("releasing \"{}\" from the GPU failed", title, e);
+            }
+        }
+    }
+
+    /// Keeps this window on the CPU from now on, leaving the composited mode if
+    /// it is in it: something it holds cannot be composited.
+    void stayOnTheCpu(String reason) {
+        backend.requireUiThread();
+        if (composited != null) {
+            LOG.debug("\"{}\" leaves the GPU: {}", title, reason);
+        }
+        leaveComposited(reason);
+    }
+
+    /// Whether this window presents through the GPU now.
+    boolean isComposited() {
+        return composited != null && open;
+    }
+
+    /// What the last composited present cost, or [PresentTimings#NONE].
+    PresentTimings lastPresent() {
+        return lastPresent;
+    }
+
+    private PresentTimings lastPresent = PresentTimings.NONE;
 
     @Override
     public void requestFrame() {
@@ -518,6 +637,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // with it — so one torn down afterwards is GTK unwinding a window that is
         // already gone (ADR-0442).
         backend.closeEmbeddedPagesOf(this);
+        // The swapchain before the window it belongs to.
+        leaveComposited("closed");
         backend.forget(this);
         video().destroyWindow(handle);
     }
