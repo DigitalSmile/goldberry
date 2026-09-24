@@ -115,6 +115,21 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
+      # The GPU tests, on Metal if this runner has it (docs/gpu-plan.md, phase 2;
+      # ADR-0475). Not required: whether GitHub's macOS VMs expose Metal is not
+      # known yet, so a runner without a device skips and says why in the
+      # summary. The Linux legs run the same tests on lavapipe, required. When a
+      # run here shows a device, this becomes -Dgoldberry.gpu.required=true.
+      #
+      # Cocoa, which a Metal device needs, starts only on the first thread; the
+      # gpuTest tasks start their JVM with -XstartOnFirstThread for that.
+      - name: GPU tests, on Metal if the runner has it
+        run: |
+          ./gradlew :natives:gpuTest :gpu:gpuTest --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
+            -Dgoldberry.native.required=true
+          cat natives/build/gpu-test/summary.txt gpu/build/gpu-test/summary.txt
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

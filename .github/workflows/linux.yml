@@ -291,6 +291,43 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
+      # The GPU tests, on lavapipe: Mesa's software Vulkan, a conformant driver on
+      # a runner with no GPU (docs/gpu-plan.md, phase 2; ADR-0475). SDL makes a
+      # GPU device only under a video driver that can make a Vulkan surface, and
+      # `offscreen` makes a headless one, so no display and no Xvfb are needed.
+      # The loader is pointed at lavapipe alone, so a runner that ever grows a
+      # real GPU still tests the same driver. `goldberry.gpu.required` turns a
+      # missing device into a failure rather than a green tick over nothing
+      # (ADR-0016).
+      #
+      # Written before it could be run: no Linux host with a container runtime
+      # was at hand when it was added. Its first run is its first test.
+      - name: Install lavapipe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1 vulkan-tools
+
+      - name: GPU tests on lavapipe
+        run: |
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json | head -n 1)
+          test -n "$icd" || { echo "::error::no lavapipe ICD in /usr/share/vulkan/icd.d"; exit 1; }
+          export VK_DRIVER_FILES="$icd" VK_ICD_FILENAMES="$icd"
+          vulkaninfo --summary
+          ./gradlew :natives:gpuTest :gpu:gpuTest --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true \
+            -Dgoldberry.gpu.required=true \
+            -Dgoldberry.gpu.videoDriver=offscreen
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gpu-test-summary-${{ matrix.target }}
+          path: |
+            natives/build/gpu-test/summary.txt
+            gpu/build/gpu-test/summary.txt
+          if-no-files-found: ignore
+
       # The example's own tests -- its goldens, its gallery order, its screen
       # tests -- need a rasterizer too, and this is the only place they meet a
       # real library on every push: showcase.yml, which used to run them, builds
