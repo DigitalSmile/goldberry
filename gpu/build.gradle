@@ -1,11 +1,164 @@
+import io.github.digitalsmile.goldberry.build.ToolResolver
+
+import java.security.MessageDigest
+
 plugins {
     id 'goldberry.java-conventions'
     // Published to Maven Central as goldberry-gpu (ADR-0334).
     id 'goldberry.publish'
 }
 
+evaluationDependsOn(':natives')
+
 description = 'Goldberry GPU: the canvas3d widget and the GPU composition path'
 
 dependencies {
     api project(':core')
+
+    // SDL_GPU's wrappers, which :natives exports to this module and to :core
+    // alone (ADR-0475). Not `api`: no type of :natives is in this module's
+    // public surface.
+    implementation project(':natives')
+
+    // :natives' GPU test helpers: the device requirement and the launcher that
+    // runs the tests on the first thread (`gpuTest` below).
+    testImplementation rootProject.project(':natives').sourceSets.test.output
+    testImplementation libs.junit.platform.launcher
+}
+
+// ============================================================================
+// Shaders (docs/gpu-plan.md, D7)
+//
+// Authored once in HLSL under src/main/shaders, and compiled on purpose -- not
+// as part of `build` -- into the three formats SDL_GPU takes: SPIR-V (Vulkan)
+// and DXIL (Direct3D 12) by DXC, and MSL (Metal) by SPIRV-Cross from the
+// SPIR-V. They are the two engines SDL_shadercross wraps, called directly.
+//
+//   ./gradlew :gpu:compileShaders
+//
+// The output is committed under src/main/resources, with shaders.properties
+// recording each source's SHA-256 and the tools' versions. ShaderManifestTest
+// fails when a source and its bytecode disagree, so a stale shader cannot ship,
+// and a machine with no DXC can still build, test and publish.
+//
+// DXC and SPIRV-Cross come with the Vulkan SDK (1.4.328 made the committed
+// files). DXC signs DXIL itself since 1.8, so DXIL made off Windows is signed.
+// ============================================================================
+def shaderSources = layout.projectDirectory.dir('src/main/shaders')
+def shaderOutput = layout.projectDirectory.dir('src/main/resources/io/github/digitalsmile/goldberry/gpu/shaders')
+
+def toolPath = providers.environmentVariable('PATH')
+        .orElse(providers.environmentVariable('Path'))
+        .getOrElse('')
+def resolveTool = { String name ->
+    def override = providers.gradleProperty("goldberry.${name}")
+            .orElse(providers.systemProperty("goldberry.${name}"))
+    var found = ToolResolver.resolve(
+            override.getOrElse(name),
+            toolPath,
+            System.getProperty('os.name', ''),
+            System.getProperty('user.home', ''))
+    return found.isPresent() ? found.get().toFile() : null
+}
+
+tasks.register('compileShaders') {
+    group = 'build'
+    description = 'Compiles src/main/shaders to SPIR-V, DXIL and MSL, and records their sources\' hashes.'
+    inputs.dir(shaderSources)
+    outputs.dir(shaderOutput)
+
+    doLast {
+        def dxc = resolveTool('dxc')
+        def spirvCross = resolveTool('spirv-cross')
+        if (dxc == null || spirvCross == null) {
+            throw new GradleException("""\
+                compileShaders needs DXC and SPIRV-Cross, which the Vulkan SDK installs
+                (https://vulkan.lunarg.com). Missing: ${[dxc == null ? 'dxc' : null, spirvCross == null ? 'spirv-cross' : null].findAll().join(', ')}.
+                Either can be named directly, e.g. -Pgoldberry.dxc=/path/to/dxc.""".stripIndent())
+        }
+        def run = { List<String> command ->
+            def result = providers.exec {
+                commandLine command
+                ignoreExitValue = true
+            }
+            if (result.result.get().exitValue != 0) {
+                throw new GradleException("${command.join(' ')} failed:\n${result.standardError.asText.get()}")
+            }
+            // DXC prints its version on stderr, SPIRV-Cross on stdout.
+            return result.standardOutput.asText.get() + result.standardError.asText.get()
+        }
+        def out = shaderOutput.asFile
+        out.mkdirs()
+        out.listFiles().each { it.delete() }
+
+        def manifest = new TreeMap<String, String>()
+        def sources = shaderSources.asFile.listFiles().findAll { it.name.endsWith('.hlsl') }.sort { it.name }
+        sources.each { source ->
+            def name = source.name - '.hlsl'
+            def profile = name.endsWith('.vert') ? 'vs_6_0' : name.endsWith('.frag') ? 'ps_6_0' : null
+            if (profile == null) {
+                throw new GradleException("${source.name}: a shader is named <name>.vert.hlsl or <name>.frag.hlsl")
+            }
+            def spirv = new File(out, "${name}.spv")
+            run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv', '-Fo', spirv.absolutePath, source.absolutePath])
+            run([dxc.absolutePath, '-T', profile, '-E', 'main', '-Fo', new File(out, "${name}.dxil").absolutePath,
+                 source.absolutePath])
+            run([spirvCross.absolutePath, spirv.absolutePath, '--msl', '--msl-version', '20100',
+                 '--output', new File(out, "${name}.msl").absolutePath])
+            manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
+        }
+        def dxcVersion = run([dxc.absolutePath, '--version']).readLines().first().trim()
+        def spirvCrossVersion = run([spirvCross.absolutePath, '--revision']).readLines().first().trim()
+        new File(out, 'shaders.properties').text = (
+                ["# Written by :gpu:compileShaders. Each source's SHA-256, checked by ShaderManifestTest.",
+                 "tools=${dxcVersion}; spirv-cross ${spirvCrossVersion}"] +
+                        manifest.collect { key, value -> "${key}=${value}" }).join('\n') + '\n'
+        logger.lifecycle("Compiled ${sources.size()} shaders with ${dxcVersion} and SPIRV-Cross ${spirvCrossVersion}")
+    }
+}
+
+// ============================================================================
+// Tests
+//
+// What needs a GPU device is tagged `gpu` and runs in `gpuTest`, on the JVM's
+// first thread, as :natives' do and for the same reason: macOS's Cocoa, which a
+// Metal device needs, refuses every other thread (ADR-0475). The rest runs in
+// `test` with no device at all.
+// ============================================================================
+def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
+def hostTargetId = project(':natives').ext.hostNativeTargetId
+
+tasks.named('test') {
+    useJUnitPlatform { excludeTags 'gpu' }
+}
+
+def gpuTest = tasks.register('gpuTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTargetId.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
+    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
+    outputs.file(summary)
+    argumentProviders.add({
+        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.gpu']
+    } as CommandLineArgumentProvider)
+}
+
+tasks.named('check') {
+    dependsOn gpuTest
 }

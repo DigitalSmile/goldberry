@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 /// The video driver is SDL's default unless `goldberry.gpu.videoDriver` names
 /// one: `offscreen` for lavapipe on a runner with no display, whose Vulkan
 /// surface needs none.
-sealed interface GpuDeviceRequirement {
+public sealed interface GpuDeviceRequirement {
 
     /// Set by the test task from `-Pgoldberry.gpu.required`.
     String REQUIRED_PROPERTY = "goldberry.gpu.required";
@@ -56,7 +56,8 @@ sealed interface GpuDeviceRequirement {
 
     /// Initialises SDL's video under the configured driver and makes a device
     /// with the driver's validation on; skips or fails the calling test when
-    /// that is not possible.
+    /// that is not possible. Public for `:gpu`'s tests, which take their device
+    /// the same way.
     static SdlGpuDevice enforce() {
         NativeLibraryRequirement.enforce();
         var sdl = Sdl.get();

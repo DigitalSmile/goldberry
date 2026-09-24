@@ -827,7 +827,9 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
         library.isFile() ? [library] : []
     }).withPropertyName('nativeLibrary').optional()
     outputs.file(summary)
-    argumentProviders.add({ [summary.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+    argumentProviders.add({
+        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.natives']
+    } as CommandLineArgumentProvider)
 }
 
 tasks.named('check') {

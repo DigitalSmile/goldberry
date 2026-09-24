@@ -23,22 +23,24 @@ import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 /// that asks it to: the first one. On Linux and Windows nothing needs the first
 /// thread, and the same task runs them the same way, so there is one path.
 ///
-/// The one argument is where the summary is written, which is the task's output.
+/// The first argument is where the summary is written, which is the task's
+/// output; the second, the package whose tests to run, so `:gpu`, which has
+/// `:natives`' tests on its class path for these helpers, runs only its own.
 /// The exit status is non-zero when a test failed, or when none ran at all:
 /// a selection that found nothing is a green tick over nothing.
-final class GpuTestLauncher {
+public final class GpuTestLauncher {
 
     /// The tag the GPU tests carry, which the ordinary `test` task excludes.
-    static final String TAG = "gpu";
+    public static final String TAG = "gpu";
 
     private GpuTestLauncher() {}
 
     static void main(String[] args) throws IOException {
-        if (args.length != 1) {
-            throw new IllegalArgumentException("usage: GpuTestLauncher <summary.txt>");
+        if (args.length != 2) {
+            throw new IllegalArgumentException("usage: GpuTestLauncher <summary.txt> <package>");
         }
         var request = LauncherDiscoveryRequestBuilder.request()
-                .selectors(selectPackage("io.github.digitalsmile.goldberry"))
+                .selectors(selectPackage(args[1]))
                 .filters(TagFilter.includeTags(TAG))
                 .build();
         var listener = new SummaryGeneratingListener();

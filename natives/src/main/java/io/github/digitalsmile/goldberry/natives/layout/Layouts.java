@@ -612,6 +612,184 @@ public final class Layouts {
                     ValueLayout.JAVA_BYTE.withName("padding2"),
                     ValueLayout.JAVA_BYTE.withName("padding3")));
 
+    /// `SDL_GPUShaderCreateInfo`: the bytecode, its entry point and format, the
+    /// stage, and how many of each resource the shader declares.
+    public static final NativeStructLayout SDL_GPU_SHADER_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUShaderCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_LONG.withName("code_size"),
+                    ValueLayout.ADDRESS.withName("code"),
+                    ValueLayout.ADDRESS.withName("entrypoint"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("stage"),
+                    ValueLayout.JAVA_INT.withName("num_samplers"),
+                    ValueLayout.JAVA_INT.withName("num_storage_textures"),
+                    ValueLayout.JAVA_INT.withName("num_storage_buffers"),
+                    ValueLayout.JAVA_INT.withName("num_uniform_buffers"),
+                    ValueLayout.JAVA_INT.withName("props"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUSamplerCreateInfo`: filters, mipmap and address modes, and the
+    /// anisotropy and comparison the toolkit leaves off.
+    public static final NativeStructLayout SDL_GPU_SAMPLER_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUSamplerCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("min_filter"),
+                    ValueLayout.JAVA_INT.withName("mag_filter"),
+                    ValueLayout.JAVA_INT.withName("mipmap_mode"),
+                    ValueLayout.JAVA_INT.withName("address_mode_u"),
+                    ValueLayout.JAVA_INT.withName("address_mode_v"),
+                    ValueLayout.JAVA_INT.withName("address_mode_w"),
+                    ValueLayout.JAVA_FLOAT.withName("mip_lod_bias"),
+                    ValueLayout.JAVA_FLOAT.withName("max_anisotropy"),
+                    ValueLayout.JAVA_INT.withName("compare_op"),
+                    ValueLayout.JAVA_FLOAT.withName("min_lod"),
+                    ValueLayout.JAVA_FLOAT.withName("max_lod"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_anisotropy"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_compare"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_INT.withName("props")));
+
+    /// `SDL_GPUVertexInputState`: the vertex buffers and attributes a pipeline
+    /// reads. Empty for the toolkit's own shaders, which make their vertices
+    /// from the vertex id.
+    public static final NativeStructLayout SDL_GPU_VERTEX_INPUT_STATE = new NativeStructLayout(
+            "SDL_GPUVertexInputState",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("vertex_buffer_descriptions"),
+                    ValueLayout.JAVA_INT.withName("num_vertex_buffers"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("vertex_attributes"),
+                    ValueLayout.JAVA_INT.withName("num_vertex_attributes"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUStencilOpState`: four enumerators.
+    public static final NativeStructLayout SDL_GPU_STENCIL_OP_STATE = new NativeStructLayout(
+            "SDL_GPUStencilOpState",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("fail_op"),
+                    ValueLayout.JAVA_INT.withName("pass_op"),
+                    ValueLayout.JAVA_INT.withName("depth_fail_op"),
+                    ValueLayout.JAVA_INT.withName("compare_op")));
+
+    /// `SDL_GPUColorTargetBlendState`: six enumerators, the write mask (a
+    /// `Uint8`), two switches and SDL's two padding bytes, then the compiler's
+    /// three to a word.
+    public static final NativeStructLayout SDL_GPU_COLOR_TARGET_BLEND_STATE = new NativeStructLayout(
+            "SDL_GPUColorTargetBlendState",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("src_color_blendfactor"),
+                    ValueLayout.JAVA_INT.withName("dst_color_blendfactor"),
+                    ValueLayout.JAVA_INT.withName("color_blend_op"),
+                    ValueLayout.JAVA_INT.withName("src_alpha_blendfactor"),
+                    ValueLayout.JAVA_INT.withName("dst_alpha_blendfactor"),
+                    ValueLayout.JAVA_INT.withName("alpha_blend_op"),
+                    ValueLayout.JAVA_BYTE.withName("color_write_mask"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_blend"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_color_write_mask"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    MemoryLayout.paddingLayout(3)));
+
+    /// `SDL_GPUColorTargetDescription`: a target's format and blending.
+    public static final NativeStructLayout SDL_GPU_COLOR_TARGET_DESCRIPTION = new NativeStructLayout(
+            "SDL_GPUColorTargetDescription",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("format"),
+                    SDL_GPU_COLOR_TARGET_BLEND_STATE.layout().withName("blend_state")));
+
+    /// `SDL_GPURasterizerState`.
+    public static final NativeStructLayout SDL_GPU_RASTERIZER_STATE = new NativeStructLayout(
+            "SDL_GPURasterizerState",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("fill_mode"),
+                    ValueLayout.JAVA_INT.withName("cull_mode"),
+                    ValueLayout.JAVA_INT.withName("front_face"),
+                    ValueLayout.JAVA_FLOAT.withName("depth_bias_constant_factor"),
+                    ValueLayout.JAVA_FLOAT.withName("depth_bias_clamp"),
+                    ValueLayout.JAVA_FLOAT.withName("depth_bias_slope_factor"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_depth_bias"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_depth_clip"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2")));
+
+    /// `SDL_GPUMultisampleState`.
+    public static final NativeStructLayout SDL_GPU_MULTISAMPLE_STATE = new NativeStructLayout(
+            "SDL_GPUMultisampleState",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("sample_count"),
+                    ValueLayout.JAVA_INT.withName("sample_mask"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_mask"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_alpha_to_coverage"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3")));
+
+    /// `SDL_GPUDepthStencilState`: a comparison, two stencil states by value,
+    /// two masks, three switches and SDL's three padding bytes.
+    public static final NativeStructLayout SDL_GPU_DEPTH_STENCIL_STATE = new NativeStructLayout(
+            "SDL_GPUDepthStencilState",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("compare_op"),
+                    SDL_GPU_STENCIL_OP_STATE.layout().withName("back_stencil_state"),
+                    SDL_GPU_STENCIL_OP_STATE.layout().withName("front_stencil_state"),
+                    ValueLayout.JAVA_BYTE.withName("compare_mask"),
+                    ValueLayout.JAVA_BYTE.withName("write_mask"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_depth_test"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_depth_write"),
+                    ValueLayout.JAVA_BOOLEAN.withName("enable_stencil_test"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3")));
+
+    /// `SDL_GPUGraphicsPipelineTargetInfo`: the colour targets a pipeline draws
+    /// into, and its depth target if it has one.
+    public static final NativeStructLayout SDL_GPU_GRAPHICS_PIPELINE_TARGET_INFO = new NativeStructLayout(
+            "SDL_GPUGraphicsPipelineTargetInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("color_target_descriptions"),
+                    ValueLayout.JAVA_INT.withName("num_color_targets"),
+                    ValueLayout.JAVA_INT.withName("depth_stencil_format"),
+                    ValueLayout.JAVA_BOOLEAN.withName("has_depth_stencil_target"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUGraphicsPipelineCreateInfo`: 168 bytes, five of its members
+    /// structs by value. The largest struct the bindings write, and the one a
+    /// hand-counted offset would most likely get wrong.
+    public static final NativeStructLayout SDL_GPU_GRAPHICS_PIPELINE_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUGraphicsPipelineCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("vertex_shader"),
+                    ValueLayout.ADDRESS.withName("fragment_shader"),
+                    SDL_GPU_VERTEX_INPUT_STATE.layout().withName("vertex_input_state"),
+                    ValueLayout.JAVA_INT.withName("primitive_type"),
+                    SDL_GPU_RASTERIZER_STATE.layout().withName("rasterizer_state"),
+                    SDL_GPU_MULTISAMPLE_STATE.layout().withName("multisample_state"),
+                    SDL_GPU_DEPTH_STENCIL_STATE.layout().withName("depth_stencil_state"),
+                    SDL_GPU_GRAPHICS_PIPELINE_TARGET_INFO.layout().withName("target_info"),
+                    ValueLayout.JAVA_INT.withName("props"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUTextureSamplerBinding`: a texture and the sampler it is read with.
+    public static final NativeStructLayout SDL_GPU_TEXTURE_SAMPLER_BINDING = new NativeStructLayout(
+            "SDL_GPUTextureSamplerBinding",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"), ValueLayout.ADDRESS.withName("sampler")));
+
+    /// `SDL_GPUViewport`: a rectangle and a depth range, in floats.
+    public static final NativeStructLayout SDL_GPU_VIEWPORT = new NativeStructLayout(
+            "SDL_GPUViewport",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_FLOAT.withName("x"),
+                    ValueLayout.JAVA_FLOAT.withName("y"),
+                    ValueLayout.JAVA_FLOAT.withName("w"),
+                    ValueLayout.JAVA_FLOAT.withName("h"),
+                    ValueLayout.JAVA_FLOAT.withName("min_depth"),
+                    ValueLayout.JAVA_FLOAT.withName("max_depth")));
+
     /// Blend2D's entire object model — `BLObjectDetail`.
     ///
     /// Every Blend2D "core" object is exactly one of these and nothing else:
@@ -1122,6 +1300,19 @@ public final class Layouts {
                 SDL_GPU_TEXTURE_REGION,
                 SDL_GPU_BLIT_REGION,
                 SDL_GPU_BLIT_INFO,
+                SDL_GPU_SHADER_CREATE_INFO,
+                SDL_GPU_SAMPLER_CREATE_INFO,
+                SDL_GPU_VERTEX_INPUT_STATE,
+                SDL_GPU_STENCIL_OP_STATE,
+                SDL_GPU_COLOR_TARGET_BLEND_STATE,
+                SDL_GPU_COLOR_TARGET_DESCRIPTION,
+                SDL_GPU_RASTERIZER_STATE,
+                SDL_GPU_MULTISAMPLE_STATE,
+                SDL_GPU_DEPTH_STENCIL_STATE,
+                SDL_GPU_GRAPHICS_PIPELINE_TARGET_INFO,
+                SDL_GPU_GRAPHICS_PIPELINE_CREATE_INFO,
+                SDL_GPU_TEXTURE_SAMPLER_BINDING,
+                SDL_GPU_VIEWPORT,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,

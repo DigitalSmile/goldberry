@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlAudioCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
@@ -155,6 +156,24 @@ public final class NativeConstants {
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_VSYNC", SdlGpuSwapchainCalls.PRESENTMODE_VSYNC));
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_IMMEDIATE", SdlGpuSwapchainCalls.PRESENTMODE_IMMEDIATE));
         constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_MAILBOX", SdlGpuSwapchainCalls.PRESENTMODE_MAILBOX));
+        constants.add(new NativeConstant("SDL_GPU_SHADERSTAGE_VERTEX", SdlGpuPipelineCalls.SHADERSTAGE_VERTEX));
+        constants.add(new NativeConstant("SDL_GPU_SHADERSTAGE_FRAGMENT", SdlGpuPipelineCalls.SHADERSTAGE_FRAGMENT));
+        constants.add(
+                new NativeConstant("SDL_GPU_SAMPLERMIPMAPMODE_NEAREST", SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST));
+        constants.add(new NativeConstant(
+                "SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE", SdlGpuPipelineCalls.SAMPLERADDRESSMODE_CLAMP_TO_EDGE));
+        constants.add(new NativeConstant(
+                "SDL_GPU_PRIMITIVETYPE_TRIANGLELIST", SdlGpuPipelineCalls.PRIMITIVETYPE_TRIANGLELIST));
+        constants.add(new NativeConstant("SDL_GPU_FILLMODE_FILL", SdlGpuPipelineCalls.FILLMODE_FILL));
+        constants.add(new NativeConstant("SDL_GPU_CULLMODE_NONE", SdlGpuPipelineCalls.CULLMODE_NONE));
+        constants.add(new NativeConstant(
+                "SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE", SdlGpuPipelineCalls.FRONTFACE_COUNTER_CLOCKWISE));
+        constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ZERO", SdlGpuPipelineCalls.BLENDFACTOR_ZERO));
+        constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ONE", SdlGpuPipelineCalls.BLENDFACTOR_ONE));
+        constants.add(new NativeConstant(
+                "SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA", SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_SRC_ALPHA));
+        constants.add(new NativeConstant("SDL_GPU_BLENDOP_ADD", SdlGpuPipelineCalls.BLENDOP_ADD));
+        constants.add(new NativeConstant("SDL_GPU_COLORCOMPONENT_RGBA", SdlGpuPipelineCalls.COLORCOMPONENT_RGBA));
         return List.copyOf(constants);
     }
 }

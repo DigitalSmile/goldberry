@@ -9,6 +9,8 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
@@ -20,7 +22,10 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
 /// breaking one is an assertion in a debug build and undefined behaviour in a
 /// release one:
 ///
-/// - one pass at a time: nothing is recorded while a [CopyPass] is open;
+/// - one pass at a time: nothing is recorded while a [CopyPass] or a
+///   [RenderPass] is open;
+/// - a draw has a pipeline bound, for the target's format, and a texture bound
+///   to every sampler slot the pipeline's fragment shader declares;
 /// - a command buffer is used once: after [#submit], [#submitWithFence] or
 ///   [#cancel], every method throws;
 /// - a transfer buffer is unmapped while a copy pass uses it;
@@ -31,6 +36,7 @@ public final class SdlGpuCommandBuffer {
     private enum State {
         RECORDING,
         IN_COPY_PASS,
+        IN_RENDER_PASS,
         FINISHED
     }
 
@@ -51,7 +57,17 @@ public final class SdlGpuCommandBuffer {
     ///                                  this device
     /// @throws SdlException             when SDL cannot begin the pass
     public void clear(SdlGpuTarget target, float red, float green, float blue, float alpha) {
-        requireState(State.RECORDING, "clear");
+        beginRenderPass(target, SdlGpuLoad.clear(red, green, blue, alpha)).close();
+    }
+
+    /// Begins a render pass into `target`, which first does what `load` says.
+    /// Nothing else is recorded until the pass is closed.
+    ///
+    /// @throws IllegalArgumentException when `target` is not a colour target of
+    ///                                  this device
+    /// @throws SdlException             when SDL cannot begin the pass
+    public RenderPass beginRenderPass(SdlGpuTarget target, SdlGpuLoad load) {
+        requireState(State.RECORDING, "beginRenderPass");
         var targetHandle = colorTarget(target);
         var info = Layouts.SDL_GPU_COLOR_TARGET_INFO;
         var color = Layouts.SDL_FCOLOR;
@@ -59,19 +75,27 @@ public final class SdlGpuCommandBuffer {
         try (var arena = Arena.ofConfined()) {
             var colorTarget = arena.allocate(info.layout());
             colorTarget.set(ADDRESS, info.offsetOf("texture"), targetHandle);
-            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("r"), red);
-            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("g"), green);
-            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("b"), blue);
-            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("a"), alpha);
-            colorTarget.set(JAVA_INT, info.offsetOf("load_op"), SdlGpuCommandCalls.LOADOP_CLEAR);
+            var loadOp =
+                    switch (load) {
+                        case SdlGpuLoad.Keep _ -> SdlGpuCommandCalls.LOADOP_LOAD;
+                        case SdlGpuLoad.DontCare _ -> SdlGpuCommandCalls.LOADOP_DONT_CARE;
+                        case SdlGpuLoad.Clear(var red, var green, var blue, var alpha) -> {
+                            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("r"), red);
+                            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("g"), green);
+                            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("b"), blue);
+                            colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("a"), alpha);
+                            yield SdlGpuCommandCalls.LOADOP_CLEAR;
+                        }
+                    };
+            colorTarget.set(JAVA_INT, info.offsetOf("load_op"), loadOp);
             colorTarget.set(JAVA_INT, info.offsetOf("store_op"), SdlGpuCommandCalls.STOREOP_STORE);
             colorTarget.set(JAVA_BOOLEAN, info.offsetOf("cycle"), false);
-            var commands = device.calls().commands();
-            var pass = commands.beginGPURenderPass().call(handle, colorTarget, 1, MemorySegment.NULL);
+            var pass = device.calls().commands().beginGPURenderPass().call(handle, colorTarget, 1, MemorySegment.NULL);
             if (MemorySegment.NULL.equals(pass)) {
                 throw new SdlException("SDL_BeginGPURenderPass", Sdl.get().lastError());
             }
-            commands.endGPURenderPass().call(pass);
+            state = State.IN_RENDER_PASS;
+            return new RenderPass(pass, target);
         }
     }
 
@@ -103,8 +127,8 @@ public final class SdlGpuCommandBuffer {
             if (MemorySegment.NULL.equals(acquired)) {
                 return Optional.empty();
             }
-            return Optional.of(
-                    new SdlGpuSwapchainTexture(this, acquired, width.get(JAVA_INT, 0), height.get(JAVA_INT, 0)));
+            return Optional.of(new SdlGpuSwapchainTexture(
+                    this, acquired, width.get(JAVA_INT, 0), height.get(JAVA_INT, 0), window.textureFormat()));
         }
     }
 
@@ -234,6 +258,7 @@ public final class SdlGpuCommandBuffer {
                     + switch (state) {
                         case RECORDING -> "recording";
                         case IN_COPY_PASS -> "in a copy pass";
+                        case IN_RENDER_PASS -> "in a render pass";
                         case FINISHED -> "already submitted or cancelled";
                     });
         }
@@ -242,6 +267,187 @@ public final class SdlGpuCommandBuffer {
     private void requireOwn(SdlGpuResource resource) {
         if (resource.device() != device) {
             throw new IllegalArgumentException(resource + " belongs to another device");
+        }
+    }
+
+    /// A render pass: the pipeline, viewport, scissor, sampled textures,
+    /// uniforms and draws recorded into one target. Closing it ends the pass,
+    /// and the command buffer records again.
+    public final class RenderPass implements AutoCloseable {
+
+        private final MemorySegment pass;
+        private final SdlGpuTarget target;
+        private @Nullable SdlGpuGraphicsPipeline pipeline;
+        private int boundSamplers;
+        private boolean ended;
+
+        private RenderPass(MemorySegment pass, SdlGpuTarget target) {
+            this.pass = pass;
+            this.target = target;
+        }
+
+        /// Binds the pipeline the next draws use.
+        ///
+        /// @throws IllegalArgumentException when it is another device's, or for
+        ///                                  another format than the target's
+        public void bindPipeline(SdlGpuGraphicsPipeline bound) {
+            requireOpen();
+            requireOwn(bound);
+            var targetFormat =
+                    switch (target) {
+                        case SdlGpuTexture texture -> java.util.Optional.of(texture.format());
+                        case SdlGpuSwapchainTexture swapchain -> swapchain.format();
+                    };
+            if (targetFormat.isPresent() && targetFormat.get() != bound.targetFormat()) {
+                throw new IllegalArgumentException(
+                        bound + " draws " + bound.targetFormat() + ", and the target is " + targetFormat.get());
+            }
+            device.calls().renderPass().bindGPUGraphicsPipeline().call(pass, bound.handle());
+            pipeline = bound;
+            boundSamplers = 0;
+        }
+
+        /// Maps clip space onto `x, y, width, height` of the target, in pixels.
+        public void setViewport(float x, float y, float width, float height) {
+            requireOpen();
+            if (width <= 0 || height <= 0) {
+                throw new IllegalArgumentException("viewport " + width + "x" + height);
+            }
+            var layout = Layouts.SDL_GPU_VIEWPORT;
+            try (var arena = Arena.ofConfined()) {
+                var viewport = arena.allocate(layout.layout());
+                viewport.set(JAVA_FLOAT, layout.offsetOf("x"), x);
+                viewport.set(JAVA_FLOAT, layout.offsetOf("y"), y);
+                viewport.set(JAVA_FLOAT, layout.offsetOf("w"), width);
+                viewport.set(JAVA_FLOAT, layout.offsetOf("h"), height);
+                viewport.set(JAVA_FLOAT, layout.offsetOf("min_depth"), 0f);
+                viewport.set(JAVA_FLOAT, layout.offsetOf("max_depth"), 1f);
+                device.calls().renderPass().setGPUViewport().call(pass, viewport);
+            }
+        }
+
+        /// Draws nothing outside `region` of the target: a layer's clip
+        /// (`docs/gpu-plan.md`, D4).
+        ///
+        /// @throws IllegalArgumentException when it lies outside the target
+        public void setScissor(SdlGpuRegion region) {
+            requireOpen();
+            if (!region.fitsIn(target.width(), target.height())) {
+                throw new IllegalArgumentException(region + " is outside " + target);
+            }
+            var layout = Layouts.SDL_RECT;
+            try (var arena = Arena.ofConfined()) {
+                var rect = arena.allocate(layout.layout());
+                rect.set(JAVA_INT, layout.offsetOf("x"), region.x());
+                rect.set(JAVA_INT, layout.offsetOf("y"), region.y());
+                rect.set(JAVA_INT, layout.offsetOf("w"), region.width());
+                rect.set(JAVA_INT, layout.offsetOf("h"), region.height());
+                device.calls().renderPass().setGPUScissor().call(pass, rect);
+            }
+        }
+
+        /// Binds `textures`, each read with `sampler`, to the fragment shader's
+        /// slots from 0: every slot the bound pipeline declares, and no more.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the pipeline's,
+        ///                                  or a texture cannot be sampled
+        public void bindFragmentSamplers(SdlGpuSampler sampler, SdlGpuTexture... textures) {
+            requireOpen();
+            var bound = requirePipeline("bindFragmentSamplers");
+            requireOwn(sampler);
+            if (textures.length != bound.samplers()) {
+                throw new IllegalArgumentException(
+                        bound + " samples " + bound.samplers() + " textures, not " + textures.length);
+            }
+            var layout = Layouts.SDL_GPU_TEXTURE_SAMPLER_BINDING;
+            try (var arena = Arena.ofConfined()) {
+                var bindings = arena.allocate(layout.layout(), textures.length);
+                for (var i = 0; i < textures.length; i++) {
+                    var texture = textures[i];
+                    requireOwn(texture);
+                    if (!texture.usages().contains(SdlGpuTextureUsage.SAMPLER)) {
+                        throw new IllegalArgumentException(texture + " cannot be sampled");
+                    }
+                    var at = i * layout.byteSize();
+                    bindings.set(ADDRESS, at + layout.offsetOf("texture"), texture.handle());
+                    bindings.set(ADDRESS, at + layout.offsetOf("sampler"), sampler.handle());
+                }
+                device.calls().renderPass().bindGPUFragmentSamplers().call(pass, 0, bindings, textures.length);
+            }
+            boundSamplers = textures.length;
+        }
+
+        /// Sets the vertex shader's uniform block `slot` for the draws that
+        /// follow. SDL copies the values; their layout is the shader's.
+        public void pushVertexUniforms(int slot, float... values) {
+            requireOpen();
+            push(slot, values, true);
+        }
+
+        /// Sets the fragment shader's uniform block `slot` for the draws that
+        /// follow. SDL copies the values; their layout is the shader's.
+        public void pushFragmentUniforms(int slot, float... values) {
+            requireOpen();
+            push(slot, values, false);
+        }
+
+        private void push(int slot, float[] values, boolean vertex) {
+            if (slot < 0 || values.length == 0) {
+                throw new IllegalArgumentException("uniform slot " + slot + " with " + values.length + " values");
+            }
+            try (var arena = Arena.ofConfined()) {
+                var data = arena.allocateFrom(JAVA_FLOAT, values);
+                var calls = device.calls().renderPass();
+                if (vertex) {
+                    calls.pushGPUVertexUniformData().call(handle, slot, data, (int) data.byteSize());
+                } else {
+                    calls.pushGPUFragmentUniformData().call(handle, slot, data, (int) data.byteSize());
+                }
+            }
+        }
+
+        /// Draws `vertices` vertices, made by the vertex shader from their ids.
+        ///
+        /// @throws IllegalStateException when no pipeline is bound, or its
+        ///                               samplers are not
+        public void draw(int vertices) {
+            requireOpen();
+            var bound = requirePipeline("draw");
+            if (boundSamplers != bound.samplers()) {
+                throw new IllegalStateException(
+                        bound + " samples " + bound.samplers() + " textures, and " + boundSamplers + " are bound");
+            }
+            if (vertices <= 0) {
+                throw new IllegalArgumentException("draw of " + vertices + " vertices");
+            }
+            device.calls().renderPass().drawGPUPrimitives().call(pass, vertices, 1, 0, 0);
+        }
+
+        /// Ends the pass. Idempotent.
+        @Override
+        public void close() {
+            if (ended) {
+                return;
+            }
+            ended = true;
+            device.calls().commands().endGPURenderPass().call(pass);
+            state = State.RECORDING;
+        }
+
+        private SdlGpuGraphicsPipeline requirePipeline(String operation) {
+            var bound = pipeline;
+            if (bound == null) {
+                throw new IllegalStateException(operation + " with no pipeline bound");
+            }
+            return bound;
+        }
+
+        private void requireOpen() {
+            if (ended) {
+                throw new IllegalStateException("the render pass has ended");
+            }
+            device.handle();
         }
     }
 

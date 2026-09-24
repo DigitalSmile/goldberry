@@ -346,6 +346,24 @@ SDL_SetGPUAllowedFramesInFlight
 SDL_GetGPUSwapchainTextureFormat
 SDL_WaitAndAcquireGPUSwapchainTexture
 
+# Drawing (docs/gpu-plan.md, phase 2): shaders, samplers, graphics pipelines,
+# and what a render pass records -- the pipeline, viewport, scissor, sampled
+# textures, uniforms and draws. Vertices come from the vertex id, so no vertex
+# buffer is exported until canvas3d needs one.
+SDL_CreateGPUShader
+SDL_ReleaseGPUShader
+SDL_CreateGPUSampler
+SDL_ReleaseGPUSampler
+SDL_CreateGPUGraphicsPipeline
+SDL_ReleaseGPUGraphicsPipeline
+SDL_BindGPUGraphicsPipeline
+SDL_SetGPUViewport
+SDL_SetGPUScissor
+SDL_BindGPUFragmentSamplers
+SDL_DrawGPUPrimitives
+SDL_PushGPUVertexUniformData
+SDL_PushGPUFragmentUniformData
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

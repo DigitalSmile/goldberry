@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
 
 /// A claimed window's texture for one frame: rendered or blitted into, and
 /// presented when the command buffer that acquired it is submitted.
@@ -14,12 +15,24 @@ public final class SdlGpuSwapchainTexture implements SdlGpuTarget {
     private final MemorySegment handle;
     private final int width;
     private final int height;
+    private final Optional<SdlGpuTextureFormat> format;
 
-    SdlGpuSwapchainTexture(SdlGpuCommandBuffer owner, MemorySegment handle, int width, int height) {
+    SdlGpuSwapchainTexture(
+            SdlGpuCommandBuffer owner,
+            MemorySegment handle,
+            int width,
+            int height,
+            Optional<SdlGpuTextureFormat> format) {
         this.owner = owner;
         this.handle = handle;
         this.width = width;
         this.height = height;
+        this.format = format;
+    }
+
+    /// Its format, or empty when it is one this package does not model.
+    public Optional<SdlGpuTextureFormat> format() {
+        return format;
     }
 
     @Override

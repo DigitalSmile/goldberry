@@ -145,6 +145,8 @@ for completeness, not obligation.
 | JUnit 5/6 | EPL 2.0 | Tests |
 | Gradle | Apache 2.0 | Build |
 | CMake, Ninja | BSD 3-Clause / Apache 2.0 | Native build |
+| DirectXShaderCompiler (DXC) | University of Illinois/NCSA | Compiling `:gpu`'s HLSL to SPIR-V and DXIL (`:gpu:compileShaders`, `docs/gpu-plan.md` D7) |
+| SPIRV-Cross | Apache 2.0 | Translating `:gpu`'s SPIR-V to MSL (the same task) |
 
 ## Adding a dependency
 
