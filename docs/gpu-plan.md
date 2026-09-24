@@ -59,7 +59,7 @@ What SDL 3.4.16 offers, read from its headers in `natives/.deps/…/sdl3-src`:
 The ones marked **to measure** are made in phase 0, from the spikes listed
 there. Each one becomes an ADR when it is taken.
 
-### D1. `SDL_GPU` directly, not SDL's GPU-backed renderer: lean, to measure
+### D1. `SDL_GPU` directly, not SDL's GPU-backed renderer: decided (ADR-0477)
 
 The composition pass is trivial: one textured quad per layer, scissored, and the
 UI quad blended over them. It is small enough to own. Owning it gives:
@@ -78,6 +78,11 @@ second abstraction beside the device `canvas3d` needs anyway.
 macOS (Metal) and under lavapipe. Compare the cost per frame, the code needed,
 and whether the renderer's colour output matches swscale. Choose the renderer
 only if it is clearly smaller at equal fidelity.
+
+**Decided (ADR-0477):** the direct path converts all four layouts exactly
+against its reference and composites a 4K picture a frame at under 1.4 ms of CPU
+at 120 Hz (§4.1). The renderer has no I010, so it is not of equal fidelity and
+its cost was not measured.
 
 ### D2. One device per process, created on first need
 
@@ -254,8 +259,8 @@ Throwaway code on a branch, and the ADRs that come out of it.
 |------|----------|--------|
 | Device on each OS | Does `SDL_CreateGPUDevice` succeed on macOS (Metal), under lavapipe on `ubuntu-24.04` and `-arm`, on `macos-14` runners (Metal in a VM?) and on `windows-2022` (D3D12, WARP, or nothing)? Which runners can host the GPU lane? | **macOS (Metal): yes**, on this M1 Pro, under `cocoa` on the first thread (ADR-0475). **Found:** a device needs a video driver with a Metal view or a Vulkan surface, so there is none under `dummy`; `offscreen` has headless Vulkan, which is what lavapipe runs under. The runners are open |
 | Claim and release | Window surface → claim → release → window surface, on macOS, Wayland, X11 (Xvfb) and Windows. What it costs, and whether anything leaks or flickers. Behaviour with `web-view` and in fullscreen (D3) | **macOS: reliable and cheap.** 10 of 10 cycles on a 2560×1600 window: switch in (destroy the surface, claim) 1.75 ms median, 2.05 ms p95; switch out (release, surface, first present) 6.0 ms median, 6.6 ms p95; the surface came back at full size every time (`:natives:gpuPresentProbe`, §4.1). SDL counts a second claim by the same device, so `claimWindow` refuses one. Wayland, X11, Windows, `web-view` and fullscreen open |
-| Composite cost | 4K UI texture, damage-only upload, plus one 4K NV12 layer: CPU time per frame, and the wait in `WaitAndAcquireGPUSwapchainTexture` against today's present (0.127 ms median under `dummy`, ADR-0409) | **UI half measured on Metal** (§4.1): a whole 2560×1600 frame costs 1.1 ms of CPU (copy 0.84, record 0.13, blit and submit 0.14), against 2.65 ms for today's window-surface present of the same frame; a caret-sized damage upload 0.35 ms; a 4K BGRA frame 1.56 ms to copy. The NV12 layer waits for shaders |
-| D1 | `SDL_GPU` pass against `SDL_CreateGPURenderer` with `SDL_GPURenderState`: code, cost, colour fidelity | open |
+| Composite cost | 4K UI texture, damage-only upload, plus one 4K NV12 layer: CPU time per frame, and the wait in `WaitAndAcquireGPUSwapchainTexture` against today's present (0.127 ms median under `dummy`, ADR-0409) | **Measured on Metal** (§4.1). Video: a 4K NV12 layer under the UI costs 0.94 ms of CPU a frame, 4K P010 1.37 ms, at the display's 120 Hz. UI: a whole 2560×1600 frame costs 1.1 ms of CPU (copy 0.84, record 0.13, blit and submit 0.14), against 2.65 ms for today's window-surface present of the same frame; a caret-sized damage upload 0.35 ms; a 4K BGRA frame 1.56 ms to copy |
+| D1 | `SDL_GPU` pass against `SDL_CreateGPURenderer` with `SDL_GPURenderState`: code, cost, colour fidelity | **decided: `SDL_GPU` directly** (ADR-0477). The renderer has no I010; the direct path is exact on all four layouts and cheap (§4.1) |
 | Size | `libgoldberry` growth when ~60 `SDL_GPU` symbols are exported and the dead-stripping no longer removes the drivers, per target | **macos-aarch64: 2 KB** for the first 29 symbols (6,100,832 → 6,102,848 bytes). The drivers were already linked, through SDL's renderer (ADR-0475). Linux and Windows open |
 | Pacing | Swapchain VSYNC against `FramePacer`: does the backstop step aside in composited mode, and does `refreshRate`'s answer still hold? | **macOS, observed:** the acquire blocks to the display: composited frames came 8.39 ms apart (median) on a 120 Hz display, with p95 at 16.8 ms, where the window surface is not paced at all (2.8 ms apart without `FramePacer`). So in composited mode the swapchain is the pacer. What `FramePacer` does then is phase 3's |
 | Shadercross | Builds and runs on macOS; output for the four shaders of phase 3 and phase 6 | open |
@@ -303,6 +308,14 @@ What they say:
   a 120 Hz frame. Its p95 at one 60 Hz frame is ProMotion dropping the rate
   while the probe drew little, which phase 3 checks with the `hud` before any
   budget is set on it.
+- **A 4K video layer is cheap** (`:gpu:gpuVideoProbe`, ADR-0477): a new
+  picture every frame, converted and composited under the UI:
+
+  | Layer | copy | record | convert, composite, submit | interval median / p95 |
+  |---|---|---|---|---|
+  | 4K NV12, 12 MB | 0.599 ms | 0.148 ms | 0.191 ms | 8.317 / 8.933 ms |
+  | 4K P010, 24 MB | 1.075 ms | 0.142 ms | 0.154 ms | 8.305 / 8.951 ms |
+
 - **D8's arithmetic is comfortable here.** 33 MB copies in 1.6 ms, so a 4K
   P010 picture's 24 MB is about 1.2 ms on the UI thread at 60 pictures a
   second. The decode-thread transfer buffers are not needed on this Mac.
@@ -413,8 +426,8 @@ golden is green everywhere.
 |------|--------|
 | `video-view` as a `GpuLayer` when a `GpuSurface` is available and `:gpu` is on the module path (`requires static`). Otherwise the CPU path is unchanged | open |
 | The queue in YUV (D8): plane copies into slots, the format switched by flush and reseek, picture lifetimes unchanged (valid for two more pictures, ADR-0463) | open |
-| Plane textures: NV12 → `R8` plus `R8G8`; I420 → three `R8`; P010 → `R16` plus `R16G16`; I010 → three `R16`, scaled by 64 in the shader (10 bits in the low bits) | open |
-| `yuv.frag`: BT.601, BT.709 and BT.2020 non-constant-luminance matrices, limited and full range, chroma sited left (MPEG-2) as swscale assumes. The coefficients sit in a uniform block, so one pipeline serves every frame | open |
+| Plane textures: NV12 → `R8` plus `R8G8`; I420 → three `R8`; P010 → `R16` plus `R16G16`; I010 → three `R16`, scaled by 64 in the shader (10 bits in the low bits) | done: `YuvLayout.planeFormats()`, and the scale as `sampleToCode` |
+| `yuv.frag`: BT.601, BT.709 and BT.2020 non-constant-luminance matrices, limited and full range, chroma sited left (MPEG-2) as swscale assumes. The coefficients sit in a uniform block, so one pipeline serves every frame | done (ADR-0477): `yuv2.frag` and `yuv3.frag` over `yuv.hlsli`; `YuvLayout`, `YuvMatrix`, `YuvConversion` (uniforms and the Java reference); every layout × matrix × range exact against the reference on Metal |
 | The fallback ladder: GPU present → CPU present when the device fails or the layer cannot attach, with a reseek to the shown picture (the mechanism of ADR-0470's rungs) | open |
 | **Parity:** each fixture's picture at a fixed time, GPU-presented and read back, against swscale's `SWS_BITEXACT` BGRA within tolerance. The 601 and 709 fixtures are the exit criterion from `goldberry-media.md` §8; 2020 and 10-bit are held to the same | open |
 | Measured: 4K60 VP9 on VideoToolbox, GPU present, no dropped pictures over 60 s, CPU time per picture. **This closes phase 5's exit criterion** | open |
@@ -493,3 +506,4 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | Phase 1 begun and its exit met on Metal (ADR-0475): 29 exports (ABI 16), four holder records, six structs and 23 enumerators verified, the `natives.sdl.gpu` wrappers sealed to `:core` and `:gpu`, and `:natives:gpuTest` on the first thread. Found: no device under `dummy`; cocoa needs the first thread; the exports cost 2 KB. `:natives:check` green: 562 tests, and 16 GPU tests on Metal |
 | 2026-09-24 | Phase 0 on macOS: the window's claim and swapchain bound (`SdlGpuWindow`, `SdlGpuSwapchainTexture`, blits, a sealed `SdlGpuTarget`), 23 GPU tests on Metal, and `:natives:gpuPresentProbe` measured (§4.1). Switching is reliable and cheap; compositing a frame costs less CPU than the window surface; the swapchain paces to the display. SDL counts repeat claims by one device, so they are refused |
 | 2026-09-24 | Phase 2 in part (ADR-0476): shaders, samplers, pipelines and render passes bound (13 more exports, 13 structs and 13 enumerators verified); three HLSL shaders compiled by DXC and SPIRV-Cross into SPIR-V, DXIL and MSL, committed with their sources' hashes; `:gpu:gpuTest`, whose five draws read back exact on Metal |
+| 2026-09-24 | D1 decided (ADR-0477): `SDL_GPU` directly. Y'CbCr shaders for NV12, I420, P010 and I010, exact against a Java reference for every matrix and range on Metal; a 4K layer composited under the UI at under 1.4 ms of CPU a frame at 120 Hz |

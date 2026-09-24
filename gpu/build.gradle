@@ -107,6 +107,11 @@ tasks.register('compileShaders') {
                  '--output', new File(out, "${name}.msl").absolutePath])
             manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
         }
+        // What the shaders include is part of what they were compiled from.
+        shaderSources.asFile.listFiles().findAll { it.name.endsWith('.hlsli') }.sort { it.name }.each { include ->
+            manifest["${include.name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(include.bytes)
+                    .encodeHex().toString()
+        }
         def dxcVersion = run([dxc.absolutePath, '--version']).readLines().first().trim()
         def spirvCrossVersion = run([spirvCross.absolutePath, '--revision']).readLines().first().trim()
         new File(out, 'shaders.properties').text = (
@@ -161,4 +166,23 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
 
 tasks.named('check') {
     dependsOn gpuTest
+}
+
+// Phase 0's video measurement (docs/gpu-plan.md, D1 and D8): a 4K picture's
+// planes uploaded, converted and composited under the UI every frame, on a real
+// window. Run on purpose and read by a person; not part of `check`.
+tasks.register('gpuVideoProbe', JavaExec) {
+    group = 'verification'
+    description = 'Measures a composited frame with a 4K video layer on a real window (docs/gpu-plan.md, phase 0).'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.gpu.render.GpuVideoProbe'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTargetId.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+    outputs.upToDateWhen { false }
 }

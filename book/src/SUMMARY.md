@@ -491,3 +491,4 @@
 - [ADR-0474 The audio clock is what is heard](adr/0474-the-audio-clock-is-what-is-heard.md)
 - [ADR-0475 SDL_GPU is bound for :core and :gpu, and tested on the first thread](adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md)
 - [ADR-0476 Shaders are HLSL, compiled by DXC and SPIRV-Cross, and committed](adr/0476-shaders-are-hlsl-compiled-by-dxc-and-spirv-cross-and-committed.md)
+- [ADR-0477 The GPU composites with SDL_GPU directly, and converts Y'CbCr itself](adr/0477-the-gpu-composites-with-sdl-gpu-directly.md)

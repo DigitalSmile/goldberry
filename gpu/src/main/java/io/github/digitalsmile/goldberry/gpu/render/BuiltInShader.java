@@ -16,7 +16,12 @@ public enum BuiltInShader {
     /// Samples one texture.
     TEXTURE_FRAGMENT("texture.frag", SdlGpuShaderStage.FRAGMENT, 1, 0),
     /// Fills with one premultiplied colour from one uniform block of four floats.
-    SOLID_FRAGMENT("solid.frag", SdlGpuShaderStage.FRAGMENT, 0, 1);
+    SOLID_FRAGMENT("solid.frag", SdlGpuShaderStage.FRAGMENT, 0, 1),
+    /// Y'CbCr to RGB from a luma and an interleaved chroma plane: NV12, P010
+    /// ([YuvConversion]).
+    YUV2_FRAGMENT("yuv2.frag", SdlGpuShaderStage.FRAGMENT, 2, 1),
+    /// Y'CbCr to RGB from three planes: I420, I010 ([YuvConversion]).
+    YUV3_FRAGMENT("yuv3.frag", SdlGpuShaderStage.FRAGMENT, 3, 1);
 
     private final String fileName;
     private final SdlGpuShaderStage stage;

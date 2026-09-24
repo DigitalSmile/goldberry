@@ -48,15 +48,19 @@ class ShaderManifestTest {
         var manifest = manifest();
         var sources = new TreeSet<String>();
         try (var files = Files.list(SOURCES)) {
-            for (var source : files.filter(f -> f.toString().endsWith(".hlsl")).toList()) {
-                var name = source.getFileName().toString().replace(".hlsl", "");
+            // A shader is recorded by its name, an include by its file name.
+            for (var source : files.filter(
+                            f -> f.toString().endsWith(".hlsl") || f.toString().endsWith(".hlsli"))
+                    .toList()) {
+                var file = source.getFileName().toString();
+                var name = file.endsWith(".hlsl") ? file.substring(0, file.length() - ".hlsl".length()) : file;
                 sources.add(name);
                 var digest = HexFormat.of()
                         .formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(source)));
                 assertEquals(
                         manifest.getProperty(name + ".sha256"),
                         digest,
-                        name + ".hlsl changed since it was compiled: run ./gradlew :gpu:compileShaders");
+                        file + " changed since the shaders were compiled: run ./gradlew :gpu:compileShaders");
             }
         }
         var recorded = manifest.stringPropertyNames().stream()
