@@ -31,8 +31,10 @@ public final class GoldberryShim {
     /// `SDL_DropEvent` layout, which are the two halves of `docs/gaps.md` G35
     /// (ADR-0329, ADR-0330); 12 put libwebp's three animation structs, its demux
     /// ABI version and SDL's `SDL_INIT_*` bits on the layout table, which were
-    /// hand-counted in Java and checked by nothing.
-    public static final int SUPPORTED_ABI_VERSION = 15;
+    /// hand-counted in Java and checked by nothing. 16 added `SDL_GPU`'s first
+    /// surface, the property setters it is configured through, and its structs
+    /// and enumerators on the layout table (`docs/gpu-plan.md`, phase 1).
+    public static final int SUPPORTED_ABI_VERSION = 16;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

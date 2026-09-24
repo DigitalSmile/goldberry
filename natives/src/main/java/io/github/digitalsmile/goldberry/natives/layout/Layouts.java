@@ -431,6 +431,139 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("channels"),
                     ValueLayout.JAVA_INT.withName("freq")));
 
+    /// ```c
+    /// typedef struct SDL_FColor { float r; float g; float b; float a; } SDL_FColor;
+    /// ```
+    ///
+    /// A colour in floats: what a GPU render pass clears its target to.
+    public static final NativeStructLayout SDL_FCOLOR = new NativeStructLayout(
+            "SDL_FColor",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_FLOAT.withName("r"),
+                    ValueLayout.JAVA_FLOAT.withName("g"),
+                    ValueLayout.JAVA_FLOAT.withName("b"),
+                    ValueLayout.JAVA_FLOAT.withName("a")));
+
+    /// ```c
+    /// typedef struct SDL_GPUTextureCreateInfo {
+    ///     SDL_GPUTextureType type;
+    ///     SDL_GPUTextureFormat format;
+    ///     SDL_GPUTextureUsageFlags usage;
+    ///     Uint32 width;
+    ///     Uint32 height;
+    ///     Uint32 layer_count_or_depth;
+    ///     Uint32 num_levels;
+    ///     SDL_GPUSampleCount sample_count;
+    ///     SDL_PropertiesID props;
+    /// } SDL_GPUTextureCreateInfo;
+    /// ```
+    ///
+    /// Nine 32-bit fields: two enums, a flag word, five counts and a property
+    /// group id (`docs/gpu-plan.md`, phase 1).
+    public static final NativeStructLayout SDL_GPU_TEXTURE_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUTextureCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("usage"),
+                    ValueLayout.JAVA_INT.withName("width"),
+                    ValueLayout.JAVA_INT.withName("height"),
+                    ValueLayout.JAVA_INT.withName("layer_count_or_depth"),
+                    ValueLayout.JAVA_INT.withName("num_levels"),
+                    ValueLayout.JAVA_INT.withName("sample_count"),
+                    ValueLayout.JAVA_INT.withName("props")));
+
+    /// ```c
+    /// typedef struct SDL_GPUTransferBufferCreateInfo {
+    ///     SDL_GPUTransferBufferUsage usage;
+    ///     Uint32 size;
+    ///     SDL_PropertiesID props;
+    /// } SDL_GPUTransferBufferCreateInfo;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_TRANSFER_BUFFER_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUTransferBufferCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("usage"),
+                    ValueLayout.JAVA_INT.withName("size"),
+                    ValueLayout.JAVA_INT.withName("props")));
+
+    /// ```c
+    /// typedef struct SDL_GPUColorTargetInfo {
+    ///     SDL_GPUTexture *texture;
+    ///     Uint32 mip_level;
+    ///     Uint32 layer_or_depth_plane;
+    ///     SDL_FColor clear_color;
+    ///     SDL_GPULoadOp load_op;
+    ///     SDL_GPUStoreOp store_op;
+    ///     SDL_GPUTexture *resolve_texture;
+    ///     Uint32 resolve_mip_level;
+    ///     Uint32 resolve_layer;
+    ///     bool cycle;
+    ///     bool cycle_resolve_texture;
+    ///     Uint8 padding1;
+    ///     Uint8 padding2;
+    /// } SDL_GPUColorTargetInfo;
+    /// ```
+    ///
+    /// The struct's own two padding bytes are named, because C names them; the
+    /// four after them are the compiler's, to the pointer alignment of 8.
+    public static final NativeStructLayout SDL_GPU_COLOR_TARGET_INFO = new NativeStructLayout(
+            "SDL_GPUColorTargetInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_INT.withName("mip_level"),
+                    ValueLayout.JAVA_INT.withName("layer_or_depth_plane"),
+                    SDL_FCOLOR.layout().withName("clear_color"),
+                    ValueLayout.JAVA_INT.withName("load_op"),
+                    ValueLayout.JAVA_INT.withName("store_op"),
+                    ValueLayout.ADDRESS.withName("resolve_texture"),
+                    ValueLayout.JAVA_INT.withName("resolve_mip_level"),
+                    ValueLayout.JAVA_INT.withName("resolve_layer"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle_resolve_texture"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_GPUTextureTransferInfo {
+    ///     SDL_GPUTransferBuffer *transfer_buffer;
+    ///     Uint32 offset;
+    ///     Uint32 pixels_per_row;
+    ///     Uint32 rows_per_layer;
+    /// } SDL_GPUTextureTransferInfo;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_TEXTURE_TRANSFER_INFO = new NativeStructLayout(
+            "SDL_GPUTextureTransferInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("transfer_buffer"),
+                    ValueLayout.JAVA_INT.withName("offset"),
+                    ValueLayout.JAVA_INT.withName("pixels_per_row"),
+                    ValueLayout.JAVA_INT.withName("rows_per_layer"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_GPUTextureRegion {
+    ///     SDL_GPUTexture *texture;
+    ///     Uint32 mip_level;
+    ///     Uint32 layer;
+    ///     Uint32 x, y, z;
+    ///     Uint32 w, h, d;
+    /// } SDL_GPUTextureRegion;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_TEXTURE_REGION = new NativeStructLayout(
+            "SDL_GPUTextureRegion",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_INT.withName("mip_level"),
+                    ValueLayout.JAVA_INT.withName("layer"),
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("z"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h"),
+                    ValueLayout.JAVA_INT.withName("d")));
+
     /// Blend2D's entire object model — `BLObjectDetail`.
     ///
     /// Every Blend2D "core" object is exactly one of these and nothing else:
@@ -933,6 +1066,12 @@ public final class Layouts {
                 SDL_DISPLAY_MODE,
                 SDL_RECT,
                 SDL_AUDIO_SPEC,
+                SDL_FCOLOR,
+                SDL_GPU_TEXTURE_CREATE_INFO,
+                SDL_GPU_TRANSFER_BUFFER_CREATE_INFO,
+                SDL_GPU_COLOR_TARGET_INFO,
+                SDL_GPU_TEXTURE_TRANSFER_INFO,
+                SDL_GPU_TEXTURE_REGION,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,

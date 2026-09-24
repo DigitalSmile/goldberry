@@ -1,0 +1,444 @@
+# M4 — GPU: implementation plan
+
+Written 2026-09-24, before any code. The milestone is two lines in
+`docs/ARCHITECTURE.md` §16 — "`canvas3d`, GPU composition path" — and §12
+sketches it. This document is how it gets built: what is decided, what still has
+to be measured before it can be, the phases with their exit criteria, and what
+unblocks `docs/media-plan.md` phase 4 (GPU present) and the half of phase 5's
+exit criterion that waits on it ("4K60 VP9 without dropped frames on GPU
+present").
+
+It follows `media-plan.md`'s shape: tables with a status column, corrections to
+the design recorded as they are found, and a log at the end.
+
+## 1. Where things stand
+
+Everything below was read from the tree on 2026-09-24.
+
+| Area | State |
+|------|-------|
+| `:gpu` | One file, `module-info.java`. It is published as `goldberry-gpu` so the coordinate is reserved (ADR-0334), and it requires `:core` and nothing else |
+| SPI | `BackendWindow` has `acquireFrame`, `retainsFrameContents`, `present(PixelBuffer, damage)`, `requestFrame`, `nativeHandle`, `refreshRate` and `lateFrames`. There is **no `gpuSurface()`**: `Backend`'s doc says it "needs a consumer before its shape can be decided" (ADR-0019). `ARCHITECTURE.md` §12 still says it is in the SPI "from day 1", and ADR-0002 says the same |
+| Present | Blend2D paints into SDL's window-surface memory (`acquireFrame`) or into an owned `PixelBuffer`. `SdlVideo.present` then calls `SDL_UpdateWindowSurfaceRects` with the damage. Goldberry owns no GPU context. On Wayland, SDL itself hides an `SDL_Renderer` and a streaming texture under the window surface (ADR-0046) |
+| Pacing | `SDL_HINT_RENDER_VSYNC=1` reaches SDL's hidden renderer, and `FramePacer` holds `FrameDue` to the display's rate (ADR-0047). `FrameStats` and the late-frame budget (ADR-0271, ADR-0342, ADR-0452) measure the CPU side |
+| SDL | 3.4.16, static in `libgoldberry`. It is built with SDL's defaults, so the GPU subsystem (Vulkan, Metal, D3D12 drivers) and the renderer are compiled. **None of the 97 `SDL_GPU*` functions is in `exports/goldberry.symbols`**, and neither is any `SDL_*Renderer*` or `SDL_*Texture*` function |
+| Bindings | Hand-written holders in `…calls` packages (ADR-0010, ADR-0173). Structs are checked against the shim's layout table (`LayoutVerifier`). Native-image registrations are generated from the holders (ADR-0339), and upcall owners are listed in `UPCALL_OWNERS` |
+| Module seal | `:natives` exports to `:core` alone (ADR-0280). The one exception is `natives.sdl.audio`, exported to `:media` (ADR-0461) |
+| Video | The frame queue holds premultiplied BGRA made by swscale on the decode thread (ADR-0463). Hardware frames are always copied back to NV12/P010 (ADR-0470). The frame contract has NV12, I420, P010 and I010, each with `ColorMatrix` (601/709/2020) and `fullRange` |
+| Tests | Goldens render through `Offscreen` with no backend, at one tolerance on every platform (ADR-0050). **No CI runner has a GPU** (ADR-0342): they are GitHub's virtual machines, and the Linux showcase leg runs under Xvfb |
+
+What SDL 3.4.16 offers, read from its headers in `natives/.deps/…/sdl3-src`:
+
+- **`SDL_GPU`** covers devices, textures, samplers, buffers, cycling transfer buffers, shaders (SPIR-V, MSL/metallib, DXIL), graphics and compute pipelines, copy, render and compute passes, fences, swapchains (VSYNC, MAILBOX and IMMEDIATE; SDR, SDR-linear, HDR-extended-linear and HDR10), `SDL_SetGPUAllowedFramesInFlight`, `SDL_DownloadFromGPUTexture` for readback, and debug labels.
+- **`SDL_ClaimWindowForGPUDevice` needs no window flag.** The Vulkan driver calls the video device's `Vulkan_CreateSurface` directly, and the Metal driver makes its own `SDL_Metal_CreateView`, so a window created today can be claimed later. The call must be made on the window's thread.
+- **The GPU API has no import of external textures** (IOSurface, D3D11 shared handles, dma-buf), and it hands out no native handle. Zero-copy from a hardware decoder is therefore not possible through an unmodified `SDL_GPU` 3.4. SDL's older renderers already take a `CVPixelBuffer` or a D3D11/D3D12/Vulkan texture; the GPU API does not. Upstream tracks this as [SDL #14077](https://github.com/libsdl-org/SDL/issues/14077), with [PR #14157](https://github.com/libsdl-org/SDL/pull/14157) open for Metal and D3D12, and no date. What that costs and how it gets fixed is D9.
+- **`SDL_CreateGPURenderer(device, window)` and `SDL_GPURenderState` (3.4)** are an `SDL_Renderer` on an `SDL_GPU` device that takes custom fragment shaders. Its textures take NV12 and P010 with a colorspace. It is a real alternative for the composition pass (§3, D1).
+
+## 2. What M4 delivers
+
+1. **A GPU composition path for a window.** The UI is still rasterized by Blend2D on the CPU (ADR-0002 stands). In this mode it is uploaded, damage only, as a texture and composited in one `SDL_GPU` render pass with the GPU layers, then presented on the window's swapchain.
+2. **`GpuSurface` in the SPI**, designed against its two consumers: `canvas3d` and `video-view`.
+3. **`:gpu`'s public API**: a small, safe Java layer over `SDL_GPU` (device, textures, buffers, shaders, pipelines, one command scope per frame, readback), and the **`canvas3d`** widget built on it.
+4. **Readback**: a GPU layer rendered to a texture and read back into a `BLImage`. This is how headless, `Offscreen`, the goldens and any window that cannot be claimed show GPU content.
+5. **Media phase 4 (GPU present)**: planes uploaded as textures, YUV→RGB in a shader, with the matrix and range from the frame and 10-bit handled. The CPU path stays as the fallback ladder's last rung.
+6. **A CI lane that runs the GPU tests on a real driver**: Mesa's lavapipe (software Vulkan) on the Linux runners.
+
+**Not in M4**, and recorded so it is not rediscovered:
+
+- zero-copy decoder interop on Windows and Linux (D9; macOS is phase 6b);
+- HDR swapchains and tone mapping;
+- compute passes in the public API (the bindings will have them);
+- translucent GPU layers over UI (§3, D4);
+- frost that blurs GPU content (§3, D4);
+- a GPU rasterizer for the UI;
+- runtime shader cross-compilation for applications' shaders;
+- multi-window sharing of GPU resources beyond the one device.
+
+## 3. Decisions
+
+The ones marked **to measure** are made in phase 0, from the spikes listed
+there. Each one becomes an ADR when it is taken.
+
+### D1. `SDL_GPU` directly, not SDL's GPU-backed renderer: lean, to measure
+
+The composition pass is trivial: one textured quad per layer, scissored, and the
+UI quad blended over them. It is small enough to own. Owning it gives:
+
+- frames in flight chosen by us;
+- cycling transfer buffers we map once and fill from Java;
+- readback through the same device;
+- one abstraction that `canvas3d`, video and the goldens share;
+- shaders whose output we test.
+
+`SDL_CreateGPURenderer` would give NV12/P010 conversion for free, but not I010,
+and its colour pipeline is SDL's to change between releases. It would also add a
+second abstraction beside the device `canvas3d` needs anyway.
+
+**Phase 0 spike:** composite a 4K UI texture plus one 4K NV12 layer both ways on
+macOS (Metal) and under lavapipe. Compare the cost per frame, the code needed,
+and whether the renderer's colour output matches swscale. Choose the renderer
+only if it is clearly smaller at equal fidelity.
+
+### D2. One device per process, created on first need
+
+`GpuDevice` is owned by the backend and created by the first GPU layer to attach,
+never at startup. ADR-0002's promise stands: an application that never shows a
+GPU layer never loads a driver.
+
+- Creation goes through `SDL_CreateGPUDeviceWithProperties`, with the shader formats we ship (SPIR-V, MSL, DXIL), `PREFERLOWPOWER` by default, and `-Dgoldberry.gpu.driver=vulkan|metal|direct3d12` to override the driver.
+- A device that fails to create is remembered for the process, as `Hardware` remembers a failed codec (ADR-0470), and every consumer drops to its fallback rung.
+- `-Dgoldberry.gpu=off|auto` is the switch; `auto` is the default.
+
+### D3. Composition is per window, entered when a GPU layer attaches (to measure)
+
+A window is in one of three modes:
+
+| Mode | When | Present |
+|------|------|---------|
+| CPU | no GPU layer attached (every window today) | unchanged: window surface and `SDL_UpdateWindowSurfaceRects` |
+| Composited | a GPU layer is attached and the window was claimed | the owned `PixelBuffer` is uploaded as the UI texture (damage only), and GPU layers plus the UI quad are drawn on the swapchain |
+| Readback | a GPU layer is attached, but the window cannot be claimed or is headless/offscreen | each GPU layer renders to a texture, is downloaded, and is drawn by Blend2D as an image |
+
+Entering the composited mode means `SDL_DestroyWindowSurface` and then
+`SDL_ClaimWindowForGPUDevice`. Leaving it means the release and a new window
+surface. The window stays composited for a hold time after its last GPU layer
+detaches (hysteresis), so a list scrolling a video in and out of view does not
+flip modes on every frame.
+
+**Phase 0 measures:**
+
+- what the switch costs on each OS;
+- whether a claimed window can go back to a window surface at all;
+- what the switch does to a window with a `web-view` (a Metal view inside the content view, ADR-0458) or in fullscreen (ADR-0473).
+
+If a switch cannot be made reliable, the fallback decision is that a window
+chooses its mode when it is created (`Window.Builder.gpu(true)`) and GPU layers
+in a CPU window use readback.
+
+### D4. Z-order by hole-punching
+
+A GPU layer's element paints, into the CPU frame, a transparent rectangle in its
+clipped box (`SRC_COPY` with transparent black) and records the layer and its
+rect in paint order. The composite pass then:
+
+1. clears the swapchain;
+2. draws each GPU layer in paint order, scissored to its clip;
+3. draws the UI texture over everything with premultiplied blending.
+
+What is painted *after* the GPU element (controls over a video, a popup over a
+3D view) is above it. What was painted *before* it and under its box has been
+punched out, which is what the opaque layer would hide anyway. Z-order comes
+from the paint order that already exists, and no second UI texture is needed.
+
+The rules that follow, each to be written in the ADR:
+
+- **GPU layers are opaque** in v1. A translucent layer would show the transparent hole, not the UI under it.
+- **Clips are rectangles.** A layer inside a rounded clip gets the clip's bounding rect as its scissor. Rounded corners are drawn by UI painted over it, or wait for a mask pass.
+- **Frost does not blur GPU content.** The Java blur (`ARCHITECTURE.md` §5) reads the CPU frame, where the layer is a hole. §12's "3D under frost — all works" is corrected: it works in readback mode, and in composited mode the frost blurs the UI only. A GPU blur pass is post-M4.
+- A layer's rect is in physical pixels. It is rounded with `DisplayScale`'s one rule, so the hole and the quad cover the same pixels.
+
+### D5. The SPI: `BackendWindow.gpuSurface()`
+
+The shape follows its consumers, and all of it is confined to the UI thread
+(ADR-0019):
+
+```java
+// :core, …render.window — no SDL type in it
+Optional<GpuSurface> gpuSurface();          // empty: no device, or headless without one
+
+public sealed interface GpuSurface permits … {
+    GpuDevice device();                      // :core's opaque handle, unwrapped by :gpu
+    CompositionMode mode();                  // CPU, COMPOSITED, READBACK
+    void attach(GpuLayer layer);             // enters COMPOSITED (D3) if it can
+    void detach(GpuLayer layer);
+}
+
+public interface GpuLayer {                  // implemented by canvas3d and video-view
+    void render(GpuFrame frame, PhysicalRect target, PhysicalRect scissor);
+}
+```
+
+`HeadlessWindow` returns a `GpuSurface` in readback mode when a device can be
+created, and empty otherwise. That lets a test of `canvas3d` run on lavapipe with
+no window.
+
+**Corrected in phase 1 (ADR-0475):** no device can be created under SDL's
+`dummy` video driver, which the headless tests use. A headless `GpuSurface`
+therefore needs `offscreen` (Vulkan, lavapipe) or, on macOS, `cocoa` on the
+first thread. GPU goldens run in a `gpuTest`-style task; the CPU goldens are
+unchanged.
+
+### D6. Where the bindings live, and who may call them
+
+- **Bindings.** `SDL_GPU` goes in a new `natives.sdl.gpu` package with its `…calls` holders. The layout table gains the create-info structs. It is exported, qualified, to `:core` (window claim, present) and `:gpu` (everything else). This is an amendment to ADR-0280 of the kind ADR-0461 made for `:media`.
+- **`:media`.** It does not bind `SDL_GPU`. It uses `:gpu`'s public API through `requires static io.github.digitalsmile.goldberry.gpu`, and without `:gpu` on the module path, video presents on the CPU exactly as today.
+- **Pointers.** No raw `MemorySegment` leaves `:natives` (ADR-0019, `ExportedSurfaceTest`). Handles cross as small final classes wrapping the address, created and read only inside `:natives`. Mapped transfer memory crosses as a `ByteBuffer`, the pattern `acquireFrame` already uses.
+
+### D7. Shaders are HLSL, compiled offline, and the output is committed
+
+- **Build.** Sources in `gpu/src/main/shaders/*.hlsl`. `:gpu:compileShaders` runs SDL_shadercross (pinned in the catalog) into SPIR-V, MSL and DXIL. Like `:media:ffmpegBuild`, it is a task run on purpose, not part of `build`.
+- **Committed output.** The blobs are committed under `gpu/src/main/resources/…/shaders/`, with a manifest of each source's SHA-256. A unit test fails when a source changes and its blobs do not, so a stale shader cannot ship. A resource glob declares them to native-image (`DeclaredResourcesTest` enforces it).
+- **Why offline.** Shadercross needs DXC and SPIRV-Cross, which is too much to require of every build and every CI leg. The same rule as the layout fixtures: generated by a tool, committed, and checked.
+- **Applications' shaders.** `canvas3d`'s users bring their own, as a `ShaderCode` record with bytes per format. `:gpu` picks the device's format and fails with a message naming the missing one.
+
+### D8. Video's queue holds YUV when a GPU layer shows it (to measure)
+
+In the composited or readback mode, `VideoWorker` copies each kept picture's
+planes into the slot instead of converting them. A copy is cheaper than swscale,
+so the decode thread gets lighter. At present, the UI thread writes the planes
+into a cycling transfer buffer and uploads them in the frame's copy pass.
+
+The queue's format is chosen when the view attaches or detaches. The change is a
+flush plus an accurate reseek, the mechanism a video track switch uses
+(ADR-0469), so no picture in the queue is ever the wrong format. In CPU mode
+nothing changes.
+
+**Phase 6 measures** 4K60 P010: about 24 MB per picture, about 1.4 GB/s through
+the memcpy and the upload. If the UI thread cannot carry it, slots become mapped
+transfer buffers written by the decode thread, which `SDL_GPU` permits for a
+mapped buffer as long as the upload is recorded on the UI thread.
+
+### D9. Copy-back first, and zero-copy on macOS through a patch of our own
+
+**What having no import costs.** Every hardware-decoded picture goes GPU → CPU
+(copy-back, ADR-0470) → GPU (the upload in D8). For 4K60 P010 that is about
+24 MB a picture and 1.4 GB/s each way. The cost depends on the machine:
+
+- **Apple Silicon, unified memory:** copy-back is a memory copy. Phase 5
+  measured VideoToolbox at 4K60, copy-back included, at about 1.5 ms of CPU a
+  picture (0.15 cores). This is expected to meet phase 6's exit, but phase 6
+  measures it.
+- **Discrete GPUs:** the picture crosses the bus twice. The bandwidth exists,
+  but CPU time, latency and power are spent on it.
+- **VAAPI:** some drivers read decoded surfaces back slowly. This is a risk to
+  4K60 on Linux (§5), and it can only be measured on a Linux host with a GPU.
+- **Where it fails first:** 8K, several streams at once, and battery life.
+- **Beyond video:** textures made outside our device (CEF, CUDA, another
+  engine) cannot enter the composite either. `canvas3d` content from elsewhere
+  goes through readback, and `web-view` stays a native view (ADR-0458).
+- **What it does not change:** correctness, 10-bit precision, and every phase of
+  this plan.
+
+**Decision.**
+
+1. M4 is built with copy-back, and phase 6 measures it.
+2. Phase 6 gives the video layer an input that is either CPU planes or a native
+   surface (`PlaneSource`), so zero-copy fits in later without a redesign.
+3. **Phase 6b** carries a Metal-only patch to the pinned SDL. It adds a texture
+   property taking an `IOSurfaceRef` and a plane, and creates the `MTLTexture` on
+   SDL's own device with `newTextureWithDescriptor:iosurface:plane:`, as a
+   container that cannot be cycled.
+   - It takes an `IOSurface` rather than PR #14157's `CVPixelBuffer`, whose
+     Metal path a reviewer found may read GPU surfaces back through the CPU.
+   - Its property name follows the PR's, so moving to upstream is a rename, and
+     the patch is offered back.
+   - The superbuild applies it with `PATCH_COMMAND` and checks that it applied.
+4. Windows (D3D11/D3D12 shared handles) and Linux (dma-buf into Vulkan) stay on
+   copy-back until upstream lands or a host exists to build and measure them on.
+
+**Why not bypass SDL on macOS.** `AVSampleBufferDisplayLayer` would be
+zero-copy with no patch, but it is a native layer, as `web-view` is (ADR-0458).
+The UI cannot be composited over it, so it breaks D4.
+
+## 4. Phases
+
+Every phase ends with `check` green on this Mac, and with the lavapipe lane
+green once it exists (phase 2 onward). Exit criteria are pass/fail. Numbers are
+measured, not estimated.
+
+### Phase 0 — spikes and decisions
+
+Throwaway code on a branch, and the ADRs that come out of it.
+
+| Item | Question | Status |
+|------|----------|--------|
+| Device on each OS | Does `SDL_CreateGPUDevice` succeed on macOS (Metal), under lavapipe on `ubuntu-24.04` and `-arm`, on `macos-14` runners (Metal in a VM?) and on `windows-2022` (D3D12, WARP, or nothing)? Which runners can host the GPU lane? | **macOS (Metal): yes**, on this M1 Pro, under `cocoa` on the first thread (ADR-0475). **Found:** a device needs a video driver with a Metal view or a Vulkan surface, so there is none under `dummy`; `offscreen` has headless Vulkan, which is what lavapipe runs under. The runners are open |
+| Claim and release | Window surface → claim → release → window surface, on macOS, Wayland, X11 (Xvfb) and Windows. What it costs, and whether anything leaks or flickers. Behaviour with `web-view` and in fullscreen (D3) | open |
+| Composite cost | 4K UI texture, damage-only upload, plus one 4K NV12 layer: CPU time per frame, and the wait in `WaitAndAcquireGPUSwapchainTexture` against today's present (0.127 ms median under `dummy`, ADR-0409) | open |
+| D1 | `SDL_GPU` pass against `SDL_CreateGPURenderer` with `SDL_GPURenderState`: code, cost, colour fidelity | open |
+| Size | `libgoldberry` growth when ~60 `SDL_GPU` symbols are exported and the dead-stripping no longer removes the drivers, per target | **macos-aarch64: 2 KB** for the first 29 symbols (6,100,832 → 6,102,848 bytes). The drivers were already linked, through SDL's renderer (ADR-0475). Linux and Windows open |
+| Pacing | Swapchain VSYNC against `FramePacer`: does the backstop step aside in composited mode, and does `refreshRate`'s answer still hold? | open |
+| Shadercross | Builds and runs on macOS; output for the four shaders of phase 3 and phase 6 | open |
+| ADRs | D1–D8 recorded, and ADR-0002's and ADR-0019's day-1 claims corrected with a link | open |
+
+**Exit:** each "to measure" decision is taken on numbers from this table, and
+the GPU CI lane has a runner that creates a device.
+
+### Phase 1 — natives and bindings
+
+| Item | Status |
+|------|--------|
+| Exports: the v1 subset of `SDL_GPU` (below) in `goldberry.symbols`, the ABI version bumped | in part (ADR-0475): 25 `SDL_GPU` functions and 4 property setters (device, textures, transfer buffers, command buffers, clear, copy pass, fences), ABI 16. The rest arrive with the phases that call them, as `ExportListTest` requires |
+| Holders, one per function, `invokeExact` from a `static final` handle (ADR-0161) | in part: `SdlGpuDeviceCalls`, `SdlGpuResourceCalls`, `SdlGpuCommandCalls` and `SdlPropertiesCalls` in `natives.sdl.calls`, the package already initialised at image build time, rather than a new `…gpu.calls` |
+| Layouts in the shim's table and in Java, checked by `LayoutVerifier` (in part: `SDL_FColor`, `…TextureCreateInfo`, `…TransferBufferCreateInfo`, `…ColorTargetInfo`, `…TextureTransferInfo`, `…TextureRegion` and 23 enumerators, verified): `SDL_GPUTextureCreateInfo`, `…SamplerCreateInfo`, `…ShaderCreateInfo`, `…BufferCreateInfo`, `…TransferBufferCreateInfo`, `…GraphicsPipelineCreateInfo` with its nested vertex-input, rasterizer, multisample, depth-stencil and target-info structs and `…ColorTargetDescription`/`…ColorTargetBlendState`, `…TextureTransferInfo`, `…TextureRegion`, `…BufferRegion`, `…TransferBufferLocation`, `…ColorTargetInfo`, `…DepthStencilTargetInfo`, `…Viewport`, `…BufferBinding`, `…TextureSamplerBinding`, `…BlitInfo`, `SDL_FColor` | open |
+| `natives.sdl.gpu` exported to `:core` and `:gpu` only. `ExportedSurfaceTest` extended so no segment escapes | done (ADR-0475): wrappers `SdlGpuDevice`, `SdlGpuTexture`, `SdlGpuTransferBuffer`, `SdlGpuCommandBuffer`/`CopyPass`, `SdlGpuFence`, with SDL's rules checked in Java and mapped memory scoped to an arena. `ExportedSurfaceTest` holds a package to a set of readers |
+| Native-image registrations: generated by `:natives:foreignMetadata` with no change (the holders are in a `…calls` package). No upcalls | open |
+| Tests: device create/destroy and a clear-and-download round trip, skipped without a device and required on the GPU lane (`-Pgoldberry.gpu.required=true`, the `media.required` rule, ADR-0016) | done on Metal: 16 tests tagged `gpu`, run by `:natives:gpuTest` on the JVM's first thread (cocoa needs it, and a `Test` task cannot give it), part of `check`; 8 value tests in the ordinary task |
+
+The v1 subset, about 60 functions:
+
+- **Device:** `CreateGPUDeviceWithProperties`, `DestroyGPUDevice`, `GetNumGPUDrivers`, `GetGPUDriver`, `GetGPUDeviceDriver`, `GetGPUShaderFormats`, `GPUSupportsProperties`.
+- **Window:** `ClaimWindowForGPUDevice`, `ReleaseWindowFromGPUDevice`, `SetGPUSwapchainParameters`, `WindowSupportsGPUPresentMode`, `WindowSupportsGPUSwapchainComposition`, `SetGPUAllowedFramesInFlight`, `GetGPUSwapchainTextureFormat`, `WaitAndAcquireGPUSwapchainTexture`, `AcquireGPUSwapchainTexture`, `WaitForGPUSwapchain`.
+- **Resources:** create and release for textures, samplers, shaders, graphics pipelines, buffers and transfer buffers; `SetGPUTextureName`.
+- **Transfer:** `MapGPUTransferBuffer`, `UnmapGPUTransferBuffer`, `BeginGPUCopyPass`, `UploadToGPUTexture`, `UploadToGPUBuffer`, `DownloadFromGPUTexture`, `EndGPUCopyPass`.
+- **Commands:** `AcquireGPUCommandBuffer`, `SubmitGPUCommandBuffer`, `SubmitGPUCommandBufferAndAcquireFence`, `CancelGPUCommandBuffer`, `WaitForGPUFences`, `QueryGPUFence`, `ReleaseGPUFence`, `WaitForGPUIdle`, `PushGPUVertexUniformData`, `PushGPUFragmentUniformData`.
+- **Render pass:** `BeginGPURenderPass`, `EndGPURenderPass`, `BindGPUGraphicsPipeline`, `SetGPUViewport`, `SetGPUScissor`, `BindGPUVertexBuffers`, `BindGPUIndexBuffer`, `BindGPUFragmentSamplers`, `DrawGPUPrimitives`, `DrawGPUIndexedPrimitives`, `BlitGPUTexture`.
+- **Formats:** `GPUTextureSupportsFormat`, `GPUTextureFormatTexelBlockSize`, `CalculateGPUTextureFormatSize`.
+- **Debug:** `PushGPUDebugGroup`, `PopGPUDebugGroup`, `InsertGPUDebugLabel`.
+
+Compute is bound in phase 7 if `canvas3d`'s API grows it.
+
+**Exit:** a clear to a known colour, downloaded, reads back byte for byte on
+Metal here and on lavapipe in CI. Layouts are verified on all four targets.
+
+**Status:** met on Metal (macos-aarch64), with Metal's API validation on.
+Lavapipe and the other three targets' layouts wait for the GPU lane and CI.
+
+### Phase 2 — `:gpu`'s API and the GPU CI lane
+
+A safe layer an application can use without knowing `SDL_GPU`'s structs.
+
+| Item | Status |
+|------|--------|
+| `GpuDevice` (from the backend, D2), `GpuTexture`, `GpuBuffer`, `GpuSampler`, `Shader`, `GraphicsPipeline`: `AutoCloseable`, release deferred by SDL until the GPU is done with them, and a use after close fails in Java, not in the driver | open |
+| Create-infos as records with builders for the long ones (`PipelineSpec`, `TextureSpec`), and enums over SDL's (`TextureFormat`, `PresentMode`, `BlendMode`, …) with exhaustive `switch` mapping | open |
+| `GpuFrame`: the per-frame command scope. It holds one command buffer, `copyPass(…)` and `renderPass(…)` as scoped lambdas so a pass cannot be left open, and a debug group per layer | open |
+| `Upload`: cycling transfer buffers, sized to the largest upload seen and grown by doubling, with damage rects packed row by row | open |
+| `Readback`: download into a transfer buffer, a fence, then a `PixelBuffer`. The only blocking call in the API | open |
+| `ShaderCode`: bytes per format and the format chosen for the device (D7); `:gpu:compileShaders` and the freshness test | open |
+| CI: `gpu.yml` (or a leg of `linux.yml`) with lavapipe (`mesa-vulkan-drivers`), running `:natives`, `:core`, `:gpu` and `:media` GPU tests with `goldberry.gpu.required=true`, plus whatever phase 0 found usable on macOS and Windows | open |
+| Coverage floor for `:gpu`, measured on the GPU lane | open |
+
+**Exit:** a triangle is rendered to an offscreen texture and read back matching
+a golden, on Metal and lavapipe, within ADR-0050's tolerance. The API has no
+`MemorySegment` in a public signature.
+
+### Phase 3 — the composited window
+
+| Item | Status |
+|------|--------|
+| `GpuSurface`, `GpuLayer`, `CompositionMode` in `:core`'s SPI (D5); `BackendWindow.gpuSurface()` on `Sdl3Window` and `HeadlessWindow` | open |
+| `Window.paint` in composited mode: the owned `PixelBuffer` (so `retainsFrameContents` is true and partial repaint keeps working), the damage uploaded to the UI texture, then the composite pass: clear, layers, UI quad (premultiplied `ONE, ONE_MINUS_SRC_ALPHA`) | open |
+| The UI quad's shader pair, `ui.vert`/`ui.frag` (D7). The UI texture is `B8G8R8A8_UNORM` so the Blend2D bytes upload unconverted | open |
+| Mode entry and exit with hysteresis (D3); resize (UI texture recreated, full upload, ADR-0158); HiDPI (swapchain and UI texture in physical pixels, `DisplayScale`) | open |
+| No swapchain texture (minimized, occluded): the upload is still submitted and nothing is presented, and the frame counts as presented for the budget | open |
+| Pacing: swapchain VSYNC; `FramePacer` steps aside where phase 0 says it should; `SetGPUAllowedFramesInFlight(2)` by default | open |
+| `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | open |
+| **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | open |
+
+**Exit:** the showcase runs composited (forced on with
+`-Dgoldberry.gpu.composite=always`) with every tab indistinguishable from CPU
+mode, parity tests green on the GPU lane, and damage-only uploads measured (the
+bytes uploaded per frame while the caret blinks).
+
+### Phase 4 — GPU layers in the tree
+
+| Item | Status |
+|------|--------|
+| The hole-punch painter (D4): the element's clipped box cleared in the CPU frame, the layer recorded in paint order with its target and scissor | open |
+| Clips from `scroll` viewports and ancestors as scissors; a layer scrolled fully out of view is not rendered | open |
+| The readback mode (D3): a layer renders to its own texture, which is downloaded and drawn as an `Image`. Used by headless, `Offscreen` and an unclaimable window | open |
+| A test layer (a solid colour with a moving square) and the z-order cases: a popup over a layer, a layer in a scrolled list, two overlapping layers with UI between them, a layer under a rounded clip | open |
+
+**Exit:** each z-order case is a golden that is the same in composited mode (read
+back) and in readback mode, on the GPU lane.
+
+### Phase 5 — `canvas3d`
+
+| Item | Status |
+|------|--------|
+| `gpu.view.Canvas3d`, `@Markup("canvas3d")`, weaved into `:gpu`'s catalog (ADR-0131). A leaf sized like an image, `renderer=` naming a `Canvas3dRenderer` | open |
+| `Canvas3dRenderer`: `init(GpuDevice)`, `render(GpuFrame, Canvas3dTarget)` with colour (and optional depth) textures at the box's physical size, `resize`, `dispose`. `continuous` or on-demand redraw through `requestFrame` | open |
+| Fallback when no device: the widget paints `--gb-canvas3d-unavailable` and the reason, as `web-view` does without its engine (ADR-0441) | open |
+| Showcase: a **GPU** tab with a lit spinning cube (vertex and index buffers, depth, one uniform block), its frame times, and a switch between composited and readback | open |
+| Goldens: the cube at a fixed angle, through readback, on the GPU lane; the unavailable state on every leg | open |
+| `docs/content-widgets.md` / `core-widgets.md` row, the widget catalog, `ARCHITECTURE.md` §12 as built | open |
+
+**Exit:** the cube renders in the showcase on this Mac at display rate with the
+UI composited over it. The goldens are green on the GPU lane, and the fallback
+golden is green everywhere.
+
+### Phase 6 — media phase 4: GPU present
+
+| Item | Status |
+|------|--------|
+| `video-view` as a `GpuLayer` when a `GpuSurface` is available and `:gpu` is on the module path (`requires static`). Otherwise the CPU path is unchanged | open |
+| The queue in YUV (D8): plane copies into slots, the format switched by flush and reseek, picture lifetimes unchanged (valid for two more pictures, ADR-0463) | open |
+| Plane textures: NV12 → `R8` plus `R8G8`; I420 → three `R8`; P010 → `R16` plus `R16G16`; I010 → three `R16`, scaled by 64 in the shader (10 bits in the low bits) | open |
+| `yuv.frag`: BT.601, BT.709 and BT.2020 non-constant-luminance matrices, limited and full range, chroma sited left (MPEG-2) as swscale assumes. The coefficients sit in a uniform block, so one pipeline serves every frame | open |
+| The fallback ladder: GPU present → CPU present when the device fails or the layer cannot attach, with a reseek to the shown picture (the mechanism of ADR-0470's rungs) | open |
+| **Parity:** each fixture's picture at a fixed time, GPU-presented and read back, against swscale's `SWS_BITEXACT` BGRA within tolerance. The 601 and 709 fixtures are the exit criterion from `goldberry-media.md` §8; 2020 and 10-bit are held to the same | open |
+| Measured: 4K60 VP9 on VideoToolbox, GPU present, no dropped pictures over 60 s, CPU time per picture. **This closes phase 5's exit criterion** | open |
+| `media-plan.md` phase 4 row and phase 5's exit status updated; `goldberry-media.md` §3 "Presentation" as built | open |
+
+**Exit:** parity green on the GPU lane; 4K60 with no drops measured on this Mac;
+`video-view` falls back to CPU present with `-Dgoldberry.gpu=off` and with no
+`:gpu` on the path, with every media test green both ways.
+
+### Phase 6b — zero-copy on macOS (D9)
+
+Taken up when phase 6's measurements or battery use justify it.
+
+| Item | Status |
+|------|--------|
+| The SDL patch: `SDL_PROP_GPU_TEXTURE_CREATE_METAL_IOSURFACE_POINTER` and `…_METAL_IOSURFACE_PLANE_NUMBER`, a container that cannot be cycled, and the external `MTLTexture` released with it. Applied by the superbuild and checked. Offered upstream | open |
+| `PlaneSource.Surface`: FFmpeg's `AV_PIX_FMT_VIDEOTOOLBOX` frames (`data[3]` is the `CVPixelBufferRef`) and `:media-platform`'s VideoToolbox decoder, both asked for IOSurface-backed, Metal-compatible buffers | open |
+| Lifetime: the `CVPixelBuffer` is retained by the queue slot until the fence of the last frame that sampled it signals, so the decoder's pool cannot reuse a surface the GPU is still reading | open |
+| Copy-back skipped when the view is on a patched Metal device, and kept for CPU present, readback and every other device | open |
+| Parity: the zero-copy picture against the copy-back picture, byte for byte after the same shader | open |
+| Measured: 4K60 CPU time per picture and package power, copy-back against zero-copy | open |
+
+**Exit:** parity green on this Mac; the measurement recorded; the patch applies
+cleanly to the pinned SDL and a test fails if it does not.
+
+### Phase 7 — hardening
+
+| Item | Status |
+|------|--------|
+| Device loss and GPU switches (eGPU unplugged, a laptop's GPU changing): a failed submit or acquire drops the window to CPU and the layers to readback or their fallback, recorded like a failed hardware codec. A VideoToolbox session invalidated by the switch is replaced (ADR-0472) | open |
+| Display moves between monitors with different scales and rates while composited | open |
+| A native image of the showcase with the GPU tab: registrations, shader resources, startup unchanged for a window with no GPU layer | open |
+| The frame-budget run (ADR-0342) in composited mode on the lanes that have a GPU | open |
+| Windows (D3D12) and Linux on hardware, when a host exists: written and unit-tested before, measured here | open |
+| `book/src/status.md` M4, `ARCHITECTURE.md` §12 and §16, `README.md` | open |
+
+**Exit:** M4 is done when phases 1–6 have met their exits, and this table's
+items are either done or recorded as waiting on a host.
+
+## 5. Risks
+
+| Risk | Mitigation |
+|------|------------|
+| No GPU on any CI runner, so the GPU path is tested only here | Lavapipe is a conformant Vulkan 1.3 driver, and phase 0 proves it hosts `SDL_GPU` before anything is built on it. Goldens are taken through readback, so a GPU leg and a CPU leg compare the same pixels |
+| Lavapipe's output differs from Metal's by more than ADR-0050's tolerance (filtering, rounding) | Nearest filtering in the parity tests, and the UI quad sampled 1:1. If a bound is still needed, it is set per test, measured, and written beside the test |
+| Claim/release is unreliable on some platform | D3's fallback: the mode is fixed at window creation, and layers in CPU windows use readback |
+| `SDL_GPU` changes shape between SDL releases | Pinned SDL, layouts verified at startup and in CI (the same net that caught ADR-0047's offset), and the bindings behind `:gpu`'s own API |
+| Startup and footprint regress (ADR-0002) | No device until a layer attaches (D2); a startup test asserts no GPU symbol is called for a CPU-only window; `libgoldberry` size delta measured in phase 0 and gated |
+| The UI thread cannot carry 4K60 plane copies | D8's second step: transfer-buffer slots written by the decode thread |
+| Hole-punching surprises (translucency, rounded clips, frost) | The limits are written into the ADR and the widget docs before phase 4, and each has a golden that shows it |
+| Shader toolchain drift | Committed blobs with a source hash test (D7); shadercross pinned in the catalog |
+| VAAPI copy-back too slow for 4K60 on some Linux drivers (D9) | Measured on a Linux host when one exists; until then Linux defaults to software decode for 4K, as it already defaults hardware decode off (ADR-0470) |
+| The macOS SDL patch (phase 6b) has to be rebased on every SDL bump | It is small and touches only the Metal texture path; a test checks it applied; the upstream property name is followed so it can be dropped when upstream lands |
+| GPU-specific crashes are native and kill the JVM | SDL's debug mode (`SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN`) on in tests; validation layers on the lavapipe lane |
+
+## 6. Documents kept in step
+
+| Document | What changes | Status |
+|----------|--------------|--------|
+| `docs/ARCHITECTURE.md` §12 | "day 1 in the SPI" corrected; the three modes as built; frost over GPU content (D4) | open |
+| `docs/ARCHITECTURE.md` §3.1, §15 | `natives.sdl.gpu`'s qualified export (D6) | open |
+| ADR-0002, ADR-0019 | a note linking the ADRs that replace their day-1 claims | open |
+| ADR-0280 | amended for `:gpu`'s export, as ADR-0461 was for `:media` | open |
+| `docs/goldberry-media.md` §3, §8 | GPU present as built; phase 4 exit | open |
+| `docs/media-plan.md` | phase 4 unblocked, then done; phase 5's exit criterion closed | open |
+| `docs/testing.md` | the GPU lane, `goldberry.gpu.required`, parity tests | open |
+| `THIRD-PARTY-NOTICES.md` | SDL_shadercross (build-time only, "Not distributed") | open |
+| `gpu/src/main/java/module-info.java` | the "empty and published" note replaced by the module's doc | open |
+
+## 7. Log
+
+| Date | Entry |
+|------|-------|
+| 2026-09-24 | Plan written from the tree: `:gpu` empty, no `gpuSurface()`, no `SDL_GPU` export, no GPU runner. Read from SDL 3.4.16's headers: a window can be claimed without a flag, there is no external-texture import (so zero-copy stays post-v1), and `SDL_CreateGPURenderer` is an alternative to weigh (D1) |
+| 2026-09-24 | D9: zero-copy. Upstream has it as SDL #14077 with PR #14157 open (Metal, D3D12; no Vulkan). M4 ships copy-back; phase 6b carries a Metal-only IOSurface patch; Windows and Linux wait. Implementation begins with phase 1's bindings, which the phase 0 spikes run on |
+| 2026-09-24 | Phase 1 begun and its exit met on Metal (ADR-0475): 29 exports (ABI 16), four holder records, six structs and 23 enumerators verified, the `natives.sdl.gpu` wrappers sealed to `:core` and `:gpu`, and `:natives:gpuTest` on the first thread. Found: no device under `dummy`; cocoa needs the first thread; the exports cost 2 KB. `:natives:check` green: 562 tests, and 16 GPU tests on Metal |

@@ -9,11 +9,17 @@ import io.github.digitalsmile.goldberry.natives.md4c.enums.Md4cEnum;
 import io.github.digitalsmile.goldberry.natives.platform.NativeCapability;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlAudioCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogCategory;
 import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogPriority;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
@@ -118,6 +124,29 @@ public final class NativeConstants {
         constants.add(new NativeConstant(
                 "SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK",
                 Integer.toUnsignedLong(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK)));
+        // SDL_GPU's enumerators and bits (`docs/gpu-plan.md`, phase 1). The
+        // texture formats are positions in a list of more than a hundred that
+        // SDL keeps adding to, which is exactly what a hand-copied value gets
+        // wrong without a word.
+        for (var format : SdlGpuTextureFormat.values()) {
+            constants.add(new NativeConstant(format.nativeName(), format.value()));
+        }
+        for (var format : SdlGpuShaderFormat.values()) {
+            constants.add(new NativeConstant(format.nativeName(), format.bit()));
+        }
+        for (var usage : SdlGpuTextureUsage.values()) {
+            constants.add(new NativeConstant(usage.nativeName(), usage.bit()));
+        }
+        for (var usage : SdlGpuTransferUsage.values()) {
+            constants.add(new NativeConstant(usage.nativeName(), usage.value()));
+        }
+        constants.add(new NativeConstant("SDL_GPU_TEXTURETYPE_2D", SdlGpuResourceCalls.TEXTURETYPE_2D));
+        constants.add(new NativeConstant("SDL_GPU_SAMPLECOUNT_1", SdlGpuResourceCalls.SAMPLECOUNT_1));
+        constants.add(new NativeConstant("SDL_GPU_LOADOP_LOAD", SdlGpuCommandCalls.LOADOP_LOAD));
+        constants.add(new NativeConstant("SDL_GPU_LOADOP_CLEAR", SdlGpuCommandCalls.LOADOP_CLEAR));
+        constants.add(new NativeConstant("SDL_GPU_LOADOP_DONT_CARE", SdlGpuCommandCalls.LOADOP_DONT_CARE));
+        constants.add(new NativeConstant("SDL_GPU_STOREOP_STORE", SdlGpuCommandCalls.STOREOP_STORE));
+        constants.add(new NativeConstant("SDL_GPU_STOREOP_DONT_CARE", SdlGpuCommandCalls.STOREOP_DONT_CARE));
         return List.copyOf(constants);
     }
 }

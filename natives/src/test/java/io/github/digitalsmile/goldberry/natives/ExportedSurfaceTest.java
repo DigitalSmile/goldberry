@@ -206,14 +206,22 @@ class ExportedSurfaceTest {
         // md4c is sealed the same way and to a different module: Markdown is
         // `goldberry-html`'s dependency rather than the toolkit's, so neither an
         // application nor `:core` can name a `MarkdownEvent` (ADR-0294).
-        var sealedTo = new LinkedHashMap<String, String>();
+        var sealedTo = new LinkedHashMap<String, Set<String>>();
         for (var name : mustBeQualified) {
-            sealedTo.put(name, "io.github.digitalsmile.goldberry.core");
+            sealedTo.put(name, Set.of("io.github.digitalsmile.goldberry.core"));
         }
-        sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c", "io.github.digitalsmile.goldberry.html");
-        sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c.enums", "io.github.digitalsmile.goldberry.html");
+        sealedTo.put("io.github.digitalsmile.goldberry.natives.md4c", Set.of("io.github.digitalsmile.goldberry.html"));
+        sealedTo.put(
+                "io.github.digitalsmile.goldberry.natives.md4c.enums", Set.of("io.github.digitalsmile.goldberry.html"));
         // SDL's audio streams, for goldberry-media's sink alone (ADR-0461).
-        sealedTo.put("io.github.digitalsmile.goldberry.natives.sdl.audio", "io.github.digitalsmile.goldberry.media");
+        sealedTo.put(
+                "io.github.digitalsmile.goldberry.natives.sdl.audio", Set.of("io.github.digitalsmile.goldberry.media"));
+        // SDL_GPU, to the two modules M4 builds on it and no third
+        // (`docs/gpu-plan.md`, D6): `:core` claims windows and presents, `:gpu`
+        // is the public API. An application reaches it only through `:gpu`.
+        sealedTo.put(
+                "io.github.digitalsmile.goldberry.natives.sdl.gpu",
+                Set.of("io.github.digitalsmile.goldberry.core", "io.github.digitalsmile.goldberry.gpu"));
 
         var descriptor = descriptor(classesRoot());
         var open = exportedPackages();
@@ -226,12 +234,12 @@ class ExportedSurfaceTest {
 
         // And that they are exported at all, to the one module that may read
         // them -- an export silently deleted would pass the check above.
-        sealedTo.forEach((name, reader) -> {
+        sealedTo.forEach((name, readers) -> {
             var targets = descriptor.exports().stream()
                     .filter(e -> e.source().equals(name))
                     .flatMap(e -> e.targets().stream())
-                    .toList();
-            assertEquals(List.of(reader), targets, name + " should be exported to " + reader + " and to nobody else");
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+            assertEquals(readers, targets, name + " should be exported to " + readers + " and to nobody else");
         });
     }
 

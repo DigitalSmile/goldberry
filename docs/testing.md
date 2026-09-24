@@ -40,6 +40,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **Layout agreement:** jextract bindings are generated per platform in CI; a check asserts struct layouts/offsets agree across platforms (guards Win64 `long` and alignment surprises).
 - Superbuild smoke: `libgoldberry` loads, version symbols match pinned dependency versions.
 - FFM lifecycle tests: arena closure invalidates wrappers with `IllegalStateException`, `Cleaner` safety net fires under leak simulation.
+- **GPU tests (M4, ADR-0475):** tagged `gpu`, left out of `test`, and run by `:natives:gpuTest` (part of `check`) on the JVM's first thread, which macOS's Cocoa needs for a GPU device and a `Test` task cannot give. They need a video driver with a Metal view or a Vulkan surface: the default on a desktop, `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, never `dummy`. They skip without a device; `-Pgoldberry.gpu.required=true` makes that a failure (ADR-0016).
 
 ### 1.5 Performance (JMH + frame budget)
 - **Benchmarks are JUnit classes tagged `benchmark`**, run by `./gradlew benchmark` and never by `check`. They print measurements and assert almost nothing, deliberately: a timing assertion on shared CI hardware fails for reasons that have nothing to do with the code, and ADR-0028 and ADR-0031 both took their numbers this way — measured, written down, and argued about in prose.

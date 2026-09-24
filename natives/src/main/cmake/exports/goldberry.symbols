@@ -297,6 +297,44 @@ SDL_SetAudioStreamGain
 SDL_SetAudioStreamFrequencyRatio
 SDL_DestroyAudioStream
 
+# Property groups, for the options SDL takes by name: a GPU device's driver,
+# debug mode and shader formats (docs/gpu-plan.md, D2).
+SDL_CreateProperties
+SDL_DestroyProperties
+SDL_SetBooleanProperty
+SDL_SetStringProperty
+
+# SDL_GPU, for M4 (docs/gpu-plan.md, phase 1): the device, textures, transfer
+# buffers, command buffers, a render pass (which is what clears a target), a
+# copy pass (upload and download) and fences. Swapchains, shaders, pipelines
+# and draws join as the phases that call them arrive, so nothing here is
+# exported ahead of a caller.
+SDL_CreateGPUDeviceWithProperties
+SDL_DestroyGPUDevice
+SDL_GetNumGPUDrivers
+SDL_GetGPUDriver
+SDL_GetGPUDeviceDriver
+SDL_GetGPUShaderFormats
+SDL_GPUTextureSupportsFormat
+SDL_CreateGPUTexture
+SDL_ReleaseGPUTexture
+SDL_CreateGPUTransferBuffer
+SDL_ReleaseGPUTransferBuffer
+SDL_MapGPUTransferBuffer
+SDL_UnmapGPUTransferBuffer
+SDL_AcquireGPUCommandBuffer
+SDL_SubmitGPUCommandBuffer
+SDL_SubmitGPUCommandBufferAndAcquireFence
+SDL_CancelGPUCommandBuffer
+SDL_WaitForGPUFences
+SDL_ReleaseGPUFence
+SDL_BeginGPURenderPass
+SDL_EndGPURenderPass
+SDL_BeginGPUCopyPass
+SDL_UploadToGPUTexture
+SDL_DownloadFromGPUTexture
+SDL_EndGPUCopyPass
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

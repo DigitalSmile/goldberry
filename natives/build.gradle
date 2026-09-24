@@ -15,6 +15,11 @@ description = 'Goldberry native layer: hand-written FFM bindings and the libgold
 // of anything compiling against :natives (ADR-0174).
 dependencies {
     api project(':common')
+
+    // GpuTestLauncher drives JUnit itself, on the first thread macOS needs for a
+    // GPU device (`:natives:gpuTest`), so the launcher API is compiled against
+    // here rather than only present at run time.
+    testImplementation libs.junit.platform.launcher
 }
 
 // ============================================================================
@@ -752,6 +757,17 @@ tasks.named('test') {
                     installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
     systemProperty 'goldberry.native.required', nativeRequired
 
+    // A GPU device, for the SDL_GPU tests (docs/gpu-plan.md, phase 1): required
+    // on the GPU lane, as the library is on the verify jobs (ADR-0016), and made
+    // under a named video driver where the default has no GPU -- `offscreen`, for
+    // lavapipe on a runner with no display.
+    ['goldberry.gpu.required', 'goldberry.gpu.videoDriver'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+
     // The library is an INPUT, not merely something built first. `dependsOn
     // cmakeBuild` orders the two and nothing more, so a rebuilt libgoldberry
     // left these tests UP-TO-DATE -- which is the worst possible outcome for the
@@ -766,6 +782,56 @@ tasks.named('test') {
                 installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath))
         library.isFile() ? [library] : []
     }).withPropertyName('nativeLibrary').optional()
+}
+
+// --- The GPU tests, on the first thread ---------------------------------------
+//
+// A GPU device needs SDL's video subsystem, which on macOS is Cocoa, which
+// refuses every thread but the process's first (ADR-0039). A `Test` task runs
+// tests on a worker thread however its JVM is started, so the tests tagged `gpu`
+// are left out of `test` and run here instead: a JVM started with
+// -XstartOnFirstThread on macOS, in which GpuTestLauncher asks JUnit to run them
+// on the calling thread. Everywhere else nothing needs the first thread, and the
+// same task runs them the same way (docs/gpu-plan.md, phase 1).
+//
+// Without a device they skip, as the library's tests do without the library;
+// -Pgoldberry.gpu.required=true makes that a failure on the GPU lane (ADR-0016).
+tasks.named('test') {
+    useJUnitPlatform { excludeTags 'gpu' }
+}
+
+def gpuTest = tasks.register('gpuTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs the SDL_GPU tests on the JVM\'s first thread, as macOS needs.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTarget.id.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            externalLibrary.getOrElse(
+                    installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
+    systemProperty 'goldberry.native.required', nativeRequired
+    ['goldberry.gpu.required', 'goldberry.gpu.videoDriver'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
+    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
+    inputs.files(providers.provider {
+        var library = file(externalLibrary.getOrElse(
+                installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath))
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
+    outputs.file(summary)
+    argumentProviders.add({ [summary.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+}
+
+tasks.named('check') {
+    dependsOn gpuTest
 }
 
 // --- Wiring into the root build ----------------------------------------------
@@ -799,6 +865,7 @@ if (skipNative) {
         logger.info("Goldberry: verifying ${externalLibrary.get()}; not building a native library")
     } else {
         tasks.named('test') { dependsOn cmakeBuild }
+        tasks.named('gpuTest') { dependsOn cmakeBuild }
     }
 }
 

@@ -142,6 +142,13 @@ module io.github.digitalsmile.goldberry.natives {
     /// frame counts out.
     exports io.github.digitalsmile.goldberry.natives.sdl.audio to
             io.github.digitalsmile.goldberry.media;
+    // SDL_GPU, for M4 (docs/gpu-plan.md, D6): to :core, which will claim a
+    // window and present through it, and to :gpu, whose public API is built on
+    // it. The wrappers carry no MemorySegment, as ADR-0280 asks; the two readers
+    // are the amendment ADR-0461 made for :media, made again.
+    exports io.github.digitalsmile.goldberry.natives.sdl.gpu to
+            io.github.digitalsmile.goldberry.core,
+            io.github.digitalsmile.goldberry.gpu;
     /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,
     /// ADR-0329).
     ///

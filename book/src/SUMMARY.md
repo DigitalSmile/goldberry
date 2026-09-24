@@ -489,3 +489,4 @@
 - [ADR-0472 The platform decoders are the system's own, bound with FFM](adr/0472-the-platform-decoders-bind-the-system-frameworks.md)
 - [ADR-0473 A window is fullscreen when the platform says so](adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)
 - [ADR-0474 The audio clock is what is heard](adr/0474-the-audio-clock-is-what-is-heard.md)
+- [ADR-0475 SDL_GPU is bound for :core and :gpu, and tested on the first thread](adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md)
