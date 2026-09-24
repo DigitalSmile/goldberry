@@ -322,6 +322,112 @@ class SdlGpuDeviceTest {
     }
 
     @Nested
+    @DisplayName("buffers, depth targets and debug groups")
+    class BuffersDepthAndDebug {
+
+        @Test
+        @DisplayName("upload into a buffer at an offset and download the same bytes back")
+        void bufferRoundTrip() {
+            var bytes = new byte[96];
+            new Random(96).nextBytes(bytes);
+            try (var buffer = device.createBuffer(EnumSet.of(SdlGpuBufferUsage.VERTEX), 128);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length);
+                    var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, bytes.length)) {
+                upload.map(false).put(bytes);
+                upload.unmap();
+                var commands = device.acquireCommandBuffer();
+                try (var pass = commands.beginCopyPass()) {
+                    pass.uploadToBuffer(upload, 0, buffer, 32, bytes.length, false);
+                    pass.downloadFromBuffer(buffer, 32, bytes.length, download, 0);
+                }
+                try (var fence = commands.submitWithFence()) {
+                    fence.await();
+                }
+                var back = new byte[bytes.length];
+                download.map(false).get(back);
+                download.unmap();
+                assertArrayEquals(bytes, back);
+                assertEquals(128, buffer.size());
+                assertEquals(EnumSet.of(SdlGpuBufferUsage.VERTEX), buffer.usages());
+            }
+        }
+
+        @Test
+        @DisplayName("refuse buffer copies that do not fit, the wrong direction, and a mapped transfer buffer")
+        void refusesBadBufferCopies() {
+            try (var buffer = device.createBuffer(EnumSet.of(SdlGpuBufferUsage.INDEX), 16);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, 32);
+                    var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, 32)) {
+                var commands = device.acquireCommandBuffer();
+                try (var pass = commands.beginCopyPass()) {
+                    assertThrows(
+                            IllegalArgumentException.class, () -> pass.uploadToBuffer(upload, 0, buffer, 8, 16, false));
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.uploadToBuffer(upload, 24, buffer, 0, 16, false));
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.uploadToBuffer(download, 0, buffer, 0, 16, false));
+                    assertThrows(
+                            IllegalArgumentException.class, () -> pass.uploadToBuffer(upload, 0, buffer, 0, 0, false));
+                    upload.map(false);
+                    assertThrows(
+                            IllegalStateException.class, () -> pass.uploadToBuffer(upload, 0, buffer, 0, 16, false));
+                    upload.unmap();
+                }
+                commands.cancel();
+            }
+            assertThrows(
+                    IllegalArgumentException.class, () -> device.createBuffer(EnumSet.of(SdlGpuBufferUsage.VERTEX), 0));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> device.createBuffer(EnumSet.noneOf(SdlGpuBufferUsage.class), 4));
+        }
+
+        @Test
+        @DisplayName("clear a depth target of the colour target's size, and refuse one of another size or format")
+        void depthTargets() {
+            var depthUsage = EnumSet.of(SdlGpuTextureUsage.DEPTH_STENCIL_TARGET);
+            try (var colour = device.createTexture(SdlGpuTextureFormat.R8G8B8A8_UNORM, 8, 8, TARGET);
+                    var depth = device.createTexture(SdlGpuTextureFormat.D16_UNORM, 8, 8, depthUsage);
+                    var small = device.createTexture(SdlGpuTextureFormat.D32_FLOAT, 4, 4, depthUsage)) {
+                var commands = device.acquireCommandBuffer();
+                commands.beginRenderPass(colour, SdlGpuLoad.clear(0, 0, 0, 1), SdlGpuDepthTarget.clear(depth, 1))
+                        .close();
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> commands.beginRenderPass(colour, SdlGpuLoad.keep(), SdlGpuDepthTarget.keep(small)));
+                commands.submit();
+                assertThrows(IllegalArgumentException.class, () -> SdlGpuDepthTarget.clear(colour, 1));
+                assertThrows(IllegalArgumentException.class, () -> SdlGpuDepthTarget.clear(depth, 2));
+            }
+        }
+
+        @Test
+        @DisplayName("keep debug groups balanced, and end the ones a pass leaves open with it")
+        void debugGroups() {
+            try (var texture = device.createTexture(SdlGpuTextureFormat.R8G8B8A8_UNORM, 4, 4, TARGET)) {
+                var commands = device.acquireCommandBuffer();
+                assertThrows(IllegalStateException.class, commands::popDebugGroup);
+                commands.pushDebugGroup("frame");
+                commands.insertDebugLabel("before the pass");
+                assertThrows(IllegalStateException.class, commands::submit);
+                var pass = commands.beginRenderPass(texture, SdlGpuLoad.keep());
+                assertThrows(IllegalStateException.class, commands::popDebugGroup, "the group began outside the pass");
+                commands.pushDebugGroup("layer");
+                commands.pushDebugGroup("left open");
+                commands.popDebugGroup();
+                assertEquals(2, commands.debugDepth());
+                assertThrows(IllegalStateException.class, pass::close, "a group begun in the pass is still open");
+                assertEquals(1, commands.debugDepth(), "the pass's group was ended with it");
+                commands.popDebugGroup();
+                commands.submit();
+                assertThrows(IllegalStateException.class, () -> commands.pushDebugGroup("late"));
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("checks SDL's rules in Java, before SDL is called")
     class Rules {
 

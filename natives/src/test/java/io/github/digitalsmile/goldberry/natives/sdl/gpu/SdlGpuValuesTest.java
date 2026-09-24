@@ -55,6 +55,38 @@ class SdlGpuValuesTest {
     }
 
     @Test
+    @DisplayName("only the depth formats are depth formats")
+    void depthFormats() {
+        for (var format : SdlGpuTextureFormat.values()) {
+            assertEquals(format.name().startsWith("D"), format.isDepth(), format::toString);
+        }
+    }
+
+    @Test
+    @DisplayName("the pipeline enumerators name themselves as SDL's header does")
+    void pipelineEnumeratorNames() {
+        assertEquals("SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP", SdlGpuPrimitiveType.TRIANGLE_STRIP.nativeName());
+        assertEquals("SDL_GPU_INDEXELEMENTSIZE_32BIT", SdlGpuIndexSize.UINT32.nativeName());
+        assertEquals("SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM", SdlGpuVertexFormat.UBYTE4_NORM.nativeName());
+        assertEquals("SDL_GPU_COMPAREOP_LESS_OR_EQUAL", SdlGpuCompareOp.LESS_OR_EQUAL.nativeName());
+        assertEquals("SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT", SdlGpuAddressMode.MIRRORED_REPEAT.nativeName());
+        assertEquals("SDL_GPU_CULLMODE_BACK", SdlGpuCullMode.BACK.nativeName());
+        assertEquals("SDL_GPU_FRONTFACE_CLOCKWISE", SdlGpuFrontFace.CLOCKWISE.nativeName());
+        assertEquals("SDL_GPU_VERTEXINPUTRATE_INSTANCE", SdlGpuVertexInputRate.INSTANCE.nativeName());
+        assertEquals("SDL_GPU_BUFFERUSAGE_INDEX", SdlGpuBufferUsage.INDEX.nativeName());
+    }
+
+    @Test
+    @DisplayName("vertex formats and index sizes know their width, and buffer usages or together")
+    void sizes() {
+        assertEquals(12, SdlGpuVertexFormat.FLOAT3.bytes());
+        assertEquals(4, SdlGpuVertexFormat.UBYTE4_NORM.bytes());
+        assertEquals(2, SdlGpuIndexSize.UINT16.bytes());
+        assertEquals(4, SdlGpuIndexSize.UINT32.bytes());
+        assertEquals(3, SdlGpuBufferUsage.mask(EnumSet.allOf(SdlGpuBufferUsage.class)));
+    }
+
+    @Test
     @DisplayName("a region is never empty or before the origin, and knows whether it fits")
     void regions() {
         var region = new SdlGpuRegion(2, 3, 4, 5);

@@ -18,10 +18,19 @@ import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCompareOp;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCullMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFrontFace;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuIndexSize;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPrimitiveType;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexInputRate;
 import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogCategory;
 import io.github.digitalsmile.goldberry.natives.sdl.log.SdlLogPriority;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
@@ -160,20 +169,42 @@ public final class NativeConstants {
         constants.add(new NativeConstant("SDL_GPU_SHADERSTAGE_FRAGMENT", SdlGpuPipelineCalls.SHADERSTAGE_FRAGMENT));
         constants.add(
                 new NativeConstant("SDL_GPU_SAMPLERMIPMAPMODE_NEAREST", SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST));
-        constants.add(new NativeConstant(
-                "SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE", SdlGpuPipelineCalls.SAMPLERADDRESSMODE_CLAMP_TO_EDGE));
-        constants.add(new NativeConstant(
-                "SDL_GPU_PRIMITIVETYPE_TRIANGLELIST", SdlGpuPipelineCalls.PRIMITIVETYPE_TRIANGLELIST));
         constants.add(new NativeConstant("SDL_GPU_FILLMODE_FILL", SdlGpuPipelineCalls.FILLMODE_FILL));
-        constants.add(new NativeConstant("SDL_GPU_CULLMODE_NONE", SdlGpuPipelineCalls.CULLMODE_NONE));
-        constants.add(new NativeConstant(
-                "SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE", SdlGpuPipelineCalls.FRONTFACE_COUNTER_CLOCKWISE));
         constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ZERO", SdlGpuPipelineCalls.BLENDFACTOR_ZERO));
         constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ONE", SdlGpuPipelineCalls.BLENDFACTOR_ONE));
         constants.add(new NativeConstant(
                 "SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA", SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_SRC_ALPHA));
         constants.add(new NativeConstant("SDL_GPU_BLENDOP_ADD", SdlGpuPipelineCalls.BLENDOP_ADD));
         constants.add(new NativeConstant("SDL_GPU_COLORCOMPONENT_RGBA", SdlGpuPipelineCalls.COLORCOMPONENT_RGBA));
+        // What the public API's pipeline, sampler and buffer specs map onto
+        // (`docs/gpu-plan.md`, phase 2).
+        for (var mode : SdlGpuAddressMode.values()) {
+            constants.add(new NativeConstant(mode.nativeName(), mode.value()));
+        }
+        for (var type : SdlGpuPrimitiveType.values()) {
+            constants.add(new NativeConstant(type.nativeName(), type.value()));
+        }
+        for (var mode : SdlGpuCullMode.values()) {
+            constants.add(new NativeConstant(mode.nativeName(), mode.value()));
+        }
+        for (var face : SdlGpuFrontFace.values()) {
+            constants.add(new NativeConstant(face.nativeName(), face.value()));
+        }
+        for (var op : SdlGpuCompareOp.values()) {
+            constants.add(new NativeConstant(op.nativeName(), op.value()));
+        }
+        for (var format : SdlGpuVertexFormat.values()) {
+            constants.add(new NativeConstant(format.nativeName(), format.value()));
+        }
+        for (var rate : SdlGpuVertexInputRate.values()) {
+            constants.add(new NativeConstant(rate.nativeName(), rate.value()));
+        }
+        for (var size : SdlGpuIndexSize.values()) {
+            constants.add(new NativeConstant(size.nativeName(), size.value()));
+        }
+        for (var usage : SdlGpuBufferUsage.values()) {
+            constants.add(new NativeConstant(usage.nativeName(), usage.bit()));
+        }
         return List.copyOf(constants);
     }
 }

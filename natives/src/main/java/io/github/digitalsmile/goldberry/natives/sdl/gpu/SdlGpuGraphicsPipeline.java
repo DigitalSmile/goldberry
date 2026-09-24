@@ -1,39 +1,40 @@
 package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
 
-/// A graphics pipeline: two shaders, triangles made from the vertex id, no
-/// culling and no depth, drawing into one colour target of one format with one
-/// blend.
-///
-/// Vertex buffers and depth join when `canvas3d` needs them
-/// (`docs/gpu-plan.md`, phase 5).
+/// A graphics pipeline: two shaders, how vertices are assembled and read, one
+/// colour target of one format with one blend, and an optional depth test, all
+/// as its [SdlGpuPipelineDescription] says.
 public final class SdlGpuGraphicsPipeline extends SdlGpuResource {
 
-    private final SdlGpuTextureFormat targetFormat;
-    private final SdlGpuBlend blend;
+    private final SdlGpuPipelineDescription description;
     private final int samplers;
 
-    SdlGpuGraphicsPipeline(
-            SdlGpuDevice device,
-            MemorySegment handle,
-            SdlGpuTextureFormat targetFormat,
-            SdlGpuBlend blend,
-            int samplers) {
+    SdlGpuGraphicsPipeline(SdlGpuDevice device, MemorySegment handle, SdlGpuPipelineDescription description) {
         super(device, handle);
-        this.targetFormat = targetFormat;
-        this.blend = blend;
-        this.samplers = samplers;
+        this.description = description;
+        this.samplers = description.fragment().samplers();
     }
 
-    /// The format of the target it draws into.
+    /// What it was made from.
+    public SdlGpuPipelineDescription description() {
+        return description;
+    }
+
+    /// The format of the colour target it draws into.
     public SdlGpuTextureFormat targetFormat() {
-        return targetFormat;
+        return description.targetFormat();
+    }
+
+    /// The format of the depth target it tests against, or empty for none.
+    public Optional<SdlGpuTextureFormat> depthFormat() {
+        return description.depthFormat();
     }
 
     /// How it blends.
     public SdlGpuBlend blend() {
-        return blend;
+        return description.blend();
     }
 
     /// How many textures its fragment shader samples.
@@ -48,6 +49,7 @@ public final class SdlGpuGraphicsPipeline extends SdlGpuResource {
 
     @Override
     public String toString() {
-        return "SdlGpuGraphicsPipeline[" + targetFormat + ", " + blend + "]";
+        return "SdlGpuGraphicsPipeline[" + description.targetFormat() + ", " + description.blend()
+                + description.depthFormat().map(format -> ", depth " + format).orElse("") + "]";
     }
 }

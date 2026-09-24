@@ -44,8 +44,15 @@ dependencies {
 // DXC and SPIRV-Cross come with the Vulkan SDK (1.4.328 made the committed
 // files). DXC signs DXIL itself since 1.8, so DXIL made off Windows is signed.
 // ============================================================================
-def shaderSources = layout.projectDirectory.dir('src/main/shaders')
-def shaderOutput = layout.projectDirectory.dir('src/main/resources/io/github/digitalsmile/goldberry/gpu/shaders')
+// The toolkit's shaders, which ship, and the tests' own (a mesh with vertex
+// buffers, for the public API's tests), which do not: each set compiled into
+// its own resources with its own manifest.
+def shaderSets = [
+        [sources: layout.projectDirectory.dir('src/main/shaders'),
+         output : layout.projectDirectory.dir('src/main/resources/io/github/digitalsmile/goldberry/gpu/shaders')],
+        [sources: layout.projectDirectory.dir('src/test/shaders'),
+         output : layout.projectDirectory.dir('src/test/resources/io/github/digitalsmile/goldberry/gpu/testshaders')],
+]
 
 def toolPath = providers.environmentVariable('PATH')
         .orElse(providers.environmentVariable('Path'))
@@ -63,9 +70,11 @@ def resolveTool = { String name ->
 
 tasks.register('compileShaders') {
     group = 'build'
-    description = 'Compiles src/main/shaders to SPIR-V, DXIL and MSL, and records their sources\' hashes.'
-    inputs.dir(shaderSources)
-    outputs.dir(shaderOutput)
+    description = 'Compiles src/main/shaders and src/test/shaders to SPIR-V, DXIL and MSL, and records their sources\' hashes.'
+    shaderSets.each { set ->
+        inputs.dir(set.sources)
+        outputs.dir(set.output)
+    }
 
     doLast {
         def dxc = resolveTool('dxc')
@@ -87,38 +96,41 @@ tasks.register('compileShaders') {
             // DXC prints its version on stderr, SPIRV-Cross on stdout.
             return result.standardOutput.asText.get() + result.standardError.asText.get()
         }
-        def out = shaderOutput.asFile
-        out.mkdirs()
-        out.listFiles().each { it.delete() }
-
-        def manifest = new TreeMap<String, String>()
-        def sources = shaderSources.asFile.listFiles().findAll { it.name.endsWith('.hlsl') }.sort { it.name }
-        sources.each { source ->
-            def name = source.name - '.hlsl'
-            def profile = name.endsWith('.vert') ? 'vs_6_0' : name.endsWith('.frag') ? 'ps_6_0' : null
-            if (profile == null) {
-                throw new GradleException("${source.name}: a shader is named <name>.vert.hlsl or <name>.frag.hlsl")
-            }
-            def spirv = new File(out, "${name}.spv")
-            run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv', '-Fo', spirv.absolutePath, source.absolutePath])
-            run([dxc.absolutePath, '-T', profile, '-E', 'main', '-Fo', new File(out, "${name}.dxil").absolutePath,
-                 source.absolutePath])
-            run([spirvCross.absolutePath, spirv.absolutePath, '--msl', '--msl-version', '20100',
-                 '--output', new File(out, "${name}.msl").absolutePath])
-            manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
-        }
-        // What the shaders include is part of what they were compiled from.
-        shaderSources.asFile.listFiles().findAll { it.name.endsWith('.hlsli') }.sort { it.name }.each { include ->
-            manifest["${include.name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(include.bytes)
-                    .encodeHex().toString()
-        }
         def dxcVersion = run([dxc.absolutePath, '--version']).readLines().first().trim()
         def spirvCrossVersion = run([spirvCross.absolutePath, '--revision']).readLines().first().trim()
-        new File(out, 'shaders.properties').text = (
-                ["# Written by :gpu:compileShaders. Each source's SHA-256, checked by ShaderManifestTest.",
-                 "tools=${dxcVersion}; spirv-cross ${spirvCrossVersion}"] +
-                        manifest.collect { key, value -> "${key}=${value}" }).join('\n') + '\n'
-        logger.lifecycle("Compiled ${sources.size()} shaders with ${dxcVersion} and SPIRV-Cross ${spirvCrossVersion}")
+
+        shaderSets.each { set ->
+            def out = set.output.asFile
+            out.mkdirs()
+            out.listFiles().each { it.delete() }
+
+            def manifest = new TreeMap<String, String>()
+            def sources = set.sources.asFile.listFiles().findAll { it.name.endsWith('.hlsl') }.sort { it.name }
+            sources.each { source ->
+                def name = source.name - '.hlsl'
+                def profile = name.endsWith('.vert') ? 'vs_6_0' : name.endsWith('.frag') ? 'ps_6_0' : null
+                if (profile == null) {
+                    throw new GradleException("${source.name}: a shader is named <name>.vert.hlsl or <name>.frag.hlsl")
+                }
+                def spirv = new File(out, "${name}.spv")
+                run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv', '-Fo', spirv.absolutePath, source.absolutePath])
+                run([dxc.absolutePath, '-T', profile, '-E', 'main', '-Fo', new File(out, "${name}.dxil").absolutePath,
+                     source.absolutePath])
+                run([spirvCross.absolutePath, spirv.absolutePath, '--msl', '--msl-version', '20100',
+                     '--output', new File(out, "${name}.msl").absolutePath])
+                manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
+            }
+            // What the shaders include is part of what they were compiled from.
+            set.sources.asFile.listFiles().findAll { it.name.endsWith('.hlsli') }.sort { it.name }.each { include ->
+                manifest["${include.name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(include.bytes)
+                        .encodeHex().toString()
+            }
+            new File(out, 'shaders.properties').text = (
+                    ["# Written by :gpu:compileShaders. Each source's SHA-256, checked by ShaderManifestTest.",
+                     "tools=${dxcVersion}; spirv-cross ${spirvCrossVersion}"] +
+                            manifest.collect { key, value -> "${key}=${value}" }).join('\n') + '\n'
+            logger.lifecycle("Compiled ${sources.size()} shaders in ${set.sources.asFile.name} with ${dxcVersion} and SPIRV-Cross ${spirvCrossVersion}")
+        }
     }
 }
 

@@ -8,11 +8,13 @@ public final class SdlGpuShader extends SdlGpuResource {
 
     private final SdlGpuShaderStage stage;
     private final int samplers;
+    private final int uniformBuffers;
 
-    SdlGpuShader(SdlGpuDevice device, MemorySegment handle, SdlGpuShaderStage stage, int samplers) {
+    SdlGpuShader(SdlGpuDevice device, MemorySegment handle, SdlGpuShaderStage stage, int samplers, int uniformBuffers) {
         super(device, handle);
         this.stage = stage;
         this.samplers = samplers;
+        this.uniformBuffers = uniformBuffers;
     }
 
     /// The stage it runs in.
@@ -23,6 +25,11 @@ public final class SdlGpuShader extends SdlGpuResource {
     /// How many textures it samples.
     public int samplers() {
         return samplers;
+    }
+
+    /// How many uniform blocks it reads.
+    public int uniformBuffers() {
+        return uniformBuffers;
     }
 
     @Override

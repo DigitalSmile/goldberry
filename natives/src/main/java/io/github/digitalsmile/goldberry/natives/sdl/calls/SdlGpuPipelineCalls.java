@@ -42,23 +42,14 @@ public record SdlGpuPipelineCalls(
     /// `SDL_GPU_SHADERSTAGE_FRAGMENT`.
     public static final int SHADERSTAGE_FRAGMENT = 1;
 
+    // The address modes, primitive types, cull modes and front faces are enums
+    // in `sdl.gpu` now, each value beside its name for the layout probe.
+
     /// `SDL_GPU_SAMPLERMIPMAPMODE_NEAREST`: textures here have one level.
     public static final int SAMPLERMIPMAPMODE_NEAREST = 0;
 
-    /// `SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE`: no texel from the far edge.
-    public static final int SAMPLERADDRESSMODE_CLAMP_TO_EDGE = 2;
-
-    /// `SDL_GPU_PRIMITIVETYPE_TRIANGLELIST`.
-    public static final int PRIMITIVETYPE_TRIANGLELIST = 0;
-
     /// `SDL_GPU_FILLMODE_FILL`.
     public static final int FILLMODE_FILL = 0;
-
-    /// `SDL_GPU_CULLMODE_NONE`: a quad is drawn whichever way it winds.
-    public static final int CULLMODE_NONE = 0;
-
-    /// `SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE`.
-    public static final int FRONTFACE_COUNTER_CLOCKWISE = 0;
 
     /// `SDL_GPU_BLENDFACTOR_ZERO`.
     public static final int BLENDFACTOR_ZERO = 1;

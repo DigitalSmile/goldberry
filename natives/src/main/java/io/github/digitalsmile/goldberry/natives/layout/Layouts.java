@@ -790,6 +790,109 @@ public final class Layouts {
                     ValueLayout.JAVA_FLOAT.withName("min_depth"),
                     ValueLayout.JAVA_FLOAT.withName("max_depth")));
 
+    /// ```c
+    /// typedef struct SDL_GPUBufferCreateInfo {
+    ///     SDL_GPUBufferUsageFlags usage;
+    ///     Uint32 size;
+    ///     SDL_PropertiesID props;
+    /// } SDL_GPUBufferCreateInfo;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_BUFFER_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUBufferCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("usage"),
+                    ValueLayout.JAVA_INT.withName("size"),
+                    ValueLayout.JAVA_INT.withName("props")));
+
+    /// `SDL_GPUTransferBufferLocation`: a transfer buffer and a byte offset
+    /// into it, the CPU end of a buffer's upload or download.
+    public static final NativeStructLayout SDL_GPU_TRANSFER_BUFFER_LOCATION = new NativeStructLayout(
+            "SDL_GPUTransferBufferLocation",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("transfer_buffer"),
+                    ValueLayout.JAVA_INT.withName("offset"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUBufferRegion`: a byte range of a buffer, the GPU end.
+    public static final NativeStructLayout SDL_GPU_BUFFER_REGION = new NativeStructLayout(
+            "SDL_GPUBufferRegion",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("buffer"),
+                    ValueLayout.JAVA_INT.withName("offset"),
+                    ValueLayout.JAVA_INT.withName("size")));
+
+    /// `SDL_GPUBufferBinding`: a vertex or index buffer, and where in it the
+    /// data starts.
+    public static final NativeStructLayout SDL_GPU_BUFFER_BINDING = new NativeStructLayout(
+            "SDL_GPUBufferBinding",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("buffer"),
+                    ValueLayout.JAVA_INT.withName("offset"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_GPUVertexBufferDescription {
+    ///     Uint32 slot;
+    ///     Uint32 pitch;
+    ///     SDL_GPUVertexInputRate input_rate;
+    ///     Uint32 instance_step_rate;
+    /// } SDL_GPUVertexBufferDescription;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_VERTEX_BUFFER_DESCRIPTION = new NativeStructLayout(
+            "SDL_GPUVertexBufferDescription",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("slot"),
+                    ValueLayout.JAVA_INT.withName("pitch"),
+                    ValueLayout.JAVA_INT.withName("input_rate"),
+                    ValueLayout.JAVA_INT.withName("instance_step_rate")));
+
+    /// ```c
+    /// typedef struct SDL_GPUVertexAttribute {
+    ///     Uint32 location;
+    ///     Uint32 buffer_slot;
+    ///     SDL_GPUVertexElementFormat format;
+    ///     Uint32 offset;
+    /// } SDL_GPUVertexAttribute;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_VERTEX_ATTRIBUTE = new NativeStructLayout(
+            "SDL_GPUVertexAttribute",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("location"),
+                    ValueLayout.JAVA_INT.withName("buffer_slot"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("offset")));
+
+    /// ```c
+    /// typedef struct SDL_GPUDepthStencilTargetInfo {
+    ///     SDL_GPUTexture *texture;
+    ///     float clear_depth;
+    ///     SDL_GPULoadOp load_op;
+    ///     SDL_GPUStoreOp store_op;
+    ///     SDL_GPULoadOp stencil_load_op;
+    ///     SDL_GPUStoreOp stencil_store_op;
+    ///     bool cycle;
+    ///     Uint8 clear_stencil;
+    ///     Uint8 mip_level;
+    ///     Uint8 layer;
+    /// } SDL_GPUDepthStencilTargetInfo;
+    /// ```
+    ///
+    /// Four one-byte fields close it, so it ends on the eight-byte boundary
+    /// with no tail padding: 32 bytes.
+    public static final NativeStructLayout SDL_GPU_DEPTH_STENCIL_TARGET_INFO = new NativeStructLayout(
+            "SDL_GPUDepthStencilTargetInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_FLOAT.withName("clear_depth"),
+                    ValueLayout.JAVA_INT.withName("load_op"),
+                    ValueLayout.JAVA_INT.withName("store_op"),
+                    ValueLayout.JAVA_INT.withName("stencil_load_op"),
+                    ValueLayout.JAVA_INT.withName("stencil_store_op"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle"),
+                    ValueLayout.JAVA_BYTE.withName("clear_stencil"),
+                    ValueLayout.JAVA_BYTE.withName("mip_level"),
+                    ValueLayout.JAVA_BYTE.withName("layer")));
+
     /// Blend2D's entire object model — `BLObjectDetail`.
     ///
     /// Every Blend2D "core" object is exactly one of these and nothing else:
@@ -1313,6 +1416,13 @@ public final class Layouts {
                 SDL_GPU_GRAPHICS_PIPELINE_CREATE_INFO,
                 SDL_GPU_TEXTURE_SAMPLER_BINDING,
                 SDL_GPU_VIEWPORT,
+                SDL_GPU_BUFFER_CREATE_INFO,
+                SDL_GPU_TRANSFER_BUFFER_LOCATION,
+                SDL_GPU_BUFFER_REGION,
+                SDL_GPU_BUFFER_BINDING,
+                SDL_GPU_VERTEX_BUFFER_DESCRIPTION,
+                SDL_GPU_VERTEX_ATTRIBUTE,
+                SDL_GPU_DEPTH_STENCIL_TARGET_INFO,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,

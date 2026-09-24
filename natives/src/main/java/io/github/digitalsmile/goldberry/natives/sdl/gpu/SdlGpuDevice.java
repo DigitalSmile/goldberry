@@ -239,6 +239,29 @@ public final class SdlGpuDevice implements AutoCloseable {
         }
     }
 
+    /// Creates a buffer of `size` bytes for `usages`.
+    ///
+    /// @throws SdlException when SDL refuses
+    public SdlGpuBuffer createBuffer(Set<SdlGpuBufferUsage> usages, int size) {
+        if (size <= 0) {
+            throw new IllegalArgumentException("buffer of " + size + " bytes");
+        }
+        if (usages.isEmpty()) {
+            throw new IllegalArgumentException("a buffer needs at least one usage");
+        }
+        var info = Layouts.SDL_GPU_BUFFER_CREATE_INFO;
+        try (var arena = Arena.ofConfined()) {
+            var createInfo = arena.allocate(info.layout());
+            createInfo.set(JAVA_INT, info.offsetOf("usage"), SdlGpuBufferUsage.mask(usages));
+            createInfo.set(JAVA_INT, info.offsetOf("size"), size);
+            var buffer = calls.buffers().createGPUBuffer().call(handle(), createInfo);
+            if (MemorySegment.NULL.equals(buffer)) {
+                throw new SdlException("SDL_CreateGPUBuffer", Sdl.get().lastError());
+            }
+            return new SdlGpuBuffer(this, buffer, usages, size);
+        }
+    }
+
     /// Acquires a command buffer to record into. It must be submitted or
     /// cancelled.
     ///
@@ -275,7 +298,7 @@ public final class SdlGpuDevice implements AutoCloseable {
             if (MemorySegment.NULL.equals(shader)) {
                 throw new SdlException("SDL_CreateGPUShader", Sdl.get().lastError());
             }
-            return new SdlGpuShader(this, shader, code.stage(), code.samplers());
+            return new SdlGpuShader(this, shader, code.stage(), code.samplers(), code.uniformBuffers());
         }
     }
 
@@ -284,6 +307,15 @@ public final class SdlGpuDevice implements AutoCloseable {
     ///
     /// @throws SdlException when SDL refuses
     public SdlGpuSampler createSampler(SdlGpuFilter filter) {
+        return createSampler(filter, SdlGpuAddressMode.CLAMP_TO_EDGE);
+    }
+
+    /// Creates a sampler that filters with `filter`, reads outside 0 to 1 as
+    /// `addressMode` says on both axes, and reads the one mip level the
+    /// toolkit's textures have.
+    ///
+    /// @throws SdlException when SDL refuses
+    public SdlGpuSampler createSampler(SdlGpuFilter filter, SdlGpuAddressMode addressMode) {
         var info = Layouts.SDL_GPU_SAMPLER_CREATE_INFO;
         try (var arena = Arena.ofConfined()) {
             var createInfo = arena.allocate(info.layout());
@@ -291,19 +323,19 @@ public final class SdlGpuDevice implements AutoCloseable {
             createInfo.set(JAVA_INT, info.offsetOf("mag_filter"), filter.value());
             createInfo.set(JAVA_INT, info.offsetOf("mipmap_mode"), SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST);
             for (var axis : new String[] {"address_mode_u", "address_mode_v", "address_mode_w"}) {
-                createInfo.set(JAVA_INT, info.offsetOf(axis), SdlGpuPipelineCalls.SAMPLERADDRESSMODE_CLAMP_TO_EDGE);
+                createInfo.set(JAVA_INT, info.offsetOf(axis), addressMode.value());
             }
             var sampler = calls.pipelines().createGPUSampler().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(sampler)) {
                 throw new SdlException("SDL_CreateGPUSampler", Sdl.get().lastError());
             }
-            return new SdlGpuSampler(this, sampler, filter);
+            return new SdlGpuSampler(this, sampler, filter, addressMode);
         }
     }
 
     /// Creates a pipeline that draws triangles from the vertex id with `vertex`
     /// and `fragment`, into one colour target of `targetFormat`, blending with
-    /// `blend`. No culling, no depth, one sample.
+    /// `blend`. No culling, no depth, one sample: [SdlGpuPipelineDescription#quads].
     ///
     /// @throws IllegalArgumentException when a shader is for the wrong stage or
     ///                                  another device
@@ -311,25 +343,90 @@ public final class SdlGpuDevice implements AutoCloseable {
     ///                                  link, or a format that cannot be a target
     public SdlGpuGraphicsPipeline createGraphicsPipeline(
             SdlGpuShader vertex, SdlGpuShader fragment, SdlGpuTextureFormat targetFormat, SdlGpuBlend blend) {
-        if (vertex.device() != this || fragment.device() != this) {
+        return createGraphicsPipeline(SdlGpuPipelineDescription.quads(vertex, fragment, targetFormat, blend));
+    }
+
+    /// Creates the pipeline `description` describes.
+    ///
+    /// @throws IllegalArgumentException when its shaders are another device's
+    /// @throws SdlException             when SDL refuses: shaders that do not
+    ///                                  link, vertex inputs the vertex shader does
+    ///                                  not declare, or a format that cannot be a
+    ///                                  target
+    public SdlGpuGraphicsPipeline createGraphicsPipeline(SdlGpuPipelineDescription description) {
+        if (description.vertex().device() != this) {
             throw new IllegalArgumentException("a pipeline's shaders must be " + this + "'s");
         }
-        if (vertex.stage() != SdlGpuShaderStage.VERTEX || fragment.stage() != SdlGpuShaderStage.FRAGMENT) {
-            throw new IllegalArgumentException("a pipeline needs a vertex then a fragment shader, not " + vertex.stage()
-                    + " and " + fragment.stage());
-        }
         var info = Layouts.SDL_GPU_GRAPHICS_PIPELINE_CREATE_INFO;
-        var description = Layouts.SDL_GPU_COLOR_TARGET_DESCRIPTION;
-        var blendState = description.offsetOf("blend_state");
-        var blendLayout = Layouts.SDL_GPU_COLOR_TARGET_BLEND_STATE;
         var target = info.offsetOf("target_info");
         var targetLayout = Layouts.SDL_GPU_GRAPHICS_PIPELINE_TARGET_INFO;
         var rasterizer = info.offsetOf("rasterizer_state");
         var rasterizerLayout = Layouts.SDL_GPU_RASTERIZER_STATE;
         try (var arena = Arena.ofConfined()) {
-            var colorTarget = arena.allocate(description.layout());
-            colorTarget.set(JAVA_INT, description.offsetOf("format"), targetFormat.value());
-            if (blend == SdlGpuBlend.PREMULTIPLIED_OVER) {
+            var createInfo = arena.allocate(info.layout());
+            createInfo.set(
+                    ADDRESS,
+                    info.offsetOf("vertex_shader"),
+                    description.vertex().handle());
+            createInfo.set(
+                    ADDRESS,
+                    info.offsetOf("fragment_shader"),
+                    description.fragment().handle());
+            writeVertexInput(arena, createInfo, info.offsetOf("vertex_input_state"), description);
+            createInfo.set(
+                    JAVA_INT,
+                    info.offsetOf("primitive_type"),
+                    description.primitiveType().value());
+            createInfo.set(
+                    JAVA_INT, rasterizer + rasterizerLayout.offsetOf("fill_mode"), SdlGpuPipelineCalls.FILLMODE_FILL);
+            createInfo.set(
+                    JAVA_INT,
+                    rasterizer + rasterizerLayout.offsetOf("cull_mode"),
+                    description.cullMode().value());
+            createInfo.set(
+                    JAVA_INT,
+                    rasterizer + rasterizerLayout.offsetOf("front_face"),
+                    description.frontFace().value());
+            if (description.depth().isPresent()) {
+                var depth = description.depth().get();
+                var state = info.offsetOf("depth_stencil_state");
+                var stateLayout = Layouts.SDL_GPU_DEPTH_STENCIL_STATE;
+                createInfo.set(
+                        JAVA_INT,
+                        state + stateLayout.offsetOf("compare_op"),
+                        depth.compare().value());
+                createInfo.set(JAVA_BOOLEAN, state + stateLayout.offsetOf("enable_depth_test"), true);
+                createInfo.set(JAVA_BOOLEAN, state + stateLayout.offsetOf("enable_depth_write"), depth.write());
+                createInfo.set(
+                        JAVA_INT,
+                        target + targetLayout.offsetOf("depth_stencil_format"),
+                        depth.format().value());
+                createInfo.set(JAVA_BOOLEAN, target + targetLayout.offsetOf("has_depth_stencil_target"), true);
+            }
+            createInfo.set(
+                    ADDRESS,
+                    target + targetLayout.offsetOf("color_target_descriptions"),
+                    colorTarget(arena, description.targetFormat(), description.blend()));
+            createInfo.set(JAVA_INT, target + targetLayout.offsetOf("num_color_targets"), 1);
+            var pipeline = calls.pipelines().createGPUGraphicsPipeline().call(handle(), createInfo);
+            if (MemorySegment.NULL.equals(pipeline)) {
+                throw new SdlException(
+                        "SDL_CreateGPUGraphicsPipeline", Sdl.get().lastError());
+            }
+            return new SdlGpuGraphicsPipeline(this, pipeline, description);
+        }
+    }
+
+    /// The one `SDL_GPUColorTargetDescription` a pipeline has.
+    private static MemorySegment colorTarget(Arena arena, SdlGpuTextureFormat format, SdlGpuBlend blend) {
+        var description = Layouts.SDL_GPU_COLOR_TARGET_DESCRIPTION;
+        var blendState = description.offsetOf("blend_state");
+        var blendLayout = Layouts.SDL_GPU_COLOR_TARGET_BLEND_STATE;
+        var colorTarget = arena.allocate(description.layout());
+        colorTarget.set(JAVA_INT, description.offsetOf("format"), format.value());
+        switch (blend) {
+            case REPLACE -> {}
+            case PREMULTIPLIED_OVER -> {
                 colorTarget.set(JAVA_BOOLEAN, blendState + blendLayout.offsetOf("enable_blend"), true);
                 for (var factor : new String[] {"src_color_blendfactor", "src_alpha_blendfactor"}) {
                     colorTarget.set(
@@ -345,27 +442,51 @@ public final class SdlGpuDevice implements AutoCloseable {
                     colorTarget.set(JAVA_INT, blendState + blendLayout.offsetOf(op), SdlGpuPipelineCalls.BLENDOP_ADD);
                 }
             }
-            var createInfo = arena.allocate(info.layout());
-            createInfo.set(ADDRESS, info.offsetOf("vertex_shader"), vertex.handle());
-            createInfo.set(ADDRESS, info.offsetOf("fragment_shader"), fragment.handle());
-            createInfo.set(JAVA_INT, info.offsetOf("primitive_type"), SdlGpuPipelineCalls.PRIMITIVETYPE_TRIANGLELIST);
-            createInfo.set(
-                    JAVA_INT, rasterizer + rasterizerLayout.offsetOf("fill_mode"), SdlGpuPipelineCalls.FILLMODE_FILL);
-            createInfo.set(
-                    JAVA_INT, rasterizer + rasterizerLayout.offsetOf("cull_mode"), SdlGpuPipelineCalls.CULLMODE_NONE);
-            createInfo.set(
-                    JAVA_INT,
-                    rasterizer + rasterizerLayout.offsetOf("front_face"),
-                    SdlGpuPipelineCalls.FRONTFACE_COUNTER_CLOCKWISE);
-            createInfo.set(ADDRESS, target + targetLayout.offsetOf("color_target_descriptions"), colorTarget);
-            createInfo.set(JAVA_INT, target + targetLayout.offsetOf("num_color_targets"), 1);
-            var pipeline = calls.pipelines().createGPUGraphicsPipeline().call(handle(), createInfo);
-            if (MemorySegment.NULL.equals(pipeline)) {
-                throw new SdlException(
-                        "SDL_CreateGPUGraphicsPipeline", Sdl.get().lastError());
-            }
-            return new SdlGpuGraphicsPipeline(this, pipeline, targetFormat, blend, fragment.samplers());
         }
+        return colorTarget;
+    }
+
+    /// Fills the `SDL_GPUVertexInputState` at `offset` of `createInfo`, with its
+    /// two arrays in `arena`. Left zero, which SDL reads as no vertex input,
+    /// when the description has no buffers.
+    private static void writeVertexInput(
+            Arena arena, MemorySegment createInfo, long offset, SdlGpuPipelineDescription description) {
+        var buffers = description.vertexBuffers();
+        var attributes = description.vertexAttributes();
+        if (buffers.isEmpty()) {
+            return;
+        }
+        var state = Layouts.SDL_GPU_VERTEX_INPUT_STATE;
+        var bufferLayout = Layouts.SDL_GPU_VERTEX_BUFFER_DESCRIPTION;
+        var bufferArray = arena.allocate(bufferLayout.layout(), buffers.size());
+        for (var i = 0; i < buffers.size(); i++) {
+            var buffer = buffers.get(i);
+            var at = i * bufferLayout.byteSize();
+            bufferArray.set(JAVA_INT, at + bufferLayout.offsetOf("slot"), buffer.slot());
+            bufferArray.set(JAVA_INT, at + bufferLayout.offsetOf("pitch"), buffer.pitch());
+            bufferArray.set(
+                    JAVA_INT,
+                    at + bufferLayout.offsetOf("input_rate"),
+                    buffer.rate().value());
+        }
+        var attributeLayout = Layouts.SDL_GPU_VERTEX_ATTRIBUTE;
+        var attributeArray =
+                attributes.isEmpty() ? MemorySegment.NULL : arena.allocate(attributeLayout.layout(), attributes.size());
+        for (var i = 0; i < attributes.size(); i++) {
+            var attribute = attributes.get(i);
+            var at = i * attributeLayout.byteSize();
+            attributeArray.set(JAVA_INT, at + attributeLayout.offsetOf("location"), attribute.location());
+            attributeArray.set(JAVA_INT, at + attributeLayout.offsetOf("buffer_slot"), attribute.bufferSlot());
+            attributeArray.set(
+                    JAVA_INT,
+                    at + attributeLayout.offsetOf("format"),
+                    attribute.format().value());
+            attributeArray.set(JAVA_INT, at + attributeLayout.offsetOf("offset"), attribute.offset());
+        }
+        createInfo.set(ADDRESS, offset + state.offsetOf("vertex_buffer_descriptions"), bufferArray);
+        createInfo.set(JAVA_INT, offset + state.offsetOf("num_vertex_buffers"), buffers.size());
+        createInfo.set(ADDRESS, offset + state.offsetOf("vertex_attributes"), attributeArray);
+        createInfo.set(JAVA_INT, offset + state.offsetOf("num_vertex_attributes"), attributes.size());
     }
 
     /// Claims `window` for this device: from now on it presents through a

@@ -19,7 +19,11 @@ public enum SdlGpuTextureFormat {
     R16G16_UNORM(6, 4),
     /// Four 8-bit channels in memory order B, G, R, A: what Blend2D paints, so
     /// the UI uploads without a conversion.
-    B8G8R8A8_UNORM(12, 4);
+    B8G8R8A8_UNORM(12, 4),
+    /// A 16-bit depth target: enough for most scenes, and every device has it.
+    D16_UNORM(58, 2),
+    /// A 32-bit float depth target.
+    D32_FLOAT(60, 4);
 
     private final int value;
     private final int bytesPerPixel;
@@ -37,6 +41,12 @@ public enum SdlGpuTextureFormat {
     /// How many bytes one pixel takes.
     public int bytesPerPixel() {
         return bytesPerPixel;
+    }
+
+    /// Whether this is a depth format: one a render pass tests depth against,
+    /// never a colour target.
+    public boolean isDepth() {
+        return this == D16_UNORM || this == D32_FLOAT;
     }
 
     /// The name the C shim reports this constant under, for the layout probe.

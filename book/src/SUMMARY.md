@@ -492,3 +492,4 @@
 - [ADR-0475 SDL_GPU is bound for :core and :gpu, and tested on the first thread](adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md)
 - [ADR-0476 Shaders are HLSL, compiled by DXC and SPIRV-Cross, and committed](adr/0476-shaders-are-hlsl-compiled-by-dxc-and-spirv-cross-and-committed.md)
 - [ADR-0477 The GPU composites with SDL_GPU directly, and converts Y'CbCr itself](adr/0477-the-gpu-composites-with-sdl-gpu-directly.md)
+- [ADR-0478 The GPU API is confined to one thread, scoped by pass, and checked in Java](adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)

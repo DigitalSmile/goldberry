@@ -33,10 +33,16 @@ class ShaderManifestTest {
     /// Gradle runs tests in the project directory.
     private static final Path SOURCES = Path.of("src/main/shaders");
 
-    private static Properties manifest() throws IOException {
+    /// Where `:gpu:compileShaders` writes the tests' own shaders, which do not
+    /// ship ([io.github.digitalsmile.goldberry.gpu] tests draw a mesh with them).
+    private static final Path TEST_SOURCES = Path.of("src/test/shaders");
+
+    private static final String TEST_DIRECTORY = "/io/github/digitalsmile/goldberry/gpu/testshaders/";
+
+    private static Properties manifest(String directory) throws IOException {
         var properties = new Properties();
-        try (var in = ShaderLibrary.class.getResourceAsStream(ShaderLibrary.DIRECTORY + "shaders.properties")) {
-            assertTrue(in != null, "shaders.properties is missing: run ./gradlew :gpu:compileShaders");
+        try (var in = ShaderLibrary.class.getResourceAsStream(directory + "shaders.properties")) {
+            assertTrue(in != null, directory + "shaders.properties is missing: run ./gradlew :gpu:compileShaders");
             properties.load(in);
         }
         return properties;
@@ -45,9 +51,19 @@ class ShaderManifestTest {
     @Test
     @DisplayName("were compiled from the sources as they are now")
     void compiledFromTheseSources() throws IOException, NoSuchAlgorithmException {
-        var manifest = manifest();
+        assertCompiledFrom(SOURCES, manifest(ShaderLibrary.DIRECTORY));
+    }
+
+    @Test
+    @DisplayName("and the tests' own were compiled from theirs")
+    void testShadersCompiledFromTheirSources() throws IOException, NoSuchAlgorithmException {
+        assertCompiledFrom(TEST_SOURCES, manifest(TEST_DIRECTORY));
+    }
+
+    private static void assertCompiledFrom(Path directory, Properties manifest)
+            throws IOException, NoSuchAlgorithmException {
         var sources = new TreeSet<String>();
-        try (var files = Files.list(SOURCES)) {
+        try (var files = Files.list(directory)) {
             // A shader is recorded by its name, an include by its file name.
             for (var source : files.filter(
                             f -> f.toString().endsWith(".hlsl") || f.toString().endsWith(".hlsli"))
