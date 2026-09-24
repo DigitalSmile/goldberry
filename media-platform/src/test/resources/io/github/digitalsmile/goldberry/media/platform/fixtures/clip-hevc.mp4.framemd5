@@ -1,0 +1,35 @@
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf63.1.102
+#tb 0: 1/25
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 160x90
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,    21600, 38ed30889bee316df23199e7f30775ef
+0,          1,          1,        1,    21600, 5c8e92780b94bf73dd236d92d047c7eb
+0,          2,          2,        1,    21600, 45ae5bf72bf961f9ff7ec6fb90e15c1d
+0,          3,          3,        1,    21600, 37c0585c8ba25ee3121eb154e700189d
+0,          4,          4,        1,    21600, 24dc91b59dcfe7df2e7182e9fb31117b
+0,          5,          5,        1,    21600, 164eb9fa2f2681d8cea2a0161f359c0a
+0,          6,          6,        1,    21600, 52224150a35c80a6956a5e9a7b88fa5f
+0,          7,          7,        1,    21600, d1704361e85f84763e0cdc66a5d6abb7
+0,          8,          8,        1,    21600, 2525614068a03f51f1c41862f3714b95
+0,          9,          9,        1,    21600, dafc33bea182aa61f849d8340938af27
+0,         10,         10,        1,    21600, 04ad13221dc0e0925d7fb3ce8ccef057
+0,         11,         11,        1,    21600, 04750df3645bb1c69b0169d9aaf914f1
+0,         12,         12,        1,    21600, dd6a4fe03433a5f9d78b4c94eeb5a914
+0,         13,         13,        1,    21600, 133f95480d96252a047ba4be535c6bed
+0,         14,         14,        1,    21600, d050ef3e569bbb661647bd9a581e7324
+0,         15,         15,        1,    21600, 4b3aa1d65507872d588b37287c7db69f
+0,         16,         16,        1,    21600, b96c613d2bcc508d171ff3d04c1a1f1a
+0,         17,         17,        1,    21600, 51de8987c45274f23af0fbf1cdd89b78
+0,         18,         18,        1,    21600, f5afa0053556db4e6842c11a0b93f7a2
+0,         19,         19,        1,    21600, 04cd41878e69d57f2b7ef238ecd7ca68
+0,         20,         20,        1,    21600, de60fa72e5ac095fb85ecf33e16a2f72
+0,         21,         21,        1,    21600, dbb8465ff8649be4c5befb82f730ea23
+0,         22,         22,        1,    21600, c61c936943028cdff2bd122d469b9d08
+0,         23,         23,        1,    21600, b10df27694448791bfa1080d18b38bb4
+0,         24,         24,        1,    21600, c38a567499f69e2d1f87c7494a6fe9cf

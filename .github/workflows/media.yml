@@ -1,5 +1,6 @@
 # goldberry-media: the FFmpeg + dav1d superbuild, and the module's tests against
-# what it built (docs/media-plan.md, phase 1 "CI").
+# what it built (docs/media-plan.md, phase 1 "CI"). goldberry-media-platform's
+# tests run here too: they demux with that FFmpeg (ADR-0472).
 #
 # Separate from linux.yml and macos.yml, because this build has its own
 # toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
@@ -18,6 +19,7 @@ on:
   pull_request:
     paths:
       - 'media/**'
+      - 'media-platform/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/media.yml'
   workflow_call:
@@ -61,6 +63,13 @@ jobs:
       # `check` includes the natives-jar test and the coverage floor.
       - name: Test :media against it
         run: ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true --no-daemon
+
+      # The platform decoders are macOS's, so the macOS job requires them; on
+      # Linux the providers support nothing, and what needs a Mac skips.
+      - name: Test :media-platform against it
+        run: >-
+          ./gradlew :media-platform:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
+          -Pgoldberry.platform.required=${{ startsWith(matrix.target, 'macos') }} --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:

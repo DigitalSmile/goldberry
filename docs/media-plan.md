@@ -254,6 +254,23 @@ server.
 | 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
 | 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | done but fullscreen: rate, frame step, both track menus and subtitles done (below); fullscreen blocked on `:core` |
 
+## Platform decoders — `:media-platform` (ADR-0472)
+
+The operating system's own decoders behind the Decoder SPI, for the patent-pool
+codecs the published natives do not build (`docs/goldberry-media.md` §5).
+
+| Item | State |
+|------|-------|
+| Module `:media-platform`, `goldberry-media-platform`: `ServiceLoader` registration (module and class path), `PlatformDecoders` | done. Not published, like `:media` |
+| FFM bindings for CoreFoundation, CoreMedia, CoreVideo, VideoToolbox and AudioToolbox, struct layouts measured against the SDK | done |
+| `videotoolbox`: H.264 and HEVC, 8- and 10-bit 4:2:0, NV12/P010 lent from the pixel buffer, reordered by the SPS's depth, colour from the VUI | done: bit-exact against FFmpeg's `framemd5` for every fixture picture, MP4 and Matroska |
+| `audiotoolbox`: AAC (cookie from `AudioSpecificConfig`, best layer), AC-3, E-AC-3; FFmpeg's channel order | done: tone, level, timing, 5.1 order for AAC and AC-3 |
+| Failures: bad packets dropped, a run fails the decoder; invalid session replaced; open failures clean up | done |
+| S8 with real decoders: `MediaPlayer` plays H.264 + AAC and HEVC to the end | done |
+| CI: `:media-platform:check` in the Media workflow, required on macOS | done, not yet run on a runner |
+| Windows (Media Foundation), Linux (VAAPI) | open |
+| Native-image metadata for the upcalls | open |
+
 ## Documents kept in step
 
 | Document | What changes | Status |
@@ -265,6 +282,7 @@ server.
 | `docs/core-widgets.md` §3 | `slider`'s commit hook (ADR-0464) | done |
 | `docs/content-widgets.md` §8, `docs/ARCHITECTURE.md` module table | the four widgets built | done |
 | `THIRD-PARTY-NOTICES.md`, `licenses/` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | open |
+| `docs/goldberry-media.md` §5, `docs/ARCHITECTURE.md` §15 | the platform decoders shipped, and `:media-platform` in the module list (ADR-0472) | done |
 
 ## Log
 
@@ -292,3 +310,4 @@ server.
 | 2026-09-24 | An Xvid/AC-3 AVI reported "Invalid data": no AVI demuxer. The AVI demuxer is built (+17 KB) and unknown containers are named (ADR-0471). A folder of real rips now reports `no decoder for mpeg4, ac3` and `no decoder for h264, aac` |
 | 2026-09-23 | The showcase shows phases 5–7: subtitles, both track menus, speed, picture step, hardware decoding with its switch, and a throttled HTTP sample from a server inside the showcase |
 | 2026-09-23 | Phase 5: hardware decode on VideoToolbox with copy-back, the hardware rung of the ladder, S4 with injected failures (ADR-0470). Two seek races fixed on the way. 364 tests, five full runs green; the committed code before the session, four runs green |
+| 2026-09-24 | Platform decoders (ADR-0472): `:media-platform` with `videotoolbox` and `audiotoolbox` over FFM. VideoToolbox measured to emit in decoding order, and to guess colour unless the format description is built from the parameter sets; both handled. 88 tests, `check` green with the coverage floor |

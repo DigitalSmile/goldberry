@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,10 +16,12 @@ import java.util.Set;
 
 import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
+import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.io.HttpIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.platform.PlatformDecoders;
 
 /// Where the **Audio** and **Video** screens' sounds and pictures come from, and
 /// the players that play them.
@@ -152,8 +155,10 @@ public final class ShowcaseMedia implements MediaIOProvider {
             new Sample(
                     "h264",
                     "H.264 and AAC",
-                    "Patent-pool codecs, which the published natives do not build, by decision. The file"
-                            + " opens and its tracks are listed, and the error names the codec.",
+                    "Patent-pool codecs, which the published natives do not build, by decision. On macOS the"
+                            + " system's own VideoToolbox and AudioToolbox play them, through"
+                            + " goldberry-media-platform; the Status card names both. Elsewhere the file opens,"
+                            + " its tracks are listed, and the error names the codec.",
                     showcase("h264-aac.mp4")));
 
     /// A subtitle file the Video screen's Subtitles card can load beside a source.
@@ -176,22 +181,26 @@ public final class ShowcaseMedia implements MediaIOProvider {
     }
 
     /// The Audio screen's player, which the screen and its markup share: every
-    /// protocol above, and the Java decoder, which takes PCM only while its switch
-    /// is on.
+    /// protocol above, the Java decoder, which takes PCM only while its switch is
+    /// on, and the operating system's decoders, for an AAC file opened from disk.
     public static MediaPlayer audioPlayer(JavaPcmDecoder decoder) {
+        var providers = new ArrayList<DecoderProvider>();
+        providers.add(decoder);
+        providers.addAll(PlatformDecoders.providers());
         return MediaPlayer.builder()
                 .ioProviders(List.of(new ShowcaseMedia()))
-                .decoderProviders(List.of(decoder))
+                .decoderProviders(providers)
                 .build();
     }
 
-    /// The Video screen's player: every protocol above, FFmpeg's decoders only,
-    /// and the GPU's video engine where there is one, which the screen's Hardware
-    /// card switches off and on.
+    /// The Video screen's player: every protocol above, FFmpeg's decoders and the
+    /// operating system's (H.264, HEVC, AAC and the AC-3 pair on macOS), and the
+    /// GPU's video engine where there is one, which the screen's Hardware card
+    /// switches off and on.
     public static MediaPlayer videoPlayer() {
         return MediaPlayer.builder()
                 .ioProviders(List.of(new ShowcaseMedia()))
-                .decoderProviders(List.of())
+                .decoderProviders(PlatformDecoders.providers())
                 .hardwareDecoding(HardwareDecoding.AUTO)
                 .build();
     }

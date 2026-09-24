@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.codec.TrackParams;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.platform.PlatformDecoders;
 import io.github.digitalsmile.goldberry.media.subtitle.Cue;
 import io.github.digitalsmile.goldberry.media.view.MediaTime;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
@@ -497,8 +498,16 @@ public record MediaScreen(
                             found.providers().isEmpty()
                                     ? "none on the class path (this screen's Java decoder is passed in directly)"
                                     : String.join(", ", found.providers())),
+                    line(
+                            "System decoders",
+                            PlatformDecoders.available()
+                                    ? "VideoToolbox and AudioToolbox: H.264, HEVC, AAC, AC-3, E-AC-3"
+                                    : "none: "
+                                            + PlatformDecoders.unavailableReason()
+                                                    .orElse("not available")),
                     caption("Read from the loaded libraries, not from a list: this is what MediaCapabilities"
-                            + " answers."));
+                            + " answers. The system decoders are goldberry-media-platform's: the operating"
+                            + " system's own, which hold the licences the published natives do not."));
         }
 
         private Widget javaDecoderCard(JavaPcmDecoder decoder) {

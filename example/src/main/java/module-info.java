@@ -42,6 +42,11 @@ module io.github.digitalsmile.goldberry.example {
     /// the module's widget catalog, and the screen drives a `MediaPlayer`.
     requires io.github.digitalsmile.goldberry.media;
 
+    /// `goldberry-media-platform`: the operating system's decoders, which the
+    /// Media screens pass to their players and the "This build" card names
+    /// (ADR-0472).
+    requires io.github.digitalsmile.goldberry.media.platform;
+
     // The local server the network samples are played from, so they play offline.
     requires jdk.httpserver;
     requires org.slf4j;

@@ -168,7 +168,7 @@ Frame contract: video as NV12 / I420 / P010 / I010 planes in native `MemorySegme
 
 Container reach: `mov` and `matroska` deliver whole frames plus container extradata (avcC/hvcC/esds), so H.264/HEVC/AAC in MP4/MKV reach a provider with the published natives untouched. Formats that need a parser to frame the stream (MPEG-TS, raw Annex B, ADTS) are out of scope: the published natives build no parsers for patented codecs and the `mpegts` demuxer is not built.
 
-Intended providers (none shipped in v1): OS decoders in an optional `goldberry-media-platform` module (Media Foundation, VideoToolbox/AudioToolbox, VAAPI; the OS vendor holds the licences); a Cisco OpenH264 provider fetching Cisco's binary on first use (terms and profile support to be verified); commercial SDKs licensed by an app vendor.
+Providers. **Shipped:** the operating system's decoders in the optional `goldberry-media-platform` module ([ADR-0472](../book/src/adr/0472-the-platform-decoders-bind-the-system-frameworks.md)), found by `ServiceLoader` or listed by `PlatformDecoders.providers()`. The OS vendor holds the licences. On macOS: `videotoolbox` (H.264 and HEVC, 8- and 10-bit 4:2:0, lent as NV12 or P010 straight from the pixel buffer, reordered by the SPS's reorder depth) and `audiotoolbox` (AAC, AC-3, E-AC-3, f32 in FFmpeg's channel order). The frameworks are bound with FFM, as FFmpeg is, and no native code is built. **Intended:** Media Foundation on Windows and VAAPI on Linux in the same module; a Cisco OpenH264 provider fetching Cisco's binary on first use (terms and profile support to be verified); commercial SDKs licensed by an app vendor.
 
 I/O has the same shape already: a custom `MediaIO` registered for a URL scheme adds a protocol without touching natives.
 

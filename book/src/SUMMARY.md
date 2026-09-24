@@ -486,3 +486,4 @@
 - [ADR-0469 A video track is switched over the same frame queue](adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)
 - [ADR-0470 Hardware decode is a rung of the built-in decoder, copied back](adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)
 - [ADR-0471 AVI is demuxed, and a container with no demuxer is named](adr/0471-avi-is-demuxed-and-an-unknown-container-is-named.md)
+- [ADR-0472 The platform decoders are the system's own, bound with FFM](adr/0472-the-platform-decoders-bind-the-system-frameworks.md)
