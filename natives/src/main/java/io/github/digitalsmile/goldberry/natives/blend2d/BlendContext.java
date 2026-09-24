@@ -552,6 +552,27 @@ public final class BlendContext implements AutoCloseable {
         transform(1, 0, 0, 1, 0, 0);
     }
 
+    /// Draws in the image's own pixels until the transform is next set: the
+    /// identity, with the display scale left out.
+    ///
+    /// For drawing that has to land on whole pixels exactly, which a logical
+    /// coordinate divided by the scale and multiplied back does not promise: a
+    /// GPU layer's hole and its read-back pixels, which must cover the pixels
+    /// the compositor's quad covers and no fraction of one more (ADR-0481). Set
+    /// as the identity itself rather than as `transform(1 / scale, …)`, whose
+    /// product with the scale need not be exactly one. [#save()] before and
+    /// [#restore()] after is how a caller gets its user space back.
+    public void transformToPixels() {
+        requireUsable();
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M00, 1.0);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M01, 0.0);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M10, 0.0);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M11, 1.0);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M20, 0.0);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M21, 0.0);
+        calls.contextTransform(context, matrix);
+    }
+
     /// Fills `path`, offset so its own origin lands at `(x, y)`.
     ///
     /// The offset is Blend2D's, not a transform: the context's user space is

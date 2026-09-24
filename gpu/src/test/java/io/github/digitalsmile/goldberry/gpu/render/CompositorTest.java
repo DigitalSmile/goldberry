@@ -182,10 +182,10 @@ class CompositorTest {
             var claimed = claimed(compositor, window);
             var first = premultiplied(32, 16, 1);
             var second = premultiplied(32, 16, 2);
-            claimed.present(frame(first, 32, 16), List.of(new DamageRect(0, 0, 4, 4)));
+            claimed.present(frame(first, 32, 16), List.of(new DamageRect(0, 0, 4, 4)), List.of());
             assertEquals(32 * 16 * 4, claimed.lastPresent().uploadBytes(), "the first frame goes up whole");
             var damage = List.of(new DamageRect(3, 2, 5, 4), new DamageRect(20, 10, 12, 6));
-            claimed.present(frame(second, 32, 16), damage);
+            claimed.present(frame(second, 32, 16), damage, List.of());
             assertEquals((5 * 4 + 12 * 6) * 4, claimed.lastPresent().uploadBytes(), "then only the damage");
             var back = readBack(compositor.device().orElseThrow(), claimed.uiTexture());
             for (var y = 0; y < 16; y++) {
@@ -205,8 +205,8 @@ class CompositorTest {
         @DisplayName("remakes its texture when the frame changes size, and uploads that frame whole")
         void resize() {
             var claimed = claimed(compositor, window);
-            claimed.present(frame(premultiplied(32, 16, 3), 32, 16), List.of(new DamageRect(0, 0, 32, 16)));
-            claimed.present(frame(premultiplied(40, 20, 4), 40, 20), List.of(new DamageRect(0, 0, 1, 1)));
+            claimed.present(frame(premultiplied(32, 16, 3), 32, 16), List.of(new DamageRect(0, 0, 32, 16)), List.of());
+            claimed.present(frame(premultiplied(40, 20, 4), 40, 20), List.of(new DamageRect(0, 0, 1, 1)), List.of());
             assertEquals(40 * 20 * 4, claimed.lastPresent().uploadBytes());
             assertEquals(40, claimed.uiTexture().width());
             claimed.close();
@@ -217,13 +217,14 @@ class CompositorTest {
         void noDamageAndClosed() {
             var claimed = claimed(compositor, window);
             var frame = frame(premultiplied(8, 8, 5), 8, 8);
-            claimed.present(frame, List.of(new DamageRect(0, 0, 8, 8)));
-            claimed.present(frame, List.of());
+            claimed.present(frame, List.of(new DamageRect(0, 0, 8, 8)), List.of());
+            claimed.present(frame, List.of(), List.of());
             assertEquals(PresentTimings.NONE, claimed.lastPresent());
             claimed.close();
             claimed.close();
             assertThrows(
-                    IllegalStateException.class, () -> claimed.present(frame, List.of(new DamageRect(0, 0, 1, 1))));
+                    IllegalStateException.class,
+                    () -> claimed.present(frame, List.of(new DamageRect(0, 0, 1, 1)), List.of()));
         }
 
         @Test

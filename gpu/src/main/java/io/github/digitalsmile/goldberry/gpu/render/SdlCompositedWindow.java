@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.gpu.GpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture;
@@ -13,37 +14,47 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuWindow;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.GpuPlacement;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
 
 /// A window [SdlCompositor] claimed: each painted frame's damage uploaded into
-/// the window's UI texture, then the composite pass drawn into its swapchain
-/// texture and presented (`docs/gpu-plan.md`, phase 3; ADR-0479).
+/// the window's UI texture, its GPU layers rendered, then the composite pass
+/// drawn into its swapchain texture and presented (`docs/gpu-plan.md`, phases
+/// 3 and 4; ADR-0479, ADR-0481).
 ///
 /// The UI texture is `B8G8R8A8_UNORM`, what the frame is painted in, so the
 /// bytes go up unconverted. It is made at the frame's size and remade when the
 /// size changes, and then the whole frame goes up. A damage-only upload keeps
 /// the rest of the texture, which is what makes a blinking caret cost a caret.
+///
+/// Each layer renders into a texture of its own ([LayerTextures]), in a frame
+/// submitted before the composite that samples them: one queue runs what is
+/// submitted to it in order. That work is counted in the present's submit time.
 final class SdlCompositedWindow implements CompositedWindow {
 
     private final SdlGpuDevice device;
+    private final GpuDevice api;
     private final SdlGpuWindow window;
     private final StagingBuffer staging;
     private final UiComposite composite;
+    private final LayerTextures layerTextures = new LayerTextures();
     private @Nullable SdlGpuTexture ui;
     private PresentTimings last = PresentTimings.NONE;
     private boolean closed;
 
-    SdlCompositedWindow(SdlGpuDevice device, SdlGpuWindow window, StagingBuffer staging, UiComposite composite) {
+    SdlCompositedWindow(
+            SdlGpuDevice device, GpuDevice api, SdlGpuWindow window, StagingBuffer staging, UiComposite composite) {
         this.device = device;
+        this.api = api;
         this.window = window;
         this.staging = staging;
         this.composite = composite;
     }
 
     @Override
-    public void present(PixelBuffer frame, List<DamageRect> damage) {
+    public void present(PixelBuffer frame, List<DamageRect> damage, List<GpuPlacement> layers) {
         if (closed) {
             throw new IllegalStateException("the window was given back to its surface");
         }
@@ -66,22 +77,29 @@ final class SdlCompositedWindow implements CompositedWindow {
             whole = true;
         }
         var regions = whole ? List.of(new SdlGpuRegion(0, 0, width, height)) : regions(damage);
-        if (regions.isEmpty()) {
+        if (regions.isEmpty() && layers.isEmpty()) {
             // Nothing changed, and the swapchain still shows the last frame.
+            layerTextures.retain(layers);
             last = PresentTimings.NONE;
             return;
         }
-        var offsets = staging.stage(frame.pixels(), frame.stride(), 4, regions);
+        // Layers may have changed with no damage at all -- a video's next
+        // picture -- so with any on screen the window is composited again.
+        var drawn = layerTextures.renderAll(api, layers);
+        var layered = System.nanoTime();
         var commands = device.acquireCommandBuffer();
         try {
             var bytes = 0L;
-            try (var pass = commands.beginCopyPass()) {
-                for (var i = 0; i < regions.size(); i++) {
-                    var region = regions.get(i);
-                    // A whole frame may take fresh texture memory; a partial one
-                    // must keep what the texture holds around the damage.
-                    pass.upload(staging.buffer(), offsets[i], texture, region, whole);
-                    bytes += texture.byteSize(region);
+            if (!regions.isEmpty()) {
+                var offsets = staging.stage(frame.pixels(), frame.stride(), 4, regions);
+                try (var pass = commands.beginCopyPass()) {
+                    for (var i = 0; i < regions.size(); i++) {
+                        var region = regions.get(i);
+                        // A whole frame may take fresh texture memory; a partial
+                        // one must keep what the texture holds around the damage.
+                        pass.upload(staging.buffer(), offsets[i], texture, region, whole);
+                        bytes += texture.byteSize(region);
+                    }
                 }
             }
             var uploaded = System.nanoTime();
@@ -91,14 +109,15 @@ final class SdlCompositedWindow implements CompositedWindow {
                 var target = swapchain.get();
                 var format = target.format();
                 if (format.isPresent()) {
-                    composite.draw(commands, target, format.get(), texture);
+                    composite.draw(commands, target, format.get(), texture, drawn);
                 } else {
                     UiComposite.blit(commands, target, texture);
                 }
             }
             commands.submit();
             var submitted = System.nanoTime();
-            last = new PresentTimings(uploaded - started, acquired - uploaded, submitted - acquired, bytes, true);
+            last = new PresentTimings(
+                    uploaded - layered, acquired - uploaded, (submitted - acquired) + (layered - started), bytes, true);
         } finally {
             if (!commands.isFinished()) {
                 // Something above threw with the buffer still recording. SDL
@@ -112,6 +131,11 @@ final class SdlCompositedWindow implements CompositedWindow {
                 }
             }
         }
+    }
+
+    /// The textures this window's layers render into, for the tests.
+    LayerTextures layerTextures() {
+        return layerTextures;
     }
 
     /// The non-empty damage rectangles, as regions.
@@ -150,6 +174,7 @@ final class SdlCompositedWindow implements CompositedWindow {
         if (texture != null) {
             texture.close();
         }
+        layerTextures.close();
         window.close();
     }
 }

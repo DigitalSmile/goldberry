@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -28,8 +29,17 @@ class CompositionTest {
     @Test
     @DisplayName("turns the GPU off whatever the composite property says")
     void gpuOffWins() {
-        assertEquals(Composition.NEVER, Composition.of("off", "always"));
-        assertEquals(Composition.NEVER, Composition.of(" Off", null));
+        assertEquals(Composition.OFF, Composition.of("off", "always"));
+        assertEquals(Composition.OFF, Composition.of(" Off", null));
+    }
+
+    @Test
+    @DisplayName("uses the GPU for layers unless it is off, composited or not (ADR-0481)")
+    void layersUseTheGpuUnlessOff() {
+        assertTrue(Composition.NEVER.usesGpu(), "never composites, and still reads layers back");
+        assertTrue(Composition.AUTO.usesGpu());
+        assertTrue(Composition.ALWAYS.usesGpu());
+        assertFalse(Composition.OFF.usesGpu());
     }
 
     @Test
@@ -43,7 +53,8 @@ class CompositionTest {
     @DisplayName("says where windows will present, and how to change it")
     void describes() {
         assertTrue(Composition.ALWAYS.describe().contains("-Dgoldberry.gpu=off"));
-        assertTrue(Composition.NEVER.describe().contains("on the CPU"));
-        assertTrue(Composition.AUTO.describe().contains("GPU layer"));
+        assertTrue(Composition.NEVER.describe().contains("read back"));
+        assertTrue(Composition.OFF.describe().contains("nothing uses the GPU"));
+        assertTrue(Composition.AUTO.describe().contains("GPU layers"));
     }
 }

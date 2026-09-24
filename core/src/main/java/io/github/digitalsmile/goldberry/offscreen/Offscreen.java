@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.FontSource;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
@@ -141,6 +142,9 @@ public final class Offscreen {
     private int settleMillis = DEFAULT_SETTLE_MILLIS;
 
     private int background;
+
+    /// How GPU layers are shown, or null for not at all. See [#gpu].
+    private @Nullable GpuSurface gpu;
 
     /// A renderer a [Studio] is keeping across renders, or null for the usual case
     /// of one built for this call and thrown away (ADR-0425).
@@ -283,6 +287,34 @@ public final class Offscreen {
         return this;
     }
 
+    /// Shows GPU layers through `surface`: a [GpuSurface.ReadBack] renders each
+    /// one on the GPU and draws its pixels into the picture, which is how a
+    /// render with a `canvas3d` or a video in it has them (`docs/gpu-plan.md`,
+    /// D3; ADR-0481). Without one -- the default -- a GPU layer's painter is
+    /// told there is no GPU and draws what it shows instead.
+    ///
+    /// The surface is the caller's, and is told what each render placed, as a
+    /// window's is after each frame.
+    public Offscreen gpu(GpuSurface surface) {
+        this.gpu = Objects.requireNonNull(surface, "surface");
+        return this;
+    }
+
+    /// A frame over `buffer` at this render's scale, showing GPU layers through
+    /// [#gpu] when there is one.
+    private Frame frameOver(PixelBuffer buffer) {
+        var surface = gpu;
+        return surface == null ? Frame.over(buffer, scale) : Frame.over(buffer, scale, surface);
+    }
+
+    /// Tells [#gpu] what `frame`, ended, placed.
+    private void placed(Frame frame) {
+        var surface = gpu;
+        if (surface != null) {
+            surface.placed(frame.gpuPlacements());
+        }
+    }
+
     /// Runs `painter` over the whole buffer and returns what it drew.
     ///
     /// The painter is handed the frame with the origin at the top-left and the
@@ -292,7 +324,7 @@ public final class Offscreen {
     public Image paint(Painter painter) {
         Objects.requireNonNull(painter, "painter");
         var buffer = PixelBuffer.allocate(size, FORMAT);
-        var frame = Frame.over(buffer, scale);
+        var frame = frameOver(buffer);
         try {
             fillBackground(frame);
             frame.save();
@@ -307,6 +339,7 @@ public final class Offscreen {
             // (ADR-0042).
             frame.end();
         }
+        placed(frame);
         return Image.of(buffer);
     }
 
@@ -334,7 +367,7 @@ public final class Offscreen {
             var renderer = renderer(ownFonts, clock);
 
             var buffer = PixelBuffer.allocate(size, FORMAT);
-            var frame = Frame.over(buffer, scale);
+            var frame = frameOver(buffer);
             var tree = new ElementTree(root);
             try {
                 var render = RenderTree.create();
@@ -384,6 +417,7 @@ public final class Offscreen {
                 // and a render that leaked them would leak one per preview.
                 tree.unmount();
             }
+            placed(frame);
             return Image.of(buffer);
         } finally {
             if (ownFonts != null) {

@@ -7,11 +7,11 @@ import org.jspecify.annotations.Nullable;
 /// When a window presents through the GPU rather than its window surface
 /// (`docs/gpu-plan.md`, D3; ADR-0479, ADR-0480), from two system properties:
 ///
-/// - `goldberry.gpu`: `off` never touches the GPU; `auto` (the default) uses
-///   it;
+/// - `goldberry.gpu`: `off` never touches the GPU, and GPU layers show what
+///   their painters draw without one; `auto` (the default) uses it;
 /// - `goldberry.gpu.composite`: `always` (the default) composites every window
-///   from its first frame, `auto` composites a window only when a GPU layer
-///   needs it (phase 4), `never` composites none.
+///   from its first frame, `auto` composites a window while it shows GPU
+///   layers (ADR-0481), `never` composites none, and GPU layers are read back.
 ///
 /// **The GPU by default, the CPU as the fallback** (ADR-0480). A window that
 /// cannot be composited -- no `:gpu` on the module path, no device, a window
@@ -20,9 +20,12 @@ import org.jspecify.annotations.Nullable;
 /// why. Popups are transparent windows, which SDL will not claim, and stay on
 /// the CPU whatever this says.
 enum Composition {
-    /// No window is composited.
+    /// No GPU at all: no window is composited, and no GPU layer is rendered.
+    OFF,
+    /// No window is composited; GPU layers are rendered and read back.
     NEVER,
-    /// A window is composited when a GPU layer needs it: none, until phase 4.
+    /// A window is composited while it shows GPU layers, and for a while after
+    /// the last one goes (ADR-0481); until then its layers are read back.
     AUTO,
     /// Every window is composited from its first frame. The default.
     ALWAYS;
@@ -43,7 +46,7 @@ enum Composition {
     /// The policy `gpu` and `composite` give; either may be null for unset.
     static Composition of(@Nullable String gpu, @Nullable String composite) {
         if (gpu != null && gpu.trim().toLowerCase(Locale.ROOT).equals("off")) {
-            return NEVER;
+            return OFF;
         }
         if (composite == null) {
             return ALWAYS;
@@ -57,13 +60,22 @@ enum Composition {
 
     /// What the log says about this policy when the backend starts: where
     /// windows will present, and the property that changes it.
+    /// Whether GPU layers are shown at all, composited or read back.
+    boolean usesGpu() {
+        return this != OFF;
+    }
+
     String describe() {
         return switch (this) {
             case ALWAYS ->
                 "windows present through the GPU where it can be used, and on the CPU where it cannot" + " (-D"
                         + GPU_PROPERTY + "=off for the CPU only)";
-            case AUTO -> "windows present on the CPU until a GPU layer needs one (" + COMPOSITE_PROPERTY + "=auto)";
-            case NEVER -> "windows present on the CPU (" + GPU_PROPERTY + "=off or " + COMPOSITE_PROPERTY + "=never)";
+            case AUTO ->
+                "windows present on the CPU, and through the GPU while they show GPU layers (" + COMPOSITE_PROPERTY
+                        + "=auto)";
+            case NEVER ->
+                "windows present on the CPU, and GPU layers are read back into them (" + COMPOSITE_PROPERTY + "=never)";
+            case OFF -> "windows present on the CPU, and nothing uses the GPU (" + GPU_PROPERTY + "=off)";
         };
     }
 }

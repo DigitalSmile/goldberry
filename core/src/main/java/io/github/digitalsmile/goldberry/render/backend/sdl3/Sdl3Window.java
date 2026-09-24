@@ -17,10 +17,13 @@ import io.github.digitalsmile.goldberry.natives.sdl.window.SdlIconImage;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.GpuContent;
+import io.github.digitalsmile.goldberry.render.GpuPlacement;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.composite.Claim;
 import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
+import io.github.digitalsmile.goldberry.render.composite.ReadbackSurface;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -28,6 +31,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 import io.github.digitalsmile.goldberry.render.window.IconImage;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
@@ -46,6 +50,13 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// Distinguishes "asked, and SDL would not say" from "not asked yet", so a
     /// display that has no refresh rate is not re-queried every pump.
     private static final float UNAVAILABLE = -1f;
+
+    /// How long a window `goldberry.gpu.composite=auto` composited for its GPU
+    /// layers stays composited after the last one goes (`docs/gpu-plan.md`, D3;
+    /// ADR-0481). Leaving costs about six milliseconds on macOS, a visible hitch
+    /// at 120 Hz, and a list scrolling a video in and out of view must not pay
+    /// it at every turn.
+    static final long COMPOSITE_HOLD_NANOS = 2_000_000_000L;
 
     private final Sdl3Backend backend;
     private final SdlWindowHandle handle;
@@ -88,6 +99,41 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// something has decided it must: a claim refused, a present that failed, a
     /// page embedded in it. Null while it may still be composited.
     private @Nullable String cpuOnly;
+
+    /// The GPU layers on screen after the last frame painted, which the next
+    /// composited present draws (ADR-0481).
+    private List<GpuPlacement> layers = List.of();
+
+    /// When the last frame that showed a GPU layer was painted, in
+    /// `System.nanoTime` units, or [Long#MIN_VALUE] for never: what `auto`
+    /// composites by.
+    private long layersShownAt = Long.MIN_VALUE;
+
+    /// The compositor's read-back surface for this window, made the first time
+    /// the window is asked for a surface while on the CPU, and closed with it.
+    private @Nullable ReadbackSurface readback;
+
+    /// What [#gpuSurface] answers while composited.
+    private final GpuSurface.Composited compositedSurface = this::placed;
+
+    /// What [#gpuSurface] answers while on the CPU: the compositor's read-back
+    /// surface, told which layers were shown so `auto` can composite for them.
+    private final GpuSurface.ReadBack readBackSurface = new GpuSurface.ReadBack() {
+        @Override
+        public Optional<PixelBuffer> render(GpuContent content, PhysicalSize size) {
+            var surface = readback;
+            return surface == null ? Optional.empty() : surface.render(content, size);
+        }
+
+        @Override
+        public void placed(List<GpuPlacement> shown) {
+            Sdl3Window.this.placed(shown);
+            var surface = readback;
+            if (surface != null) {
+                surface.placed(shown);
+            }
+        }
+    };
 
     /// The handle, for a subclass that has to make its own SDL calls.
     final SdlWindowHandle handle() {
@@ -177,8 +223,17 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     public Optional<PixelBuffer> acquireFrame() {
         backend.requireUiThread();
         requireOpen();
-        if (composited == null && cpuOnly == null && backend.wantsComposited(this)) {
+        var wanted = backend.wantsComposited(this);
+        if (composited == null && cpuOnly == null && wanted) {
             enterComposited();
+        } else if (composited != null && !wanted) {
+            // `auto`, and the last GPU layer went long enough ago: back to the
+            // surface, and free to come back when a layer does (ADR-0481).
+            LOG.info(
+                    "\"{}\" presents on the CPU again: it has shown no GPU layer for {} s",
+                    title,
+                    COMPOSITE_HOLD_NANOS / 1_000_000_000L);
+            leaveComposited(null);
         }
         if (composited != null) {
             acquired = null;
@@ -274,7 +329,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             return;
         }
         try {
-            gpu.present(frame, damage);
+            gpu.present(frame, damage, layers);
             lastPresent = gpu.lastPresent();
         } catch (RuntimeException e) {
             LOG.warn("the GPU failed presenting \"{}\": it presents on the CPU from now on", title, e);
@@ -325,11 +380,14 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
     }
 
-    /// Gives the window back to its surface, for good: `reason` is why.
-    private void leaveComposited(String reason) {
+    /// Gives the window back to its surface: for good when there is a
+    /// `reason`, which is why, and until the policy wants it composited again
+    /// when there is none.
+    private void leaveComposited(@Nullable String reason) {
         cpuOnly = reason;
         var gpu = composited;
         composited = null;
+        layers = List.of();
         lastPresent = PresentTimings.NONE;
         if (gpu != null) {
             try {
@@ -353,6 +411,43 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// Whether this window presents through the GPU now.
     boolean isComposited() {
         return composited != null && open;
+    }
+
+    /// How this window shows GPU layers (ADR-0481): composited while it
+    /// presents through the GPU, read back while it presents on the CPU. Empty
+    /// with the GPU off, and with no `:gpu` on the module path.
+    @Override
+    public Optional<GpuSurface> gpuSurface() {
+        backend.requireUiThread();
+        if (!open || !backend.usesGpu()) {
+            return Optional.empty();
+        }
+        if (composited != null) {
+            return Optional.of(compositedSurface);
+        }
+        if (readback == null) {
+            var compositor = backend.compositor();
+            if (compositor.isEmpty()) {
+                return Optional.empty();
+            }
+            readback = compositor.get().readback();
+        }
+        return Optional.of(readBackSurface);
+    }
+
+    /// What the frame just painted showed: kept for the next composited
+    /// present, and timed for `auto`.
+    private void placed(List<GpuPlacement> shown) {
+        layers = List.copyOf(shown);
+        if (!shown.isEmpty()) {
+            layersShownAt = System.nanoTime();
+        }
+    }
+
+    /// Whether this window has shown a GPU layer within
+    /// [#COMPOSITE_HOLD_NANOS]: what `auto` composites it for.
+    boolean showsGpuLayers() {
+        return layersShownAt != Long.MIN_VALUE && System.nanoTime() - layersShownAt < COMPOSITE_HOLD_NANOS;
     }
 
     /// What the last composited present cost, or [PresentTimings#NONE] while
@@ -649,6 +744,11 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         backend.closeEmbeddedPagesOf(this);
         // The swapchain before the window it belongs to.
         leaveComposited("closed");
+        var surface = readback;
+        readback = null;
+        if (surface != null) {
+            surface.close();
+        }
         backend.forget(this);
         video().destroyWindow(handle);
     }

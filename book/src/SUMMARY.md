@@ -495,3 +495,4 @@
 - [ADR-0478 The GPU API is confined to one thread, scoped by pass, and checked in Java](adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)
 - [ADR-0479 A window is composited through a seam :core declares and :gpu provides](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)
 - [ADR-0480 Windows present through the GPU by default, and on the CPU where it cannot](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
+- [ADR-0481 GPU layers are placed in paint order, and shown through a hole or read back](adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)

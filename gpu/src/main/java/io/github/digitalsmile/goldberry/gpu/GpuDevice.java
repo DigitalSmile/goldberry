@@ -9,11 +9,13 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.gpu.render.ApiAccess;
 import io.github.digitalsmile.goldberry.gpu.render.StagingBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPipelineDescription;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderCode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture;
 
 /// The GPU: Metal on macOS, Direct3D 12 on Windows, Vulkan elsewhere. What
 /// textures, buffers, samplers, shaders and pipelines are made on, and what
@@ -36,6 +38,22 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderCode;
 /// it. What only the driver can refuse throws [GpuException].
 public final class GpuDevice {
 
+    // The compositor's way in, for a device it made and the textures layers
+    // render into, which nothing outside the module may reach (ADR-0481).
+    static {
+        ApiAccess.register(new ApiAccess() {
+            @Override
+            protected GpuDevice wrap(SdlGpuDevice device) {
+                return GpuDevice.wrap(device);
+            }
+
+            @Override
+            protected SdlGpuTexture unwrap(GpuTexture texture) {
+                return texture.sdl(texture.device());
+            }
+        });
+    }
+
     private final SdlGpuDevice sdl;
     private final Thread owner;
     private final Set<ShaderFormat> shaderFormats;
@@ -48,7 +66,8 @@ public final class GpuDevice {
     }
 
     /// The public face of `sdl`, confined to the calling thread. Its owner
-    /// keeps closing `sdl`; this does not own it.
+    /// keeps closing `sdl`; this does not own it. The compositor's, through
+    /// [ApiAccess], and the tests'.
     static GpuDevice wrap(SdlGpuDevice sdl) {
         return new GpuDevice(Objects.requireNonNull(sdl, "sdl"), Thread.currentThread());
     }

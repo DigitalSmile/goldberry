@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import io.github.digitalsmile.goldberry.gpu.GpuDevice;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
@@ -13,15 +14,18 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPresentMode;
 import io.github.digitalsmile.goldberry.render.composite.Claim;
 import io.github.digitalsmile.goldberry.render.composite.Compositor;
+import io.github.digitalsmile.goldberry.render.composite.ReadbackSurface;
 
 /// `:gpu`'s [Compositor], which the sdl3 backend finds by `ServiceLoader`
 /// (`docs/gpu-plan.md`, phase 3; ADR-0479).
 ///
-/// Owns the process's one GPU device, made at the first claim with the options
-/// [DeviceOptions] reads, never at start-up. A device that cannot be made is
-/// remembered and never asked for again, and every window stays on the CPU.
-/// The staging memory and the composite pass are the device's and shared by
-/// every window claimed on it.
+/// Owns the process's one GPU device, made at the first claim, or at the first
+/// GPU layer a read-back surface renders, with the options [DeviceOptions]
+/// reads; never at start-up. A device that cannot be made is remembered and
+/// never asked for again: every window stays on the CPU, and every GPU layer
+/// shows its painter's fallback. The staging memory and the composite pass are
+/// the device's and shared by every window claimed on it, and so is the public
+/// [GpuDevice] over it that layers render with (ADR-0481).
 ///
 /// Public only because `ServiceLoader` instantiates it; its package is not
 /// exported.
@@ -38,6 +42,7 @@ public final class SdlCompositor implements Compositor {
     static final String VSYNC_PROPERTY = "goldberry.backend.vsync";
 
     private @Nullable SdlGpuDevice device;
+    private @Nullable GpuDevice api;
     private @Nullable StagingBuffer staging;
     private @Nullable UiComposite composite;
     private @Nullable String unavailable;
@@ -65,10 +70,24 @@ public final class SdlCompositor implements Compositor {
                     }
                 }
             }
-            return new Claim.Claimed(new SdlCompositedWindow(gpu, claimed, requireStaging(), requireComposite()));
+            return new Claim.Claimed(
+                    new SdlCompositedWindow(gpu, requireApi(), claimed, requireStaging(), requireComposite()));
         } catch (SdlException | IllegalStateException e) {
             return new Claim.Refused(gpu.driver() + " would not claim the window: " + e.getMessage());
         }
+    }
+
+    /// A read-back surface on this compositor's device, which it makes when its
+    /// first layer renders (ADR-0481).
+    @Override
+    public ReadbackSurface readback() {
+        return new SdlReadbackSurface(this);
+    }
+
+    /// The device as the GPU API sees it, made the first time: empty when there
+    /// is none and cannot be one, or this is closed.
+    Optional<GpuDevice> api() {
+        return open() ? Optional.of(requireApi()) : Optional.empty();
     }
 
     /// The device, once a claim has made it, for the tests that read back what
@@ -88,7 +107,7 @@ public final class SdlCompositor implements Compositor {
         if (device != null) {
             return true;
         }
-        if (unavailable != null) {
+        if (closed || unavailable != null) {
             return false;
         }
         var options = DeviceOptions.fromProperties();
@@ -99,9 +118,10 @@ public final class SdlCompositor implements Compositor {
             made.setAllowedFramesInFlight(FRAMES_IN_FLIGHT);
             staging = new StagingBuffer(made);
             composite = new UiComposite(made);
+            api = ApiAccess.device(made);
             device = made;
             LOG.info(
-                    "GPU device ready in {} ms: {}{}, taking {}; windows present through it",
+                    "GPU device ready in {} ms: {}{}, taking {}; windows and GPU layers use it",
                     (System.nanoTime() - started) / 1_000_000,
                     made.driver(),
                     options.debugMode() ? " with validation" : "",
@@ -118,12 +138,21 @@ public final class SdlCompositor implements Compositor {
             }
             staging = null;
             composite = null;
+            api = null;
             return false;
         }
     }
 
     private SdlGpuDevice requireDevice() {
         var current = device;
+        if (current == null) {
+            throw new IllegalStateException("no device");
+        }
+        return current;
+    }
+
+    private GpuDevice requireApi() {
+        var current = api;
         if (current == null) {
             throw new IllegalStateException("no device");
         }
@@ -164,5 +193,6 @@ public final class SdlCompositor implements Compositor {
         }
         composite = null;
         staging = null;
+        api = null;
     }
 }

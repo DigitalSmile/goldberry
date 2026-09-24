@@ -1,10 +1,14 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.css.value.Affine;
@@ -19,12 +23,15 @@ import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.geom.Dasher;
+import io.github.digitalsmile.goldberry.render.GpuContent;
+import io.github.digitalsmile.goldberry.render.GpuPlacement;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 
 /// The surface a [Window] paints into.
 ///
@@ -48,6 +55,15 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 /// A frame is valid only for the duration of the paint callback it was handed
 /// to. [Window] ends it before presenting, because pixels a context has not
 /// finished with are not pixels worth showing.
+///
+/// ## GPU layers
+///
+/// A frame over a window's [GpuSurface] can place content the GPU draws --
+/// [#gpuLayer] -- in paint order among everything else: what is painted after
+/// it is above it, and what was painted before it and under it is hidden, as it
+/// would be under an opaque box. Over a composited window the layer's box
+/// becomes a hole the compositor fills; otherwise the layer is rendered, read
+/// back and drawn here (`docs/gpu-plan.md`, D3 and D4; ADR-0481).
 public final class Frame {
 
     private final PixelBuffer buffer;
@@ -79,12 +95,39 @@ public final class Frame {
     /// caller cannot see (ADR-0068, ADR-0390).
     private Affine matrix = Affine.IDENTITY;
 
-    /// The matrices [#save()] pushed, popped by [#restore()].
+    /// The transforms and clips [#save()] pushed, popped by [#restore()].
     ///
     /// The rasterizer's own stack holds the same values; this is the Java half of
     /// it, so that a `canvas` painter which saved, composed and restored leaves
     /// the mirror agreeing with the context rather than a transform behind.
-    private final Deque<Affine> saved = new ArrayDeque<>();
+    private final Deque<Saved> saved = new ArrayDeque<>();
+
+    /// What one [#save()] pushed of the state this class mirrors.
+    private record Saved(Affine matrix, Clip clip) {}
+
+    /// The clip in force, in **physical** pixels, kept in Java for the reason
+    /// [#matrix] is: Blend2D will not hand it back, and a GPU layer's scissor is
+    /// the part of it the clip lets through (ADR-0481).
+    ///
+    /// A clip under a transform that is not a scale and a translation is its
+    /// bounding box, which is what Blend2D clips to as well. The region
+    /// [#repaintOnly] confines a frame to is not in it: that is which part of the
+    /// frame is being repainted, not which part of a layer can be seen.
+    private Clip clip = Clip.NONE;
+
+    /// The region [#repaintOnly] is running its body in, in physical pixels, or
+    /// null outside one.
+    private @Nullable Clip region;
+
+    /// How this frame shows GPU layers, or null when it cannot. See [#gpuLayer].
+    private @Nullable GpuSurface gpu;
+
+    /// The GPU layers placed so far, in paint order.
+    private final List<GpuPlacement> placements = new ArrayList<>();
+
+    /// The read-back layers' pixels drawn so far, held until [#end()]: a
+    /// threaded context may still be reading them after the blit returns.
+    private final List<ByteBuffer> drawnPixels = new ArrayList<>();
 
     private int borrowed;
 
@@ -105,6 +148,18 @@ public final class Frame {
     /// rather than left to [PaintThreads] -- what the paint benchmark sweeps.
     public static Frame over(PixelBuffer buffer, DisplayScale scale, int threadCount) {
         return new Frame(buffer, scale, threadCount);
+    }
+
+    /// A frame over a buffer someone else owns, whose GPU layers `gpu` shows:
+    /// what [Window] paints a window's frames with, with the surface
+    /// [BackendWindow#gpuSurface()] gave it (ADR-0481).
+    ///
+    /// The caller keeps the buffer and must [#end()] the frame before reading it,
+    /// and then hands [#gpuPlacements()] back to `gpu`.
+    public static Frame over(PixelBuffer buffer, DisplayScale scale, GpuSurface gpu) {
+        var frame = new Frame(buffer, scale);
+        frame.gpu = Objects.requireNonNull(gpu, "gpu");
+        return frame;
     }
 
     Frame(PixelBuffer buffer, DisplayScale scale) {
@@ -709,12 +764,17 @@ public final class Frame {
     public void clipTo(double x, double y, double width, double height) {
         requireOpen();
         context.clipTo(x, y, width, height);
+        // After the call, which is what refuses a clip that is not one.
+        clip = clip.intersect(toPixels(Clip.of(x, y, width, height)));
     }
 
-    /// Back to the whole frame.
+    /// Back to the whole frame -- or, inside a [#save()], to the clip in force
+    /// when it was made, which is where Blend2D's own reset goes.
     public void resetClip() {
         requireOpen();
         context.resetClip();
+        var top = saved.peek();
+        clip = top == null ? Clip.NONE : top.clip();
     }
 
     /// Pushes clip, transform, style and alpha, so that whatever is drawn next
@@ -733,16 +793,256 @@ public final class Frame {
     public void save() {
         requireOpen();
         context.save();
-        saved.push(matrix);
+        saved.push(new Saved(matrix, clip));
     }
 
     /// Pops what [#save()] pushed.
     public void restore() {
         requireOpen();
         context.restore();
-        if (!saved.isEmpty()) {
-            matrix = saved.pop();
+        var top = saved.poll();
+        if (top != null) {
+            matrix = top.matrix();
+            clip = top.clip();
         }
+    }
+
+    /// Runs `body` with everything it draws confined to `(x, y, width, height)`,
+    /// in logical coordinates: the part of the frame being **repainted**, when
+    /// the rest still holds the last frame's pixels (ADR-0072).
+    ///
+    /// A clip, as far as the pixels go, with two differences that matter to a
+    /// partial repaint:
+    ///
+    /// - **It outlasts [#resetClip()].** Inside `body` a reset goes back to the
+    ///   region rather than to the whole frame, so a scroll view that widens its
+    ///   clip again when its subtree ends cannot widen it past what is being
+    ///   repainted.
+    /// - **It does not scissor GPU layers.** A layer placed in `body` is placed
+    ///   with the part of it the other clips let through, whether or not that
+    ///   lies inside the region: which part of the frame is repainted is not
+    ///   which part of a video can be seen, and a layer only half inside the
+    ///   damage still shows whole (ADR-0481).
+    ///
+    /// Scoped, like a pass on the GPU, so the region cannot be left in force:
+    /// clip and transform are back to what they were when `body` returns or
+    /// throws. A region of no area repaints nothing, and `body` does not run.
+    ///
+    /// @throws IllegalStateException when called inside another's `body`
+    public void repaintOnly(double x, double y, double width, double height, Runnable body) {
+        requireOpen();
+        Objects.requireNonNull(body, "body");
+        if (region != null) {
+            throw new IllegalStateException(
+                    "repaintOnly does not nest: this frame is already repainting only " + region);
+        }
+        if (!(width > 0) || !(height > 0)) {
+            return;
+        }
+        // Two saves around the clip: the outer one is what puts the clip back
+        // afterwards, and the inner one is what Blend2D's reset returns to
+        // inside `body`, which is how the region outlasts a reset.
+        context.save();
+        try {
+            context.clipTo(x, y, width, height);
+            context.save();
+            saved.push(new Saved(matrix, clip));
+            var depth = saved.size();
+            region = toPixels(Clip.of(x, y, width, height));
+            try {
+                body.run();
+            } finally {
+                region = null;
+                // Whatever `body` saved and did not restore goes with it, so
+                // the mirror agrees with the context again below.
+                while (saved.size() > depth) {
+                    saved.pop();
+                }
+                var top = saved.pop();
+                matrix = top.matrix();
+                clip = top.clip();
+                context.restore();
+            }
+        } finally {
+            context.restore();
+        }
+    }
+
+    /// Places `content`, which the GPU draws, in the logical rectangle
+    /// `(x, y, width, height)` and in paint order (`docs/gpu-plan.md`, D4;
+    /// ADR-0481).
+    ///
+    /// ```java
+    /// Box.of().painting((frame, size) -> {
+    ///     if (!frame.gpuLayer(video, 0, 0, size.width(), size.height())) {
+    ///         paintThePosterInstead(frame, size);
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// What is painted after this is above the layer, and what was painted
+    /// before it under its box is hidden: a GPU layer is **opaque**, as an
+    /// opaque box would be. How it gets there depends on the frame's surface:
+    ///
+    /// - **Composited**: the box is cleared to transparent -- a hole -- and the
+    ///   compositor draws the layer under the frame when it is presented.
+    /// - **Read back**: the layer is rendered on the GPU now, downloaded, and
+    ///   its pixels replace the box's. This blocks until the GPU is done.
+    ///
+    /// Either way the layer is recorded in [#gpuPlacements()], with the part of
+    /// it the clips in force let through as its scissor, and the two ways show
+    /// the same pixels.
+    ///
+    /// **An axis-aligned rectangle of whole pixels.** The box goes through the
+    /// transform in force and is rounded to the nearest physical pixel on each
+    /// edge; under a rotation it is the bounding box. Clips are rectangles in
+    /// the same way, so a rounded clip scissors a layer to its bounding box.
+    ///
+    /// A layer the clips hide entirely is not placed and not rendered: a video
+    /// scrolled out of view costs nothing.
+    ///
+    /// @return false when this frame cannot show GPU content -- no GPU, a
+    ///         nested frame such as an `opacity` group's, or a read-back that
+    ///         failed -- and nothing was drawn: the caller paints what it shows
+    ///         instead. True otherwise, including when nothing of it can be seen
+    /// @throws IllegalArgumentException when a coordinate is not finite
+    public boolean gpuLayer(GpuContent content, double x, double y, double width, double height) {
+        requireOpen();
+        Objects.requireNonNull(content, "content");
+        if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(width) || !Double.isFinite(height)) {
+            throw new IllegalArgumentException("a GPU layer is placed at finite coordinates, not " + width + "x"
+                    + height + " at (" + x + ", " + y + ")");
+        }
+        var surface = gpu;
+        if (surface == null) {
+            return false;
+        }
+        if (!(width > 0) || !(height > 0)) {
+            return true;
+        }
+        var target = round(toPixels(Clip.of(x, y, width, height)));
+        if (target.isEmpty()) {
+            return true;
+        }
+        var scissor = intersect(
+                target,
+                round(clip.intersect(
+                        Clip.of(0, 0, buffer.size().width(), buffer.size().height()))));
+        if (scissor.isEmpty()) {
+            return true;
+        }
+        // Outside the region being repainted this frame's pixels are last
+        // frame's, which already show the layer where it is: nothing to draw.
+        var painted = region == null || !intersect(scissor, round(region)).isEmpty();
+        switch (surface) {
+            case GpuSurface.Composited _ -> {
+                if (painted) {
+                    punch(target);
+                }
+            }
+            case GpuSurface.ReadBack readBack -> {
+                if (painted) {
+                    var pixels = readBack.render(content, target.size());
+                    if (pixels.isEmpty()) {
+                        return false;
+                    }
+                    replace(target, pixels.get());
+                }
+            }
+        }
+        placements.add(new GpuPlacement(content, target, scissor));
+        return true;
+    }
+
+    /// The GPU layers [#gpuLayer] placed on this frame, in paint order. Readable
+    /// after [#end()], which is when the frame's owner reads it.
+    public List<GpuPlacement> gpuPlacements() {
+        return List.copyOf(placements);
+    }
+
+    /// Clears `target`, in physical pixels, to transparent black under the clip
+    /// in force: the hole a composited layer shows through.
+    private void punch(PhysicalRect target) {
+        context.save();
+        try {
+            context.transformToPixels();
+            context.compOp(BlendCompOp.SRC_COPY);
+            context.fillRect(target.x(), target.y(), target.width(), target.height(), 0x00000000);
+        } finally {
+            context.compOp(BlendCompOp.SRC_OVER);
+            context.restore();
+        }
+    }
+
+    /// Replaces `target`, in physical pixels, with `pixels` under the clip in
+    /// force: a read-back layer, pixel for pixel, as the compositor would have
+    /// drawn it -- replacing rather than blending, as its quad does.
+    private void replace(PhysicalRect target, PixelBuffer pixels) {
+        if (!pixels.size().equals(target.size())) {
+            throw new IllegalStateException(
+                    "a read-back layer came back " + pixels.size() + " for a " + target.size() + " box");
+        }
+        // Direct memory, which is all Blend2D can read, and held until `end`:
+        // the context may be threaded, and then the blit is only queued when
+        // this returns. What a read-back gives is on the heap, since the GPU's
+        // own memory is handed back as soon as it is copied out.
+        var source = pixels.pixels();
+        if (!source.isDirect()) {
+            var direct = ByteBuffer.allocateDirect(source.remaining()).order(ByteOrder.nativeOrder());
+            direct.put(0, source, source.position(), source.remaining());
+            source = direct;
+        }
+        drawnPixels.add(source);
+        try (var view =
+                BlendImage.wrapping(source, pixels.size().width(), pixels.size().height(), pixels.stride())) {
+            context.save();
+            try {
+                context.transformToPixels();
+                context.compOp(BlendCompOp.SRC_COPY);
+                context.blit(target.x(), target.y(), view);
+            } finally {
+                context.compOp(BlendCompOp.SRC_OVER);
+                context.restore();
+            }
+        }
+    }
+
+    /// `logical`, a rectangle under the transform in force, as its bounding box
+    /// in physical pixels.
+    private Clip toPixels(Clip logical) {
+        var mapped = logical.map(matrix);
+        var factor = scale.factor();
+        return new Clip(
+                mapped.left() * factor, mapped.top() * factor, mapped.right() * factor, mapped.bottom() * factor);
+    }
+
+    /// `pixels` with each edge rounded to the nearest whole pixel: the one rule
+    /// both a layer's hole and its quad are placed by. Empty when it covers no
+    /// whole pixel; clamped to the range of an `int`.
+    private static PhysicalRect round(Clip pixels) {
+        var left = edge(pixels.left());
+        var top = edge(pixels.top());
+        var right = edge(pixels.right());
+        var bottom = edge(pixels.bottom());
+        if (right <= left || bottom <= top) {
+            return new PhysicalRect(left, top, 0, 0);
+        }
+        return new PhysicalRect(left, top, right - left, bottom - top);
+    }
+
+    private static int edge(double value) {
+        return (int) Math.max(Integer.MIN_VALUE / 2, Math.min(Integer.MAX_VALUE / 2, Math.round(value)));
+    }
+
+    private static PhysicalRect intersect(PhysicalRect a, PhysicalRect b) {
+        var left = Math.max(a.x(), b.x());
+        var top = Math.max(a.y(), b.y());
+        var right = Math.min(a.right(), b.right());
+        var bottom = Math.min(a.bottom(), b.bottom());
+        if (right <= left || bottom <= top) {
+            return new PhysicalRect(left, top, 0, 0);
+        }
+        return new PhysicalRect(left, top, right - left, bottom - top);
     }
 
     /// Finishes the frame, so the pixels are complete before anything presents
@@ -775,6 +1075,8 @@ public final class Frame {
                 borrowed = 0;
             } finally {
                 image.close();
+                // The context has joined its workers, so nothing reads these.
+                drawnPixels.clear();
             }
         }
     }

@@ -237,18 +237,15 @@ public final class RenderTree implements AutoCloseable {
                 Math.floor(bounds.y() / scale),
                 Math.ceil(bounds.width() / scale) + 1,
                 Math.ceil(bounds.height() / scale) + 1);
-        frame.clipTo(clip.left(), clip.top(), clip.width(), clip.height());
-        try {
-            // The damage is the *base* of the clip stack, not merely the first
-            // clip: a scroll view inside the damaged region narrows it further
-            // and must widen back to the damage when its subtree ends, rather
-            // than to the whole frame (ADR-0114).
-            paint(frame, clip);
-        } finally {
-            // Context state, so it goes back: the next thing drawn on this frame
-            // did not ask to be clipped.
-            frame.resetClip();
-        }
+        // The damage is the *base* of the clip stack, not merely the first
+        // clip: a scroll view inside the damaged region narrows it further and
+        // must widen back to the damage when its subtree ends, rather than to
+        // the whole frame (ADR-0114). `repaintOnly` is what keeps it there, and
+        // what keeps it out of the scissor of a GPU layer the damage cuts
+        // across, which still shows whole (ADR-0481). It puts the clip back
+        // when the walk is done: the next thing drawn on this frame did not ask
+        // to be clipped.
+        frame.repaintOnly(clip.left(), clip.top(), clip.width(), clip.height(), () -> paint(frame, clip));
     }
 
     /// Paints the tree laid out by the last [#update].
@@ -273,14 +270,16 @@ public final class RenderTree implements AutoCloseable {
         boxesCulled = 0;
         {
             var state = new Painting(frame, base);
-            paint(root, 0, 0, 1.0, Affine.IDENTITY, base, state);
+            // The walk's clips are the tree's own; the damage is `state`'s, and
+            // is only what the walk culls against.
+            paint(root, 0, 0, 1.0, Affine.IDENTITY, Clip.NONE, state);
             state.untransform();
             // Back to the clip the frame arrived with, for the reason the
             // transform goes back to identity: the next thing drawn on this
             // frame -- an application's `onPaint`, or an overlay above the
             // tree -- did not ask to be confined to the last scroll view the
             // walk happened to end inside.
-            state.clipTo(state.base());
+            state.clipTo(Clip.NONE);
         }
     }
 
@@ -291,22 +290,32 @@ public final class RenderTree implements AutoCloseable {
         private final Frame frame;
         private Affine current = Affine.IDENTITY;
 
-        /// The clip the frame arrived with — the damage rectangle, or
-        /// [Clip#NONE] for a full repaint. Every restore goes back to *this*
-        /// rather than to no clip at all, because `resetClip` on the context
-        /// means the whole surface and a subtree that finished must not be able
-        /// to widen the damage it was painted inside (ADR-0114).
+        /// The region being repainted — the damage rectangle, or [Clip#NONE]
+        /// for a full repaint. What the walk culls against, and nothing else:
+        /// the frame holds it as [Frame#repaintOnly]'s region, so a reset of
+        /// the clip goes back to it rather than to the whole surface, and a
+        /// subtree that finished cannot widen the damage it was painted inside
+        /// (ADR-0114). Kept out of the clips below, which are the tree's own,
+        /// so a GPU layer the damage cuts across is still scissored by the tree
+        /// alone (ADR-0481).
         private final Clip base;
 
-        /// What the context is currently clipped to. Tracked here for the same
-        /// reason `current` tracks the transform: it is context state, Blend2D
-        /// offers no stack, and a run of unclipped boxes must cost no calls.
-        private Clip clip;
+        /// What the tree currently clips the context to, the region aside.
+        /// Tracked here for the same reason `current` tracks the transform: it
+        /// is context state, Blend2D offers no stack, and a run of unclipped
+        /// boxes must cost no calls.
+        private Clip clip = Clip.NONE;
 
         Painting(Frame frame, Clip base) {
             this.frame = frame;
             this.base = base;
-            this.clip = base;
+        }
+
+        /// What of `clip`, one of the tree's, lies in the region being
+        /// repainted: what a subtree is culled against. `clip` itself for a
+        /// full repaint, which allocates nothing.
+        Clip visible(Clip clip) {
+            return base.isNone() ? clip : clip.intersect(base);
         }
 
         void transform(Affine matrix) {
@@ -350,10 +359,6 @@ public final class RenderTree implements AutoCloseable {
             }
             clip = next;
         }
-
-        Clip base() {
-            return base;
-        }
     }
 
     /// Draws one node and everything under it.
@@ -383,8 +388,9 @@ public final class RenderTree implements AutoCloseable {
         // drawn outside its parent -- and it is skipped outright when nothing
         // clips, which is every box in a window with no viewport in it and the
         // case that must stay free.
-        if (!parentClip.isNone()
-                && !object.ink().shiftedBy(left, top).mappedBy(transform).overlaps(parentClip)) {
+        var visible = state.visible(parentClip);
+        if (!visible.isNone()
+                && !object.ink().shiftedBy(left, top).mappedBy(transform).overlaps(visible)) {
             boxesCulled++;
             return;
         }
@@ -416,10 +422,11 @@ public final class RenderTree implements AutoCloseable {
         // its own background and its own border, and only what is inside it is
         // cut off.
         var clip = clipFor(box, transform, parentClip, left, top, layout);
-        if (clip.isEmpty()) {
-            // Scrolled entirely out of sight. Nothing under here can produce a
-            // pixel, so the walk stops -- which is the one place a clip saves
-            // the *traversal* as well as the rasterization (ADR-0114).
+        if (clip.isEmpty() || state.visible(clip).isEmpty()) {
+            // Scrolled entirely out of sight, or out of the damage. Nothing
+            // under here can produce a pixel, so the walk stops -- which is the
+            // one place a clip saves the *traversal* as well as the
+            // rasterization (ADR-0114).
             return;
         }
         // Document order, then whatever asked to be drawn last. Two passes and no

@@ -1369,9 +1369,19 @@ public final class Sdl3Backend implements Backend {
     /// transparent window for the GPU. Asking would cost a surface torn down and
     /// rebuilt for every menu opened, to be told no.
     boolean wantsComposited(Sdl3Window window) {
-        return composition == Composition.ALWAYS
-                && !(window instanceof Sdl3Popup)
-                && !embeddedPages.containsKey(window);
+        var policy =
+                switch (composition) {
+                    case ALWAYS -> true;
+                    // For its GPU layers, and for a while after (ADR-0481).
+                    case AUTO -> window.showsGpuLayers();
+                    case NEVER, OFF -> false;
+                };
+        return policy && !(window instanceof Sdl3Popup) && !embeddedPages.containsKey(window);
+    }
+
+    /// Whether GPU layers are shown at all: false with `goldberry.gpu=off`.
+    boolean usesGpu() {
+        return composition.usesGpu();
     }
 
     /// `:gpu`'s compositor, found the first time it is asked for; empty when

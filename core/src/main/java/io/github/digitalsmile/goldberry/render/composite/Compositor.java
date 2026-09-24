@@ -22,6 +22,15 @@ public interface Compositor extends AutoCloseable {
     /// and nothing is left claimed.
     Claim claim(SdlWindowHandle window);
 
+    /// A surface that renders GPU layers and reads them back, for one window
+    /// that presents on the CPU: one the policy leaves there, one the GPU
+    /// refused, a popup, or a headless one (`docs/gpu-plan.md`, D3; ADR-0481).
+    ///
+    /// Makes no device. The first layer rendered does, as the first claim does,
+    /// and a device that cannot be made leaves the surface rendering nothing,
+    /// so the layers' painters draw what they show without a GPU.
+    ReadbackSurface readback();
+
     /// Releases what is still claimed and destroys the device. Idempotent.
     @Override
     void close();

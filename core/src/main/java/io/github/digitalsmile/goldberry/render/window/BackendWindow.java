@@ -110,6 +110,24 @@ public interface BackendWindow extends AutoCloseable {
         return PresentTimings.NONE;
     }
 
+    /// How this window shows GPU layers now, or empty when it cannot show them
+    /// at all (`docs/gpu-plan.md`, D5; ADR-0481).
+    ///
+    /// Asked once a frame, after [#acquireFrame], which is where a window
+    /// changes how it presents: the answer holds until the frame is presented.
+    /// [GpuSurface.Composited] while the window presents through the GPU,
+    /// [GpuSurface.ReadBack] while it presents on the CPU and a GPU may still
+    /// render layers for it.
+    ///
+    /// **No device is made by asking.** A surface makes one, if it has to, the
+    /// first time a layer is actually placed, so a window that shows no GPU
+    /// layer never loads a driver for this (`docs/gpu-plan.md`, D2).
+    ///
+    /// Empty by default: a backend with no GPU under it, and `goldberry.gpu=off`.
+    default Optional<GpuSurface> gpuSurface() {
+        return Optional.empty();
+    }
+
     /// Asks for a [BackendEvent.FrameDue] when the platform is ready to draw.
     ///
     /// Vsync-aligned where the platform offers it. Repeated calls before the

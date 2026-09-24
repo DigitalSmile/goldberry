@@ -5,8 +5,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
@@ -17,6 +19,7 @@ import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.composite.Compositor;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
@@ -320,6 +323,13 @@ public final class HeadlessBackend implements Backend {
         for (var window : List.copyOf(windows)) {
             window.close();
         }
+        // After the windows, whose read-back surfaces hold textures on its
+        // device.
+        var gpu = compositor;
+        compositor = null;
+        if (gpu != null) {
+            gpu.close();
+        }
         // And the trays, which belong to the application rather than to a window
         // and would otherwise outlive the backend that made them.
         for (var tray : List.copyOf(trays)) {
@@ -327,6 +337,31 @@ public final class HeadlessBackend implements Backend {
         }
         windows.clear();
         pending.clear();
+    }
+
+    /// `:gpu`'s compositor, which renders this backend's GPU layers and reads
+    /// them back (`docs/gpu-plan.md`, D5; ADR-0481); found the first time a
+    /// window is asked for a surface, and closed with the backend.
+    private @Nullable Compositor compositor;
+
+    /// Whether looking found none, or the GPU is off: asked once.
+    private boolean compositorAbsent;
+
+    /// The compositor, or empty with no `:gpu` on the module path or with
+    /// `goldberry.gpu=off`, which the sdl3 backend reads too. Finding it makes
+    /// no device: the first layer rendered does.
+    Optional<Compositor> compositor() {
+        requireUiThread();
+        if (compositor == null && !compositorAbsent) {
+            var gpu = System.getProperty("goldberry.gpu", "");
+            if (gpu.trim().toLowerCase(Locale.ROOT).equals("off")) {
+                compositorAbsent = true;
+            } else {
+                compositor = ServiceLoader.load(Compositor.class).findFirst().orElse(null);
+                compositorAbsent = compositor == null;
+            }
+        }
+        return Optional.ofNullable(compositor);
     }
 
     /// Queues an event for the next [#pumpEvents].

@@ -24,6 +24,9 @@ dependencies {
     // runs the tests on the first thread (`gpuTest` below).
     testImplementation rootProject.project(':natives').sourceSets.test.output
     testImplementation libs.junit.platform.launcher
+    // GoldenImage, for the GPU layers' z-order goldens (docs/gpu-plan.md,
+    // phase 4), which live in src/test/resources/golden like every module's.
+    testImplementation testFixtures(project(':core'))
 }
 
 // ============================================================================
@@ -162,7 +165,8 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
             providers.systemProperty('goldberry.native.library')
                     .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
                     .get()
-    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver'].each { name ->
+    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver',
+     'goldberry.golden.update'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

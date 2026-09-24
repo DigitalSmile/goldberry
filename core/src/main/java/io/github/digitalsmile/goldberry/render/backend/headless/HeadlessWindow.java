@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.composite.ReadbackSurface;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -17,6 +18,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 import io.github.digitalsmile.goldberry.render.window.IconImage;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
@@ -50,6 +52,10 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     private @Nullable PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
     private int presentCount;
+
+    /// The compositor's read-back surface for this window, made the first time
+    /// one is asked for, and closed with the window (ADR-0481).
+    private @Nullable ReadbackSurface readback;
     private Cursor cursor = Cursor.DEFAULT;
     private int cursorChanges;
 
@@ -330,6 +336,36 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         // loop's "run until every window has closed" quietly never finishes.
         backend.closePopupsOf(this);
         backend.forget(this);
+        var surface = readback;
+        readback = null;
+        if (surface != null) {
+            surface.close();
+        }
+    }
+
+    /// A read-back surface, when `:gpu` is on the module path: a headless
+    /// window has nothing to composite into, so its GPU layers are rendered on
+    /// the GPU and drawn into its frames as pixels (`docs/gpu-plan.md`, D5;
+    /// ADR-0481). Its device is made by the first layer, and needs a video
+    /// driver the GPU can use (`offscreen` under lavapipe, `cocoa` on macOS),
+    /// which is what the GPU lane runs; without one the layers' painters draw
+    /// what they show without a GPU.
+    ///
+    /// Empty without `:gpu`, and with `goldberry.gpu=off`.
+    @Override
+    public Optional<GpuSurface> gpuSurface() {
+        backend.requireUiThread();
+        if (!open) {
+            return Optional.empty();
+        }
+        if (readback == null) {
+            var compositor = backend.compositor();
+            if (compositor.isEmpty()) {
+                return Optional.empty();
+            }
+            readback = compositor.get().readback();
+        }
+        return Optional.of(readback);
     }
 
     /// The last frame presented, if any. What a golden-image test asserts on.

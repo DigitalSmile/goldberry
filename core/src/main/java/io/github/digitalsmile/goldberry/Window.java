@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.GpuPlacement;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
@@ -515,6 +516,10 @@ public final class Window implements AutoCloseable {
     /// Whether the frame currently being painted may be repainted in part.
     private boolean partialRepaint;
 
+    /// The GPU layers the window showed after its last frame, in paint order:
+    /// what that frame placed, and what a partial repaint kept (ADR-0481).
+    private List<GpuPlacement> gpuLayers = List.of();
+
     /// Whether only the damaged region of this frame needs repainting.
     ///
     /// **Valid only inside the paint callback.** Three things have to hold, and
@@ -629,7 +634,11 @@ public final class Window implements AutoCloseable {
         // it has not finished with shows a half-drawn frame. The `finally` is
         // what keeps a painter that throws from leaving the context attached to
         // the platform's surface.
-        var frame = Frame.over(target, window.scale());
+        // Asked after `acquireFrame`, which is where a window changes how it
+        // presents: the answer holds until this frame is presented (ADR-0481).
+        var gpu = window.gpuSurface();
+        var frame =
+                gpu.isPresent() ? Frame.over(target, window.scale(), gpu.get()) : Frame.over(target, window.scale());
         var built = traced ? System.nanoTime() : 0L;
         long drawn;
         try {
@@ -639,6 +648,15 @@ public final class Window implements AutoCloseable {
             frame.end();
         }
         var painted = System.nanoTime();
+
+        // Every layer on screen, which after a partial repaint includes the ones
+        // it did not reach, handed over before the present that draws them.
+        if (gpu.isPresent()) {
+            gpuLayers = GpuLayers.merge(gpuLayers, frame.gpuPlacements(), partialRepaint ? damage : null);
+            gpu.get().placed(gpuLayers);
+        } else {
+            gpuLayers = List.of();
+        }
 
         // What went missing between the last frame and this one, from the two
         // things that can tell: the backend's pacer, whose counter is monotonic

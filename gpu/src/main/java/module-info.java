@@ -6,19 +6,17 @@
 /// **Being built** (`docs/gpu-plan.md`, M4). Exported: the GPU API in
 /// `io.github.digitalsmile.goldberry.gpu` -- a device, its textures, buffers,
 /// samplers, shaders and pipelines, frames of scoped copy and render passes,
-/// and readback -- which `canvas3d` renderers and GPU layers are written
-/// against (phase 2). A device reaches them from the backend; the composited
-/// window and `BackendWindow.gpuSurface()` that hand it out are phase 3, and
-/// `canvas3d` itself phase 5. The toolkit's own shaders and the quad and
-/// Y'CbCr arithmetic they need stay in the unexported `…gpu.render`.
+/// and readback (phase 2) -- and `GpuLayer`, what a painter places in a frame
+/// for the GPU to draw (phase 4). A layer renders with the device of the window
+/// it is shown in: composited under the window's frame, or read back into it
+/// where the window presents on the CPU (ADR-0479, ADR-0481). `canvas3d` itself
+/// is phase 5. The toolkit's own shaders and the quad and Y'CbCr arithmetic
+/// they need stay in the unexported `…gpu.render`.
 ///
-/// `BackendWindow.gpuSurface()` does not exist yet, and this comment claimed it
-/// was "in the SPI from day 1" until the 2026-09-18 review read it against
-/// `Backend`, whose own doc says the GPU surface "is absent from this cut and not
-/// dropped: it needs a consumer before its shape can be decided, and an interface
-/// designed against nothing is an interface that gets designed twice"
-/// (ADR-0019). That is the position, and `canvas3d` is the consumer it is
-/// waiting for.
+/// `BackendWindow.gpuSurface()` came with its consumer, the GPU layer
+/// (ADR-0481), and not "from day 1" as this comment once said: the GPU surface
+/// "needs a consumer before its shape can be decided, and an interface designed
+/// against nothing is an interface that gets designed twice" (ADR-0019).
 module io.github.digitalsmile.goldberry.gpu {
     requires transitive io.github.digitalsmile.goldberry.core;
 

@@ -13,6 +13,9 @@
 /// - [GpuFrame]: one frame's command buffer. Its [CopyPass]es upload and its
 ///   [RenderPass]es draw, each open only while the lambda given for it runs;
 ///   [GpuFrame#readback] brings pixels back as a [Readback].
+/// - [GpuLayer]: pixels the GPU draws into a window, placed by a painter in
+///   paint order among what the CPU paints, and rendered with the window's
+///   device into a texture the toolkit composites or reads back (ADR-0481).
 ///
 /// ## A frame
 ///
