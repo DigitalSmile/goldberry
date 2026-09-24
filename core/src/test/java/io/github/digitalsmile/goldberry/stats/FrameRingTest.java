@@ -276,4 +276,53 @@ class FrameRingTest {
     void emptySummary() {
         assertEquals(FrameSummary.NONE, new FrameRing().summary());
     }
+
+    /// A composited window's present, banked beside the frame it belongs to
+    /// ([ADR-0479]).
+    @Test
+    @DisplayName("a composited present is banked with its frame, over the composited frames alone")
+    void presents() {
+        var ring = new FrameRing();
+        ring.record(0, MS);
+        ring.presented(io.github.digitalsmile.goldberry.render.PresentTimings.NONE);
+        ring.record(10 * MS, 11 * MS);
+        ring.presented(new io.github.digitalsmile.goldberry.render.PresentTimings(MS, 7 * MS, MS / 2, 4096, true));
+        ring.record(20 * MS, 21 * MS);
+        ring.presented(new io.github.digitalsmile.goldberry.render.PresentTimings(3 * MS, 5 * MS, MS / 2, 1024, true));
+
+        assertEquals(2, ring.compositedFrames(), "the frame through the surface is not one");
+        assertEquals(1.0, ring.upload().min(), 1e-9);
+        assertEquals(2.0, ring.upload().mean(), 1e-9, "not dragged down by the uncomposited frame");
+        assertEquals(3.0, ring.upload().max(), 1e-9);
+        assertEquals(6.0, ring.acquire().mean(), 1e-9);
+        assertEquals(0.5, ring.submit().mean(), 1e-9);
+        assertEquals(2560.0, ring.uploadBytes(), 1e-9);
+
+        var summary = ring.presentSummary();
+        assertEquals(2, summary.frames());
+        assertEquals(2.0, summary.meanUploadMillis(), 1e-9);
+        assertEquals(2560.0, summary.meanUploadBytes(), 1e-9);
+        assertEquals(
+                "2 frame(s) composited; upload mean 2.00 ms, 2560 bytes; acquire mean 6.00 ms; submit mean 0.50 ms",
+                summary.describe());
+        assertEquals(PresentSummary.NONE, new FrameRing().presentSummary());
+    }
+
+    @Test
+    @DisplayName("a window presenting through its surface has no present readings, and a slot reused forgets its own")
+    void noPresents() {
+        var ring = new FrameRing();
+        ring.presented(new io.github.digitalsmile.goldberry.render.PresentTimings(MS, MS, MS, 1, true));
+        assertEquals(0, ring.compositedFrames(), "nothing recorded to bank it against");
+        for (var frame = 0; frame < FrameRing.CAPACITY; frame++) {
+            ring.record(frame * 10 * MS, frame * 10 * MS + MS);
+            ring.presented(new io.github.digitalsmile.goldberry.render.PresentTimings(MS, MS, MS, 1, true));
+        }
+        assertEquals(FrameRing.CAPACITY, ring.compositedFrames());
+        // A frame recorded and never said to be presented reads as not composited.
+        ring.record(1_000 * MS, 1_001 * MS);
+        assertEquals(FrameRing.CAPACITY - 1, ring.compositedFrames());
+        assertEquals(FrameStats.Span.NONE, new FrameRing().upload());
+        assertEquals(0, new FrameRing().uploadBytes());
+    }
 }

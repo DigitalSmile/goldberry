@@ -269,6 +269,79 @@ public enum Reading {
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 4;
         }
+    },
+
+    /// A composited frame's upload, and how much went up:
+    /// `upload 0.08 / 0.11 / 0.95 ms, 12.5 KiB` (ADR-0479).
+    ///
+    /// The CPU cost of presenting through the GPU that grows with the damage:
+    /// the damaged rows copied into staging memory and the copy recorded. The
+    /// size is the mean a frame uploaded, which is what says whether damage
+    /// tracking pays for itself on this path -- a blinking caret should be a
+    /// few KiB, and a full-window animation the whole frame.
+    ///
+    /// Dashes on a window presenting through its surface, which uploads nothing
+    /// of the kind.
+    UPLOAD("upload") {
+        @Override
+        String text(FrameStats stats) {
+            return span("upload", stats.upload(), 2) + ", " + bytes(stats.uploadBytes());
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.upload().mean();
+        }
+
+        /// An eighth of a display frame: as much as layout gets.
+        @Override
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 8;
+        }
+    },
+
+    /// A composited frame's wait for its swapchain texture:
+    /// `acquire 7.20 / 7.90 / 8.30 ms` (ADR-0479).
+    ///
+    /// **Not work, and never coloured**: it is the display pacing the loop, as
+    /// the frame interval is. Near the rest of a display frame is a loop keeping
+    /// up; near nothing is one the swapchain is not holding back, which is a loop
+    /// that is late rather than one that is fast.
+    ACQUIRE("acquire") {
+        @Override
+        String text(FrameStats stats) {
+            return span("acquire", stats.acquire(), 2);
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.acquire().mean();
+        }
+
+        @Override
+        Level level(FrameStats stats) {
+            return Level.OK;
+        }
+    },
+
+    /// A composited frame's composite recorded and submitted:
+    /// `submit 0.10 / 0.14 / 0.40 ms` (ADR-0479).
+    SUBMIT("submit") {
+        @Override
+        String text(FrameStats stats) {
+            return span("submit", stats.submit(), 2);
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.submit().mean();
+        }
+
+        /// A sixteenth of a display frame: as much as build gets.
+        @Override
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 16;
+        }
     };
 
     /// How a reading is doing against its budget — see [#level].
@@ -327,7 +400,7 @@ public enum Reading {
             }
         }
         throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
-                + " fps, refresh, late, paint, build, style, layout, raster");
+                + " fps, refresh, late, paint, build, style, layout, raster, upload, acquire, submit");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -386,13 +459,30 @@ public enum Reading {
         return hertz > 0 ? 1_000.0 / hertz : 1_000.0 / 60;
     }
 
+    /// Whether this reading is one of a composited window's present, which
+    /// has nothing to read on a window presenting through its surface.
+    boolean isPresent() {
+        return this == UPLOAD || this == ACQUIRE || this == SUBMIT;
+    }
+
+    /// A byte count the way a person reads one: `512 B`, `12.5 KiB`, `31.6 MiB`.
+    static String bytes(double bytes) {
+        if (bytes < 1024) {
+            return String.format(Locale.ROOT, "%.0f B", bytes);
+        }
+        if (bytes < 1024 * 1024) {
+            return String.format(Locale.ROOT, "%.1f KiB", bytes / 1024);
+        }
+        return String.format(Locale.ROOT, "%.1f MiB", bytes / (1024 * 1024));
+    }
+
     /// How this reading is doing against its budget.
     ///
     /// [Level#OK] when there is nothing measured, because a HUD with no loop
     /// behind it is not a HUD reporting a healthy one — it draws dashes, and
     /// dashes in red would be an alarm about nothing.
     Level level(FrameStats stats) {
-        if (stats == null || stats.isEmpty()) {
+        if (stats == null || stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
             return Level.OK;
         }
         var budget = budgetMillis(stats);
@@ -413,7 +503,7 @@ public enum Reading {
     /// different on purpose — a loop genuinely stopped dead reads `0 fps`, and
     /// that is worth being able to tell apart from a HUD that is not plugged in.
     String render(FrameStats stats) {
-        if (stats == null || stats.isEmpty()) {
+        if (stats == null || stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
             return switch (this) {
                 case FPS -> "— fps";
                 case REFRESH -> "refresh —";
@@ -423,6 +513,9 @@ public enum Reading {
                 case STYLE -> "style —";
                 case LAYOUT -> "layout —";
                 case RASTER -> "raster —";
+                case UPLOAD -> "upload —";
+                case ACQUIRE -> "acquire —";
+                case SUBMIT -> "submit —";
             };
         }
         return text(stats);

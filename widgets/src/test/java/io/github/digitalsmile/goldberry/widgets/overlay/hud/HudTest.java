@@ -396,4 +396,54 @@ class HudTest {
     void emptyIsTheDefault() {
         assertEquals(Hud.DEFAULT, new Hud(List.of(), Attributes.NONE).readings());
     }
+
+    /// A composited window's present ([ADR-0479]): three readings over the
+    /// composited frames, and dashes where there are none.
+    @Test
+    @DisplayName("`present` shows where a composited frame's present went, and dashes on a surface")
+    void presentReadings() {
+        var ring = new io.github.digitalsmile.goldberry.stats.FrameRing();
+        ring.displayHertz(60);
+        ring.record(0, 2_000_000);
+        ring.presented(
+                new io.github.digitalsmile.goldberry.render.PresentTimings(100_000, 7_900_000, 150_000, 12_800, true));
+        var box = renderer(ring).render(new ElementTree(new Hud(Reading.UPLOAD, Reading.ACQUIRE, Reading.SUBMIT)));
+        assertEquals(
+                List.of(
+                        "upload 0.10 / 0.10 / 0.10 ms, 12.5 KiB",
+                        "acquire 7.90 / 7.90 / 7.90 ms",
+                        "submit 0.15 / 0.15 / 0.15 ms"),
+                readings(box));
+
+        var surface = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
+                .render(new ElementTree(new Hud(Reading.UPLOAD, Reading.ACQUIRE, Reading.SUBMIT)));
+        assertEquals(List.of("upload —", "acquire —", "submit —"), readings(surface));
+    }
+
+    @Test
+    @DisplayName("`readings=\"present\"` is the composited present in one word, and the three parse")
+    void presentFromMarkup() {
+        var hud = (Hud) Widgets.inflater()
+                .inflate(KdlParser.parse("hud readings=\"present\"").getFirst());
+        assertEquals(Hud.PRESENT, hud.readings());
+        assertEquals(Reading.ACQUIRE, Reading.parse("acquire"));
+        assertTrue(assertThrows(IllegalArgumentException.class, () -> Reading.parse("draw"))
+                .getMessage()
+                .contains("upload, acquire, submit"));
+    }
+
+    @Test
+    @DisplayName("an upload over an eighth of a frame is over budget, and waiting for the display never is")
+    void presentBudgets() {
+        var ring = new io.github.digitalsmile.goldberry.stats.FrameRing();
+        ring.displayHertz(60);
+        ring.record(0, 2_000_000);
+        ring.presented(new io.github.digitalsmile.goldberry.render.PresentTimings(
+                3_000_000, 16_000_000, 100_000, 33_000_000, true));
+        assertEquals(Reading.Level.OVER, Reading.UPLOAD.level(ring));
+        assertEquals(Reading.Level.OK, Reading.ACQUIRE.level(ring));
+        assertEquals(Reading.Level.OK, Reading.SUBMIT.level(ring));
+        assertEquals("31.5 MiB", Reading.bytes(33_000_000));
+        assertEquals("512 B", Reading.bytes(512));
+    }
 }

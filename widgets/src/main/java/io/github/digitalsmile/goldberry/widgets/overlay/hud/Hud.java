@@ -96,6 +96,17 @@ public record Hud(List<Reading> readings, Attributes attributes)
             Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
 
+    /// The rate, what the display can do, the toolkit's paint, and where a
+    /// composited window's present went: `hud readings="present"`
+    /// (`docs/gpu-plan.md`, phase 3; ADR-0479).
+    ///
+    /// Separate from [#STAGES] rather than added to it: on a window presenting
+    /// through its surface the three present readings are dashes, and the
+    /// breakdown most documents ask for should not grow three rows of nothing.
+    public static final List<Reading> PRESENT = List.of(
+            Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
+            Reading.UPLOAD, Reading.ACQUIRE, Reading.SUBMIT);
+
     /// A HUD showing [#STAGES].
     public static Hud stages() {
         return new Hud(STAGES, Attributes.NONE);
@@ -185,6 +196,9 @@ public record Hud(List<Reading> readings, Attributes attributes)
         // everybody wants when a frame has gone wrong (ADR-0146).
         if ("stages".equals(value.trim())) {
             return STAGES;
+        }
+        if ("present".equals(value.trim())) {
+            return PRESENT;
         }
         return List.of(value.trim().split("\\s+")).stream().map(Reading::parse).toList();
     }

@@ -18,8 +18,8 @@ import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
-import io.github.digitalsmile.goldberry.render.composite.PresentTimings;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -347,8 +347,10 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return composited != null && open;
     }
 
-    /// What the last composited present cost, or [PresentTimings#NONE].
-    PresentTimings lastPresent() {
+    /// What the last composited present cost, or [PresentTimings#NONE] while
+    /// this window presents through its surface.
+    @Override
+    public PresentTimings lastPresent() {
         return lastPresent;
     }
 

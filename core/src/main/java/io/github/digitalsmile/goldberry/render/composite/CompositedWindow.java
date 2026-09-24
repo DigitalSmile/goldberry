@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 
 /// A window a [Compositor] has claimed: its painted frames are uploaded to the
 /// GPU, damage only, and composited onto its swapchain.
@@ -25,7 +26,8 @@ public interface CompositedWindow extends AutoCloseable {
     ///                          closes this and presents on the CPU
     void present(PixelBuffer frame, List<DamageRect> damage);
 
-    /// What the last [#present] cost, for a frame loop's statistics.
+    /// What the last [#present] cost, for a frame loop's statistics:
+    /// [PresentTimings#NONE] when it presented nothing, for want of damage.
     PresentTimings lastPresent();
 
     /// Gives the window back: its surface can be asked for again. Idempotent.

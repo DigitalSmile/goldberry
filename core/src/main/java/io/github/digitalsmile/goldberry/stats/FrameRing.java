@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.stats;
 
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 
 /// The last [#CAPACITY] frames, and nothing older.
 ///
@@ -66,6 +67,62 @@ public final class FrameRing implements FrameStats {
         pendingStyled = Math.max(0L, styleNanos);
         pendingLaid = Math.max(0L, layoutNanos);
         pendingRastered = Math.max(0L, rasterNanos);
+    }
+
+    /// What each retained frame's present cost on the GPU, in the same slots:
+    /// zero for a frame presented through the window surface (ADR-0479).
+    private final long[] uploaded = new long[CAPACITY];
+    private final long[] acquired = new long[CAPACITY];
+    private final long[] submitted = new long[CAPACITY];
+    private final long[] uploadedBytes = new long[CAPACITY];
+    private final boolean[] composited = new boolean[CAPACITY];
+
+    /// What the frame **just recorded** cost to present through the GPU.
+    ///
+    /// After [#record], unlike the stages: a frame is recorded when its painter
+    /// returns, and it is presented after that, so its present is the last thing
+    /// known about it. Banked into the slot [#record] filled. A frame presented
+    /// through the window surface is handed [PresentTimings#NONE], and reads as
+    /// not composited.
+    public void presented(PresentTimings timings) {
+        if (size == 0) {
+            return;
+        }
+        var slot = (next - 1 + CAPACITY) % CAPACITY;
+        uploaded[slot] = Math.max(0L, timings.uploadNanos());
+        acquired[slot] = Math.max(0L, timings.acquireNanos());
+        submitted[slot] = Math.max(0L, timings.submitNanos());
+        uploadedBytes[slot] = Math.max(0L, timings.uploadBytes());
+        composited[slot] = timings.composited();
+        if (timings.composited()) {
+            compositedTotal++;
+            uploadNanosTotal += uploaded[slot];
+            uploadBytesTotal += uploadedBytes[slot];
+            acquireNanosTotal += acquired[slot];
+            submitNanosTotal += submitted[slot];
+        }
+    }
+
+    /// The run's composited presents, summed beside the ring for
+    /// [#presentSummary], as the paint's are for [#summary].
+    private long compositedTotal;
+
+    private long uploadNanosTotal;
+    private long uploadBytesTotal;
+    private long acquireNanosTotal;
+    private long submitNanosTotal;
+
+    @Override
+    public PresentSummary presentSummary() {
+        if (compositedTotal == 0) {
+            return PresentSummary.NONE;
+        }
+        return new PresentSummary(
+                compositedTotal,
+                uploadNanosTotal / 1_000_000.0 / compositedTotal,
+                (double) uploadBytesTotal / compositedTotal,
+                acquireNanosTotal / 1_000_000.0 / compositedTotal,
+                submitNanosTotal / 1_000_000.0 / compositedTotal);
     }
 
     /// Frames that were wanted and never seen, per slot — see [#lateFrames()].
@@ -143,6 +200,12 @@ public final class FrameRing implements FrameStats {
         laid[next] = pendingLaid;
         rastered[next] = pendingRastered;
         late[next] = pendingLate;
+        // Until [#presented] says otherwise, which it does after the present.
+        uploaded[next] = 0;
+        acquired[next] = 0;
+        submitted[next] = 0;
+        uploadedBytes[next] = 0;
+        composited[next] = false;
         pendingLate = 0;
         pendingBuilt = 0;
         pendingStyled = 0;
@@ -244,6 +307,71 @@ public final class FrameRing implements FrameStats {
     @Override
     public Span raster() {
         return spanOf(rastered);
+    }
+
+    @Override
+    public int compositedFrames() {
+        var total = 0;
+        for (var i = 0; i < size; i++) {
+            if (composited[(next - 1 - i + CAPACITY) % CAPACITY]) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    @Override
+    public Span upload() {
+        return compositedSpanOf(uploaded);
+    }
+
+    @Override
+    public Span acquire() {
+        return compositedSpanOf(acquired);
+    }
+
+    @Override
+    public Span submit() {
+        return compositedSpanOf(submitted);
+    }
+
+    @Override
+    public double uploadBytes() {
+        var frames = 0;
+        var total = 0L;
+        for (var i = 0; i < size; i++) {
+            var slot = (next - 1 - i + CAPACITY) % CAPACITY;
+            if (composited[slot]) {
+                frames++;
+                total += uploadedBytes[slot];
+            }
+        }
+        return frames == 0 ? 0 : (double) total / frames;
+    }
+
+    /// [#spanOf] over the composited frames only: a frame that went through the
+    /// window surface has no upload to count, and a zero for it would drag the
+    /// cheapest and the mean down to a cost nothing paid.
+    private Span compositedSpanOf(long[] ring) {
+        var frames = 0;
+        var total = 0L;
+        var min = Long.MAX_VALUE;
+        var max = 0L;
+        for (var i = 0; i < size; i++) {
+            var slot = (next - 1 - i + CAPACITY) % CAPACITY;
+            if (!composited[slot]) {
+                continue;
+            }
+            var value = ring[slot];
+            frames++;
+            total += value;
+            min = Math.min(min, value);
+            max = Math.max(max, value);
+        }
+        if (frames == 0) {
+            return Span.NONE;
+        }
+        return new Span(min / 1_000_000.0, total / 1_000_000.0 / frames, max / 1_000_000.0);
     }
 
     /// The cheapest, the mean and the dearest of one stage's ring.

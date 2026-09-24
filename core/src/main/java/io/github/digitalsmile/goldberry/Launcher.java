@@ -598,6 +598,11 @@ final class Launcher implements Host {
         // the totals, and this is the number a frame-rate claim is (ADR-0342).
         var summary = window.frames().summary();
         LOG.info("frames: {}", summary.describe());
+        // A second line rather than more of the first, which a workflow greps.
+        var presents = window.frames().presentSummary();
+        if (presents.frames() > 0) {
+            LOG.info("presents: {}", presents.describe());
+        }
         if (summary.exceeds(options.lateBudget())) {
             throw new FrameBudgetException(summary, options.lateBudget());
         }

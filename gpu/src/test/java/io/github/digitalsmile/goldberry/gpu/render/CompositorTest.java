@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.composite.PresentTimings;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 

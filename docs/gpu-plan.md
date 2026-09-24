@@ -406,7 +406,7 @@ are open.
 | Mode entry and exit with hysteresis (D3); resize (UI texture recreated, full upload, ADR-0158); HiDPI (swapchain and UI texture in physical pixels, `DisplayScale`) | in part: entry at the first frame wanted; exit on failure, for good; a page embedded pulls a window back to the CPU; resize recreates the UI texture and uploads the frame whole; physical pixels throughout. The hysteresis waits for phase 4's attach and detach |
 | No swapchain texture (minimized, occluded): the upload is still submitted and nothing is presented, and the frame counts as presented for the budget | done: the upload is submitted, `PresentTimings.shown` is false, and `Window.paint` records the frame as before |
 | Pacing: swapchain VSYNC; `FramePacer` steps aside where phase 0 says it should; `SetGPUAllowedFramesInFlight(2)` by default | done (ADR-0479): VSYNC (MAILBOX or IMMEDIATE when `goldberry.backend.vsync=false`), two frames in flight. **`FramePacer` does not step aside.** Stepping aside let frames with no damage, which wait for no swapchain texture, spin about 1 ms apart. With it on, the showcase's 240 frames took 2.9 s composited and 2.8 s on the CPU, 14 and 13 late |
-| `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | in part: each composited present records `PresentTimings` (upload, acquire wait, submit, bytes, shown); `FrameStats` and the `hud` are open |
+| `FrameStats` gains upload, acquire-wait and submit times; the `hud` shows them | done: `BackendWindow.lastPresent()` reports `PresentTimings`, `Window.paint` banks it beside its frame, and `FrameStats` gives `upload()`, `acquire()`, `submit()`, `uploadBytes()` and `compositedFrames()`, over the composited frames alone. The `hud` has `upload`, `acquire` (never coloured: it is the display's wait) and `submit` readings, and `readings="present"`; a window on its surface reads dashes. The launcher logs a `presents:` line at exit beside `frames:` |
 | **Parity test:** the gallery screens composited with no GPU layer, read back from an offscreen target, match their CPU goldens within ADR-0050's tolerance | in part: the composite pass keeps every colour byte of random premultiplied frames and makes them opaque, which is what the window surface shows (`CompositorTest`); a damage-only upload keeps every pixel outside the damage. The gallery screens against their goldens are open |
 
 **Exit:** the showcase runs composited (forced on with
@@ -417,9 +417,16 @@ bytes uploaded per frame while the caret blinks).
 **Status:** the showcase runs composited on Metal
 (`./gradlew :example:run -Pgoldberry.gpu.composite=always`). Its 240-frame run
 paints and paces like the CPU one. `CompositedBackendTest` drives the whole
-path through `Sdl3Backend` in `:gpu:gpuTest`. Open: the tab-by-tab comparison
-by eye, the gallery goldens, the caret's upload bytes, `FrameStats` and the
-`hud`, and every platform but macOS.
+path through `Sdl3Backend` in `:gpu:gpuTest`. The run's `presents:` line: 91 of
+240 frames composited (the rest had no damage and presented nothing), a mean
+upload of 0.79 ms and 9.3 MB (the showcase's animations damage most of a
+3024×1842 frame), and a mean acquire of 0.18 ms, since the pacer waits in the
+pump before a frame is emitted.
+
+Open: the tab-by-tab comparison by eye; the gallery goldens against the
+composited path; the caret's upload bytes, which no unattended run can take,
+since no screen focuses a field without a click (`hud readings="present"`
+shows them live); and every platform but macOS.
 
 ### Phase 4 — GPU layers in the tree
 
@@ -536,5 +543,6 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | Phase 2 in part (ADR-0476): shaders, samplers, pipelines and render passes bound (13 more exports, 13 structs and 13 enumerators verified); three HLSL shaders compiled by DXC and SPIRV-Cross into SPIR-V, DXIL and MSL, committed with their sources' hashes; `:gpu:gpuTest`, whose five draws read back exact on Metal |
 | 2026-09-24 | D1 decided (ADR-0477): `SDL_GPU` directly. Y'CbCr shaders for NV12, I420, P010 and I010, exact against a Java reference for every matrix and range on Metal; a 4K layer composited under the UI at under 1.4 ms of CPU a frame at 120 Hz |
 | 2026-09-24 | The GPU lane written: lavapipe under `offscreen` on both Linux targets, device required; macOS runners asked, not required. Not yet run |
+| 2026-09-24 | Phase 3's statistics: `PresentTimings` moved to `render` and reported by `BackendWindow.lastPresent()`; `FrameRing` banks it per frame and sums it for a `presents:` exit line; the `hud` gained `upload`, `acquire`, `submit` and `readings="present"`. The showcase composited: 91 of 240 frames through the GPU, 0.79 ms and 9.3 MB a frame uploaded |
 | 2026-09-24 | Phase 3 begun (ADR-0479): `:core` declares `render.composite`, exported to `:gpu` alone, and `:gpu`'s `SdlCompositor` provides it through `ServiceLoader`. `goldberry.gpu.composite=always` composites every window: it lends no surface, and its frames' damage goes up to a UI texture drawn over black onto the swapchain. D5 corrected: layers and `GpuSurface` move to phase 4. Found: stepping `FramePacer` aside let undamaged frames spin 1 ms apart, so it stays on. The showcase runs composited on Metal and paces like the CPU. `:gpu:gpuTest` 37 green, the backend end to end among them |
 | 2026-09-24 | Phase 2's public API (ADR-0478): `io.github.digitalsmile.goldberry.gpu` exported, with resources made from records, frames of scoped passes, staged uploads and readback, one thread, misuse refused in Java. Under it, ten more exports (buffers, indexed draws, debug groups: 56 `SDL_GPU` functions), seven structs and the pipeline enumerators verified. Phase 2's exit met on Metal: a vertex-buffer triangle against a Java reference. `:natives:check` and `:gpu:check` green, with 27 and 28 GPU tests on Metal |

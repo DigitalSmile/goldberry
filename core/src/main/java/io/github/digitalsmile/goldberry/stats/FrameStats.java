@@ -193,6 +193,46 @@ public interface FrameStats {
         return Span.of(rasterMillis());
     }
 
+    /// How many of the retained frames were presented through the GPU: a
+    /// composited window's (`docs/gpu-plan.md`, phase 3; ADR-0479).
+    ///
+    /// Zero for a window presenting through its window surface, and for every
+    /// source but the frame loop's own. The three present readings below are
+    /// taken over these frames alone, and mean nothing when there are none.
+    default int compositedFrames() {
+        return 0;
+    }
+
+    /// The time spent **uploading** a composited frame: copying its damage into
+    /// staging memory and recording the copy to the GPU.
+    ///
+    /// The CPU cost of compositing that grows with the damage, so a caret
+    /// blinking should keep it small and a full-window animation should not.
+    /// [Span#NONE] when [#compositedFrames] is zero.
+    default Span upload() {
+        return Span.NONE;
+    }
+
+    /// The time spent **waiting for the swapchain** before a composited frame
+    /// could be drawn: the display pacing the loop, not work. Near the rest of a
+    /// display frame on a loop that keeps up, and near zero on one that does not.
+    default Span acquire() {
+        return Span.NONE;
+    }
+
+    /// The time spent recording a composited frame's composite and
+    /// **submitting** it.
+    default Span submit() {
+        return Span.NONE;
+    }
+
+    /// The mean number of bytes a composited frame uploaded: the damage, at four
+    /// bytes a pixel. What says whether damage tracking is paying for itself on
+    /// the GPU path, where every damaged pixel crosses to the GPU.
+    default double uploadBytes() {
+        return 0;
+    }
+
     /// Whether anything has been recorded yet.
     default boolean isEmpty() {
         return count() == 0;
@@ -207,6 +247,13 @@ public interface FrameStats {
     default FrameSummary summary() {
         var paint = paint();
         return new FrameSummary(count(), lateFrames(), paint.mean(), paint.max(), displayHertz());
+    }
+
+    /// The whole run's composited presents, for the line a launcher writes at
+    /// exit: [PresentSummary#NONE] for a source that keeps no totals, and for a
+    /// window that composited nothing.
+    default PresentSummary presentSummary() {
+        return PresentSummary.NONE;
     }
 
     /// Statistics for a loop that has not run: every number zero.

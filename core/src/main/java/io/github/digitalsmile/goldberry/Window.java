@@ -679,6 +679,10 @@ public final class Window implements AutoCloseable {
             // this window is the only thing that knows whether the buffer it is
             // about to present had valid contents to begin with.
             window.present(target, damage == null || !partialRepaint ? List.of(DamageRect.all(frameSize)) : damage);
+            // After the present, into the slot `record` just filled: what the
+            // GPU path cost, or nothing for a window presenting through its
+            // surface (ADR-0479).
+            frames.presented(window.lastPresent());
             damage = null;
             if (!everPresented) {
                 everPresented = true;

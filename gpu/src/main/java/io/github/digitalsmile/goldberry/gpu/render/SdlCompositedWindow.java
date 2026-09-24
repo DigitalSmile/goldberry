@@ -14,8 +14,8 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuWindow;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.composite.CompositedWindow;
-import io.github.digitalsmile.goldberry.render.composite.PresentTimings;
 
 /// A window [SdlCompositor] claimed: each painted frame's damage uploaded into
 /// the window's UI texture, then the composite pass drawn into its swapchain
@@ -98,8 +98,7 @@ final class SdlCompositedWindow implements CompositedWindow {
             }
             commands.submit();
             var submitted = System.nanoTime();
-            last = new PresentTimings(
-                    uploaded - started, acquired - uploaded, submitted - acquired, bytes, swapchain.isPresent());
+            last = new PresentTimings(uploaded - started, acquired - uploaded, submitted - acquired, bytes, true);
         } finally {
             if (!commands.isFinished()) {
                 // Something above threw with the buffer still recording. SDL

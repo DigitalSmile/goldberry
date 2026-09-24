@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.PresentTimings;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.*;
 
@@ -98,6 +99,16 @@ public interface BackendWindow extends AutoCloseable {
     /// @throws IllegalArgumentException if the buffer does not match the window,
     ///         or if any damage rectangle falls outside it
     void present(PixelBuffer frame, List<DamageRect> damage);
+
+    /// What the last [#present] cost on the GPU, for a window presenting through
+    /// it (`docs/gpu-plan.md`, phase 3; ADR-0479): the upload, the wait for the
+    /// swapchain, and the submit.
+    ///
+    /// [PresentTimings#NONE] by default, and for a window presenting through
+    /// its window surface, whose present is the platform's copy.
+    default PresentTimings lastPresent() {
+        return PresentTimings.NONE;
+    }
 
     /// Asks for a [BackendEvent.FrameDue] when the platform is ready to draw.
     ///
