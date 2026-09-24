@@ -253,22 +253,65 @@ Throwaway code on a branch, and the ADRs that come out of it.
 | Item | Question | Status |
 |------|----------|--------|
 | Device on each OS | Does `SDL_CreateGPUDevice` succeed on macOS (Metal), under lavapipe on `ubuntu-24.04` and `-arm`, on `macos-14` runners (Metal in a VM?) and on `windows-2022` (D3D12, WARP, or nothing)? Which runners can host the GPU lane? | **macOS (Metal): yes**, on this M1 Pro, under `cocoa` on the first thread (ADR-0475). **Found:** a device needs a video driver with a Metal view or a Vulkan surface, so there is none under `dummy`; `offscreen` has headless Vulkan, which is what lavapipe runs under. The runners are open |
-| Claim and release | Window surface → claim → release → window surface, on macOS, Wayland, X11 (Xvfb) and Windows. What it costs, and whether anything leaks or flickers. Behaviour with `web-view` and in fullscreen (D3) | open |
-| Composite cost | 4K UI texture, damage-only upload, plus one 4K NV12 layer: CPU time per frame, and the wait in `WaitAndAcquireGPUSwapchainTexture` against today's present (0.127 ms median under `dummy`, ADR-0409) | open |
+| Claim and release | Window surface → claim → release → window surface, on macOS, Wayland, X11 (Xvfb) and Windows. What it costs, and whether anything leaks or flickers. Behaviour with `web-view` and in fullscreen (D3) | **macOS: reliable and cheap.** 10 of 10 cycles on a 2560×1600 window: switch in (destroy the surface, claim) 1.75 ms median, 2.05 ms p95; switch out (release, surface, first present) 6.0 ms median, 6.6 ms p95; the surface came back at full size every time (`:natives:gpuPresentProbe`, §4.1). SDL counts a second claim by the same device, so `claimWindow` refuses one. Wayland, X11, Windows, `web-view` and fullscreen open |
+| Composite cost | 4K UI texture, damage-only upload, plus one 4K NV12 layer: CPU time per frame, and the wait in `WaitAndAcquireGPUSwapchainTexture` against today's present (0.127 ms median under `dummy`, ADR-0409) | **UI half measured on Metal** (§4.1): a whole 2560×1600 frame costs 1.1 ms of CPU (copy 0.84, record 0.13, blit and submit 0.14), against 2.65 ms for today's window-surface present of the same frame; a caret-sized damage upload 0.35 ms; a 4K BGRA frame 1.56 ms to copy. The NV12 layer waits for shaders |
 | D1 | `SDL_GPU` pass against `SDL_CreateGPURenderer` with `SDL_GPURenderState`: code, cost, colour fidelity | open |
 | Size | `libgoldberry` growth when ~60 `SDL_GPU` symbols are exported and the dead-stripping no longer removes the drivers, per target | **macos-aarch64: 2 KB** for the first 29 symbols (6,100,832 → 6,102,848 bytes). The drivers were already linked, through SDL's renderer (ADR-0475). Linux and Windows open |
-| Pacing | Swapchain VSYNC against `FramePacer`: does the backstop step aside in composited mode, and does `refreshRate`'s answer still hold? | open |
+| Pacing | Swapchain VSYNC against `FramePacer`: does the backstop step aside in composited mode, and does `refreshRate`'s answer still hold? | **macOS, observed:** the acquire blocks to the display: composited frames came 8.39 ms apart (median) on a 120 Hz display, with p95 at 16.8 ms, where the window surface is not paced at all (2.8 ms apart without `FramePacer`). So in composited mode the swapchain is the pacer. What `FramePacer` does then is phase 3's |
 | Shadercross | Builds and runs on macOS; output for the four shaders of phase 3 and phase 6 | open |
 | ADRs | D1–D8 recorded, and ADR-0002's and ADR-0019's day-1 claims corrected with a link | open |
 
 **Exit:** each "to measure" decision is taken on numbers from this table, and
 the GPU CI lane has a runner that creates a device.
 
+### 4.1 Phase 0 measurements, macOS
+
+Taken on 2026-09-24 by `:natives:gpuPresentProbe`: an M1 Pro, macOS, a
+1280×800 window at 2× (2560×1600 pixels), a 120 Hz ProMotion display, `cocoa`
+and Metal, 240 frames per row. Blend2D's painting is not timed; moving the frame
+is.
+
+| Measurement | median | p95 |
+|---|---|---|
+| A. window surface: `SDL_UpdateWindowSurfaceRects`, whole window | 2.649 ms | 4.931 ms |
+| A. window surface: frame interval, unpaced | 2.795 ms | 5.385 ms |
+| B. switch in: destroy the window surface, claim | 1.751 ms | 2.045 ms |
+| B. switch out: release, window surface, first present | 6.015 ms | 6.641 ms |
+| C. composited, whole window: copy into the transfer buffer | 0.844 ms | 1.566 ms |
+| C. composited, whole window: record the upload | 0.127 ms | 0.173 ms |
+| C. composited, whole window: wait for the swapchain texture | 7.307 ms | 15.449 ms |
+| C. composited, whole window: blit and submit | 0.139 ms | 0.243 ms |
+| C. composited, whole window: frame interval | 8.392 ms | 16.804 ms |
+| D. composited, 200×40 damage: copy | 0.107 ms | 0.182 ms |
+| D. composited, 200×40 damage: record | 0.098 ms | 0.176 ms |
+| D. composited, 200×40 damage: blit and submit | 0.137 ms | 0.252 ms |
+| E. 3840×2160 BGRA: copy into the transfer buffer (33 MB) | 1.562 ms | 2.238 ms |
+| E. 3840×2160 BGRA: copy, upload, scale, present | 8.340 ms | 16.741 ms |
+
+What they say:
+
+- **D3 holds on macOS.** A switch costs a couple of milliseconds in and six out,
+  and never failed, so entering the composited mode automatically is viable. The
+  hold time before leaving it is still wanted: six milliseconds is a visible
+  hitch at 120 Hz if a list scrolls a video in and out of view.
+- **Compositing is not a CPU cost on this machine; it is a saving.** Moving a
+  whole frame to the GPU and presenting it costs less than half of what
+  `SDL_UpdateWindowSurfaceRects` costs for the same frame, and damage-only
+  uploads cost a tenth of it. The difference from ADR-0409's 0.127 ms is the
+  driver: that was `dummy`, which presents nothing.
+- **The wait is the display, not the work.** The acquire's median is the rest of
+  a 120 Hz frame. Its p95 at one 60 Hz frame is ProMotion dropping the rate
+  while the probe drew little, which phase 3 checks with the `hud` before any
+  budget is set on it.
+- **D8's arithmetic is comfortable here.** 33 MB copies in 1.6 ms, so a 4K
+  P010 picture's 24 MB is about 1.2 ms on the UI thread at 60 pictures a
+  second. The decode-thread transfer buffers are not needed on this Mac.
+
 ### Phase 1 — natives and bindings
 
 | Item | Status |
 |------|--------|
-| Exports: the v1 subset of `SDL_GPU` (below) in `goldberry.symbols`, the ABI version bumped | in part (ADR-0475): 25 `SDL_GPU` functions and 4 property setters (device, textures, transfer buffers, command buffers, clear, copy pass, fences), ABI 16. The rest arrive with the phases that call them, as `ExportListTest` requires |
+| Exports: the v1 subset of `SDL_GPU` (below) in `goldberry.symbols`, the ABI version bumped | in part (ADR-0475): 25 `SDL_GPU` functions and 4 property setters (device, textures, transfer buffers, command buffers, clear, copy pass, fences), ABI 16; then the window's claim, release, swapchain parameters, present modes, frames in flight, swapchain format and acquire, and `SDL_BlitGPUTexture`, with `SDL_GPUBlitRegion`/`SDL_GPUBlitInfo` verified. The rest arrive with the phases that call them, as `ExportListTest` requires |
 | Holders, one per function, `invokeExact` from a `static final` handle (ADR-0161) | in part: `SdlGpuDeviceCalls`, `SdlGpuResourceCalls`, `SdlGpuCommandCalls` and `SdlPropertiesCalls` in `natives.sdl.calls`, the package already initialised at image build time, rather than a new `…gpu.calls` |
 | Layouts in the shim's table and in Java, checked by `LayoutVerifier` (in part: `SDL_FColor`, `…TextureCreateInfo`, `…TransferBufferCreateInfo`, `…ColorTargetInfo`, `…TextureTransferInfo`, `…TextureRegion` and 23 enumerators, verified): `SDL_GPUTextureCreateInfo`, `…SamplerCreateInfo`, `…ShaderCreateInfo`, `…BufferCreateInfo`, `…TransferBufferCreateInfo`, `…GraphicsPipelineCreateInfo` with its nested vertex-input, rasterizer, multisample, depth-stencil and target-info structs and `…ColorTargetDescription`/`…ColorTargetBlendState`, `…TextureTransferInfo`, `…TextureRegion`, `…BufferRegion`, `…TransferBufferLocation`, `…ColorTargetInfo`, `…DepthStencilTargetInfo`, `…Viewport`, `…BufferBinding`, `…TextureSamplerBinding`, `…BlitInfo`, `SDL_FColor` | open |
 | `natives.sdl.gpu` exported to `:core` and `:gpu` only. `ExportedSurfaceTest` extended so no segment escapes | done (ADR-0475): wrappers `SdlGpuDevice`, `SdlGpuTexture`, `SdlGpuTransferBuffer`, `SdlGpuCommandBuffer`/`CopyPass`, `SdlGpuFence`, with SDL's rules checked in Java and mapped memory scoped to an arena. `ExportedSurfaceTest` holds a package to a set of readers |
@@ -442,3 +485,4 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | Plan written from the tree: `:gpu` empty, no `gpuSurface()`, no `SDL_GPU` export, no GPU runner. Read from SDL 3.4.16's headers: a window can be claimed without a flag, there is no external-texture import (so zero-copy stays post-v1), and `SDL_CreateGPURenderer` is an alternative to weigh (D1) |
 | 2026-09-24 | D9: zero-copy. Upstream has it as SDL #14077 with PR #14157 open (Metal, D3D12; no Vulkan). M4 ships copy-back; phase 6b carries a Metal-only IOSurface patch; Windows and Linux wait. Implementation begins with phase 1's bindings, which the phase 0 spikes run on |
 | 2026-09-24 | Phase 1 begun and its exit met on Metal (ADR-0475): 29 exports (ABI 16), four holder records, six structs and 23 enumerators verified, the `natives.sdl.gpu` wrappers sealed to `:core` and `:gpu`, and `:natives:gpuTest` on the first thread. Found: no device under `dummy`; cocoa needs the first thread; the exports cost 2 KB. `:natives:check` green: 562 tests, and 16 GPU tests on Metal |
+| 2026-09-24 | Phase 0 on macOS: the window's claim and swapchain bound (`SdlGpuWindow`, `SdlGpuSwapchainTexture`, blits, a sealed `SdlGpuTarget`), 23 GPU tests on Metal, and `:natives:gpuPresentProbe` measured (§4.1). Switching is reliable and cheap; compositing a frame costs less CPU than the window surface; the swapchain paces to the display. SDL counts repeat claims by one device, so they are refused |

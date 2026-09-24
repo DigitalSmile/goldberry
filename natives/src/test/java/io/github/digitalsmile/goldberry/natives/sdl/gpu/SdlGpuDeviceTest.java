@@ -14,12 +14,17 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// `SDL_GPU` through the wrappers, on a real device: Metal on macOS, Vulkan
 /// under lavapipe on the GPU lane (`docs/gpu-plan.md`, phase 1).
@@ -152,6 +157,167 @@ class SdlGpuDeviceTest {
             download.map(false).get(back);
             download.unmap();
             assertArrayEquals(bytes, back);
+        }
+    }
+
+    @Nested
+    @DisplayName("blits")
+    class Blits {
+
+        @Test
+        @DisplayName("copy a region into another texture exactly, when the sizes agree")
+        void copiesExactly() {
+            var bytes = new byte[8 * 8 * 4];
+            new Random(8).nextBytes(bytes);
+            var whole = new SdlGpuRegion(0, 0, 8, 8);
+            try (var source = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET);
+                    var destination = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 16, 16, TARGET);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, bytes.length);
+                    var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, bytes.length)) {
+                upload.map(false).put(bytes);
+                upload.unmap();
+                var commands = device.acquireCommandBuffer();
+                try (var pass = commands.beginCopyPass()) {
+                    pass.upload(upload, 0, source, whole, false);
+                }
+                var placed = new SdlGpuRegion(4, 6, 8, 8);
+                commands.blit(source, whole, destination, placed, SdlGpuFilter.NEAREST);
+                try (var pass = commands.beginCopyPass()) {
+                    pass.download(destination, placed, download, 0);
+                }
+                try (var fence = commands.submitWithFence()) {
+                    fence.await();
+                }
+                var back = new byte[bytes.length];
+                download.map(false).get(back);
+                download.unmap();
+                assertArrayEquals(bytes, back);
+            }
+        }
+
+        @Test
+        @DisplayName("refuse a source that cannot be sampled, and regions outside their texture")
+        void refusesBadBlits() {
+            try (var sampled = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET);
+                    var targetOnly = device.createTexture(
+                            SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET));
+                    var samplerOnly = device.createTexture(
+                            SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, EnumSet.of(SdlGpuTextureUsage.SAMPLER))) {
+                var whole = new SdlGpuRegion(0, 0, 8, 8);
+                var commands = device.acquireCommandBuffer();
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> commands.blit(targetOnly, whole, sampled, whole, SdlGpuFilter.NEAREST));
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> commands.blit(sampled, whole, samplerOnly, whole, SdlGpuFilter.NEAREST));
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> commands.blit(
+                                sampled, new SdlGpuRegion(4, 4, 8, 8), targetOnly, whole, SdlGpuFilter.NEAREST));
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> commands.blit(
+                                sampled, whole, targetOnly, new SdlGpuRegion(1, 0, 8, 8), SdlGpuFilter.NEAREST));
+                commands.cancel();
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("a claimed window")
+    class ClaimedWindow {
+
+        private SdlWindowHandle window;
+
+        @BeforeEach
+        void createWindow() {
+            window = SdlVideo.get().createWindow("goldberry gpu test", 64, 48, EnumSet.of(SdlWindowFlag.HIDDEN));
+        }
+
+        @AfterEach
+        void destroyWindow() {
+            SdlVideo.get().destroyWindow(window);
+        }
+
+        @Test
+        @DisplayName("presents in VSYNC, has a swapchain format, and can be released and claimed again")
+        void claimsAndReleases() {
+            try (var claimed = device.claimWindow(window)) {
+                assertEquals(window, claimed.window());
+                assertEquals(SdlGpuPresentMode.VSYNC, claimed.presentMode());
+                assertTrue(claimed.supports(SdlGpuPresentMode.VSYNC));
+                assertTrue(claimed.textureFormat().isPresent(), "an SDR swapchain is 8-bit BGRA or RGBA");
+                claimed.setPresentMode(SdlGpuPresentMode.VSYNC);
+                // SDL would count a second claim by the same device; it is refused.
+                assertThrows(IllegalStateException.class, () -> device.claimWindow(window));
+                // Another device's claim is SDL's to refuse.
+                try (var second = SdlGpuDevice.create(SdlGpuDevice.Options.defaults())) {
+                    assertThrows(SdlException.class, () -> second.claimWindow(window));
+                }
+            }
+            try (var again = device.claimWindow(window)) {
+                assertFalse(again.isClosed());
+            }
+        }
+
+        @Test
+        @DisplayName("gives the window back so its surface can be painted again")
+        void surfaceAfterRelease() {
+            SdlVideo.get().invalidateSurface(window);
+            device.claimWindow(window).close();
+            var surface = SdlVideo.get().acquireSurface(window);
+            assertTrue(surface.width() > 0 && surface.height() > 0);
+            SdlVideo.get().invalidateSurface(window);
+        }
+
+        @Test
+        @DisplayName("acquires a texture of the window's size, or none for a hidden window, and presents")
+        void acquiresAndPresents() {
+            try (var claimed = device.claimWindow(window);
+                    var ui = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, 8, 8, TARGET)) {
+                var commands = device.acquireCommandBuffer();
+                var texture = commands.acquireSwapchainTexture(claimed);
+                if (texture.isPresent()) {
+                    var pixels = SdlVideo.get().windowSizeInPixels(window);
+                    assertEquals(pixels.width(), texture.get().width());
+                    assertEquals(pixels.height(), texture.get().height());
+                    commands.clear(texture.get(), 0, 0, 0, 1);
+                    commands.blit(
+                            ui,
+                            new SdlGpuRegion(0, 0, 8, 8),
+                            texture.get(),
+                            new SdlGpuRegion(
+                                    0, 0, texture.get().width(), texture.get().height()),
+                            SdlGpuFilter.LINEAR);
+                }
+                texture.ifPresent(frame -> {
+                    var other = device.acquireCommandBuffer();
+                    assertThrows(IllegalArgumentException.class, () -> other.clear(frame, 0, 0, 0, 1));
+                    other.cancel();
+                });
+                commands.submit();
+                texture.ifPresent(presented ->
+                        assertThrows(IllegalStateException.class, () -> commands.clear(presented, 0, 0, 0, 1)));
+            }
+        }
+
+        @Test
+        @DisplayName("is released by its device when the device closes first")
+        void releasedWithTheDevice() {
+            var second = SdlGpuDevice.create(SdlGpuDevice.Options.defaults());
+            var claimed = second.claimWindow(window);
+            second.close();
+            assertTrue(claimed.isClosed());
+            device.claimWindow(window).close();
+        }
+
+        @Test
+        @DisplayName("refuses frames in flight outside 1 to 3")
+        void framesInFlight() {
+            device.setAllowedFramesInFlight(2);
+            assertThrows(IllegalArgumentException.class, () -> device.setAllowedFramesInFlight(0));
+            assertThrows(IllegalArgumentException.class, () -> device.setAllowedFramesInFlight(4));
         }
     }
 

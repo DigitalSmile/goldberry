@@ -1,0 +1,23 @@
+package io.github.digitalsmile.goldberry.natives.sdl.gpu;
+
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
+
+/// How a blit samples when the regions differ in size, as SDL's
+/// `SDL_GPUFilter`.
+public enum SdlGpuFilter {
+    /// The nearest texel: exact when the sizes are equal.
+    NEAREST(SdlGpuCommandCalls.FILTER_NEAREST),
+    /// Interpolated between texels.
+    LINEAR(SdlGpuCommandCalls.FILTER_LINEAR);
+
+    private final int value;
+
+    SdlGpuFilter(int value) {
+        this.value = value;
+    }
+
+    /// SDL's value.
+    public int value() {
+        return value;
+    }
+}

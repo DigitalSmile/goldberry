@@ -6,7 +6,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /// A 2D texture on a [SdlGpuDevice]: one mip level, one layer, one sample.
-public final class SdlGpuTexture extends SdlGpuResource {
+public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget {
 
     private final SdlGpuTextureFormat format;
     private final int width;
@@ -32,12 +32,12 @@ public final class SdlGpuTexture extends SdlGpuResource {
         return format;
     }
 
-    /// The width in pixels.
+    @Override
     public int width() {
         return width;
     }
 
-    /// The height in pixels.
+    @Override
     public int height() {
         return height;
     }

@@ -834,6 +834,25 @@ tasks.named('check') {
     dependsOn gpuTest
 }
 
+// Phase 0's present measurements (docs/gpu-plan.md): a real window on the
+// screen, the window-surface path, the switch to a swapchain and back, and a
+// composited frame stage by stage. Run on purpose and read by a person; not part
+// of `check`, because the numbers are the machine's and the display's.
+tasks.register('gpuPresentProbe', JavaExec) {
+    group = 'verification'
+    description = 'Measures window-surface and composited present on a real window (docs/gpu-plan.md, phase 0).'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuPresentProbe'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTarget.id.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            externalLibrary.getOrElse(
+                    installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
+    outputs.upToDateWhen { false }
+}
+
 // --- Wiring into the root build ----------------------------------------------
 //
 // `./gradlew build` builds libgoldberry for this machine too. "If not already

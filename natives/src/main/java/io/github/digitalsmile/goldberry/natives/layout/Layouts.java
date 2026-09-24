@@ -564,6 +564,54 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("h"),
                     ValueLayout.JAVA_INT.withName("d")));
 
+    /// ```c
+    /// typedef struct SDL_GPUBlitRegion {
+    ///     SDL_GPUTexture *texture;
+    ///     Uint32 mip_level;
+    ///     Uint32 layer_or_depth_plane;
+    ///     Uint32 x, y, w, h;
+    /// } SDL_GPUBlitRegion;
+    /// ```
+    public static final NativeStructLayout SDL_GPU_BLIT_REGION = new NativeStructLayout(
+            "SDL_GPUBlitRegion",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_INT.withName("mip_level"),
+                    ValueLayout.JAVA_INT.withName("layer_or_depth_plane"),
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h")));
+
+    /// ```c
+    /// typedef struct SDL_GPUBlitInfo {
+    ///     SDL_GPUBlitRegion source;
+    ///     SDL_GPUBlitRegion destination;
+    ///     SDL_GPULoadOp load_op;
+    ///     SDL_FColor clear_color;
+    ///     SDL_FlipMode flip_mode;
+    ///     SDL_GPUFilter filter;
+    ///     bool cycle;
+    ///     Uint8 padding1, padding2, padding3;
+    /// } SDL_GPUBlitInfo;
+    /// ```
+    ///
+    /// Two regions by value, then the blit's options. 96 bytes: the three named
+    /// padding bytes bring `cycle` to a word, and nothing follows.
+    public static final NativeStructLayout SDL_GPU_BLIT_INFO = new NativeStructLayout(
+            "SDL_GPUBlitInfo",
+            MemoryLayout.structLayout(
+                    SDL_GPU_BLIT_REGION.layout().withName("source"),
+                    SDL_GPU_BLIT_REGION.layout().withName("destination"),
+                    ValueLayout.JAVA_INT.withName("load_op"),
+                    SDL_FCOLOR.layout().withName("clear_color"),
+                    ValueLayout.JAVA_INT.withName("flip_mode"),
+                    ValueLayout.JAVA_INT.withName("filter"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3")));
+
     /// Blend2D's entire object model — `BLObjectDetail`.
     ///
     /// Every Blend2D "core" object is exactly one of these and nothing else:
@@ -1072,6 +1120,8 @@ public final class Layouts {
                 SDL_GPU_COLOR_TARGET_INFO,
                 SDL_GPU_TEXTURE_TRANSFER_INFO,
                 SDL_GPU_TEXTURE_REGION,
+                SDL_GPU_BLIT_REGION,
+                SDL_GPU_BLIT_INFO,
                 BL_OBJECT_DETAIL,
                 BL_PATH_CORE,
                 BL_IMAGE_DATA,

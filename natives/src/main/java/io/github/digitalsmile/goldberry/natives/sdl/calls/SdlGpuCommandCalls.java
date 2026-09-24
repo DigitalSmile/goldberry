@@ -29,7 +29,8 @@ public record SdlGpuCommandCalls(
         BeginGPUCopyPass beginGPUCopyPass,
         UploadToGPUTexture uploadToGPUTexture,
         DownloadFromGPUTexture downloadFromGPUTexture,
-        EndGPUCopyPass endGPUCopyPass) {
+        EndGPUCopyPass endGPUCopyPass,
+        BlitGPUTexture blitGPUTexture) {
 
     /// Binds every function above.
     ///
@@ -47,7 +48,8 @@ public record SdlGpuCommandCalls(
                 new BeginGPUCopyPass(lookup),
                 new UploadToGPUTexture(lookup),
                 new DownloadFromGPUTexture(lookup),
-                new EndGPUCopyPass(lookup));
+                new EndGPUCopyPass(lookup),
+                new BlitGPUTexture(lookup));
     }
 
     /// `SDL_GPU_LOADOP_LOAD`: a render pass keeps what the target held.
@@ -64,6 +66,15 @@ public record SdlGpuCommandCalls(
 
     /// `SDL_GPU_STOREOP_DONT_CARE`: what a render pass drew may be discarded.
     public static final int STOREOP_DONT_CARE = 1;
+
+    /// `SDL_GPU_FILTER_NEAREST`: a blit that samples the nearest texel.
+    public static final int FILTER_NEAREST = 0;
+
+    /// `SDL_GPU_FILTER_LINEAR`: a blit that interpolates.
+    public static final int FILTER_LINEAR = 1;
+
+    /// `SDL_FLIP_NONE`: a blit that does not mirror.
+    public static final int FLIP_NONE = 0;
 
     /// Acquires a command buffer to record passes into.
     ///
@@ -394,6 +405,34 @@ public record SdlGpuCommandCalls(
                 FD_SDL_EndGPUCopyPass.invokeExact(address, copyPass);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_EndGPUCopyPass", t);
+            }
+        }
+    }
+
+    /// Records a scaled, filtered copy from one texture region to another: how a
+    /// texture reaches the swapchain before any shader of the toolkit's exists.
+    ///
+    /// `void SDL_BlitGPUTexture(void*, void*)`
+    public static final class BlitGPUTexture {
+
+        private static final MethodHandle FD_SDL_BlitGPUTexture =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        BlitGPUTexture(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BlitGPUTexture");
+        }
+
+        /// Calls `SDL_BlitGPUTexture`.
+        ///
+        /// @param commandBuffer the command buffer, outside any pass
+        /// @param info          an `SDL_GPUBlitInfo*`
+        public void call(MemorySegment commandBuffer, MemorySegment info) {
+            try {
+                FD_SDL_BlitGPUTexture.invokeExact(address, commandBuffer, info);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BlitGPUTexture", t);
             }
         }
     }

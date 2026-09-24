@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuDeviceCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlPropertiesCalls;
 
 /// The four holder records this package calls through, bound once, the first
@@ -11,12 +12,14 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlPropertiesCalls;
 ///
 /// @param device     device creation and queries
 /// @param resources  textures and transfer buffers
-/// @param commands   command buffers, passes and fences
+/// @param commands   command buffers, passes, blits and fences
+/// @param swapchain  claimed windows and their swapchains
 /// @param properties the property groups a device is configured with
 record GpuCalls(
         SdlGpuDeviceCalls device,
         SdlGpuResourceCalls resources,
         SdlGpuCommandCalls commands,
+        SdlGpuSwapchainCalls swapchain,
         SdlPropertiesCalls properties) {
 
     /// The bound calls.
@@ -33,6 +36,7 @@ record GpuCalls(
                     SdlGpuDeviceCalls.bind(lookup),
                     SdlGpuResourceCalls.bind(lookup),
                     SdlGpuCommandCalls.bind(lookup),
+                    SdlGpuSwapchainCalls.bind(lookup),
                     SdlPropertiesCalls.bind(lookup));
         }
     }

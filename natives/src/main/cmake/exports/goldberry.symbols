@@ -334,6 +334,17 @@ SDL_BeginGPUCopyPass
 SDL_UploadToGPUTexture
 SDL_DownloadFromGPUTexture
 SDL_EndGPUCopyPass
+SDL_BlitGPUTexture
+
+# A window claimed by the device, and its swapchain (docs/gpu-plan.md, D3): how
+# a composited window presents, and what phase 0 measures the switch with.
+SDL_ClaimWindowForGPUDevice
+SDL_ReleaseWindowFromGPUDevice
+SDL_SetGPUSwapchainParameters
+SDL_WindowSupportsGPUPresentMode
+SDL_SetGPUAllowedFramesInFlight
+SDL_GetGPUSwapchainTextureFormat
+SDL_WaitAndAcquireGPUSwapchainTexture
 
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the

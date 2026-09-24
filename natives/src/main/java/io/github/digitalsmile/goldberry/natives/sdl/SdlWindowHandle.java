@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.natives.sdl;
 import java.lang.foreign.MemorySegment;
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.natives.WindowPointers;
+
 /// An opaque reference to an `SDL_Window`.
 ///
 /// The pointer is package-private on purpose: this class is how a window crosses
@@ -14,6 +16,11 @@ import java.util.Objects;
 /// events, and looking a pointer up from an id on every event would be a native
 /// call per event.
 public final class SdlWindowHandle {
+
+    // The GPU wrappers claim windows, and are in a package of their own.
+    static {
+        WindowPointers.register(SdlWindowHandle::pointer);
+    }
 
     private final MemorySegment pointer;
     private final int id;

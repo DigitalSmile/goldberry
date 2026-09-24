@@ -11,6 +11,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlAudioCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
@@ -147,6 +148,13 @@ public final class NativeConstants {
         constants.add(new NativeConstant("SDL_GPU_LOADOP_DONT_CARE", SdlGpuCommandCalls.LOADOP_DONT_CARE));
         constants.add(new NativeConstant("SDL_GPU_STOREOP_STORE", SdlGpuCommandCalls.STOREOP_STORE));
         constants.add(new NativeConstant("SDL_GPU_STOREOP_DONT_CARE", SdlGpuCommandCalls.STOREOP_DONT_CARE));
+        constants.add(new NativeConstant("SDL_GPU_FILTER_NEAREST", SdlGpuCommandCalls.FILTER_NEAREST));
+        constants.add(new NativeConstant("SDL_GPU_FILTER_LINEAR", SdlGpuCommandCalls.FILTER_LINEAR));
+        constants.add(new NativeConstant("SDL_FLIP_NONE", SdlGpuCommandCalls.FLIP_NONE));
+        constants.add(new NativeConstant("SDL_GPU_SWAPCHAINCOMPOSITION_SDR", SdlGpuSwapchainCalls.COMPOSITION_SDR));
+        constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_VSYNC", SdlGpuSwapchainCalls.PRESENTMODE_VSYNC));
+        constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_IMMEDIATE", SdlGpuSwapchainCalls.PRESENTMODE_IMMEDIATE));
+        constants.add(new NativeConstant("SDL_GPU_PRESENTMODE_MAILBOX", SdlGpuSwapchainCalls.PRESENTMODE_MAILBOX));
         return List.copyOf(constants);
     }
 }

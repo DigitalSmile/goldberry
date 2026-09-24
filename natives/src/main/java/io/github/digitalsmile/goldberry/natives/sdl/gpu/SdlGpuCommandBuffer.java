@@ -7,6 +7,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
 
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
@@ -49,18 +50,15 @@ public final class SdlGpuCommandBuffer {
     /// @throws IllegalArgumentException when `target` is not a colour target of
     ///                                  this device
     /// @throws SdlException             when SDL cannot begin the pass
-    public void clear(SdlGpuTexture target, float red, float green, float blue, float alpha) {
+    public void clear(SdlGpuTarget target, float red, float green, float blue, float alpha) {
         requireState(State.RECORDING, "clear");
-        requireOwn(target);
-        if (!target.usages().contains(SdlGpuTextureUsage.COLOR_TARGET)) {
-            throw new IllegalArgumentException(target + " is not a colour target");
-        }
+        var targetHandle = colorTarget(target);
         var info = Layouts.SDL_GPU_COLOR_TARGET_INFO;
         var color = Layouts.SDL_FCOLOR;
         var clearColor = info.offsetOf("clear_color");
         try (var arena = Arena.ofConfined()) {
             var colorTarget = arena.allocate(info.layout());
-            colorTarget.set(ADDRESS, info.offsetOf("texture"), target.handle());
+            colorTarget.set(ADDRESS, info.offsetOf("texture"), targetHandle);
             colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("r"), red);
             colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("g"), green);
             colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("b"), blue);
@@ -75,6 +73,99 @@ public final class SdlGpuCommandBuffer {
             }
             commands.endGPURenderPass().call(pass);
         }
+    }
+
+    /// Waits for `window`'s next swapchain texture. It is presented when this
+    /// command buffer is submitted.
+    ///
+    /// Empty when the window has none to give, which is not a failure: SDL's
+    /// answer for a minimised or occluded window. The command buffer should
+    /// still be submitted, so what it uploads still lands.
+    ///
+    /// @throws IllegalArgumentException when `window` was claimed by another
+    ///                                  device
+    /// @throws SdlException             when SDL fails
+    public Optional<SdlGpuSwapchainTexture> acquireSwapchainTexture(SdlGpuWindow window) {
+        requireState(State.RECORDING, "acquireSwapchainTexture");
+        requireOwn(window);
+        try (var arena = Arena.ofConfined()) {
+            var texture = arena.allocate(ADDRESS);
+            var width = arena.allocate(JAVA_INT);
+            var height = arena.allocate(JAVA_INT);
+            if (!device.calls()
+                    .swapchain()
+                    .waitAndAcquireGPUSwapchainTexture()
+                    .call(handle, window.pointer(), texture, width, height)) {
+                throw new SdlException(
+                        "SDL_WaitAndAcquireGPUSwapchainTexture", Sdl.get().lastError());
+            }
+            var acquired = texture.get(ADDRESS, 0);
+            if (MemorySegment.NULL.equals(acquired)) {
+                return Optional.empty();
+            }
+            return Optional.of(
+                    new SdlGpuSwapchainTexture(this, acquired, width.get(JAVA_INT, 0), height.get(JAVA_INT, 0)));
+        }
+    }
+
+    /// Records a copy of `sourceRegion` of `source` into `destinationRegion` of
+    /// `destination`, scaled with `filter` when the two differ in size. Outside
+    /// any pass, as SDL requires.
+    ///
+    /// @throws IllegalArgumentException when a texture is not usable so, or a
+    ///                                  region lies outside its texture
+    public void blit(
+            SdlGpuTexture source,
+            SdlGpuRegion sourceRegion,
+            SdlGpuTarget destination,
+            SdlGpuRegion destinationRegion,
+            SdlGpuFilter filter) {
+        requireState(State.RECORDING, "blit");
+        requireOwn(source);
+        if (!source.usages().contains(SdlGpuTextureUsage.SAMPLER)) {
+            throw new IllegalArgumentException(source + " cannot be sampled, so cannot be blitted from");
+        }
+        if (!sourceRegion.fitsIn(source.width(), source.height())) {
+            throw new IllegalArgumentException(sourceRegion + " is outside " + source);
+        }
+        if (!destinationRegion.fitsIn(destination.width(), destination.height())) {
+            throw new IllegalArgumentException(destinationRegion + " is outside " + destination);
+        }
+        var destinationHandle = colorTarget(destination);
+        var info = Layouts.SDL_GPU_BLIT_INFO;
+        try (var arena = Arena.ofConfined()) {
+            var blit = arena.allocate(info.layout());
+            blitRegion(blit, info.offsetOf("source"), source.handle(), sourceRegion);
+            blitRegion(blit, info.offsetOf("destination"), destinationHandle, destinationRegion);
+            blit.set(JAVA_INT, info.offsetOf("load_op"), SdlGpuCommandCalls.LOADOP_LOAD);
+            blit.set(JAVA_INT, info.offsetOf("flip_mode"), SdlGpuCommandCalls.FLIP_NONE);
+            blit.set(JAVA_INT, info.offsetOf("filter"), filter.value());
+            blit.set(JAVA_BOOLEAN, info.offsetOf("cycle"), false);
+            device.calls().commands().blitGPUTexture().call(handle, blit);
+        }
+    }
+
+    private static void blitRegion(MemorySegment blit, long offset, MemorySegment texture, SdlGpuRegion region) {
+        var layout = Layouts.SDL_GPU_BLIT_REGION;
+        blit.set(ADDRESS, offset + layout.offsetOf("texture"), texture);
+        blit.set(JAVA_INT, offset + layout.offsetOf("x"), region.x());
+        blit.set(JAVA_INT, offset + layout.offsetOf("y"), region.y());
+        blit.set(JAVA_INT, offset + layout.offsetOf("w"), region.width());
+        blit.set(JAVA_INT, offset + layout.offsetOf("h"), region.height());
+    }
+
+    /// The handle of a target this command buffer may draw into.
+    private MemorySegment colorTarget(SdlGpuTarget target) {
+        return switch (target) {
+            case SdlGpuTexture texture -> {
+                requireOwn(texture);
+                if (!texture.usages().contains(SdlGpuTextureUsage.COLOR_TARGET)) {
+                    throw new IllegalArgumentException(texture + " is not a colour target");
+                }
+                yield texture.handle();
+            }
+            case SdlGpuSwapchainTexture swapchain -> swapchain.handle(this);
+        };
     }
 
     /// Begins a copy pass. Nothing else is recorded until it is closed.

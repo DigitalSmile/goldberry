@@ -2,8 +2,8 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
 
-/// Something a [SdlGpuDevice] made and has to give back: a texture, a transfer
-/// buffer or a fence.
+/// Something a [SdlGpuDevice] made or holds and has to give back: a texture, a
+/// transfer buffer, a fence, or a claimed window.
 ///
 /// Closing one releases it to SDL, which frees it once no submitted command
 /// still uses it. Using one after that fails here, in Java, with the name of
@@ -11,7 +11,7 @@ import java.lang.foreign.MemorySegment;
 /// device closes is released by the device, so closing the device is always
 /// safe; SDL requires it and would otherwise leak or crash.
 public abstract sealed class SdlGpuResource implements AutoCloseable
-        permits SdlGpuTexture, SdlGpuTransferBuffer, SdlGpuFence {
+        permits SdlGpuTexture, SdlGpuTransferBuffer, SdlGpuFence, SdlGpuWindow {
 
     private final SdlGpuDevice device;
     private final MemorySegment handle;

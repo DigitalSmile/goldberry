@@ -13,10 +13,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import io.github.digitalsmile.goldberry.natives.WindowPointers;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
 
 /// An SDL GPU device: Metal on macOS, Direct3D 12 on Windows, Vulkan elsewhere,
@@ -242,6 +244,48 @@ public final class SdlGpuDevice implements AutoCloseable {
             throw new SdlException("SDL_AcquireGPUCommandBuffer", Sdl.get().lastError());
         }
         return new SdlGpuCommandBuffer(this, commandBuffer);
+    }
+
+    /// Claims `window` for this device: from now on it presents through a
+    /// swapchain, in [SdlGpuPresentMode#VSYNC], and has no window surface.
+    ///
+    /// Call it on the window's thread. A window surface the caller holds must be
+    /// given up first (`SdlVideo.invalidateSurface`), because the two cannot
+    /// both present the window.
+    ///
+    /// SDL counts a second claim by the same device and gives the window back only
+    /// when every claim is released, so two [SdlGpuWindow]s could hold one window
+    /// and the first to close would release nothing. One claim per window is
+    /// allowed here, and a second is refused.
+    ///
+    /// @throws IllegalStateException when this device already holds the window
+    /// @throws SdlException          when SDL refuses: another device holds it, the
+    ///                               window is transparent, or the video driver
+    ///                               cannot make a Metal view or Vulkan surface
+    public SdlGpuWindow claimWindow(SdlWindowHandle window) {
+        for (var resource : resources) {
+            if (resource instanceof SdlGpuWindow claimed && claimed.window() == window) {
+                throw new IllegalStateException(window + " is already claimed by " + this);
+            }
+        }
+        var pointer = WindowPointers.of(window);
+        if (!calls.swapchain().claimWindowForGPUDevice().call(handle(), pointer)) {
+            throw new SdlException("SDL_ClaimWindowForGPUDevice", Sdl.get().lastError());
+        }
+        return new SdlGpuWindow(this, pointer, window);
+    }
+
+    /// How many frames the CPU may record ahead of the GPU, from 1 to 3. SDL's
+    /// default is 2 (`docs/gpu-plan.md`, phase 3).
+    ///
+    /// @throws SdlException when SDL refuses
+    public void setAllowedFramesInFlight(int frames) {
+        if (frames < 1 || frames > 3) {
+            throw new IllegalArgumentException("frames in flight " + frames + ", not 1 to 3");
+        }
+        if (!calls.swapchain().setGPUAllowedFramesInFlight().call(handle(), frames)) {
+            throw new SdlException("SDL_SetGPUAllowedFramesInFlight", Sdl.get().lastError());
+        }
     }
 
     /// Whether [#close] has run.
