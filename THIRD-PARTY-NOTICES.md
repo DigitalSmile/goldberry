@@ -86,6 +86,16 @@ that ships `goldberry-ffmpeg-natives` owes its users the LGPL notice and that
 replaceability; it owes no patent review for codecs, because none from a patent
 pool is built.
 
+### The platform decoders bundle nothing
+
+`goldberry-media-platform` (ADR-0472) decodes the patent-pool codecs FFmpeg's
+build leaves out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the decoders
+the operating system already ships: VideoToolbox, AudioToolbox and Core Audio on
+macOS. It binds them with FFM from Java and contains no native code, no headers
+and no copy of any of them, so it has no row above and no file in `licenses/`.
+The frameworks are used under the operating system's own licence, and the codec
+licences are the operating system vendor's.
+
 ## Embedded in the published jars
 
 | Component | Licence | Upstream | Notes |
@@ -142,5 +152,7 @@ for completeness, not obligation.
 2. Add `licenses/<component>.txt` with the **verbatim** upstream licence file,
    copied from the revision actually vendored — not from a licence template, and
    not from memory. Copyright lines are part of the licence.
-3. If it is statically linked or embedded, add it to `NOTICE`.
+3. If it ships in a published artifact (linked, statically or dynamically, or
+   embedded), add it to `NOTICE`. `NoticeDisclosureTest` in `build-logic`
+   fails when a row of the first three tables is not named there.
 4. Run `./gradlew checkLicenses`.

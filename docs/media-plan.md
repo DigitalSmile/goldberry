@@ -249,7 +249,7 @@ server.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's |
+| 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's. M4 is planned in `docs/gpu-plan.md`, whose phase 6 is this phase |
 | 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | done on macOS (ADR-0470), above; its exit criterion's "on GPU present" waits on phase 4, and Linux is opt-in |
 | 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
 | 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | done: rate, frame step, both track menus, subtitles and fullscreen (below) |
@@ -271,7 +271,7 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | Output latency (ADR-0474): `CoreAudioLatency`, an `OutputLatency` over `AudioObjectGetPropertyData`, the default output's device latency, safety offset, IO buffer and stream latency, bound apart from the decoders' frameworks | done: measured on a Bluetooth headset as 264 ms (11166 + 0 + 512 + 0 frames at 44.1 kHz) |
 | Windows (Media Foundation), Linux (VAAPI) | open |
 | Output latency on Windows (WASAPI) and Linux (PulseAudio), and SDL's buffering on those backends read as closely as macOS's | open |
-| Native-image metadata for the upcalls | open |
+| Native-image metadata for the upcalls | done: `:media-platform:foreignMetadata` writes `META-INF/native-image/io.github.digitalsmile/goldberry-media-platform/reachability-metadata.json` into the jar from the bindings, as `:media`'s does: 25 downcall shapes from the six binding classes and the two callbacks. `Framework.link` records what it links. The generator opens no framework, so it runs on every OS. `PlatformForeignMetadataTest` fails when a class in the package links an `FD_` handle or declares a callback descriptor the generator does not list. No image has been built against it yet |
 
 ## Documents kept in step
 
@@ -283,7 +283,7 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | `docs/goldberry-media.md` §3, §5, §6, §7 | phase 3 as built: presentation, the clock, seek modes, I010, the keys, S7's strictness | done |
 | `docs/core-widgets.md` §3 | `slider`'s commit hook (ADR-0464) | done |
 | `docs/content-widgets.md` §8, `docs/ARCHITECTURE.md` module table | the four widgets built | done |
-| `THIRD-PARTY-NOTICES.md`, `licenses/` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | open |
+| `THIRD-PARTY-NOTICES.md`, `licenses/`, `NOTICE` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | done: the texts were vendored with the natives jar (phase 1); `NOTICE`, which every jar carries, now names both and says `goldberry-media-platform` bundles nothing, and the notices say why it has no row. `NoticeDisclosureTest` (build-logic) fails when a component the notices say ships is not listed in `NOTICE`; it found webview/webview missing too. **Open:** how the LGPL's corresponding source is offered once the natives jar is on Maven Central (a sources jar of the pinned FFmpeg tree, or a written offer): a decision, before publication |
 | `docs/goldberry-media.md` §5, `docs/ARCHITECTURE.md` §15 | the platform decoders shipped, and `:media-platform` in the module list (ADR-0472) | done |
 | `docs/goldberry-media.md` §3, §6; `docs/core-widgets.md` §6 | device latency in the master clock (ADR-0474); `F` and `Esc`, and window fullscreen (ADR-0473) | done |
 
@@ -316,3 +316,4 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | 2026-09-24 | Platform decoders (ADR-0472): `:media-platform` with `videotoolbox` and `audiotoolbox` over FFM. VideoToolbox measured to emit in decoding order, and to guess colour unless the format description is built from the parameter sets; both handled. 88 tests, `check` green with the coverage floor |
 | 2026-09-24 | Fullscreen (ADR-0473): window fullscreen in `:core` (`SDL_SetWindowFullscreen`, two event constants checked against the header, `Window`/`Host` API), and `F`/`Esc`/a button in `media-player` over a `Host.fill` copy. A test on the dummy driver found SDL defers a hidden window's request until it is shown. Phase 7 is done |
 | 2026-09-24 | Device latency (ADR-0474): the audio clock is what is heard. SDL's buffers read from `SDL_coreaudio.m` (three pulls), CoreAudio's four properties through an `OutputLatency` provider, `setAudioDelay`, a floor at a seek's target, and an `AudioTail` so a track ends when heard. This Mac's Bluetooth headset: 264 ms from the system, about 330 ms in all. `:media:check` and `:media-platform:check` green |
+| 2026-09-24 | Media's local leftovers closed: `NOTICE` names FFmpeg and dav1d (and webview/webview), held to the notices by `NoticeDisclosureTest`; `:media-platform` generates its native-image metadata from its bindings; and `media.css`, which `DeclaredResourcesTest` found undeclared to native-image, is declared by glob in `:media` (`goldberry-media-resources/`, beside the generated file). What stays open in media is on other machines (Windows, Linux, CI runners), behind M4 (phase 4), or a decision (the LGPL source offer) |

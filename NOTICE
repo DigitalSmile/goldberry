@@ -21,6 +21,11 @@ code is present in every binary artifact Goldberry distributes:
   md4c           MIT license       https://github.com/mity/md4c
   libwebp        BSD-3-Clause      https://github.com/webmproject/libwebp
 
+The OPTIONAL sibling library `libgoldberry-webview` compiles in one more, and
+brings no browser engine of its own (the operating system's is used):
+
+  webview/webview MIT license      https://github.com/webview/webview
+
 The following assets are embedded in goldberry-core:
 
   Inter                SIL Open Font License 1.1   https://rsms.me/inter/
@@ -36,6 +41,20 @@ application that never draws an emoji should not carry (ADR-0384, ADR-0456).
 The face shipped is Google's COLRv1 build, release v2.051, unmodified. The
 Apache-2.0 licence of Goldberry's own code is unaffected — the font is an
 embedded asset, not linked code.
+
+The media engine's natives ship in goldberry-ffmpeg-natives-<platform>, which
+is also OPTIONAL: it sits beside goldberry-media, and nothing else needs it.
+
+  FFmpeg         LGPL-2.1-or-later https://ffmpeg.org            (DYNAMICALLY linked)
+  dav1d          BSD-2-Clause      https://code.videolan.org/videolan/dav1d
+                                                    (statically linked into libavcodec)
+
+FFmpeg's five libraries are loaded from a directory and replaceable with a
+user's own build of the same majors (-Dgoldberry.media.libdir). Each natives jar
+carries META-INF/ffmpeg-NOTICE.txt with the exact tags and configure line. No
+patent-pool codec is built into them. goldberry-media-platform, which decodes
+H.264, HEVC, AAC, AC-3 and E-AC-3, bundles nothing: it calls the decoders the
+operating system ships, under the operating system's licence.
 
 Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
 and the licenses/ directory.

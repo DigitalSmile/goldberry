@@ -8,7 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /// The macOS system frameworks the providers bind, and the linking they share.
 ///
@@ -30,6 +33,11 @@ enum Framework {
     CORE_AUDIO("CoreAudio");
 
     private static final Linker LINKER = Linker.nativeLinker();
+
+    /// Every descriptor linked so far, in the order linked, for the native-image
+    /// metadata [PlatformForeignMetadata] writes, as `FfmpegDowncalls` records
+    /// `:media`'s (ADR-0339).
+    private static final Set<FunctionDescriptor> LINKED = new LinkedHashSet<>();
 
     private final String name;
 
@@ -75,7 +83,17 @@ enum Framework {
     /// prototype is the binding's, which writes the prototype beside it.
     @SuppressWarnings("restricted")
     static MethodHandle link(FunctionDescriptor descriptor) {
+        synchronized (LINKED) {
+            LINKED.add(descriptor);
+        }
         return LINKER.downcallHandle(descriptor);
+    }
+
+    /// The distinct descriptors linked so far, in the order first linked.
+    static List<FunctionDescriptor> linked() {
+        synchronized (LINKED) {
+            return List.copyOf(LINKED);
+        }
     }
 
     /// What a binding raises when the crossing itself fails, rather than the

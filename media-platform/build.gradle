@@ -86,3 +86,33 @@ tasks.named('jacocoTestCoverageVerification') {
         }
     }
 }
+
+// ============================================================================
+// What a native image of this module has to be told (ADR-0339)
+//
+// `:media:foreignMetadata` for the system frameworks: generated from the
+// bindings, not traced from a run, so it is complete on any operating system.
+// Every binding class is initialised, which links every descriptor and opens no
+// framework. The file travels in the jar under META-INF/native-image/, beside
+// :media's own.
+// ============================================================================
+def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
+def foreignMetadataFile = foreignMetadataDir.map {
+    it.file('META-INF/native-image/io.github.digitalsmile/goldberry-media-platform/reachability-metadata.json')
+}
+
+def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
+    group = 'build'
+    description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.media.platform.macos.PlatformForeignMetadata'
+    // Linking a descriptor is restricted, and the generator links every one.
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(foreignMetadataDir)
+    argumentProviders.add({ [foreignMetadataFile.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+}
+
+tasks.named('jar') {
+    from(foreignMetadata)
+}

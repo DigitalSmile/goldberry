@@ -120,7 +120,10 @@ on the decode thread.
 - Not done yet:
   - Windows (Media Foundation, a COM API that needs its own binding layer) and
     Linux (VAAPI decodes on hardware only, and has no audio).
-  - Native-image metadata for the upcalls. `:media` generates its own from the
-    bindings; this module does not yet.
+  - ~~Native-image metadata for the upcalls.~~ Done (2026-09-24):
+    `:media-platform:foreignMetadata` writes it from the bindings into the jar,
+    as `:media` does. `PlatformForeignMetadata` initialises every binding class
+    and names the two callbacks, and its test fails when a class in the package
+    links a downcall or declares a callback descriptor that is not listed.
   - Bitmap output for 4:2:2 and 4:4:4 streams. The provider does not claim them
     now, so they stay `UNSUPPORTED_CODEC`.

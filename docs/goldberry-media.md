@@ -237,7 +237,7 @@ Per TESTING.md. Additions: a small CC-licensed fixture corpus (one clip per cont
 | Decoder SPI adds an indirection on the hot path | One interface call per packet/frame, negligible against decode cost; frames stay in native memory (`MemorySegment`), no copies introduced by the SPI. |
 | FFmpeg struct ABI changes across majors | Pin the major; upgrade deliberately by re-reviewing the §2 table; startup version check and layout test fail fast. |
 | Licensing | LGPL-2.1+ on every platform, dynamic linking only; never `--enable-gpl` / `--enable-nonfree` / `--enable-version3`. dav1d BSD-2. No patent-pool codecs shipped. |
-| GraalVM native-image | Three upcalls (`read_packet`, `seek`, `get_format`) need their function descriptors registered in reachability metadata. |
+| GraalVM native-image | Three upcalls (`read_packet`, `seek`, `get_format`) need their function descriptors registered in reachability metadata; `goldberry-media-platform` adds two more (VideoToolbox's output callback, AudioToolbox's input procedure). Both modules generate the file from their bindings (`:media:foreignMetadata`, `:media-platform:foreignMetadata`); no image has been built against either yet. |
 | Windows build complexity (msys2 configure) | Isolated in the media superbuild; artifacts cached; core superbuild untouched. |
 
 ## 11. Decision record: FFmpeg-direct over libVLC
