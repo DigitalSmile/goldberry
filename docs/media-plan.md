@@ -175,7 +175,7 @@ Exit: S2, S5 and S7 pass, and S8 passes with a fake video DecoderProvider.
 | Seek modes and scrubbing (S2) | done: `SeekMode.ACCURATE` shows the picture covering the target, `KEYFRAME` the keyframe landed on. A paused player decodes one picture after each seek, and audio honours a paused seek (it used to replay up to 200 ms of the old position on play) |
 | S7 in `media-player` | done: the H.264/AAC fixture shows `no decoder for h264, aac` over the picture |
 | S8 with a fake video provider | done: grey I420 pictures and silence from a test provider for `h264` and `aac`, presented unchanged; failing mid-stream, it falls to nothing and errors naming `h264` |
-| Frame step (`,` `.`), fullscreen (`F`) | frame step done in phase 7 (below). Fullscreen **blocked**: `:core` has no call that makes a window fullscreen, and the backend SPI would need one first |
+| Frame step (`,` `.`), fullscreen (`F`) | done in phase 7 (below) |
 | `VideoPlaybackTest` S2 ("scrubbing shows each keyframe…") flaky | done: it failed in about two of three full runs, before phase 6 as after. Traced to a race in the Engine, not the test: a play straight after a paused seek resumed the sink before the audio thread had taken the seek's flush, so the old position's samples were still in it (and a real device would pull them). The sink now starts only when no seek is pending or under way and the audio thread has honoured the latest one (`Playback.sinkCurrent`); the audio thread starts it itself when it catches up. The Serial is published before the queues are flushed. `MediaPlayerTest` holds a seek inside the demuxer to check it, and fails without the fix |
 | Device latency in the audio clock | open: see the corrections table |
 | Rate (`SDL_SetAudioStreamFrequencyRatio`) | done in phase 7 (below) |
@@ -240,7 +240,7 @@ server.
 |------|--------|
 | Rate | done: `MediaPlayer.setRate` (0.25–4, kept across sources), `PlayerStatus.rate`, `AudioSink.setRate` with a default that plays at 1 only, `SdlAudioSink` over `SDL_SetAudioStreamFrequencyRatio` (a ninth SDL audio export in `libgoldberry`), the free-running clock at a rate, and the sink target scaled by it. Keys `<` `>` step through 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75 and 2, and `.media-rate` shows it when it is not 1, so no golden changed. Pitch-preserving tempo stays post-v1 |
 | Frame step | done: `MediaPlayer.step(n)` and the keys `,` `.`: pause, then an accurate seek to the shown picture plus `n` picture lengths, clamped to the first and last pictures |
-| Fullscreen (`F`) | blocked on `:core`: no window fullscreen call exists |
+| Fullscreen (`F`) | done (ADR-0473): `:core` gained window fullscreen (`BackendWindow.setFullscreen`, `BackendEvent.FullscreenChanged` from SDL's `ENTER_`/`LEAVE_FULLSCREEN`, `Window.isFullscreen` as last reported, `onFullscreenChanged`, and the same four on `Host`; one more SDL export). `media-player` offers a `.media-fullscreen` button, `F` and `Esc` where the host can: a copy of the player covers the window through `Host.fill`, `.is-fullscreen`, and the window is asked to fill its display; leaving gives it back as it was, and the platform's own way out takes the copy away. No golden changed: they are taken with no window |
 | Audio track menu | done (ADR-0467): `Track.language` and `title` from `AVStream.metadata` (`av_dict_get`; `AVStream.metadata` and `AVDictionaryEntry` added to the layout probe and check), `MediaPlayer.selectTrack`, `PlayerStatus.audioTrack` and `videoTrack`, and a `select` in the controls for two tracks or more, naming ISO 639-1, 639-2/T and 639-2/B languages. Fixture `tones-two-tracks.mkv`; a switch lands on the new track's sample within Matroska's millisecond |
 | Video track switching | done (ADR-0469): `MediaPlayer.selectTrack` takes a video track (not cover art). The demux thread retires the video thread, releases the frame queue's waiters (`FrameQueue.releaseWaiters`, which leaves the queue working, unlike `abort`), starts a new thread on the same frame queue, and seeks accurately to the position, so the old picture stays up until the new track's covering picture replaces it. `media-player` and `media-controls` gain `.media-video-track`; the two track menus share `Transport.trackMenu`. Fixture `clip-two-angles.mkv` (VP9 160×90 "Wide", VP8 96×54 "Close", Opus) |
 | Subtitles | done (ADR-0468): `…media.subtitle` (`Cue`, `Subtitles`: SubRip and WebVTT files, and SubRip, WebVTT, ASS and `mov_text` packets, down to plain lines), `SubtitleTimeline` filled by the demux thread, `MediaPlayer.selectTrack` for a subtitle track, `loadSubtitles`, `hideSubtitles`, `currentSubtitles`, `PlayerStatus.subtitles` (`SubtitleSource`). `media-player` draws the lines; it and `media-controls` have a subtitles menu. Fixture `clip-vp9-subs.mkv` (SubRip `eng`, ASS `fra`); golden `media-player-subtitles`. Bitmap subtitles stay post-v1 |
@@ -252,7 +252,7 @@ server.
 | 4 GPU present | plane upload, YUV→RGB shader, 601/709/2020 and range | **blocked** on M4: `:gpu` is empty and `BackendWindow` has no GPU surface yet (ADR-0019 waits for a consumer). GPU present needs both, and designing them is M4's work, not this plan's |
 | 5 HW decode | d3d11va, VideoToolbox, VAAPI for VP9/AV1, copy-back, fallback ladder. Switches on `GOLDBERRY_MEDIA_HWACCEL` in the superbuild | done on macOS (ADR-0470), above; its exit criterion's "on GPU present" waits on phase 4, and Linux is opt-in |
 | 6 Network | `HttpIO` (Range, read-ahead cache, reconnect, ICY), water marks, live sources | done, below |
-| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | done but fullscreen: rate, frame step, both track menus and subtitles done (below); fullscreen blocked on `:core` |
+| 7 Polish | track menus, subtitles (text formats, external `.srt`/`.vtt`), rate, frame step, fullscreen | done: rate, frame step, both track menus, subtitles and fullscreen (below) |
 
 ## Platform decoders — `:media-platform` (ADR-0472)
 
@@ -283,6 +283,7 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | `docs/content-widgets.md` §8, `docs/ARCHITECTURE.md` module table | the four widgets built | done |
 | `THIRD-PARTY-NOTICES.md`, `licenses/` | FFmpeg (LGPL-2.1+) and dav1d (BSD-2), when the natives jar ships | open |
 | `docs/goldberry-media.md` §5, `docs/ARCHITECTURE.md` §15 | the platform decoders shipped, and `:media-platform` in the module list (ADR-0472) | done |
+| `docs/goldberry-media.md` §6, `docs/core-widgets.md` §6 | `F` and `Esc`, and window fullscreen (ADR-0473) | done |
 
 ## Log
 
@@ -311,3 +312,4 @@ codecs the published natives do not build (`docs/goldberry-media.md` §5).
 | 2026-09-23 | The showcase shows phases 5–7: subtitles, both track menus, speed, picture step, hardware decoding with its switch, and a throttled HTTP sample from a server inside the showcase |
 | 2026-09-23 | Phase 5: hardware decode on VideoToolbox with copy-back, the hardware rung of the ladder, S4 with injected failures (ADR-0470). Two seek races fixed on the way. 364 tests, five full runs green; the committed code before the session, four runs green |
 | 2026-09-24 | Platform decoders (ADR-0472): `:media-platform` with `videotoolbox` and `audiotoolbox` over FFM. VideoToolbox measured to emit in decoding order, and to guess colour unless the format description is built from the parameter sets; both handled. 88 tests, `check` green with the coverage floor |
+| 2026-09-24 | Fullscreen (ADR-0473): window fullscreen in `:core` (`SDL_SetWindowFullscreen`, two event constants checked against the header, `Window`/`Host` API), and `F`/`Esc`/a button in `media-player` over a `Host.fill` copy. A test on the dummy driver found SDL defers a hidden window's request until it is shown. Phase 7 is done |

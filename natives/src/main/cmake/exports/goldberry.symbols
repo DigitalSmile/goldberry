@@ -107,6 +107,7 @@ SDL_ShowWindow
 SDL_SetWindowTitle
 SDL_MaximizeWindow
 SDL_RestoreWindow
+SDL_SetWindowFullscreen
 SDL_GetWindowSize
 SDL_GetWindowSizeInPixels
 

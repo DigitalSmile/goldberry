@@ -368,6 +368,17 @@ public final class SdlVideo {
         }
     }
 
+    /// Asks for `window` to fill its display, or to be a window again.
+    ///
+    /// A request on [#maximizeWindow]'s terms: whether it happened arrives as
+    /// `SDL_EVENT_WINDOW_ENTER_FULLSCREEN` or `…_LEAVE_FULLSCREEN`, and a window
+    /// manager that declines sends nothing.
+    public void setWindowFullscreen(SdlWindowHandle window, boolean fullscreen) {
+        if (!sdlWindowCalls.setWindowFullscreen().call(window.pointer(), fullscreen)) {
+            throw new SdlException("SDL_SetWindowFullscreen", Sdl.get().lastError());
+        }
+    }
+
     /// Asks `window` to start delivering `SDL_EVENT_TEXT_INPUT`.
     ///
     /// **SDL3 does not deliver committed text until something asks.** Text input

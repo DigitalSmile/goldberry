@@ -22,4 +22,16 @@ public final class GoldberryTestAccess {
     public static void shutdown() {
         GoldberryRuntime.shutdown();
     }
+
+    /// An overlay on `widget` covering the whole window, attached as a window's
+    /// overlay layer attaches one: [Overlay#remove()] runs `onRemove` once.
+    ///
+    /// For a test host's [Host#fill]. A detached overlay's `remove()` does
+    /// nothing, so a host returning one could not tell whether a widget took
+    /// its overlay away again.
+    public static Overlay attachedFilling(io.github.digitalsmile.goldberry.widget.Widget widget, Runnable onRemove) {
+        var overlay = Overlay.filling(widget);
+        overlay.attached(onRemove);
+        return overlay;
+    }
 }

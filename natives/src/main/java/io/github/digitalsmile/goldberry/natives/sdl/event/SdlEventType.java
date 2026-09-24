@@ -57,6 +57,19 @@ public enum SdlEventType {
     /// what un-maximizing and un-minimizing both report.
     WINDOW_RESTORED(0x20B),
 
+    /// The window went fullscreen — by the user (the green button on macOS, a
+    /// window manager's key) or by
+    /// [io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls.SetWindowFullscreen].
+    ///
+    /// The only truth about the state, as [#WINDOW_MAXIMIZED] is for its own:
+    /// on macOS the change is an animated move to a Space of its own and lands
+    /// several frames after the ask, and a window manager may refuse it outright.
+    WINDOW_ENTER_FULLSCREEN(0x217),
+
+    /// The window left fullscreen — [#WINDOW_ENTER_FULLSCREEN]'s undo, on the
+    /// same terms.
+    WINDOW_LEAVE_FULLSCREEN(0x218),
+
     /// The window manager asked for the window to close.
     WINDOW_CLOSE_REQUESTED(0x210),
 

@@ -944,6 +944,10 @@ public final class Sdl3Backend implements Backend {
             // both mean the same thing to a window that only tracks the one
             // state: it is no longer maximized.
             out.add(new BackendEvent.MaximizedChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_ENTER_FULLSCREEN.value()) {
+            out.add(new BackendEvent.FullscreenChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_LEAVE_FULLSCREEN.value()) {
+            out.add(new BackendEvent.FullscreenChanged(window, false));
         } else if (type == SdlEventType.WINDOW_MOVED.value()) {
             // The position is read off the window rather than out of the event,
             // for the reason the sizes below are: one place asks the platform,

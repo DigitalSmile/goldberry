@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Mod;
@@ -76,6 +78,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// | `Home` | back to the start |
 /// | `,` / `.` | a picture back or on, pausing |
 /// | `<` / `>` (`Shift`+`,` / `.`) | slower or faster, through [#RATES] |
+/// | `F` | fullscreen, or back (`media-player`, where the host has a window) |
+/// | `Esc` | out of fullscreen, and nothing otherwise |
 ///
 /// Answered by the widget's own node, which takes focus when clicked and is where
 /// a key bubbles to from any control inside it. A focused seek bar keeps its
@@ -95,12 +99,14 @@ final class Transport {
     /// Icon size, the control slot's.
     static final double ICON_SIZE = 16;
 
-    /// The four glyphs, by their Lucide names.
+    /// The glyphs, by their Lucide names.
     enum Glyph {
         PLAY("play"),
         PAUSE("pause"),
         VOLUME("volume-2"),
-        MUTED("volume-x");
+        MUTED("volume-x"),
+        FULLSCREEN("maximize"),
+        WINDOWED("minimize");
 
         final String lucide;
 
@@ -108,6 +114,14 @@ final class Transport {
             this.lucide = lucide;
         }
     }
+
+    /// Fullscreen, as the widget that offers it sees it: whether it is on now,
+    /// and what turns it on or off. A widget that does not offer fullscreen
+    /// passes none, and gets no button and no `F`.
+    ///
+    /// @param on     whether this widget is showing fullscreen
+    /// @param toggle enters fullscreen when off, leaves it when on
+    record Fullscreen(boolean on, Runnable toggle) {}
 
     private final EnumMap<Glyph, Icon> icons = new EnumMap<>(Glyph.class);
     private boolean scrubbing;
@@ -128,6 +142,13 @@ final class Transport {
     /// The controls, with the video track and subtitles menus when `withPicture`:
     /// for a widget that goes with a picture, which `audio-player` does not.
     List<Widget> controls(MediaPlayer player, PlayerStatus status, boolean withPicture) {
+        return controls(player, status, withPicture, null);
+    }
+
+    /// The controls, with a fullscreen button last when `fullscreen` is given:
+    /// `.media-fullscreen`, a `maximize` glyph that turns to `minimize` while on.
+    List<Widget> controls(
+            MediaPlayer player, PlayerStatus status, boolean withPicture, @Nullable Fullscreen fullscreen) {
         var controls = new ArrayList<Widget>(6);
         var playing = status.state() == PlaybackState.PLAYING
                 || status.state() == PlaybackState.BUFFERING
@@ -174,6 +195,14 @@ final class Transport {
                 Attributes.NONE.classes("media-mute")));
         controls.add(new Slider(0, 1, status.volume(), 0, value -> player.setVolume((float) value))
                 .withAttributes(Attributes.NONE.classes("media-volume")));
+        if (fullscreen != null) {
+            controls.add(new Button(
+                    "",
+                    fullscreen.on() ? icon(Glyph.WINDOWED) : icon(Glyph.FULLSCREEN),
+                    fullscreen.toggle(),
+                    false,
+                    Attributes.NONE.classes("media-fullscreen")));
+        }
         return List.copyOf(controls);
     }
 
@@ -307,6 +336,13 @@ final class Transport {
 
     /// Answers the table above, and consumes what it answers.
     void onKey(MediaPlayer player, KeyEvent event) {
+        onKey(player, event, null);
+    }
+
+    /// The same, with `F` and `Esc` for a widget that offers fullscreen. `Esc`
+    /// is consumed only while fullscreen, so a dialog or a menu around a
+    /// windowed player still hears it.
+    void onKey(MediaPlayer player, KeyEvent event, @Nullable Fullscreen fullscreen) {
         if (event.kind() != KeyEvent.Kind.PRESSED) {
             return;
         }
@@ -357,6 +393,22 @@ final class Transport {
                         if (status.seekable()) {
                             player.seek(Duration.ZERO);
                         }
+                        yield true;
+                    }
+                    case F -> {
+                        if (fullscreen == null) {
+                            yield false;
+                        }
+                        if (!event.isRepeat()) {
+                            fullscreen.toggle().run();
+                        }
+                        yield true;
+                    }
+                    case ESCAPE -> {
+                        if (fullscreen == null || !fullscreen.on()) {
+                            yield false;
+                        }
+                        fullscreen.toggle().run();
                         yield true;
                     }
                     default -> false;

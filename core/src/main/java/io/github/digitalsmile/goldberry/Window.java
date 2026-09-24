@@ -979,6 +979,81 @@ public final class Window implements AutoCloseable {
         maximized = value;
     }
 
+    /// The platform's last word on whether this window fills its display — see
+    /// [#isFullscreen].
+    private boolean fullscreen;
+
+    /// Everything following [#isFullscreen], a list for [#dropListeners]' reason:
+    /// a video player and the application's own toolbar can both care.
+    private final List<Consumer<Boolean>> fullscreenListeners = new ArrayList<>();
+
+    /// Whether the window fills its display **as the platform last reported it**
+    /// ([ADR-0473]).
+    ///
+    /// [#isMaximized]'s rule, for the same reason: going fullscreen is a request
+    /// a window manager may refuse, and on macOS it is an animated move to a
+    /// Space of its own that lands several frames after the ask. Between
+    /// [#setFullscreen] and the event this still answers what it did before. It
+    /// also answers `true` when **the user** made the window fullscreen with the
+    /// platform's own button, which no tracking of this process's calls could.
+    public boolean isFullscreen() {
+        return fullscreen;
+    }
+
+    /// Asks the platform to make the window fill its display, or to make it a
+    /// window again.
+    ///
+    /// A request; see [#isFullscreen] for what comes back and when. Borderless on
+    /// the desktop's own display mode, never an exclusive mode change. Does
+    /// nothing once the window is closed.
+    ///
+    /// Asked before the first frame, while the window is still hidden, it is
+    /// kept and applied as the window appears, and reported then: an
+    /// application may open straight into fullscreen by asking at start-up.
+    ///
+    /// ```java
+    /// window.setFullscreen(!window.isFullscreen());
+    /// ```
+    ///
+    /// @param fullscreen true to fill the display, false for a window again
+    public void setFullscreen(boolean fullscreen) {
+        if (window.isOpen()) {
+            window.setFullscreen(fullscreen);
+        }
+    }
+
+    /// Called with the new state each time the window comes to fill its display
+    /// or stops, whoever asked; on the UI thread.
+    ///
+    /// Told only of a **change**: a platform that reports the state it is already
+    /// in (SDL on some drivers, after a display change) tells nobody. Close the
+    /// subscription to stop listening.
+    ///
+    /// ```java
+    /// window.onFullscreenChanged(full -> toolbar.setVisible(!full));
+    /// ```
+    public Subscription onFullscreenChanged(Consumer<Boolean> listener) {
+        Objects.requireNonNull(listener, "listener");
+        fullscreenListeners.add(listener);
+        return () -> fullscreenListeners.remove(listener);
+    }
+
+    void handleFullscreenChanged(boolean value) {
+        if (fullscreen == value) {
+            return;
+        }
+        fullscreen = value;
+        // Over a copy: a listener that reacts by closing its own subscription, as
+        // a player leaving fullscreen does, must not be a
+        // `ConcurrentModificationException`.
+        for (var listener : List.copyOf(fullscreenListeners)) {
+            listener.accept(value);
+        }
+        // What fills the screen changed shape even when the size event that
+        // follows says nothing new (a window already as big as its display).
+        repaint();
+    }
+
     /// Told by the runtime that the desktop's setting changed. One per window,
     /// because the backend sends one per window ([ADR-0322]).
     private java.util.function.@Nullable Consumer<SystemTheme> systemThemeHandler;

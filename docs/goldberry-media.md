@@ -181,7 +181,7 @@ I/O has the same shape already: a custom `MediaIO` registered for a URL scheme a
 | `media-player` | `video-view` + `media-controls` overlay + subtitle overlay. |
 | `audio-player` | Compact `media-controls`; optional cover art from the attached-picture stream; `nowPlaying` line for Live Sources. |
 
-Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start, `,` `.` a picture back and on (pausing), `<` `>` slower and faster through 0.25–2; *F fullscreen waits for a window fullscreen call in `:core`, which has none yet*. The rate shows as `.media-rate` beside the times when it is not 1. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
+Keys: Space (and K) play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, Home to the start, `,` `.` a picture back and on (pausing), `<` `>` slower and faster through 0.25–2; `F` fullscreen and `Esc` out of it, in `media-player` where the host has a window (ADR-0473): a copy of the player covers the window through `Host.fill`, `.is-fullscreen`, and the window is asked to fill its display; leaving gives the window back as it was, and the platform's own way out takes the copy away. The rate shows as `.media-rate` beside the times when it is not 1. Answered by the widget's own focusable node, where a key bubbles to from a control that does not want it.
 
 Audio track menu, as built (ADR-0467): a `select` of the audio tracks (`.media-audio-track`), for a source with two or more, labelled by title and language (`Track.title`, `Track.language` from the stream's metadata). Choosing one is `MediaPlayer.selectTrack`: the demux thread retires the audio thread, starts one on the new track and seeks accurately to the position.
 

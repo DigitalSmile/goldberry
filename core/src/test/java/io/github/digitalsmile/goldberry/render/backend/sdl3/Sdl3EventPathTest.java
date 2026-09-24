@@ -26,6 +26,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -477,6 +478,55 @@ class Sdl3EventPathTest {
                 Modifier.isVolatile(Sdl3Backend.class.getDeclaredField("closed").getModifiers()),
                 "closed is read off the UI thread by wakeup(), so a plain field leaves the"
                         + " write in close() free never to be seen there");
+    }
+
+    /// SDL's two fullscreen events become one SPI event with the boolean
+    /// ([ADR-0473]), whoever caused them: this is the route the user's own
+    /// green button takes, which no call of ours precedes.
+    @Test
+    @DisplayName("entering and leaving fullscreen reach the sink as one event with the state")
+    void fullscreenEventsReachTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_ENTER_FULLSCREEN, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_LEAVE_FULLSCREEN, id(window), 0, 0));
+            });
+
+            var changes = events.stream()
+                    .filter(BackendEvent.FullscreenChanged.class::isInstance)
+                    .map(BackendEvent.FullscreenChanged.class::cast)
+                    .toList();
+            assertEquals(2, changes.size(), () -> "expected two changes, got " + names(events));
+            assertSame(window, changes.getFirst().window());
+            assertTrue(changes.getFirst().fullscreen());
+            assertFalse(changes.getLast().fullscreen());
+        });
+    }
+
+    /// `SDL_SetWindowFullscreen` through the export list and the binding, and
+    /// back out of the pump. The dummy driver has no window manager to refuse,
+    /// so SDL's own bookkeeping answers, and the answer is the event.
+    ///
+    /// The window is shown first, by presenting a frame as the frame loop does.
+    /// A window is created hidden until its first frame, and SDL keeps a
+    /// hidden window's fullscreen request as a pending flag, applied and
+    /// reported when it is shown.
+    @Test
+    @DisplayName("asking for fullscreen through SDL comes back as the event, and leaving does too")
+    void fullscreenRoundTrip() {
+        withBackend((backend, window) -> {
+            var frame = window.acquireFrame().orElseThrow();
+            window.present(frame, List.of(DamageRect.all(frame.size())));
+            pump(backend, sink -> {});
+
+            var entered = pump(backend, sink -> window.setFullscreen(true));
+            assertTrue(
+                    only(entered, BackendEvent.FullscreenChanged.class).fullscreen(),
+                    () -> "entering: " + names(entered));
+
+            var left = pump(backend, sink -> window.setFullscreen(false));
+            assertFalse(only(left, BackendEvent.FullscreenChanged.class).fullscreen(), () -> "leaving: " + names(left));
+        });
     }
 
     // --- the machinery ------------------------------------------------------

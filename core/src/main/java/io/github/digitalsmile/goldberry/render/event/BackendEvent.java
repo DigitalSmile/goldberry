@@ -210,6 +210,14 @@ public sealed interface BackendEvent {
     /// same shape [FocusChanged] already has, for the same reason.
     record MaximizedChanged(BackendWindow window, boolean maximized) implements BackendEvent {}
 
+    /// The window came to fill its display, or stopped (ADR-0473).
+    ///
+    /// The only truth about the state, as [MaximizedChanged] is for its own: a
+    /// request to go fullscreen may be refused, and on macOS lands only when the
+    /// animation to a Space of its own ends. The user's own ways in and out (the
+    /// green button, a window manager's key) arrive here too.
+    record FullscreenChanged(BackendWindow window, boolean fullscreen) implements BackendEvent {}
+
     /// A key went down.
     ///
     /// @param keycode  the platform's virtual keycode — translated to a

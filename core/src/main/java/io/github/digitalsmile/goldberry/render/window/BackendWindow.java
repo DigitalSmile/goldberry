@@ -328,6 +328,26 @@ public interface BackendWindow extends AutoCloseable {
     /// what lets a test drive the whole path.
     default void setMaximized(boolean maximized) {}
 
+    /// Asks the platform to make this window fill its display, or to make it a
+    /// window again (ADR-0473).
+    ///
+    /// **A request, on [#setMaximized]'s terms.** On macOS the change is an
+    /// animated move to a Space of its own that lands several frames later; a
+    /// window manager elsewhere may refuse it. Whether it happened arrives as
+    /// [BackendEvent.FullscreenChanged], and so does a change the **user** made
+    /// with the platform's own button or key.
+    ///
+    /// Borderless on the desktop's own display mode, never an exclusive mode
+    /// change: what fills the screen is a video or a presentation, and switching
+    /// the display's resolution under it would blank every monitor for a second
+    /// and scale the picture twice.
+    ///
+    /// Default: does nothing, for a backend with no window manager to ask. The
+    /// headless one agrees and reports it, as it does for maximizing.
+    ///
+    /// @param fullscreen true to fill the display, false for a window again
+    default void setFullscreen(boolean fullscreen) {}
+
     /// The current title.
     String title();
 

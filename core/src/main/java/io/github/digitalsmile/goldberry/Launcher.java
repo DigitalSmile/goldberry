@@ -1800,6 +1800,30 @@ final class Launcher implements Host {
         return window;
     }
 
+    /// True while the window is open: every backend with a window answers the
+    /// ask, the headless one included, and one that has nothing to do about it
+    /// simply sends no event back.
+    @Override
+    public boolean canFullscreen() {
+        return window.isOpen();
+    }
+
+    @Override
+    public boolean isFullscreen() {
+        return window.isFullscreen();
+    }
+
+    @Override
+    public void setFullscreen(boolean fullscreen) {
+        window.setFullscreen(fullscreen);
+    }
+
+    @Override
+    public io.github.digitalsmile.goldberry.bind.Subscription onFullscreenChanged(
+            java.util.function.Consumer<Boolean> listener) {
+        return window.onFullscreenChanged(listener);
+    }
+
     @Override
     public double displayScale() {
         return window.scale().factor();

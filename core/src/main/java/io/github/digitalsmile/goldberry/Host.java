@@ -744,6 +744,46 @@ public interface Host {
         return false;
     }
 
+    /// Whether this host has a window that can be asked to fill its display
+    /// (ADR-0473).
+    ///
+    /// What a control decides by whether to **offer** fullscreen at all: a
+    /// `media-player` shows its fullscreen button only where pressing it could
+    /// do something. False by default, which is the answer for a host with no
+    /// window under it: an offscreen render, and every golden image.
+    default boolean canFullscreen() {
+        return false;
+    }
+
+    /// Whether the window fills its display, as the platform last reported it:
+    /// [Window#isFullscreen()]'s answer, and its rule about the time between an
+    /// ask and the event. False for a host with no window.
+    default boolean isFullscreen() {
+        return false;
+    }
+
+    /// Asks for the window to fill its display, or to be a window again:
+    /// [Window#setFullscreen(boolean)], a request whose answer arrives through
+    /// [#onFullscreenChanged]. Does nothing where [#canFullscreen()] is false.
+    ///
+    /// @param fullscreen true to fill the display, false for a window again
+    default void setFullscreen(boolean fullscreen) {}
+
+    /// Called with the new state each time the window comes to fill its display
+    /// or stops, whoever asked: this application, or the user with the
+    /// platform's own button. On the UI thread.
+    ///
+    /// A [io.github.digitalsmile.goldberry.bind.Subscription], unlike
+    /// [#onSystemThemeChanged]: a widget listens here, and a widget leaves the
+    /// tree long before its window closes, so it has to be able to stop.
+    ///
+    /// @param listener told `true` on entering fullscreen and `false` on leaving
+    /// @return what stops the listening; closing it twice is harmless
+    default io.github.digitalsmile.goldberry.bind.Subscription onFullscreenChanged(Consumer<Boolean> listener) {
+        Objects.requireNonNull(listener, "listener");
+        return () -> {};
+    }
+
     /// The window, for the handful of things this interface deliberately does not
     /// wrap: the close-request hook, the cursor, resize and scale notifications.
     ///

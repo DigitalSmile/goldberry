@@ -476,6 +476,18 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
     }
 
+    /// `SDL_SetWindowFullscreen`, and records nothing (ADR-0473).
+    ///
+    /// No display mode is set first, so SDL uses borderless fullscreen on the
+    /// desktop's own mode. The state comes back as
+    /// `SDL_EVENT_WINDOW_ENTER_FULLSCREEN` or `…_LEAVE_FULLSCREEN`.
+    @Override
+    public void setFullscreen(boolean fullscreen) {
+        backend.requireUiThread();
+        requireOpen();
+        video().setWindowFullscreen(handle, fullscreen);
+    }
+
     @Override
     public String title() {
         backend.requireUiThread();

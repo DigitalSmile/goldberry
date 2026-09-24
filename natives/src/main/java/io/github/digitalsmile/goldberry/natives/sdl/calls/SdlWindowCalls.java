@@ -26,6 +26,7 @@ public record SdlWindowCalls(
         SetWindowIcon setWindowIcon,
         MaximizeWindow maximizeWindow,
         RestoreWindow restoreWindow,
+        SetWindowFullscreen setWindowFullscreen,
         SetWindowPosition setWindowPosition,
         GetWindowPosition getWindowPosition,
         SetWindowSize setWindowSize,
@@ -54,6 +55,7 @@ public record SdlWindowCalls(
                 new SetWindowIcon(lookup),
                 new MaximizeWindow(lookup),
                 new RestoreWindow(lookup),
+                new SetWindowFullscreen(lookup),
                 new SetWindowPosition(lookup),
                 new GetWindowPosition(lookup),
                 new SetWindowSize(lookup),
@@ -344,6 +346,40 @@ public record SdlWindowCalls(
                 return (boolean) FD_SDL_RestoreWindow.invokeExact(address, window);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_RestoreWindow", t);
+            }
+        }
+    }
+
+    /// Asks for the window to go fullscreen, or to come back to a window.
+    ///
+    /// `_Bool SDL_SetWindowFullscreen(void*, _Bool)`
+    ///
+    /// **A request rather than a setter**, as [MaximizeWindow] is. SDL uses
+    /// borderless fullscreen on the desktop's own mode unless an exclusive mode
+    /// was set, which nothing here does: a video over the whole screen wants
+    /// the display left as it is. On macOS the change is an animated move to a
+    /// Space and is asynchronous, so the state is
+    /// `SDL_EVENT_WINDOW_ENTER_FULLSCREEN` or `…_LEAVE_FULLSCREEN` arriving
+    /// afterwards.
+    public static final class SetWindowFullscreen {
+
+        private static final MethodHandle FD_SDL_SetWindowFullscreen =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        SetWindowFullscreen(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetWindowFullscreen");
+        }
+
+        /// Calls `SDL_SetWindowFullscreen`.
+        ///
+        /// @return false if SDL refused
+        public boolean call(MemorySegment window, boolean fullscreen) {
+            try {
+                return (boolean) FD_SDL_SetWindowFullscreen.invokeExact(address, window, fullscreen);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetWindowFullscreen", t);
             }
         }
     }

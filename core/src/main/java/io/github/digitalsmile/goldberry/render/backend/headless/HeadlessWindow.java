@@ -448,6 +448,27 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.post(new BackendEvent.MaximizedChanged(this, maximized));
     }
 
+    /// Agrees to the ask and reports it, as [#setMaximized] does (ADR-0473).
+    ///
+    /// The size is left alone. A real platform follows the event with a resize
+    /// to the display's size, and a test that wants that sends it with
+    /// [#resizeTo]; the headless backend has no display whose size it could
+    /// honestly pick.
+    @Override
+    public void setFullscreen(boolean fullscreen) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.FullscreenChanged(this, fullscreen));
+    }
+
+    /// Queues a fullscreen change the application did **not** ask for: the user
+    /// pressing the platform's own button, or a window manager's key.
+    public void reportFullscreen(boolean fullscreen) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.FullscreenChanged(this, fullscreen));
+    }
+
     public void movePointer(float x, float y) {
         movePointer(x, y, 0);
     }
