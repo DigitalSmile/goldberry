@@ -1,9 +1,7 @@
 package io.github.digitalsmile.goldberry.gpu.render;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
@@ -15,30 +13,18 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.css.Decoration;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.gpu.GpuDevice;
-import io.github.digitalsmile.goldberry.gpu.TextureFormat;
-import io.github.digitalsmile.goldberry.gpu.TextureSpec;
-import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.layout.Insets;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.layout.Overflow;
 import io.github.digitalsmile.goldberry.layout.Position;
-import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Painter;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.GpuPlacement;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 
 /// `docs/gpu-plan.md` phase 4's exit: each z-order case is a golden that is the
 /// same composited and read back, on a real device (ADR-0481).
@@ -48,10 +34,12 @@ import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 ///
 /// - **composited**: the frame is painted with holes where the layers are,
 ///   uploaded, and composited with the layers by the window's own composite
-///   pass ([LayerTextures#renderAll], [UiComposite]) into a texture that is read
-///   back, which is what a composited window's swapchain would show;
+///   pass into a texture that is read back, which is what a composited
+///   window's swapchain would show;
 /// - **read back**: the frame is painted with each layer rendered, downloaded
-///   and drawn into it, by the compositor's own [SdlReadbackSurface].
+///   and drawn into it, by the compositor's own read-back surface.
+///
+/// Both through [CompositeHarness].
 ///
 /// Both are held to one golden, within ADR-0050's tolerance, and to each other
 /// at two levels in 256: they differ, if at all, only where translucent UI is
@@ -70,33 +58,18 @@ class LayerZOrderTest {
     private static final int DARK = 0xFF303030;
     private static final int WHITE = 0xFFFFFFFF;
 
-    private static SdlGpuDevice required;
-    private static SdlCompositor compositor;
-    private static GpuDevice api;
-    private static UiComposite composite;
+    private static CompositeHarness harness;
 
     @BeforeAll
     static void createDevice() {
-        // Initialises SDL's video under the lane's driver, which the
-        // compositor's own device needs, and skips or fails without one.
-        required = GpuDeviceRequirement.enforce();
-        compositor = new SdlCompositor();
-        api = compositor.api().orElseThrow();
-        composite = new UiComposite(compositor.device().orElseThrow());
+        harness = CompositeHarness.open();
     }
 
     @AfterAll
     static void destroyDevice() {
-        if (composite != null) {
-            composite.close();
+        if (harness != null) {
+            harness.close();
         }
-        if (compositor != null) {
-            compositor.close();
-        }
-        if (required != null) {
-            required.close();
-        }
-        Sdl.get().quit();
     }
 
     // ---------------------------------------------------------------------
@@ -239,33 +212,28 @@ class LayerZOrderTest {
         var width = Math.round(WIDTH * scale);
         var height = Math.round(HEIGHT * scale);
         var painter = painting(scene);
-        var recorder = new Recorder();
-        var composited = composited(painter, recorder, new PhysicalSize(width, height), new DisplayScale(scale));
-        var readBack = readBack(painter, new PhysicalSize(width, height), new DisplayScale(scale));
-
-        var differing = 0;
-        var worst = 0;
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                var a = composited.argb(x, y);
-                var b = readBack.argb(x, y);
-                for (var shift = 0; shift < 32; shift += 8) {
-                    var difference = Math.abs(((a >>> shift) & 0xFF) - ((b >>> shift) & 0xFF));
-                    worst = Math.max(worst, difference);
-                    if (difference > 2) {
-                        differing++;
-                    }
-                }
-            }
-        }
-        assertTrue(
-                worst <= 2,
-                name + ": composited and read back differ by " + worst + " levels, in " + differing + " channels");
+        var composited = harness.composited(
+                surface -> Offscreen.of(width, height).scale(scale).gpu(surface).paint(painter));
+        var readBack = harness.readBack(
+                surface -> Offscreen.of(width, height).scale(scale).gpu(surface).paint(painter));
+        CompositeHarness.assertSamePicture(name, composited.image(), readBack);
 
         GoldenImage.assertMatchesAtOneScale(
-                name, width, height, scale, (size, at) -> composited(painter, new Recorder(), size, at));
-        GoldenImage.assertMatchesAtOneScale(name, width, height, scale, (size, at) -> readBack(painter, size, at));
-        return recorder.placed;
+                name,
+                width,
+                height,
+                scale,
+                (size, at) -> harness.composited(surface ->
+                                Offscreen.of(size).scale(at).gpu(surface).paint(painter))
+                        .image());
+        GoldenImage.assertMatchesAtOneScale(
+                name,
+                width,
+                height,
+                scale,
+                (size, at) -> harness.readBack(
+                        surface -> Offscreen.of(size).scale(at).gpu(surface).paint(painter)));
+        return composited.placed();
     }
 
     private static Painter painting(Box scene) {
@@ -275,61 +243,5 @@ class LayerZOrderTest {
                 tree.paint(frame);
             }
         };
-    }
-
-    /// What a composited window keeps of a frame: the layers it placed.
-    private static final class Recorder implements GpuSurface.Composited {
-        List<GpuPlacement> placed = List.of();
-
-        @Override
-        public void placed(List<GpuPlacement> layers) {
-            placed = layers;
-        }
-    }
-
-    /// The frame painted with holes, then composited with its layers as a
-    /// composited window's present does, into a texture that is read back.
-    private static Image composited(Painter scene, Recorder recorder, PhysicalSize size, DisplayScale scale) {
-        var frame = Offscreen.of(size).scale(scale).gpu(recorder).paint(scene);
-        var whole = PhysicalRect.of(size);
-        try (var textures = new LayerTextures();
-                var ui = api.createTexture(
-                        TextureSpec.sampled(TextureFormat.B8G8R8A8_UNORM, size.width(), size.height()));
-                var target = api.createTexture(
-                        TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, size.width(), size.height()))) {
-            try (var upload = api.beginFrame()) {
-                upload.copyPass(copy -> copy.upload(ui, frame.pixels(), List.of(whole)));
-                upload.submit();
-            }
-            var layers = textures.renderAll(api, recorder.placed);
-            var commands = compositor.device().orElseThrow().acquireCommandBuffer();
-            composite.draw(
-                    commands,
-                    ApiAccess.texture(target),
-                    SdlGpuTextureFormat.B8G8R8A8_UNORM,
-                    ApiAccess.texture(ui),
-                    layers);
-            commands.submit();
-            try (var read = api.beginFrame()) {
-                var readback = read.readback(target);
-                read.submit();
-                return direct(readback.awaitPixels());
-            }
-        }
-    }
-
-    /// The frame painted with each layer rendered, read back and drawn into it.
-    private static Image readBack(Painter scene, PhysicalSize size, DisplayScale scale) {
-        try (var surface = compositor.readback()) {
-            return Offscreen.of(size).scale(scale).gpu(surface).paint(scene);
-        }
-    }
-
-    /// `pixels` in direct memory, which an image drawn or encoded needs.
-    private static Image direct(PixelBuffer pixels) {
-        var source = pixels.pixels();
-        var copy = ByteBuffer.allocateDirect(source.remaining()).order(source.order());
-        copy.put(0, source, source.position(), source.remaining());
-        return Image.of(new PixelBuffer(pixels.size(), pixels.format(), pixels.stride(), copy));
     }
 }

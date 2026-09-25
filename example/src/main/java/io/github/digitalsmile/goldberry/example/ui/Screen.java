@@ -98,7 +98,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// unreachable.
     public static final List<String> GALLERY = List.of(
             "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "emoji", "motion", "web", "audio", "video");
+            "canvas", "icons", "emoji", "motion", "web", "audio", "video", "gpu");
 
     /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
     /// tray.
@@ -128,7 +128,8 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             Map.entry("motion", "Motion"),
             Map.entry("web", "Web view"),
             Map.entry("audio", "Audio"),
-            Map.entry("video", "Video"));
+            Map.entry("video", "Video"),
+            Map.entry("gpu", "GPU"));
 
     /// What a screen is called. Refuses rather than defaults, because a defaulted
     /// title is a menu row named `collections` that nobody notices for a month.
@@ -329,7 +330,9 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                             scrolled(new MediaScreen(
                                     MediaScreen.Kind.AUDIO, model.audioPlayer(), model.javaPcmDecoder(), audio))),
                     new Tab("video", title("video"),
-                            scrolled(new MediaScreen(MediaScreen.Kind.VIDEO, model.videoPlayer(), null, video)))))),
+                            scrolled(new MediaScreen(MediaScreen.Kind.VIDEO, model.videoPlayer(), null, video))),
+                    // `canvas3d` (docs/gpu-plan.md, phase 5; ADR-0482).
+                    new Tab("gpu", title("gpu"), scrolled(new GpuScreen()))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");

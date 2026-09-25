@@ -44,26 +44,40 @@ final class LayerTextures implements AutoCloseable {
 
     private final IdentityHashMap<GpuContent, GpuTexture> textures = new IdentityHashMap<>();
 
-    /// The layers that have thrown, logged once each.
+    /// The layers whose last render threw, so their textures hold no picture.
     private final Set<GpuContent> failed = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    /// The layers that have thrown while placed, logged once each.
+    private final Set<GpuContent> logged = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private boolean closed;
 
     /// Renders `layer` into its texture at `size`, recording into `frame`: the
     /// texture, or null when the layer threw.
+    ///
+    /// A layer whose texture is kept from an earlier frame, at this size, and
+    /// which says it has not changed ([GpuLayer#needsRender]) is not rendered:
+    /// its texture already holds its picture. A new texture is always rendered
+    /// into, and so is a layer's that threw last time.
     @Nullable
     GpuTexture render(GpuFrame frame, GpuLayer layer, PhysicalSize size) {
         if (closed) {
             throw new IllegalStateException("the layer textures are closed");
         }
+        var kept = textures.get(layer);
         var texture = textureFor(frame.device(), layer, size);
+        if (texture == kept && !failed.contains(layer) && !layer.needsRender()) {
+            return texture;
+        }
         try {
             frame.debugGroup(layer.getClass().getSimpleName(), () -> layer.render(frame, texture));
+            failed.remove(layer);
             return texture;
         } catch (RuntimeException e) {
-            if (failed.add(layer)) {
+            if (logged.add(layer)) {
                 LOG.warn("the GPU layer {} failed to render, and shows nothing where it fails", layer, e);
             }
+            failed.add(layer);
             return null;
         }
     }
@@ -126,6 +140,7 @@ final class LayerTextures implements AutoCloseable {
             }
         }
         failed.retainAll(shown);
+        logged.retainAll(shown);
     }
 
     /// How many textures are held, for the tests.
@@ -165,5 +180,6 @@ final class LayerTextures implements AutoCloseable {
         }
         textures.clear();
         failed.clear();
+        logged.clear();
     }
 }

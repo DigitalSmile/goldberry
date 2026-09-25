@@ -264,6 +264,11 @@
   --gb-qr-ink: #1a1a1a;
   --gb-qr-paper: #ffffff;
 
+  /* What a `canvas3d` shows where there is no GPU to draw it with (ADR-0482):
+     a quiet surface (nord4) under the notice that says why, as a `web-view`
+     with no engine shows one. */
+  --gb-canvas3d-unavailable: #d8dee9;
+
   /* The hue, and the hue at a lightness that can carry text. See nord-dark for
      the whole argument; what matters here is that **`--gb-danger-fill` is the
      same value in both files and `--gb-accent-fill` is not**. `--nord11` is a

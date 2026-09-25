@@ -9,9 +9,10 @@
 /// and readback (phase 2) -- and `GpuLayer`, what a painter places in a frame
 /// for the GPU to draw (phase 4). A layer renders with the device of the window
 /// it is shown in: composited under the window's frame, or read back into it
-/// where the window presents on the CPU (ADR-0479, ADR-0481). `canvas3d` itself
-/// is phase 5. The toolkit's own shaders and the quad and Y'CbCr arithmetic
-/// they need stay in the unexported `…gpu.render`.
+/// where the window presents on the CPU (ADR-0479, ADR-0481). And the
+/// `canvas3d` widget in `…gpu.view`, with the `Canvas3dRenderer` an application
+/// draws it with (phase 5, ADR-0482). The toolkit's own shaders and the quad and
+/// Y'CbCr arithmetic they need stay in the unexported `…gpu.render`.
 ///
 /// `BackendWindow.gpuSurface()` came with its consumer, the GPU layer
 /// (ADR-0481), and not "from day 1" as this comment once said: the GPU surface
@@ -20,10 +21,23 @@
 module io.github.digitalsmile.goldberry.gpu {
     requires transitive io.github.digitalsmile.goldberry.core;
 
+    /// `canvas3d` is a widget, built with `:widgets`' markup and `message`;
+    /// `transitive` because [io.github.digitalsmile.goldberry.gpu.view.Canvas3d]
+    /// is a widget and its markup signature names `Wiring`.
+    requires transitive io.github.digitalsmile.goldberry.widgets;
+
     /// The GPU API (`docs/gpu-plan.md`, phase 2). Its signatures name `:core`'s
     /// `PixelBuffer` and `PhysicalRect`, hence `requires transitive` above, and
     /// nothing of `:natives`.
     exports io.github.digitalsmile.goldberry.gpu;
+
+    /// `canvas3d` and the renderer an application draws it with (phase 5,
+    /// ADR-0482).
+    exports io.github.digitalsmile.goldberry.gpu.view;
+
+    /// The catalog the weaver generates for `canvas3d`. The `provides` line is
+    /// patched into the compiled descriptor by the build (ADR-0131).
+    uses io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
 
     /// The composited window (`docs/gpu-plan.md`, phase 3; ADR-0479): the sdl3
     /// backend finds this with `ServiceLoader`, and by default every window

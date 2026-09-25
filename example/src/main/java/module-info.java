@@ -47,6 +47,11 @@ module io.github.digitalsmile.goldberry.example {
     /// (ADR-0472).
     requires io.github.digitalsmile.goldberry.media.platform;
 
+    /// `goldberry-gpu`: the GPU screen's `canvas3d` and the cube it draws with
+    /// (`docs/gpu-plan.md`, phase 5). It is also what composites the showcase's
+    /// windows (ADR-0480), which being on the module path was enough for.
+    requires io.github.digitalsmile.goldberry.gpu;
+
     // The local server the network samples are played from, so they play offline.
     requires jdk.httpserver;
     requires org.slf4j;

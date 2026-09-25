@@ -61,6 +61,10 @@
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/gpu/*"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
       "glob": "io/github/digitalsmile/goldberry/example/ui/*.md"
     },
     {

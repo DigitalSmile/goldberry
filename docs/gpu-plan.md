@@ -468,16 +468,21 @@ lane has not run yet.
 
 | Item | Status |
 |------|--------|
-| `gpu.view.Canvas3d`, `@Markup("canvas3d")`, weaved into `:gpu`'s catalog (ADR-0131). A leaf sized like an image, `renderer=` naming a `Canvas3dRenderer` | open |
-| `Canvas3dRenderer`: `init(GpuDevice)`, `render(GpuFrame, Canvas3dTarget)` with colour (and optional depth) textures at the box's physical size, `resize`, `dispose`. `continuous` or on-demand redraw through `requestFrame` | open |
-| Fallback when no device: the widget paints `--gb-canvas3d-unavailable` and the reason, as `web-view` does without its engine (ADR-0441) | open |
-| Showcase: a **GPU** tab with a lit spinning cube (vertex and index buffers, depth, one uniform block), its frame times, and a switch between composited and readback | open |
-| Goldens: the cube at a fixed angle, through readback, on the GPU lane; the unavailable state on every leg | open |
-| `docs/content-widgets.md` / `core-widgets.md` row, the widget catalog, `ARCHITECTURE.md` §12 as built | open |
+| `gpu.view.Canvas3d`, `@Markup("canvas3d")`, weaved into `:gpu`'s catalog (ADR-0131). A leaf sized like an image, `renderer=` naming a `Canvas3dRenderer` | done (ADR-0482): a stateful widget over a `canvas3d`-styled leaf; `renderer=`, `continuous=`, `depth=none\|d16\|d32`, `revision=`. `:gpu` applies the weaver and takes `:widgets` as `api`; `gpu.view.GoldberryCatalog` is woven |
+| `Canvas3dRenderer`: `init(GpuDevice)`, `render(GpuFrame, Canvas3dTarget)` with colour (and optional depth) textures at the box's physical size, `resize`, `dispose`. `continuous` or on-demand redraw through `requestFrame` | done: the four calls through `Canvas3dLayer`, disposed and initialised again on a new device; `Canvas3dTarget` has the frame's time on the window's clock. On demand is a `revision` rather than a request, and `GpuLayer.needsRender()` lets the compositor show a still canvas's last picture without rendering it |
+| Fallback when no device: the widget paints `--gb-canvas3d-unavailable` and the reason, as `web-view` does without its engine (ADR-0441) | done: the token in both Nord themes, and a `message` over the canvas in a running window, by `web-view`'s deferred rebuild; `Frame.hasGpu()` tells "none here" from "failed". Offscreen, which has no host to rebuild through, shows the fill alone |
+| Showcase: a **GPU** tab with a lit spinning cube (vertex and index buffers, depth, one uniform block), its frame times, and a switch between composited and readback | done but the switch: a continuous cube with a chip over it, an on-demand cube turned by a slider, and a `hud` of the present readings; the cube's HLSL is the showcase's own, compiled by `:gpu:compileShaders` and checked by `ShowcaseShadersTest`. **No runtime switch**: the mode is the window's, set at launch, and the tab names the properties (ADR-0482) |
+| Goldens: the cube at a fixed angle, through readback, on the GPU lane; the unavailable state on every leg | done: `canvas3d-cube` in `:gpu`, composited and read back alike; `canvas3d-unavailable` on every lane; `gallery-gpu-drawn` on the new `:example:gpuTest` and `gallery-gpu` on every lane |
+| `docs/content-widgets.md` / `core-widgets.md` row, the widget catalog, `ARCHITECTURE.md` §12 as built | done |
 
 **Exit:** the cube renders in the showcase on this Mac at display rate with the
 UI composited over it. The goldens are green on the GPU lane, and the fallback
 golden is green everywhere.
+
+**Status:** met on Metal. The showcase opens on the GPU tab composited
+(`./gradlew :example:run -Pgoldberry.example.screen=gpu`), and its gallery
+picture drawn on the GPU shows both cubes, the chip over the first. Lavapipe
+has run none of it yet.
 
 ### Phase 6 — media phase 4: GPU present
 
@@ -569,6 +574,7 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | The GPU lane written: lavapipe under `offscreen` on both Linux targets, device required; macOS runners asked, not required. Not yet run |
 | 2026-09-24 | ADR-0480: windows present through the GPU by default, and on the CPU wherever it cannot be used. Each fallback is logged where it is known; a claim answers with a sealed `Claim` that carries the refusal's reason; popups are not composited. Measured: device 19.5–21.3 ms at the first frame, first frame on screen 1016.9 ms median against 1013.4 ms with `goldberry.gpu=off` |
 | 2026-09-24 | Phase 3's statistics: `PresentTimings` moved to `render` and reported by `BackendWindow.lastPresent()`; `FrameRing` banks it per frame and sums it for a `presents:` exit line; the `hud` gained `upload`, `acquire`, `submit` and `readings="present"`. The showcase composited: 91 of 240 frames through the GPU, 0.79 ms and 9.3 MB a frame uploaded |
+| 2026-09-25 | Phase 5 (ADR-0482): `canvas3d`. A stateful widget in `gpu.view` over a layer that drives an application's `Canvas3dRenderer` (`init`, `resize`, `render`, `dispose`); continuous, or on demand by revision, with `GpuLayer.needsRender()` so a still canvas is shown from its last texture; a depth target on request; `--gb-canvas3d-unavailable` and a notice without a GPU. `:gpu` weaves a catalog and takes `:widgets`. The showcase's GPU tab: two cubes in its own HLSL and a `hud`. Goldens: the cube both ways in `:gpu`, the GPU screen on the GPU in `:example`'s new `gpuTest`, and the no-GPU pictures everywhere |
 | 2026-09-24 | Phase 4 (ADR-0481): GPU layers. `:core` places them (`Frame.gpuLayer`, `GpuContent`, `GpuPlacement`) in paint order, mirrors its clip in Java for their scissors, and repaints a region without cutting them (`Frame.repaintOnly`); `GpuSurface` is sealed into `Composited` and `ReadBack`. `:gpu`'s public `GpuLayer` renders into a texture of its own, composited 1:1 under the frame or read back into it. `goldberry.gpu=off` is its own policy, and `auto` composites for layers with a two-second hold. Exit met on Metal: six z-order goldens, the same both ways within 2 in 256. `:core:check` and `:gpu:check` green, 54 GPU tests on Metal |
 | 2026-09-24 | Phase 3 begun (ADR-0479): `:core` declares `render.composite`, exported to `:gpu` alone, and `:gpu`'s `SdlCompositor` provides it through `ServiceLoader`. `goldberry.gpu.composite=always` composites every window: it lends no surface, and its frames' damage goes up to a UI texture drawn over black onto the swapchain. D5 corrected: layers and `GpuSurface` move to phase 4. Found: stepping `FramePacer` aside let undamaged frames spin 1 ms apart, so it stays on. The showcase runs composited on Metal and paces like the CPU. `:gpu:gpuTest` 37 green, the backend end to end among them |
 | 2026-09-24 | Phase 2's public API (ADR-0478): `io.github.digitalsmile.goldberry.gpu` exported, with resources made from records, frames of scoped passes, staged uploads and readback, one thread, misuse refused in Java. Under it, ten more exports (buffers, indexed draws, debug groups: 56 `SDL_GPU` functions), seven structs and the pipeline enumerators verified. Phase 2's exit met on Metal: a vertex-buffer triangle against a Java reference. `:natives:check` and `:gpu:check` green, with 27 and 28 GPU tests on Metal |

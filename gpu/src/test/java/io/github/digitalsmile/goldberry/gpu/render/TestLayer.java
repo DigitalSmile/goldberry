@@ -45,6 +45,19 @@ final class TestLayer implements GpuLayer {
         return renders;
     }
 
+    private boolean still;
+
+    /// Says from now on that its picture has not changed, or that it has.
+    TestLayer still(boolean value) {
+        still = value;
+        return this;
+    }
+
+    @Override
+    public boolean needsRender() {
+        return !still;
+    }
+
     @Override
     public void render(GpuFrame frame, GpuTexture target) {
         renders++;

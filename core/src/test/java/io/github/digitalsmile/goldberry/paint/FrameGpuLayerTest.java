@@ -106,6 +106,7 @@ class FrameGpuLayerTest {
         @DisplayName("clears its box to transparent, exactly, and records it with the whole box as its scissor")
         void punchesAHole() {
             var painted = new Painted(40, 30, 1f, new Composited());
+            assertTrue(painted.frame.hasGpu());
             painted.frame.fill(GREY);
             assertTrue(painted.frame.gpuLayer(LAYER, 10, 5, 20, 10));
             painted.frame.end();
@@ -327,6 +328,7 @@ class FrameGpuLayerTest {
     void noSurface() {
         var target = TestFrames.of(20, 20, 1f);
         target.frame().fill(GREY);
+        assertFalse(target.frame().hasGpu());
         assertFalse(target.frame().gpuLayer(LAYER, 0, 0, 10, 10));
         target.end();
         assertEquals(GREY, target.pixel(5, 5));

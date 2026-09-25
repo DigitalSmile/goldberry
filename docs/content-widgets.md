@@ -17,6 +17,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 | `goldberry-camera`  | SDL3 camera subsystem   | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-mic`     | SDL3 audio recording    | none new    | zlib (SDL3, already in core)  | planned |
 | ~~`goldberry-web`~~ | webview/webview         | none new    | MIT                           | **not a module** — built as §9's `web-view` in `:widgets` (ADR-0441). Servo was the blocker and not the only route: `webview/webview` drives the desktop's own engine, so there is nothing heavy to quarantine. See §11 |
+| `goldberry-gpu`     | SDL_GPU (in `libgoldberry`) | none new | zlib (SDL3, already in core)  | **built in part** (M4, `gpu-plan.md`): the GPU API, composited windows (the default, ADR-0480), GPU layers (ADR-0481) and `canvas3d` (ADR-0482). A widget module like the others here, though its engine is the GPU rather than a library |
 | `goldberry-emoji`   | Noto Color Emoji        | font only   | SIL OFL 1.1                   | **built** (2026-09-17, ADR-0384) — the face reaches `:core` through an `EmojiFont` service and is routed into ordinary text by the itemizer (ADR-0393). **Noto's COLRv1 build** since 2026-09-23, drawn from its paint graphs (ADR-0456); it replaced OpenMoji, whose CC BY-SA asked for credit on screen |
 
 ---

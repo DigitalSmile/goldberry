@@ -2,9 +2,11 @@ package io.github.digitalsmile.goldberry.example;
 
 import java.util.ArrayList;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
@@ -20,7 +22,14 @@ import io.github.digitalsmile.goldberry.html.view.HtmlStyles;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.media.view.MediaStyles;
+import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.GpuSurface;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -115,6 +124,20 @@ class GalleryGoldenTest {
 
     /// The same, told whether the scale sweep applies to this screen at all.
     private void paint(String name, String screen, Theme theme, int width, int height, boolean book, Sweep sweep) {
+        paint(name, screen, theme, width, height, book, sweep, null);
+    }
+
+    /// The same, showing GPU layers through `gpu` when there is one: the GPU
+    /// screen on the GPU lane (ADR-0482).
+    private void paint(
+            String name,
+            String screen,
+            Theme theme,
+            int width,
+            int height,
+            boolean book,
+            Sweep sweep,
+            @Nullable GpuSurface gpu) {
         actions.pickScreen(screen);
 
         var inflater = Widgets.inflater(
@@ -195,11 +218,14 @@ class GalleryGoldenTest {
                 width,
                 height,
                 sweep,
-                (size, scale) -> Offscreen.of(size)
-                        .scale(scale)
+                (size, scale) -> withGpu(Offscreen.of(size).scale(scale), gpu)
                         .stylesheets(sheets)
                         .font(font)
                         .render(root));
+    }
+
+    private static Offscreen withGpu(Offscreen offscreen, @Nullable GpuSurface gpu) {
+        return gpu == null ? offscreen : offscreen.gpu(gpu);
     }
 
     /// One of [GoldenImage]'s two entry points, chosen by `sweep` — here rather
@@ -447,6 +473,35 @@ class GalleryGoldenTest {
     /// the three is a function of the frame time, and the offscreen renderer's
     /// time is not the wall's. Its floor starts on the first render rather than
     /// the first paint, or this picture would have no tiles in it.
+    /// The GPU screen with no GPU, which is every leg's picture of it: each
+    /// `canvas3d` shows `--gb-canvas3d-unavailable` (ADR-0482). At one scale, for
+    /// the drawn picture's reason below.
+    @Test
+    @DisplayName("the GPU screen, with no GPU")
+    void gpu() {
+        paint("gallery-gpu", "gpu", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE);
+    }
+
+    /// The GPU screen drawn on a real device, read back: the showcase's cubes in
+    /// its own shaders, as a headless window's read-back surface draws them. On
+    /// the GPU lane, `:example:gpuTest`. At one scale: a 3D view is rendered at
+    /// its physical size, which a scale sweep does not describe (ADR-0434).
+    @Test
+    @Tag(GpuTestLauncher.TAG)
+    @DisplayName("the GPU screen, drawn on the GPU and read back")
+    void gpuDrawn() {
+        var device = GpuDeviceRequirement.enforce();
+        try (var backend = new HeadlessBackend()) {
+            var window = backend.createWindow(WindowSpec.of("gallery", LogicalSize.of(1200, 900)));
+            var surface = window.gpuSurface().orElseThrow(() -> new AssertionError("no GPU surface with :gpu here"));
+            paint("gallery-gpu-drawn", "gpu", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE, surface);
+            window.close();
+        } finally {
+            device.close();
+            Sdl.get().quit();
+        }
+    }
+
     @Test
     @DisplayName("the Motion screen, 200 ms in")
     void motion() {

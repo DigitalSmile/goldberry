@@ -56,6 +56,20 @@ public interface GpuLayer extends GpuContent {
     ///               layer's size, sampled afterwards by the compositor
     void render(GpuFrame frame, GpuTexture target);
 
+    /// Whether this layer's picture has changed since it was last rendered.
+    ///
+    /// Asked on each frame the layer is shown on, before [#render]. False lets
+    /// the toolkit show what the layer rendered last, where it still holds it:
+    /// a 3D view that is not moving is not drawn again for a caret blinking
+    /// beside it. The toolkit renders anyway when it holds nothing -- the first
+    /// frame, a new size, a layer scrolled back into view -- so false is never
+    /// wrong, only a promise that the last picture is still right.
+    ///
+    /// True by default: a layer that says nothing is rendered on every frame.
+    default boolean needsRender() {
+        return true;
+    }
+
     /// A painter that places this layer in the box it paints, whole, and runs
     /// `fallback` there instead when the frame cannot show it: no GPU,
     /// `goldberry.gpu=off`, or a layer inside a group.

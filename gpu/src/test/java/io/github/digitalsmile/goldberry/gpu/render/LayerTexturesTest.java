@@ -92,6 +92,24 @@ class LayerTexturesTest {
         }
 
         @Test
+        @DisplayName("show a still layer's last picture without rendering it, unless its texture is new")
+        void stillLayers() {
+            try (var textures = new LayerTextures()) {
+                var layer = new TestLayer(0xFF0000FF, 0xFFFFFF00).still(true);
+                textures.renderAll(api, List.of(placed(layer, 16, 8)));
+                assertEquals(1, layer.renders(), "a new texture is rendered into, still or not");
+                var again = textures.renderAll(api, List.of(placed(layer, 16, 8)));
+                assertEquals(1, layer.renders(), "still: shown from what it rendered");
+                assertEquals(1, again.size(), "and still drawn");
+                textures.renderAll(api, List.of(placed(layer, 20, 8)));
+                assertEquals(2, layer.renders(), "a new size is a new texture");
+                layer.still(false);
+                textures.renderAll(api, List.of(placed(layer, 20, 8)));
+                assertEquals(3, layer.renders(), "changed");
+            }
+        }
+
+        @Test
         @DisplayName("leave out what is not a layer, a layer that throws, and a second size of one layer")
         void leftOut() {
             try (var textures = new LayerTextures()) {

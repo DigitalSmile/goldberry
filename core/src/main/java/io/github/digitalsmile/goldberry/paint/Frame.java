@@ -954,6 +954,14 @@ public final class Frame {
         return true;
     }
 
+    /// Whether this frame can show GPU layers at all: it was made over a
+    /// window's [GpuSurface]. False with the GPU off, on a window with none, and
+    /// in a frame nested in an `opacity` group or a promoted layer. Where it is
+    /// true, [#gpuLayer] can still fail, when the GPU cannot render the layer.
+    public boolean hasGpu() {
+        return gpu != null;
+    }
+
     /// The GPU layers [#gpuLayer] placed on this frame, in paint order. Readable
     /// after [#end()], which is when the frame's owner reads it.
     public List<GpuPlacement> gpuPlacements() {

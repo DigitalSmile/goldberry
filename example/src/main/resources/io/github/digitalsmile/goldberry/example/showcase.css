@@ -1171,6 +1171,22 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   text-decoration: underline line-through;
 }
 
+/* --- the GPU screen (docs/gpu-plan.md, phase 5; ADR-0482) ------------------- */
+
+/* A canvas3d has no size of its own, as a canvas has none. */
+#gpu-spinning,
+#gpu-turned {
+  width: 100%;
+  height: 240px;
+}
+
+/* The chip over the spinning cube: painted after the canvas, so over it. */
+.gpu-over {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+}
+
 /* --- the Motion screen (ADR-0352, ADR-0353, ADR-0354) ----------------------- */
 
 /* The floor is a canvas, and a canvas has no size of its own. */

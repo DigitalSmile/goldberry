@@ -6,6 +6,9 @@ plugins {
     id 'goldberry.java-conventions'
     // Published to Maven Central as goldberry-gpu (ADR-0334).
     id 'goldberry.publish'
+    // `canvas3d` is a markup widget: the weaver collects it into this module's
+    // catalog, which the markup finds through a `uses` (ADR-0131).
+    id 'goldberry.weave'
 }
 
 evaluationDependsOn(':natives')
@@ -14,6 +17,10 @@ description = 'Goldberry GPU: the canvas3d widget and the GPU composition path'
 
 dependencies {
     api project(':core')
+
+    // `canvas3d` is a widget, and its notice is `:widgets`' `message`; `api`
+    // because Canvas3d's markup signature names `Wiring` (ADR-0482).
+    api project(':widgets')
 
     // SDL_GPU's wrappers, which :natives exports to this module and to :core
     // alone (ADR-0475). Not `api`: no type of :natives is in this module's
@@ -47,14 +54,19 @@ dependencies {
 // DXC and SPIRV-Cross come with the Vulkan SDK (1.4.328 made the committed
 // files). DXC signs DXIL itself since 1.8, so DXIL made off Windows is signed.
 // ============================================================================
-// The toolkit's shaders, which ship, and the tests' own (a mesh with vertex
-// buffers, for the public API's tests), which do not: each set compiled into
-// its own resources with its own manifest.
+// The toolkit's shaders, which ship; the tests' own (a mesh with vertex
+// buffers, for the public API's tests), which do not; and the showcase's, which
+// are an application's own, loaded through ShaderCode.load as any application's
+// would be (the GPU tab's cube, phase 5). Each set is compiled into its own
+// resources with its own manifest, and each module checks its own is fresh.
 def shaderSets = [
         [sources: layout.projectDirectory.dir('src/main/shaders'),
          output : layout.projectDirectory.dir('src/main/resources/io/github/digitalsmile/goldberry/gpu/shaders')],
         [sources: layout.projectDirectory.dir('src/test/shaders'),
          output : layout.projectDirectory.dir('src/test/resources/io/github/digitalsmile/goldberry/gpu/testshaders')],
+        [sources: rootProject.layout.projectDirectory.dir('example/src/main/shaders'),
+         output : rootProject.layout.projectDirectory.dir(
+                 'example/src/main/resources/io/github/digitalsmile/goldberry/example/gpu')],
 ]
 
 def toolPath = providers.environmentVariable('PATH')
@@ -150,6 +162,21 @@ def hostTargetId = project(':natives').ext.hostNativeTargetId
 
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'gpu' }
+
+    // What needs no GPU still needs libgoldberry: `canvas3d` with no GPU is a
+    // widget tree painted by Blend2D, and a golden of it (ADR-0482). Without the
+    // library those tests skip, which looks exactly like passing.
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
 }
 
 def gpuTest = tasks.register('gpuTest', JavaExec) {

@@ -235,6 +235,11 @@
   --gb-qr-ink: #1a1a1a;
   --gb-qr-paper: #ffffff;
 
+  /* What a `canvas3d` shows where there is no GPU to draw it with (ADR-0482):
+     a quiet surface (nord1) under the notice that says why, as a `web-view`
+     with no engine shows one. */
+  --gb-canvas3d-unavailable: #3b4252;
+
   /* A semantic hue, and **the same hue at a lightness that can carry text**.
      They are two tokens because they answer two questions: `--gb-danger` is what
      danger *is*, and is what a label, an icon or a border is drawn in;
