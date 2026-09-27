@@ -14,6 +14,11 @@ plugins {
 
 description = 'Goldberry media: audio and video playback over FFmpeg, driven from Java'
 
+// The GPU lane's test helpers are :gpu's and :natives' test classes, so both
+// are configured before this module's dependencies name their source sets.
+evaluationDependsOn(':natives')
+evaluationDependsOn(':gpu')
+
 // ============================================================================
 // goldberry-media (docs/goldberry-media.md, ADR-0460, ADR-0461)
 //
@@ -39,8 +44,23 @@ dependencies {
     // a `Widget`, and whoever holds one has to be able to say so.
     api project(':widgets')
 
+    // Video on the GPU (docs/gpu-plan.md, phase 6; ADR-0484): `video-view`
+    // shows its pictures through :gpu's video layer when :gpu is on the module
+    // path, and on the CPU when it is not. `requires static`, so compile-only:
+    // an application that ships no GPU module plays video all the same.
+    compileOnly project(':gpu')
+
     // Element trees without a window, and the golden-image helpers (ADR-0050).
     testImplementation testFixtures(project(':core'))
+
+    // The tests see :gpu, as an application that ships it does: the GPU path
+    // where a frame has a GPU surface, and the CPU path everywhere else.
+    // `gpuTest` below draws video on a real device with :gpu's harness, and
+    // runs on :natives' first-thread launcher.
+    testImplementation project(':gpu')
+    testImplementation rootProject.project(':gpu').sourceSets.test.output
+    testImplementation rootProject.project(':natives').sourceSets.test.output
+    testImplementation libs.junit.platform.launcher
 }
 
 // ============================================================================
@@ -55,8 +75,6 @@ dependencies {
 //
 // and the tests below find the result by themselves.
 // ============================================================================
-evaluationDependsOn(':natives')
-
 def hostTargetId = project(':natives').ext.hostNativeTargetId
 def superbuildSource = layout.projectDirectory.dir('src/main/cmake')
 def superbuildWorkDir = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/cmake")
@@ -346,8 +364,107 @@ tasks.withType(Test).configureEach {
 // `FfmpegLibraries` loads once per process and the ordinary test task has
 // already loaded from the install directory.
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'natives-jar' }
+    useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
 }
+
+// ============================================================================
+// The GPU lane (docs/gpu-plan.md, phase 6; ADR-0484)
+//
+// Video drawn through :gpu's layer on a real device: decoded by FFmpeg,
+// composited and read back, against the CPU's goldens. Tagged `gpu`, and run
+// the way :gpu's and :natives' are, on the JVM's first thread, which macOS's
+// Cocoa needs for a Metal device (ADR-0475). Without a device the tests skip,
+// unless -Pgoldberry.gpu.required=true says the lane has one.
+// ============================================================================
+def gpuTest = tasks.register('gpuTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTargetId.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    environment 'SDL_AUDIO_DRIVER', 'dummy'
+    systemProperty 'goldberry.native.library',
+            externalNativeLibrary.orElse(hostNativeLibrary.map { it.asFile.absolutePath }).get()
+    systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver',
+     'goldberry.golden.update', 'goldberry.media.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
+    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
+    inputs.files(providers.provider {
+        var directory = file(libraryDirectory.get())
+        directory.isDirectory() ? fileTree(directory) : files()
+    }).withPropertyName('ffmpegLibraries').optional()
+    outputs.file(summary)
+    argumentProviders.add({
+        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.media']
+    } as CommandLineArgumentProvider)
+}
+
+tasks.named('check') { dependsOn gpuTest }
+
+// The 4K60 run (docs/gpu-plan.md, phase 6): a minute of 4K60 VP9 on the
+// platform's video engine, shown by a video-view in a real, composited window.
+// Needs the clip media/src/test/fixtures/make-4k60.sh makes. Run on purpose and
+// read by a person; not part of `check`.
+//
+//   ./gradlew :media:videoPresentProbe [-Pgoldberry.probe.clip=<file>] [-Pgoldberry.gpu=off]
+// The probe logs through Logback, which the tests do not have, so the
+// launcher's frame and present lines reach its output.
+def probeRuntime = configurations.create('probeRuntime')
+dependencies {
+    add('probeRuntime', libs.logback.classic)
+}
+
+tasks.register('videoPresentProbe', JavaExec) {
+    group = 'verification'
+    description = 'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time (docs/gpu-plan.md, phase 6).'
+    classpath = sourceSets.test.runtimeClasspath + probeRuntime
+    mainClass = 'io.github.digitalsmile.goldberry.media.view.VideoPresentProbe'
+    workingDir = projectDir
+    systemProperty 'logback.configurationFile', file('src/test/probe/logback.xml').absolutePath
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTargetId.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            externalNativeLibrary.orElse(hostNativeLibrary.map { it.asFile.absolutePath }).get()
+    systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+    systemProperty 'goldberry.log.level', providers.gradleProperty('goldberry.log.level').getOrElse('info')
+    ['goldberry.probe.clip', 'goldberry.gpu', 'goldberry.gpu.composite'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+    outputs.upToDateWhen { false }
+}
+
+// The same tests with no :gpu on the class path, as an application that ships
+// no GPU module runs (ADR-0484): video-view draws on the CPU, and every test
+// that is not the GPU lane's passes the same. `goldberry.test.gpuModule` tells
+// the one test that looks for :gpu which answer to expect.
+def testWithoutGpu = tasks.register('testWithoutGpu', Test) {
+    group = 'verification'
+    description = 'Runs the tests with :gpu off the class path, as an application without it.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    def gpuBuild = rootProject.project(':gpu').layout.buildDirectory.get().asFile.toPath()
+    classpath = sourceSets.test.runtimeClasspath.filter { !it.toPath().startsWith(gpuBuild) }
+    useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
+    // The GPU lane's class names :gpu's types in its methods' signatures, and
+    // discovery reflects on them before any tag is read; it is not loaded here.
+    exclude '**/VideoOnGpuTest*'
+    systemProperty 'goldberry.test.gpuModule', 'absent'
+}
+
+tasks.named('check') { dependsOn testWithoutGpu }
 
 // Decided when the build is configured, because the jar task it would depend on
 // refuses to package nothing -- which is right for a release and wrong for a
@@ -372,9 +489,10 @@ def testNativesJar = tasks.register('testNativesJar', Test) {
 tasks.named('check') { dependsOn testNativesJar }
 
 // The jar test's coverage counts: it is the only test that takes the unpack
-// path. The conventions read every .exec in build/jacoco, so the reports have to
-// run after it.
-tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar }
+// path. So does the run without :gpu, the only one that finds no GPU module.
+// The conventions read every .exec in build/jacoco, so the reports have to run
+// after both.
+tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'testWithoutGpu' }
 
 // ============================================================================
 // Coverage floor (docs/testing.md §3)
@@ -404,4 +522,5 @@ tasks.named('jacocoTestCoverageVerification') {
 // build made; the same wiring :html has.
 if (!skipNative && !externalNativeLibrary.isPresent()) {
     tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
+    gpuTest.configure { dependsOn ':natives:cmakeBuild' }
 }

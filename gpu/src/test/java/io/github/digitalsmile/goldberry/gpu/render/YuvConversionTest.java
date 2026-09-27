@@ -81,7 +81,8 @@ class YuvConversionTest {
         assertEquals(1023f / 876, block[2], 1e-6);
         assertEquals(512f / 1023, block[5], 1e-7);
         assertEquals(1023f / 896, block[6], 1e-6);
-        assertEquals(0.25f / 8, block[7]);
+        assertEquals(0f, block[7], "centred, as swscale sites it");
+        assertEquals(0.25f / 8, conversion.uniforms(8, YuvConversion.Siting.LEFT)[7]);
         assertEquals(2 * (1 - 0.2126), block[8], 1e-6);
         assertEquals(2 * (1 - 0.0722), block[11], 1e-6);
         assertThrows(IllegalArgumentException.class, () -> conversion.uniforms(0));

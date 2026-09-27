@@ -5,9 +5,10 @@
 // transforms: 1 for 8-bit, 65535/64/1023 for 10 bits in the high bits of 16,
 // 65535/1023 for 10 in the low bits), loses its range's offset (y) and is
 // scaled by its gain (z). Then the matrix: R = Y + a Cr, G = Y + b Cb + c Cr,
-// B = Y + d Cb. The chroma planes are sited left (MPEG-2, as swscale assumes),
-// a quarter of a chroma texel left of where a centred sample would read, which
-// chromaTransform.w carries as a texture-coordinate offset.
+// B = Y + d Cb. Where a chroma sample sits is chromaTransform.w, a
+// texture-coordinate offset left of a centred sample: 0 for centred chroma,
+// which is how swscale's conversion for CPU present sites it, and a quarter of
+// a chroma texel for MPEG-2's left siting (YuvConversion.Siting).
 
 // DXC defines __spirv__ only when it writes SPIR-V; DXIL has no such attribute.
 #ifdef __spirv__

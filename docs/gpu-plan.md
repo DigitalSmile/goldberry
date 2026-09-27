@@ -237,6 +237,16 @@ the memcpy and the upload. If the UI thread cannot carry it, slots become mapped
 transfer buffers written by the decode thread, which `SDL_GPU` permits for a
 mapped buffer as long as the upload is recorded on the UI thread.
 
+**Decided (ADR-0483), with one correction.** Views attach to the player with
+the form they draw (`MediaPlayer.attachView(PictureForm)`), and the queue holds
+planes only while every attached view asks for them, so a CPU view is never
+starved. Only the change back to converted flushes and reseeks. A change to
+planes lets the converted pictures already queued play out, since a view of
+planes draws both forms. Measured on the decode thread (`PlaneCopyBenchmark`,
+M1 Pro, 4K): copying the planes takes 0.35 ms (8-bit) and 0.80 ms (10-bit),
+against 12.0–13.6 ms for swscale's bit-exact pass to BGRA. The UI thread's
+upload is measured with the GPU layer.
+
 ### D9. Copy-back first, and zero-copy on macOS through a patch of our own
 
 **What having no import costs.** Every hardware-decoded picture goes GPU → CPU
@@ -488,18 +498,24 @@ has run none of it yet.
 
 | Item | Status |
 |------|--------|
-| `video-view` as a `GpuLayer` when a `GpuSurface` is available and `:gpu` is on the module path (`requires static`). Otherwise the CPU path is unchanged | open |
-| The queue in YUV (D8): plane copies into slots, the format switched by flush and reseek, picture lifetimes unchanged (valid for two more pictures, ADR-0463) | open |
+| `video-view` as a `GpuLayer` when a `GpuSurface` is available and `:gpu` is on the module path (`requires static`). Otherwise the CPU path is unchanged | done (ADR-0484): `:gpu`'s `gpu.video` (`VideoLayer`, `VideoImage`), exported to `:media` alone; `:media` probes for it once (`GpuVideo`) and names its types in one class (`GpuVideoPresenter`). The layer covers `Fit`'s rectangle, uploads each picture once, and draws planes or BGRA. A view asks for planes once a paint placed the layer. `:media:gpuTest` on the first thread; `:media:testWithoutGpu`, every test with `:gpu` off the path |
+| The queue in YUV (D8): plane copies into slots, the format switched by flush and reseek, picture lifetimes unchanged (valid for two more pictures, ADR-0463) | done (ADR-0483): `PictureForm`, the sealed `Picture` over `VideoPicture` and the new `VideoPlanes`, `MediaPlayer.attachView` and `shownPicture`; `FrameQueue.Shape` slots with 64-byte-aligned planes; to planes with no seek, back to converted with one; `video-view` and `media-player` attach as converted. The planes convert to the CPU goldens byte for byte (8- and 10-bit). A 4K picture costs the decode thread 0.35–0.80 ms copied, against 12–14 ms converted |
 | Plane textures: NV12 → `R8` plus `R8G8`; I420 → three `R8`; P010 → `R16` plus `R16G16`; I010 → three `R16`, scaled by 64 in the shader (10 bits in the low bits) | done: `YuvLayout.planeFormats()`, and the scale as `sampleToCode` |
-| `yuv.frag`: BT.601, BT.709 and BT.2020 non-constant-luminance matrices, limited and full range, chroma sited left (MPEG-2) as swscale assumes. The coefficients sit in a uniform block, so one pipeline serves every frame | done (ADR-0477): `yuv2.frag` and `yuv3.frag` over `yuv.hlsli`; `YuvLayout`, `YuvMatrix`, `YuvConversion` (uniforms and the Java reference); every layout × matrix × range exact against the reference on Metal |
-| The fallback ladder: GPU present → CPU present when the device fails or the layer cannot attach, with a reseek to the shown picture (the mechanism of ADR-0470's rungs) | open |
-| **Parity:** each fixture's picture at a fixed time, GPU-presented and read back, against swscale's `SWS_BITEXACT` BGRA within tolerance. The 601 and 709 fixtures are the exit criterion from `goldberry-media.md` §8; 2020 and 10-bit are held to the same | open |
-| Measured: 4K60 VP9 on VideoToolbox, GPU present, no dropped pictures over 60 s, CPU time per picture. **This closes phase 5's exit criterion** | open |
+| `yuv.frag`: BT.601, BT.709 and BT.2020 non-constant-luminance matrices, limited and full range, chroma sited ~~left (MPEG-2) as swscale assumes~~ centred, as swscale was measured to site it (ADR-0484). The coefficients sit in a uniform block, so one pipeline serves every frame | done (ADR-0477): `yuv2.frag` and `yuv3.frag` over `yuv.hlsli`; `YuvLayout`, `YuvMatrix`, `YuvConversion` (uniforms and the Java reference); every layout × matrix × range exact against the reference on Metal |
+| The fallback ladder: GPU present → CPU present when the device fails or the layer cannot attach, with a reseek to the shown picture (the mechanism of ADR-0470's rungs) | done where the layer cannot be placed (ADR-0484): the paint draws on the CPU and the view asks for converted pictures, which ADR-0483's reseek brings back. A device that fails mid-render shows black and is phase 7's |
+| **Parity:** each fixture's picture at a fixed time, GPU-presented and read back, against swscale's `SWS_BITEXACT` BGRA within tolerance. The 601 and 709 fixtures are the exit criterion from `goldberry-media.md` §8; 2020 and 10-bit are held to the same | done on Metal (ADR-0484): ten pictures (VP8, VP9, AV1; 8- and 10-bit; 601, 709 and 2020; limited and full range, with three new tagged fixtures), composited and read back, within 2 levels of CPU present's goldens; each measured 1. The layer is exact to `PlanesReference`, a Java model of its sampling. Found on the way: swscale centres chroma, and the shader had sited it left |
+| Measured: 4K60 VP9 on VideoToolbox, GPU present, no dropped pictures over 60 s, CPU time per picture. **This closes phase 5's exit criterion** | done on this Mac (ADR-0485): `:media:videoPresentProbe` over `make-4k60.sh`'s minute, composited at 120 Hz. 3600 of 3600 pictures shown, 8-bit and 10-bit; the video thread 1.4 / 2.0 ms and the UI thread 2.8 / 3.1 ms a picture. CPU present drops 1581 of 3598. The first run passed over 117 pictures, all from the audio clock stepping by a pull (SDL's pulls come unevenly, a latency counted in the last pull, and the end and the queue read apart), fixed in the sink and the Engine. D8's second step is not needed |
 | `media-plan.md` phase 4 row and phase 5's exit status updated; `goldberry-media.md` §3 "Presentation" as built | open |
 
 **Exit:** parity green on the GPU lane; 4K60 with no drops measured on this Mac;
 `video-view` falls back to CPU present with `-Dgoldberry.gpu=off` and with no
 `:gpu` on the path, with every media test green both ways.
+
+**Status:** met on Metal, but the lavapipe lane, which has run none of phase 6
+yet (ADR-0483, ADR-0484, ADR-0485). Parity is within one level on every
+fixture; a minute of 4K60 shows all 3600 pictures, 8- and 10-bit; `:media`'s
+460 tests pass with `:gpu` on the path and without it. Open for phase 7: a
+device lost mid-render, which shows black and does not fall back.
 
 ### Phase 6b — zero-copy on macOS (D9)
 
@@ -557,7 +573,7 @@ items are either done or recorded as waiting on a host.
 | ADR-0280 | amended for `:gpu`'s export, as ADR-0461 was for `:media` | open |
 | `docs/goldberry-media.md` §3, §8 | GPU present as built; phase 4 exit | open |
 | `docs/media-plan.md` | phase 4 unblocked, then done; phase 5's exit criterion closed | open |
-| `docs/testing.md` | the GPU lane, `goldberry.gpu.required`, parity tests | open |
+| `docs/testing.md` | the GPU lane, `goldberry.gpu.required`, parity tests | in part: `:media`'s GPU lane and its run without `:gpu` (ADR-0484) |
 | `THIRD-PARTY-NOTICES.md` | SDL_shadercross (build-time only, "Not distributed") | open |
 | `gpu/src/main/java/module-info.java` | the "empty and published" note replaced by the module's doc | done: it exports the GPU API, and says what is still to come |
 
@@ -575,6 +591,9 @@ items are either done or recorded as waiting on a host.
 | 2026-09-24 | ADR-0480: windows present through the GPU by default, and on the CPU wherever it cannot be used. Each fallback is logged where it is known; a claim answers with a sealed `Claim` that carries the refusal's reason; popups are not composited. Measured: device 19.5–21.3 ms at the first frame, first frame on screen 1016.9 ms median against 1013.4 ms with `goldberry.gpu=off` |
 | 2026-09-24 | Phase 3's statistics: `PresentTimings` moved to `render` and reported by `BackendWindow.lastPresent()`; `FrameRing` banks it per frame and sums it for a `presents:` exit line; the `hud` gained `upload`, `acquire`, `submit` and `readings="present"`. The showcase composited: 91 of 240 frames through the GPU, 0.79 ms and 9.3 MB a frame uploaded |
 | 2026-09-25 | Phase 5 (ADR-0482): `canvas3d`. A stateful widget in `gpu.view` over a layer that drives an application's `Canvas3dRenderer` (`init`, `resize`, `render`, `dispose`); continuous, or on demand by revision, with `GpuLayer.needsRender()` so a still canvas is shown from its last texture; a depth target on request; `--gb-canvas3d-unavailable` and a notice without a GPU. `:gpu` weaves a catalog and takes `:widgets`. The showcase's GPU tab: two cubes in its own HLSL and a `hud`. Goldens: the cube both ways in `:gpu`, the GPU screen on the GPU in `:example`'s new `gpuTest`, and the no-GPU pictures everywhere |
+| 2026-09-25 | Phase 6's 4K60 run (ADR-0485): a minute of 4K60 VP9 on VideoToolbox, composited, every picture shown, 8- and 10-bit, with `MediaPlayer.videoStatistics()` counting. It took three fixes to the audio clock, none to GPU present: a drain that never jumps (`DrainEstimate`), SDL's latency in typical pulls, and the audio end written and read under one lock. CPU present on the same minute drops 44% |
+| 2026-09-25 | Phase 6's layer and parity (ADR-0484): `video-view` shows its pictures through `:gpu`'s `VideoLayer`, exported to `:media` alone and found by `:media` at run time (`requires static`); the view asks for planes once a paint placed the layer, and falls back to the CPU and converted pictures where it cannot. Parity on ten pictures, within one level of CPU present, after correcting the shader's chroma siting to swscale's (centred, not left). `:media:gpuTest` and `:media:testWithoutGpu` join `check`. The UI thread's upload measured: 2.5–5.2 ms a 4K picture through write-combined staging |
+| 2026-09-25 | Phase 6 begun with D8 (ADR-0483): the frame queue holds a picture's planes while every view attached to the player draws planes. `Picture` is sealed over `VideoPicture` and `VideoPlanes`; views attach with a `PictureForm`, and the CPU widgets attach as converted. A change to planes needs no seek; a change back is an accurate reseek. Planes handed out, converted by swscale, match the CPU goldens exactly. Measured: at 4K the decode thread copies planes in 0.35–0.80 ms against 12–14 ms for the bit-exact conversion to BGRA |
 | 2026-09-24 | Phase 4 (ADR-0481): GPU layers. `:core` places them (`Frame.gpuLayer`, `GpuContent`, `GpuPlacement`) in paint order, mirrors its clip in Java for their scissors, and repaints a region without cutting them (`Frame.repaintOnly`); `GpuSurface` is sealed into `Composited` and `ReadBack`. `:gpu`'s public `GpuLayer` renders into a texture of its own, composited 1:1 under the frame or read back into it. `goldberry.gpu=off` is its own policy, and `auto` composites for layers with a two-second hold. Exit met on Metal: six z-order goldens, the same both ways within 2 in 256. `:core:check` and `:gpu:check` green, 54 GPU tests on Metal |
 | 2026-09-24 | Phase 3 begun (ADR-0479): `:core` declares `render.composite`, exported to `:gpu` alone, and `:gpu`'s `SdlCompositor` provides it through `ServiceLoader`. `goldberry.gpu.composite=always` composites every window: it lends no surface, and its frames' damage goes up to a UI texture drawn over black onto the swapchain. D5 corrected: layers and `GpuSurface` move to phase 4. Found: stepping `FramePacer` aside let undamaged frames spin 1 ms apart, so it stays on. The showcase runs composited on Metal and paces like the CPU. `:gpu:gpuTest` 37 green, the backend end to end among them |
 | 2026-09-24 | Phase 2's public API (ADR-0478): `io.github.digitalsmile.goldberry.gpu` exported, with resources made from records, frames of scoped passes, staged uploads and readback, one thread, misuse refused in Java. Under it, ten more exports (buffers, indexed draws, debug groups: 56 `SDL_GPU` functions), seven structs and the pipeline enumerators verified. Phase 2's exit met on Metal: a vertex-buffer triangle against a Java reference. `:natives:check` and `:gpu:check` green, with 27 and 28 GPU tests on Metal |

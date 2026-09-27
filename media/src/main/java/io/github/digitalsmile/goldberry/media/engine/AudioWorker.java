@@ -220,8 +220,7 @@ final class AudioWorker {
         if (!running() || playback.latestSerial() != serial) {
             return;
         }
-        playback.sink().write(data, samples);
-        playback.audioWritten(startSample + samples, true);
+        playback.writeAudio(data, samples, startSample + samples);
         if (format.nanos(playback.sink().queuedSamples())
                 >= Math.min(Playback.START_THRESHOLD_NANOS, playback.sinkTargetNanos())) {
             playback.audioReady();

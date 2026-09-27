@@ -185,7 +185,8 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
                 classes.add("is-fullscreen");
             }
             var parts = new ArrayList<Widget>(3);
-            parts.add(new VideoSurface(player, view.fit(), Attributes.NONE, () -> Transport.toggle(player)));
+            parts.add(
+                    new VideoSurface(player, view.fit(), Attributes.NONE, () -> Transport.toggle(player), presenter()));
             subtitleLines(player).ifPresent(parts::add);
             parts.add(new Column(overlay, Attributes.NONE.classes("media-overlay")));
             return new MediaPlayerBox(

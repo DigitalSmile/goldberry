@@ -13,9 +13,11 @@ import java.util.Objects;
 /// it asked for in the frame it asked in, even with a second view on the same
 /// player. A caller that keeps a picture longer copies it.
 ///
+/// The [PictureForm#CONVERTED] form of a [Picture]; [VideoPlanes] is the other.
+///
 /// The format is the toolkit's own, `0xAARRGGBB` in memory on a little-endian
 /// machine, so a widget wraps the buffer and blits it with no conversion.
-public final class VideoPicture {
+public final class VideoPicture implements Picture {
 
     private final int width;
     private final int height;
@@ -53,11 +55,13 @@ public final class VideoPicture {
     }
 
     /// Width in pixels.
+    @Override
     public int width() {
         return width;
     }
 
     /// Height in pixels.
+    @Override
     public int height() {
         return height;
     }
@@ -75,6 +79,7 @@ public final class VideoPicture {
     }
 
     /// When the picture is presented, in nanoseconds of stream time.
+    @Override
     public long ptsNanos() {
         return ptsNanos;
     }

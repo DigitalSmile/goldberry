@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
+import io.github.digitalsmile.goldberry.media.Picture;
 import io.github.digitalsmile.goldberry.media.VideoPicture;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Painter;
@@ -26,15 +27,25 @@ import io.github.digitalsmile.goldberry.widgets.core.image.Fit;
 /// The node a stylesheet means by `video-view`: the surface a player's pictures
 /// are drawn on (`docs/goldberry-media.md` §3, "Presentation", CPU present).
 ///
-/// Each time it renders, it asks the player for [MediaPlayer#currentPicture()]
+/// Each time it renders, it asks the player for [MediaPlayer#shownPicture()]
 /// (the newest picture whose time has come on the master clock) and draws it
 /// placed by [Fit], centred, over the box's own background. It does not keep the
 /// frame loop turning itself: the widget that owns it rebuilds it when the next
 /// picture falls due ([FollowingState]), so a 25 fps video costs 25 frames a
 /// second, and a paused one none.
 ///
-/// **No conversion here.** The picture is already the toolkit's premultiplied
-/// BGRA, so it is wrapped rather than copied, and scaled to the box at the blit.
+/// **On the GPU where it can be** (`docs/gpu-plan.md`, phase 6; ADR-0484). With
+/// a [VideoPresenter] -- `:gpu` is on the module path -- the picture is a GPU
+/// layer over the rectangle [Fit] gives it: its planes converted by a shader,
+/// or its BGRA drawn as it is, composited under the window's frame or read
+/// back. Where the frame cannot show a layer, and without a presenter, it is
+/// drawn on the CPU as before.
+///
+/// **No conversion on the CPU.** A converted picture is already the toolkit's
+/// premultiplied BGRA, so it is wrapped rather than copied, and scaled to the
+/// box at the blit. A picture of planes has nothing to blit, and the CPU path
+/// draws nothing for it: its view asks for planes only while the GPU shows
+/// them.
 ///
 /// **No size of its own**, like `canvas`: a stylesheet gives it one. `media.css`
 /// lets it grow.
@@ -44,11 +55,14 @@ import io.github.digitalsmile.goldberry.widgets.core.image.Fit;
 /// @param attributes id and classes
 /// @param onClick    what a click on the picture does, or null for nothing:
 ///                   `media-player` plays and pauses
+/// @param gpu        what places the picture on the GPU, or null to draw it on
+///                   the CPU alone
 record VideoSurface(
         MediaPlayer player,
         Fit fit,
         Attributes attributes,
-        @Nullable Runnable onClick)
+        @Nullable Runnable onClick,
+        @Nullable VideoPresenter gpu)
         implements Widget.Leaf, io.github.digitalsmile.goldberry.widget.style.Styled, Paints, Handles, Semantics {
 
     @Override
@@ -69,24 +83,33 @@ record VideoSurface(
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var box = Box.of().style(style);
-        var picture = player.currentPicture();
-        return picture.isPresent() ? box.painting(painter(picture.get(), fit)) : box;
+        var picture = player.shownPicture();
+        return picture.isPresent() ? box.painting(painter(picture.get(), fit, gpu)) : box;
     }
 
-    /// Draws `picture` into the box, placed by `fit`.
+    /// Draws `picture` into the box, placed by `fit`: through `gpu` where the
+    /// frame shows GPU layers, and on the CPU otherwise.
     ///
     /// A new painter each frame, on purpose: the render tree compares painters by
     /// identity, and a new one is what tells it this box has new pixels.
-    static Painter painter(VideoPicture picture, Fit fit) {
-        var image = Image.of(new PixelBuffer(
-                new PhysicalSize(picture.width(), picture.height()),
-                PixelFormat.BGRA32_PREMULTIPLIED,
-                picture.stride(),
-                picture.pixels()));
+    static Painter painter(Picture picture, Fit fit, @Nullable VideoPresenter gpu) {
+        var image = picture instanceof VideoPicture converted
+                ? Image.of(new PixelBuffer(
+                        new PhysicalSize(converted.width(), converted.height()),
+                        PixelFormat.BGRA32_PREMULTIPLIED,
+                        converted.stride(),
+                        converted.pixels()))
+                : null;
         return (frame, size) -> {
             var placement = fit.place(
                     picture.width(), picture.height(), picture.width(), picture.height(), size.width(), size.height());
-            if (placement != null) {
+            if (placement == null) {
+                return;
+            }
+            if (gpu != null && gpu.place(frame, picture, placement)) {
+                return;
+            }
+            if (image != null) {
                 frame.drawImage(
                         image,
                         placement.source(),

@@ -133,6 +133,63 @@ class MediaPlayerTest {
     }
 
     @Test
+    @DisplayName("the position never goes back while audio is written and played (ADR-0485)")
+    void positionNeverGoesBack() throws Exception {
+        // Two seconds, played by a speaker that takes 64 samples at a time as
+        // fast as the Engine writes, through a sink that lingers a millisecond
+        // after it takes each write: the moment between a write and the end it
+        // moves to, which a reading would find the clock a packet behind in, is
+        // made wide enough to land in every time.
+        var frames = FORMAT.sampleRate() * 2;
+        sink = new VirtualSink(FORMAT, false);
+        var lingering = new ForwardingSink(sink) {
+            @Override
+            public void write(java.lang.foreign.MemorySegment data, int samples) {
+                super.write(data, samples);
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+        player = MediaPlayer.builder()
+                .sink(() -> lingering)
+                .ioProviders(List.of(new MemoryProtocol(Wav.sine(FORMAT.sampleRate(), 2, frames, 440, 12_000))))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///clip.wav")));
+        awaitState(PlaybackState.PLAYING);
+        var speaker = Thread.ofPlatform().daemon().start(() -> {
+            while (!Thread.currentThread().isInterrupted() && player.status().state() == PlaybackState.PLAYING) {
+                var step = Math.min(64, sink.queuedSamples());
+                if (step > 0) {
+                    sink.advance(step);
+                } else {
+                    Thread.onSpinWait();
+                }
+            }
+        });
+        try {
+            var last = java.time.Duration.ZERO;
+            var readings = 0;
+            while (player.status().state() == PlaybackState.PLAYING) {
+                var position = player.status().position();
+                if (position.compareTo(last) < 0) {
+                    throw new AssertionError("the position went back from " + last + " to " + position + " after "
+                            + readings + " readings");
+                }
+                last = position;
+                readings++;
+            }
+            assertTrue(readings > 1000, "only " + readings + " readings");
+        } finally {
+            speaker.interrupt();
+            speaker.join();
+        }
+    }
+
+    @Test
     @DisplayName("plays a file to the end, every sample, through OPENING, BUFFERING and PLAYING")
     void playsToTheEnd() {
         var frames = FORMAT.sampleRate() / 2;

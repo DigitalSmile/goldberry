@@ -29,6 +29,13 @@ module io.github.digitalsmile.goldberry.media {
     /// appears in a signature here.
     requires io.github.digitalsmile.goldberry.natives;
 
+    /// Video on the GPU (`docs/gpu-plan.md`, phase 6; ADR-0484): `video-view`
+    /// shows its pictures through `:gpu`'s video layer when `:gpu` is in the
+    /// application's module graph, and draws them on the CPU when it is not.
+    /// `static`, so an application that ships no GPU module plays video all the
+    /// same; `:gpu` exports its video package to this module alone.
+    requires static io.github.digitalsmile.goldberry.gpu;
+
     /// The controls `audio-player` is built from. `transitive` because an
     /// [io.github.digitalsmile.goldberry.media.view.AudioPlayer] is a widget.
     requires transitive io.github.digitalsmile.goldberry.widgets;

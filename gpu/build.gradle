@@ -229,3 +229,22 @@ tasks.register('gpuVideoProbe', JavaExec) {
                     .get()
     outputs.upToDateWhen { false }
 }
+
+// D8's second half (docs/gpu-plan.md, phase 6; ADR-0484): what the video layer
+// costs the UI thread to show a new 4K picture every frame. Run on purpose and
+// read by a person; not part of `check`.
+tasks.register('videoLayerProbe', JavaExec) {
+    group = 'verification'
+    description = 'Measures the video layer\'s upload of a 4K picture each frame (docs/gpu-plan.md, phase 6).'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'io.github.digitalsmile.goldberry.gpu.video.VideoLayerProbe'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (hostTargetId.startsWith('macos-')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+    outputs.upToDateWhen { false }
+}

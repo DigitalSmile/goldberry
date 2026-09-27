@@ -11,13 +11,20 @@
 /// it is shown in: composited under the window's frame, or read back into it
 /// where the window presents on the CPU (ADR-0479, ADR-0481). And the
 /// `canvas3d` widget in `…gpu.view`, with the `Canvas3dRenderer` an application
-/// draws it with (phase 5, ADR-0482). The toolkit's own shaders and the quad and
+/// draws it with (phase 5, ADR-0482). And `…gpu.video`, the layer video is
+/// shown through, exported to `:media` alone (phase 6, ADR-0484). The toolkit's own shaders and the quad and
 /// Y'CbCr arithmetic they need stay in the unexported `…gpu.render`.
 ///
 /// `BackendWindow.gpuSurface()` came with its consumer, the GPU layer
 /// (ADR-0481), and not "from day 1" as this comment once said: the GPU surface
 /// "needs a consumer before its shape can be decided, and an interface designed
 /// against nothing is an interface that gets designed twice" (ADR-0019).
+///
+/// `@SuppressWarnings("module")` for the one qualified export, to `:media`,
+/// which is not on this module's compile path and cannot be: `:media` requires
+/// this module (statically), so javac compiles this one first and warns that
+/// the target is not found. `:natives` does the same for its readers.
+@SuppressWarnings("module")
 module io.github.digitalsmile.goldberry.gpu {
     requires transitive io.github.digitalsmile.goldberry.core;
 
@@ -34,6 +41,13 @@ module io.github.digitalsmile.goldberry.gpu {
     /// `canvas3d` and the renderer an application draws it with (phase 5,
     /// ADR-0482).
     exports io.github.digitalsmile.goldberry.gpu.view;
+
+    /// Video on the GPU: the layer `:media`'s `video-view` shows its pictures
+    /// through when this module is present (phase 6, ADR-0484). To `:media`
+    /// alone, which `requires static` this module: it is the one caller, and an
+    /// application shows video with `video-view`.
+    exports io.github.digitalsmile.goldberry.gpu.video to
+            io.github.digitalsmile.goldberry.media;
 
     /// The catalog the weaver generates for `canvas3d`. The `provides` line is
     /// patched into the compiled descriptor by the build (ADR-0131).

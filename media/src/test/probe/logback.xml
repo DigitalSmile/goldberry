@@ -1,0 +1,13 @@
+<!-- The logging of :media:videoPresentProbe alone: INFO to the console, so the
+     launcher's `frames:` and `presents:` lines follow the probe's report. The
+     test suites have no SLF4J binding and log nothing. -->
+<configuration>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="console"/>
+    </root>
+</configuration>

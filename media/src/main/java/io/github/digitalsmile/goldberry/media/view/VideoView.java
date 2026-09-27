@@ -108,7 +108,7 @@ public record VideoView(MediaPlayer player, Fit fit, Attributes attributes)
         @Override
         Widget build(BuildContext context, PlayerStatus status) {
             var view = widget();
-            return new VideoSurface(view.player(), view.fit(), view.attributes(), null);
+            return new VideoSurface(view.player(), view.fit(), view.attributes(), null, presenter());
         }
     }
 }

@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
+import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.TimeRange;
@@ -28,6 +29,14 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// picture falls due, on a timer set from [MediaPlayer#untilNextPicture()]. So a
 /// 25 fps video paints 25 frames a second, not one per display refresh.
 ///
+/// While it shows pictures it is also attached to the player
+/// ([MediaPlayer#attachView]) with the form it draws them in, so the player
+/// never prepares a form this state cannot draw. With `:gpu` on the module path
+/// it holds a [VideoPresenter] for its surface to show the pictures through,
+/// and asks for planes while that places them on the GPU; otherwise, and
+/// wherever the GPU cannot show them, it asks for converted pictures
+/// (ADR-0484).
+///
 /// @param <W> the widget
 abstract class FollowingState<W extends Widget> extends State<W> {
 
@@ -44,6 +53,8 @@ abstract class FollowingState<W extends Widget> extends State<W> {
     static final Duration PICTURE_RETRY = Duration.ofMillis(10);
 
     private @Nullable AutoCloseable subscription;
+    private MediaPlayer.@Nullable Attachment attachment;
+    private @Nullable VideoPresenter presenter;
     private EventLoop.@Nullable Timer poll;
     private EventLoop.@Nullable Timer picturePoll;
 
@@ -57,6 +68,13 @@ abstract class FollowingState<W extends Widget> extends State<W> {
     /// falls due.
     boolean showsPictures() {
         return false;
+    }
+
+    /// What the surface places pictures on the GPU with, while this widget
+    /// [#showsPictures()] and `:gpu` is here; null otherwise.
+    @Nullable
+    VideoPresenter presenter() {
+        return presenter;
     }
 
     @Override
@@ -74,7 +92,9 @@ abstract class FollowingState<W extends Widget> extends State<W> {
 
     @Override
     public final Widget build(BuildContext context) {
-        var status = player(widget()).status();
+        var player = player(widget());
+        attach(player);
+        var status = player.status();
         var playing = status.state() == PlaybackState.PLAYING;
         if ((playing || fetching(status)) && poll == null) {
             context.host()
@@ -84,7 +104,7 @@ abstract class FollowingState<W extends Widget> extends State<W> {
                     }));
         }
         if (playing && showsPictures() && picturePoll == null) {
-            var wait = player(widget()).untilNextPicture().orElse(PICTURE_RETRY);
+            var wait = player.untilNextPicture().orElse(PICTURE_RETRY);
             var delay = wait.compareTo(PICTURE_MIN_WAIT) < 0 ? PICTURE_MIN_WAIT : wait;
             context.host()
                     .ifPresent(host -> picturePoll = host.after(delay, () -> {
@@ -132,7 +152,43 @@ abstract class FollowingState<W extends Widget> extends State<W> {
         subscription = player.onStatus(_ -> Goldberry.ui().execute(this::refresh));
     }
 
+    /// Attaches to `player` while this widget shows its pictures, and detaches
+    /// when it stops, as a fullscreen copy takes over. Converted until a paint
+    /// places a picture on the GPU: a view that has not been painted yet may be
+    /// in a window with no GPU at all.
+    private void attach(MediaPlayer player) {
+        if (showsPictures() && attachment == null) {
+            attachment = player.attachView(PictureForm.CONVERTED);
+            presenter = GpuVideo.presenter(this::shownOnGpu);
+        } else if (!showsPictures()) {
+            detach();
+        }
+    }
+
+    /// Called from inside a paint when the presenter starts or stops placing
+    /// pictures on the GPU: planes while it does, converted while the CPU draws.
+    private void shownOnGpu(boolean onGpu) {
+        var current = attachment;
+        if (current != null) {
+            current.setForm(onGpu ? PictureForm.PLANES : PictureForm.CONVERTED);
+        }
+    }
+
+    private void detach() {
+        var current = attachment;
+        attachment = null;
+        if (current != null) {
+            current.close();
+        }
+        var gpu = presenter;
+        presenter = null;
+        if (gpu != null) {
+            gpu.close();
+        }
+    }
+
     private void unfollow() {
+        detach();
         var current = subscription;
         subscription = null;
         if (current != null) {

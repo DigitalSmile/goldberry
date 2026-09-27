@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,8 @@ import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.codec.SampleFormat;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
+import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
+import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
 import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
@@ -57,6 +60,10 @@ import io.github.digitalsmile.goldberry.media.io.Source;
 /// - **Track switching** (§6, ADR-0469): `clip-two-angles.mkv` has the VP9 clip
 ///   at 160×90 and SMPTE bars in VP8 at 96×54, so which track shows is the
 ///   picture's width.
+///
+/// - **Planes** (`docs/gpu-plan.md`, D8): with a view that draws planes, the
+///   pictures are the decoded planes, and swscale converts them to the same
+///   goldens.
 ///
 /// The clips are `fixtures/`'s `testsrc2` at 160×90, 25 fps: one picture every
 /// 40 ms, and a single keyframe at zero.
@@ -83,6 +90,10 @@ class VideoPlaybackTest {
     private final List<PlaybackState> states = Collections.synchronizedList(new ArrayList<>());
     private MediaPlayer player;
     private VirtualSink sink;
+    /// The form a view attaches with before the source opens, or null for no
+    /// view: the default, converted.
+    private PictureForm attachAs;
+    private MediaPlayer.Attachment view;
 
     @BeforeEach
     void requireFfmpeg() {
@@ -116,6 +127,9 @@ class VideoPlaybackTest {
                 .ioProviders(List.of(new Fixture(fixture(name))))
                 .decoderProviders(providers)
                 .build();
+        if (attachAs != null) {
+            view = player.attachView(attachAs);
+        }
         player.onStatus(status -> {
             synchronized (states) {
                 if (states.isEmpty() || states.getLast() != status.state()) {
@@ -163,6 +177,51 @@ class VideoPlaybackTest {
         }
         throw new AssertionError(
                 "no picture at " + ptsNanos + " ns; the last was " + last + ", status " + player.status());
+    }
+
+    /// The picture shown once it is the one at `ptsNanos` and of `form`, asking
+    /// as a view that draws either form does.
+    private <P extends Picture> P awaitShown(long ptsNanos, Class<P> form) {
+        var deadline = System.nanoTime() + WAIT.toNanos();
+        Picture last = null;
+        while (System.nanoTime() < deadline) {
+            var picture = player.shownPicture();
+            if (picture.isPresent()) {
+                last = picture.get();
+                if (last.ptsNanos() == ptsNanos && form.isInstance(last)) {
+                    return form.cast(last);
+                }
+            }
+            sleep();
+        }
+        throw new AssertionError("no " + form.getSimpleName() + " at " + ptsNanos + " ns; the last was " + last
+                + ", status " + player.status());
+    }
+
+    /// `planes` converted as CPU present converts a decoded picture: swscale,
+    /// bit-exact, from the same bytes. What a GPU's conversion is held to.
+    static VideoPicture converted(VideoPlanes planes) {
+        var segments = new ArrayList<MemorySegment>();
+        var strides = new ArrayList<Integer>();
+        for (var plane = 0; plane < planes.format().planes(); plane++) {
+            segments.add(MemorySegment.ofBuffer(planes.plane(plane)));
+            strides.add(planes.stride(plane));
+        }
+        var frame = new VideoFrame(
+                planes.format(),
+                planes.width(),
+                planes.height(),
+                segments,
+                strides,
+                planes.matrix(),
+                planes.fullRange(),
+                planes.ptsNanos());
+        var stride = planes.width() * 4;
+        var pixels = ByteBuffer.allocateDirect(stride * planes.height());
+        try (var converter = new VideoConverter(FfmpegLibraries.get())) {
+            converter.toBgra(frame, MemorySegment.ofBuffer(pixels), stride);
+        }
+        return new VideoPicture(planes.width(), planes.height(), stride, pixels, planes.ptsNanos());
     }
 
     /// A picture of the `Wide` track of `clip-two-angles.mkv`.
@@ -260,6 +319,35 @@ class VideoPlaybackTest {
         now.addAndGet(3 * FRAME);
         await(status -> status.state() == PlaybackState.ENDED);
         assertEquals(4 * FRAME, player.currentPicture().orElseThrow().ptsNanos());
+    }
+
+    @Test
+    @DisplayName("counts each picture shown when a view asks for every one, and the ones a jump of the clock passes")
+    void statistics() {
+        var now = new AtomicLong(1_000_000_000L);
+        open("clip-vp9-10bit.webm", false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        // A view that asks for each picture as it falls due: every one is shown.
+        awaitPicture(0);
+        now.addAndGet(FRAME);
+        awaitPicture(FRAME);
+        now.addAndGet(FRAME);
+        awaitPicture(2 * FRAME);
+        var statistics = player.videoStatistics();
+        assertEquals(3, statistics.shown());
+        assertEquals(0, statistics.dropped());
+
+        // The clock jumps two pictures on: the one between plays unseen.
+        now.addAndGet(2 * FRAME);
+        awaitPicture(4 * FRAME);
+        // And past the last picture's time, to the end.
+        now.addAndGet(FRAME);
+        await(status -> status.state() == PlaybackState.ENDED);
+        statistics = player.videoStatistics();
+        assertEquals(5, statistics.decoded(), "the clip's five pictures");
+        assertEquals(4, statistics.shown());
+        assertEquals(1, statistics.passed());
+        assertEquals(0, statistics.late());
     }
 
     @Test
@@ -439,6 +527,138 @@ class VideoPlaybackTest {
         awaitPicture(7 * FRAME, VideoPlaybackTest::wide);
         assertEquals(PlaybackState.PAUSED, player.status().state());
         assertEquals(Optional.of(wide), player.status().videoTrack());
+    }
+
+    // ----------------------------------------------- planes (gpu-plan.md, D8)
+
+    @ParameterizedTest(name = "{0} at {1} ms")
+    @CsvSource({
+        "clip-vp8.webm, 0",
+        "clip-vp9.webm, 400",
+        "clip-av1.mkv, 400",
+    })
+    @DisplayName("hands a view of planes the decoded planes, which convert to the same bytes as CPU present's")
+    void planesConvertToTheGolden(String name, int millis) {
+        attachAs = PictureForm.PLANES;
+        open(name, false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        assertEquals(PictureForm.PLANES, player.pictureForm());
+        playAudioTo(millis * 1_000_000L + FRAME / 2);
+        var planes = awaitShown(millis * 1_000_000L, VideoPlanes.class);
+        assertEquals(PixelFormat.I420, planes.format());
+        assertEquals(160, planes.width());
+        assertEquals(90, planes.height());
+        assertTrue(player.currentPicture().isEmpty(), "no BGRA while every view draws planes");
+        PictureGolden.assertExact(name.replace('.', '-') + "-" + millis + "ms", converted(planes));
+    }
+
+    @Test
+    @DisplayName("hands out 10-bit planes as dav1d and VP9 profile 2 lend them: I010")
+    void tenBitPlanes() {
+        attachAs = PictureForm.PLANES;
+        var now = new AtomicLong(1_000_000_000L);
+        open("clip-vp9-10bit.webm", false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        now.addAndGet(2 * FRAME + FRAME / 2);
+        var planes = awaitShown(2 * FRAME, VideoPlanes.class);
+        assertEquals(PixelFormat.I010, planes.format());
+        PictureGolden.assertExact("clip-vp9-10bit-webm-80ms", converted(planes));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "clip-vp9-709.webm, I420, BT709, false",
+        "clip-vp9-2020-10bit.webm, I010, BT2020, false",
+        "clip-vp9-full.webm, I420, BT601, true",
+    })
+    @DisplayName("reports the colour a stream is tagged with, and converts it as tagged")
+    void taggedColour(String name, PixelFormat format, VideoFrame.ColorMatrix matrix, boolean fullRange) {
+        var golden = name.replace('.', '-') + "-80ms";
+        var now = new AtomicLong(1_000_000_000L);
+        open(name, false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        now.addAndGet(2 * FRAME + FRAME / 2);
+        PictureGolden.assertExact(golden, awaitPicture(2 * FRAME));
+        player.close();
+
+        attachAs = PictureForm.PLANES;
+        open(name, false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        now.addAndGet(2 * FRAME + FRAME / 2);
+        var planes = awaitShown(2 * FRAME, VideoPlanes.class);
+        assertEquals(format, planes.format());
+        assertEquals(matrix, planes.matrix());
+        assertEquals(fullRange, planes.fullRange());
+        PictureGolden.assertExact(golden, converted(planes));
+    }
+
+    @Test
+    @DisplayName("a provider's pictures are handed out as it lent them, colour and all")
+    void providerPlanes() {
+        attachAs = PictureForm.PLANES;
+        open("clip-h264-aac.mp4", true, MediaClock.system(), List.of(new FakeProvider(Integer.MAX_VALUE)));
+        await(status -> status.state() == PlaybackState.ENDED);
+        var planes = (VideoPlanes) player.shownPicture().orElseThrow();
+        assertEquals(PixelFormat.I420, planes.format());
+        assertEquals(VideoFrame.ColorMatrix.BT601, planes.matrix());
+        assertTrue(!planes.fullRange());
+        assertEquals(128, planes.sample(0, 80, 45));
+        assertEquals(128, planes.sample(2, 79, 44));
+    }
+
+    @Test
+    @DisplayName("to planes mid-play without a seek; back to converted with one, and playing on through both")
+    void formChangesMidPlay() {
+        attachAs = PictureForm.CONVERTED;
+        open("clip-vp9.webm", false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        playAudioTo(5 * FRAME + FRAME / 2);
+        awaitShown(5 * FRAME, VideoPicture.class);
+
+        // To planes: the converted pictures queued play out, and nothing is
+        // flushed, so the sink keeps what it holds.
+        var clears = sink.clears();
+        view.setForm(PictureForm.PLANES);
+        assertEquals(PictureForm.PLANES, player.pictureForm());
+        playAudioTo(5 * FRAME);
+        awaitShown(10 * FRAME, VideoPlanes.class);
+        assertEquals(clears, sink.clears(), "no seek on the way to planes");
+
+        // Back: the planes are flushed by a seek to where playback is, and the
+        // picture that covers it comes back converted.
+        view.setForm(PictureForm.CONVERTED);
+        await(status -> sink.clears() > clears);
+        var back = awaitShown(10 * FRAME, VideoPicture.class);
+        PictureGolden.assertExact("clip-vp9-webm-400ms", back);
+        assertEquals(PlaybackState.PLAYING, player.status().state());
+        playAudioTo(4 * FRAME);
+        awaitShown(14 * FRAME, VideoPicture.class);
+    }
+
+    @Test
+    @DisplayName("back to converted at the end shows the last picture converted, and ends again")
+    void formChangesAtTheEnd() {
+        attachAs = PictureForm.PLANES;
+        open("clip-vp9.webm", true);
+        await(status -> status.state() == PlaybackState.ENDED);
+        awaitShown(24 * FRAME, VideoPlanes.class);
+        assertTrue(player.currentPicture().isEmpty());
+
+        view.close();
+        assertEquals(PictureForm.CONVERTED, player.pictureForm(), "no view left: converted");
+        PictureGolden.assertExact("clip-vp9-webm-960ms", awaitShown(24 * FRAME, VideoPicture.class));
+        await(status -> status.state() == PlaybackState.ENDED);
+    }
+
+    @Test
+    @DisplayName("the form carries over to the next source")
+    void formCarriesOver() {
+        attachAs = PictureForm.PLANES;
+        open("clip-vp9.webm", true);
+        await(status -> status.state() == PlaybackState.ENDED);
+        player.open(Source.of(URI.create("mem:///clip-vp9.webm")));
+        await(status -> status.state() == PlaybackState.ENDED);
+        awaitShown(24 * FRAME, VideoPlanes.class);
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.media.engine;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
@@ -22,11 +24,14 @@ import io.github.digitalsmile.goldberry.media.MediaClock;
 import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
 import io.github.digitalsmile.goldberry.media.MediaInfo;
+import io.github.digitalsmile.goldberry.media.Picture;
+import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.SubtitleSource;
 import io.github.digitalsmile.goldberry.media.TimeRange;
 import io.github.digitalsmile.goldberry.media.Track;
 import io.github.digitalsmile.goldberry.media.VideoPicture;
+import io.github.digitalsmile.goldberry.media.VideoStatistics;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.AudioSink;
 import io.github.digitalsmile.goldberry.media.codec.CodecId;
@@ -59,8 +64,9 @@ import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 /// so that one track's full queue cannot starve the other's decoder.
 ///
 /// **Audio** ([AudioWorker]) decodes, converts and writes to the sink. **Video**
-/// ([VideoWorker]) decodes, converts to BGRA and queues pictures in a
-/// [FrameQueue], where they wait for the master clock.
+/// ([VideoWorker]) decodes, prepares and queues pictures in a [FrameQueue],
+/// where they wait for the master clock: converted to BGRA, or as their planes
+/// for a view that converts them on the GPU ([#setPictureForm]).
 ///
 /// ## The clock
 ///
@@ -203,6 +209,14 @@ public final class Playback implements AutoCloseable {
     private volatile @Nullable PacketQueue audioQueue;
     private volatile @Nullable PacketQueue videoQueue;
     private volatile @Nullable FrameQueue frames;
+    /// Held around a write to the sink and the end it moves to, and around the
+    /// clock's reading of both ([#writeAudio]).
+    private final Object audioWrite = new Object();
+    /// Pictures decoded, and dropped late, by the video threads.
+    private final LongAdder videoDecoded = new LongAdder();
+    private final LongAdder videoLate = new LongAdder();
+    /// What the video thread prepares each picture as; set by [#setPictureForm].
+    private volatile PictureForm pictureForm = PictureForm.CONVERTED;
     private volatile AudioFormat format = AudioFormat.DEFAULT;
     private volatile boolean paused;
     private volatile boolean stopping;
@@ -517,12 +531,51 @@ public final class Playback implements AutoCloseable {
         return nowPlaying;
     }
 
-    /// The picture to show now, handed out to a view that will draw it (see
-    /// [VideoPicture] for how long it stays valid), or empty before the first
-    /// picture, and for a source with no video.
+    /// The picture to show now, converted to BGRA and handed out to a view that
+    /// will draw it (see [VideoPicture] for how long it stays valid), or empty
+    /// before the first picture, for a source with no video, and while the
+    /// picture shown is [PictureForm#PLANES].
     public Optional<VideoPicture> currentPicture() {
+        return shownPicture()
+                .flatMap(picture ->
+                        picture instanceof VideoPicture converted ? Optional.of(converted) : Optional.empty());
+    }
+
+    /// The picture to show now, in the form it was prepared in, handed out to a
+    /// view that will draw it; empty before the first picture, and for a source
+    /// with no video.
+    public Optional<Picture> shownPicture() {
         var queue = frames;
         return queue == null ? Optional.empty() : Optional.ofNullable(queue.present(presentationNanos(), true));
+    }
+
+    /// What the video thread prepares pictures as now.
+    public PictureForm pictureForm() {
+        return pictureForm;
+    }
+
+    /// Prepares the pictures decoded from now on as `form` (`docs/gpu-plan.md`,
+    /// D8). The video thread reads it for each picture.
+    ///
+    /// **To planes**, nothing else changes: the converted pictures queued play
+    /// out, since a view that draws planes draws a [VideoPicture] too.
+    ///
+    /// **Back to converted**, the planes queued are of no use to a view that
+    /// draws on the CPU, so an accurate seek to where playback is flushes them,
+    /// and the picture covering the position comes back converted. It is the
+    /// seek a track switch makes (ADR-0469): the picture shown stays up until
+    /// that one replaces it, the sound is flushed with the pictures, and a
+    /// playback at its end plays its last picture's time again.
+    public void setPictureForm(PictureForm form) {
+        Objects.requireNonNull(form, "form");
+        boolean flush;
+        synchronized (seekLock) {
+            flush = pictureForm == PictureForm.PLANES && form == PictureForm.CONVERTED;
+            pictureForm = form;
+        }
+        if (flush && frames != null && !stopping) {
+            reseek(presentationNanos());
+        }
     }
 
     /// How long until a picture that is not yet due falls due, in nanoseconds of
@@ -1102,6 +1155,27 @@ public final class Playback implements AutoCloseable {
         frameNanos = nanos;
     }
 
+    /// The video thread received a picture from its decoder.
+    void videoDecoded() {
+        videoDecoded.increment();
+    }
+
+    /// The video thread dropped a picture before preparing it: late by a whole
+    /// picture, with more waiting.
+    void videoLate() {
+        videoLate.increment();
+    }
+
+    /// What has happened to the pictures decoded since the source was opened.
+    public VideoStatistics videoStatistics() {
+        var queue = frames;
+        return new VideoStatistics(
+                videoDecoded.sum(),
+                videoLate.sum(),
+                queue == null ? 0 : queue.passedCount(),
+                queue == null ? 0 : queue.shownCount());
+    }
+
     boolean clockRunning() {
         return clock.running();
     }
@@ -1120,7 +1194,13 @@ public final class Playback implements AutoCloseable {
     /// end, the [AudioTail] counts the latency down, so the clock reaches the end
     /// as the last sample is heard. Never before the last seek's target.
     private long audioClockNanos() {
-        var left = format.nanos(Math.max(writtenEndSample - sink.queuedSamples(), 0));
+        long written;
+        long queued;
+        synchronized (audioWrite) {
+            written = writtenEndSample;
+            queued = sink.queuedSamples();
+        }
+        var left = format.nanos(Math.max(written - queued, 0));
         var latency = audioLatencyNanos();
         var inTail = tail.elapsedNanos();
         if (inTail != AudioTail.NONE) {
@@ -1156,6 +1236,19 @@ public final class Playback implements AutoCloseable {
     /// a picture that is itself late, as on a television.
     public void setAudioDelay(long nanos) {
         audioDelayNanos = nanos;
+    }
+
+    /// Writes `samples` to the sink, ending at `endSample`: the write and the
+    /// end it moves to, together, under the lock [#audioClockNanos] reads both
+    /// under. Apart, a reading between the two finds the queue grown by a packet
+    /// and the end not yet moved, and the clock a packet behind for an instant,
+    /// which a view waking for its next picture sleeps a picture too long on
+    /// (ADR-0485).
+    void writeAudio(MemorySegment data, int samples, long endSample) {
+        synchronized (audioWrite) {
+            sink.write(data, samples);
+            audioWritten(endSample, true);
+        }
     }
 
     /// The audio thread wrote up to `endSample`, or (not `played`) moved there by

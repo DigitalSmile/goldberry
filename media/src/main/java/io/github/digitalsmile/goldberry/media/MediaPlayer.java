@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.media;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +45,15 @@ import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 /// The default audio track and the default video track play, whichever of the
 /// two the source has. Cover art is never played as video. The picture to show
 /// now is [#currentPicture()], which a view asks for on every frame it paints.
+///
+/// ## Views, and the form of the pictures
+///
+/// A view that draws the pictures [#attachView]s with the [PictureForm] it
+/// draws: converted to BGRA for a view that blits on the CPU, or as planes for
+/// one that converts them on the GPU. The pictures are prepared as planes only
+/// while every view attached asks for them; a player with no view attached, or
+/// with one that draws on the CPU, converts them ([#pictureForm()]). A view that
+/// asks for planes draws what [#shownPicture()] hands out, in either form.
 public final class MediaPlayer implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(MediaPlayer.class);
@@ -63,6 +73,9 @@ public final class MediaPlayer implements AutoCloseable {
     private volatile float rate = 1f;
     private volatile Duration audioDelay = Duration.ZERO;
     private boolean closed;
+    /// The views attached, and the form they decide on. Guarded by `lock`.
+    private final List<Attachment> attachments = new ArrayList<>();
+    private PictureForm pictureForm = PictureForm.CONVERTED;
 
     private MediaPlayer(Builder builder) {
         this.sinks = builder.sinks != null ? builder.sinks : SdlAudioSink::new;
@@ -116,6 +129,7 @@ public final class MediaPlayer implements AutoCloseable {
                     _ -> publish());
             next.setRate(rate);
             next.setAudioDelay(audioDelay.toNanos());
+            next.setPictureForm(pictureForm);
             playback = next;
         }
         if (previous != null) {
@@ -171,6 +185,66 @@ public final class MediaPlayer implements AutoCloseable {
     /// first picture is decoded.
     public Optional<VideoPicture> currentPicture() {
         return current().flatMap(Playback::currentPicture);
+    }
+
+    /// The picture to show now, in the form it was prepared in: a
+    /// [VideoPicture], or [VideoPlanes] while every view attached asks for
+    /// planes. What a view that draws planes asks for on every frame it paints.
+    /// The pictures stay put as [Picture] says.
+    ///
+    /// Empty when nothing is open, when the source has no video, and before its
+    /// first picture is decoded. Unlike [#currentPicture()], never empty for a
+    /// picture's form alone.
+    public Optional<Picture> shownPicture() {
+        return current().flatMap(Playback::shownPicture);
+    }
+
+    /// What has happened to the pictures of the source open now: how many were
+    /// decoded, and how many shown and dropped. All zero when nothing is open.
+    public VideoStatistics videoStatistics() {
+        return current().map(Playback::videoStatistics).orElse(VideoStatistics.NONE);
+    }
+
+    /// Attaches a view that draws this player's pictures in `form`, until the
+    /// attachment is closed. The pictures are prepared as [PictureForm#PLANES]
+    /// only while every attached view asks for planes, and the form carries
+    /// over to the next source [#open]ed.
+    ///
+    /// A view attaches when it is shown and closes the attachment when it is
+    /// not, and it may change its form in between ([Attachment#setForm]), as a
+    /// view that finds it cannot reach a GPU does.
+    public Attachment attachView(PictureForm form) {
+        var attachment = new Attachment(this, form);
+        synchronized (lock) {
+            attachments.add(attachment);
+            decideFormLocked();
+        }
+        return attachment;
+    }
+
+    /// The form the pictures are prepared in now: [PictureForm#PLANES] while at
+    /// least one view is attached and every one asks for planes, and
+    /// [PictureForm#CONVERTED] otherwise.
+    public PictureForm pictureForm() {
+        synchronized (lock) {
+            return pictureForm;
+        }
+    }
+
+    /// Decides the form from the attachments, and tells the playback when it
+    /// changes. Under `lock`, so the playback hears the changes in order.
+    private void decideFormLocked() {
+        var planes = !attachments.isEmpty()
+                && attachments.stream().allMatch(attachment -> attachment.form == PictureForm.PLANES);
+        var form = planes ? PictureForm.PLANES : PictureForm.CONVERTED;
+        if (form == pictureForm) {
+            return;
+        }
+        pictureForm = form;
+        LOG.debug("pictures are prepared as {} for {} view(s)", form, attachments.size());
+        if (playback != null) {
+            playback.setPictureForm(form);
+        }
     }
 
     /// Sets the linear volume, 0 to 1.
@@ -434,6 +508,59 @@ public final class MediaPlayer implements AutoCloseable {
                 // A listener's bug must not stop playback, or the other listeners.
                 LOG.warn("a MediaPlayer status listener failed", e);
             }
+        }
+    }
+
+    /// A view attached to a [MediaPlayer] ([MediaPlayer#attachView]), and the
+    /// form it draws pictures in. Closing it detaches the view; closing it
+    /// again does nothing.
+    public static final class Attachment implements AutoCloseable {
+
+        private final MediaPlayer player;
+        /// Guarded by the player's lock.
+        private PictureForm form;
+        private boolean closed;
+
+        private Attachment(MediaPlayer player, PictureForm form) {
+            this.player = player;
+            this.form = Objects.requireNonNull(form, "form");
+        }
+
+        /// The form this view draws.
+        public PictureForm form() {
+            synchronized (player.lock) {
+                return form;
+            }
+        }
+
+        /// Says this view draws `form` from now on. Does nothing once closed.
+        public void setForm(PictureForm form) {
+            Objects.requireNonNull(form, "form");
+            synchronized (player.lock) {
+                if (closed || this.form == form) {
+                    return;
+                }
+                this.form = form;
+                player.decideFormLocked();
+            }
+        }
+
+        /// Detaches the view.
+        @Override
+        public void close() {
+            synchronized (player.lock) {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+                player.attachments.remove(this);
+                player.decideFormLocked();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "MediaPlayer.Attachment[" + form() + (closed ? ", closed]" : "]");
         }
     }
 

@@ -5,7 +5,10 @@ Date: 2026-09-24
 ## Status
 
 Accepted. D1 of `docs/gpu-plan.md`, taken on phase 0's measurements. The
-colour half of media phase 4 (GPU present) is built here.
+colour half of media phase 4 (GPU present) is built here. Its chroma siting
+is corrected by [ADR-0484](0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md):
+swscale centres chroma rather than siting it left, and the shaders now do
+the same.
 
 ## Context
 

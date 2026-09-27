@@ -206,7 +206,7 @@ class YuvDrawTest {
         var cr = ByteBuffer.allocate(chromaWidth * chromaHeight * bytes).order(ByteOrder.LITTLE_ENDIAN);
         for (var y = 0; y < chromaHeight; y++) {
             for (var x = 0; x < chromaWidth; x++) {
-                // A chroma sample sits on its first luma column (left sited).
+                // One chroma sample for each two-by-two block of luma.
                 var codes = picture.codes(x * 2, y * 2);
                 put(cb, codes[1] << shift, wide);
                 put(interleaved ? cb : cr, codes[2] << shift, wide);

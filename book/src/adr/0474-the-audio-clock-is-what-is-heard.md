@@ -5,7 +5,7 @@ Date: 2026-09-24
 ## Status
 
 Accepted. Closes the "− device latency" correction in `docs/media-plan.md`,
-open since phase 3.
+open since phase 3. SDL's buffers are counted in typical pulls, the median of the last fifteen, since ADR-0485: two pulls seen at once no longer double the latency.
 
 ## Context
 

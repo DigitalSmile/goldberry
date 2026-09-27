@@ -497,3 +497,6 @@
 - [ADR-0480 Windows present through the GPU by default, and on the CPU where it cannot](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
 - [ADR-0481 GPU layers are placed in paint order, and shown through a hole or read back](adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)
 - [ADR-0482 canvas3d is a GPU layer an application renders into](adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)
+- [ADR-0483 Video pictures wait as planes for a view that uploads them](adr/0483-video-pictures-wait-as-planes-for-a-view-that-uploads-them.md)
+- [ADR-0484 video-view shows its pictures through a GPU layer when :gpu is present](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)
+- [ADR-0485 The audio clock never jumps, and 4K60 plays every picture](adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)

@@ -32,6 +32,7 @@ import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.media.FfmpegRequirement;
 import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
+import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.Wav;
@@ -358,7 +359,10 @@ class MediaWidgetsTest {
             var box = surface.render(ComputedStyle.INITIAL, List.of(), null);
             assertTrue(box.painting() != null, "a picture is drawn");
             // The sink never plays, so the clock stands at zero and the pictures
-            // after the first wait their time: 40 ms for the next.
+            // after the first wait their time: 40 ms for the next, once the video
+            // thread has queued it, which PLAYING (the first picture) does not wait
+            // for.
+            await(status -> player.untilNextPicture().isPresent());
             var until = player.untilNextPicture().orElseThrow();
             assertTrue(until.compareTo(Duration.ofMillis(40)) <= 0 && !until.isNegative(), until.toString());
             player.pause();
@@ -374,6 +378,23 @@ class MediaWidgetsTest {
             openPlaying();
             var surface = first(mount(new VideoView(player)), VideoSurface.class);
             assertNull(surface.render(ComputedStyle.INITIAL, List.of(), null).painting());
+        }
+
+        @Test
+        @DisplayName("while mounted it asks for converted pictures, so a view of planes cannot starve it")
+        void attachesConverted() {
+            try (var shared = MediaPlayer.builder()
+                    .sink(() -> new VirtualSink(AudioFormat.DEFAULT, true))
+                    .build()) {
+                var planes = shared.attachView(PictureForm.PLANES);
+                assertEquals(PictureForm.PLANES, shared.pictureForm());
+                var tree = new ElementTree(new VideoView(shared));
+                assertEquals(PictureForm.CONVERTED, shared.pictureForm(), "the CPU view draws BGRA alone");
+                tree.unmount();
+                assertEquals(PictureForm.PLANES, shared.pictureForm(), "unmounted, it lets go");
+                planes.close();
+                assertEquals(PictureForm.CONVERTED, shared.pictureForm());
+            }
         }
 
         @Test

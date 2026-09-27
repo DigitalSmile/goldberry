@@ -15,8 +15,12 @@ import java.util.Objects;
 /// - then `R = Y + 2(1-Kr) Cr`, `G = Y - 2Kb(1-Kb)/Kg Cb - 2Kr(1-Kr)/Kg Cr`,
 ///   `B = Y + 2(1-Kb) Cb`, clamped to 0 to 1.
 ///
-/// Chroma is sited left, as MPEG-2 and swscale have it: a chroma sample sits on
-/// its first luma column, a quarter of a chroma texel left of the texel's centre.
+/// Chroma is sited as CPU present's swscale conversion sites it, by default
+/// ([Siting#CENTRED]): a chroma sample midway between its two luma columns and
+/// its two rows, which is where a texel's centre already is, so the sampler
+/// reads it with no offset. Measured against swscale's own pictures
+/// (ADR-0484), which corrected ADR-0477's assumption that swscale sites chroma
+/// left. [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to the left.
 ///
 /// @param layout    how the planes are stored
 /// @param matrix    the picture's matrix
@@ -49,13 +53,39 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
         return new double[] {middle, layout.maxCode() / (224.0 * scale)};
     }
 
+    /// Where a chroma sample sits among the luma samples it covers.
+    public enum Siting {
+        /// Midway between its two luma columns: JPEG's and MPEG-1's, and what
+        /// swscale's conversion to BGRA does with no location given.
+        CENTRED(0),
+        /// On its first luma column: MPEG-2's, H.264's and HEVC's default.
+        LEFT(0.25f);
+
+        private final float texels;
+
+        Siting(float texels) {
+            this.texels = texels;
+        }
+
+        /// How far left of a centred sample it sits, in chroma texels.
+        public float texels() {
+            return texels;
+        }
+    }
+
+    /// [#uniforms(int, Siting)] with chroma [Siting#CENTRED], as CPU present
+    /// converts it.
+    public float[] uniforms(int chromaWidth) {
+        return uniforms(chromaWidth, Siting.CENTRED);
+    }
+
     /// The shader's uniform block, twelve floats: the luma transform (scale to
     /// code, offset, gain, unused), the chroma transform (the same, then the
     /// siting offset in texture coordinates), then the four coefficients.
     ///
     /// @param chromaWidth the chroma planes' width in texels, which the siting
-    ///                    offset is a quarter of one of
-    public float[] uniforms(int chromaWidth) {
+    ///                    offset is a fraction of one of
+    public float[] uniforms(int chromaWidth, Siting siting) {
         if (chromaWidth <= 0) {
             throw new IllegalArgumentException("chroma width " + chromaWidth);
         }
@@ -70,7 +100,7 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
             scale,
             (float) chroma[0],
             (float) chroma[1],
-            0.25f / chromaWidth,
+            siting.texels() / chromaWidth,
             (float) matrix.crToRed(),
             (float) matrix.cbToGreen(),
             (float) matrix.crToGreen(),
@@ -80,17 +110,23 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
 
     /// R', G' and B', 0 to 1, for code values `y`, `cb` and `cr`: the reference.
     public double[] toRgb(int y, int cb, int cr) {
+        return toRgb((double) y, cb, cr);
+    }
+
+    /// [#toRgb(int, int, int)] for codes between whole codes: what a shader
+    /// reads where a linear sampler has interpolated two chroma samples.
+    public double[] toRgb(double y, double cb, double cr) {
         var max = layout.maxCode();
-        for (var code : new int[] {y, cb, cr}) {
-            if (code < 0 || code > max) {
+        for (var code : new double[] {y, cb, cr}) {
+            if (!(code >= 0 && code <= max)) {
                 throw new IllegalArgumentException("code " + code + " outside 0 to " + max);
             }
         }
         var luma = lumaRange();
         var chroma = chromaRange();
-        var lumaValue = ((double) y / max - luma[0]) * luma[1];
-        var blue = ((double) cb / max - chroma[0]) * chroma[1];
-        var red = ((double) cr / max - chroma[0]) * chroma[1];
+        var lumaValue = (y / max - luma[0]) * luma[1];
+        var blue = (cb / max - chroma[0]) * chroma[1];
+        var red = (cr / max - chroma[0]) * chroma[1];
         return new double[] {
             clamp(lumaValue + matrix.crToRed() * red),
             clamp(lumaValue + matrix.cbToGreen() * blue + matrix.crToGreen() * red),
@@ -101,6 +137,12 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
     /// [#toRgb] as the bytes an 8-bit `UNORM` target stores: rounded to the
     /// nearest of 255 steps.
     public int[] toRgbBytes(int y, int cb, int cr) {
+        return toRgbBytes((double) y, cb, cr);
+    }
+
+    /// [#toRgb(double, double, double)] as the bytes an 8-bit `UNORM` target
+    /// stores.
+    public int[] toRgbBytes(double y, double cb, double cr) {
         var rgb = toRgb(y, cb, cr);
         return new int[] {(int) Math.round(rgb[0] * 255), (int) Math.round(rgb[1] * 255), (int) Math.round(rgb[2] * 255)
         };

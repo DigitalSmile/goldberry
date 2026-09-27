@@ -6,7 +6,10 @@ Date: 2026-09-23
 
 Accepted. Builds `docs/goldberry-media.md` §3's "Presentation" and "Master
 clock" for phase 3 (CPU present), and refines them where building them showed
-something the design did not say. Follows
+something the design did not say. Its smoothing of the SDL sink is refined by
+[ADR-0485](0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md): a
+drain re-anchored at each pull jumped by up to a pull when one came early,
+which passes over pictures at 60 fps. Follows
 [ADR-0462](0462-media-audio-leaves-through-a-sink-and-sdl.md), whose audio clock
 the pictures are timed against.
 

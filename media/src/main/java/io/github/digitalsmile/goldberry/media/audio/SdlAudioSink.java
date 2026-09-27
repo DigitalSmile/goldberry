@@ -28,12 +28,14 @@ import io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream;
 /// timed against that clock is shown up to a step late, and a view that wakes when
 /// the next picture falls due finds the clock not yet there and wakes again.
 /// So between pulls [#queuedSamples()] reports the queue draining at the stream's
-/// rate from the moment of the last pull, never by more than that pull took: what
-/// the device is playing, rather than what it last fetched. ffplay corrects its
-/// audio clock by the callback time for the same reason. Paused, the estimate
-/// stands still, and a clear starts it over. At a [#setRate] other than 1 the
-/// device takes samples that much faster, and the estimate drains that much
-/// faster with it.
+/// rate: what the device is playing, rather than what it last fetched. ffplay
+/// corrects its audio clock by the callback time for the same reason. The pulls
+/// themselves come unevenly, so the drain is a [DrainEstimate]: a line at the
+/// stream's rate steered toward where the pulls say the device is, which never
+/// jumps, since a clock that jumps by a pull passes over a picture at 60 fps
+/// (ADR-0485). Paused, the estimate stands still, and a clear starts it over. At
+/// a [#setRate] other than 1 the device takes samples that much faster, and the
+/// estimate drains that much faster with it.
 ///
 /// ## Latency
 ///
@@ -82,12 +84,8 @@ public final class SdlAudioSink implements AudioSink {
     private float rate = 1f;
     /// The raw queue as last seen, plus what has been written since.
     private long lastRaw;
-    /// How many samples the last pull took: the most the estimate drains by.
-    private long pull;
-    /// When the last pull was seen, on [System#nanoTime()].
-    private long pulledAt;
-    /// While paused, how far into the current pull the device had got.
-    private long pausedAfter = -1;
+    /// How far the device has got through what it took; made when opened.
+    private @Nullable DrainEstimate drain;
     private int sampleRate;
 
     /// A sink that opens nothing until [#open], and asks the installed
@@ -126,9 +124,9 @@ public final class SdlAudioSink implements AudioSink {
         stream = opened;
         sampleRate = preferred.sampleRate();
         lastRaw = 0;
-        pull = 0;
-        pulledAt = System.nanoTime();
-        pausedAfter = -1;
+        var estimate = new DrainEstimate(sampleRate, System.nanoTime());
+        estimate.rate(rate, System.nanoTime());
+        drain = estimate;
         asked = false;
         refreshLatency();
         return preferred;
@@ -148,10 +146,11 @@ public final class SdlAudioSink implements AudioSink {
     /// last asked. See the class note.
     @Override
     public synchronized long latencyNanos() {
-        if (stream == null || sampleRate == 0) {
+        var estimate = drain;
+        if (stream == null || estimate == null || sampleRate == 0) {
             return 0;
         }
-        var sdl = Math.round(pullsAhead * (double) pull * 1e9 / (sampleRate * (double) rate));
+        var sdl = Math.round(pullsAhead * (double) estimate.typicalPull() * 1e9 / (sampleRate * (double) rate));
         return sdl + systemLatency;
     }
 
@@ -171,29 +170,25 @@ public final class SdlAudioSink implements AudioSink {
     /// device's pulls (see the class note).
     @Override
     public synchronized long queuedSamples() {
-        if (stream == null) {
+        var estimate = drain;
+        if (stream == null || estimate == null) {
             return 0;
         }
         var raw = stream.queuedFrames();
         var now = System.nanoTime();
         if (raw < lastRaw) {
-            pull = lastRaw - raw;
-            pulledAt = now;
+            estimate.pulled(lastRaw - raw, now);
         }
         lastRaw = raw;
-        var after = pausedAfter >= 0 ? pausedAfter : now - pulledAt;
-        var drained = Math.min(Math.round(after * (double) sampleRate * rate / 1e9), pull);
-        return Math.max(raw - drained, 0);
+        return Math.max(raw - estimate.drained(now), 0);
     }
 
     @Override
     public synchronized void clear() {
         stream().clear();
         lastRaw = 0;
-        pull = 0;
-        pulledAt = System.nanoTime();
-        if (pausedAfter >= 0) {
-            pausedAfter = 0;
+        if (drain != null) {
+            drain.reset(System.nanoTime());
         }
     }
 
@@ -201,8 +196,8 @@ public final class SdlAudioSink implements AudioSink {
     public synchronized void pause() {
         if (stream != null) {
             stream.pause();
-            if (pausedAfter < 0) {
-                pausedAfter = System.nanoTime() - pulledAt;
+            if (drain != null) {
+                drain.pause(System.nanoTime());
             }
         }
     }
@@ -211,9 +206,8 @@ public final class SdlAudioSink implements AudioSink {
     public synchronized void resume() {
         if (stream != null) {
             stream.resume();
-            if (pausedAfter >= 0) {
-                pulledAt = System.nanoTime() - pausedAfter;
-                pausedAfter = -1;
+            if (drain != null) {
+                drain.resume(System.nanoTime());
             }
         }
     }
@@ -236,12 +230,8 @@ public final class SdlAudioSink implements AudioSink {
         }
         if (stream != null) {
             stream.frequencyRatio(rate);
-            var scale = this.rate / rate;
-            if (pausedAfter >= 0) {
-                pausedAfter = Math.round(pausedAfter * (double) scale);
-            } else {
-                var now = System.nanoTime();
-                pulledAt = now - Math.round((now - pulledAt) * (double) scale);
+            if (drain != null) {
+                drain.rate(rate, System.nanoTime());
             }
         }
         this.rate = rate;

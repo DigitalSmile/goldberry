@@ -63,6 +63,21 @@ short="testsrc2=s=160x90:r=25:d=0.2"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p -b:v 200k "$out/clip-vp9-444.webm"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv420p10le -b:v 200k "$out/clip-vp9-10bit.webm"
 
+# Three pictures tagged with the colour GPU present has to honour (gpu-plan.md,
+# phase 6; ADR-0484), silent and a fifth of a second each: BT.709, BT.2020 in
+# 10 bits, and BT.601 in full range. The pattern is converted into each matrix
+# and range by the scale filter, and the stream is tagged to match, so the
+# decoder reports what it was encoded with.
+$ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" \
+    -c:v libvpx-vp9 -b:v 200k -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \
+    "$out/clip-vp9-709.webm"
+$ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt2020:out_range=tv,format=yuv420p10le" \
+    -c:v libvpx-vp9 -b:v 200k -colorspace bt2020nc -color_primaries bt2020 -color_trc bt709 -color_range tv \
+    "$out/clip-vp9-2020-10bit.webm"
+$ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt601:out_range=pc,format=yuv420p" \
+    -c:v libvpx-vp9 -b:v 200k -colorspace smpte170m -color_primaries smpte170m -color_trc smpte170m \
+    -color_range pc "$out/clip-vp9-full.webm"
+
 # --- Two audio tracks, for track selection (phase 7): two seconds each, the
 # first at 440 Hz tagged English and titled, the second at 880 Hz tagged French,
 # both FLAC so a switch can be checked to the sample.

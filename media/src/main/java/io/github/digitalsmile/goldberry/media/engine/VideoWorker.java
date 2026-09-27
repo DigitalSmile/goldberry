@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
+import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.Received;
@@ -20,17 +21,27 @@ import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
 /// The video decode thread of one [Playback] (`docs/goldberry-media.md` §3,
 /// "Video decode").
 ///
-/// Takes packets, decodes, and converts every picture it keeps to premultiplied
-/// BGRA in a buffer from the [FrameQueue], where it waits for the master clock.
-/// Converting here rather than at paint time is CPU present's shape: a borrowed
-/// frame has to be done with before the decoder's next call, and the conversion
-/// is that. The paint then only blits.
+/// Takes packets, decodes, and prepares every picture it keeps in a buffer from
+/// the [FrameQueue], where it waits for the master clock. Preparing here rather
+/// than at paint time is what a borrowed frame asks for: it has to be done with
+/// before the decoder's next call, and the preparation is that.
+///
+/// ## Converted or planes
+///
+/// What a picture is prepared as is the playback's [PictureForm], read afresh
+/// for each picture (`docs/gpu-plan.md`, D8). [PictureForm#CONVERTED] converts
+/// it to premultiplied BGRA with swscale, which CPU present only blits.
+/// [PictureForm#PLANES] copies its planes as they are, for a view that uploads
+/// them and converts them on the GPU, and the copy is the lighter of the two
+/// for this thread. The form changes between two pictures: a change to planes
+/// leaves the converted pictures queued to play out, and a change back comes
+/// with a seek, which flushes the planes ([Playback#setPictureForm]).
 ///
 /// ## Seeking
 ///
 /// An **accurate** seek shows the picture that covers the target: the last one
 /// whose time is at or before it. Which one that is is known only when the next
-/// one arrives, so every picture up to the target is converted into one pending
+/// one arrives, so every picture up to the target is prepared into one pending
 /// buffer, overwriting the one before, and the pending picture is queued when a
 /// later picture (or the end) shows it was the right one. A **keyframe** seek
 /// queues the first picture decoded, which is the keyframe the demuxer landed on.
@@ -74,7 +85,7 @@ import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
 /// ## Late pictures
 ///
 /// A picture whose time has already passed by a whole frame is dropped before it
-/// is converted, unless it is the first since a seek, or no packet is waiting
+/// is prepared, unless it is the first since a seek, or no packet is waiting
 /// after it (ffplay's rule: the last picture of a stream is always shown).
 /// Decoding cannot be skipped, since every picture after it depends on it, but
 /// the conversion can.
@@ -299,22 +310,26 @@ final class VideoWorker {
             }
         }
         lastPts = pts;
+        if (!retired) {
+            playback.videoDecoded();
+        }
 
+        var shape = FrameQueue.Shape.of(frame, playback.pictureForm());
         if (discardBeforeNanos != Frame.NO_PTS) {
             if (pts <= discardBeforeNanos) {
                 if (pending == null) {
-                    pending = frames.obtain(frame.width(), frame.height(), serial, playback::presentationNanos);
+                    pending = frames.obtain(shape, serial, playback::presentationNanos);
                     if (pending == null) {
                         return;
                     }
-                } else if (!pending.fits(frame.width(), frame.height())) {
+                } else if (!pending.fits(shape)) {
                     frames.recycle(pending);
-                    pending = frames.obtain(frame.width(), frame.height(), serial, playback::presentationNanos);
+                    pending = frames.obtain(shape, serial, playback::presentationNanos);
                     if (pending == null) {
                         return;
                     }
                 }
-                convert(frame, pending);
+                prepare(frame, pending);
                 pendingPts = pts;
                 return;
             }
@@ -328,13 +343,14 @@ final class VideoWorker {
                 && !playback.paused()
                 && playback.clockRunning()
                 && pts + frameNanos < playback.presentationNanos()) {
+            playback.videoLate();
             return;
         }
-        var slot = frames.obtain(frame.width(), frame.height(), serial, playback::presentationNanos);
+        var slot = frames.obtain(shape, serial, playback::presentationNanos);
         if (slot == null) {
             return;
         }
-        convert(frame, slot);
+        prepare(frame, slot);
         queue(slot, pts);
     }
 
@@ -373,11 +389,17 @@ final class VideoWorker {
         }
     }
 
-    private void convert(VideoFrame frame, FrameQueue.Slot slot) {
+    /// Prepares `frame` in `slot`, in the form of the slot's shape: converted to
+    /// BGRA, or its planes copied.
+    private void prepare(VideoFrame frame, FrameQueue.Slot slot) {
+        if (slot.shape().form() == PictureForm.PLANES) {
+            slot.copyPlanes(frame);
+            return;
+        }
         if (converter == null) {
             throw new IllegalStateException("no converter");
         }
-        converter.toBgra(frame, slot.segment(), slot.stride());
+        converter.toBgra(frame, slot.segment(0), slot.stride(0));
     }
 
     /// Shows what is queued, then reports the end of the picture: the last one has
