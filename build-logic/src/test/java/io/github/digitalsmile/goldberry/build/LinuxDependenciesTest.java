@@ -132,11 +132,26 @@ class LinuxDependenciesTest {
         @Test
         @DisplayName("keeps the features the toolkit does not use optional")
         void keepsUnusedFeaturesOptional() {
-            // dbus-1 used to be on this list and is not any more; see below.
-            for (var module : List.of("alsa", "libpulse", "libdrm", "gbm", "libudev", "ibus-1.0")) {
+            // dbus-1 used to be on this list and is not any more; see below. Nor
+            // are alsa and libpulse, since goldberry-media plays through SDL.
+            for (var module : List.of("libdrm", "gbm", "libudev", "ibus-1.0")) {
                 assertFalse(LinuxDependencies.byModule(module).required(),
                         module + " is not something Goldberry uses; it must not fail a build");
             }
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = {"alsa", "libpulse"})
+        @DisplayName("requires the audio headers, without which SDL has no driver and media plays silently")
+        void requiresAudio(String module) {
+            // ADR-0488. SDL builds with only `dummy` and `disk` without these, and
+            // configures happily: the first sign was a showcase with no sound.
+            var audio = LinuxDependencies.byModule(module);
+            assertEquals(Necessity.NEEDED, audio.necessity());
+            assertTrue(LinuxDependencies.required().contains(audio));
+            // No capability names it, so -Pgoldberry.allowDegradedPlatform=true,
+            // which waives only capability-backed rows, cannot waive it either.
+            assertFalse(audio.backsACapability());
         }
 
         @Test
@@ -305,12 +320,12 @@ class LinuxDependenciesTest {
         @DisplayName("warns rather than instructs for an optional dependency")
         void warnsForAnOptionalDependency() {
             var message = LinuxDependencies.missingOptionalMessage(
-                    List.of(LinuxDependencies.byModule("alsa")), PackageManager.APT);
+                    List.of(LinuxDependencies.byModule("libdrm")), PackageManager.APT);
 
             assertAll(
                     () -> assertTrue(message.startsWith("WARNING:"), message),
-                    () -> assertTrue(message.contains("alsa -- SDL3 audio"), message),
-                    () -> assertTrue(message.contains("sudo apt install libasound2-dev"), message));
+                    () -> assertTrue(message.contains("libdrm -- SDL3 KMS/DRM"), message),
+                    () -> assertTrue(message.contains("sudo apt install libdrm-dev"), message));
         }
 
         @Test
@@ -395,6 +410,19 @@ class LinuxDependenciesTest {
             assertTrue(absent.isEmpty(),
                     DNF_WORKFLOW + " does not install: " + absent
                             + " -- the published library would report those capabilities as absent");
+        }
+
+        @Test
+        @DisplayName("the manylinux workflow installs the audio headers, which its CMake cross-check demands")
+        void theContainerWorkflowInstallsAudio() {
+            // That workflow runs CMake directly, past checkToolchain, so the only
+            // guard it meets is the superbuild's check of SDL_build_config.h. That
+            // check is fatal (ADR-0488): a list without these fails the release.
+            var text = workflow(DNF_WORKFLOW);
+            for (var module : List.of("alsa", "libpulse")) {
+                var dnf = LinuxDependencies.byModule(module).dnfPackage();
+                assertTrue(installs(text, dnf), DNF_WORKFLOW + " must install " + dnf);
+            }
         }
 
         @ParameterizedTest(name = "{0} installs every capability's package")

@@ -255,10 +255,19 @@ public final class LinuxDependencies {
             new Dependency("xkeyboard-config", "xkb-data", "xkeyboard-config",
                     Necessity.NEEDED, "SDL3 keymaps"),
 
+            // NEEDED, and OPTIONAL until ADR-0488, from before goldberry-media
+            // played its sound through SDL's audio stream (ADR-0462). SDL dlopen()s
+            // libasound and libpulse at run time, so the shipped library needs
+            // neither installed. It needs their headers to compile the drivers in.
+            // Without them SDL has only `dummy` and `disk`, which it never picks by
+            // itself, the configure succeeds, and every source with audio on that
+            // build plays silently (ADR-0487). That cost a showcase run to find.
+            // Both, not either: PulseAudio is what a desktop, PipeWire's included,
+            // answers on, and ALSA is what a machine without a sound server has.
             new Dependency("alsa", "libasound2-dev", "alsa-lib-devel",
-                    Necessity.OPTIONAL, "SDL3 audio"),
+                    Necessity.NEEDED, "SDL3 audio output on ALSA, which goldberry-media plays through"),
             new Dependency("libpulse", "libpulse-dev", "pulseaudio-libs-devel",
-                    Necessity.OPTIONAL, "SDL3 audio"),
+                    Necessity.NEEDED, "SDL3 audio output on PulseAudio and PipeWire, which goldberry-media plays through"),
             new Dependency("libdrm", "libdrm-dev", "libdrm-devel",
                     Necessity.OPTIONAL, "SDL3 KMS/DRM"),
             new Dependency("gbm", "libgbm-dev", "mesa-libgbm-devel",

@@ -56,7 +56,7 @@ As built (ADR-0470): on by default on macOS and Windows, where the hwaccel needs
 
 No TLS library on any platform: HTTPS is the JDK's (§4).
 
-Size budget per platform (stripped): avcodec 1.5–2.5, avformat ~0.6, avutil ~0.7, swscale ~0.6, swresample ~0.2, dav1d 1.5–2 (linked statically into avcodec, so one fewer file to load). **Target ≤ 6 MB**, CI fails the build above 7 MB.
+Size budget per platform (stripped): avcodec 1.5–2.5, avformat ~0.6, avutil ~0.7, swscale ~0.6, swresample ~0.2, dav1d 1.5–2 (linked statically into avcodec, so one fewer file to load). **Target ≤ 6 MB**, CI fails the build above 7 MB. Both are built at `-O2` rather than `-O3`: at `-O3`, GCC made linux-x64 8.8 MB (ADR-0486). There dav1d's x86 assembly alone is about 1.1 MB, and the build is 6.6 MB.
 
 Packaging: natives ship as `goldberry-ffmpeg-natives` classifiers (`linux-x64`, `linux-aarch64`, `windows-x64`, `macos-aarch64`: the project's four targets, ADR-0041), separate from `goldberry-media`. Each jar carries the LGPL text, dav1d's notice, and a `NOTICE` with the source tag and configure line. System property `goldberry.media.libdir` overrides the extracted libraries. It exists for LGPL replaceability only; it is not an extension mechanism, and a library set that fails the startup check or the layout check is rejected.
 
@@ -92,7 +92,7 @@ Platform threads (virtual threads would pin in native calls). One `Arena` per En
 | Thread | Work |
 |---|---|
 | Demux | `av_read_frame` → Packet queues of selected Tracks. All bytes arrive through MediaIO: `avio_alloc_context` with `read_packet` and `seek` (incl. `AVSEEK_SIZE`) upcalls. Owns seek: `avformat_seek_file`, flush queues, bump Serial. Abort is Java-side: closing the MediaIO makes the pending upcall return `AVERROR_EXIT`. |
-| Audio decode | `Decoder.send/receive` → swresample to interleaved f32 at device rate → an `AudioSink`, which on the desktop is an SDL audio stream (ADR-0462). |
+| Audio decode | `Decoder.send/receive` → swresample to interleaved f32 at device rate → an `AudioSink`, which on the desktop is an SDL audio stream (ADR-0462). With no device to open, the SDL sink plays into a `SilentAudioSink`, in wall time, and logs one warning per process: the source plays without sound instead of failing (ADR-0487). |
 | Video decode | `Decoder.send/receive`. In the built-in FFmpeg provider: `get_format` upcall selects the HW pixel format; HW frames go through Copy-back (`av_hwframe_transfer_data` → NV12, P010 for 10-bit) → Frame queue. |
 
 **Codec resolution.** The Engine holds no codec whitelist. Per Track: ask DecoderProviders in priority order (`supports(codec, params)`), the built-in FFmpeg provider last, which answers from `avcodec_find_decoder` at runtime. No provider → `UNSUPPORTED_CODEC`. `MediaCapabilities` exposes the resolved decoder/demuxer set (`av_codec_iterate`, `av_demuxer_iterate` + providers) for apps and diagnostics.

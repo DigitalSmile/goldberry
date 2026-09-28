@@ -558,10 +558,25 @@ endforeach()
 # PATH, an SDL option flipped in a cache from an earlier configure, or an
 # upstream that renamed the probe. The prediction is what produces a good error
 # message; this is what makes it true.
+#
+# Read from the intermediate file SDL's configure_file writes during this
+# configure, not from the header under include-config-<config>/. SDL writes that
+# header with file(GENERATE), which runs only after the whole configure, so
+# during configure it holds the previous run's answer, or nothing on a clean
+# build directory. Reading it meant this check judged the last configure: it
+# passed a build that had just lost a driver, and it failed one that had just
+# gained the driver, as it did when the audio headers were installed
+# (ADR-0488). The generated header is kept as a fallback for an SDL that stops
+# writing the intermediate file.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    file(GLOB _sdl_build_configs
+    set(_sdl_build_configs "")
+    if(EXISTS "${sdl3_BINARY_DIR}/CMakeFiles/SDL_build_config.h.intermediate")
+        list(APPEND _sdl_build_configs "${sdl3_BINARY_DIR}/CMakeFiles/SDL_build_config.h.intermediate")
+    endif()
+    file(GLOB _sdl_generated_build_configs
         "${sdl3_BINARY_DIR}/include-config-*/build_config/SDL_build_config.h"
         "${sdl3_BINARY_DIR}/include/build_config/SDL_build_config.h")
+    list(APPEND _sdl_build_configs ${_sdl_generated_build_configs})
 
     if(_sdl_build_configs)
         list(GET _sdl_build_configs 0 _sdl_build_config)
@@ -581,6 +596,30 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "is the one outcome docs/gaps.md G32 rules out. Delete the build "
                     "directory and configure again; if it persists, SDL's probe and this "
                     "one have diverged and the superbuild is what needs fixing.")
+            endif()
+        endforeach()
+
+        # --- Audio output: required, and checked against SDL's answer ---------
+        #
+        # goldberry-media plays through SDL's audio stream (ADR-0462). SDL loads
+        # libasound and libpulse at run time, but compiles the two drivers in only
+        # when their headers are there at build time. Without them it builds with
+        # only `dummy` and `disk`, which it never picks by itself. The configure
+        # succeeds, and on that library every source with audio plays silently
+        # (ADR-0487). So this is fatal, with no degraded-platform waiver
+        # (ADR-0488). The release container runs this file past Gradle's
+        # checkToolchain, and this is the only check it meets.
+        foreach(_sdl_audio IN ITEMS SDL_AUDIO_DRIVER_ALSA SDL_AUDIO_DRIVER_PULSEAUDIO)
+            # `1` at the end: SDL_AUDIO_DRIVER_ALSA_DYNAMIC shares the prefix.
+            if(NOT _sdl_build_config_text MATCHES "\n#define ${_sdl_audio} 1")
+                message(FATAL_ERROR
+                    "SDL configured itself without ${_sdl_audio}:\n"
+                    "  ${_sdl_build_config}\n"
+                    "This libgoldberry would have no audio driver SDL picks by itself, and "
+                    "goldberry-media would play every source without sound (ADR-0488).\n"
+                    "  Debian/Ubuntu:       sudo apt install libasound2-dev libpulse-dev\n"
+                    "  RHEL/Fedora/Alma:    sudo dnf install -y alsa-lib-devel pulseaudio-libs-devel\n"
+                    "Then delete the build directory and configure again: SDL caches what it found.")
             endif()
         endforeach()
 

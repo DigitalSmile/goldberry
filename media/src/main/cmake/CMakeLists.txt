@@ -102,6 +102,10 @@ set(_stage "${GOLDBERRY_MEDIA_DEPS_DIR}/stage")
 # dav1d: the software AV1 decoder, built static and position-independent so it
 # links INTO libavcodec. One fewer file to ship and load, and BSD-2 asks nothing
 # of that arrangement but the notice.
+#
+# -O2 rather than release's -O3, like FFmpeg below (ADR-0486): its hot paths are
+# assembly, so -O3 buys no speed and costs 255 KB on linux-x64. The buildtype
+# stays release, which keeps NDEBUG and trim_dsp.
 # ----------------------------------------------------------------------------
 ExternalProject_Add(dav1d
     GIT_REPOSITORY https://code.videolan.org/videolan/dav1d.git
@@ -112,7 +116,7 @@ ExternalProject_Add(dav1d
     BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d-build"
     CONFIGURE_COMMAND ${GOLDBERRY_MESON} setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${_stage} --libdir=lib
-        --buildtype=release --default-library=static
+        --buildtype=release -Doptimization=2 --default-library=static
         -Db_staticpic=true
         -Denable_tools=false -Denable_tests=false -Denable_examples=false -Denable_docs=false
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
@@ -136,11 +140,16 @@ endif()
 # --disable-autodetect is what keeps the result reproducible: without it configure
 # links whatever it finds on the build machine (iconv, SecureTransport, VAAPI,
 # zlib) and two runners produce two different libraries.
+#
+# --optflags=-O2 replaces configure's -O3 (ADR-0486). GCC's -O3 unrolls and
+# vectorises FFmpeg's C templates, and doubles swscale: 8976 KB on linux-x64,
+# over the 7 MB gate, against 6696 KB at -O2 with dav1d at -O2 too. Decoding
+# runs in hand-written assembly and measured the same at both.
 # ----------------------------------------------------------------------------
 set(GOLDBERRY_FFMPEG_CONFIGURE
     --disable-everything --disable-programs --disable-doc --disable-network
     --disable-avdevice --disable-avfilter --disable-autodetect
-    --enable-shared --disable-static --enable-pic --disable-debug
+    --enable-shared --disable-static --enable-pic --disable-debug --optflags=-O2
     --enable-demuxer=matroska,mov,avi,ogg,flac,mp3,wav,srt,webvtt,ass
     --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
     --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio

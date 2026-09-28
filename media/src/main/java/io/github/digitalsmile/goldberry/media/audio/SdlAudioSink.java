@@ -4,9 +4,14 @@ import java.lang.foreign.MemorySegment;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongSupplier;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream;
 
 /// The desktop's [AudioSink]: an SDL audio stream on the default playback device.
@@ -53,7 +58,32 @@ import io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream;
 ///   offset and its stream, where Bluetooth spends 150–250 ms. Asked every
 ///   [#REFRESH] from the audio thread, so a headset connected mid-song is in the
 ///   clock within a second.
+///
+/// ## No device
+///
+/// When SDL has no device to open, the sink plays into a [SilentAudioSink]
+/// instead, and says so in the log (ADR-0487). This happens on a headless
+/// machine, or with an SDL built without a backend for the sound server. The
+/// source plays on without sound, rather than failing as media it could not
+/// play. Each [#open] tries the device again, so the next source opened after a
+/// device appears is heard.
 public final class SdlAudioSink implements AudioSink {
+
+    private static final Logger LOG = Logs.of(SdlAudioSink.class);
+
+    /// Whether this process has already warned that it plays without sound. Every
+    /// source opened after the first says so at debug only, so a playlist on a
+    /// headless machine logs one warning, not one per track.
+    private static final AtomicBoolean WARNED = new AtomicBoolean();
+
+    /// Opens SDL's stream on the default device. A test hands in one that finds
+    /// none.
+    @FunctionalInterface
+    interface Device {
+
+        /// @throws SdlException when there is no device to open
+        SdlAudioStream open(int sampleRate, int channels);
+    }
 
     /// How often the system's latency is asked again: the default device can
     /// change under a playing stream, and SDL follows it.
@@ -67,6 +97,9 @@ public final class SdlAudioSink implements AudioSink {
     }
 
     private final OutputLatency outputLatency;
+    private final Device device;
+    /// What times the silence when there is no device.
+    private final LongSupplier silenceClock;
     private final int pullsAhead = pullsAhead(System.getProperty("os.name", ""));
     /// What the system last said, in nanoseconds; 0 when it said nothing.
     private long systemLatency;
@@ -80,6 +113,8 @@ public final class SdlAudioSink implements AudioSink {
     static final float MAX_RATE = 100f;
 
     private @Nullable SdlAudioStream stream;
+    /// Where the samples go instead of [#stream] when no device opened.
+    private @Nullable SilentAudioSink silence;
     private float gain = 1f;
     private float rate = 1f;
     /// The raw queue as last seen, plus what has been written since.
@@ -97,7 +132,15 @@ public final class SdlAudioSink implements AudioSink {
     /// A sink that asks `outputLatency` for the system's latency: [OutputLatency#NONE]
     /// for one that counts SDL's buffers only.
     public SdlAudioSink(OutputLatency outputLatency) {
+        this(outputLatency, SdlAudioStream::open, System::nanoTime);
+    }
+
+    /// A sink that opens `device`, and times the silence it falls back to by
+    /// `silenceClock`.
+    SdlAudioSink(OutputLatency outputLatency, Device device, LongSupplier silenceClock) {
         this.outputLatency = Objects.requireNonNull(outputLatency, "outputLatency");
+        this.device = Objects.requireNonNull(device, "device");
+        this.silenceClock = Objects.requireNonNull(silenceClock, "silenceClock");
     }
 
     /// How many pulls behind the smoothed queue a sample is heard, before the
@@ -112,10 +155,15 @@ public final class SdlAudioSink implements AudioSink {
     @Override
     public synchronized AudioFormat open(AudioFormat preferred) {
         Objects.requireNonNull(preferred, "preferred");
-        if (stream != null) {
+        if (stream != null || silence != null) {
             throw new IllegalStateException("already open");
         }
-        var opened = SdlAudioStream.open(preferred.sampleRate(), preferred.channels());
+        SdlAudioStream opened;
+        try {
+            opened = device.open(preferred.sampleRate(), preferred.channels());
+        } catch (SdlException e) {
+            return openSilence(preferred, e);
+        }
         opened.gain(gain);
         if (rate != 1f) {
             opened.frequencyRatio(rate);
@@ -132,10 +180,33 @@ public final class SdlAudioSink implements AudioSink {
         return preferred;
     }
 
+    /// Plays into silence, at the rate asked for so far, and logs why.
+    private AudioFormat openSilence(AudioFormat preferred, SdlException cause) {
+        var silent = new SilentAudioSink(silenceClock);
+        silent.setRate(rate);
+        var format = silent.open(preferred);
+        silence = silent;
+        if (WARNED.compareAndSet(false, true)) {
+            LOG.warn("no audio device, so media plays without sound: {}", cause.getMessage());
+        } else {
+            LOG.debug("no audio device, so media plays without sound: {}", cause.getMessage());
+        }
+        return format;
+    }
+
+    /// Whether this sink plays into silence because no device opened.
+    synchronized boolean silent() {
+        return silence != null;
+    }
+
     /// Under the lock with the bookkeeping, so a reading between the put and the
     /// count cannot mistake the new samples for a pull.
     @Override
     public synchronized void write(MemorySegment data, int samples) {
+        if (silence != null) {
+            silence.write(data, samples);
+            return;
+        }
         var bytes = (long) samples * stream().channels() * Float.BYTES;
         stream().put(data.asSlice(0, bytes).asByteBuffer());
         lastRaw += samples;
@@ -170,6 +241,9 @@ public final class SdlAudioSink implements AudioSink {
     /// device's pulls (see the class note).
     @Override
     public synchronized long queuedSamples() {
+        if (silence != null) {
+            return silence.queuedSamples();
+        }
         var estimate = drain;
         if (stream == null || estimate == null) {
             return 0;
@@ -185,6 +259,10 @@ public final class SdlAudioSink implements AudioSink {
 
     @Override
     public synchronized void clear() {
+        if (silence != null) {
+            silence.clear();
+            return;
+        }
         stream().clear();
         lastRaw = 0;
         if (drain != null) {
@@ -194,7 +272,9 @@ public final class SdlAudioSink implements AudioSink {
 
     @Override
     public synchronized void pause() {
-        if (stream != null) {
+        if (silence != null) {
+            silence.pause();
+        } else if (stream != null) {
             stream.pause();
             if (drain != null) {
                 drain.pause(System.nanoTime());
@@ -204,7 +284,9 @@ public final class SdlAudioSink implements AudioSink {
 
     @Override
     public synchronized void resume() {
-        if (stream != null) {
+        if (silence != null) {
+            silence.resume();
+        } else if (stream != null) {
             stream.resume();
             if (drain != null) {
                 drain.resume(System.nanoTime());
@@ -228,7 +310,9 @@ public final class SdlAudioSink implements AudioSink {
         if (!(rate >= MIN_RATE && rate <= MAX_RATE)) {
             return false;
         }
-        if (stream != null) {
+        if (silence != null) {
+            silence.setRate(rate);
+        } else if (stream != null) {
             stream.frequencyRatio(rate);
             if (drain != null) {
                 drain.rate(rate, System.nanoTime());
@@ -243,6 +327,10 @@ public final class SdlAudioSink implements AudioSink {
         if (stream != null) {
             stream.close();
             stream = null;
+        }
+        if (silence != null) {
+            silence.close();
+            silence = null;
         }
     }
 

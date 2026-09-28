@@ -500,3 +500,6 @@
 - [ADR-0483 Video pictures wait as planes for a view that uploads them](adr/0483-video-pictures-wait-as-planes-for-a-view-that-uploads-them.md)
 - [ADR-0484 video-view shows its pictures through a GPU layer when :gpu is present](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)
 - [ADR-0485 The audio clock never jumps, and 4K60 plays every picture](adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)
+- [ADR-0486 FFmpeg and dav1d are built at -O2, to fit the size gate](adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md)
+- [ADR-0487 With no audio device, media plays silently](adr/0487-with-no-audio-device-media-plays-silently.md)
+- [ADR-0488 The Linux build fails without the audio headers](adr/0488-the-linux-build-fails-without-the-audio-headers.md)

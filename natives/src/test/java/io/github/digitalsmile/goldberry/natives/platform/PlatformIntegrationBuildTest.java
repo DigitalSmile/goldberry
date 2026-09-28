@@ -110,6 +110,47 @@ class PlatformIntegrationBuildTest {
                 "the failure has to name the package to install, on both package managers");
     }
 
+    @Test
+    @DisplayName("a configure in which SDL loses either audio driver stops, with no waiver")
+    void audioStopsTheConfigure() {
+        assumeReadable();
+
+        // ADR-0488. Without these SDL has only `dummy` and `disk`, configures
+        // happily, and goldberry-media plays every source silently.
+        var start = cmakeLists.indexOf("_sdl_audio IN ITEMS");
+        assertTrue(start >= 0, "the superbuild does not check SDL's audio drivers");
+        var block = cmakeLists.substring(start, cmakeLists.indexOf("endforeach()", start));
+        assertTrue(
+                block.contains("SDL_AUDIO_DRIVER_ALSA") && block.contains("SDL_AUDIO_DRIVER_PULSEAUDIO"),
+                "both drivers must be checked: " + block);
+        assertTrue(
+                block.contains("${_sdl_audio} 1"),
+                "the match must end at the value, or SDL_AUDIO_DRIVER_ALSA_DYNAMIC satisfies it alone");
+        assertTrue(block.contains("message(FATAL_ERROR"), "a lost audio driver must stop the configure");
+        assertTrue(
+                !block.contains("GOLDBERRY_REQUIRE_PLATFORM_INTEGRATION"),
+                "the degraded-platform flag must not waive the audio drivers");
+        assertTrue(
+                block.contains("libasound2-dev libpulse-dev") && block.contains("alsa-lib-devel pulseaudio-libs-devel"),
+                "the failure has to name the packages to install, on both package managers");
+    }
+
+    @Test
+    @DisplayName("SDL's answer is read from this configure, not from the header the last one generated")
+    void sdlAnswerIsReadFromThisConfigure() {
+        assumeReadable();
+
+        // SDL writes include-config-<config>/SDL_build_config.h with
+        // file(GENERATE), after the configure these checks run in. Read first, it
+        // is the previous run's answer, or nothing on a clean build directory.
+        var intermediate = cmakeLists.indexOf("CMakeFiles/SDL_build_config.h.intermediate");
+        var generated = cmakeLists.indexOf("include-config-*/build_config/SDL_build_config.h");
+        assertTrue(intermediate >= 0, "the superbuild does not read SDL's configure-time header");
+        assertTrue(
+                generated < 0 || intermediate < generated,
+                "the configure-time header must come before the generated one, which is a configure late");
+    }
+
     @ParameterizedTest
     @EnumSource(SdlDecided.class)
     @DisplayName("the two capabilities SDL alone decides are read out of its generated header")
