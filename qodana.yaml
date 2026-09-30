@@ -2,9 +2,72 @@
 # WARNING: Do not store sensitive information in this file, as its contents will be included in the Qodana report. #
 ####################################################################################################################
 
+# Qodana Community for JVM — docs/testing.md §2's advisory dashboard.
+#
+# Advisory, not a gate. The blocking analysis is Error Prone, NullAway, PMD and
+# ArchUnit, which run on every PR in `./gradlew check`; what this adds is
+# IntelliJ's inspection set, which is broader, noisier, and occasionally sees
+# something none of the others do. A quality gate on *new* issues only, so a
+# baseline of existing findings does not have to be cleared before it is useful.
+#
+# The workflow is `.github/workflows/qodana.yml`, and it is inert until a token
+# secret exists — see docs/testing.md §7.
 version: "1.0"
-linter: qodana-jvm-community
+
+# Community edition for the JVM, which is free and needs no licence. The paid
+# tiers add taint analysis and a licence audit (`CheckDependencyLicenses`, which
+# Qodana Cloud's onboarding switches on and CE does not have); neither is what
+# this is here for. Pinned to the release the workflow's action is, so a run
+# locally and a run in CI inspect with the same IntelliJ.
+linter: jetbrains/qodana-jvm-community:2026.1
+
+# The Gradle build needs JDK 25 (it uses the language level), and the linter
+# imports the project with whichever JDK this names.
+projectJDK: "25"
+
 profile:
-  name: qodana.recommended
+  # Not `qodana.recommended`: this project already has four analysers, and the
+  # recommended profile's overlap with them is most of it. `qodana.starter` is
+  # the smaller set, which leaves the findings that are actually IntelliJ's own.
+  name: qodana.starter
+
+# Fail the job on new problems of high severity, and only new ones. An existing
+# finding is a thing to schedule; a new one arrived with a pull request and has
+# somebody to ask about it.
+failureConditions:
+  severityThresholds:
+    critical: 0
+    high: 0
+
+exclude:
+  - name: All
+    paths:
+      # Generated between compileJava and jar, and never edited by hand.
+      - build
+      - "**/build"
+      # The native superbuild's checkouts: SDL, Blend2D, webview and the rest,
+      # tens of thousands of files nobody here edits.
+      - natives/.deps
+      - media/.deps
+      # jextract-shaped FFM bindings: layout tables, downcall handles and
+      # restricted calls. Every inspection either does not apply or fires on the
+      # idiom the whole package is made of -- the same reason :natives has Error
+      # Prone disabled and sits outside the coverage gates. `media.ffi` is
+      # FFmpeg's, written the same way.
+      - natives/src/main/java/io/github/digitalsmile/goldberry/natives
+      - media/src/main/java/io/github/digitalsmile/goldberry/media/ffi
+
+  # A widget's `build` returns one expression per branch and a painter's `render`
+  # is long because a rasterizer step is long. Neither is a defect and both are
+  # what this codebase looks like.
+  - name: LongMethod
+  - name: OverlyComplexMethod
+
+  # The toolkit's own naming: `cssType`, `nowMillis`, `toReal`. IntelliJ wants
+  # different words for some of them and it is wrong about all of them.
+  - name: NonBooleanMethodNameMayNotStartWithQuestion
+
 include:
-  - name: CheckDependencyLicenses
+  # The one inspection worth turning ON: an unused declaration is dead code, and
+  # Error Prone only sees the private half of it.
+  - name: UnusedDeclaration

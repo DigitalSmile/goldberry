@@ -93,7 +93,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
   A link to a member of the type the comment sits on is `[#member]`. A link that names a type must spell a member that type really declares — the failure that prompted this was `[ChartSpec#fill]` on `line-chart`, whose `fill` is declared on the chart precisely because `ChartSpec` has none.
 - **The prose is formatted too.** `./gradlew checkMarkdown` fails on trailing whitespace or a missing final newline under `docs/`, `book/` and the top level, and `./gradlew formatMarkdown` fixes it. Two root tasks rather than a spotless step, for the reasons in ADR-0398 — a spotless `target` resolves against the project that declares it, and the step that used to live in the conventions plugin had never matched a single file.
-- **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana (`qodana.yaml`, `qodana.yml`) and Codecov (a step in `linux.yml`) are wired and **guarded on their secrets**, so both are silent until connected rather than red until then. §7 is the checklist.
+- **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana Community for JVM (`qodana.yaml`, `qodana.yml`) is connected to Qodana Cloud since 2026-09-30, gated on *new* high-severity findings against a committed baseline (`config/qodana/baseline.sarif.json`). Codecov (a step in `linux.yml`) is wired and **guarded on its secret**, so it is silent until connected rather than red until then. §7 is the checklist.
 
   **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. Nothing is excluded from the suite or the scan.
 
@@ -131,7 +131,7 @@ be aspirational is now §6's business.
 | fast | `linux.yml` (`java` job) | PR, and every push through `snapshot.yml` | `./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true` — Spotless, Error Prone, NullAway, PMD, ArchUnit, unit + widget tests, every test that needs the library skipping. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
 | per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | PR, and every push through `snapshot.yml` | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets`/`:html` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU — and, on linux-x64, the coverage gates |
 | showcase | `showcase.yml` | `v*` tag, or by hand | The GraalVM native image on three platforms, each run for 300 frames with its window walked a pixel a frame (`--resize=1580x1100`) and failed past 30 late refreshes (`--late-budget=30`); the launcher's summary line goes into the step summary (ADR-0342). On a tag, attached to the draft GitHub Release (ADR-0337, ADR-0340). The example's own tests against a built library run on `linux.yml`'s linux-x64 verify leg on every push |
-| advisory | `codeql.yml`, `qodana.yml` | PR + schedule | CodeQL security queries; Qodana's inspection set once a token exists |
+| advisory | `codeql.yml`, `qodana.yml` | PR + schedule; Qodana on PR and push | CodeQL security queries; Qodana's inspection set, new findings only against the baseline |
 | nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |
 | snapshot | `snapshot.yml` → `publish.yml` | push to master | Every OS, then one upload of every module and all four classifier jars as `-SNAPSHOT` to Central (ADR-0334) |
 | release | `release.yml` → `publish.yml` | `v*` tag; dispatch rehearses | The same chain as a signed release to a Central Portal deployment, after the licence check (ADR-0333, ADR-0334) |
@@ -196,7 +196,8 @@ status beside it reads as a description of what exists.
   nowhere else for them to point. They are now the plain reference they always
   effectively were, which is also what let the formatter reach every file.
 - **§4's lanes.** `nightly.yml` (PIT, benchmarks, both-mode coverage),
-  `qodana.yml` and the Codecov step, both guarded on their secrets.
+  `qodana.yml` and the Codecov step, both guarded on their secrets; Qodana's
+  has been set since 2026-09-30.
 - **§3 JaCoCo**, per module and aggregated, genuinely **merged across binding
   modes**: the exec file is named for the mode, so a reflective run and a woven
   run leave two files and one report reads both. Floors on `:core` and
@@ -275,10 +276,9 @@ status beside it reads as a description of what exists.
   finding is behavioural: a dereference needing a real null check, or an overload
   whose contract somebody has to choose. A hundred of those are left, and they
   are an afternoon of reading rather than another tool.
-- **Qodana and Codecov are wired but not connected.** Both need a token this
-  repository does not have. Neither fails a build in the meantime — the Qodana
-  job gates itself on the secret and skips with a note, and the Codecov step is
-  conditional on the same. §7 is the two checklists.
+- **Codecov is wired but not connected.** It needs a token this repository
+  does not have, and the step is conditional on it, so it fails nothing in the
+  meantime. Qodana is connected (§7).
 
 ### Two diagnoses that were wrong
 
@@ -331,9 +331,9 @@ Both were silent, and both were found by reading output rather than exit codes.
 
 ## 7. Connecting Qodana and Codecov
 
-Both are wired and both are inert. Each needs one secret, and until it exists the
-job skips rather than fails — an analyser nobody has connected should be silent,
-not a red cross on every pull request.
+Both are wired, and each needs one secret. Until it exists the job skips rather
+than fails — an analyser nobody has connected should be silent, not a red cross
+on every pull request. Qodana's exists (2026-09-30); Codecov's does not yet.
 
 ### Codecov — PR diff coverage
 
@@ -366,18 +366,47 @@ a merge.
 
 The profile, the exclusions and the quality gate are in `qodana.yaml` at the
 repository root, so they are reviewed as code rather than configured in a web
-form nobody can diff.
+form nobody can diff. **Connected on 2026-09-30**, on Community for JVM, which is
+free and needs no licence.
 
-1. Sign in at <https://qodana.cloud> with JetBrains or GitHub.
-2. Create an **organization**, then a **project** for this repository. Community
-   for JVM (`jetbrains/qodana-jvm-community`) is free and is what `qodana.yaml`
-   names — the paid tiers add taint analysis and a licence audit, neither of
-   which is what this is for.
-3. Copy the project token.
-4. Add it as an Actions secret named `QODANA_TOKEN`.
-5. Push. The first run has no baseline, so expect a large report; accept it as
-   the baseline in Qodana Cloud, after which the quality gate in `qodana.yaml`
-   fails only on **new** high-severity findings.
+- **The linter** is `jetbrains/qodana-jvm-community:2026.1`, the release the
+  workflow's `JetBrains/qodana-action@v2026.1` is, so a local run and CI inspect
+  with the same IntelliJ. `projectJDK: "25"`; the linter imports the Gradle
+  build itself, inside its container, so the workflow installs no JDK and
+  compiles nothing.
+- **The token.** Qodana Cloud's onboarding stores it as
+  `QODANA_TOKEN_2096098759`; the workflow also accepts `QODANA_TOKEN`, the name
+  this section used to give. The onboarding also opens a pull request that
+  replaces `qodana.yaml` with its own (the `recommended` profile and the paid
+  licence audit, `CheckDependencyLicenses`, which CE does not have) and adds a
+  second workflow. Both were undone: the file here is the reviewed one, and
+  `qodana.yml` is the only workflow.
+- **The baseline** is `config/qodana/baseline.sarif.json`: the first run's 408
+  findings, passed as `--baseline`. It is that run's SARIF with the rule
+  catalogue dropped (Qodana matches findings by fingerprint), 0.7 MB rather
+  than 5. The gate then fails on **new** critical or high findings only.
+- **A pull request** is inspected in PR mode, what it changed; **a push to
+  master** inspects everything, which Qodana Cloud keeps as the project's state.
+
+**Run it locally**, the same way as CI, against a clean copy so the container
+(which runs as root) writes into nothing of yours:
+
+```sh
+git ls-files -co --exclude-standard -z | tar --null -T - -cf - | tar -x -C /tmp/qd-src
+docker run --rm -v /tmp/qd-src:/data/project -v /tmp/qd-results:/data/results \
+  jetbrains/qodana-jvm-community:2026.1 --baseline config/qodana/baseline.sarif.json
+```
+
+About ten minutes on eight cores. The report is `/tmp/qd-results/qodana.sarif.json`
+and the HTML under `report/`.
+
+**Regenerating the baseline**, after a deliberate sweep of findings: run without
+`--baseline`, then keep the results and drop `tool.driver.rules` and
+`tool.extensions` from the SARIF before committing it. What went into the first
+one is in the commit that added it: 403 high findings on `qodana.starter`, most
+of them `Constant values`, nullability data flow (overlapping NullAway), and
+`AutoCloseable` used without `try` on the backend and windows, which live as
+long as the application.
 
 **Why the gate is new-issues-only.** A baseline of existing findings does not
 have to be cleared before the tool is useful, and requiring that is how static

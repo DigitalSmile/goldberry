@@ -496,7 +496,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                     "web-view \"{}\": {} the loading spinner",
                     widget().attributes().id(),
                     value ? "raising" : "taking down");
-            host.after(Duration.ZERO, () -> setState(() -> loading = value));
+            rebuildNextTurn(() -> loading = value);
         }
 
         /// Puts the page where it belongs this frame: over its box, or out of
@@ -618,7 +618,17 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         /// window presents. Deferred for [#show]'s reason: this runs from inside
         /// a paint.
         private void pollAgain() {
-            host.after(Duration.ZERO, () -> setState(() -> {}));
+            rebuildNextTurn(() -> {});
+        }
+
+        /// Runs `mutation` in a `setState` on the next turn of the loop: the one
+        /// way this widget rebuilds, since everything that asks runs from inside
+        /// a paint. Nothing without a host, which never paints a page anyway.
+        private void rebuildNextTurn(Runnable mutation) {
+            var current = host;
+            if (current != null) {
+                current.after(Duration.ZERO, () -> setState(mutation));
+            }
         }
 
         /// Sets what the widget says and asks for a **rebuild**, not a repaint.
@@ -635,7 +645,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             if (Objects.equals(reason, why)) {
                 return;
             }
-            host.after(Duration.ZERO, () -> setState(() -> reason = why));
+            rebuildNextTurn(() -> reason = why);
         }
 
         /// Closes the page when the widget goes.
