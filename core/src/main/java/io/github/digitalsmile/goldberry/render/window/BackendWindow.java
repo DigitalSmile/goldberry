@@ -110,6 +110,15 @@ public interface BackendWindow extends AutoCloseable {
         return PresentTimings.NONE;
     }
 
+    /// How this window presents now: through the GPU, or on the CPU and why
+    /// (ADR-0492).
+    ///
+    /// Asked after each [#present], so it answers for the frame just shown.
+    /// On the CPU by default, which is every backend without a GPU path under it.
+    default Presentation presentation() {
+        return new Presentation.Cpu("this backend has no GPU path");
+    }
+
     /// How this window shows GPU layers now, or empty when it cannot show them
     /// at all (`docs/gpu-plan.md`, D5; ADR-0481).
     ///

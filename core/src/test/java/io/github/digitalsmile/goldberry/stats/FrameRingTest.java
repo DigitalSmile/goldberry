@@ -303,7 +303,7 @@ class FrameRingTest {
         assertEquals(2.0, summary.meanUploadMillis(), 1e-9);
         assertEquals(2560.0, summary.meanUploadBytes(), 1e-9);
         assertEquals(
-                "2 frame(s) composited; upload mean 2.00 ms, 2560 bytes; acquire mean 6.00 ms; submit mean 0.50 ms",
+                "2 GPU present(s) with new pixels; upload mean 2.00 ms, 2560 bytes; acquire mean 6.00 ms; submit mean 0.50 ms",
                 summary.describe());
         assertEquals(PresentSummary.NONE, new FrameRing().presentSummary());
     }

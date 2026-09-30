@@ -506,3 +506,4 @@
 - [ADR-0489 The Linux and Windows platform decoders are GStreamer and Media Foundation](adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)
 - [ADR-0490 Goldberry's FFmpeg has sonames of its own](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
 - [ADR-0491 A page under X11 keeps its window on the GPU](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)
+- [ADR-0492 A window says whether it presents through the GPU](adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)

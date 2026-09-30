@@ -350,6 +350,9 @@ public final class Showcase implements Application {
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
+        // Into the bar, as it changes. The window logs each change itself, as a
+        // line tagged [GPU] or [CPU]; this is the same fact on screen.
+        host.window().onPresentationChange(presentation -> actions.setPresentation(presentation.label()));
         host.window().onCloseRequest(() -> {
             LOG.info("close requested");
             return true;

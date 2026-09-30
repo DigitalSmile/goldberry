@@ -33,9 +33,11 @@ import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.IconImage;
+import io.github.digitalsmile.goldberry.render.window.Presentation;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.stats.FrameRing;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
+import io.github.digitalsmile.goldberry.stats.PresentationTally;
 
 /// A window on the screen.
 ///
@@ -67,6 +69,14 @@ public final class Window implements AutoCloseable {
     private Consumer<LogicalSize> resizeHandler = size -> {};
     private Consumer<LogicalPoint> moveHandler = position -> {};
     private Consumer<DisplayScale> scaleHandler = scale -> {};
+    private Consumer<Presentation> presentationHandler = presentation -> {};
+
+    /// How the last frame reached the screen; [Presentation.Cpu#UNDECIDED] until the
+    /// first one did. See [#presentation()].
+    private Presentation presentation = Presentation.Cpu.UNDECIDED;
+
+    /// Where every presented frame went, for the launcher's exit line.
+    private final PresentationTally presentations = new PresentationTally();
 
     /// The launcher's own resize and move hooks, beside the application's rather
     /// than in its slot.
@@ -225,11 +235,50 @@ public final class Window implements AutoCloseable {
         return this;
     }
 
+    /// Counts a presented frame, and says so when it went another way than the
+    /// one before: one INFO line, with the path first so it is the thing a
+    /// reader's eye and a `grep` land on.
+    private void presentedThrough(Presentation now) {
+        presentations.count(now);
+        if (now.equals(presentation)) {
+            return;
+        }
+        var first = presentation == Presentation.Cpu.UNDECIDED;
+        presentation = now;
+        LOG.info("[{}] \"{}\" {} {}", now.path(), window.title(), first ? "presents" : "now presents", now.describe());
+        presentationHandler.accept(now);
+    }
+
     /// Called when the window moves to a display with a different scale. The
     /// logical size is unchanged — only the resolution it is drawn at.
     public Window onScaleChange(Consumer<DisplayScale> handler) {
         this.scaleHandler = Objects.requireNonNull(handler, "handler");
         return this;
+    }
+
+    /// How this window's frames reach the screen: through the GPU, or on the CPU
+    /// and why (ADR-0492).
+    ///
+    /// As of the last frame presented, and [Presentation.Cpu#UNDECIDED] before the
+    /// first, since a window chooses at its first frame.
+    public Presentation presentation() {
+        return presentation;
+    }
+
+    /// Called when the window starts presenting another way, after the frame
+    /// that did: its first frame, a window of `goldberry.gpu.composite=auto`
+    /// taking the GPU for its layers and giving it back, a GPU that failed.
+    ///
+    /// Each change is logged too, at INFO, as one line tagged `[GPU]` or `[CPU]`.
+    public Window onPresentationChange(Consumer<Presentation> handler) {
+        this.presentationHandler = Objects.requireNonNull(handler, "handler");
+        return this;
+    }
+
+    /// Where this window's frames went over its life: how many through the GPU
+    /// and how many on the CPU.
+    public PresentationTally presentations() {
+        return presentations;
     }
 
     /// What the desktop's appearance is set to, or empty where it does not say.
@@ -701,6 +750,7 @@ public final class Window implements AutoCloseable {
             // GPU path cost, or nothing for a window presenting through its
             // surface (ADR-0479).
             frames.presented(window.lastPresent());
+            presentedThrough(window.presentation());
             damage = null;
             if (!everPresented) {
                 everPresented = true;

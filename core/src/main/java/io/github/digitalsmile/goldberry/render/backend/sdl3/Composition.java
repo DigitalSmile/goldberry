@@ -73,6 +73,18 @@ enum Composition {
         return this == AUTO || this == ALWAYS;
     }
 
+    /// Why a window this policy did not composite is on the CPU, when nothing
+    /// else kept it there: the property that says so, for the log and
+    /// `Window.presentation()` (ADR-0492).
+    String whyOnTheCpu() {
+        return switch (this) {
+            case OFF -> GPU_PROPERTY + "=off";
+            case NEVER -> COMPOSITE_PROPERTY + "=never";
+            case AUTO -> "no GPU layer on screen (" + COMPOSITE_PROPERTY + "=auto)";
+            case ALWAYS -> "not composited yet";
+        };
+    }
+
     String describe() {
         return switch (this) {
             case ALWAYS ->

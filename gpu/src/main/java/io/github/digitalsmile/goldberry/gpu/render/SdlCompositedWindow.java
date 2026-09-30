@@ -170,6 +170,11 @@ final class SdlCompositedWindow implements CompositedWindow {
     }
 
     @Override
+    public String driver() {
+        return device.driver();
+    }
+
+    @Override
     public void exposed() {
         stale = true;
     }

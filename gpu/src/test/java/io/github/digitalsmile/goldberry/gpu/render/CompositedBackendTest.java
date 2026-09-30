@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.gpu.render;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -13,11 +15,13 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.render.window.Presentation;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The whole path, through the sdl3 backend: by default a window finds `:gpu`'s
@@ -62,6 +66,9 @@ class CompositedBackendTest {
                 assertTrue(window.acquireFrame().isEmpty(), "and stays composited");
                 window.present(frame, List.of(new DamageRect(step, step, 10, 10)));
             }
+            // And says so, naming the driver it presents through (ADR-0492).
+            var presentation = assertInstanceOf(Presentation.Gpu.class, window.presentation());
+            assertTrue(SdlGpuDevice.compiledDrivers().contains(presentation.driver()), presentation::toString);
             window.close();
         }
     }
@@ -76,6 +83,7 @@ class CompositedBackendTest {
             assertTrue(surface.isPresent(), "a window on the CPU lends its surface");
             window.present(surface.get(), List.of(DamageRect.all(window.physicalSize())));
             assertTrue(!window.lastPresent().composited(), "and reports no GPU present");
+            assertEquals(new Presentation.Cpu("goldberry.gpu=off"), window.presentation(), "and says why");
             window.close();
         }
     }

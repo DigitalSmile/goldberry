@@ -94,7 +94,7 @@ class ShowcaseDocumentsTest {
     }
 
     @Test
-    @DisplayName("the bar names a label, a bound count, two readings, a switch and a button")
+    @DisplayName("the bar names a label, a bound count, two readings, the presentation, a switch and a button")
     void bar() {
         // The row's own children, not `typesIn`'s whole subtree: a `toggle` is a
         // track and a thumb underneath, and asserting those here would make this
@@ -104,9 +104,9 @@ class ShowcaseDocumentsTest {
         new ElementTree(Panes.bar(inflater())).root().children().forEach(child -> types.add(child.type()));
 
         assertEquals(
-                List.of("text", "badge", "text", "text", "spacer", "text", "toggle", "text", "button"),
+                List.of("text", "badge", "text", "text", "badge", "spacer", "text", "toggle", "text", "button"),
                 types,
-                "the bar is startup on the left and the light on the right");
+                "the bar is startup and how the window presents on the left, and the light on the right");
     }
 
     @Test

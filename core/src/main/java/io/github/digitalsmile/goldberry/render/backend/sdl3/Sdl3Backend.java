@@ -224,7 +224,10 @@ public final class Sdl3Backend implements Backend {
             if (pacer.isPacing()) {
                 LOG.info("frame loop paced to one frame per {}", pacer.interval());
             }
-            LOG.info("{}", composition.describe());
+            // Named, so the line that says what windows will do is found by what
+            // it is about; each window then says what it actually did, tagged
+            // [GPU] or [CPU] (ADR-0492).
+            LOG.info("presentation policy: {}", composition.describe());
             // Asked once the driver is known, since it is only a question on
             // Wayland, and answered here rather than at window creation so the
             // filesystem is read once per process rather than once per window.
@@ -1428,6 +1431,15 @@ public final class Sdl3Backend implements Backend {
         return policy && !(window instanceof Sdl3Popup);
     }
 
+    /// Why `window` presents on the CPU when nothing it did put it there: it is
+    /// a popup, or the policy does not composite it (ADR-0492).
+    String whyOnTheCpu(Sdl3Window window) {
+        if (window instanceof Sdl3Popup) {
+            return "a popup is a transparent window, which SDL will not claim";
+        }
+        return composition.whyOnTheCpu();
+    }
+
     /// Whether GPU layers are shown at all: false with `goldberry.gpu=off`.
     boolean usesGpu() {
         return composition.usesGpu();
@@ -1441,7 +1453,7 @@ public final class Sdl3Backend implements Backend {
             compositor = ServiceLoader.load(Compositor.class).findFirst().orElse(null);
             compositorAbsent = compositor == null;
             if (compositorAbsent) {
-                LOG.info("no GPU compositor on the module path (add goldberry-gpu to use the GPU):"
+                LOG.info("[CPU] no GPU compositor on the module path (add goldberry-gpu to use the GPU):"
                         + " windows present on the CPU");
             }
         }

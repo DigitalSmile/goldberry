@@ -39,6 +39,10 @@ public interface CompositedWindow extends AutoCloseable {
     /// [PresentTimings#NONE] when it presented nothing, for want of damage.
     PresentTimings lastPresent();
 
+    /// SDL's name for the GPU driver this window presents through: `vulkan`,
+    /// `metal`, `direct3d12`. For the log and `Window.presentation()` (ADR-0492).
+    String driver();
+
     /// Says the window system lost what the window showed, and the next
     /// [#present] shows the whole frame again, damage or none (ADR-0491).
     ///

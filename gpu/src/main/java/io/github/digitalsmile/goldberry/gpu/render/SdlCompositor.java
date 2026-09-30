@@ -121,7 +121,7 @@ public final class SdlCompositor implements Compositor {
             api = ApiAccess.device(made);
             device = made;
             LOG.info(
-                    "GPU device ready in {} ms: {}{}, taking {}; windows and GPU layers use it",
+                    "[GPU] device ready in {} ms: {}{}, taking {}; windows and GPU layers use it",
                     (System.nanoTime() - started) / 1_000_000,
                     made.driver(),
                     options.debugMode() ? " with validation" : "",
@@ -130,7 +130,7 @@ public final class SdlCompositor implements Compositor {
         } catch (SdlException | IllegalStateException | IllegalArgumentException e) {
             unavailable = "no GPU device (" + e.getMessage() + ")";
             LOG.warn(
-                    "{}: windows present on the CPU. {} names a driver; -Dgoldberry.gpu=off stops asking",
+                    "[CPU] {}: windows present on the CPU. {} names a driver; -Dgoldberry.gpu=off stops asking",
                     unavailable,
                     DeviceOptions.DRIVER_PROPERTY);
             if (made != null) {

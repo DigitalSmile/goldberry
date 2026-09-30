@@ -33,6 +33,7 @@ import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 import io.github.digitalsmile.goldberry.render.window.IconImage;
+import io.github.digitalsmile.goldberry.render.window.Presentation;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// An SDL window behind the SPI.
@@ -229,8 +230,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         } else if (composited != null && !wanted) {
             // `auto`, and the last GPU layer went long enough ago: back to the
             // surface, and free to come back when a layer does (ADR-0481).
-            LOG.info(
-                    "\"{}\" presents on the CPU again: it has shown no GPU layer for {} s",
+            LOG.debug(
+                    "\"{}\" leaves the GPU: it has shown no GPU layer for {} s",
                     title,
                     COMPOSITE_HOLD_NANOS / 1_000_000_000L);
             leaveComposited(null);
@@ -361,7 +362,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     private void enterComposited() {
         var compositor = backend.compositor();
         if (compositor.isEmpty()) {
-            cpuOnly = "no GPU compositor";
+            cpuOnly = "no GPU compositor on the module path (add goldberry-gpu)";
             return;
         }
         // Before the claim: SDL will not claim a window whose surface is held,
@@ -371,11 +372,13 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         switch (compositor.get().claim(handle)) {
             case Claim.Claimed(var window) -> {
                 composited = window;
-                LOG.info("\"{}\" presents through the GPU", title);
+                // Said at INFO by `Window`, once the first frame has gone
+                // through: one tagged line per change, for every backend.
+                LOG.debug("\"{}\" claimed for the GPU", title);
             }
             case Claim.Refused(var reason) -> {
                 cpuOnly = reason;
-                LOG.info("\"{}\" presents on the CPU: {}", title, reason);
+                LOG.debug("\"{}\" was refused by the GPU: {}", title, reason);
             }
         }
     }
@@ -403,7 +406,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     void stayOnTheCpu(String reason) {
         backend.requireUiThread();
         if (composited != null) {
-            LOG.info("\"{}\" presents on the CPU from now on: {}", title, reason);
+            LOG.debug("\"{}\" leaves the GPU for good: {}", title, reason);
         }
         leaveComposited(reason);
     }
@@ -420,6 +423,19 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         if (gpu != null) {
             gpu.exposed();
         }
+    }
+
+    /// How this window presents now (ADR-0492): the GPU driver while it is
+    /// composited, and otherwise what put it on the CPU, which is its own reason
+    /// when it has one and the policy's when it has none.
+    @Override
+    public Presentation presentation() {
+        backend.requireUiThread();
+        var gpu = composited;
+        if (gpu != null) {
+            return new Presentation.Gpu(gpu.driver());
+        }
+        return new Presentation.Cpu(cpuOnly != null ? cpuOnly : backend.whyOnTheCpu(this));
     }
 
     /// Whether this window presents through the GPU now.

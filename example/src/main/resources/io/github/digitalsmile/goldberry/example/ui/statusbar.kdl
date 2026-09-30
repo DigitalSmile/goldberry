@@ -1,7 +1,7 @@
 // The bar under the window's menu: **what this run cost**, and the one switch
 // that changes the light everywhere.
 //
-// Three bound readings and one control, all of them `bind=`/`change=` and no Java
+// Four bound readings and one control, all of them `bind=`/`change=` and no Java
 // at all — which is why it is a document. The startup line comes off a background
 // job's continuation and the count off the Basic screen's buttons; neither knows
 // this file exists, and this file names no widget that either of them holds
@@ -18,6 +18,12 @@ row id="bar" {
   // they arrive at different times, so a single line would flicker between them.
   text id="startup" class="caption" bind="app.startup"
   text id="status" class="caption" bind="app.status"
+
+  // Where the frames go: through the GPU, or on the CPU and why. A badge, so it
+  // reads as a fact about this run rather than as one more caption, and bound,
+  // so it changes when the window does: a GPU that fails, or `auto` taking the
+  // GPU for a layer (ADR-0492).
+  badge id="presentation" class="info" bind="app.presentation"
 
   // §1's `spacer`, which is `flex-grow: 1` with a name. The catalog itself does
   // not use one any more -- `margin-left: auto` says the same thing as a

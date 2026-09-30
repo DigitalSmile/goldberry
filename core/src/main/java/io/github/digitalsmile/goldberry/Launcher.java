@@ -598,6 +598,10 @@ final class Launcher implements Host {
         // the totals, and this is the number a frame-rate claim is (ADR-0342).
         var summary = window.frames().summary();
         LOG.info("frames: {}", summary.describe());
+        // Where they went: every presented frame, a still one included, so a
+        // window that sat on the GPU says so even when it had nothing to upload
+        // (ADR-0492). A line of its own, for the reason the next one is.
+        LOG.info("on screen: {}", window.presentations().describe());
         // A second line rather than more of the first, which a workflow greps.
         var presents = window.frames().presentSummary();
         if (presents.frames() > 0) {

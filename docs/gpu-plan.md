@@ -129,7 +129,7 @@ in a CPU window use readback.
 after it is wanted, in `acquireFrame`. `goldberry.gpu.composite=always` wants it
 from the first frame, and **is the default** (ADR-0480). Popups, which are
 transparent windows SDL will not claim, stay on the CPU. A window with an embedded page stays on the CPU, except under X11, where the page is a child window drawn above the swapchain and the window keeps the GPU (ADR-0491). A claim
-or a present that fails sends the window back to the CPU for good.
+or a present that fails sends the window back to the CPU for good. Each window says which way it presents and why, as `Window.presentation()` and one INFO line per change tagged `[GPU]` or `[CPU]`, and the launcher's exit summary counts frames by path (ADR-0492).
 
 **Built with phase 4 (ADR-0481):** a window on the CPU reads its layers back. The
 hysteresis is `goldberry.gpu.composite=auto`'s: a window is composited from the

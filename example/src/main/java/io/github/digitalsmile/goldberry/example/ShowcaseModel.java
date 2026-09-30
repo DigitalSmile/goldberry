@@ -257,6 +257,13 @@ public final class ShowcaseModel {
     @Bind("app.startup")
     private String startup = "…";
 
+    /// How the window's frames reach the screen, as the bar prints it:
+    /// `GPU · vulkan`, or `CPU ·` and why. Set by the window when it changes,
+    /// which is at its first frame and whenever it moves between the two
+    /// (ADR-0492).
+    @Bind("app.presentation")
+    private String presentation = "…";
+
     /// Whether the frame-rate readout is up.
     ///
     /// On the model and not in the window, although the overlay is the window's,
@@ -812,6 +819,10 @@ public final class ShowcaseModel {
 
         public void setStartup(String value) {
             values.startup = value;
+        }
+
+        public void setPresentation(String value) {
+            values.presentation = value;
         }
 
         /// What the window reports after it has floated a HUD or taken one away.

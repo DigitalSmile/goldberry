@@ -20,6 +20,7 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.GpuSurface;
 import io.github.digitalsmile.goldberry.render.window.IconImage;
+import io.github.digitalsmile.goldberry.render.window.Presentation;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// A window that exists only as state.
@@ -378,6 +379,24 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     public List<DamageRect> lastDamage() {
         backend.requireUiThread();
         return lastDamage;
+    }
+
+    /// How this window says it presents. Nothing reaches a screen here, so it is
+    /// the CPU unless a test says otherwise with [#presentAs].
+    private Presentation presentation = new Presentation.Cpu("headless: nothing is shown on a screen");
+
+    @Override
+    public Presentation presentation() {
+        backend.requireUiThread();
+        return presentation;
+    }
+
+    /// Makes this window say it presents `value` from the next frame on, so a
+    /// test can see what an application does when a window moves to the GPU or
+    /// back to the CPU (ADR-0492). Nothing about how it presents changes.
+    public void presentAs(Presentation value) {
+        backend.requireUiThread();
+        this.presentation = Objects.requireNonNull(value, "value");
     }
 
     /// How many frames have been presented. Frame-loop tests count these.

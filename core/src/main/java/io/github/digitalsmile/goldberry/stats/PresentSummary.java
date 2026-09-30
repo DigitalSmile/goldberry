@@ -10,7 +10,9 @@ import java.util.Locale;
 /// path: a run that only blinked a caret should upload a caret's bytes a frame,
 /// and one that animated the whole window the whole window.
 ///
-/// @param frames            how many frames went through the GPU
+/// @param frames            how many GPU presents carried new pixels: a frame with
+///                          nothing new is still on the GPU, and is counted by
+///                          [PresentationTally] instead
 /// @param meanUploadMillis  the mean upload: staging the damage and recording it
 /// @param meanUploadBytes   the mean bytes a frame uploaded
 /// @param meanAcquireMillis the mean wait for the swapchain: the display's pacing
@@ -31,7 +33,7 @@ public record PresentSummary(
     public String describe() {
         return String.format(
                 Locale.ROOT,
-                "%d frame(s) composited; upload mean %.2f ms, %.0f bytes; acquire mean %.2f ms; submit mean %.2f ms",
+                "%d GPU present(s) with new pixels; upload mean %.2f ms, %.0f bytes; acquire mean %.2f ms; submit mean %.2f ms",
                 frames,
                 meanUploadMillis,
                 meanUploadBytes,
