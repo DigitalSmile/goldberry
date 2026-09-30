@@ -127,4 +127,29 @@ class Sdl3BackendTest {
             assertEquals(Integer.MAX_VALUE, Sdl3Backend.waitMillis(Duration.ofSeconds(Long.MAX_VALUE / 1000)));
         }
     }
+
+    /// ADR-0491: SDL's default surface recreates an X11 window given back from
+    /// the GPU, so the backend asks for the X server's framebuffer there and
+    /// only there.
+    @Nested
+    @DisplayName("a window surface that keeps the window")
+    class SurfaceKeepsTheWindow {
+
+        @ParameterizedTest
+        @CsvSource({"x11, ALWAYS, true", "x11, AUTO, true", "x11, NEVER, false", "x11, OFF, false"})
+        @DisplayName("is asked for under X11 when windows go to the GPU and come back")
+        void underX11(String driver, Composition composition, boolean asked) {
+            assertEquals(asked, Sdl3Backend.surfaceWouldRecreateWindows(driver, composition));
+        }
+
+        /// Wayland has no framebuffer of the driver's own, so asking would
+        /// leave every window without a surface; and it reconfigures a window
+        /// in place, so it has nothing to fix.
+        @ParameterizedTest
+        @ValueSource(strings = {"wayland", "windows", "cocoa", "dummy", "offscreen"})
+        @DisplayName("and nowhere else")
+        void elsewhere(String driver) {
+            assertFalse(Sdl3Backend.surfaceWouldRecreateWindows(driver, Composition.ALWAYS));
+        }
+    }
 }

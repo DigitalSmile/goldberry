@@ -44,6 +44,10 @@ final class SdlCompositedWindow implements CompositedWindow {
     private PresentTimings last = PresentTimings.NONE;
     private boolean closed;
 
+    /// Whether the window system lost what the window showed since it was last
+    /// presented to: [#exposed]. Cleared by the present that shows it again.
+    private boolean stale;
+
     SdlCompositedWindow(
             SdlGpuDevice device, GpuDevice api, SdlGpuWindow window, StagingBuffer staging, UiComposite composite) {
         this.device = device;
@@ -77,7 +81,7 @@ final class SdlCompositedWindow implements CompositedWindow {
             whole = true;
         }
         var regions = whole ? List.of(new SdlGpuRegion(0, 0, width, height)) : regions(damage);
-        if (regions.isEmpty() && layers.isEmpty()) {
+        if (regions.isEmpty() && layers.isEmpty() && !stale) {
             // Nothing changed, and the swapchain still shows the last frame.
             layerTextures.retain(layers);
             last = PresentTimings.NONE;
@@ -106,6 +110,10 @@ final class SdlCompositedWindow implements CompositedWindow {
             var swapchain = commands.acquireSwapchainTexture(window);
             var acquired = System.nanoTime();
             if (swapchain.isPresent()) {
+                // Shown again, so the window system has it back. Only here: a
+                // minimised window has no swapchain texture, and it is still
+                // owed the present when it comes back.
+                stale = false;
                 var target = swapchain.get();
                 var format = target.format();
                 if (format.isPresent()) {
@@ -159,6 +167,17 @@ final class SdlCompositedWindow implements CompositedWindow {
     @Override
     public PresentTimings lastPresent() {
         return last;
+    }
+
+    @Override
+    public void exposed() {
+        stale = true;
+    }
+
+    /// Whether the next [#present] shows the frame even with no damage, for
+    /// the tests.
+    boolean isStale() {
+        return stale;
     }
 
     /// Releases the UI texture and gives the window back. Idempotent; does

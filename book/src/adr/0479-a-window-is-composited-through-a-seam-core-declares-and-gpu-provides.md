@@ -6,7 +6,10 @@ Date: 2026-09-24
 
 Accepted. `docs/gpu-plan.md`'s phase 3, and D3 on macOS. It corrects D5.
 Its default policy (`auto`, compositing nothing until GPU layers exist) is
-superseded by ADR-0480: windows are composited by default.
+superseded by ADR-0480: windows are composited by default. Its rule that a
+window with an embedded page stays on the CPU is amended by
+[ADR-0491](0491-a-page-under-x11-keeps-its-window-on-the-gpu.md): under X11
+the window keeps the GPU.
 
 ## Context
 

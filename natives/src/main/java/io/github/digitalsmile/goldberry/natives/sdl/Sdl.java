@@ -85,6 +85,20 @@ public final class Sdl {
     /// builds the renderer.
     public static final String RENDER_VSYNC_HINT = "SDL_RENDER_VSYNC";
 
+    /// The hint deciding whether a window surface is SDL's own renderer or the
+    /// video driver's framebuffer: `SDL_FRAMEBUFFER_ACCELERATION`, `0` for
+    /// the driver's.
+    ///
+    /// **On X11 the renderer costs the window its identity.** It is OpenGL
+    /// first, and a window a Vulkan swapchain was released from has lost its
+    /// OpenGL flag, so building the renderer reconfigures the window. X11 has
+    /// no way to do that in place, so SDL destroys the X window and makes a
+    /// new one, with a new id. Whatever was parented into the old one goes
+    /// with it: an embedded page, which is how it was found (ADR-0491).
+    ///
+    /// Read once per video initialisation, when the first surface is made.
+    public static final String FRAMEBUFFER_ACCELERATION_HINT = "SDL_FRAMEBUFFER_ACCELERATION";
+
     /// Sets an SDL hint.
     ///
     /// Hints are SDL's configuration channel; most must be set before the

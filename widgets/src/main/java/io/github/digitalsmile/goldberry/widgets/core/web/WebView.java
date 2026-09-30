@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core.web;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -427,7 +428,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                 //
                 // It stops as soon as the page is ready, which is what keeps an
                 // idle application idle.
-                host.repaint();
+                pollAgain();
             }
             var away = !ready || host.isModal();
             if (!bounds.equals(placed) || away != parked) {
@@ -495,7 +496,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                     "web-view \"{}\": {} the loading spinner",
                     widget().attributes().id(),
                     value ? "raising" : "taking down");
-            host.after(java.time.Duration.ZERO, () -> setState(() -> loading = value));
+            host.after(Duration.ZERO, () -> setState(() -> loading = value));
         }
 
         /// Puts the page where it belongs this frame: over its box, or out of
@@ -587,7 +588,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                 // And the frame that does it has to be asked for. Nothing else
                 // will: the tree has not changed, the page is parked and
                 // invisible, and the loop is idle by design (§1.7).
-                host.repaint();
+                pollAgain();
                 return;
             }
             // The exact cause is told apart further down — `Webview` logs it — and
@@ -597,6 +598,27 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             var refusal = WebViewRefusal.current(WebViews.isAvailable());
             LOG.warn("web-view: {}", refusal.log());
             show(refusal.notice());
+        }
+
+        /// Asks for a frame that runs [#sync] again: a **rebuild**, not a
+        /// repaint (ADR-0491).
+        ///
+        /// `sync` runs from the canvas's painter, and a frame calls a painter
+        /// only where the frame is damaged. `Host.repaint` asks for a frame and
+        /// damages nothing. That was enough while every window with a page
+        /// presented on the CPU, because the surface it was handed after leaving
+        /// the GPU was a new one, and a new buffer is a whole repaint. A window
+        /// that keeps the GPU paints into a buffer it keeps, so its frames repaint
+        /// in part, and a repaint that damaged nothing never reached this
+        /// painter again. The page stayed parked off the side of the window for
+        /// good.
+        ///
+        /// A rebuild mints a new painter, and damage compares painters by
+        /// identity, so the box is damaged and the painter runs, however the
+        /// window presents. Deferred for [#show]'s reason: this runs from inside
+        /// a paint.
+        private void pollAgain() {
+            host.after(Duration.ZERO, () -> setState(() -> {}));
         }
 
         /// Sets what the widget says and asks for a **rebuild**, not a repaint.
@@ -610,10 +632,10 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         /// rebuilding the tree that is being painted is not a thing to do; the
         /// next turn of the loop is.
         private void show(@Nullable String why) {
-            if (java.util.Objects.equals(reason, why)) {
+            if (Objects.equals(reason, why)) {
                 return;
             }
-            host.after(java.time.Duration.ZERO, () -> setState(() -> reason = why));
+            host.after(Duration.ZERO, () -> setState(() -> reason = why));
         }
 
         /// Closes the page when the widget goes.

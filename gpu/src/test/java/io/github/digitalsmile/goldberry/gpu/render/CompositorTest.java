@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.gpu.render;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -225,6 +226,27 @@ class CompositorTest {
             assertThrows(
                     IllegalStateException.class,
                     () -> claimed.present(frame, List.of(new DamageRect(0, 0, 1, 1)), List.of()));
+        }
+
+        /// The window system lost the window's pixels, so the next present shows
+        /// the frame again with nothing changed. On X11 an embedded page moving
+        /// off a region of its window does that (ADR-0491).
+        @Test
+        @DisplayName("presents again after an expose, with nothing damaged and nothing uploaded")
+        void exposed() {
+            var claimed = claimed(compositor, window);
+            var frame = frame(premultiplied(8, 8, 6), 8, 8);
+            claimed.present(frame, List.of(new DamageRect(0, 0, 8, 8)), List.of());
+            claimed.present(frame, List.of(), List.of());
+            assertEquals(PresentTimings.NONE, claimed.lastPresent(), "no expose, no damage: nothing to show");
+
+            claimed.exposed();
+            assertTrue(claimed.isStale());
+            claimed.present(frame, List.of(), List.of());
+
+            assertNotEquals(PresentTimings.NONE, claimed.lastPresent(), "an exposed window presented nothing");
+            assertEquals(0L, claimed.lastPresent().uploadBytes(), "the frame is still in the texture");
+            claimed.close();
         }
 
         @Test

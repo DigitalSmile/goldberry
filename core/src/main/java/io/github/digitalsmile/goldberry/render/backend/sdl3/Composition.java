@@ -65,6 +65,14 @@ enum Composition {
         return this != OFF;
     }
 
+    /// Whether a window may be claimed for the GPU and later given back to its
+    /// surface: `always` gives one back when a present fails, `auto` when its
+    /// last layer goes. Under X11 that give-back is what used to cost the window
+    /// its id (ADR-0491).
+    boolean claimsWindows() {
+        return this == AUTO || this == ALWAYS;
+    }
+
     String describe() {
         return switch (this) {
             case ALWAYS ->

@@ -231,6 +231,7 @@ public final class Sdl3Backend implements Backend {
             undecoratedWarning = WaylandDecorations.diagnose(Sdl.get().videoDriver());
             reportAbsentIntegrations(Sdl.get().videoDriver());
             agreeWithGtkAboutTheWindowSystem(Sdl.get().videoDriver());
+            keepWindowsAcrossTheGpu(Sdl.get().videoDriver(), composition);
             installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
@@ -294,6 +295,45 @@ public final class Sdl3Backend implements Backend {
         if ("x11".equals(videoDriver) || "wayland".equals(videoDriver)) {
             SdlVideo.get().preferGtkBackend(videoDriver);
         }
+    }
+
+    /// Makes a window's surface the X server's own framebuffer, under X11 and
+    /// a policy that gives windows back from the GPU (ADR-0491).
+    ///
+    /// **SDL's default recreates the window.** On X11 a window surface is SDL's
+    /// OpenGL renderer, and a window a Vulkan swapchain was released from has
+    /// lost its OpenGL flag. X11 cannot change that in place, so building the
+    /// renderer destroys the X window and makes another. X destroys a window's
+    /// children with it, and an embedded page is one: GTK's next request about
+    /// it failed with `BadDrawable`, and GDK's handler ended the process.
+    ///
+    /// The X server's framebuffer, shared memory where it is local, touches no
+    /// graphics flag, so the window keeps its id. What SDL's renderer did on top
+    /// of it was wait for vertical blank ([#pacePresentToTheDisplay()]), and the
+    /// frame loop's own pacer does that here.
+    ///
+    /// After `SDL_Init`, because the driver is only known then, and before any
+    /// window has a surface, which is when SDL reads it. An
+    /// `SDL_FRAMEBUFFER_ACCELERATION` already in the environment wins: SDL
+    /// refuses to override it, and the log says so.
+    private static void keepWindowsAcrossTheGpu(String videoDriver, Composition composition) {
+        if (!surfaceWouldRecreateWindows(videoDriver, composition)) {
+            return;
+        }
+        if (Sdl.get().setHint(Sdl.FRAMEBUFFER_ACCELERATION_HINT, "0")) {
+            LOG.debug("window surfaces are the X server's framebuffer, so a window keeps its id across the GPU");
+        } else {
+            LOG.warn(
+                    "SDL refused {}=0, so a window given back from the GPU may be recreated,"
+                            + " and a page embedded in it closed with it",
+                    Sdl.FRAMEBUFFER_ACCELERATION_HINT);
+        }
+    }
+
+    /// Whether SDL's default window surface would recreate a window given back
+    /// from the GPU: under X11, and a policy that gives windows back.
+    static boolean surfaceWouldRecreateWindows(String videoDriver, Composition composition) {
+        return "x11".equals(videoDriver) && composition.claimsWindows();
     }
 
     /// Points GLib's logging at SLF4J, before the first thing that loads GLib.
@@ -954,6 +994,11 @@ public final class Sdl3Backend implements Backend {
         if (type == SdlEventType.WINDOW_CLOSE_REQUESTED.value()) {
             out.add(new BackendEvent.CloseRequested(window));
         } else if (type == SdlEventType.WINDOW_EXPOSED.value()) {
+            // Told before the event goes up, since the event's repaint may find
+            // nothing damaged, and a composited window presents nothing for that
+            // unless it knows the window system lost its pixels. A page moving off
+            // a region of its parent is one way to lose them (ADR-0491).
+            window.exposed();
             out.add(new BackendEvent.Exposed(window));
         } else if (type == SdlEventType.WINDOW_FOCUS_GAINED.value()) {
             out.add(new BackendEvent.FocusChanged(window, true));
@@ -1362,12 +1407,16 @@ public final class Sdl3Backend implements Backend {
     }
 
     /// Whether `window` should present through the GPU from its next frame: the
-    /// policy says so, it is not a popup, and it has no page embedded in it.
+    /// policy says so, and it is not a popup.
     ///
     /// A popup is a transparent window, so its menu's rounded corners and
     /// shadow can show the desktop through, and SDL refuses to claim a
     /// transparent window for the GPU. Asking would cost a surface torn down and
     /// rebuilt for every menu opened, to be told no.
+    ///
+    /// A page embedded in the window is not asked about here: where it needs
+    /// the CPU, [#createEmbeddedWebView] put the window there for good, and
+    /// where it does not, it is no reason to leave the GPU (ADR-0491).
     boolean wantsComposited(Sdl3Window window) {
         var policy =
                 switch (composition) {
@@ -1376,7 +1425,7 @@ public final class Sdl3Backend implements Backend {
                     case AUTO -> window.showsGpuLayers();
                     case NEVER, OFF -> false;
                 };
-        return policy && !(window instanceof Sdl3Popup) && !embeddedPages.containsKey(window);
+        return policy && !(window instanceof Sdl3Popup);
     }
 
     /// Whether GPU layers are shown at all: false with `goldberry.gpu=off`.
@@ -1488,12 +1537,13 @@ public final class Sdl3Backend implements Backend {
         var page = WebViewEngine.openEmbedded(spec, parent.get(), x, y, width, height);
         page.ifPresent(opened -> {
             // A page is a native view over the window's content, and a swapchain
-            // claims the same content view: which of the two shows on top is the
-            // platform's to decide, and phase 0 left it unmeasured. So a window
-            // with a page presents on the CPU, where the answer is known
-            // (ADR-0479).
-            if (window instanceof Sdl3Window sdl) {
-                sdl.stayOnTheCpu("a page is embedded in it");
+            // presents into the same window: which of the two shows on top is the
+            // platform's to decide. Where it is the page, the window keeps the
+            // GPU; where nobody has looked, it presents on the CPU, where the
+            // answer is known (ADR-0479, ADR-0491).
+            if (window instanceof Sdl3Window sdl
+                    && PageStacking.of(parent.get().kind()) instanceof PageStacking.NeedsTheCpu(var reason)) {
+                sdl.stayOnTheCpu(reason);
             }
             var pages = embeddedPages.computeIfAbsent(window, w -> new ArrayList<>());
             // A widget that goes away closes its own page — switching tabs does

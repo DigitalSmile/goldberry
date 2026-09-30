@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.ContextMenuHandler;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
@@ -24,6 +26,7 @@ import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.web.WebLoad;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
@@ -611,7 +614,30 @@ public class TestHost implements Host {
             io.github.digitalsmile.goldberry.render.model.LogicalRect bounds) {
         this.lastWebView = spec;
         this.lastEmbeddedBounds = bounds;
-        return webViewAvailable ? java.util.Optional.of(new FakeWebView()) : java.util.Optional.empty();
+        if (!webViewAvailable) {
+            return java.util.Optional.empty();
+        }
+        var page = new FakeWebView().loading(embeddedLoad);
+        lastEmbeddedPage = page;
+        return java.util.Optional.of(page);
+    }
+
+    /// How far through loading an embedded page says it is when it opens.
+    private WebLoad embeddedLoad = WebLoad.UNKNOWN;
+
+    /// The last page [#embeddedWebView] opened, or null.
+    private @Nullable FakeWebView lastEmbeddedPage;
+
+    /// Makes the pages this host embeds open at `state`, so a test can hold one
+    /// "still loading" and let it finish with [FakeWebView#loading].
+    public TestHost embeddedPagesLoad(WebLoad state) {
+        this.embeddedLoad = state;
+        return this;
+    }
+
+    /// The last page [#embeddedWebView] opened, or null if none was.
+    public @Nullable FakeWebView lastEmbeddedPage() {
+        return lastEmbeddedPage;
     }
 
     /// A page that records instead of drawing.
@@ -625,6 +651,19 @@ public class TestHost implements Host {
         private final java.util.List<String> calls = new java.util.ArrayList<>();
 
         private boolean closed;
+
+        private WebLoad load = WebLoad.UNKNOWN;
+
+        /// Makes this page say it is at `state` from now on.
+        public FakeWebView loading(WebLoad state) {
+            this.load = state;
+            return this;
+        }
+
+        @Override
+        public WebLoad loadState() {
+            return load;
+        }
 
         /// Every call made on this page, in order, as `name(arguments)`.
         public java.util.List<String> calls() {

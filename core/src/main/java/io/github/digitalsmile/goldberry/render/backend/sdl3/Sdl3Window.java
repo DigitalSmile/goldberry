@@ -408,6 +408,20 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         leaveComposited(reason);
     }
 
+    /// The window system says it lost what this window showed: the next
+    /// composited present shows the whole frame again, damage or none.
+    ///
+    /// Only the composited mode needs telling. A present on the CPU already
+    /// shows the whole surface, whatever the damage, because SDL draws its
+    /// whole texture on every update (ADR-0046, ADR-0491).
+    void exposed() {
+        backend.requireUiThread();
+        var gpu = composited;
+        if (gpu != null) {
+            gpu.exposed();
+        }
+    }
+
     /// Whether this window presents through the GPU now.
     boolean isComposited() {
         return composited != null && open;

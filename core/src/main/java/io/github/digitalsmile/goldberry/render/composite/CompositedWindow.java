@@ -23,8 +23,8 @@ public interface CompositedWindow extends AutoCloseable {
     /// lands, nothing is shown, and the call returns.
     ///
     /// With no damage and no layers nothing has changed, and nothing is
-    /// presented. With layers something may have, and the window is composited
-    /// again whatever the damage.
+    /// presented, unless the window was [#exposed] since. With layers something
+    /// may have, and the window is composited again whatever the damage.
     ///
     /// @param frame  the painted frame, premultiplied BGRA, with a hole where
     ///               each layer is
@@ -38,6 +38,17 @@ public interface CompositedWindow extends AutoCloseable {
     /// What the last [#present] cost, for a frame loop's statistics:
     /// [PresentTimings#NONE] when it presented nothing, for want of damage.
     PresentTimings lastPresent();
+
+    /// Says the window system lost what the window showed, and the next
+    /// [#present] shows the whole frame again, damage or none (ADR-0491).
+    ///
+    /// Nothing painted changed, so nothing is uploaded: the frame is still in
+    /// the compositor's texture, and the present draws it once more. What is
+    /// gone is the window system's copy. On X11 a child window's area is clipped
+    /// out of its parent's presents, so when an embedded page moves, the
+    /// parent's pixels it uncovers are whatever was last shown there before the
+    /// page covered them, until the parent presents again.
+    void exposed();
 
     /// Gives the window back: its surface can be asked for again. Idempotent.
     @Override

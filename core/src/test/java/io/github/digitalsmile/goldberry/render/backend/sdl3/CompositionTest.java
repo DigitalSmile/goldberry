@@ -57,4 +57,13 @@ class CompositionTest {
         assertTrue(Composition.OFF.describe().contains("nothing uses the GPU"));
         assertTrue(Composition.AUTO.describe().contains("GPU layers"));
     }
+
+    @Test
+    @DisplayName("only always and auto claim windows, and so only they give one back")
+    void claimsWindows() {
+        assertTrue(Composition.ALWAYS.claimsWindows());
+        assertTrue(Composition.AUTO.claimsWindows());
+        assertFalse(Composition.NEVER.claimsWindows(), "never composites, so it has no window to give back");
+        assertFalse(Composition.OFF.claimsWindows());
+    }
 }
