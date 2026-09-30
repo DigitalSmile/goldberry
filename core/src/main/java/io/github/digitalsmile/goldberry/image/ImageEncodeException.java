@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.image;
 
+import java.io.Serial;
+
 /// Thrown when an encoder refuses an image it was given.
 ///
 /// The mirror of [ImageDecodeException], and it exists for one case rather than
@@ -8,6 +10,7 @@ package io.github.digitalsmile.goldberry.image;
 /// bug ([ADR-0385]).
 public class ImageEncodeException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public ImageEncodeException(String message) {

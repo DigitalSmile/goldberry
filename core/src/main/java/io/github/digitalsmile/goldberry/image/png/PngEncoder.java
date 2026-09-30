@@ -114,8 +114,10 @@ public final class PngEncoder {
     }
 
     private static byte[] deflate(byte[] raw) {
-        var deflater = new Deflater(Deflater.BEST_COMPRESSION);
-        try {
+        // A Deflater holds native zlib state that the collector will not free for
+        // us in any timely way, and an encoder called per frame by a server would
+        // accumulate them. It is AutoCloseable since JDK 24, and closing it ends it.
+        try (var deflater = new Deflater(Deflater.BEST_COMPRESSION)) {
             deflater.setInput(raw);
             deflater.finish();
             var out = new ByteArrayOutputStream(raw.length / 2 + 64);
@@ -125,11 +127,6 @@ public final class PngEncoder {
                 out.write(chunk, 0, written);
             }
             return out.toByteArray();
-        } finally {
-            // A Deflater holds native zlib state that the collector will not free
-            // for us in any timely way, and an encoder called per frame by a
-            // server would accumulate them.
-            deflater.end();
         }
     }
 

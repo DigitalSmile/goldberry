@@ -50,7 +50,7 @@ final class GpuPresentProbe {
         this.height = pixels.height();
     }
 
-    static void main(String[] args) {
+    static void main() {
         var sdl = Sdl.get();
         sdl.initialize(EnumSet.of(SdlSubsystem.VIDEO));
         var video = SdlVideo.get();

@@ -114,10 +114,17 @@ public record Checkbox(
     /// improvising a token (Principle 3).
     private static final double MARK_THICKNESS = 2;
 
-    public Checkbox {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Checkbox(String label, @Nullable Value state, @Nullable Observable<?> source, @Nullable Runnable onChange, boolean disabled, @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         state = state == null ? Value.UNCHECKED : state;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.state = state;
+        this.source = source;
+        this.onChange = onChange;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An unbound checkbox with a label and a handler.

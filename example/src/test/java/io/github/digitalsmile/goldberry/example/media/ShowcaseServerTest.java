@@ -84,6 +84,16 @@ class ShowcaseServerTest {
     }
 
     @Test
+    @DisplayName("reads a bound too long for a number as past the end: 416 for a start, the end for a last byte")
+    void overlongBounds() throws Exception {
+        var data = bundled(CLIP);
+        assertEquals(416, get(CLIP, "bytes=99999999999999999999-").statusCode());
+        var tail = get(CLIP, "bytes=100-99999999999999999999");
+        assertEquals(206, tail.statusCode());
+        assertArrayEquals(Arrays.copyOfRange(data, 100, data.length), tail.body());
+    }
+
+    @Test
     @DisplayName("has nothing but the bundled clips: an unknown name or a path out is 404")
     void onlyTheClips() throws Exception {
         assertEquals(404, get("no-such-clip.webm", null).statusCode());

@@ -35,14 +35,15 @@ public final class PrepareCatalogs {
             System.exit(2);
             return;
         }
-        var cache = new AssetCache(Path.of(args[0]));
         var output = Path.of(args[1]);
         Files.createDirectories(output);
 
-        write(output.resolve(ICON_TABLE), CatalogCompiler.iconTable(
-                CatalogCompiler.iconCategories(lucideJson(cache.fetch(Asset.LUCIDE)))));
-        write(output.resolve(EMOJI_TABLE), CatalogCompiler.emojiTable(
-                CatalogCompiler.emojiGroups(Files.readString(cache.fetch(Asset.UNICODE_EMOJI), StandardCharsets.UTF_8))));
+        try (var cache = new AssetCache(Path.of(args[0]))) {
+            write(output.resolve(ICON_TABLE), CatalogCompiler.iconTable(
+                    CatalogCompiler.iconCategories(lucideJson(cache.fetch(Asset.LUCIDE)))));
+            write(output.resolve(EMOJI_TABLE), CatalogCompiler.emojiTable(CatalogCompiler.emojiGroups(
+                    Files.readString(cache.fetch(Asset.UNICODE_EMOJI), StandardCharsets.UTF_8))));
+        }
     }
 
     /// Every `icons/<name>.json` in the Lucide archive, by name.

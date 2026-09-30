@@ -36,9 +36,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 @Markup("marker")
 public record EntryMarker(Widget content, Attributes attributes) implements Widget.Leaf, Attributed<EntryMarker> {
 
-    public EntryMarker {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public EntryMarker(Widget content, @Nullable Attributes attributes) {
         Objects.requireNonNull(content, "content");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.content = content;
+        this.attributes = attributes;
     }
 
     /// A slot holding `content`.

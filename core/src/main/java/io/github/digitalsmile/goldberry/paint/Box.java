@@ -343,7 +343,8 @@ public record Box(
     /// Fully transparent — a box that lays out and paints nothing.
     public static final int TRANSPARENT = 0x00000000;
 
-    public Box {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Box(int background, Decoration decoration, double opacity, Transform transform, Cursor cursor, FlexDirection direction, Justify justifyContent, Align alignItems, Align alignSelf, Align alignContent, Wrap wrap, Length width, Length height, Limits limits, Insets margin, Insets padding, Length gap, double flexGrow, double flexShrink, Length flexBasis, Position position, Insets inset, boolean elevated, Overflow overflow, @Nullable Text text, @Nullable Glyph icon, @Nullable Mark mark, @Nullable Painter painting, @Nullable List<Box> children, @Nullable Object owner) {
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(cursor, "cursor");
@@ -391,6 +392,36 @@ public record Box(
                     "a box with a " + mark.kind() + " mark may not also have text or an icon:"
                             + " the mark fills the box. Put them side by side in a row.");
         }
+        this.background = background;
+        this.decoration = decoration;
+        this.opacity = opacity;
+        this.transform = transform;
+        this.cursor = cursor;
+        this.direction = direction;
+        this.justifyContent = justifyContent;
+        this.alignItems = alignItems;
+        this.alignSelf = alignSelf;
+        this.alignContent = alignContent;
+        this.wrap = wrap;
+        this.width = width;
+        this.height = height;
+        this.limits = limits;
+        this.margin = margin;
+        this.padding = padding;
+        this.gap = gap;
+        this.flexGrow = flexGrow;
+        this.flexShrink = flexShrink;
+        this.flexBasis = flexBasis;
+        this.position = position;
+        this.inset = inset;
+        this.elevated = elevated;
+        this.overflow = overflow;
+        this.text = text;
+        this.icon = icon;
+        this.mark = mark;
+        this.painting = painting;
+        this.children = children;
+        this.owner = owner;
     }
 
     /// An empty box that takes its size from its style and fills nothing.

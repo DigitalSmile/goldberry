@@ -5,7 +5,11 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
@@ -96,7 +100,7 @@ public final class Webp {
     ///
     /// @return the image's size as `{width, height}`, or null when these bytes are
     ///         not a WebP
-    public int[] size(ByteBuffer bytes) {
+    public int @Nullable [] size(ByteBuffer bytes) {
         Objects.requireNonNull(bytes, "bytes");
         if (!bytes.hasRemaining()) {
             return null;
@@ -122,7 +126,7 @@ public final class Webp {
     // extent given is the one the same call just stated -- width times height
     // times four -- which is exactly the region libwebp allocated and no more.
     @SuppressWarnings("restricted")
-    public Decoded decode(ByteBuffer bytes) {
+    public @Nullable Decoded decode(ByteBuffer bytes) {
         Objects.requireNonNull(bytes, "bytes");
         if (!bytes.hasRemaining()) {
             return null;
@@ -183,7 +187,7 @@ public final class Webp {
     // pointer has to be resized before the bytes can be read out. The extent is
     // the length that same call just returned.
     @SuppressWarnings("restricted")
-    public byte[] encode(int[] pixels, int width, int height, float quality) {
+    public byte @Nullable [] encode(int[] pixels, int width, int height, float quality) {
         Objects.requireNonNull(pixels, "pixels");
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("an image is " + width + "x" + height + ", which is not a size");
@@ -245,7 +249,7 @@ public final class Webp {
     // Restricted: the frame buffer is an address with no extent, resized to the
     // canvas the decoder itself reported.
     @SuppressWarnings("restricted")
-    public Animated decodeAnimation(ByteBuffer bytes) {
+    public @Nullable Animated decodeAnimation(ByteBuffer bytes) {
         Objects.requireNonNull(bytes, "bytes");
         if (!bytes.hasRemaining()) {
             return null;
@@ -280,8 +284,8 @@ public final class Webp {
                     return null;
                 }
 
-                var frames = new java.util.ArrayList<Decoded>();
-                var ends = new java.util.ArrayList<Integer>();
+                var frames = new ArrayList<Decoded>();
+                var ends = new ArrayList<Integer>();
                 var buffer = arena.allocate(ValueLayout.ADDRESS);
                 var timestamp = arena.allocate(ValueLayout.JAVA_INT);
                 var count = Math.multiplyExact(width, height);
@@ -312,7 +316,7 @@ public final class Webp {
     }
 
     /// Cumulative end times as per-frame durations.
-    private static int[] durations(java.util.List<Integer> ends) {
+    private static int[] durations(List<Integer> ends) {
         var durations = new int[ends.size()];
         var previous = 0;
         for (var i = 0; i < ends.size(); i++) {
@@ -335,18 +339,18 @@ public final class Webp {
     /// array.
     public static final class Animated {
 
-        private final java.util.List<Decoded> frames;
+        private final List<Decoded> frames;
         private final int[] durations;
         private final int loopCount;
 
-        Animated(java.util.List<Decoded> frames, int[] durations, int loopCount) {
-            this.frames = java.util.List.copyOf(frames);
+        Animated(List<Decoded> frames, int[] durations, int loopCount) {
+            this.frames = List.copyOf(frames);
             this.durations = durations.clone();
             this.loopCount = loopCount;
         }
 
         /// The frames, in order, each the whole canvas.
-        public java.util.List<Decoded> frames() {
+        public List<Decoded> frames() {
             return frames;
         }
 

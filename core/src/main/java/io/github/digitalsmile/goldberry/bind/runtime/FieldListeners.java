@@ -40,7 +40,7 @@ import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 public final class FieldListeners {
 
     /// One list per woven field, allocated when something first subscribes.
-    private final List<Consumer<Object>>[] slots;
+    private final @Nullable List<Consumer<Object>>[] slots;
 
     /// One [BoundField] per woven field, created the first time a path is
     /// resolved and kept.
@@ -51,7 +51,7 @@ public final class FieldListeners {
     /// same object would make that comparison false for a value that has not
     /// moved. It also means rebuilding a [BindingRegistry] — which happens on every
     /// document reload — allocates nothing.
-    private final Observable<?>[] views;
+    private final @Nullable Observable<?>[] views;
 
     /// Listeners waiting to be told a frame is wanted.
     ///
@@ -78,7 +78,7 @@ public final class FieldListeners {
         }
         // A wildcard array is reifiable, so this is the one array creation that
         // needs a cast rather than a raw type.
-        this.slots = (List<Consumer<Object>>[]) new List<?>[fields];
+        this.slots = (@Nullable List<Consumer<Object>>[]) new List<?>[fields];
         this.views = new Observable<?>[fields];
     }
 
@@ -250,5 +250,15 @@ public final class FieldListeners {
     public int listenerCount(int field) {
         var list = slots[field];
         return list == null ? 0 : list.size();
+    }
+
+    /// How many [#onRepaint] and [#onRestyle] listeners are registered, together.
+    ///
+    /// [#listenerCount]'s question for the model as a whole: a window that has
+    /// closed and still holds one is being asked for frames it cannot draw.
+    public int frameListenerCount() {
+        var repaints = repaint;
+        var restyles = restyle;
+        return (repaints == null ? 0 : repaints.size()) + (restyles == null ? 0 : restyles.size());
     }
 }

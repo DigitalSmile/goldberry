@@ -89,9 +89,6 @@ public interface TextFilter {
     ///
     /// @return the named filter, or null if there is no such name
     static @Nullable TextFilter named(String name) {
-        if (name == null) {
-            return NONE;
-        }
         return switch (name.toLowerCase(java.util.Locale.ROOT)) {
             case "none", "" -> NONE;
             case "digits" -> DIGITS;

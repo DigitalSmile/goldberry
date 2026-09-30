@@ -475,6 +475,26 @@ class RuntimeBindingTest {
             assertEquals(0, model.bytes);
         }
 
+        /// A Java caller can hand a valued action null. Both numeric parses refuse
+        /// it as they refuse a word, with the action's name, and not as a bare
+        /// `NullPointerException` out of `Double.valueOf`.
+        @Test
+        @DisplayName("no value at all is refused like a wrong one, for a whole number and a real one")
+        void valuedRefusesNull() {
+            var model = new Settings();
+            var actions = Models.actions(model);
+
+            var whole = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> actions.resolveValued("app.set-gain").accept(null));
+            assertTrue(whole.getMessage().contains("app.set-gain"), whole.getMessage());
+            var real = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> actions.resolveValued("app.read").accept(null));
+            assertTrue(real.getMessage().contains("app.read"), real.getMessage());
+            assertTrue(real.getMessage().contains("not a number"), real.getMessage());
+        }
+
         @Test
         @DisplayName("a boolean parameter is parsed too")
         void valuedBoolean() {

@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.media.platform.windows;
 
+import java.io.Serial;
 import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
@@ -102,6 +103,7 @@ final class HResult {
     /// A call that answered a failure code.
     static final class Failure extends RuntimeException {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final int hresult;

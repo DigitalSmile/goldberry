@@ -173,8 +173,10 @@ public final class HotReload implements AutoCloseable {
         } catch (IOException e) {
             LOG.debug("closing the watch service failed", e);
         }
-        if (watcher != null) {
-            watcher.interrupt();
+        // Read once: the field is volatile, and two reads are two answers.
+        var thread = watcher;
+        if (thread != null) {
+            thread.interrupt();
         }
     }
 }

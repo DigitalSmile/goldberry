@@ -67,9 +67,7 @@ class CompositorTest {
         if (device == null) {
             return;
         }
-        if (device != null) {
-            device.close();
-        }
+        device.close();
         Sdl.get().quit();
     }
 

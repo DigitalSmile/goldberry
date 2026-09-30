@@ -59,7 +59,8 @@ public record DateSelection(Mode mode, List<LocalDate> dates) {
     /// Nothing chosen, in [Mode#SINGLE].
     public static final DateSelection NONE = new DateSelection(Mode.SINGLE, List.of());
 
-    public DateSelection {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public DateSelection(Mode mode, @Nullable List<LocalDate> dates) {
         Objects.requireNonNull(mode, "mode");
         dates = List.copyOf(dates == null ? List.<LocalDate>of() : dates);
         if (mode != Mode.MULTIPLE && dates.size() > 2) {
@@ -72,6 +73,8 @@ public record DateSelection(Mode mode, List<LocalDate> dates) {
         if (mode == Mode.RANGE && dates.size() == 2 && dates.get(1).isBefore(dates.get(0))) {
             dates = List.of(dates.get(1), dates.get(0));
         }
+        this.mode = mode;
+        this.dates = dates;
     }
 
     /// Nothing chosen, in `mode`.

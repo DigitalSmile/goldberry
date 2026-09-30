@@ -76,7 +76,13 @@ public record Progress(
         @Nullable Observable<?> source,
         Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Progress>, Bindable<Progress> {
 
-    public Progress {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Progress(
+            double value,
+            double max,
+            boolean indeterminate,
+            @Nullable Observable<?> source,
+            @Nullable Attributes attributes) {
         if (!Double.isFinite(max) || max <= 0) {
             throw new IllegalArgumentException("progress is out of a positive maximum, not " + max);
         }
@@ -84,6 +90,11 @@ public record Progress(
             throw new IllegalArgumentException("progress needs a real value, not " + value);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.max = max;
+        this.indeterminate = indeterminate;
+        this.source = source;
+        this.attributes = attributes;
     }
 
     /// A fraction of one, which is what most callers have.

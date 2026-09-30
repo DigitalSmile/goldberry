@@ -157,8 +157,8 @@ public final class PointerEvent {
     ///
     /// The router's, for [#localTo]'s reason and at the same moment.
     public void measuredAs(Extent bounds, Extent part) {
-        this.bounds = bounds == null ? Extent.NONE : bounds;
-        this.part = part == null ? this.bounds : part;
+        this.bounds = bounds;
+        this.part = part;
     }
 
     /// Where the pointer is inside the handling widget's **content box** — the
@@ -179,7 +179,7 @@ public final class PointerEvent {
     ///
     /// The router's, alongside [#localTo].
     public void contentTo(Local value) {
-        this.content = value == null ? Local.UNKNOWN : value;
+        this.content = value;
     }
 
     /// Re-points [#local()] at the widget about to handle this.
@@ -189,7 +189,7 @@ public final class PointerEvent {
     /// Public because a test that builds an event by hand has to say where it
     /// landed, exactly as it has to be able to call [#consume()].
     public void localTo(Local value) {
-        this.local = value == null ? Local.UNKNOWN : value;
+        this.local = value;
     }
 
     public PointerEvent(Kind kind, float x, float y, @Nullable Button button, int clickCount, Element target) {
@@ -308,7 +308,7 @@ public final class PointerEvent {
         this.ticksY = ticksY;
         this.pressX = pressX;
         this.pressY = pressY;
-        this.modifiers = modifiers == null ? Modifiers.NONE : modifiers;
+        this.modifiers = modifiers;
         this.target = target;
     }
 
@@ -376,7 +376,7 @@ public final class PointerEvent {
 
     /// Sets [#gestureModifiers()]. The router's, like [#anchoredAt].
     public void gestureStartedWith(Modifiers value) {
-        this.gestureModifiers = value == null ? Modifiers.NONE : value;
+        this.gestureModifiers = value;
     }
 
     public Kind kind() {
@@ -442,6 +442,9 @@ public final class PointerEvent {
     }
 
     private void reportButtonRead() {
+        // A test that builds an event by hand passes no target, and a diagnostic
+        // must not be what throws.
+        //noinspection ConstantValue
         var type = target == null ? "?" : target.type();
         if (REPORTED_BUTTON_READS.add(kind + "/" + type)) {
             LOG.warn(

@@ -367,7 +367,7 @@ class ShadowTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("printed")
         @DisplayName("and what it prints parses back as the shadow it printed")
-        void roundTrips(String what, Shadow shadow, int fieldCount) {
+        void roundTrips(String what, Shadow shadow) {
             assertEquals(shadow, parse(shadow.toString()), what);
         }
 

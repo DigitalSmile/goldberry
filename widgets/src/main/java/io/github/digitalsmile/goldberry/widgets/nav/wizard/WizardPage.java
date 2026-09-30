@@ -48,13 +48,26 @@ public record WizardPage(
         Attributes attributes)
         implements Widget.Leaf, Attributed<WizardPage> {
 
-    public WizardPage {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public WizardPage(
+            String label,
+            @Nullable String description,
+            boolean error,
+            boolean reachable,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
             throw new IllegalArgumentException("a page needs a label: it is what the indicator calls it (§13)");
         }
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.description = description;
+        this.error = error;
+        this.reachable = reachable;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// A page with a name and its content.

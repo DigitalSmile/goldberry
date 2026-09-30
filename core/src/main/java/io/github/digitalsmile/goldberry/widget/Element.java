@@ -520,8 +520,9 @@ public final class Element implements BuildContext, StyleElement {
     private List<Element> reconcile(List<Element> existing, List<Widget> descriptions) {
         var byKey = new java.util.HashMap<Object, Element>();
         for (var child : existing) {
-            if (child.widget.key() != null) {
-                byKey.put(child.widget.key(), child);
+            var key = child.widget.key();
+            if (key != null) {
+                byKey.put(key, child);
             }
         }
 
@@ -685,17 +686,17 @@ public final class Element implements BuildContext, StyleElement {
     /// internal would be styleable by accident.
     @Override
     public @Nullable String type() {
-        return widget instanceof Styled styled ? styled.cssType() : null;
+        return widget instanceof Styled css ? css.cssType() : null;
     }
 
     @Override
     public @Nullable String id() {
-        return widget instanceof Styled styled ? styled.id() : null;
+        return widget instanceof Styled css ? css.id() : null;
     }
 
     @Override
     public Set<String> classes() {
-        var own = widget instanceof Styled styled ? styled.classes() : Set.<String>of();
+        var own = widget instanceof Styled css ? css.classes() : Set.<String>of();
         if (frameClasses.isEmpty()) {
             return own;
         }

@@ -2,6 +2,9 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.DoubleConsumer;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
@@ -38,7 +41,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// @param content    the title, the body, the counter and the buttons
 /// @param onMeasured told the card's height, or null when nobody is banking it
-record TourCard(Widget content, java.util.function.DoubleConsumer onMeasured)
+record TourCard(Widget content, @Nullable DoubleConsumer onMeasured)
         implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Measured {
 
     @Override

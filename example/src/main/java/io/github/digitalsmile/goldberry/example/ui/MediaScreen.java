@@ -556,7 +556,7 @@ public record MediaScreen(
                                             widget().kind().extensions()),
                                     FileFilter.everything("All files")),
                     choice -> {
-                        if (choice instanceof FileChoice.Chosen(var paths, var ignored) && !paths.isEmpty()) {
+                        if (choice instanceof FileChoice.Chosen(var paths, var _) && !paths.isEmpty()) {
                             var path = paths.getFirst();
                             setState(() -> {
                                 chosen = "";
@@ -630,7 +630,7 @@ public record MediaScreen(
                     FileDialogSpec.openFile()
                             .filters(FileFilter.of("Subtitles", "srt", "vtt"), FileFilter.everything("All files")),
                     choice -> {
-                        if (choice instanceof FileChoice.Chosen(var paths, var ignored) && !paths.isEmpty()) {
+                        if (choice instanceof FileChoice.Chosen(var paths, var _) && !paths.isEmpty()) {
                             var path = paths.getFirst();
                             loadSubtitles(Source.of(path), String.valueOf(path.getFileName()));
                         }

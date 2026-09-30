@@ -39,9 +39,13 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record ChartSeries(@Nullable String name, List<Double> values, List<String> labels)
         implements Widget.Leaf, Styled, Paints {
 
-    public ChartSeries {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ChartSeries(@Nullable String name, @Nullable List<Double> values, @Nullable List<String> labels) {
         values = List.copyOf(values == null ? List.of() : values);
         labels = List.copyOf(labels == null ? List.of() : labels);
+        this.name = name;
+        this.values = values;
+        this.labels = labels;
     }
 
     /// This node as the value a chart draws.

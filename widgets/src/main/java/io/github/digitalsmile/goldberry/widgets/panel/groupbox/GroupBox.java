@@ -75,12 +75,16 @@ public record GroupBox(@Nullable String title, List<Widget> content, Attributes 
         this(title, List.of(kids), Attributes.NONE);
     }
 
-    public GroupBox {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public GroupBox(@Nullable String title, @Nullable List<Widget> content, @Nullable Attributes attributes) {
         content = List.copyOf(content == null ? List.of() : content);
         attributes = attributes == null ? Attributes.NONE : attributes;
         // Blank and absent are the same thing: a heading of one space would take
         // a line and say nothing.
         title = title == null || title.isBlank() ? null : title;
+        this.title = title;
+        this.content = content;
+        this.attributes = attributes;
     }
 
     /// Whether this frame has a heading over it.
@@ -161,8 +165,10 @@ public record GroupBox(@Nullable String title, List<Widget> content, Attributes 
     /// What the author put in, under the header row.
     record GroupBoxBody(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-        GroupBoxBody {
+        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        GroupBoxBody(@Nullable List<Widget> children) {
             children = List.copyOf(children == null ? List.of() : children);
+            this.children = children;
         }
 
         @Override

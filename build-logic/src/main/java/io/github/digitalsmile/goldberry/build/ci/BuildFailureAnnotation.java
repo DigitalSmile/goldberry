@@ -20,8 +20,11 @@ import java.util.Optional;
  * image had failed on every run for a month with nothing public to say why.
  *
  * <p>A flow action rather than {@code buildFinished}, which is deprecated and
- * incompatible with the configuration cache.
+ * incompatible with the configuration cache. Gradle still marks the flow API
+ * incubating, and it has no stable replacement, so the warning is suppressed
+ * here once rather than at every use.
  */
+@SuppressWarnings("UnstableApiUsage")
 public abstract class BuildFailureAnnotation implements FlowAction<BuildFailureAnnotation.Parameters> {
 
     /** What the action is handed once the build's work is done. */

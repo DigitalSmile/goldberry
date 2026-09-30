@@ -401,7 +401,7 @@ public record Transform(List<Function> functions, Origin origin) {
             }
 
             @Override
-            public @Nullable String toString() {
+            public String toString() {
                 return value.toString();
             }
         }

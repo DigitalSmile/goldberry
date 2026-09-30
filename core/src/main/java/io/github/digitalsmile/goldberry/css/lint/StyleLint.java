@@ -176,10 +176,12 @@ public final class StyleLint {
     /// with no type and no id has to be selected by, and an application that has
     /// given its root either would rather be told about the one it chose.
     private static String name(StyleElement root) {
-        if (root.id() != null) {
-            return "#" + root.id();
+        var id = root.id();
+        if (id != null) {
+            return "#" + id;
         }
-        return root.type() == null ? ":root" : root.type();
+        var type = root.type();
+        return type == null ? ":root" : type;
     }
 
     /// Every declaration in `rule` that the engine applies nothing from, as seen

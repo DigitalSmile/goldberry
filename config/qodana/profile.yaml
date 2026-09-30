@@ -1,0 +1,45 @@
+# The inspection profile qodana.yaml names: qodana.starter, and the few changes
+# docs/static-analysis-plan.md's triage of 2026-09-30 asked for. Each says why.
+baseProfile: qodana.starter
+name: goldberry
+
+inspections:
+  # An unused declaration is dead code, and Error Prone only sees the private
+  # half of it. qodana.yaml used to ask for `UnusedDeclaration`, which is not
+  # the inspection's ID, so it never ran; `unused` is.
+  #
+  # A weak warning, which the dashboard shows and the gate does not count. This
+  # is a toolkit: most of its public API has no caller in this repository, and
+  # a public method added before its first caller is not a defect. The first
+  # run reported 445, 242 of them public methods. The visibility limit that
+  # would say "package-private and below" is an XML attribute of the
+  # inspection, which a YAML profile cannot set (it writes <option> children).
+  #
+  # The entry points the build reaches by reflection or weaving (@Bind, @Action,
+  # every widget's `inflate`) are declared in .idea/misc.xml, where the IDE
+  # reads them too. A public method's parameters are its contract, not dead.
+  - inspection: unused
+    enabled: true
+    severity: WEAK WARNING
+    options:
+      REPORT_PARAMETER_FOR_PUBLIC_METHODS: false
+
+  # A getter that hands out a resource someone else owns is not a leak. These
+  # types are owned by a window, a backend, a player or a tree, or live as long
+  # as the application, and whoever holds one closes it; a caller that
+  # borrows one for a statement must not. The first sixteen names are
+  # IntelliJ's own defaults, which setting the option replaces.
+  - inspection: AutoCloseableResource
+    options:
+      ignoredTypes: "java.util.stream.Stream,java.util.stream.IntStream,java.util.stream.LongStream,java.util.stream.DoubleStream,java.io.ByteArrayOutputStream,java.io.ByteArrayInputStream,java.io.StringBufferInputStream,java.io.CharArrayWriter,java.io.CharArrayReader,java.io.StringWriter,java.io.StringReader,java.util.Formatter,java.util.Scanner,org.springframework.context.ConfigurableApplicationContext,io.micronaut.context.ApplicationContext,org.apache.pekko.actor.ActorSystem,io.github.digitalsmile.goldberry.render.Backend,io.github.digitalsmile.goldberry.render.window.BackendWindow,io.github.digitalsmile.goldberry.Window,io.github.digitalsmile.goldberry.Popup,io.github.digitalsmile.goldberry.render.event.EventLoop,io.github.digitalsmile.goldberry.text.font.Font,io.github.digitalsmile.goldberry.text.font.FontFace,io.github.digitalsmile.goldberry.icon.Icon,io.github.digitalsmile.goldberry.paint.tree.RenderObject,io.github.digitalsmile.goldberry.natives.yoga.YogaNode,io.github.digitalsmile.goldberry.media.MediaPlayer,io.github.digitalsmile.goldberry.media.audio.AudioSink,io.github.digitalsmile.goldberry.media.engine.Playback,io.github.digitalsmile.goldberry.media.codec.Packet,io.github.digitalsmile.goldberry.natives.sdl.audio.SdlAudioStream,io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice,io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture,io.github.digitalsmile.goldberry.gpu.Shader,io.github.digitalsmile.goldberry.gpu.GpuTexture,io.github.digitalsmile.goldberry.gpu.GpuSampler,io.github.digitalsmile.goldberry.gpu.GraphicsPipeline,io.github.digitalsmile.goldberry.example.media.ShowcaseServer"
+
+  # A style opinion this codebase decided against: an Optional parameter or
+  # field is how several APIs here say "may be absent" without null.
+  - inspection: OptionalUsedAsFieldOrParameterType
+    enabled: false
+
+  # An `if` whose body is only a comment says why nothing happens, which is
+  # content.
+  - inspection: EmptyStatementBody
+    options:
+      commentsAreContent: true

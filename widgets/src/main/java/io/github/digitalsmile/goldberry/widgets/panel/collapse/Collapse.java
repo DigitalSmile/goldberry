@@ -80,10 +80,21 @@ public record Collapse(
         this(title, open, onToggle, List.of(kids), Attributes.NONE);
     }
 
-    public Collapse {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Collapse(
+            String title,
+            boolean open,
+            @Nullable Consumer<Boolean> onToggle,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(title, "title");
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.title = title;
+        this.open = open;
+        this.onToggle = onToggle;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// Whether the application is deciding, rather than this widget.
@@ -112,7 +123,7 @@ public record Collapse(
     /// boolean when an application wants to own it.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Collapse(
-                node.stringProperty("title") == null ? "" : node.stringProperty("title"),
+                Objects.requireNonNullElse(node.stringProperty("title"), ""),
                 node.booleanProperty("open"),
                 wiring.flag(node, "toggle"),
                 children,

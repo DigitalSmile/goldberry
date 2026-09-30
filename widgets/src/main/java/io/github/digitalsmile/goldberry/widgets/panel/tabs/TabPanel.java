@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -26,8 +28,10 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param content the selected tab's widgets, or empty when nothing is selected
 record TabPanel(List<Widget> content) implements Widget.Leaf, Styled, Paints {
 
-    TabPanel {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    TabPanel(@Nullable List<Widget> content) {
         content = List.copyOf(content == null ? List.of() : content);
+        this.content = content;
     }
 
     @Override

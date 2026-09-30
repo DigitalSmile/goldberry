@@ -99,9 +99,16 @@ public record Toggle(
     /// theme that changed the travel would want this to follow.
     private static final float DRAG_THRESHOLD = 8;
 
-    public Toggle {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Toggle(String label, boolean on, @Nullable Observable<?> source, @Nullable Consumer<Boolean> onChange, boolean disabled, @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.on = on;
+        this.source = source;
+        this.onChange = onChange;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// A toggle wired to a handler and given its value directly.

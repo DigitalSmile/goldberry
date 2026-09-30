@@ -67,7 +67,13 @@ public record Crumb(
         String label, @Nullable Icon icon, @Nullable Runnable onPress, boolean current, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Crumb>, Semantics {
 
-    public Crumb {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Crumb(
+            String label,
+            @Nullable Icon icon,
+            @Nullable Runnable onPress,
+            boolean current,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
@@ -75,6 +81,11 @@ public record Crumb(
                             + " in it is a gap between two chevrons (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.icon = icon;
+        this.onPress = onPress;
+        this.current = current;
+        this.attributes = attributes;
     }
 
     /// A step with a name and somewhere to go.

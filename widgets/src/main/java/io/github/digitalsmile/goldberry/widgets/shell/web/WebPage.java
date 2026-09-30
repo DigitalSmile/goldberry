@@ -73,7 +73,16 @@ public record WebPage(
         boolean debug,
         java.util.Map<String, WebCallback> callbacks) {
 
-    public WebPage {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public WebPage(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug,
+            java.util.@Nullable Map<String, WebCallback> callbacks) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
         callbacks = callbacks == null
@@ -83,6 +92,14 @@ public record WebPage(
         // and two copies of "a page starts one way" would be two chances to
         // disagree.
         new WebViewSpec(url, html, title, width, height, size, debug, callbacks);
+        this.url = url;
+        this.html = html;
+        this.title = title;
+        this.width = width;
+        this.height = height;
+        this.size = size;
+        this.debug = debug;
+        this.callbacks = callbacks;
     }
 
     /// A page with no callbacks — the shape this record had before a page could

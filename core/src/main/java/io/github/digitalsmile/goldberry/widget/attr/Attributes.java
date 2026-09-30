@@ -44,8 +44,25 @@ public record Attributes(
     /// Java gets unless it says otherwise.
     public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null, null, null, null);
 
-    public Attributes {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Attributes(
+            @Nullable String id,
+            @Nullable Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name,
+            @Nullable Runnable onPointerEnter,
+            @Nullable Runnable onPointerExit) {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
+        this.id = id;
+        this.classes = classes;
+        this.key = key;
+        this.tooltip = tooltip;
+        this.contextMenu = contextMenu;
+        this.name = name;
+        this.onPointerEnter = onPointerEnter;
+        this.onPointerExit = onPointerExit;
     }
 
     /// The six that every widget had before a hover hook was one of them, kept
@@ -90,14 +107,7 @@ public record Attributes(
     /// control had to remember to carry one would have thirty chances to forget.
     public Attributes tooltip(String text) {
         return new Attributes(
-                id,
-                classes,
-                key,
-                text == null || text.isBlank() ? null : text,
-                contextMenu,
-                name,
-                onPointerEnter,
-                onPointerExit);
+                id, classes, key, text.isBlank() ? null : text, contextMenu, name, onPointerEnter, onPointerExit);
     }
 
     /// This, with the name of the menu a right-click should open —
@@ -110,14 +120,7 @@ public record Attributes(
     /// (ADR-0108).
     public Attributes contextMenu(String menuId) {
         return new Attributes(
-                id,
-                classes,
-                key,
-                tooltip,
-                menuId == null || menuId.isBlank() ? null : menuId,
-                name,
-                onPointerEnter,
-                onPointerExit);
+                id, classes, key, tooltip, menuId.isBlank() ? null : menuId, name, onPointerEnter, onPointerExit);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -157,7 +160,9 @@ public record Attributes(
     /// A widget that derives a name from what it is showing keeps doing so; this
     /// wins when it is set, because an author writing one has said something the
     /// widget could not work out.
-    public Attributes name(String text) {
+    ///
+    /// Null or blank clears it.
+    public Attributes name(@Nullable String text) {
         return new Attributes(
                 id,
                 classes,
@@ -201,7 +206,7 @@ public record Attributes(
     /// which is the difference between this and the widget the stopgap was.
     ///
     /// @param action what to run, or null to carry none
-    public Attributes onPointerEnter(Runnable action) {
+    public Attributes onPointerEnter(@Nullable Runnable action) {
         return new Attributes(id, classes, key, tooltip, contextMenu, name, action, onPointerExit);
     }
 
@@ -218,7 +223,7 @@ public record Attributes(
     /// closing takes its tree with it and nobody is told. A caller holding a timer
     /// cancels it on dispose as well, which is what a `tooltip` already does
     /// ([ADR-0327]).
-    public Attributes onPointerExit(Runnable action) {
+    public Attributes onPointerExit(@Nullable Runnable action) {
         return new Attributes(id, classes, key, tooltip, contextMenu, name, onPointerEnter, action);
     }
 

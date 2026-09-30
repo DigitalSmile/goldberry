@@ -88,10 +88,29 @@ public record Tabs(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
-    public Tabs {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Tabs(
+            @Nullable String value,
+            @Nullable List<Widget> children,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<String> onClose,
+            @Nullable Runnable onNew,
+            boolean keepAlive,
+            @Nullable BiConsumer<String, Integer> onReorder,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         Objects.requireNonNull(children, "children");
+        this.value = value;
+        this.children = children;
+        this.source = source;
+        this.onChange = onChange;
+        this.onClose = onClose;
+        this.onNew = onNew;
+        this.keepAlive = keepAlive;
+        this.onReorder = onReorder;
+        this.attributes = attributes;
     }
 
     public Tabs(@Nullable String value, Widget... children) {

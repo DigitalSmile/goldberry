@@ -87,7 +87,17 @@ public record Tree(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tree> {
 
-    public Tree {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Tree(
+            @Nullable List<TreeNode> roots,
+            Set<String> selected,
+            @Nullable Consumer<Set<String>> onSelect,
+            @Nullable Selection selection,
+            boolean leafOnly,
+            @Nullable Checkable checkable,
+            Set<String> checked,
+            @Nullable Consumer<Set<String>> onCheck,
+            @Nullable Attributes attributes) {
         roots = List.copyOf(roots == null ? List.of() : roots);
         // A LinkedHashSet copy rather than Set.copyOf, because the order a caller
         // gave is the order a diagnostic prints and the order a test asserts --
@@ -97,12 +107,19 @@ public record Tree(
         selection = selection == null ? Selection.SINGLE : selection;
         checkable = checkable == null ? Checkable.NONE : checkable;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.roots = roots;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.selection = selection;
+        this.leafOnly = leafOnly;
+        this.checkable = checkable;
+        this.checked = checked;
+        this.onCheck = onCheck;
+        this.attributes = attributes;
     }
 
     private static Set<String> unmodifiableOrdered(Set<String> values) {
-        return values == null || values.isEmpty()
-                ? Set.of()
-                : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(values));
+        return values.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(values));
     }
 
     /// A single-selection, leaf-only tree with no checkboxes — §3's defaults, and
@@ -113,7 +130,7 @@ public record Tree(
     /// application holds a field, and asking either to wrap it in a set to hand it
     /// over and unwrap it to read it back would be ceremony in the common case for
     /// the benefit of the rare one. What crosses inside is a set either way.
-    public Tree(List<TreeNode> roots, @Nullable String selected, @Nullable Consumer<String> onSelect) {
+    public Tree(List<TreeNode> roots, @Nullable String selected, @Nullable Consumer<@Nullable String> onSelect) {
         this(
                 roots,
                 selected == null ? Set.of() : Set.of(selected),

@@ -9,6 +9,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.platform.Capability;
 import io.github.digitalsmile.goldberry.platform.PlatformCapabilities;
 import io.github.digitalsmile.goldberry.render.BackendException;
@@ -99,12 +101,12 @@ public final class Goldberry {
     /// Goldberry.async(() -> readTheFile())
     ///          .thenAccept(text -> window.title(text));
     /// ```
-    public static <T> CompletableFuture<T> async(Supplier<T> work) {
+    public static <T extends @Nullable Object> CompletableFuture<T> async(Supplier<T> work) {
         return GoldberryRuntime.get().loop().supplyAsync(work);
     }
 
     /// Runs `work` off the UI thread with nothing to return.
-    public static CompletableFuture<Void> async(Runnable work) {
+    public static CompletableFuture<@Nullable Void> async(Runnable work) {
         return GoldberryRuntime.get().loop().runAsync(work);
     }
 

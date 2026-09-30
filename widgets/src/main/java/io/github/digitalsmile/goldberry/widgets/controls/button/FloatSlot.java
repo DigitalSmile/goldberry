@@ -3,8 +3,6 @@ package io.github.digitalsmile.goldberry.widgets.controls.button;
 import java.util.HashSet;
 import java.util.Objects;
 
-import org.jspecify.annotations.Nullable;
-
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -34,7 +32,7 @@ record FloatSlot(Button button, Property<Boolean> leaving) implements Widget.Sta
 
     /// The switch, so flipping it rebuilds this slot (ADR-0062).
     @Override
-    public @Nullable Observable<?> binding() {
+    public Observable<?> binding() {
         return leaving;
     }
 

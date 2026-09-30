@@ -93,7 +93,7 @@ record MediaPlayerBox(
     }
 
     @Override
-    public @Nullable String accessibleName() {
+    public String accessibleName() {
         return "Media player";
     }
 }

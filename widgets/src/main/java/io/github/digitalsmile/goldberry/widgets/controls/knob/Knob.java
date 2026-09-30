@@ -117,7 +117,8 @@ public record Knob(
     /// distance is what tells them apart.
     private static final float CLICK_SLOP = 8;
 
-    public Knob {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Knob(double min, double max, double value, double step, int detents, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, boolean circular, @Nullable Attributes attributes) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || min >= max) {
             throw new IllegalArgumentException(
                     "a knob needs a range with a low end below a high one, not " + min + ".." + max);
@@ -131,6 +132,16 @@ public record Knob(
                             + detents);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.min = min;
+        this.max = max;
+        this.value = value;
+        this.step = step;
+        this.detents = detents;
+        this.source = source;
+        this.onChange = onChange;
+        this.disabled = disabled;
+        this.circular = circular;
+        this.attributes = attributes;
     }
 
     /// The form most knobs want: a range, a value and a handler.

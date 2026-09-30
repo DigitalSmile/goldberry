@@ -650,6 +650,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// `images`, with the one SDL should treat as its base moved to the front:
     /// the smallest at least [#BASE_ICON_SIZE] wide, or the largest when none is.
+    ///
+    /// `images` is not empty: [#setIcon] refuses an empty list before asking.
     static List<IconImage> baseFirst(List<IconImage> images) {
         IconImage base = null;
         for (var image : images) {
@@ -666,7 +668,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             }
         }
         var ordered = new ArrayList<IconImage>(images.size());
-        ordered.add(base);
+        ordered.add(Objects.requireNonNull(base, "an icon has at least one image, so one of them is the base"));
         for (var image : images) {
             if (image != base) {
                 ordered.add(image);

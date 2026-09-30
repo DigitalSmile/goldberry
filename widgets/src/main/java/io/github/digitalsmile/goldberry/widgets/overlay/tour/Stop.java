@@ -33,13 +33,21 @@ public record Stop(
         String body,
         @Nullable ScrollController scroll) {
 
-    public Stop {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Stop(String targetId, @Nullable String title, @Nullable String body, @Nullable ScrollController scroll) {
+        // Non-null by contract, and checked anyway: a caller without NullAway can
+        // pass null, and TourTest holds it to the same refusal as a blank id.
+        //noinspection ConstantValue
         if (targetId == null || targetId.isBlank()) {
             throw new IllegalArgumentException(
                     "a tour stop names the widget it describes; without an id it describes nothing");
         }
         title = title == null ? "" : title;
         body = body == null ? "" : body;
+        this.targetId = targetId;
+        this.title = title;
+        this.body = body;
+        this.scroll = scroll;
     }
 
     /// A stop that lets the tour find the viewport, which is the usual form.

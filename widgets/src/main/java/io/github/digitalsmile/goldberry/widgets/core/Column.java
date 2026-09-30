@@ -36,8 +36,11 @@ public record Column(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    public Column {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Column(@Nullable List<Widget> children, Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
+        this.attributes = attributes;
     }
 
     @Override

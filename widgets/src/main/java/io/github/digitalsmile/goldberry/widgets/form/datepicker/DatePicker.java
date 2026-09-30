@@ -112,7 +112,22 @@ public record DatePicker(
 
     private static final Logger LOG = Logs.of(DatePicker.class);
 
-    public DatePicker {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public DatePicker(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<DateSelection> onChange,
+            @Nullable String placeholder,
+            boolean range,
+            YearMonth month,
+            @Nullable LocalDate today,
+            @Nullable LocalDate min,
+            @Nullable LocalDate max,
+            @Nullable Predicate<LocalDate> disabledDates,
+            @Nullable DateFormat format,
+            @Nullable Locale locale,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(month, "month");
         value = value == null ? "" : value;
         placeholder = placeholder == null ? "" : placeholder;
@@ -124,6 +139,20 @@ public record DatePicker(
             throw new IllegalArgumentException(
                     "a date-picker's max (" + max + ") is before its min (" + min + "), so no date is reachable");
         }
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.placeholder = placeholder;
+        this.range = range;
+        this.month = month;
+        this.today = today;
+        this.min = min;
+        this.max = max;
+        this.disabledDates = disabledDates;
+        this.format = format;
+        this.locale = locale;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An empty picker whose grid opens on `month`.

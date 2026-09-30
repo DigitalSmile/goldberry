@@ -116,7 +116,7 @@ record ColorPlane(HsvColor colour, PlaneCursor onChange, boolean disabled)
 
     private void at(PointerEvent event) {
         var local = event.local();
-        if (local == null || local.width() <= 0 || local.height() <= 0) {
+        if (local.width() <= 0 || local.height() <= 0) {
             return;
         }
         // Value runs **up** the plane, so the y axis is inverted: the bright end

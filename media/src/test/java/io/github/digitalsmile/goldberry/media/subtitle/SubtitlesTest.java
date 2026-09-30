@@ -48,7 +48,7 @@ class SubtitlesTest {
                     00:00:03,000 --> 00:00:04,000 X1:10 X2:100 Y1:10 Y2:50
                     Two lines,
                     <b>one</b> cue &amp; more
-                    """, Subtitles.Format.SUBRIP);
+                    """);
             assertEquals(
                     List.of(
                             new Cue(ms(1_000), ms(2_500), "Hello, world!"),
@@ -59,13 +59,11 @@ class SubtitlesTest {
         @Test
         @DisplayName("takes CRLF, long hours, short fractions, and cues out of order, and skips broken blocks")
         void tolerant() {
-            var cues = Subtitles.parse(
-                    "2\r\n101:00:00,5 --> 101:00:01,000\r\nLate\r\n\r\n"
-                            + "broken\r\nno timing here\r\n\r\n"
-                            + "1\r\n00:00:00,000 --> 00:00:01,000\r\nEarly\r\n\r\n"
-                            + "3\r\n00:00:05,000 --> 00:00:04,000\r\nBackwards\r\n\r\n"
-                            + "4\r\n00:00:06,000 --> 00:00:07,000\r\n\r\n",
-                    Subtitles.Format.SUBRIP);
+            var cues = Subtitles.parse("2\r\n101:00:00,5 --> 101:00:01,000\r\nLate\r\n\r\n"
+                    + "broken\r\nno timing here\r\n\r\n"
+                    + "1\r\n00:00:00,000 --> 00:00:01,000\r\nEarly\r\n\r\n"
+                    + "3\r\n00:00:05,000 --> 00:00:04,000\r\nBackwards\r\n\r\n"
+                    + "4\r\n00:00:06,000 --> 00:00:07,000\r\n\r\n");
             assertEquals(
                     List.of(
                             new Cue(ms(0), ms(1_000), "Early"),
@@ -98,7 +96,7 @@ class SubtitlesTest {
 
                     01:00:00.000 --> 01:00:01.250
                     <c.yellow>Karaoke</c> <00:00:00.500>time
-                    """, Subtitles.Format.WEBVTT);
+                    """);
             assertEquals(
                     List.of(
                             new Cue(ms(1_000), ms(2_000), "Hi <there>"),

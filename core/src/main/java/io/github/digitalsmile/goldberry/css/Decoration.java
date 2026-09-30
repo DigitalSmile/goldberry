@@ -70,9 +70,11 @@ public record Decoration(
         // themselves, in [Corners], for the same reason.
         java.util.Objects.requireNonNull(corners, "corners");
         java.util.Objects.requireNonNull(shadow, "shadow");
-        borderWidth = Math.max(0, finite(borderWidth, "border-width"));
-        outlineWidth = Math.max(0, finite(outlineWidth, "outline-width"));
-        outlineOffset = finite(outlineOffset, "outline-offset");
+        requireFinite(borderWidth, "border-width");
+        requireFinite(outlineWidth, "outline-width");
+        requireFinite(outlineOffset, "outline-offset");
+        borderWidth = Math.max(0, borderWidth);
+        outlineWidth = Math.max(0, outlineWidth);
     }
 
     /// Whether a border would put ink on the screen.
@@ -161,10 +163,9 @@ public record Decoration(
                 shadow.fade(alpha));
     }
 
-    private static double finite(double value, String name) {
+    private static void requireFinite(double value, String name) {
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException(name + " must be a finite number, not " + value);
         }
-        return value;
     }
 }

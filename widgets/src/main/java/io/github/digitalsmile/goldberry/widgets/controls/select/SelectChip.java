@@ -107,9 +107,7 @@ record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Style
         @Override
         public void onPointer(PointerEvent event) {
             if (event.kind() == PointerEvent.Kind.CLICKED) {
-                if (onRemove != null) {
-                    onRemove.run();
-                }
+                onRemove.run();
                 event.consume();
             }
         }

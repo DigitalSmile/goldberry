@@ -92,9 +92,22 @@ public record RadioGroup(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup>, Semantics {
 
-    public RadioGroup {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public RadioGroup(
+            @Nullable String value,
+            @Nullable List<Widget> children,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.children = children;
+        this.source = source;
+        this.onChange = onChange;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// A group with a selected value and a handler, unbound — the Java spelling

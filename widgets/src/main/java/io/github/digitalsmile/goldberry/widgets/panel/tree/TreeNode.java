@@ -47,7 +47,9 @@ public record TreeNode(
         List<TreeNode> children,
         @Nullable Supplier<List<TreeNode>> supplier) {
 
-    public TreeNode {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public TreeNode(
+            String id, String label, @Nullable List<TreeNode> children, @Nullable Supplier<List<TreeNode>> supplier) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(label, "label");
         children = List.copyOf(children == null ? List.of() : children);
@@ -55,6 +57,10 @@ public record TreeNode(
             throw new IllegalArgumentException("a tree node's id is what its expansion is remembered by, and \"" + id
                     + "\" cannot tell two nodes apart");
         }
+        this.id = id;
+        this.label = label;
+        this.children = children;
+        this.supplier = supplier;
     }
 
     /// A node with nothing under it.

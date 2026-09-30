@@ -131,7 +131,7 @@ public enum Reading {
         /// there is.
         @Override
         Level level(FrameStats stats) {
-            if (stats == null || stats.isEmpty()) {
+            if (stats.isEmpty()) {
                 return Level.OK;
             }
             var late = stats.lateFrames();
@@ -392,11 +392,9 @@ public enum Reading {
     ///
     /// @throws IllegalArgumentException naming the legal values
     public static Reading parse(String text) {
-        if (text != null) {
-            for (var reading : values()) {
-                if (reading.cssClass.equals(text.trim())) {
-                    return reading;
-                }
+        for (var reading : values()) {
+            if (reading.cssClass.equals(text.trim())) {
+                return reading;
             }
         }
         throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
@@ -455,7 +453,7 @@ public enum Reading {
     /// backend, or a mode SDL cannot describe. A stated assumption rather than a
     /// hidden one (ADR-0153).
     static double frameBudget(FrameStats stats) {
-        var hertz = stats == null ? 0 : stats.displayHertz();
+        var hertz = stats.displayHertz();
         return hertz > 0 ? 1_000.0 / hertz : 1_000.0 / 60;
     }
 
@@ -482,7 +480,7 @@ public enum Reading {
     /// behind it is not a HUD reporting a healthy one — it draws dashes, and
     /// dashes in red would be an alarm about nothing.
     Level level(FrameStats stats) {
-        if (stats == null || stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
+        if (stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
             return Level.OK;
         }
         var budget = budgetMillis(stats);
@@ -503,7 +501,7 @@ public enum Reading {
     /// different on purpose — a loop genuinely stopped dead reads `0 fps`, and
     /// that is worth being able to tell apart from a HUD that is not plugged in.
     String render(FrameStats stats) {
-        if (stats == null || stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
+        if (stats.isEmpty() || (isPresent() && stats.compositedFrames() == 0)) {
             return switch (this) {
                 case FPS -> "— fps";
                 case REFRESH -> "refresh —";

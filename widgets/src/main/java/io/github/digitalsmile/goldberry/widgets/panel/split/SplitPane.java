@@ -124,7 +124,16 @@ public record SplitPane(
                 Attributes.NONE);
     }
 
-    public SplitPane {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public SplitPane(
+            @Nullable SplitAxis axis,
+            double position,
+            @Nullable DoubleConsumer onResize,
+            float firstMin,
+            float secondMin,
+            boolean collapsible,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes) {
         axis = axis == null ? SplitAxis.HORIZONTAL : axis;
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -139,6 +148,14 @@ public record SplitPane(
             throw new IllegalArgumentException("a divider position must be a number; use 0.5 for the middle");
         }
         position = Math.clamp(position, 0.0, 1.0);
+        this.axis = axis;
+        this.position = position;
+        this.onResize = onResize;
+        this.firstMin = firstMin;
+        this.secondMin = secondMin;
+        this.collapsible = collapsible;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// Whether the application is deciding, rather than this widget.

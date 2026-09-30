@@ -67,7 +67,11 @@ public record DonutChart(
     /// The most that stay distinguishable — the palette's ceiling.
     public static final int MAX_SLICES = SeriesPalette.SLOTS;
 
-    public DonutChart {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public DonutChart(
+            @Nullable List<Series> slices,
+            io.github.digitalsmile.goldberry.widgets.data.@Nullable ChartStatus status,
+            @Nullable Attributes attributes) {
         slices = List.copyOf(slices == null ? List.of() : slices);
         attributes = attributes == null ? Attributes.NONE : attributes;
         status = status == null ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
@@ -81,6 +85,9 @@ public record DonutChart(
                             + " more parts than there are distinguishable hues; use `bar-chart`,"
                             + " which answers the same question at forty categories");
         }
+        this.slices = slices;
+        this.status = status;
+        this.attributes = attributes;
     }
 
     /// The ordinary form: a donut that has its data.

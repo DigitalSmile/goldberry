@@ -152,7 +152,8 @@ public record Slider(
         }
     }
 
-    public Slider {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Slider(double min, double max, double value, double step, int ticks, @Nullable String format, @Nullable Scale scale, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, @Nullable Attributes attributes, @Nullable DoubleConsumer onCommit, @Nullable List<Span> spans) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
             throw new IllegalArgumentException(
                     "a slider needs max > min, not min=" + min + " max=" + max);
@@ -173,10 +174,23 @@ public record Slider(
         // more `format` per build of a labelled slider, which is nothing beside
         // the one the label already does.
         if (format != null) {
-            label(format, min);
+            var _ = label(format, min);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         spans = spans == null ? List.of() : List.copyOf(spans);
+        this.min = min;
+        this.max = max;
+        this.value = value;
+        this.step = step;
+        this.ticks = ticks;
+        this.format = format;
+        this.scale = scale;
+        this.source = source;
+        this.onChange = onChange;
+        this.disabled = disabled;
+        this.attributes = attributes;
+        this.onCommit = onCommit;
+        this.spans = spans;
     }
 
     /// Every component but [#spans()]: the canonical form before spans existed,

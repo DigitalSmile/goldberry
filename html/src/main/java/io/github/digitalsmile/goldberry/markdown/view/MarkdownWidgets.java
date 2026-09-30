@@ -175,7 +175,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     @Override
     public boolean canResume(Object mark) {
-        return mark instanceof Mark(var words, var _, var _) && minter.canResume(words);
+        return mark instanceof Mark(var minted, var _, var _) && minter.canResume(minted);
     }
 
     @Override

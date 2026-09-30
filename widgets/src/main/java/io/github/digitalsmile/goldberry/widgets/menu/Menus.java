@@ -164,7 +164,8 @@ public final class Menus {
     ///
     /// @param previous `Left` at the root of this menu — the menu on the left
     /// @param next     `Right` from a row with no submenu — the menu on the right
-    public record Siblings(Runnable previous, Runnable next) {
+    public record Siblings(
+            @Nullable Runnable previous, @Nullable Runnable next) {
 
         void previousMenu() {
             if (previous != null) {

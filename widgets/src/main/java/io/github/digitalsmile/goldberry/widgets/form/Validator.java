@@ -1,7 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.form;
 
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 
@@ -86,8 +88,9 @@ public interface Validator<T> {
     /// A validator from a predicate and the message for when it says no.
     ///
     /// The form most application validators want: the rule is the predicate and
-    /// the words are the application's.
-    static <T> Validator<T> of(Predicate<T> rule, String message) {
+    /// the words are the application's. The predicate sees what [#check] sees,
+    /// null included: a field with nothing in it holds nothing.
+    static <T> Validator<T> of(Predicate<? super @Nullable T> rule, String message) {
         Objects.requireNonNull(rule, "rule");
         Objects.requireNonNull(message, "message");
         return value -> rule.test(value) ? Result.VALID : Result.invalid(message);
@@ -114,7 +117,7 @@ public interface Validator<T> {
     /// email address" and "this must be filled in" are two rules, and a pattern
     /// that also refused emptiness would make every optional field with a format
     /// into a required one. Combine with [#required] when both are meant.
-    static Validator<String> matching(java.util.regex.Pattern pattern, String message) {
+    static Validator<String> matching(Pattern pattern, String message) {
         Objects.requireNonNull(pattern, "pattern");
         return of(
                 value -> value == null
@@ -164,7 +167,7 @@ public interface Validator<T> {
     /// @param rule    what to ask of the value once there is one
     /// @param <T>     what the text parses to
     static <T> Validator<String> parsing(
-            java.util.function.Function<String, ? extends T> parse, String message, Validator<T> rule) {
+            Function<String, ? extends @Nullable T> parse, String message, Validator<T> rule) {
         Objects.requireNonNull(parse, "parse");
         Objects.requireNonNull(message, "message");
         Objects.requireNonNull(rule, "rule");
@@ -172,7 +175,7 @@ public interface Validator<T> {
             if (text == null || text.isBlank()) {
                 return Result.VALID;
             }
-            T value;
+            @Nullable T value;
             try {
                 value = parse.apply(text);
             } catch (RuntimeException refused) {
@@ -183,7 +186,7 @@ public interface Validator<T> {
     }
 
     /// [#parsing] with nothing to ask beyond "does it parse".
-    static <T> Validator<String> parsing(java.util.function.Function<String, ? extends T> parse, String message) {
+    static <T> Validator<String> parsing(Function<String, ? extends @Nullable T> parse, String message) {
         return parsing(parse, message, none());
     }
 }

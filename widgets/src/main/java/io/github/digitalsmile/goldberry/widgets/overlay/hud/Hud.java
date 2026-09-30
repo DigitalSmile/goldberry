@@ -120,10 +120,13 @@ public record Hud(List<Reading> readings, Attributes attributes)
         this(DEFAULT, Attributes.NONE);
     }
 
-    public Hud {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Hud(@Nullable List<Reading> readings, @Nullable Attributes attributes) {
         readings = List.copyOf(readings == null || readings.isEmpty() ? DEFAULT : readings);
         attributes = attributes == null ? Attributes.NONE : attributes;
         Objects.requireNonNull(readings, "readings");
+        this.readings = readings;
+        this.attributes = attributes;
     }
 
     @Override

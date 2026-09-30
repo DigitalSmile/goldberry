@@ -112,10 +112,29 @@ public record Wizard(
         }
     }
 
-    public Wizard {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Wizard(
+            @Nullable List<Widget> children,
+            int current,
+            @Nullable Observable<?> source,
+            @Nullable Runnable onBack,
+            @Nullable Runnable onNext,
+            @Nullable Runnable onFinish,
+            @Nullable IntConsumer goTo,
+            @Nullable Labels labels,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         labels = labels == null ? Labels.DEFAULT : labels;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.current = current;
+        this.source = source;
+        this.onBack = onBack;
+        this.onNext = onNext;
+        this.onFinish = onFinish;
+        this.goTo = goTo;
+        this.labels = labels;
+        this.attributes = attributes;
     }
 
     /// A wizard on page `current`, with nothing wired yet.

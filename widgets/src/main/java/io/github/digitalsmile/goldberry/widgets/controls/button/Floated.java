@@ -41,9 +41,12 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 /// @param corner where — `bottom-end` by default, §3's own
 public record Floated(Button button, Corner corner) implements Widget.Stateful {
 
-    public Floated {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Floated(Button button, @Nullable Corner corner) {
         Objects.requireNonNull(button, "button");
         corner = corner == null ? Corner.BOTTOM_END : corner;
+        this.button = button;
+        this.corner = corner;
     }
 
     /// The button in §3's default corner.

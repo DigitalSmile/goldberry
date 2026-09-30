@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
@@ -94,8 +96,14 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
         return REPORTED_GROW.size();
     }
 
-    ScrollContent {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    ScrollContent(@Nullable List<Widget> children, ScrollAxis axis, double offsetX, double offsetY, double gutter) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
+        this.axis = axis;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+        this.gutter = gutter;
     }
 
     @Override

@@ -1,8 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.function.IntPredicate;
 
 import org.jspecify.annotations.Nullable;
 
@@ -73,8 +77,8 @@ record ChartSurface(
         int hovered,
         boolean owns,
         PaintedGeometry painted,
-        java.util.function.IntPredicate onHover,
-        java.util.function.IntPredicate onWalk)
+        IntPredicate onHover,
+        IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// How many labels a time axis aims for.
@@ -517,9 +521,7 @@ record ChartSurface(
     @Override
     public void onKey(io.github.digitalsmile.goldberry.input.event.KeyEvent event) {
 
-        if (onHover == null
-                || onWalk == null
-                || event.kind() != io.github.digitalsmile.goldberry.input.event.KeyEvent.Kind.PRESSED
+        if (event.kind() != io.github.digitalsmile.goldberry.input.event.KeyEvent.Kind.PRESSED
                 || !event.modifiers().none()) {
             return;
         }
@@ -574,9 +576,6 @@ record ChartSurface(
     @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onPointer(PointerEvent event) {
-        if (onHover == null) {
-            return;
-        }
         switch (event.kind()) {
             case EXITED -> onHover.test(-1);
             case MOVED, ENTERED, PRESSED, RELEASED, CLICKED -> onHover.test(at(event));
@@ -598,7 +597,7 @@ record ChartSurface(
     /// Null before the first paint, which a pointer cannot reach in an
     /// application and a test can.
     private int at(PointerEvent event) {
-        var geometry = painted == null ? null : painted.geometry();
+        var geometry = painted.geometry();
         if (geometry == null) {
             return -1;
         }
@@ -643,10 +642,10 @@ record ChartSurface(
     /// a decimal point and the rest do not is a column that reads as ragged.
     private static String format(double value, double step) {
         if (step >= 1 || step == 0) {
-            return String.format(java.util.Locale.ROOT, "%.0f", value);
+            return Ticks.fixed(value, 0);
         }
         var decimals = Math.min(6, (int) Math.ceil(-Math.log10(step)));
-        return String.format(java.util.Locale.ROOT, "%." + decimals + "f", value);
+        return Ticks.fixed(value, decimals);
     }
 
     /// A number as a **readout**, which is a different question from an axis
@@ -662,10 +661,10 @@ record ChartSurface(
     private static String readableTime(io.github.digitalsmile.goldberry.widgets.data.TimeAxis axis, int index) {
 
         var at = axis.at(index).atZone(axis.zone());
-        var span = java.time.Duration.between(axis.first(), axis.last());
+        // Not empty, because `at(index)` has just read from it.
+        var span = Duration.between(axis.times().getFirst(), axis.times().getLast());
         var pattern = span.toHours() >= 24 ? "d MMM HH:mm:ss" : "HH:mm:ss";
-        return java.time.format.DateTimeFormatter.ofPattern(pattern, java.util.Locale.ROOT)
-                .format(at);
+        return DateTimeFormatter.ofPattern(pattern, Locale.ROOT).format(at);
     }
 
     /// An axis rounds to its step, because a column of labels has to line up and
@@ -681,9 +680,9 @@ record ChartSurface(
             return String.valueOf(value);
         }
         if (value == Math.rint(value) && Math.abs(value) < 1e15) {
-            return String.format(java.util.Locale.ROOT, "%.0f", value);
+            return String.format(Locale.ROOT, "%.0f", value);
         }
-        var text = String.format(java.util.Locale.ROOT, "%.3f", value);
+        var text = String.format(Locale.ROOT, "%.3f", value);
         // Trailing zeros only, and only after a decimal point: `1.500` reads as
         // `1.5` and `1500` must stay `1500`.
         var trimmed = text.indexOf('.') < 0 ? text : text.replaceAll("0+$", "").replaceAll("\\.$", "");
@@ -786,9 +785,7 @@ record ChartSurface(
             // Left for the pointer that arrives after this frame, including the
             // null: a plot that has become too small to draw is one no point can
             // be hovered in.
-            if (painted != null) {
-                painted.paintedAs(geometry);
-            }
+            painted.paintedAs(geometry);
             if (geometry == null) {
                 return;
             }
@@ -1489,15 +1486,15 @@ record ChartSurface(
         /// the edge it is approaching, which a fixed side would be for half of
         /// every chart.
         private void paintReadout(Frame frame, PlotGeometry geometry, double x) {
-            var readout = Objects.requireNonNull(this.readout, "painted only when there is a readout");
+            var shown = Objects.requireNonNull(this.readout, "painted only when there is a readout");
             var lineHeight = geometry.lineHeight();
-            var titleLayout = readout.title().layout(Paragraph.UNCONSTRAINED);
+            var titleLayout = shown.title().layout(Paragraph.UNCONSTRAINED);
 
             var swatch = Math.min(8, lineHeight);
             var swatchGap = 6;
             var valueGap = 12;
             var widest = titleLayout.width();
-            for (var row : readout.rows()) {
+            for (var row : shown.rows()) {
                 widest = Math.max(
                         widest,
                         swatch
@@ -1507,7 +1504,7 @@ record ChartSurface(
                                 + row.value().layout(Paragraph.UNCONSTRAINED).width());
             }
             var width = widest + READOUT_PADDING * 2;
-            var height = READOUT_PADDING * 2 + lineHeight + readout.rows().size() * (lineHeight + READOUT_GAP);
+            var height = READOUT_PADDING * 2 + lineHeight + shown.rows().size() * (lineHeight + READOUT_GAP);
 
             var onTheRight = x < geometry.left() + geometry.plotWidth() / 2;
             var left = onTheRight ? x + READOUT_OFFSET : x - READOUT_OFFSET - width;
@@ -1517,17 +1514,17 @@ record ChartSurface(
             left = Math.max(geometry.left(), Math.min(left, geometry.right() - width));
             var top = geometry.top();
 
-            frame.fillPath(left, top, Path.roundRect(0, 0, width, height, 6), readout.background());
+            frame.fillPath(left, top, Path.roundRect(0, 0, width, height, 6), shown.background());
             // Inset by half the stroke width, because a border is stroked down
             // the middle of its path -- and the radius comes in with it, or the
             // corner would not be concentric with the fill under it.
             frame.strokePath(
-                    left, top, Path.roundRect(0.5, 0.5, width - 1, height - 1, 5.5), Stroke.of(1), readout.border());
+                    left, top, Path.roundRect(0.5, 0.5, width - 1, height - 1, 5.5), Stroke.of(1), shown.border());
 
             var y = top + READOUT_PADDING;
-            readout.title().paint(frame, left + READOUT_PADDING, y, Paragraph.UNCONSTRAINED, readout.ink());
+            shown.title().paint(frame, left + READOUT_PADDING, y, Paragraph.UNCONSTRAINED, shown.ink());
             y += lineHeight + READOUT_GAP;
-            for (var row : readout.rows()) {
+            for (var row : shown.rows()) {
                 frame.fillRect(
                         (float) (left + READOUT_PADDING),
                         (float) (y + (lineHeight - swatch) / 2),
@@ -1540,7 +1537,7 @@ record ChartSurface(
                                 left + READOUT_PADDING + swatch + swatchGap,
                                 y,
                                 Paragraph.UNCONSTRAINED,
-                                readout.muted());
+                                shown.muted());
                 var valueLayout = row.value().layout(Paragraph.UNCONSTRAINED);
                 // Right-aligned against the box, so a column of numbers lines up
                 // the way the axis labels do.
@@ -1550,7 +1547,7 @@ record ChartSurface(
                                 left + width - READOUT_PADDING - valueLayout.width(),
                                 y,
                                 Paragraph.UNCONSTRAINED,
-                                readout.ink());
+                                shown.ink());
                 y += lineHeight + READOUT_GAP;
             }
         }

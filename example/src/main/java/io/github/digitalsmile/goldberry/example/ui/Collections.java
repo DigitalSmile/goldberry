@@ -170,16 +170,13 @@ public final class Collections {
             /// not do it: a table over a database would sort in the query, and one
             /// that had already sorted its rows in Java would make that impossible.
             private List<Company.Walker> sorted() {
-                if (sort == null) {
-                    return Company.WALKERS;
-                }
                 Comparator<Company.Walker> by =
                         switch (sort.column()) {
                             case "name" -> Comparator.comparing(Company.Walker::name);
                             case "kindred" -> Comparator.comparing(Company.Walker::kindred);
                             case "realm" -> Comparator.comparing(Company.Walker::realm);
                             case "leagues" -> Comparator.comparingInt(Company.Walker::leagues);
-                            case null, default -> null;
+                            default -> null;
                         };
                 if (by == null) {
                     return Company.WALKERS;

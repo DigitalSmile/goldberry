@@ -143,13 +143,17 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
         this(shape, 3, Attributes.NONE);
     }
 
-    public Skeleton {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Skeleton(@Nullable Shape shape, int lines, @Nullable Attributes attributes) {
         shape = shape == null ? Shape.TEXT : shape;
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (lines < 1) {
             throw new IllegalArgumentException("a skeleton of " + lines + " lines would stand in for nothing;"
                     + " leave it out rather than asking for none");
         }
+        this.shape = shape;
+        this.lines = lines;
+        this.attributes = attributes;
     }
 
     @Override

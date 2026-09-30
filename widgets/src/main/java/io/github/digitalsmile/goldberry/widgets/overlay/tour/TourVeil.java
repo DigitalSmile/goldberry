@@ -83,8 +83,8 @@ record TourVeil(
         var height = window.size().height();
         // Where the hole is on this frame — [Lit], which [TourStop] asks the same
         // question of for the ring and the card.
-        var target = Lit.rectAt(cameFrom, this.target, travel, context.nowMillis());
-        if (target == null || target.size().width() <= 0 || target.size().height() <= 0) {
+        var hole = Lit.rectAt(cameFrom, this.target, travel, context.nowMillis());
+        if (hole == null || hole.size().width() <= 0 || hole.size().height() <= 0) {
             // Nothing to cut around: one band covering everything, and the other
             // three collapsed. A tour between stops looks like a dimmed window
             // rather than flashing to clear.
@@ -96,10 +96,10 @@ record TourVeil(
                             collapsed(children.get(2)),
                             collapsed(children.get(3)));
         }
-        var left = target.left();
-        var top = target.top();
-        var right = left + target.size().width();
-        var bottom = top + target.size().height();
+        var left = hole.left();
+        var top = hole.top();
+        var right = left + hole.size().width();
+        var bottom = top + hole.size().height();
         return Box.of()
                 .style(style)
                 .children(

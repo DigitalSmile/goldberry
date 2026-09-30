@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.core.affix;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
@@ -19,8 +21,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// happen.
 record AffixContent(List<Widget> children, double shiftX, double shiftY) implements Widget.Leaf, Styled, Paints {
 
-    AffixContent {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    AffixContent(@Nullable List<Widget> children, double shiftX, double shiftY) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
+        this.shiftX = shiftX;
+        this.shiftY = shiftY;
     }
 
     @Override

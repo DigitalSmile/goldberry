@@ -72,14 +72,15 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     public static final Shadow NONE = new Shadow(0, 0, 0, 0, CssColor.TRANSPARENT);
 
     public Shadow {
-        offsetX = finite(offsetX, "a shadow's x offset");
-        offsetY = finite(offsetY, "a shadow's y offset");
-        spread = finite(spread, "a shadow's spread");
+        requireFinite(offsetX, "a shadow's x offset");
+        requireFinite(offsetY, "a shadow's y offset");
+        requireFinite(spread, "a shadow's spread");
         // Clamped rather than refused, for [Decoration]'s reason: these arrive
         // from a stylesheet, and §8's rule for a bad declaration is to drop it
         // and carry on. The parser refuses a negative blur where it is written,
         // which is where an author can be told about it.
-        blur = Math.max(0, finite(blur, "a shadow's blur radius"));
+        requireFinite(blur, "a shadow's blur radius");
+        blur = Math.max(0, blur);
     }
 
     /// Whether this shadow would put ink on the screen.
@@ -294,11 +295,10 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         return depth;
     }
 
-    private static double finite(double value, String name) {
+    private static void requireFinite(double value, String name) {
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException(name + " must be a finite number, not " + value);
         }
-        return value;
     }
 
     @Override

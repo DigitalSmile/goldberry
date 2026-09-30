@@ -44,7 +44,6 @@ class TreeFocusScopeTest {
     }
 
     private final Routed host = new Routed();
-    private final List<String> chosen = new ArrayList<>();
     private ElementTree tree;
     private PointerRouter router;
 
@@ -59,9 +58,7 @@ class TreeFocusScopeTest {
     void setUp() {
         RendererRequirement.enforce();
         tree = new ElementTree(
-                new Column(
-                        new Tree(world(), (String) null, chosen::add), new Tree(world(), (String) null, chosen::add)),
-                host);
+                new Column(new Tree(world(), (String) null, _ -> {}), new Tree(world(), (String) null, _ -> {})), host);
         router = new PointerRouter();
         router.focusRoot(tree.root());
         host.router = router;

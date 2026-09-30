@@ -128,15 +128,11 @@ record MenuTitle(
     }
 
     private void activate() {
-        if (onActivate != null) {
-            onActivate.run();
-        }
+        onActivate.run();
     }
 
     private void hovered() {
-        if (onHovered != null) {
-            onHovered.run();
-        }
+        onHovered.run();
     }
 
     /// An optional icon and the label, and nothing else: a heading has no tick

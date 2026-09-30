@@ -82,9 +82,12 @@ public record Spinner(SpinnerSize size, Attributes attributes)
     /// §3.1's "rotation **900ms** linear loop", in milliseconds.
     private static final double PERIOD = 900;
 
-    public Spinner {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Spinner(@Nullable SpinnerSize size, @Nullable Attributes attributes) {
         size = size == null ? SpinnerSize.MEDIUM : size;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.size = size;
+        this.attributes = attributes;
     }
 
     /// A spinner of the default size with no attributes of its own.

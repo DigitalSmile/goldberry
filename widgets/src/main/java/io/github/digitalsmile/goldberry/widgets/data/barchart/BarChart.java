@@ -54,11 +54,20 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record BarChart(List<Series> series, List<String> categories, ChartOptions options, Attributes attributes)
         implements Widget.Stateful, ChartSpec<BarChart>, Attributed<BarChart> {
 
-    public BarChart {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public BarChart(
+            @Nullable List<Series> series,
+            @Nullable List<String> categories,
+            @Nullable ChartOptions options,
+            @Nullable Attributes attributes) {
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
         options = options == null ? ChartOptions.DEFAULTS : options;
+        this.series = series;
+        this.categories = categories;
+        this.options = options;
+        this.attributes = attributes;
     }
 
     /// The ordinary form: a chart that has its data.

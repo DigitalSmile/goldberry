@@ -244,7 +244,7 @@ class BackdropContrastTest {
                         + " the fill rather than on the fill. Move INSET, or give the probe the"
                         + " padding its real rule has.");
 
-        return new Shot(plate, fill, inkOf(theme, sheets, scene));
+        return new Shot(plate, fill, inkOf(sheets, scene));
     }
 
     /// Where `#probe` was laid out.
@@ -289,7 +289,7 @@ class BackdropContrastTest {
     /// frame was the *backdrop*, and that is what comes off the pixels. Reading
     /// the ink out of the frame instead would mean sampling the inside of a glyph,
     /// which at 13px is a handful of pixels that are all partly the backdrop.
-    private static int inkOf(Theme theme, List<Stylesheet> sheets, Widget scene) {
+    private static int inkOf(List<Stylesheet> sheets, Widget scene) {
         var probe = probeElement(new ElementTree(scene).root());
         var style = ComputedStyle.of(new StyleResolver(sheets).resolve(probe), CssLength.Context.DEFAULT);
         var ink = style.color();

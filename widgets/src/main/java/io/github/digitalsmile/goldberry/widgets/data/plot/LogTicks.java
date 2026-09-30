@@ -151,10 +151,10 @@ public final class LogTicks {
         /// number would read `0.01, 0.10, 1.00, 10.00`.
         public String label(double value) {
             if (value >= 1) {
-                return String.format(java.util.Locale.ROOT, "%.0f", value);
+                return Ticks.fixed(value, 0);
             }
             var decimals = Math.min(6, (int) Math.ceil(-Math.log10(value)));
-            return String.format(java.util.Locale.ROOT, "%." + decimals + "f", value);
+            return Ticks.fixed(value, decimals);
         }
     }
 }

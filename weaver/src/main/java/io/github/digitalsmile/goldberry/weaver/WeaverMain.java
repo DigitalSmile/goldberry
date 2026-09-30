@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /// Weaves a directory of compiled classes, in place.
 ///
@@ -204,7 +205,8 @@ public final class WeaverMain {
         }
         var ordered = CatalogWeaver.sorted(widgets);
         var pkg = CatalogWeaver.rootPackage(List.copyOf(ordered.values()), owned);
-        var bytes = CatalogWeaver.catalog(pkg, ordered);
+        // Never null here: the catalog is null only for no widgets, returned above.
+        var bytes = Objects.requireNonNull(CatalogWeaver.catalog(pkg, ordered), "a catalog for widgets");
         var name = pkg.isEmpty() ? CatalogWeaver.CATALOG_CLASS : pkg + "." + CatalogWeaver.CATALOG_CLASS;
 
         var target = root.resolve(name.replace('.', '/') + ".class");

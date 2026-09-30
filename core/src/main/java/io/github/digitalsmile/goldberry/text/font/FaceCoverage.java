@@ -127,7 +127,7 @@ public final class FaceCoverage {
             }
             var delta = in.getShort(deltas + segment * 2);
             var rangeOffset = Short.toUnsignedInt(in.getShort(ranges + segment * 2));
-            for (var code = start; code <= end && code <= 0xFFFF; code++) {
+            for (var code = start; code <= end; code++) {
                 // 0xFFFF is the segment terminator every format 4 table ends
                 // with, and it is not a character.
                 if (code == 0xFFFF) {

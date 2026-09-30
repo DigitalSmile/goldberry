@@ -51,7 +51,7 @@ final class CodeInputState extends State<CodeInput> implements CodeEditor {
     protected void initState() {
         super.initState();
         var input = widget();
-        lastOffered = offered(input);
+        lastOffered = input.resolved();
         edit = CodeEdit.empty(input.length()).type(lastOffered, input.type());
         completed = edit.isComplete();
     }
@@ -79,7 +79,7 @@ final class CodeInputState extends State<CodeInput> implements CodeEditor {
     /// a letter into a `digits` field leaves the boxes empty rather than drawing
     /// something nobody could have typed.
     private void follow(CodeInput input) {
-        var value = offered(input);
+        var value = input.resolved();
         if (value.equals(lastOffered)) {
             return;
         }
@@ -91,13 +91,6 @@ final class CodeInputState extends State<CodeInput> implements CodeEditor {
         // A code the application set is a code nobody typed, so the next fill of
         // the last box is still the first one worth reporting.
         completed = edit.isComplete();
-    }
-
-    /// The value the widget says it holds — its binding if it has one, its
-    /// literal otherwise.
-    private static String offered(CodeInput input) {
-        var resolved = input.resolved();
-        return resolved == null ? "" : resolved;
     }
 
     // --- CodeEditor -----------------------------------------------------------

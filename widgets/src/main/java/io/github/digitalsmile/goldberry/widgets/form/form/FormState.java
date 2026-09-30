@@ -107,8 +107,9 @@ final class FormState extends State<Form> implements FormAccess {
         if (!ok) {
             return false;
         }
-        if (widget().onSubmit() != null) {
-            widget().onSubmit().run();
+        var onSubmit = widget().onSubmit();
+        if (onSubmit != null) {
+            onSubmit.run();
         }
         return true;
     }

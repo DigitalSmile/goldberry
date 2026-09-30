@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.assets;
 
+import java.io.Serial;
+
 /// Thrown when something asks for the emoji face and nobody brought it.
 ///
 /// Its own type rather than an `IllegalStateException`, because it is a thing an
@@ -9,6 +11,7 @@ package io.github.digitalsmile.goldberry.assets;
 /// ([ADR-0384]).
 public final class MissingEmojiFontException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     MissingEmojiFontException() {

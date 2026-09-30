@@ -55,9 +55,7 @@ class LayerTexturesTest {
         if (compositor != null) {
             compositor.close();
         }
-        if (required != null) {
-            required.close();
-        }
+        required.close();
         Sdl.get().quit();
     }
 

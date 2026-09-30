@@ -98,7 +98,19 @@ public record CalendarView(
     /// Nothing drawn on any day.
     public static final Function<LocalDate, @Nullable Widget> NO_DECORATION = date -> null;
 
-    public CalendarView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public CalendarView(
+            @Nullable DateSelection selection,
+            @Nullable Consumer<DateSelection> onSelect,
+            YearMonth month,
+            @Nullable LocalDate today,
+            @Nullable LocalDate min,
+            @Nullable LocalDate max,
+            @Nullable Predicate<LocalDate> disabledDates,
+            @Nullable Locale locale,
+            @Nullable Function<LocalDate, @Nullable Widget> decoration,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(month, "month");
         selection = selection == null ? DateSelection.NONE : selection;
         disabledDates = disabledDates == null ? ALL_ALLOWED : disabledDates;
@@ -109,6 +121,17 @@ public record CalendarView(
             throw new IllegalArgumentException(
                     "a calendar's max (" + max + ") is before its min (" + min + "), so no date is reachable");
         }
+        this.selection = selection;
+        this.onSelect = onSelect;
+        this.month = month;
+        this.today = today;
+        this.min = min;
+        this.max = max;
+        this.disabledDates = disabledDates;
+        this.locale = locale;
+        this.decoration = decoration;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An empty single-date calendar on `month`.

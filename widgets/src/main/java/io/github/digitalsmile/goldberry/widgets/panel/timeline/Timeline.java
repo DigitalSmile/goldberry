@@ -85,11 +85,22 @@ public record Timeline(List<Widget> children, Direction direction, Align align, 
         }
     }
 
-    public Timeline {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Timeline(
+            @Nullable List<Widget> children,
+            @Nullable Direction direction,
+            @Nullable Align align,
+            boolean pending,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         direction = direction == null ? Direction.VERTICAL : direction;
         align = align == null ? Align.START : align;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.direction = direction;
+        this.align = align;
+        this.pending = pending;
+        this.attributes = attributes;
     }
 
     /// A vertical timeline of these entries, every one on the same side.

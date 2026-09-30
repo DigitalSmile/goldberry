@@ -30,9 +30,22 @@ record CollapseSection(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 
-    CollapseSection {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    CollapseSection(
+            String title,
+            boolean open,
+            Runnable onToggle,
+            io.github.digitalsmile.goldberry.widgets.core.presence.Phase phase,
+            @Nullable List<Widget> body,
+            @Nullable Attributes attributes) {
         body = List.copyOf(body == null ? List.of() : body);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.title = title;
+        this.open = open;
+        this.onToggle = onToggle;
+        this.phase = phase;
+        this.body = body;
+        this.attributes = attributes;
     }
 
     @Override

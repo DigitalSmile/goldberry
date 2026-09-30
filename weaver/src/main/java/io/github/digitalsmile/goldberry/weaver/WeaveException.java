@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.weaver;
 
+import java.io.Serial;
+
 /// A model the weaver refuses, with the reason a person can act on.
 ///
 /// Every rule in [Bind]-land is checked here rather than left to fail at run
@@ -12,6 +14,7 @@ package io.github.digitalsmile.goldberry.weaver;
 /// from.
 public final class WeaveException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /// @param message what is wrong, naming the member

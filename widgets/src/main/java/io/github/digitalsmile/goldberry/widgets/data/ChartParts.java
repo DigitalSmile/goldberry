@@ -145,7 +145,7 @@ public final class ChartParts {
         // A **value**, not a point: a series of nothing but holes is as empty as
         // a series of no points, and it is what a query returning rows of nulls
         // produces (Series#valueCount).
-        return series != null && series.stream().anyMatch(one -> one.valueCount() > 0);
+        return series.stream().anyMatch(one -> one.valueCount() > 0);
     }
 
     /// The part a chart draws instead of its data, or **null** when it has some.
@@ -156,11 +156,11 @@ public final class ChartParts {
     /// @param status  what the application said
     /// @param hasData whether the data it passed has anything in it
     public static @Nullable Widget messageFor(ChartStatus status, boolean hasData) {
-        var text = (status == null ? ChartStatus.READY : status).messageFor(hasData);
+        var text = status.messageFor(hasData);
         if (text == null) {
             return null;
         }
-        return new ChartMessage(text, (status == null ? ChartStatus.READY : status).styleClass(hasData));
+        return new ChartMessage(text, status.styleClass(hasData));
     }
 
     /// What [#read] found.

@@ -137,7 +137,7 @@ record VideoSurface(
     }
 
     @Override
-    public @Nullable String accessibleName() {
+    public String accessibleName() {
         return "Video";
     }
 }

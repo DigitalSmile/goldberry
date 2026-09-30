@@ -77,10 +77,29 @@ public final class HitTest {
             Clip clip,
             LogicalRect content) {
 
-        public Region {
+        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        public Region(
+                @Nullable Object owner,
+                Cursor cursor,
+                float left,
+                float top,
+                float width,
+                float height,
+                @Nullable Affine inverse,
+                Clip clip,
+                @Nullable LogicalRect content) {
             Objects.requireNonNull(cursor, "cursor");
             Objects.requireNonNull(clip, "clip");
             content = content == null ? LogicalRect.of(left, top, width, height) : content;
+            this.owner = owner;
+            this.cursor = cursor;
+            this.left = left;
+            this.top = top;
+            this.width = width;
+            this.height = height;
+            this.inverse = inverse;
+            this.clip = clip;
+            this.content = content;
         }
 
         /// A region whose content box is its whole rectangle.

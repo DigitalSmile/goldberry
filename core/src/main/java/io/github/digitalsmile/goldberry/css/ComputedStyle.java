@@ -394,8 +394,7 @@ public record ComputedStyle(
     /// list read two ways, and a property that starts inheriting has to be added
     /// to both or the cache goes stale rather than merely cold.
     public boolean inheritsSameAs(ComputedStyle other) {
-        return other != null
-                && color == other.color
+        return color == other.color
                 && typography.equals(other.typography)
                 && whiteSpace == other.whiteSpace
                 && textAlign == other.textAlign

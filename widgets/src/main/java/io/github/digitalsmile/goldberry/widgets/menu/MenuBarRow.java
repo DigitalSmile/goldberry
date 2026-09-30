@@ -39,9 +39,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// (ADR-0073).
 record MenuBarRow(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints, Handles {
 
-    MenuBarRow {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    MenuBarRow(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     @Override

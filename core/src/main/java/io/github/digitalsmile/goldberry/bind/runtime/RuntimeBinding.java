@@ -190,7 +190,8 @@ final class RuntimeBinding implements BoundModel {
     private static boolean purge() {
         var dropped = false;
         for (Reference<?> stale; (stale = COLLECTED.poll()) != null; ) {
-            ATTACHED.remove(stale);
+            // Only an Identity is ever made with this queue, in attach.
+            ATTACHED.remove((Identity) stale);
             dropped = true;
         }
         return dropped;
@@ -843,7 +844,7 @@ final class RuntimeBinding implements BoundModel {
     /// @param parser turns the `String` a document carries into the argument, or
     ///        null for an action that takes none
     private record Act(
-            String name, MethodHandle handle, @Nullable Function<String, Object> parser) {
+            String name, MethodHandle handle, @Nullable Function<@Nullable String, @Nullable Object> parser) {
 
         boolean valued() {
             return parser != null;
@@ -870,7 +871,7 @@ final class RuntimeBinding implements BoundModel {
 
         /// `value` converted for the parameter, with the action's name on the
         /// refusal when it cannot be.
-        private Object argument(Function<String, Object> parse, @Nullable String value) {
+        private @Nullable Object argument(Function<@Nullable String, @Nullable Object> parse, @Nullable String value) {
             try {
                 return parse.apply(value);
             } catch (IllegalArgumentException e) {
@@ -880,7 +881,7 @@ final class RuntimeBinding implements BoundModel {
 
         /// The `String` → parameter conversion, or null for a type no action may
         /// take. The same four the weaver emits a `parseXxx` for.
-        static @Nullable Function<String, Object> parser(Class<?> param) {
+        static @Nullable Function<@Nullable String, @Nullable Object> parser(Class<?> param) {
             return switch (param.getName()) {
                 case "java.lang.String" -> value -> value;
                 case "double", "java.lang.Double" -> Act::real;
@@ -896,7 +897,10 @@ final class RuntimeBinding implements BoundModel {
         /// and useless: what was typed is in the document, and what the document
         /// needs to know is that the action wanted a number. The action's own name
         /// is added where it is known, in [#invoke].
-        private static Object whole(String value) {
+        private static Object whole(@Nullable String value) {
+            if (value == null) {
+                throw new IllegalArgumentException("\"null\" is not a whole number");
+            }
             try {
                 return Integer.valueOf(value);
             } catch (NumberFormatException e) {
@@ -905,7 +909,14 @@ final class RuntimeBinding implements BoundModel {
         }
 
         /// `value` as a `double`, with the same refusal as [#whole].
-        private static Object real(String value) {
+        ///
+        /// No value at all is refused too, here and in [#whole], and not left to
+        /// `Double.valueOf`, whose `NullPointerException` would name neither the
+        /// action nor the number it wanted.
+        private static Object real(@Nullable String value) {
+            if (value == null) {
+                throw new IllegalArgumentException("\"null\" is not a number");
+            }
             try {
                 return Double.valueOf(value);
             } catch (NumberFormatException e) {

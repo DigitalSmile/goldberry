@@ -40,7 +40,7 @@ final class GpuVideoProbe {
 
     private GpuVideoProbe() {}
 
-    static void main(String[] args) {
+    static void main() {
         var sdl = Sdl.get();
         sdl.initialize(EnumSet.of(SdlSubsystem.VIDEO));
         var video = SdlVideo.get();

@@ -85,9 +85,7 @@ class GpuApiTest {
         if (sdl == null) {
             return;
         }
-        if (sdl != null) {
-            sdl.close();
-        }
+        sdl.close();
         Sdl.get().quit();
     }
 
@@ -105,7 +103,7 @@ class GpuApiTest {
         @DisplayName("a triangle from a vertex buffer reads back as the reference rasterizes it")
         void triangle() {
             try (var vertices = vertexBuffer(triangleVertices(4, 4, 28, 4, 4, 28, 0.5f, 1, 0, 0))) {
-                var pixels = draw(mesh, pass -> {
+                var pixels = draw(pass -> {
                     pass.bindPipeline(mesh);
                     pass.bindVertexBuffer(0, vertices);
                     pass.pushVertexUniforms(0, IDENTITY);
@@ -123,7 +121,7 @@ class GpuApiTest {
             // Row-major: the first row carries x's translation, 8 pixels.
             translate.asFloatBuffer().put(new float[] {1, 0, 0, 2f * 8 / SIZE, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
             try (var vertices = vertexBuffer(triangleVertices(4, 4, 20, 4, 4, 20, 0.5f, 1, 0, 0))) {
-                var pixels = draw(mesh, pass -> {
+                var pixels = draw(pass -> {
                     pass.bindPipeline(mesh);
                     pass.bindVertexBuffer(0, vertices);
                     pass.pushVertexUniforms(0, translate);
@@ -159,7 +157,7 @@ class GpuApiTest {
                 for (var bound : List.of(
                         (Consumer<RenderPass>) pass -> pass.bindIndexBuffer(sixteen, IndexFormat.UINT16),
                         pass -> pass.bindIndexBuffer(thirtyTwo, IndexFormat.UINT32, 8))) {
-                    var pixels = draw(mesh, pass -> {
+                    var pixels = draw(pass -> {
                         pass.bindPipeline(mesh);
                         pass.bindVertexBuffer(0, vertices);
                         bound.accept(pass);
@@ -192,7 +190,7 @@ class GpuApiTest {
                     pass.bindVertexBuffer(0, farBuffer);
                     pass.draw(6);
                 });
-                var untested = draw(mesh, pass -> {
+                var untested = draw(pass -> {
                     pass.bindPipeline(mesh);
                     pass.pushVertexUniforms(0, IDENTITY);
                     pass.bindVertexBuffer(0, nearBuffer);
@@ -223,7 +221,7 @@ class GpuApiTest {
                                     .cull(CullMode.BACK, FrontFace.CLOCKWISE)
                                     .build())) {
                 for (var pipeline : List.of(cullBack, clockwiseFront)) {
-                    var pixels = draw(pipeline, pass -> {
+                    var pixels = draw(pass -> {
                         pass.bindPipeline(pipeline);
                         pass.bindVertexBuffer(0, vertices);
                         pass.pushVertexUniforms(0, IDENTITY);
@@ -675,7 +673,7 @@ class GpuApiTest {
 
     /// Clears a render target to opaque black, runs `body` in a render pass
     /// into it, and reads it back.
-    private static PixelBuffer draw(GraphicsPipeline pipeline, Consumer<RenderPass> body) {
+    private static PixelBuffer draw(Consumer<RenderPass> body) {
         try (var target = renderTarget();
                 var frame = device.beginFrame()) {
             frame.renderPass(target, Load.clear(0, 0, 0, 1), body);

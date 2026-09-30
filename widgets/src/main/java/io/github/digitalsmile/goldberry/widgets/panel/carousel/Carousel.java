@@ -93,7 +93,14 @@ public record Carousel(
         this(index, onChange, false, null, List.of(slides), Attributes.NONE);
     }
 
-    public Carousel {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Carousel(
+            int index,
+            @Nullable IntConsumer onChange,
+            boolean loop,
+            @Nullable Duration interval,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         interval = interval == null || interval.isZero() || interval.isNegative() ? null : interval;
@@ -101,6 +108,12 @@ public record Carousel(
         // an ordinary thing for an application to do between frames, and a
         // carousel that threw there would take the window down for it.
         index = children.isEmpty() ? 0 : Math.clamp(index, 0, children.size() - 1);
+        this.index = index;
+        this.onChange = onChange;
+        this.loop = loop;
+        this.interval = interval;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// Whether the application is deciding, rather than this widget.

@@ -63,9 +63,15 @@ public record Accordion(int open, @Nullable IntConsumer onOpen, List<Widget> chi
         this(NONE, null, List.of(sections), Attributes.NONE);
     }
 
-    public Accordion {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Accordion(
+            int open, @Nullable IntConsumer onOpen, @Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.open = open;
+        this.onOpen = onOpen;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// Whether the application is deciding, rather than this widget.

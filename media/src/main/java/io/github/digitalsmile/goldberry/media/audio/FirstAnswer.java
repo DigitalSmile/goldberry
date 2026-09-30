@@ -35,6 +35,9 @@ record FirstAnswer(List<OutputLatency> providers) implements OutputLatency {
                 LOG.debug("the output latency provider {} failed, and is passed over", provider, e);
                 continue;
             }
+            // A provider is anyone's code, and one that answers null instead of an
+            // empty Optional is passed over like one that throws.
+            //noinspection ConstantValue
             if (answer != null && answer.isPresent() && !answer.get().isNegative()) {
                 return answer;
             }

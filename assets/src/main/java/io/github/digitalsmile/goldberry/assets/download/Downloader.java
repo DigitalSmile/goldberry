@@ -26,7 +26,10 @@ import java.util.Objects;
 /// The checksum is not this class's business. A download that arrives whole and
 /// hashes wrong is a changed upstream, not a flaky one, and
 /// [io.github.digitalsmile.goldberry.assets.prepare.AssetCache] refuses it without retrying.
-public final class Downloader {
+///
+/// [#standard()]'s downloader owns an `HttpClient`, and [#close()] releases it.
+/// One built from a [Transport] owns nothing, and closing it does nothing.
+public final class Downloader implements AutoCloseable {
 
     /// One request, and what came back.
     @FunctionalInterface
@@ -63,8 +66,14 @@ public final class Downloader {
     private final int attempts;
     private final Duration firstWait;
     private final Sleeper sleeper;
+    private final Runnable release;
 
     public Downloader(Transport transport, int attempts, Duration firstWait, Sleeper sleeper) {
+        this(transport, attempts, firstWait, sleeper, () -> {});
+    }
+
+    private Downloader(Transport transport, int attempts, Duration firstWait, Sleeper sleeper, Runnable release) {
+        this.release = Objects.requireNonNull(release, "release");
         this.transport = Objects.requireNonNull(transport, "transport");
         if (attempts < 1) {
             throw new IllegalArgumentException("a download is attempted at least once, not " + attempts);
@@ -76,6 +85,10 @@ public final class Downloader {
 
     /// The build's downloader: `java.net.http`, redirects followed (a GitHub
     /// release asset is a redirect), [#ATTEMPTS] attempts from [#FIRST_WAIT].
+    ///
+    /// The client outlives this method on purpose: the downloader owns it, and
+    /// [#close()] closes it.
+    @SuppressWarnings("resource")
     public static Downloader standard() {
         var client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -86,7 +99,13 @@ public final class Downloader {
                     HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofInputStream());
             return new Response(response.statusCode(), response.body());
         };
-        return new Downloader(transport, ATTEMPTS, FIRST_WAIT, duration -> Thread.sleep(duration));
+        return new Downloader(transport, ATTEMPTS, FIRST_WAIT, duration -> Thread.sleep(duration), client::close);
+    }
+
+    /// Releases what this downloader owns: the standard one's `HttpClient`.
+    @Override
+    public void close() {
+        release.run();
     }
 
     /// Whether a status is worth asking again for.
@@ -116,13 +135,16 @@ public final class Downloader {
     }
 
     private <T> T attempt(URI uri, BodyReader<T> reader) throws IOException {
+        // Never null past the first pass, since the constructor refuses fewer
+        // than one attempt, and every pass that does not return or throw sets it.
         IOException last = null;
         var wait = firstWait;
         for (var attempt = 1; attempt <= attempts; attempt++) {
-            if (attempt > 1) {
+            if (last != null) {
                 pause(uri, wait, last);
                 wait = wait.multipliedBy(2);
             }
+            IOException failed;
             try {
                 var response = transport.get(uri);
                 try (var body = response.body()) {
@@ -130,23 +152,25 @@ public final class Downloader {
                     if (status >= 200 && status < 300) {
                         return reader.read(body);
                     }
-                    var failure = new IOException("HTTP " + status + " for " + uri);
+                    failed = new IOException("HTTP " + status + " for " + uri);
                     if (!isTransient(status)) {
-                        throw new PermanentFailure(failure);
+                        throw new PermanentFailure(failed);
                     }
-                    last = failure;
                 }
             } catch (PermanentFailure permanent) {
                 throw permanent.getCause();
             } catch (IOException dropped) {
-                last = dropped;
+                failed = dropped;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new IOException("interrupted downloading " + uri, interrupted);
             }
-            System.err.println("download attempt " + attempt + " of " + attempts + " failed: " + last.getMessage());
+            System.err.println("download attempt " + attempt + " of " + attempts + " failed: " + failed.getMessage());
+            last = failed;
         }
-        throw new IOException(uri + " failed " + attempts + " times; the last failure was: " + last.getMessage(), last);
+        var failure = Objects.requireNonNull(last, "a download is attempted at least once");
+        throw new IOException(
+                uri + " failed " + attempts + " times; the last failure was: " + failure.getMessage(), failure);
     }
 
     private void pause(URI uri, Duration wait, IOException last) throws IOException {

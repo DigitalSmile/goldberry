@@ -27,9 +27,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// stylesheet could turn into a row would be a name that lies.
 record AccordionColumn(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
-    AccordionColumn {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    AccordionColumn(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     @Override

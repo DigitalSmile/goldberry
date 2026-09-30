@@ -100,11 +100,26 @@ public record Scroll(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
-    public Scroll {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Scroll(
+            @Nullable List<Widget> children,
+            @Nullable ScrollAxis axis,
+            double height,
+            @Nullable ScrollController controller,
+            @Nullable ScrollAnchor anchor,
+            @Nullable Boolean preserveOnPrepend,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         axis = axis == null ? ScrollAxis.VERTICAL : axis;
         anchor = anchor == null ? ScrollAnchor.START : anchor;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.axis = axis;
+        this.height = height;
+        this.controller = controller;
+        this.anchor = anchor;
+        this.preserveOnPrepend = preserveOnPrepend;
+        this.attributes = attributes;
     }
 
     public Scroll(List<Widget> children, ScrollAxis axis, Attributes attributes) {

@@ -46,7 +46,16 @@ public record WebViewSpec(
     /// @see #DEFAULT_WIDTH
     public static final int DEFAULT_HEIGHT = 768;
 
-    public WebViewSpec {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public WebViewSpec(
+            @Nullable String url,
+            @Nullable String html,
+            String title,
+            int width,
+            int height,
+            WebSize size,
+            boolean debug,
+            java.util.@Nullable Map<String, WebCallback> callbacks) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(size, "size");
         // Copied and ordered, so the names are bound in the order they were
@@ -63,6 +72,14 @@ public record WebViewSpec(
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("a page's window is " + width + "x" + height + ", and both must be > 0");
         }
+        this.url = url;
+        this.html = html;
+        this.title = title;
+        this.width = width;
+        this.height = height;
+        this.size = size;
+        this.debug = debug;
+        this.callbacks = callbacks;
     }
 
     /// A page with no callbacks — the shape this record had before a page could

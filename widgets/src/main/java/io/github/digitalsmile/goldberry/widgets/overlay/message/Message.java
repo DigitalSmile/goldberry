@@ -173,11 +173,24 @@ public record Message(
         }
     }
 
-    public Message {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Message(
+            @Nullable Kind kind,
+            String text,
+            @Nullable Observable<?> source,
+            @Nullable List<Widget> actions,
+            @Nullable Runnable onDismiss,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(text, "text");
         kind = kind == null ? Kind.INFO : kind;
         actions = List.copyOf(actions == null ? List.of() : actions);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.kind = kind;
+        this.text = text;
+        this.source = source;
+        this.actions = actions;
+        this.onDismiss = onDismiss;
+        this.attributes = attributes;
     }
 
     /// A banner of a kind, saying one thing.
@@ -197,7 +210,7 @@ public record Message(
     }
 
     /// This banner with a way out. Null takes the × away again.
-    public Message dismiss(Runnable listener) {
+    public Message dismiss(@Nullable Runnable listener) {
         return new Message(kind, text, source, actions, listener, attributes);
     }
 
@@ -246,10 +259,7 @@ public record Message(
     ///         errors is not an empty banner, it is no banner
     public static Optional<Message> summary(List<String> errors) {
         Objects.requireNonNull(errors, "errors");
-        var lines = errors.stream()
-                .filter(Objects::nonNull)
-                .filter(line -> !line.isBlank())
-                .toList();
+        var lines = errors.stream().filter(line -> !line.isBlank()).toList();
         return lines.isEmpty() ? Optional.empty() : Optional.of(new Message(Kind.DANGER, String.join("\n", lines)));
     }
 

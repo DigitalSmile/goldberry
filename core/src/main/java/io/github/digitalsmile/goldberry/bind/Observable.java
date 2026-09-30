@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.bind;
 
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 /// A value that can be read and watched, and **not** written.
 ///
 /// This is what a widget gets. [Property] is the same value with `set` on it, and
@@ -19,8 +21,12 @@ import java.util.function.Consumer;
 ///
 /// Confined to the UI thread, like the property behind it.
 ///
-/// @param <T> the value type
-public interface Observable<T> {
+/// **The value may be null.** A model field that is not loaded yet holds null,
+/// and so does a property made with nothing in it; the type parameter says so,
+/// so a reader of a bound value is told to expect it.
+///
+/// @param <T> the value type, null included
+public interface Observable<T extends @Nullable Object> {
 
     /// The current value.
     T get();

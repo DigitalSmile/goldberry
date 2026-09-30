@@ -54,9 +54,7 @@ class WindowIdentityTest {
         }
         // Empty is unset, so the next class gets SDL's default.
         Sdl.get().setHint(Sdl.FRAMEBUFFER_ACCELERATION_HINT, "");
-        if (device != null) {
-            device.close();
-        }
+        device.close();
         Sdl.get().quit();
     }
 

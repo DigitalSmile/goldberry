@@ -32,8 +32,10 @@ public record Separator(Attributes attributes) implements Widget.Leaf, Styled, P
         this(Attributes.NONE);
     }
 
-    public Separator {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Separator(@Nullable Attributes attributes) {
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.attributes = attributes;
     }
 
     @Override

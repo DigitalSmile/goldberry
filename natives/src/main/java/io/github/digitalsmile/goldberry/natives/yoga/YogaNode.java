@@ -76,7 +76,7 @@ public final class YogaNode implements AutoCloseable {
     private final Thread owner = Thread.currentThread();
     private final List<YogaNode> children = new ArrayList<>();
 
-    private YogaNode parent;
+    private @Nullable YogaNode parent;
     private MeasureCallback measure;
     private boolean freed;
 
@@ -205,7 +205,7 @@ public final class YogaNode implements AutoCloseable {
     }
 
     /// The node that owns this one, or null if it is a root.
-    public YogaNode parent() {
+    public @Nullable YogaNode parent() {
         requireUsable();
         return parent;
     }

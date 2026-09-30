@@ -101,13 +101,36 @@ public record Table<T>(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Table<T>> {
 
-    public Table {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Table(
+            @Nullable List<T> items,
+            Function<T, String> identity,
+            @Nullable List<Column<T>> columns,
+            @Nullable Sort sort,
+            @Nullable Consumer<Sort> onSort,
+            @Nullable Set<String> selected,
+            @Nullable Consumer<Set<String>> onSelect,
+            @Nullable Selection selection,
+            double rowHeight,
+            @Nullable BiConsumer<String, Double> onResize,
+            @Nullable Attributes attributes) {
         items = List.copyOf(items == null ? List.of() : items);
         columns = List.copyOf(columns == null ? List.of() : columns);
         Objects.requireNonNull(identity, "identity");
         selected = selected == null ? Set.of() : Set.copyOf(selected);
         selection = selection == null ? Selection.SINGLE : selection;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.items = items;
+        this.identity = identity;
+        this.columns = columns;
+        this.sort = sort;
+        this.onSort = onSort;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.selection = selection;
+        this.rowHeight = rowHeight;
+        this.onResize = onResize;
+        this.attributes = attributes;
     }
 
     /// A table over `items` with `columns`, choosing one row at a time.
@@ -133,7 +156,7 @@ public record Table<T>(
     }
 
     /// The same, for the caller that holds one value.
-    public Table<T> selected(@Nullable String value, @Nullable Consumer<String> onSelect) {
+    public Table<T> selected(@Nullable String value, @Nullable Consumer<@Nullable String> onSelect) {
         return selected(
                 value == null ? Set.of() : Set.of(value),
                 onSelect == null

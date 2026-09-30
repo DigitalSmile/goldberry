@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.input.key;
 
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which modifier this desktop uses for its accelerators — `Cmd` on macOS,
 /// `Ctrl` everywhere else.
 ///
@@ -44,7 +46,7 @@ public final class PrimaryModifier {
     ///
     /// @param osName   the value of `os.name`
     /// @param override the value of [#PROPERTY], or null
-    static Mod resolve(String osName, String override) {
+    static Mod resolve(String osName, @Nullable String override) {
         if (override != null) {
             return switch (override.toLowerCase(Locale.ROOT)) {
                 case "meta", "cmd", "command", "super" -> Mod.META;

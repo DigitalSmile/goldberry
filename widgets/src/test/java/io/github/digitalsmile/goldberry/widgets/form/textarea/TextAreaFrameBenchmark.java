@@ -57,6 +57,10 @@ class TextAreaFrameBenchmark {
 
     private static final int RUNS = 200;
 
+    /// Where each stage's results go, so the work is read and the JIT keeps it.
+    @SuppressWarnings("unused")
+    private static volatile long consumed;
+
     /// How wide the control is laid out, in logical points. A note editor's
     /// column: wide enough that prose wraps a few times per hard line.
     private static final double WIDTH = 640;
@@ -211,6 +215,7 @@ class TextAreaFrameBenchmark {
             sink += work.getAsLong();
             samples[i] = System.nanoTime() - start;
         }
+        consumed = sink;
         report(what, samples);
     }
 

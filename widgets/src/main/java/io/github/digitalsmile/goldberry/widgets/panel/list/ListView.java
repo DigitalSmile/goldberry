@@ -120,7 +120,7 @@ public record ListView<T>(
         Function<T, String> identity,
         Function<T, Widget> factory,
         @Nullable Function<T, String> text,
-        @Nullable Function<T, String> itemMenu,
+        @Nullable Function<T, @Nullable String> itemMenu,
         Set<String> selected,
         @Nullable Consumer<Set<String>> onSelect,
         Selection selection,
@@ -129,7 +129,19 @@ public record ListView<T>(
         Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
-    public ListView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ListView(
+            @Nullable List<T> items,
+            Function<T, String> identity,
+            Function<T, Widget> factory,
+            @Nullable Function<T, String> text,
+            @Nullable Function<T, @Nullable String> itemMenu,
+            Set<String> selected,
+            @Nullable Consumer<Set<String>> onSelect,
+            @Nullable Selection selection,
+            double rowHeight,
+            boolean rowHeightFromToken,
+            @Nullable Attributes attributes) {
         items = List.copyOf(items == null ? List.of() : items);
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(factory, "factory");
@@ -143,12 +155,21 @@ public record ListView<T>(
                     + " or zero to build every row; got " + rowHeight);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.items = items;
+        this.identity = identity;
+        this.factory = factory;
+        this.text = text;
+        this.itemMenu = itemMenu;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.selection = selection;
+        this.rowHeight = rowHeight;
+        this.rowHeightFromToken = rowHeightFromToken;
+        this.attributes = attributes;
     }
 
     private static Set<String> unmodifiableOrdered(Set<String> values) {
-        return values == null || values.isEmpty()
-                ? Set.of()
-                : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(values));
+        return values.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(values));
     }
 
     /// A list over `items`, with no selection callback yet.
@@ -219,7 +240,7 @@ public record ListView<T>(
     /// to hand it over and unwrap it to read it back would be ceremony in the
     /// common case for the benefit of the rare one. What crosses inside is a set
     /// either way.
-    public ListView<T> selected(@Nullable String value, @Nullable Consumer<String> onSelect) {
+    public ListView<T> selected(@Nullable String value, @Nullable Consumer<@Nullable String> onSelect) {
         return selected(
                 value == null ? Set.of() : Set.of(value),
                 onSelect == null
@@ -319,7 +340,7 @@ public record ListView<T>(
     /// so that both ways in find it: a right-click walks up from what is under
     /// the pointer, and the menu key walks up from what has the focus, which is
     /// the row itself ([ADR-0208]).
-    public ListView<T> itemMenu(Function<T, String> value) {
+    public ListView<T> itemMenu(Function<T, @Nullable String> value) {
         return new ListView<>(
                 items,
                 identity,

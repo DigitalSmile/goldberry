@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 /// One observable value — the whole of §9's "small built-in `Property<T>` type".
 ///
 /// A property is a cell with listeners. It is not a stream, not a computed graph,
@@ -46,7 +48,7 @@ import java.util.function.Consumer;
 /// completing on the UI thread.
 ///
 /// @param <T> the value type
-public final class Property<T> implements Observable<T> {
+public final class Property<T extends @Nullable Object> implements Observable<T> {
 
     private final List<Consumer<? super T>> listeners = new ArrayList<>();
 
@@ -61,7 +63,7 @@ public final class Property<T> implements Observable<T> {
     /// Null is allowed: "no value yet" is a state a binding has to be able to
     /// represent, and a property that refused it would push every application
     /// into an `Optional` it did not ask for.
-    public static <T> Property<T> of(T initial) {
+    public static <T extends @Nullable Object> Property<T> of(T initial) {
         return new Property<>(initial);
     }
 

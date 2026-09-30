@@ -89,7 +89,7 @@ class HiddenSubtreeTest {
         return null;
     }
 
-    private static List<String> tabOrder(PointerRouter router, ElementTree tree) {
+    private static List<String> tabOrder(PointerRouter router) {
         var seen = new ArrayList<String>();
         router.focus(null, false);
         for (var i = 0; i < 5; i++) {
@@ -110,7 +110,7 @@ class HiddenSubtreeTest {
         var router = new PointerRouter();
         router.focusRoot(tree.root());
 
-        assertEquals(List.of("a", "b"), tabOrder(router, tree));
+        assertEquals(List.of("a", "b"), tabOrder(router));
         assertTrue(find(tree.root(), "c").isMounted(), "the hidden page kept its element");
     }
 
@@ -129,7 +129,7 @@ class HiddenSubtreeTest {
 
         assertNull(router.focused());
         assertSame(b, find(tree.root(), "b"), "hiding kept the element rather than rebuilding it");
-        assertEquals(List.of("c"), tabOrder(router, tree));
+        assertEquals(List.of("c"), tabOrder(router));
     }
 
     @Test

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -53,8 +55,11 @@ record CollapseBody(List<Widget> children, Phase phase) implements Widget.Leaf, 
     /// a settle into place, not an entrance.
     private static final double TRAVEL = 6;
 
-    CollapseBody {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    CollapseBody(@Nullable List<Widget> children, Phase phase) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
+        this.phase = phase;
     }
 
     @Override

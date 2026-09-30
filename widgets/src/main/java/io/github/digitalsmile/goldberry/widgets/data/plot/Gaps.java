@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data.plot;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 
 /// A series with its holes resolved — the one place a [NullPolicy] is applied.
@@ -52,11 +54,14 @@ public final class Gaps {
     /// every real point onto a single pixel — which is a worse answer than
     /// leaving it out and is the same answer the axis already gives a `NaN`.
     public static boolean isValue(Double value) {
-        return value != null && Double.isFinite(value);
+        return Double.isFinite(value);
     }
 
     /// `values` under `policy`.
-    public static Resolved resolve(List<Double> values, NullPolicy policy) {
+    ///
+    /// @param values the series' values, or null for none
+    /// @param policy what to do about the holes, or null for [NullPolicy#GAP]
+    public static Resolved resolve(@Nullable List<Double> values, @Nullable NullPolicy policy) {
         var mode = policy == null ? NullPolicy.GAP : policy;
         if (values == null || values.isEmpty()) {
             return new Resolved(List.of(), List.of());

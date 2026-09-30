@@ -52,7 +52,6 @@ record SliderValue(String text, boolean disabled) implements Widget.Leaf, Styled
         // A measured leaf, exactly as `text` is: the paragraph reports how tall
         // it came out at the width Yoga proposed (ADR-0036). The width is the
         // stylesheet's, so what is measured here is only the height.
-        return Box.text(context.paragraph(style, text == null ? "" : text), style.color())
-                .style(style);
+        return Box.text(context.paragraph(style, text), style.color()).style(style);
     }
 }

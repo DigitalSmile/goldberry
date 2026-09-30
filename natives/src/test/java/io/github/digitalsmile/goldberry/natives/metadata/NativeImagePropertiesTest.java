@@ -67,10 +67,11 @@ class NativeImagePropertiesTest {
     /// property continuations and re-implementing them here is how a test comes
     /// to pass against a file the tool reads differently.
     private static Set<String> arguments() {
-        try (var in = NativeImagePropertiesTest.class.getResourceAsStream(RESOURCE)) {
-            assertNotNull(in, "this module ships " + RESOURCE + "; without it an image is built with no arguments");
+        var in = NativeImagePropertiesTest.class.getResourceAsStream(RESOURCE);
+        assertNotNull(in, "this module ships " + RESOURCE + "; without it an image is built with no arguments");
+        try (var reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
             var properties = new Properties();
-            properties.load(new InputStreamReader(in, StandardCharsets.UTF_8));
+            properties.load(reader);
             var args = properties.getProperty("Args");
             assertNotNull(args, "no Args line in " + RESOURCE);
             return new TreeSet<>(Arrays.asList(args.split("\\s+")));

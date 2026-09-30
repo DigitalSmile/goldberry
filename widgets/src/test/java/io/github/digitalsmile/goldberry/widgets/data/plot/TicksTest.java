@@ -30,6 +30,16 @@ class TicksTest {
     }
 
     @Test
+    @DisplayName("writes a label with the decimals asked for, in the root locale, and refuses fewer than none")
+    void fixed() {
+        assertEquals("3", Ticks.fixed(2.5, 0));
+        assertEquals("0.50", Ticks.fixed(0.5, 2));
+        assertEquals("1234.5", Ticks.fixed(1234.5, 1), "no grouping separator and a point, whatever the locale");
+        assertEquals("-0.000001", Ticks.fixed(-0.000001, 6));
+        assertThrows(IllegalArgumentException.class, () -> Ticks.fixed(1, -1));
+    }
+
+    @Test
     @DisplayName("labels a round range roundly")
     void roundRanges() {
         var labels = Ticks.extended(0, 100, 5);

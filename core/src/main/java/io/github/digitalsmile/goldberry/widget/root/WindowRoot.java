@@ -102,8 +102,12 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
     /// concept.
     @Override
     public List<Widget> children() {
+        // Never null: the launcher's property starts at List.of() and is only
+        // ever set to a copy. IntelliJ reads Property's nullable type bound here
+        // rather than the non-null List it is declared with.
         var entries = overlays.get();
-        if (entries == null || entries.isEmpty()) {
+        //noinspection DataFlowIssue
+        if (entries.isEmpty()) {
             return List.of(content);
         }
         var children = new ArrayList<Widget>(entries.size() + 1);

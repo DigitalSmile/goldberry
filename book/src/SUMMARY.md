@@ -512,3 +512,4 @@
 - [ADR-0495 Media is published, and snapshots publish again](adr/0495-media-is-published-and-snapshots-publish-again.md)
 - [ADR-0496 Eleven packages split by role](adr/0496-eleven-packages-split-by-role.md)
 - [ADR-0497 Every package says what it is, and is null-marked](adr/0497-every-package-says-what-it-is-and-is-null-marked.md)
+- [ADR-0498 Qodana reads a reviewed profile, and a bound value may be null](adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md)

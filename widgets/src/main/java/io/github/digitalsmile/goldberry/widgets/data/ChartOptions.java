@@ -61,7 +61,18 @@ public record ChartOptions(
             null,
             Fill.NONE);
 
-    public ChartOptions {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ChartOptions(
+            @Nullable ChartStatus status,
+            @Nullable NullPolicy nulls,
+            @Nullable List<Threshold> thresholds,
+            @Nullable TimeAxis time,
+            @Nullable Curve curve,
+            boolean logY,
+            @Nullable Bounds bounds,
+            @Nullable Markers markers,
+            @Nullable CrosshairGroup crosshair,
+            @Nullable Fill fill) {
         status = status == null ? ChartStatus.READY : status;
         nulls = nulls == null ? NullPolicy.GAP : nulls;
         thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
@@ -72,6 +83,16 @@ public record ChartOptions(
         // the picture it had: a line chart draws no fill and an area chart reads
         // it as SOLID, because a band with no fill is not a band (Fill).
         fill = fill == null ? Fill.NONE : fill;
+        this.status = status;
+        this.nulls = nulls;
+        this.thresholds = thresholds;
+        this.time = time;
+        this.curve = curve;
+        this.logY = logY;
+        this.bounds = bounds;
+        this.markers = markers;
+        this.crosshair = crosshair;
+        this.fill = fill;
     }
 
     /// These options with a different state.

@@ -316,7 +316,7 @@ public final class PointerRouter {
 
     /// Tells the router how big the window is, for the rectangle above.
     public void windowBounds(LogicalRect bounds) {
-        this.windowBounds = bounds == null ? LogicalRect.of(0, 0, 0, 0) : bounds;
+        this.windowBounds = bounds;
     }
 
     /// What each [Measured] widget was told last time, so an unchanging window
@@ -356,9 +356,8 @@ public final class PointerRouter {
             // `partOf` returns an Element or null, so `instanceof Element` here
             // was a null check wearing a pattern's clothes -- it read as though
             // the type were in question when only the presence ever was.
-            var named = element.widget() instanceof Handles handles && handles.localPart() != null
-                    ? partOf(element, handles.localPart())
-                    : null;
+            var name = element.widget() instanceof Handles handles ? handles.localPart() : null;
+            var named = name == null ? null : partOf(element, name);
             if (named != null) {
                 var namedExtent = extentOf(named);
                 if (namedExtent != Extent.NONE) {
@@ -632,7 +631,7 @@ public final class PointerRouter {
     /// What confines `region`, or the window when nothing does.
     private LogicalRect clipRect(HitTest.Region region) {
         var clip = region.clip();
-        if (clip == null || clip.isNone()) {
+        if (clip.isNone()) {
             return reported(windowBounds);
         }
         return reported(
@@ -1779,7 +1778,7 @@ public final class PointerRouter {
     }
 
     private static @Nullable Element findById(@Nullable Element element, String id) {
-        if (element == null || id == null) {
+        if (element == null) {
             return null;
         }
         if (id.equals(element.id())) {

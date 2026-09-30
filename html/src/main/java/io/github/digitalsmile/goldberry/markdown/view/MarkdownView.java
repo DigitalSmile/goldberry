@@ -111,10 +111,27 @@ public record MarkdownView(
         Attributes attributes)
         implements Widget.Stateless, Attributed<MarkdownView>, Bindable<MarkdownView> {
 
-    public MarkdownView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public MarkdownView(
+            Document document,
+            @Nullable Observable<?> source,
+            @Nullable MarkdownSyntax syntax,
+            @Nullable Consumer<String> onLink,
+            @Nullable Consumer<String> onWikiLink,
+            @Nullable ImageSource images,
+            @Nullable IntConsumer onTask,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(document, "document");
         syntax = syntax == null ? MarkdownSyntax.gitHub() : syntax;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.document = document;
+        this.source = source;
+        this.syntax = syntax;
+        this.onLink = onLink;
+        this.onWikiLink = onWikiLink;
+        this.images = images;
+        this.onTask = onTask;
+        this.attributes = attributes;
     }
 
     /// A view of `document`.

@@ -45,9 +45,13 @@ import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type, Attributes attributes)
         implements Widget.Stateless, Attributed<Bound>, Bindable<Bound> {
 
-    public Bound {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Bound(@Nullable Observable<?> source, Class<? extends Widget> type, @Nullable Attributes attributes) {
         Objects.requireNonNull(type, "type");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.source = source;
+        this.type = type;
+        this.attributes = attributes;
     }
 
     @Override

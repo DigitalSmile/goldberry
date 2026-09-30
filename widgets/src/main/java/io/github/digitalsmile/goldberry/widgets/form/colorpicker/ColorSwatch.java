@@ -90,15 +90,16 @@ record ColorSwatch(Kind kind, int argb, @Nullable IntConsumer onPress)
     /// button" a button for a keyboard as well as for a pointer.
     @Override
     public void onKey(KeyEvent event) {
-        if (!isFocusable()
+        // `onPress` is asked here as well as in `isFocusable`, so that the call
+        // below is visibly on a non-null handler.
+        if (onPress == null
+                || !isFocusable()
                 || event.kind() != KeyEvent.Kind.PRESSED
                 || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE || event.key() == Key.ENTER) {
-            if (onPress != null) {
-                onPress.accept(argb);
-            }
+            onPress.accept(argb);
             event.consume();
         }
     }

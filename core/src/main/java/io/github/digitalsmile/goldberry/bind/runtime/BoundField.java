@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.bind.runtime;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.Subscription;
@@ -21,7 +23,7 @@ import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 /// [BindingRegistry]. Nothing else has any reason to create one.
 ///
 /// @param <T> the value type
-public final class BoundField<T> implements Observable<T> {
+public final class BoundField<T extends @Nullable Object> implements Observable<T> {
 
     private final BoundModel model;
     private final int slot;

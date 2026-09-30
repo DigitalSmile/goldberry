@@ -444,6 +444,16 @@ class HttpIOTest {
     }
 
     @Test
+    @DisplayName("a Content-Range too long for a long fails the open as I/O, not as a number")
+    void contentRangeOverflow() throws IOException {
+        server = new TestHttpServer(DATA);
+        server.contentRange = "bytes 0-99/99999999999999999999";
+        var failure = assertThrows(IOException.class, () -> open(Source.of(server.uri("clip.bin")), FAST));
+        assertTrue(failure.getMessage().contains("unreadable Content-Range"), failure.getMessage());
+        assertInstanceOf(NumberFormatException.class, failure.getCause());
+    }
+
+    @Test
     @DisplayName("an unreachable server fails the open")
     void unreachable() throws IOException {
         // A port that was free a moment ago: nothing listens there now.

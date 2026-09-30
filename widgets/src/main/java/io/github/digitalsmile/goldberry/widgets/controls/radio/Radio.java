@@ -75,10 +75,17 @@ public record Radio(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> , Semantics {
 
-    public Radio {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Radio(String value, String label, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.label = label;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An option with a value and a label — what an author writes, in Java or in

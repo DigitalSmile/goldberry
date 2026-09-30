@@ -260,10 +260,11 @@ final class ListState<T> extends State<ListView<T>> {
     /// the same answer as no attributes, and one branch is cheaper to read than
     /// two.
     private Attributes menuOf(T item) {
-        if (widget().itemMenu() == null) {
+        var itemMenu = widget().itemMenu();
+        if (itemMenu == null) {
             return Attributes.NONE;
         }
-        var named = widget().itemMenu().apply(item);
+        var named = itemMenu.apply(item);
         return named == null || named.isBlank() ? Attributes.NONE : Attributes.NONE.contextMenu(named);
     }
 
@@ -358,7 +359,7 @@ final class ListState<T> extends State<ListView<T>> {
         for (var i = Math.max(0, start); i < items.size(); i++) {
             var item = items.get(i);
             var text = reading.apply(item);
-            if (text != null && text.toLowerCase(Locale.ROOT).startsWith(wanted)) {
+            if (text.toLowerCase(Locale.ROOT).startsWith(wanted)) {
                 return list.identity().apply(item);
             }
         }

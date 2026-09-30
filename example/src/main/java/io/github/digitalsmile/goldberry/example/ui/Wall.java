@@ -52,8 +52,15 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 record Wall(String id, String title, String note, int columns, int minColumnWidth, List<Widget> cards)
         implements Widget.Stateless {
 
-    Wall {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    Wall(String id, String title, String note, int columns, int minColumnWidth, @Nullable List<Widget> cards) {
         cards = List.copyOf(cards == null ? List.of() : cards);
+        this.id = id;
+        this.title = title;
+        this.note = note;
+        this.columns = columns;
+        this.minColumnWidth = minColumnWidth;
+        this.cards = cards;
     }
 
     /// A wall built from a document's, plus whatever Java had to add.
@@ -61,7 +68,7 @@ record Wall(String id, String title, String note, int columns, int minColumnWidt
     /// The order matters and is the caller's: a masonry places each card under
     /// whichever column is shortest, so a card appended here lands *after* the
     /// document's rather than beside any particular one of them.
-    static Wall of(String id, String title, String note, Masonry document, Widget @Nullable ... extra) {
+    static Wall of(String id, String title, String note, Masonry document, Widget... extra) {
         var cards = new java.util.ArrayList<>(document.children());
         cards.addAll(List.of(extra));
         return new Wall(id, title, note, document.columns(), document.minColumnWidth(), cards);

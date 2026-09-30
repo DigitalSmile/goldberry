@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -76,9 +78,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 @Markup("menubar")
 public record MenuBar(List<Widget> children, Attributes attributes) implements Widget.Stateful, Attributed<MenuBar> {
 
-    public MenuBar {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public MenuBar(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     public MenuBar(Widget... children) {

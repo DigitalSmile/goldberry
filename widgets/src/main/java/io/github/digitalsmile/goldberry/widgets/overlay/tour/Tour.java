@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -42,8 +44,12 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///               targets it can find
 public record Tour(List<Stop> stops, Host host, Runnable onEnd) implements Widget.Stateful {
 
-    public Tour {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Tour(@Nullable List<Stop> stops, Host host, Runnable onEnd) {
         stops = List.copyOf(stops == null ? List.of() : stops);
+        this.stops = stops;
+        this.host = host;
+        this.onEnd = onEnd;
     }
 
     @Override

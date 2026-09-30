@@ -82,17 +82,26 @@ public final class Startup {
         try {
             return work.get();
         } finally {
-            mark(phase + " ("
-                    + millis(Duration.ofNanos(System.nanoTime() - started)).trim() + ")");
+            markSince(phase, started);
         }
     }
 
     /// Times `work` when there is nothing to return.
+    ///
+    /// Not through the [Supplier] form with a null result: that would make its
+    /// `T` nullable for every caller, and every timed result a maybe-null one.
     public static void time(String phase, Runnable work) {
-        time(phase, () -> {
+        var started = System.nanoTime();
+        try {
             work.run();
-            return null;
-        });
+        } finally {
+            markSince(phase, started);
+        }
+    }
+
+    private static void markSince(String phase, long started) {
+        mark(phase + " ("
+                + millis(Duration.ofNanos(System.nanoTime() - started)).trim() + ")");
     }
 
     /// The timeline so far, oldest first.

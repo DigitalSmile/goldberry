@@ -95,7 +95,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **The prose is formatted too.** `./gradlew checkMarkdown` fails on trailing whitespace or a missing final newline under `docs/`, `book/` and the top level, and `./gradlew formatMarkdown` fixes it. Two root tasks rather than a spotless step, for the reasons in ADR-0398 — a spotless `target` resolves against the project that declares it, and the step that used to live in the conventions plugin had never matched a single file.
 - **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana Community for JVM (`qodana.yaml`, `qodana.yml`) is connected to Qodana Cloud since 2026-09-30, gated on *new* high-severity findings against a committed baseline (`config/qodana/baseline.sarif.json`). Codecov (a step in `linux.yml`) is wired and **guarded on its secret**, so it is silent until connected rather than red until then. §7 is the checklist.
 
-  **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. Nothing is excluded from the suite or the scan.
+  **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. Nothing is excluded from the suite or the scan. The second triage (2026-09-30, `docs/static-analysis-plan.md`) fixed what was new and real and added the rest to the same table: a local re-run then had 308, every one a kind the table answers.
 
   **Reading the alerts needs a token, so the scan is reproducible without one.** The code-scanning API refuses anonymous reads even on a public repository and the job log does not list findings. The same CLI and suite run locally in about six minutes:
 
@@ -381,10 +381,21 @@ free and needs no licence.
   licence audit, `CheckDependencyLicenses`, which CE does not have) and adds a
   second workflow. Both were undone: the file here is the reviewed one, and
   `qodana.yml` is the only workflow.
-- **The baseline** is `config/qodana/baseline.sarif.json`: the first run's 408
-  findings, passed as `--baseline`. It is that run's SARIF with the rule
-  catalogue dropped (Qodana matches findings by fingerprint), 0.7 MB rather
-  than 5. The gate then fails on **new** critical or high findings only.
+- **The profile** is `config/qodana/profile.yaml`: `qodana.starter` with
+  `unused` on at weak-warning severity, a list of owned resource types
+  `AutoCloseableResource` leaves alone, and one style opinion off. Each change
+  says why beside it
+  ([ADR-0498](../book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md)).
+  The entry points the build reaches by reflection or weaving (`@Bind`,
+  `@Action`, every `inflate`) are in `.idea/misc.xml`, which the linter and
+  the IDE both read. A false positive is suppressed where it is, with the
+  reason beside it, and never in the profile.
+- **The baseline** is `config/qodana/baseline.sarif.json`, passed as
+  `--baseline`. It is the SARIF of the run after the 2026-09-30 sweep
+  (`docs/static-analysis-plan.md`), with the rule catalogue dropped (Qodana
+  matches findings by fingerprint). That run had 249 findings, none of them
+  high: 247 unused declarations and two `while` loops. The first baseline had
+  408. The gate then fails on **new** critical or high findings only.
 - **A pull request** is inspected in PR mode, what it changed; **a push to
   master** inspects everything, which Qodana Cloud keeps as the project's state.
 
@@ -401,9 +412,10 @@ About ten minutes on eight cores. The report is `/tmp/qd-results/qodana.sarif.js
 and the HTML under `report/`.
 
 **Regenerating the baseline**, after a deliberate sweep of findings: run without
-`--baseline`, then keep the results and drop `tool.driver.rules` and
-`tool.extensions` from the SARIF before committing it. What went into the first
-one is in the commit that added it: 403 high findings on `qodana.starter`, most
+`--baseline`, then keep `$schema`, `version`, and of the one run `tool.driver`'s
+`name`, `fullName` and `version`, `originalUriBaseIds` and `results`. That is
+the shape the committed file has. What went into the first one is in the
+commit that added it: 403 high findings on `qodana.starter`, most
 of them `Constant values`, nullability data flow (overlapping NullAway), and
 `AutoCloseable` used without `try` on the backend and windows, which live as
 long as the application.

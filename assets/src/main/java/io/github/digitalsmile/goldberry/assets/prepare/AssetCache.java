@@ -23,7 +23,9 @@ import io.github.digitalsmile.goldberry.assets.download.Downloader;
 /// to be replaced and a tag to be moved, and a font that changed underneath us
 /// would change how every application renders, with no version number moving to
 /// say so.
-public final class AssetCache {
+///
+/// Closing the cache closes its [Downloader].
+public final class AssetCache implements AutoCloseable {
 
     private final Path directory;
     private final Downloader downloader;
@@ -71,6 +73,12 @@ public final class AssetCache {
         } finally {
             Files.deleteIfExists(partial);
         }
+    }
+
+    /// Closes the downloader, and with the standard one its `HttpClient`.
+    @Override
+    public void close() {
+        downloader.close();
     }
 
     /// Downloads a small text file — a licence — straight into memory.

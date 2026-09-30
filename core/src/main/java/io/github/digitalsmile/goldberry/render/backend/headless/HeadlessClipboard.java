@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 
 /// The session clipboard a headless test gets — in memory, **lazy**, and able to
@@ -66,8 +68,9 @@ public final class HeadlessClipboard implements Clipboard {
     /// holds it: a type and something that can produce the bytes for it.
     ///
     /// Insertion-ordered, because the order a caller offered its types in is part
-    /// of the offer and [Clipboard#types()] promises it back.
-    private final Map<String, Supplier<byte[]>> offered = new LinkedHashMap<>();
+    /// of the offer and [Clipboard#types()] promises it back. A supplier may
+    /// answer null, which [#read] turns into an empty read.
+    private final Map<String, Supplier<byte @Nullable []>> offered = new LinkedHashMap<>();
 
     private boolean refusing;
 
@@ -87,7 +90,7 @@ public final class HeadlessClipboard implements Clipboard {
     /// @return whether the offer was accepted, so a test drives the refusing case
     ///         through the same call
     /// @throws NullPointerException if any type or its supplier is null
-    public boolean offer(Map<String, Supplier<byte[]>> byMime) {
+    public boolean offer(Map<String, Supplier<byte @Nullable []>> byMime) {
         backend.requireUiThread();
         Objects.requireNonNull(byMime, "byMime");
         if (refusing) {
@@ -135,7 +138,7 @@ public final class HeadlessClipboard implements Clipboard {
     }
 
     @Override
-    public boolean text(String value) {
+    public boolean text(@Nullable String value) {
         backend.requireUiThread();
         if (refusing) {
             return false;
@@ -175,13 +178,14 @@ public final class HeadlessClipboard implements Clipboard {
     public boolean write(Map<String, byte[]> byMime) {
         backend.requireUiThread();
         Objects.requireNonNull(byMime, "byMime");
-        var suppliers = new LinkedHashMap<String, Supplier<byte[]>>();
+        var suppliers = new LinkedHashMap<String, Supplier<byte @Nullable []>>();
         byMime.forEach((mime, bytes) -> {
             // Copied at write time, because these bytes are the caller's and a
             // clipboard that changed when the caller reused its array would be
             // modelling nothing. Copied again per read, because what a platform
             // hands back is a copy: a test that mutated what it pasted and saw
             // the clipboard change would be learning about this class.
+            //noinspection MismatchedReadAndWriteOfArray: read by copy::clone below
             var copy = Objects.requireNonNull(bytes, "bytes").clone();
             suppliers.put(Objects.requireNonNull(mime, "mime"), copy::clone);
         });

@@ -96,9 +96,20 @@ public record HtmlView(
         Attributes attributes)
         implements Widget.Stateless, Attributed<HtmlView>, Bindable<HtmlView> {
 
-    public HtmlView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public HtmlView(
+            HtmlDocument document,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onLink,
+            @Nullable ImageSource images,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(document, "document");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.document = document;
+        this.source = source;
+        this.onLink = onLink;
+        this.images = images;
+        this.attributes = attributes;
     }
 
     /// A view of `document`.

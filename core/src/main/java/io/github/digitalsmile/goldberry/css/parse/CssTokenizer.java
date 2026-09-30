@@ -64,23 +64,19 @@ public final class CssTokenizer {
         if (text.isEmpty()) {
             return false;
         }
-        var i = 0;
+        int i;
         if (text.charAt(0) == '-') {
             if (text.length() == 1) {
                 // A lone "-" is a delim, not a name.
                 return false;
             }
             // "--custom" is a valid ident: the second hyphen is what makes the
-            // custom-property namespace legal rather than a hack.
-            if (text.charAt(1) == '-') {
-                i = 2;
-            } else {
-                i = 1;
-                if (!isIdentStart(text.charAt(1))) {
-                    return false;
-                }
-                i = 2;
+            // custom-property namespace legal rather than a hack. After one
+            // hyphen, the next character has to start a name.
+            if (text.charAt(1) != '-' && !isIdentStart(text.charAt(1))) {
+                return false;
             }
+            i = 2;
         } else if (isIdentStart(text.charAt(0))) {
             i = 1;
         } else {

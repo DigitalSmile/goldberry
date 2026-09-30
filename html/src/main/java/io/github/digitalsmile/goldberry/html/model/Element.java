@@ -28,13 +28,17 @@ import org.jspecify.annotations.Nullable;
 ///        and empty for a tag the author closed straight away
 public record Element(String tag, HtmlAttributes attributes, List<HtmlNode> children) implements HtmlNode {
 
-    public Element {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Element(String tag, @Nullable HtmlAttributes attributes, List<HtmlNode> children) {
         Objects.requireNonNull(tag, "tag");
         if (tag.isBlank()) {
             throw new IllegalArgumentException("an element with no tag name is not something a document can hold");
         }
         attributes = attributes == null ? HtmlAttributes.NONE : attributes;
         children = List.copyOf(Objects.requireNonNull(children, "children"));
+        this.tag = tag;
+        this.attributes = attributes;
+        this.children = children;
     }
 
     /// An empty element with no attributes — `<hr>`.

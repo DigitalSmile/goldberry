@@ -28,11 +28,9 @@ public enum Corner {
     ///         author who wrote `bottom-right` has made a guess this vocabulary
     ///         does not take and should be told what it does take
     public static Corner parse(String text) {
-        if (text != null) {
-            for (var corner : values()) {
-                if (corner.cssName().equals(text.trim())) {
-                    return corner;
-                }
+        for (var corner : values()) {
+            if (corner.cssName().equals(text.trim())) {
+                return corner;
             }
         }
         throw new IllegalArgumentException(

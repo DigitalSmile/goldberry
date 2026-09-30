@@ -136,7 +136,18 @@ public record Chip(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Chip>, Bindable<Chip>, Semantics {
 
-    public Chip {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Chip(
+            String label,
+            @Nullable Icon icon,
+            boolean dot,
+            int dotColor,
+            boolean selected,
+            @Nullable Observable<?> source,
+            @Nullable Runnable onPress,
+            @Nullable Runnable onDismiss,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
@@ -152,6 +163,16 @@ public record Chip(
                     + " they are the same status at two resolutions, and \"" + label + "\" asked for each");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.icon = icon;
+        this.dot = dot;
+        this.dotColor = dotColor;
+        this.selected = selected;
+        this.source = source;
+        this.onPress = onPress;
+        this.onDismiss = onDismiss;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// A chip that only reads — the `badge`-shaped case, with a label and nothing

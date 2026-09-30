@@ -101,10 +101,8 @@ final class ImageState extends State<ImageView> {
             // branch is reached for it only when a loader was replaced. It is
             // described by the record instead, which is what `toString` is for.
             var named = variant.source().key();
-            if (named == null) {
-                LOG.warn("image {} did not load: {}", variant.source(), reason);
-            } else if (REPORTED.size() < REPORT_LIMIT && REPORTED.add(named)) {
-                LOG.warn("image {} did not load: {}", named, reason);
+            if (named == null || (REPORTED.size() < REPORT_LIMIT && REPORTED.add(named))) {
+                LOG.warn("image {} did not load: {}", named == null ? variant.source() : named, reason);
             }
             return new ImageLoad.Failed(reason);
         }

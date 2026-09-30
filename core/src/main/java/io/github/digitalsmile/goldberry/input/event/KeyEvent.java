@@ -81,8 +81,8 @@ public final class KeyEvent {
 
     /// Re-pointed per handler by the router, exactly as a pointer event's is.
     public void measuredAs(Extent bounds, Extent part) {
-        this.bounds = bounds == null ? Extent.NONE : bounds;
-        this.part = part == null ? this.bounds : part;
+        this.bounds = bounds;
+        this.part = part;
     }
 
     /// The focused node this was aimed at, or null if nothing had focus.

@@ -87,9 +87,14 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
     /// How faint the fill is under the line.
     private static final double FILL_ALPHA = 0.18;
 
-    public Sparkline {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Sparkline(@Nullable List<Double> values, boolean fill, boolean marker, @Nullable Attributes attributes) {
         values = List.copyOf(values == null ? List.of() : values);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.values = values;
+        this.fill = fill;
+        this.marker = marker;
+        this.attributes = attributes;
     }
 
     public Sparkline(List<Double> values) {

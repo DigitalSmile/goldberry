@@ -32,10 +32,21 @@ record TabStrip(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
 
-    TabStrip {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    TabStrip(
+            @Nullable List<Widget> headers,
+            @Nullable List<Widget> content,
+            io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController controller,
+            io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController.Position position,
+            @Nullable Attributes attributes) {
         headers = List.copyOf(headers == null ? List.of() : headers);
         content = List.copyOf(content == null ? List.of() : content);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.headers = headers;
+        this.content = content;
+        this.controller = controller;
+        this.position = position;
+        this.attributes = attributes;
     }
 
     @Override

@@ -67,9 +67,18 @@ public record Form(
         @Nullable FormController controller,
         Attributes attributes) implements Widget.Stateful, Attributed<Form> {
 
-    public Form {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Form(
+            List<Widget> children,
+            @Nullable Runnable onSubmit,
+            @Nullable FormController controller,
+            @Nullable Attributes attributes) {
         children = List.copyOf(Objects.requireNonNull(children, "children"));
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.onSubmit = onSubmit;
+        this.controller = controller;
+        this.attributes = attributes;
     }
 
     /// A form around some widgets, with nothing wired.

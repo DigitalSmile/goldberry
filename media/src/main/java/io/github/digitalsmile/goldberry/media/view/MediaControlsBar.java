@@ -74,7 +74,7 @@ record MediaControlsBar(List<Widget> controls, @Nullable String id, Set<String> 
     }
 
     @Override
-    public @Nullable String accessibleName() {
+    public String accessibleName() {
         return "Media controls";
     }
 }

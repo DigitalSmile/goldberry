@@ -110,7 +110,20 @@ public record TimePicker(
     /// point passes one, which is the same shape `CalendarView` gives a month.
     public static final LocalTime DEFAULT_FALLBACK = LocalTime.MIDNIGHT;
 
-    public TimePicker {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public TimePicker(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<@Nullable LocalTime> onChange,
+            @Nullable String placeholder,
+            @Nullable TimePrecision precision,
+            @Nullable LocalTime fallback,
+            @Nullable LocalTime min,
+            @Nullable LocalTime max,
+            @Nullable Predicate<LocalTime> disabledTimes,
+            @Nullable TimeFormat format,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         value = value == null ? "" : value;
         placeholder = placeholder == null ? "" : placeholder;
         precision = precision == null ? TimePrecision.MINUTES : precision;
@@ -121,6 +134,18 @@ public record TimePicker(
             throw new IllegalArgumentException("a time-picker's max (" + max + ") is before its min (" + min
                     + "); a range that wraps past midnight is two ranges, and a predicate is what says so");
         }
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.placeholder = placeholder;
+        this.precision = precision;
+        this.fallback = fallback;
+        this.min = min;
+        this.max = max;
+        this.disabledTimes = disabledTimes;
+        this.format = format;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An empty picker showing hours and minutes.

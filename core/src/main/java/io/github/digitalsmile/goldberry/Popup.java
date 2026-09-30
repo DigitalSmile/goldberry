@@ -282,6 +282,7 @@ public final class Popup implements AutoCloseable {
     interface Measurer {
 
         /// @return the size the content wants now, or null if it cannot be taken
+        @Nullable
         LogicalSize measure(ElementTree tree, RenderTree render);
     }
 

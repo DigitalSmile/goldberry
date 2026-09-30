@@ -129,7 +129,11 @@ final class AudioToolboxDecoder implements Decoder {
     private final ArrayDeque<MemorySegment> freeBuffers = new ArrayDeque<>();
     private final ArrayDeque<Chunk> ready = new ArrayDeque<>();
 
+    // NULL until the constructor creates it. A constructor that fails part-way
+    // calls close(), which disposes of the converter only when it is not NULL.
+    @SuppressWarnings("UnusedAssignment")
     private MemorySegment converter = MemorySegment.NULL;
+
     private MemorySegment input;
     private int inputBytes;
     private boolean inputPending;

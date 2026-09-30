@@ -30,6 +30,8 @@ import com.sun.net.httpserver.HttpServer;
 ///   that ignores `Range`.
 /// - [#contentLength] off: a `200` is sent chunked, with no length.
 /// - [#status]: every request is answered with that status and no body.
+/// - [#contentRange]: when not empty, the `Content-Range` every `206` sends,
+///   whatever was asked for, as a server that gets it wrong.
 /// - [#dropAfter] and [#drops]: the first `drops` connections close after
 ///   `dropAfter` bytes of body, short of their `Content-Length`.
 /// - [#stallAt]: the first connection to reach that resource offset stops sending
@@ -63,6 +65,9 @@ public final class TestHttpServer implements AutoCloseable {
 
     /// When not 0, the status every request gets.
     public volatile int status;
+
+    /// When not empty, the `Content-Range` every `206` sends instead of its own.
+    public volatile String contentRange = "";
 
     /// How many body bytes a dropped connection sends; -1 for none dropped.
     public volatile long dropAfter = -1;
@@ -158,7 +163,10 @@ public final class TestHttpServer implements AutoCloseable {
             }
             var length = data.length - start;
             if (partial) {
-                headers.set("Content-Range", "bytes " + start + "-" + (data.length - 1) + "/" + data.length);
+                var sent = contentRange;
+                headers.set(
+                        "Content-Range",
+                        sent.isEmpty() ? "bytes " + start + "-" + (data.length - 1) + "/" + data.length : sent);
                 exchange.sendResponseHeaders(206, length);
             } else {
                 exchange.sendResponseHeaders(200, contentLength ? length : 0);

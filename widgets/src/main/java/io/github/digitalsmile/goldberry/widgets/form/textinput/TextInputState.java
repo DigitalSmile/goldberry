@@ -142,7 +142,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     @Override
     protected void initState() {
         super.initState();
-        lastOffered = text(widget());
+        lastOffered = widget().resolved();
         edit = opening(lastOffered);
     }
 
@@ -187,7 +187,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// an application's own `change` handler would reset the caret to the end on
     /// every letter.
     private void follow() {
-        var offered = text(widget());
+        var offered = widget().resolved();
         if (offered.equals(lastOffered)) {
             return;
         }
@@ -339,13 +339,6 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // field focused agreed with the stale answer and was never told. The
         // router notices the unmount on the same frame, through `refocus`.
         super.dispose();
-    }
-
-    /// The text the widget says it holds — its binding if it has one, its literal
-    /// otherwise.
-    private static String text(TextInput input) {
-        var resolved = input.resolved();
-        return resolved == null ? "" : resolved;
     }
 
     /// What the field holds, unmasked.

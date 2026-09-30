@@ -83,9 +83,30 @@ record SplitPaneView(
     /// (ADR-0117), and the same reason it is not a token.
     static final float DIVIDER = 6;
 
-    SplitPaneView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    SplitPaneView(
+            SplitAxis axis,
+            double position,
+            double firstLength,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes,
+            BiConsumer<Extent, Extent> onMeasured,
+            DoubleSupplier offset,
+            DoubleConsumer onDrag,
+            SplitPaneView.Nudge onNudge,
+            Runnable onCollapse) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.axis = axis;
+        this.position = position;
+        this.firstLength = firstLength;
+        this.children = children;
+        this.attributes = attributes;
+        this.onMeasured = onMeasured;
+        this.offset = offset;
+        this.onDrag = onDrag;
+        this.onNudge = onNudge;
+        this.onCollapse = onCollapse;
     }
 
     @Override

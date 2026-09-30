@@ -59,7 +59,14 @@ public record TrayItem(
         void chosen(boolean checked);
     }
 
-    public TrayItem {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public TrayItem(
+            Kind kind,
+            @Nullable String label,
+            boolean enabled,
+            boolean checked,
+            @Nullable Chosen onChosen,
+            @Nullable List<TrayItem> children) {
         Objects.requireNonNull(kind, "kind");
         children = List.copyOf(children == null ? List.of() : children);
         if (kind != Kind.SEPARATOR) {
@@ -72,6 +79,12 @@ public record TrayItem(
             throw new IllegalArgumentException(
                     "only a submenu has children, and " + kind + " " + label + " has " + children.size());
         }
+        this.kind = kind;
+        this.label = label;
+        this.enabled = enabled;
+        this.checked = checked;
+        this.onChosen = onChosen;
+        this.children = children;
     }
 
     /// A command.

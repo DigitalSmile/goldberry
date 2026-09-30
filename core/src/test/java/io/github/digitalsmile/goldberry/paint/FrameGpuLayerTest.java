@@ -46,7 +46,7 @@ class FrameGpuLayerTest {
     }
 
     /// A composited window's surface, keeping what it is told.
-    private static final class Composited implements GpuSurface.Composited {
+    private static final class RecordingComposited implements GpuSurface.Composited {
         List<GpuPlacement> placed = List.of();
 
         @Override
@@ -56,12 +56,12 @@ class FrameGpuLayerTest {
     }
 
     /// A read-back surface whose layers are one opaque colour, or none.
-    private static final class ReadBack implements GpuSurface.ReadBack {
+    private static final class FlatReadBack implements GpuSurface.ReadBack {
         final List<PhysicalSize> asked = new ArrayList<>();
         final int argb;
         final boolean fails;
 
-        ReadBack(int argb, boolean fails) {
+        FlatReadBack(int argb, boolean fails) {
             this.argb = argb;
             this.fails = fails;
         }
@@ -105,7 +105,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("clears its box to transparent, exactly, and records it with the whole box as its scissor")
         void punchesAHole() {
-            var painted = new Painted(40, 30, 1f, new Composited());
+            var painted = new Painted(40, 30, 1f, new RecordingComposited());
             assertTrue(painted.frame.hasGpu());
             painted.frame.fill(GREY);
             assertTrue(painted.frame.gpuLayer(LAYER, 10, 5, 20, 10));
@@ -123,7 +123,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("is under what is painted after it, which is what makes paint order the z-order")
         void laterPaintIsAbove() {
-            var painted = new Painted(40, 30, 1f, new Composited());
+            var painted = new Painted(40, 30, 1f, new RecordingComposited());
             painted.frame.fill(GREY);
             painted.frame.gpuLayer(LAYER, 0, 0, 20, 20);
             painted.frame.fillRect(10, 10, 20, 20, RED);
@@ -136,7 +136,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("is placed in physical pixels, through the transform, each edge rounded to the nearest")
         void physicalPixels() {
-            var painted = new Painted(100, 100, 1.5f, new Composited());
+            var painted = new Painted(100, 100, 1.5f, new RecordingComposited());
             painted.frame.transform(1, 0, 0, 1, 10, 4);
             // (1, 1) + (10, 4) is (11, 5) logical: 16.5 and 7.5 physical, which
             // round to 17 and 8; the far edges, 31 and 15 logical, are 46.5 and
@@ -153,7 +153,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("under a rotation, covers the bounding box: layers are axis-aligned")
         void boundingBoxUnderARotation() {
-            var painted = new Painted(100, 100, 1f, new Composited());
+            var painted = new Painted(100, 100, 1f, new RecordingComposited());
             // A quarter turn about the origin, then into view: (x, y) -> (60 - y, x).
             painted.frame.transform(0, 1, -1, 0, 60, 0);
             painted.frame.gpuLayer(LAYER, 0, 0, 20, 10);
@@ -167,7 +167,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("is scissored by the clips in force, and back to whole once they are gone")
         void scissoredByClips() {
-            var painted = new Painted(100, 100, 1f, new Composited());
+            var painted = new Painted(100, 100, 1f, new RecordingComposited());
             painted.frame.fill(GREY);
             painted.frame.save();
             painted.frame.clipTo(0, 0, 50, 50);
@@ -191,7 +191,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("is cut to the frame, and one the clips hide entirely is neither placed nor punched")
         void hiddenIsNotPlaced() {
-            var painted = new Painted(40, 30, 1f, new Composited());
+            var painted = new Painted(40, 30, 1f, new RecordingComposited());
             painted.frame.fill(GREY);
             painted.frame.gpuLayer(LAYER, 30, 20, 50, 50);
             painted.frame.clipTo(0, 0, 10, 10);
@@ -208,7 +208,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("an empty box shows nothing and needs no fallback")
         void emptyBox() {
-            var painted = new Painted(20, 20, 1f, new Composited());
+            var painted = new Painted(20, 20, 1f, new RecordingComposited());
             assertTrue(painted.frame.gpuLayer(LAYER, 5, 5, 0, 10));
             assertTrue(painted.frame.gpuLayer(LAYER, 5, 5, 0.2, 0.2), "less than a pixel rounds to nothing");
             painted.frame.end();
@@ -223,7 +223,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("punches only inside the region, and scissors the layer by its clips, not by the region")
         void regionIsNotAScissor() {
-            var painted = new Painted(100, 100, 1f, new Composited());
+            var painted = new Painted(100, 100, 1f, new RecordingComposited());
             painted.frame.fill(GREY);
             painted.frame.repaintOnly(0, 0, 30, 100, () -> painted.frame.gpuLayer(LAYER, 10, 10, 60, 60));
             painted.frame.end();
@@ -239,7 +239,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("a reset inside it goes back to the region, and its end puts the clip back")
         void resetStaysInTheRegion() {
-            var painted = new Painted(100, 100, 1f, new Composited());
+            var painted = new Painted(100, 100, 1f, new RecordingComposited());
             painted.frame.clipTo(0, 0, 80, 80);
             painted.frame.repaintOnly(0, 0, 50, 50, () -> {
                 painted.frame.clipTo(0, 0, 20, 20);
@@ -261,7 +261,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("does not nest, and a region of no area paints nothing")
         void rules() {
-            var painted = new Painted(20, 20, 1f, new Composited());
+            var painted = new Painted(20, 20, 1f, new RecordingComposited());
             var ran = new boolean[1];
             painted.frame.repaintOnly(0, 0, 0, 10, () -> ran[0] = true);
             assertFalse(ran[0], "nothing to repaint");
@@ -283,7 +283,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("replaces its box with the layer's pixels, rendered at the box's physical size")
         void drawsThePixels() {
-            var readBack = new ReadBack(0xFF00FF00, false);
+            var readBack = new FlatReadBack(0xFF00FF00, false);
             var painted = new Painted(80, 60, 2f, readBack);
             painted.frame.fill(0x80000000);
             assertTrue(painted.frame.gpuLayer(LAYER, 5, 5, 10, 8));
@@ -303,7 +303,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("says it cannot when the layer does not come back, and places nothing")
         void failureIsAFallback() {
-            var painted = new Painted(20, 20, 1f, new ReadBack(0, true));
+            var painted = new Painted(20, 20, 1f, new FlatReadBack(0, true));
             painted.frame.fill(GREY);
             assertFalse(painted.frame.gpuLayer(LAYER, 0, 0, 10, 10));
             painted.frame.end();
@@ -314,7 +314,7 @@ class FrameGpuLayerTest {
         @Test
         @DisplayName("renders nothing for a layer outside the region being repainted, and still places it")
         void outsideTheRegionIsNotRendered() {
-            var readBack = new ReadBack(0xFF00FF00, false);
+            var readBack = new FlatReadBack(0xFF00FF00, false);
             var painted = new Painted(100, 100, 1f, readBack);
             painted.frame.repaintOnly(0, 0, 20, 20, () -> painted.frame.gpuLayer(LAYER, 50, 50, 10, 10));
             painted.frame.end();
@@ -338,7 +338,7 @@ class FrameGpuLayerTest {
     @Test
     @DisplayName("refuses a coordinate that is not finite")
     void refusesNonFinite() {
-        var painted = new Painted(20, 20, 1f, new Composited());
+        var painted = new Painted(20, 20, 1f, new RecordingComposited());
         assertThrows(IllegalArgumentException.class, () -> painted.frame.gpuLayer(LAYER, Double.NaN, 0, 10, 10));
         assertThrows(
                 IllegalArgumentException.class,

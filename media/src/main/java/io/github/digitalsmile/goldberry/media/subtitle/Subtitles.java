@@ -68,9 +68,10 @@ public final class Subtitles {
         if (text.startsWith("﻿")) {
             text = text.substring(1);
         }
-        var format = detect(source.fileName(), text)
-                .orElseThrow(() -> new IOException(source.uri() + " is neither SubRip nor WebVTT"));
-        return parse(text, format);
+        if (detect(source.fileName(), text).isEmpty()) {
+            throw new IOException(source.uri() + " is neither SubRip nor WebVTT");
+        }
+        return parse(text);
     }
 
     /// The format a file is in: WebVTT when it says so on its first line, else by
@@ -94,7 +95,11 @@ public final class Subtitles {
     /// Every cue of `text`, in the order they start. A block that is not a cue
     /// (WebVTT's header, `NOTE`, `STYLE` and `REGION` blocks, a SubRip block with
     /// a broken timing line) is passed over, as players do.
-    public static List<Cue> parse(String text, Format format) {
+    ///
+    /// Either format: a cue is a timing line and the lines after it in both, and
+    /// the timing pattern takes SubRip's comma and WebVTT's point alike, so what
+    /// [#detect] says is whether to read the file, not how.
+    public static List<Cue> parse(String text) {
         var cues = new ArrayList<Cue>();
         var normal = text.replace("\r\n", "\n").replace('\r', '\n');
         for (var block : BLANK_LINE.splitAsStream(normal).toList()) {

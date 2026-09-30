@@ -120,7 +120,7 @@ record DonutSurface(
         if (total <= 0) {
             return null;
         }
-        var name = hovered < labels.size() && labels.get(hovered) != null ? labels.get(hovered) : "";
+        var name = hovered < labels.size() ? labels.get(hovered) : "";
         return new Readout(
                 context.paragraph(style, name),
                 context.paragraph(style, share(values.get(hovered), total)),
@@ -152,9 +152,6 @@ record DonutSurface(
     @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onPointer(PointerEvent event) {
-        if (onHover == null) {
-            return;
-        }
         switch (event.kind()) {
             case EXITED -> onHover.test(-1);
             case MOVED, ENTERED, PRESSED, RELEASED, CLICKED -> onHover.test(at(event));
@@ -182,10 +179,7 @@ record DonutSurface(
     @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onKey(KeyEvent event) {
-        if (onHover == null
-                || onWalk == null
-                || event.kind() != KeyEvent.Kind.PRESSED
-                || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED || !event.modifiers().none()) {
             return;
         }
         if (values.isEmpty()) {

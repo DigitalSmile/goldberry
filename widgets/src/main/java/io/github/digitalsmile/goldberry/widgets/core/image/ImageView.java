@@ -78,7 +78,14 @@ public record ImageView(
     /// Its size, in logical pixels.
     static final double ERROR_ICON_SIZE = 20;
 
-    public ImageView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ImageView(
+            List<Variant> variants,
+            String alt,
+            boolean decorative,
+            Fit fit,
+            ImageLoader loader,
+            @Nullable Attributes attributes) {
         variants = List.copyOf(Objects.requireNonNull(variants, "variants"));
         if (variants.isEmpty()) {
             throw new IllegalArgumentException("an image needs a source");
@@ -92,6 +99,12 @@ public record ImageView(
         Objects.requireNonNull(fit, "fit");
         Objects.requireNonNull(loader, "loader");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.variants = variants;
+        this.alt = alt;
+        this.decorative = decorative;
+        this.fit = fit;
+        this.loader = loader;
+        this.attributes = attributes;
     }
 
     /// A picture from one source, described by `alt`.

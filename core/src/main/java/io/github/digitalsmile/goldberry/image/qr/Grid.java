@@ -92,8 +92,8 @@ final class Grid {
                 if (onFinder) {
                     continue;
                 }
-                var centreX = centres.get(i);
-                var centreY = centres.get(j);
+                int centreX = centres.get(i);
+                int centreY = centres.get(j);
                 for (var dy = -2; dy <= 2; dy++) {
                     for (var dx = -2; dx <= 2; dx++) {
                         setFunction(centreX + dx, centreY + dy, Math.max(Math.abs(dx), Math.abs(dy)) != 1);

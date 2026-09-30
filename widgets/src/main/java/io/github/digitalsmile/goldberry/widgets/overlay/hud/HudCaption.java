@@ -47,7 +47,7 @@ record HudCaption() implements Widget.Leaf, Styled, Paints {
 
     /// What the numbers are, in the fewest words that are still true.
     private static String text(FrameStats frames) {
-        if (frames == null || frames.isEmpty()) {
+        if (frames.isEmpty()) {
             return "no frames measured";
         }
         // The capacity and not a literal 60: a source that keeps a different

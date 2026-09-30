@@ -30,7 +30,7 @@ final class VideoLayerProbe {
 
     private VideoLayerProbe() {}
 
-    static void main(String[] args) {
+    static void main() {
         try (var harness = CompositeHarness.open()) {
             var device = harness.device();
             System.out.printf(Locale.ROOT, "GPU %s, a %dx%d picture each frame%n%n", device.driver(), WIDTH, HEIGHT);

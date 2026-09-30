@@ -175,7 +175,7 @@ class LayerZOrderTest {
     /// golden here expects.
     private static Box layer(TestLayer layer) {
         return Box.of().shrink(0).painting(layer.painter((frame, size) -> {
-            for (var y = 0; y < size.height(); y += 4) {
+            for (var y = 0f; y < size.height(); y += 4) {
                 frame.fillRect(0, y, size.width(), 2, 0xFFFF00FF);
             }
         }));

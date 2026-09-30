@@ -89,9 +89,14 @@ class YuvDrawTest {
         if (device == null) {
             return;
         }
-        if (device != null) {
-            device.close();
-        }
+        // The pipelines before the shaders they were built from, and both before
+        // the device that made them.
+        PIPELINES.values().forEach(SdlGpuGraphicsPipeline::close);
+        PIPELINES.clear();
+        SHADERS.forEach(SdlGpuShader::close);
+        SHADERS.clear();
+        sampler.close();
+        device.close();
         Sdl.get().quit();
     }
 

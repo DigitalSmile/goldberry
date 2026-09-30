@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.data.plot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /// Where the labels on an axis go — `content-widgets.md` §3.1's "Wilkinson's
 /// extended tick-labeling algorithm".
@@ -175,6 +176,22 @@ public final class Ticks {
 
     /// Whether the step is a preferred number, less the skip, plus a point for
     /// including zero — which is the label a reader looks for first.
+    /// `value` with `decimals` digits after the point, in the root locale: how
+    /// every axis label here is written, whichever way it chose its decimals.
+    ///
+    /// One place for a format string built at run time, so the one suppression
+    /// for it is here: `"%." + decimals + "f"` is well formed for every
+    /// `decimals` from 0 up, which IntelliJ cannot see through the concatenation.
+    ///
+    /// @throws IllegalArgumentException if `decimals` is negative
+    @SuppressWarnings("MalformedFormatString")
+    public static String fixed(double value, int decimals) {
+        if (decimals < 0) {
+            throw new IllegalArgumentException("a label has zero or more decimals, not " + decimals);
+        }
+        return String.format(Locale.ROOT, "%." + decimals + "f", value);
+    }
+
     private static double simplicity(int index, int skip, double min, double max, double step) {
         var eps = 1e-10;
         // A **floor** remainder, always in [0, step). Java's `%` truncates toward

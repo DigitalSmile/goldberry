@@ -97,10 +97,25 @@ public record Steps(
         }
     }
 
-    public Steps {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Steps(
+            @Nullable List<Widget> children,
+            int current,
+            @Nullable Observable<?> source,
+            @Nullable Direction direction,
+            boolean clickable,
+            @Nullable IntConsumer onChange,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         direction = direction == null ? Direction.HORIZONTAL : direction;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.current = current;
+        this.source = source;
+        this.direction = direction;
+        this.clickable = clickable;
+        this.onChange = onChange;
+        this.attributes = attributes;
     }
 
     /// A horizontal, read-only list with `current` the current step.

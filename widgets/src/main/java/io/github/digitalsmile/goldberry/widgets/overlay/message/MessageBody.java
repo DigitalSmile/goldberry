@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -24,8 +26,11 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param actions the author's links, or empty
 record MessageBody(String text, List<Widget> actions) implements Widget.Leaf, Styled, Paints {
 
-    MessageBody {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    MessageBody(String text, @Nullable List<Widget> actions) {
         actions = List.copyOf(actions == null ? List.of() : actions);
+        this.text = text;
+        this.actions = actions;
     }
 
     @Override
@@ -63,8 +68,10 @@ record MessageBody(String text, List<Widget> actions) implements Widget.Leaf, St
     /// declarations rather than one compromise.
     record MessageActions(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-        MessageActions {
+        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        MessageActions(@Nullable List<Widget> children) {
             children = List.copyOf(children == null ? List.of() : children);
+            this.children = children;
         }
 
         @Override

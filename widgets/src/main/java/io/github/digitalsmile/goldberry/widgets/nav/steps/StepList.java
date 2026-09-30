@@ -30,9 +30,13 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 record StepList(List<Widget> children, Steps.Direction direction, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Semantics {
 
-    StepList {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    StepList(@Nullable List<Widget> children, Steps.Direction direction, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.direction = direction;
+        this.attributes = attributes;
     }
 
     @Override

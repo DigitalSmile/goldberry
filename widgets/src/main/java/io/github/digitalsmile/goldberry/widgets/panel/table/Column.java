@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.table;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// One column of a [Table] — `docs/core-widgets.md` §10's "a key, a header, a
@@ -44,7 +46,15 @@ public record Column<T>(
         boolean sortable,
         boolean resizable) {
 
-    public Column {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Column(
+            String key,
+            @Nullable String header,
+            Function<T, Widget> cell,
+            double width,
+            boolean fixed,
+            boolean sortable,
+            boolean resizable) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(cell, "cell");
         header = header == null ? "" : header;
@@ -52,6 +62,13 @@ public record Column<T>(
             throw new IllegalArgumentException(
                     "a column's width is a positive number of pixels or a positive" + " weight; got " + width);
         }
+        this.key = key;
+        this.header = header;
+        this.cell = cell;
+        this.width = width;
+        this.fixed = fixed;
+        this.sortable = sortable;
+        this.resizable = resizable;
     }
 
     /// A column of text, sharing the width equally with its neighbours.

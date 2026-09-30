@@ -51,7 +51,11 @@ public final class WordGeometry {
     ///
     /// A class rather than a record because a frame updates two of its fields and
     /// keeps the rest — see the note about allocation above.
-    static final class Entry {
+    ///
+    /// Public because [Word]'s canonical constructor names it, and a record's
+    /// canonical constructor is as visible as the record. The package is not
+    /// exported, so nothing outside this module sees it either way.
+    public static final class Entry {
 
         private String text = "";
 

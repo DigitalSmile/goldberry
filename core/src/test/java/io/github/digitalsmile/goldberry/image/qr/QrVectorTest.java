@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,12 +28,17 @@ class QrVectorTest {
     /// One vector: what to encode, and what somebody else got when they did.
     private record Vector(Level level, String payload, List<String> rows) {}
 
+    /// The vector file, as text. The caller closes it, and the stream with it.
+    private static BufferedReader vectorFile() {
+        var in = QrVectorTest.class.getResourceAsStream("libqrencode-vectors.txt");
+        if (in == null) {
+            throw new IllegalStateException("libqrencode-vectors.txt is not beside " + QrVectorTest.class);
+        }
+        return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+    }
+
     private static List<Vector> vectors() {
-        try (var in = QrVectorTest.class.getResourceAsStream("libqrencode-vectors.txt")) {
-            if (in == null) {
-                throw new IllegalStateException("libqrencode-vectors.txt is not beside " + QrVectorTest.class);
-            }
-            var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        try (var reader = vectorFile()) {
             var vectors = new ArrayList<Vector>();
             Level level = null;
             String payload = null;
@@ -65,7 +72,7 @@ class QrVectorTest {
                 vectors.add(new Vector(level, payload, List.copyOf(rows)));
             }
             return List.copyOf(vectors);
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -95,8 +102,8 @@ class QrVectorTest {
     @Test
     @DisplayName("the vectors between them cover every version band and every level")
     void vectorsCoverTheRange() {
-        var versions = new java.util.TreeSet<Integer>();
-        var levels = new java.util.TreeSet<Level>();
+        var versions = new TreeSet<Integer>();
+        var levels = new TreeSet<Level>();
         for (var vector : vectors()) {
             var code = QrEncoder.encode(vector.payload(), vector.level());
             versions.add(code.version());

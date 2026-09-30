@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widgets.data.plot.Gaps;
 
 /// One line on a chart: what it is called, and what it did.
@@ -28,12 +30,15 @@ import io.github.digitalsmile.goldberry.widgets.data.plot.Gaps;
 /// @param values the points, in order
 public record Series(String name, List<Double> values) {
 
-    public Series {
+    /// Written out so that the parameter whose elements may be null can say so
+    /// (ADR-0497). The component holds no null: each one is read as a hole.
+    public Series(String name, List<@Nullable Double> values) {
         Objects.requireNonNull(name, "name");
         if (name.isBlank()) {
             throw new IllegalArgumentException("a series needs a name for its legend entry");
         }
-        values = normalized(values);
+        this.name = name;
+        this.values = normalized(values);
     }
 
     /// `values` with every hole spelled the same way.
@@ -45,10 +50,7 @@ public record Series(String name, List<Double> values) {
     /// destroys the difference this toolkit has a whole enum about
     /// ([NullPolicy]). Taking the null and calling it a hole is the friendlier
     /// half of refusing to guess.
-    private static List<Double> normalized(List<Double> values) {
-        if (values == null) {
-            return List.of();
-        }
+    private static List<Double> normalized(List<@Nullable Double> values) {
         var out = new java.util.ArrayList<Double>(values.size());
         for (var value : values) {
             out.add(value == null ? Double.NaN : value);

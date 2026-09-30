@@ -75,7 +75,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record Dialog(@Nullable String title, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Dialog> {
 
-    public Dialog {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Dialog(@Nullable String title, @Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         // Blank and absent are the same: a title bar with one space in it is a
@@ -99,6 +100,9 @@ public record Dialog(@Nullable String title, List<Widget> children, Attributes a
                             + " one has " + affirmative + " and " + dismissive
                             + ". Enter and Escape each press exactly one button.");
         }
+        this.title = title;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     /// A dialog around some widgets.

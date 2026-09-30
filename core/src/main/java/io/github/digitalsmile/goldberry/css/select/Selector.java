@@ -55,9 +55,14 @@ public record Selector(List<Part> parts) {
     public record Compound(
             @Nullable String type, @Nullable String id, List<String> classes, List<PseudoClass> pseudoClasses) {
 
-        public Compound {
+        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        public Compound(@Nullable String type, @Nullable String id, @Nullable List<String> classes, @Nullable List<PseudoClass> pseudoClasses) {
             classes = List.copyOf(classes == null ? List.of() : classes);
             pseudoClasses = List.copyOf(pseudoClasses == null ? List.of() : pseudoClasses);
+            this.type = type;
+            this.id = id;
+            this.classes = classes;
+            this.pseudoClasses = pseudoClasses;
         }
 
         /// Whether this compound constrains nothing — the `*` of `* > .a`.

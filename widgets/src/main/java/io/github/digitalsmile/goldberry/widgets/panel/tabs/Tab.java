@@ -169,7 +169,23 @@ public record Tab(
                 attributes);
     }
 
-    public Tab {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Tab(
+            String value,
+            String label,
+            @Nullable Icon icon,
+            int colour,
+            boolean closable,
+            @Nullable List<Widget> content,
+            boolean selected,
+            @Nullable Runnable onSelect,
+            @Nullable Runnable onClose,
+            java.util.function.@Nullable BooleanSupplier animating,
+            java.util.function.@Nullable DoubleUnaryOperator visibility,
+            java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> reveal,
+            double dragOffset,
+            @Nullable Travel travel,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         content = List.copyOf(content == null ? List.of() : content);
@@ -178,6 +194,21 @@ public record Tab(
                     + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.label = label;
+        this.icon = icon;
+        this.colour = colour;
+        this.closable = closable;
+        this.content = content;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.onClose = onClose;
+        this.animating = animating;
+        this.visibility = visibility;
+        this.reveal = reveal;
+        this.dragOffset = dragOffset;
+        this.travel = travel;
+        this.attributes = attributes;
     }
 
     /// A tab with a value and a label, and whatever it shows.

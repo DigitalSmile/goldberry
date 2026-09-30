@@ -176,9 +176,7 @@ record TableHead(
         }
 
         private void ask() {
-            if (onSort != null) {
-                onSort.accept(column.key());
-            }
+            onSort.accept(column.key());
         }
 
         /// A label, and a caret slot on **every sortable header** whether or not

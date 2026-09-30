@@ -73,9 +73,13 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 public record Badge(String text, @Nullable Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Badge>, Bindable<Badge> {
 
-    public Badge {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Badge(String text, @Nullable Observable<?> source, @Nullable Attributes attributes) {
         Objects.requireNonNull(text, "text");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.text = text;
+        this.source = source;
+        this.attributes = attributes;
     }
 
     /// A chip with a literal, which is what a status wants.

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.layout.Length;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -37,8 +39,11 @@ import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 /// @param index    the selected segment, or -1 when the value matches none
 record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, Styled, Paints {
 
-    SegmentedTrack {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    SegmentedTrack(@Nullable List<Widget> segments, int index) {
         segments = List.copyOf(segments == null ? List.of() : segments);
+        this.segments = segments;
+        this.index = index;
     }
 
     @Override

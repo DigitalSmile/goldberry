@@ -56,12 +56,15 @@ import io.github.digitalsmile.goldberry.widgets.data.plot.TimeTicks;
 /// @param zone  which day is which
 public record TimeAxis(List<Instant> times, ZoneId zone) {
 
-    public TimeAxis {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public TimeAxis(@Nullable List<Instant> times, @Nullable ZoneId zone) {
         times = List.copyOf(times == null ? List.of() : times);
         zone = zone == null ? ZoneId.systemDefault() : zone;
         for (var time : times) {
             Objects.requireNonNull(time, "an instant on a time axis");
         }
+        this.times = times;
+        this.zone = zone;
     }
 
     /// The times, in the machine's own zone.

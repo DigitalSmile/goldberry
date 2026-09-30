@@ -87,6 +87,21 @@ What stays on the dashboard, and why:
 | `unused-container` | `BindingSchemeBenchmark.alive` | The list exists to be held, not read: it keeps models reachable so the population a benchmark line reports is exact |
 | `inefficient-string-constructor` | `PropertyTest` | `new String("frost")` is the point: equal, not identical, is still unchanged |
 
+Added by the second triage, 2026-09-30 (`docs/static-analysis-plan.md`,
+[ADR-0498](0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md)).
+The same kinds in code written since, then kinds this table did not have:
+
+| Finding | Where | Why it stays |
+|---|---|---|
+| `unused-parameter` on upcall targets | `GlibLog` ×2, `SdlLog`, `IoCallbacks` ×2, `AudioToolboxDecoder` ×2, `VideoToolboxDecoder` ×3 | The C callback's signature, as for `SdlTray` above: GLib's `user_data`, FFmpeg's `opaque`, and the `refCon`s and `duration` VideoToolbox and AudioToolbox pass whether or not Java wants them |
+| `uncaught-number-format-exception` | `image.qr.Segment` ×2, `GraalVmRelease` | The text is matched first: a numeric segment is digits by construction and cut at three at a time, and a GraalVM version must match its pattern before any part is parsed |
+| `internal-representation-exposure` | 18 record and class constructors, among them `MediaInfo`, `MediaError.UnsupportedCodec`, `Source`, `ShaderCode`, `TextureSpec`, `VertexBufferLayout`, `UriList`, `TextDrop` | As above: each copies with `List.copyOf`, `Map.copyOf` or `clone()` before it stores, including the explicit canonical constructors ADR-0497 introduced |
+| `missing-case-in-switch` | `Playback` ×2 | Multi-label `case A, B ->` arms, as for `MarkdownParser` |
+| `random-used-once` | `DrawTest`, `GpuApiTest`, `SdlGpuDeviceTest` ×4 | A seeded `Random` made for one fixture is the point: the same pixels every run, and a new seed per test so no test depends on another's draws |
+| `potentially-weak-cryptographic-algorithm` | `media` test `Fixtures.md5` | A frame's fingerprint in a test, compared with the same function's output. Nothing is secured by it |
+| `constant-comparison` | `MemoryIO.awaitRelease` | `releases == entered` is re-read after every `wait()`, which the query does not model as a write by another thread |
+| `empty-zip-file-entry` | `CatalogCompilerTest` | The entry is a directory, which is what the test's archive needs to have |
+
 ## Alternatives considered
 
 - **A `query-filters:` block excluding `java/unused-parameter`.** It would
@@ -108,6 +123,10 @@ What stays on the dashboard, and why:
 
 ## Consequences
 
+- **Updated 2026-09-30:** a local re-run after the second triage has 308, all
+  of them kinds in the two tables. 151 are `_`, and 102 are unused
+  parameters, 72 of them `inflate`'s. The count grew with the code, not with
+  new kinds of finding. The original record follows.
 - The dashboard settles at 163 findings — the local re-run says so — and every
   one of them is in the table above; 68 of them are the `_` spelling CodeQL
   does not read yet, and go the day it does. A *new* finding is therefore

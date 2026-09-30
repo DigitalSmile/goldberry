@@ -133,7 +133,7 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
     /// that end, in a way that draws perfectly and reports no error at all
     /// ([ADR-0080]).
     @Override
-    public @Nullable String localPart() {
+    public String localPart() {
         return "slider-track";
     }
 

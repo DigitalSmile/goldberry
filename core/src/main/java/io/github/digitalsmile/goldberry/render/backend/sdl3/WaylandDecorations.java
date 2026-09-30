@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 /// Works out, before anyone looks at the window, whether a Wayland window is
 /// going to come up with no titlebar and no way to resize it.
 ///
@@ -113,13 +115,14 @@ final class WaylandDecorations {
 
     /// Decides from a plugin listing and the calling thread.
     ///
-    /// @param videoDriver     what `SDL_GetCurrentVideoDriver` reported
+    /// @param videoDriver     what `SDL_GetCurrentVideoDriver` reported, or null
     /// @param pluginFiles     the file names in libdecor's plugin directory, or
     ///                        empty if no such directory could be found
     /// @param onInitialThread whether this thread is the process's initial one,
     ///                        or empty if that could not be determined
     /// @return the verdict
-    static Verdict verdict(String videoDriver, Optional<List<String>> pluginFiles, Optional<Boolean> onInitialThread) {
+    static Verdict verdict(
+            @Nullable String videoDriver, Optional<List<String>> pluginFiles, Optional<Boolean> onInitialThread) {
         if (videoDriver == null || !videoDriver.toLowerCase(Locale.ROOT).equals(WAYLAND)) {
             return Verdict.UNKNOWN;
         }
@@ -179,7 +182,8 @@ final class WaylandDecorations {
         if (verdict(videoDriver, pluginFiles, onInitialThread) != Verdict.UNDECORATED) {
             return Optional.empty();
         }
-        return Optional.of(message(pluginFiles.get().contains(GTK_PLUGIN)));
+        // UNDECORATED is only ever a verdict on a plugin directory that was found.
+        return pluginFiles.map(files -> message(files.contains(GTK_PLUGIN)));
     }
 
     /// The same question, against the real filesystem and the calling thread.
@@ -238,7 +242,9 @@ final class WaylandDecorations {
     /// @param lister       lists a directory, or returns empty if it is not one
     /// @return the file names in the first directory that exists, or empty
     static Optional<List<String>> pluginFiles(
-            String pluginDirEnv, String osArch, java.util.function.Function<Path, Optional<List<String>>> lister) {
+            @Nullable String pluginDirEnv,
+            String osArch,
+            java.util.function.Function<Path, Optional<List<String>>> lister) {
         for (var directory : candidateDirectories(pluginDirEnv, osArch)) {
             var listing = lister.apply(directory);
             if (listing.isPresent()) {
@@ -253,7 +259,7 @@ final class WaylandDecorations {
     /// @param pluginDirEnv the value of `LIBDECOR_PLUGIN_DIR`, or null
     /// @param osArch       the `os.arch` system property
     /// @return absolute candidate directories, not filtered for existence
-    static List<Path> candidateDirectories(String pluginDirEnv, String osArch) {
+    static List<Path> candidateDirectories(@Nullable String pluginDirEnv, String osArch) {
         // The environment override wins outright and is not joined with the
         // conventional paths: libdecor does not fall back either, so a message
         // derived from a directory it will not read would be fiction.
@@ -275,7 +281,7 @@ final class WaylandDecorations {
     /// @param osArch the `os.arch` system property
     /// @return the triplet, or empty for an architecture with no known spelling
     static Optional<String> multiarchTriplet(String osArch) {
-        var arch = osArch == null ? "" : osArch.toLowerCase(Locale.ROOT);
+        var arch = osArch.toLowerCase(Locale.ROOT);
         return switch (arch) {
             case "amd64", "x86_64", "x64" -> Optional.of("x86_64-linux-gnu");
             case "aarch64", "arm64" -> Optional.of("aarch64-linux-gnu");

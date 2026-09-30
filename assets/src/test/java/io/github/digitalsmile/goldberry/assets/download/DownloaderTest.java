@@ -102,6 +102,44 @@ class DownloaderTest {
         assertEquals(4, requests);
         assertTrue(failure.getMessage().contains("failed 4 times"), failure.getMessage());
         assertTrue(failure.getMessage().contains("HTTP 500"), failure.getMessage());
+        assertEquals("HTTP 500 for " + URL, failure.getCause().getMessage());
+        assertEquals(3, waits.size(), "a wait between attempts, and none after the last");
+    }
+
+    @Test
+    @DisplayName("one attempt fails without a wait, and carries its cause")
+    void oneAttempt() {
+        try (var once = new Downloader(
+                _ -> {
+                    requests++;
+                    throw new IOException("Connection reset");
+                },
+                1,
+                Duration.ofSeconds(2),
+                waits::add)) {
+            var failure = assertThrows(IOException.class, () -> once.readAll(URL));
+            assertTrue(failure.getMessage().contains("failed 1 times"), failure.getMessage());
+            assertEquals("Connection reset", failure.getCause().getMessage());
+        }
+        assertEquals(1, requests);
+        assertTrue(waits.isEmpty());
+    }
+
+    @Test
+    @DisplayName("closing a downloader built on a transport releases nothing, so it still downloads")
+    void closeOwnsNothing() throws IOException {
+        answer(new Answer.Status(200, "whole"));
+        var downloader = downloader();
+        downloader.close();
+        assertArrayEquals("whole".getBytes(StandardCharsets.UTF_8), downloader.readAll(URL));
+    }
+
+    @Test
+    @DisplayName("the standard downloader closes its client, and closing twice is harmless")
+    void standardCloses() {
+        var standard = Downloader.standard();
+        standard.close();
+        standard.close();
     }
 
     @Test

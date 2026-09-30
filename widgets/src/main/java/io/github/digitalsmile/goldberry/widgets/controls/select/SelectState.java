@@ -408,8 +408,13 @@ final class SelectState extends State<Select> {
     /// A tree's rows are not `option`s, so they cannot report through
     /// [Option#within]; the value is the node's id and it goes out through
     /// `change` like everything else.
-    private void chooseNode(String id) {
-        choose(id);
+    ///
+    /// A tree reports null when its selection empties. That is not a pick, and a
+    /// select left without one keeps its value, as closing the popup does.
+    private void chooseNode(@Nullable String id) {
+        if (id != null) {
+            choose(id);
+        }
     }
 
     /// The list's rows, described from the model as it is right now.

@@ -105,7 +105,8 @@ public record Option(
         boolean disabled, Attributes attributes, boolean roving)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> , Semantics {
 
-    public Option {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Option(String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes, boolean roving) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
@@ -114,6 +115,14 @@ public record Option(
                             + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.label = label;
+        this.icon = icon;
+        this.selected = selected;
+        this.onSelect = onSelect;
+        this.disabled = disabled;
+        this.attributes = attributes;
+        this.roving = roving;
     }
 
     /// The form every caller wrote before there were two keyboard models, and

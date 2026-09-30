@@ -112,6 +112,10 @@ public final class CatalogWeaver {
 
     /// The catalog class for a module, or null when the module has no widgets.
     ///
+    /// Null, not an empty array, because a module with no widgets gets no class
+    /// at all. `:weaver` runs no NullAway and has no JSpecify to say so with, so
+    /// [WeaverMain] states it where it reads the result.
+    ///
     /// @param inPackage where to put it — the module's root package
     /// @param widgets   node name to the class that builds it, in the order they
     ///                  should be registered

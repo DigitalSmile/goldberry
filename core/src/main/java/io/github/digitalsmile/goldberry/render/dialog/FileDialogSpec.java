@@ -46,7 +46,9 @@ public record FileDialogSpec(
         @Nullable Path location,
         boolean allowMany) {
 
-    public FileDialogSpec {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public FileDialogSpec(
+            FileDialogKind kind, @Nullable List<FileFilter> filters, @Nullable Path location, boolean allowMany) {
         Objects.requireNonNull(kind, "kind");
         filters = List.copyOf(filters == null ? List.of() : filters);
         if (!filters.isEmpty() && !kind.takesFilters()) {
@@ -56,6 +58,10 @@ public record FileDialogSpec(
         if (allowMany && !kind.takesMany()) {
             throw new IllegalArgumentException(kind + " produces one path; a save dialog cannot name several files");
         }
+        this.kind = kind;
+        this.filters = filters;
+        this.location = location;
+        this.allowMany = allowMany;
     }
 
     /// Pick one or more existing files.

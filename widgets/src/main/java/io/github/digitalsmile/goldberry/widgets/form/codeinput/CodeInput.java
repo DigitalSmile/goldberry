@@ -90,13 +90,32 @@ public record CodeInput(
 
     private static final Logger LOG = Logs.of(CodeInput.class);
 
-    public CodeInput {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public CodeInput(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<String> onComplete,
+            int length,
+            @Nullable CodeType type,
+            boolean mask,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         value = value == null ? "" : value;
         type = type == null ? CodeType.DIGITS : type;
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (length < 1) {
             throw new IllegalArgumentException("a code has at least one box, and " + length + " is not a length");
         }
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.onComplete = onComplete;
+        this.length = length;
+        this.type = type;
+        this.mask = mask;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An empty six-box field of digits.

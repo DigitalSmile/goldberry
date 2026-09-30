@@ -85,7 +85,14 @@ public record Affix(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
-    public Affix {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Affix(
+            @Nullable List<Widget> children,
+            @Nullable Edge edge,
+            double offset,
+            java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> onReveal,
+            @Nullable Edge cross,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         edge = edge == null ? Edge.TOP : edge;
         if (cross != null && cross.isVertical() == edge.isVertical()) {
@@ -93,6 +100,12 @@ public record Affix(
                     + cross + " are on the same one");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.edge = edge;
+        this.offset = offset;
+        this.onReveal = onReveal;
+        this.cross = cross;
+        this.attributes = attributes;
     }
 
     public Affix(

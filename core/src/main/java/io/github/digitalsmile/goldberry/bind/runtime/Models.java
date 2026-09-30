@@ -164,6 +164,16 @@ public final class Models {
         return bound(model) instanceof RuntimeBinding runtime && runtime.refresh();
     }
 
+    /// How many [#onRepaint] and [#onRestyle] listeners `model` holds.
+    ///
+    /// A diagnostic, like [FieldListeners#listenerCount]: the assertion that
+    /// whoever installed a model let go of it when it was done.
+    ///
+    /// @throws IllegalStateException if `model` publishes nothing
+    public static int frameListenerCount(Object model) {
+        return bound(model).boundListeners().frameListenerCount();
+    }
+
     /// Whether `model`'s class was woven.
     ///
     /// The two forms answer every other method here the same way, so this is a

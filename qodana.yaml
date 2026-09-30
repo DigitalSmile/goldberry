@@ -29,7 +29,9 @@ profile:
   # Not `qodana.recommended`: this project already has four analysers, and the
   # recommended profile's overlap with them is most of it. `qodana.starter` is
   # the smaller set, which leaves the findings that are actually IntelliJ's own.
-  name: qodana.starter
+  # The file is that profile with the changes docs/static-analysis-plan.md's
+  # triage asked for: `unused` on, owned resources off, one style opinion off.
+  path: config/qodana/profile.yaml
 
 # Fail the job on new problems of high severity, and only new ones. An existing
 # finding is a thing to schedule; a new one arrived with a pull request and has
@@ -56,18 +58,3 @@ exclude:
       # FFmpeg's, written the same way.
       - natives/src/main/java/io/github/digitalsmile/goldberry/natives
       - media/src/main/java/io/github/digitalsmile/goldberry/media/ffi
-
-  # A widget's `build` returns one expression per branch and a painter's `render`
-  # is long because a rasterizer step is long. Neither is a defect and both are
-  # what this codebase looks like.
-  - name: LongMethod
-  - name: OverlyComplexMethod
-
-  # The toolkit's own naming: `cssType`, `nowMillis`, `toReal`. IntelliJ wants
-  # different words for some of them and it is wrong about all of them.
-  - name: NonBooleanMethodNameMayNotStartWithQuestion
-
-include:
-  # The one inspection worth turning ON: an unused declaration is dead code, and
-  # Error Prone only sees the private half of it.
-  - name: UnusedDeclaration

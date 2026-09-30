@@ -93,7 +93,16 @@ public record Entry(
                 new Placement(0, Timeline.Direction.VERTICAL, Side.START, false, true, false);
     }
 
-    public Entry {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Entry(
+            String label,
+            @Nullable String time,
+            @Nullable Icon icon,
+            int colour,
+            @Nullable Widget marker,
+            @Nullable List<Widget> body,
+            @Nullable Placement placement,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         body = List.copyOf(body == null ? List.of() : body);
         placement = placement == null ? Placement.NONE : placement;
@@ -103,6 +112,14 @@ public record Entry(
                     "an entry needs a label: a timeline is read as a story, and an event with no name is"
                             + " a dot on a line (§13)");
         }
+        this.label = label;
+        this.time = time;
+        this.icon = icon;
+        this.colour = colour;
+        this.marker = marker;
+        this.body = body;
+        this.placement = placement;
+        this.attributes = attributes;
     }
 
     /// An event with a name, and whatever goes under it.

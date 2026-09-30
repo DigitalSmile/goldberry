@@ -36,8 +36,10 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     /// decided that nothing means anything.
     public static final Transitions NONE = new Transitions(Map.of());
 
-    public Transitions {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Transitions(@Nullable Map<Animatable, Timing> byProperty) {
         byProperty = byProperty == null || byProperty.isEmpty() ? Map.of() : Map.copyOf(byProperty);
+        this.byProperty = byProperty;
     }
 
     /// The properties a transition may name.

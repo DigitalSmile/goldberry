@@ -178,7 +178,7 @@ public final class Sdl3Backend implements Backend {
     /// than of a window, and reported at the first window that actually asked to
     /// be decorated — a borderless one is not affected and should not be warned
     /// about. See [WaylandDecorations] and ADR-0084.
-    private Optional<String> undecoratedWarning = Optional.empty();
+    private final Optional<String> undecoratedWarning;
     private boolean undecoratedWarningLogged;
 
     /// Whether [#close()] has run. **Volatile because it is the one field here
@@ -473,10 +473,10 @@ public final class Sdl3Backend implements Backend {
     /// strength of that would be wrong. Everything here is therefore phrased as
     /// "this is probably why", and only ever after SDL has actually said no.
     ///
-    /// @param osName the value of `os.name`
+    /// @param osName the value of `os.name`, or null if it has none
     /// @param firstThreadEnv the value of `JAVA_STARTED_ON_FIRST_THREAD_<pid>`, or null
     /// @return true if the missing flag is worth mentioning
-    static boolean firstThreadFlagLikelyMissing(String osName, String firstThreadEnv) {
+    static boolean firstThreadFlagLikelyMissing(@Nullable String osName, @Nullable String firstThreadEnv) {
         var macOs = osName != null
                 && (osName.toLowerCase(Locale.ROOT).contains("mac")
                         || osName.toLowerCase(Locale.ROOT).contains("darwin"));

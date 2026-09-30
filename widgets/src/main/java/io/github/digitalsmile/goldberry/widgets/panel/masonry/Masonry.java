@@ -128,7 +128,8 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
     /// ships has to be the one that survives a resize.
     public static final int DEFAULT_MIN_COLUMN_WIDTH = 320;
 
-    public Masonry {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Masonry(@Nullable List<Widget> children, int columns, int minColumnWidth, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (columns != UNSET && minColumnWidth != UNSET) {
@@ -145,6 +146,10 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
             throw new IllegalArgumentException(
                     "a masonry's min-column-width is a width in logical pixels, and " + minColumnWidth + " is not one");
         }
+        this.children = children;
+        this.columns = columns;
+        this.minColumnWidth = minColumnWidth;
+        this.attributes = attributes;
     }
 
     /// A responsive wall at [#DEFAULT_MIN_COLUMN_WIDTH].

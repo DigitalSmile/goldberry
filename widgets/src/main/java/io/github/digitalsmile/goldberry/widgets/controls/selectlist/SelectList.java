@@ -68,8 +68,11 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 public record SelectList(List<Widget> children, @Nullable Consumer<String> onTypeahead)
         implements Widget.Leaf, Styled, Paints, Handles {
 
-    public SelectList {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public SelectList(@Nullable List<Widget> children, @Nullable Consumer<String> onTypeahead) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
+        this.onTypeahead = onTypeahead;
     }
 
     /// A list with no typeahead, which is what a golden wants: the panel is the

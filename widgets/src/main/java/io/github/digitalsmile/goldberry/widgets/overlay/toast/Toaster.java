@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
@@ -48,12 +50,16 @@ public record Toaster(ToastController controller, Corner corner, int maximum) im
     /// take half a minute to get through.
     public static final int DEFAULT_MAXIMUM = 3;
 
-    public Toaster {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Toaster(ToastController controller, @Nullable Corner corner, int maximum) {
         Objects.requireNonNull(controller, "controller");
         corner = corner == null ? Corner.BOTTOM_END : corner;
         if (maximum < 1) {
             throw new IllegalArgumentException("a toast stack that shows " + maximum + " toasts shows none of them");
         }
+        this.controller = controller;
+        this.corner = corner;
+        this.maximum = maximum;
     }
 
     /// A stack in a corner, showing [#DEFAULT_MAXIMUM] at a time.

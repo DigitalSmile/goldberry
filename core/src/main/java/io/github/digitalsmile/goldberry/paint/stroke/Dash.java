@@ -34,6 +34,9 @@ public record Dash(List<Double> pattern, double offset) {
     public static final Dash NONE = new Dash(List.of(), 0);
 
     public Dash {
+        // Refused with a message rather than a bare NPE, for a caller outside
+        // null-marked code; StrokeTest pins the IllegalArgumentException.
+        //noinspection ConstantValue
         if (pattern == null) {
             throw new IllegalArgumentException("a dash pattern is a list, and null is not one; use Dash.NONE");
         }
@@ -41,6 +44,9 @@ public record Dash(List<Double> pattern, double offset) {
             throw new IllegalArgumentException("a dash offset must be a finite number, not " + offset);
         }
         for (var length : pattern) {
+            // A list from a caller without NullAway can hold a null, which is
+            // refused like any other length that is not one.
+            //noinspection ConstantValue
             if (length == null || !Double.isFinite(length) || length < 0) {
                 throw new IllegalArgumentException(
                         "every dash length must be a finite, non-negative number, and " + length + " is not");

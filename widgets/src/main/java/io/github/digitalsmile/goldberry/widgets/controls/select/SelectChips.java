@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -26,8 +28,10 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// the chevron to the edge, and there is now one that does.
 record SelectChips(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-    SelectChips {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    SelectChips(@Nullable List<Widget> children) {
         children = List.copyOf(children == null ? List.of() : children);
+        this.children = children;
     }
 
     @Override

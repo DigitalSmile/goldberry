@@ -60,11 +60,22 @@ public record ChartPlot(
         BAR
     }
 
-    public ChartPlot {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ChartPlot(
+            @Nullable List<Series> series,
+            @Nullable List<String> categories,
+            @Nullable Mode mode,
+            io.github.digitalsmile.goldberry.widgets.data.@Nullable ChartOptions options,
+            int isolated) {
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         mode = mode == null ? Mode.LINE : mode;
         options = options == null ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
+        this.series = series;
+        this.categories = categories;
+        this.mode = mode;
+        this.options = options;
+        this.isolated = isolated;
     }
 
     public ChartPlot(List<Series> series, List<String> categories, Mode mode) {

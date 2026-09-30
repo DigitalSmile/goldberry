@@ -912,16 +912,13 @@ public final class Window implements AutoCloseable {
     /// box tree it painted.
     public Window pointerRouter(io.github.digitalsmile.goldberry.input.PointerRouter router) {
         this.router = router;
-        if (router != null) {
-            // The router decides the shape and knows nothing about the platform;
-            // this is the one wire between the two (§7.3).
-            router.onCursorChange(window::setCursor);
-            // And the other platform effect focus has: an input method is on
-            // while something typed-into has the keyboard, and off otherwise
-            // (ADR-0285).
-            router.onTextInputChange(window::textInput);
-            router.onCaretAreaChange(window::textInputArea);
-        }
+        // The router decides the shape and knows nothing about the platform;
+        // this is the one wire between the two (§7.3).
+        router.onCursorChange(window::setCursor);
+        // And the other platform effect focus has: an input method is on while
+        // something typed-into has the keyboard, and off otherwise (ADR-0285).
+        router.onTextInputChange(window::textInput);
+        router.onCaretAreaChange(window::textInputArea);
         return this;
     }
 
@@ -955,10 +952,10 @@ public final class Window implements AutoCloseable {
     /// changed: `takeStylesDirty` clears on read, so the question it answers is
     /// exactly "did a pseudo-class change since the last time anyone asked".
     private void repaintIfRestyled() {
-        var router = Objects.requireNonNull(
+        var routing = Objects.requireNonNull(
                 this.router,
                 "reached only from input a router took, or its watcher did, and a watcher comes after one");
-        if (router.takeStylesDirty()) {
+        if (routing.takeStylesDirty()) {
             repaint();
         }
     }

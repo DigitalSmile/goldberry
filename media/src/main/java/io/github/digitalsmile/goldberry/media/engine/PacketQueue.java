@@ -291,7 +291,7 @@ final class PacketQueue {
     /// Called with the lock held.
     private void closeQueued() {
         for (var item : items) {
-            if (item instanceof Item.Data(var packet, var ignored)) {
+            if (item instanceof Item.Data(var packet, var _)) {
                 packet.close();
             }
         }

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.example.webpump;
 
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 /// The four numbers [ProbeDocument] sends, read out of the JSON array the engine
 /// hands over.
 ///
@@ -20,12 +22,13 @@ record ProbeArguments(double rafFps, double timelineFps, double timerFps, boolea
     /// How many numbers the document sends.
     private static final int FIELDS = 4;
 
-    /// Reads `[1.5,63,125,1]`, or empty for anything that is not that shape.
+    /// Reads `[1.5,63,125,1]`, or empty for anything that is not that shape,
+    /// null included.
     ///
     /// Empty rather than an exception: this runs on the UI thread inside a
     /// callback the page is awaiting, and a probe that killed the run over a
     /// malformed reading would lose the readings that came before it.
-    static Optional<ProbeArguments> parse(String arguments) {
+    static Optional<ProbeArguments> parse(@Nullable String arguments) {
         if (arguments == null) {
             return Optional.empty();
         }

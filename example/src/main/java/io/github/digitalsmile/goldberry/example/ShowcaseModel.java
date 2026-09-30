@@ -572,13 +572,13 @@ public final class ShowcaseModel {
         /// What the search field reports on every keystroke.
         @Action("app.set-icon-query")
         public void setIconQuery(String value) {
-            values.iconQuery = value == null ? "" : value;
+            values.iconQuery = value;
         }
 
         /// The emoji sheet's own field, for [ShowcaseModel#emojiQuery]'s reason.
         @Action("app.set-emoji-query")
         public void setEmojiQuery(String value) {
-            values.emojiQuery = value == null ? "" : value;
+            values.emojiQuery = value;
         }
 
         // --- the road --------------------------------------------------------

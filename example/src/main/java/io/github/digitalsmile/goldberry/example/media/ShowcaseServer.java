@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -96,11 +97,11 @@ final class ShowcaseServer implements AutoCloseable {
             var to = data.length - 1;
             var range = Optional.ofNullable(exchange.getRequestHeaders().getFirst("Range"))
                     .map(RANGE::matcher)
-                    .filter(java.util.regex.Matcher::matches);
+                    .filter(Matcher::matches);
             if (range.isPresent()) {
-                from = Integer.parseInt(range.get().group(1));
+                from = bound(range.get().group(1));
                 if (!range.get().group(2).isEmpty()) {
-                    to = Math.min(Integer.parseInt(range.get().group(2)), to);
+                    to = Math.min(bound(range.get().group(2)), to);
                 }
                 if (from > to) {
                     headers.set("Content-Range", "bytes */" + data.length);
@@ -116,6 +117,17 @@ final class ShowcaseServer implements AutoCloseable {
         } catch (IOException e) {
             // The engine closes a connection it no longer needs, after a seek:
             // the write that finds it closed is the end of that response.
+        }
+    }
+
+    /// A range bound, saturated. The pattern admits only digits, so the one
+    /// failure is a number too long for an `int`, and that is past the end of
+    /// any clip: a first byte there is a 416, and a last byte there is the end.
+    static int bound(String digits) {
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException tooLong) {
+            return Integer.MAX_VALUE;
         }
     }
 

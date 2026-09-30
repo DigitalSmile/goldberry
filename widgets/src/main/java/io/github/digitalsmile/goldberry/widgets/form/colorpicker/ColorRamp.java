@@ -111,7 +111,7 @@ record ColorRamp(Kind kind, HsvColor colour, DoubleConsumer onChange, boolean di
 
     private void at(PointerEvent event) {
         var local = event.local();
-        if (local == null || local.width() <= 0) {
+        if (local.width() <= 0) {
             return;
         }
         onChange.accept(Math.clamp(local.x() / local.width(), 0, 1));

@@ -53,11 +53,12 @@ class SdlAudioSinkTest {
             sink.open(FORMAT);
             var samples = FORMAT.sampleRate() / 5;
             sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
+            long queued = samples;
             var deadline = System.nanoTime() + 3_000_000_000L;
-            while (sink.queuedSamples() >= samples && System.nanoTime() < deadline) {
+            while (sink.queuedSamples() >= queued && System.nanoTime() < deadline) {
                 Thread.sleep(10);
             }
-            assertTrue(sink.queuedSamples() < samples, "the device consumed nothing in three seconds");
+            assertTrue(sink.queuedSamples() < queued, "the device consumed nothing in three seconds");
         }
     }
 

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 /// Whether a tray can be asked for at all under the video driver SDL is running.
 ///
 /// SDL's macOS tray is Cocoa's status bar, and `SDL_CreateTray` reaches
@@ -33,10 +35,10 @@ final class TrayAvailability {
     /// Why no tray can be created under this driver on this system, or empty
     /// when SDL may be asked.
     ///
-    /// @param osName the value of `os.name`
-    /// @param videoDriver what `SDL_GetCurrentVideoDriver` reports
+    /// @param osName the value of `os.name`, or null if it has none
+    /// @param videoDriver what `SDL_GetCurrentVideoDriver` reports, or null
     /// @return the reason, phrased for the debug log
-    static Optional<String> absenceReason(String osName, String videoDriver) {
+    static Optional<String> absenceReason(@Nullable String osName, @Nullable String videoDriver) {
         var name = osName == null ? "" : osName.toLowerCase(Locale.ROOT);
         var macOs = name.contains("mac") || name.contains("darwin");
         if (macOs && DUMMY_DRIVER.equals(videoDriver)) {

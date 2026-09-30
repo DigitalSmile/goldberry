@@ -75,9 +75,7 @@ record CrumbOverflow(Runnable onOpen, BiConsumer<LogicalRect, LogicalRect> locat
 
     @Override
     public void located(LogicalRect self, LogicalRect clip) {
-        if (located != null) {
-            located.accept(self, clip);
-        }
+        located.accept(self, clip);
     }
 
     @Override
@@ -105,9 +103,7 @@ record CrumbOverflow(Runnable onOpen, BiConsumer<LogicalRect, LogicalRect> locat
     }
 
     private void open() {
-        if (onOpen != null) {
-            onOpen.run();
-        }
+        onOpen.run();
     }
 
     @Override

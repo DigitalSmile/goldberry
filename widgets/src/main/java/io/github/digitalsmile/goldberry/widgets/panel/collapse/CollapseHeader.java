@@ -90,9 +90,7 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
     }
 
     private void toggle() {
-        if (onToggle != null) {
-            onToggle.run();
-        }
+        onToggle.run();
     }
 
     /// The marker, as a child rather than a mark drawn here.

@@ -150,7 +150,7 @@ final class TourState extends State<Tour> {
                 .anchor(stop.targetId())
                 .map(region -> {
                     var clip = region.clip();
-                    return clip == null || clip.isNone()
+                    return clip.isNone()
                             ? region.bounds()
                             : LogicalRect.of((float) clip.left(), (float) clip.top(), (float) clip.width(), (float)
                                     clip.height());

@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -369,7 +370,7 @@ public final class EventLoop implements AutoCloseable {
     /// The returned future's callbacks therefore run where they can touch
     /// windows. Failures arrive the same way, as an exceptional completion rather
     /// than a stack trace on a thread nobody is watching.
-    public <T> CompletableFuture<T> supplyAsync(Supplier<T> work) {
+    public <T extends @Nullable Object> CompletableFuture<T> supplyAsync(Supplier<T> work) {
         Objects.requireNonNull(work, "work");
         var future = new CompletableFuture<T>();
         background.execute(() -> {
@@ -384,9 +385,11 @@ public final class EventLoop implements AutoCloseable {
     }
 
     /// Runs `work` on a virtual thread, with nothing to return.
-    public CompletableFuture<Void> runAsync(Runnable work) {
+    ///
+    /// The future completes with null, which is the only value a `Void` has.
+    public CompletableFuture<@Nullable Void> runAsync(Runnable work) {
         Objects.requireNonNull(work, "work");
-        return supplyAsync(() -> {
+        return this.<@Nullable Void>supplyAsync(() -> {
             work.run();
             return null;
         });

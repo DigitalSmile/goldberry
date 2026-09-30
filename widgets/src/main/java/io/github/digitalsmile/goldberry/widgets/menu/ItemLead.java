@@ -128,21 +128,21 @@ record ItemLead(boolean checked, @Nullable Icon icon) implements Widget.Leaf, St
     /// tolerance either, and it needs none: these are two numbers an author typed,
     /// not a sum of insets — the epsilon is for the `double`, not for the layout.
     private void reportIfItOverhangs(ComputedStyle style) {
-        var icon = Objects.requireNonNull(this.icon, "only a lead with an icon can overhang");
-        if (!(style.width() instanceof Length.Points(var width)) || !(icon.size() > width + 0.5)) {
+        var drawn = Objects.requireNonNull(this.icon, "only a lead with an icon can overhang");
+        if (!(style.width() instanceof Length.Points(var width)) || !(drawn.size() > width + 0.5)) {
             return;
         }
-        var key = icon.name() + '/' + icon.size() + '/' + width;
+        var key = drawn.name() + '/' + drawn.size() + '/' + width;
         if (REPORTED_OVERHANG.size() >= REPORT_LIMIT || REPORTED_OVERHANG.add(key)) {
             LOG.debug(
                     "icon \"{}\" is {}px in a {}px `item-lead`, so it is centred and overhangs the column."
                             + " An icon is built at a size and cannot be rescaled (ADR-0043):"
                             + " build it at {} — Icons.SLOT, or icons.bind(\"{}\") — to fit.",
-                    icon.name(),
-                    icon.size(),
+                    drawn.name(),
+                    drawn.size(),
                     width,
                     Icons.SLOT,
-                    icon.name());
+                    drawn.name());
         }
     }
 }

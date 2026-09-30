@@ -180,9 +180,12 @@ import io.github.digitalsmile.goldberry.widgets.shell.web.WebViews;
 /// @param attributes id, classes and styles, as for any widget
 public record WebView(WebPage page, Attributes attributes) implements Widget.Stateful, Attributed<WebView> {
 
-    public WebView {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public WebView(WebPage page, @Nullable Attributes attributes) {
         Objects.requireNonNull(page, "page");
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.page = page;
+        this.attributes = attributes;
     }
 
     /// A page with no attributes of its own.

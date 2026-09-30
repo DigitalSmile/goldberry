@@ -12,6 +12,8 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 /// The row of headers in a [Tabs] — a **part**, and the thing the bottom rule is
 /// drawn on.
 ///
@@ -29,8 +31,12 @@ import java.util.Set;
 record TabList(List<Widget> headers, ScrollController controller, ScrollController.Position position)
         implements Widget.Leaf, Styled, Paints {
 
-    TabList {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    TabList(@Nullable List<Widget> headers, ScrollController controller, ScrollController.Position position) {
         headers = List.copyOf(headers == null ? List.of() : headers);
+        this.headers = headers;
+        this.controller = controller;
+        this.position = position;
     }
 
     /// How much of the viewport's width a page moves.

@@ -66,9 +66,7 @@ record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles, S
     }
 
     private void ask() {
-        if (onNew != null) {
-            onNew.run();
-        }
+        onNew.run();
     }
 
     @Override

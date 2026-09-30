@@ -100,9 +100,18 @@ final class VideoToolboxDecoder implements Decoder {
     /// Filled by the callback, emptied by the decode thread.
     private final ConcurrentLinkedQueue<Picture> decoded = new ConcurrentLinkedQueue<>();
 
+    // NULL until the constructor creates each one. A constructor that fails
+    // part-way calls close(), which reads all three and releases only what is
+    // not NULL, so the initializers are what it reads.
+    @SuppressWarnings("UnusedAssignment")
     private MemorySegment format = MemorySegment.NULL;
+
+    @SuppressWarnings("UnusedAssignment")
     private MemorySegment attributes = MemorySegment.NULL;
+
+    @SuppressWarnings("UnusedAssignment")
     private MemorySegment session = MemorySegment.NULL;
+
     private @Nullable Picture lent;
     private boolean ending;
     private int keyframeWait;

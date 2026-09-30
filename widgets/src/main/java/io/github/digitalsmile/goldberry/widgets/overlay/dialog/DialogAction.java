@@ -90,10 +90,16 @@ public record DialogAction(
         }
     }
 
-    public DialogAction {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public DialogAction(
+            String label, @Nullable Role role, @Nullable Runnable onPress, @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         role = role == null ? Role.NEUTRAL : role;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.role = role;
+        this.onPress = onPress;
+        this.attributes = attributes;
     }
 
     /// An action with a role and something to do.

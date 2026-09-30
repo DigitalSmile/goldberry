@@ -65,7 +65,13 @@ public record Link(
         String label, @Nullable Runnable onPress, @Nullable String href, boolean visited, Attributes attributes)
         implements Widget.Stateful, Attributed<Link> {
 
-    public Link {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Link(
+            String label,
+            @Nullable Runnable onPress,
+            @Nullable String href,
+            boolean visited,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
@@ -73,6 +79,11 @@ public record Link(
                             + " is a target nobody can name (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.onPress = onPress;
+        this.href = href;
+        this.visited = visited;
+        this.attributes = attributes;
     }
 
     /// A link that does something inside the application.

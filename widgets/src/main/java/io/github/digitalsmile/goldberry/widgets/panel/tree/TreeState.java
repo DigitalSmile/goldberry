@@ -153,7 +153,7 @@ final class TreeState extends State<Tree> {
                 if (sibling.isLazy() && !fetched.containsKey(sibling.id())) {
                     var children = Objects.requireNonNull(sibling.supplier(), "isLazy() is a supplier being there")
                             .get();
-                    fetched.put(sibling.id(), List.copyOf(children == null ? List.of() : children));
+                    fetched.put(sibling.id(), List.copyOf(children));
                 }
             }
         });
@@ -283,7 +283,7 @@ final class TreeState extends State<Tree> {
                 if (node.isLazy() && !fetched.containsKey(node.id())) {
                     var children = Objects.requireNonNull(node.supplier(), "isLazy() is a supplier being there")
                             .get();
-                    fetched.put(node.id(), List.copyOf(children == null ? List.of() : children));
+                    fetched.put(node.id(), List.copyOf(children));
                 }
             }
         });

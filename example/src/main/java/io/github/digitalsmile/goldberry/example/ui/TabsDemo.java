@@ -59,7 +59,9 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
     @Override
     public Widget build(BuildContext context) {
         var strip = new ArrayList<Widget>();
-        for (var name : Models.<List<String>>observable(model, "app.tabs").get()) {
+        // A bound field may hold null, and a model with no list has no tabs.
+        var names = Models.<List<String>>observable(model, "app.tabs").get();
+        for (var name : names == null ? List.<String>of() : names) {
             strip.add(new Tab(
                             name,
                             name,

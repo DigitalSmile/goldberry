@@ -35,13 +35,16 @@ public record Panel(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    public Panel {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Panel(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         // As `card` and `group-box` already did. Without it `new Panel(children,
         // null)` built without complaint and threw from `id()` instead — a null
         // dereference a frame later, in the cascade, about a widget the stack
         // trace does not name.
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.attributes = attributes;
     }
 
     @Override

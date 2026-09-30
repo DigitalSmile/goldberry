@@ -107,7 +107,8 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
     /// The token for the light modules and the quiet zone.
     private static final String PAPER_TOKEN = "--gb-qr-paper";
 
-    public QrCode {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public QrCode(String payload, @Nullable Level level, int quietZone, @Nullable Attributes attributes) {
         Objects.requireNonNull(payload, "payload");
         level = level == null ? Level.M : level;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -119,6 +120,10 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
         // costs nothing to do it twice: the second call is the cache's lookup,
         // and so is every rebuild after it.
         QrCache.matrix(payload, level);
+        this.payload = payload;
+        this.level = level;
+        this.quietZone = quietZone;
+        this.attributes = attributes;
     }
 
     /// A code for `payload` at level M with §6.3's four-module quiet zone.

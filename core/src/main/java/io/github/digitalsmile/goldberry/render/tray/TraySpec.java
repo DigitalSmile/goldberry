@@ -25,13 +25,17 @@ import io.github.digitalsmile.goldberry.render.PixelBuffer;
 /// @param items   the menu's rows, possibly empty
 public record TraySpec(@Nullable PixelBuffer icon, @Nullable String tooltip, List<TrayItem> items) {
 
-    public TraySpec {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public TraySpec(@Nullable PixelBuffer icon, @Nullable String tooltip, @Nullable List<TrayItem> items) {
         items = List.copyOf(items == null ? List.of() : items);
         if (tooltip != null && tooltip.isBlank()) {
             // A blank tooltip is a tooltip that draws an empty box on hover,
             // which is worse than the none it was meant to be.
             tooltip = null;
         }
+        this.icon = icon;
+        this.tooltip = tooltip;
+        this.items = items;
     }
 
     /// A tray with a menu and no icon of its own.

@@ -121,13 +121,28 @@ public record Statistic(
         this(label, value, null, null, Direction.NONE, null, Attributes.NONE);
     }
 
-    public Statistic {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Statistic(
+            String label,
+            String value,
+            @Nullable String unit,
+            @Nullable String delta,
+            @Nullable Direction direction,
+            io.github.digitalsmile.goldberry.widgets.data.sparkline.@Nullable Sparkline sparkline,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         Objects.requireNonNull(value, "value");
         unit = unit == null || unit.isBlank() ? null : unit;
         delta = delta == null || delta.isBlank() ? null : delta;
         direction = direction == null ? Direction.NONE : direction;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.value = value;
+        this.unit = unit;
+        this.delta = delta;
+        this.direction = direction;
+        this.sparkline = sparkline;
+        this.attributes = attributes;
     }
 
     /// This statistic with a unit after its value.

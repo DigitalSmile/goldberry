@@ -121,7 +121,7 @@ public final class Cube implements Canvas3dRenderer {
 
     @Override
     public void dispose() {
-        for (var resource : new AutoCloseable[] {mesh, pipeline, vertex, fragment}) {
+        for (var resource : new @Nullable AutoCloseable[] {mesh, pipeline, vertex, fragment}) {
             if (resource instanceof io.github.digitalsmile.goldberry.gpu.GpuResource gpu && !gpu.isClosed()) {
                 gpu.close();
             }

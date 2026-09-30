@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.image;
 
+import java.io.Serial;
+
 /// Thrown when the rasterizer refuses to resample an image.
 ///
 /// The third of these, after [ImageDecodeException] and [ImageEncodeException],
@@ -14,6 +16,7 @@ package io.github.digitalsmile.goldberry.image;
 /// refuse again, and a resample that ran out of memory may not.
 public class ImageScaleException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public ImageScaleException(String message) {

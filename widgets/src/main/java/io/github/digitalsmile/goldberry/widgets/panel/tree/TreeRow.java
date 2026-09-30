@@ -229,9 +229,7 @@ record TreeRow(
         // default action, and a row that swallowed it would leave a form with no
         // way to submit once the focus was in a tree.
         if (event.key() == Key.SPACE && check != null && event.modifiers().none()) {
-            if (onCheck != null) {
-                onCheck.run();
-            }
+            onCheck.run();
             event.consume();
             return;
         }
@@ -291,15 +289,11 @@ record TreeRow(
             return;
         }
         if ("*".equals(event.text())) {
-            if (onSiblings != null) {
-                onSiblings.run();
-            }
+            onSiblings.run();
             event.consume();
             return;
         }
-        if (onType != null) {
-            onType.accept(event.text());
-        }
+        onType.accept(event.text());
         event.consume();
     }
 
@@ -362,9 +356,7 @@ record TreeRow(
         @Override
         public void onPointer(PointerEvent event) {
             if (event.kind() == PointerEvent.Kind.CLICKED && present) {
-                if (onToggle != null) {
-                    onToggle.run();
-                }
+                onToggle.run();
                 event.consume();
             }
         }
@@ -441,9 +433,7 @@ record TreeRow(
         @Override
         public void onPointer(PointerEvent event) {
             if (event.kind() == PointerEvent.Kind.CLICKED) {
-                if (onCheck != null) {
-                    onCheck.run();
-                }
+                onCheck.run();
                 event.consume();
             }
         }

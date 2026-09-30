@@ -57,7 +57,13 @@ public record Typography(
     public static final Typography INITIAL =
             new Typography("Inter", 13, BundledFont.Weight.REGULAR, BundledFont.Style.UPRIGHT, 18);
 
-    public Typography {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Typography(
+            @Nullable String family,
+            double size,
+            BundledFont.@Nullable Weight weight,
+            BundledFont.@Nullable Style style,
+            double lineHeight) {
         if (family == null || family.isBlank()) {
             family = "Inter";
         }
@@ -73,6 +79,11 @@ public record Typography(
         if (!Double.isFinite(lineHeight) || lineHeight == 0) {
             throw new IllegalArgumentException("line-height must be non-zero, not " + lineHeight);
         }
+        this.family = family;
+        this.size = size;
+        this.weight = weight;
+        this.style = style;
+        this.lineHeight = lineHeight;
     }
 
     /// The four-argument form, which is every caller written before `font-style`

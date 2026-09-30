@@ -6,11 +6,9 @@ import java.util.Objects;
 import java.util.function.IntConsumer;
 
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -97,16 +95,29 @@ public record ColorPicker(
         Attributes attributes)
         implements Widget.Stateful, Attributed<ColorPicker>, Bindable<ColorPicker> {
 
-    private static final Logger LOG = Logs.of(ColorPicker.class);
-
     /// What a picker holding nothing shows, and what an unparseable `value=`
     /// falls back to.
     public static final int DEFAULT = 0xFF000000;
 
-    public ColorPicker {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public ColorPicker(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable IntConsumer onChange,
+            boolean alpha,
+            @Nullable List<Integer> presets,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         value = value == null ? "" : value;
         presets = List.copyOf(presets == null ? List.<Integer>of() : presets);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.alpha = alpha;
+        this.presets = presets;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An opaque black picker with no alpha ramp.
@@ -231,18 +242,13 @@ public record ColorPicker(
                 Attributes.of(node));
     }
 
-    /// The palette an application handed over, with anything unusable dropped.
+    /// The palette an application handed over, each colour through [#gate].
     ///
-    /// Logged rather than thrown, exactly as an unknown `filter=` is: a preset
-    /// that does not parse is a typo already visible in the code, and a picker
-    /// that refused to open is a worse way to find out.
+    /// Nothing is dropped: the constructor's `List.copyOf` has already refused a
+    /// null preset.
     static List<Integer> palette(ColorPicker picker) {
         var usable = new ArrayList<Integer>(picker.presets().size());
         for (var preset : picker.presets()) {
-            if (preset == null) {
-                LOG.warn("a color-picker preset was null; dropping it");
-                continue;
-            }
             usable.add(picker.gate(preset));
         }
         return List.copyOf(usable);

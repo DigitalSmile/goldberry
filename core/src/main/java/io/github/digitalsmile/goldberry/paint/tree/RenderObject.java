@@ -432,25 +432,27 @@ public final class RenderObject implements AutoCloseable {
 
         for (var i = 0; i < next.size(); i++) {
             var box = next.get(i);
-            if (i < children.size()) {
-                var existing = children.get(i);
-                if (existing.accepts(box)) {
-                    // OR-ed in, not discarded: a promoted ancestor's raster is
-                    // only reusable if *nothing* under it changed, and a child
-                    // three levels down is under it.
-                    changed |= existing.update(box, blockPadding, config);
-                    continue;
-                }
-                // Not interchangeable. Detach and close it; the replacement is
-                // built below.
+            var existing = i < children.size() ? children.get(i) : null;
+            if (existing != null && existing.accepts(box)) {
+                // OR-ed in, not discarded: a promoted ancestor's raster is only
+                // reusable if *nothing* under it changed, and a child three
+                // levels down is under it.
+                changed |= existing.update(box, blockPadding, config);
+                continue;
+            }
+            if (existing != null) {
+                // Not interchangeable. Detach and close it; the replacement takes
+                // its place in the list.
                 node.removeChild(existing.node);
                 existing.close();
-                children.remove(i);
-                changed = true;
             }
             var built = new RenderObject(config, box.text() != null);
             built.update(box, blockPadding, config);
-            children.add(i, built);
+            if (existing != null) {
+                children.set(i, built);
+            } else {
+                children.add(built);
+            }
             node.insertChild(built.node, i);
             changed = true;
         }
@@ -730,11 +732,12 @@ public final class RenderObject implements AutoCloseable {
             forget();
             return;
         }
-        if (node.parent() != null) {
+        var parent = node.parent();
+        if (parent != null) {
             // A subtree being replaced rather than a whole tree being torn down:
             // `YogaNode.close` refuses while a parent owns it, and rightly — it
             // would leave Yoga holding a dangling child.
-            node.parent().removeChild(node);
+            parent.removeChild(node);
         }
         node.close();
         forget();

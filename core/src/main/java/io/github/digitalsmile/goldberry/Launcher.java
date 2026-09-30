@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.drive.FrameBudgetException;
 import io.github.digitalsmile.goldberry.drive.ResizeWalk;
 import io.github.digitalsmile.goldberry.frame.FrameSequence;
@@ -323,8 +325,8 @@ final class Launcher implements Host {
 
         /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH` and
         /// `--late-budget=N`, ignoring everything else — an application's own
-        /// arguments are its business.
-        static Options of(String[] args) {
+        /// arguments are its business. Null reads as no arguments.
+        static Options of(String @Nullable [] args) {
             var frames = 0;
             LogicalSize size = null;
             LogicalSize resize = null;
@@ -379,7 +381,7 @@ final class Launcher implements Host {
 
     Launcher(Application application, Options options) {
         this.application = Objects.requireNonNull(application, "application");
-        this.options = options == null ? Options.NONE : options;
+        this.options = Objects.requireNonNull(options, "options");
     }
 
     /// [Application#minimumSize], unless the window is opening smaller than it.
@@ -462,8 +464,8 @@ final class Launcher implements Host {
         // (ADR-0128, ADR-0133).
         models = List.copyOf(application.models());
         for (var model : models) {
-            io.github.digitalsmile.goldberry.bind.runtime.Models.onRestyle(model, this::restyle);
-            io.github.digitalsmile.goldberry.bind.runtime.Models.onRepaint(model, window::repaint);
+            modelSubscriptions.add(Models.onRestyle(model, this::restyle));
+            modelSubscriptions.add(Models.onRepaint(model, window::repaint));
         }
 
         // The application's root goes *under* the window's own node, from the
@@ -680,7 +682,7 @@ final class Launcher implements Host {
         // Nothing at all for a woven model: `refresh` returns false without
         // looking, which is what makes this line free in a native image.
         for (var model : models) {
-            io.github.digitalsmile.goldberry.bind.runtime.Models.refresh(model);
+            Models.refresh(model);
         }
 
         // Prepare, flush, render, lay out -- the four steps whose order is the
@@ -813,7 +815,11 @@ final class Launcher implements Host {
 
     /// This launcher's registration for "the hover or the focus moved", closed
     /// when the window goes ([ADR-0230]).
-    private io.github.digitalsmile.goldberry.bind.@Nullable Subscription pointing;
+    private @Nullable Subscription pointing;
+
+    /// The application's models' restyle and repaint subscriptions, given back
+    /// in [#shutDown()].
+    private final List<Subscription> modelSubscriptions = new ArrayList<>();
 
     /// What an application does when a widget that named a menu is right-clicked
     /// — see [Host#onContextMenu].
@@ -1293,23 +1299,24 @@ final class Launcher implements Host {
             pointing.close();
             pointing = null;
         }
+        // The models are the application's and may outlive this window, as a
+        // model shared by two launches does; one still subscribed would go on
+        // asking a closed window for frames.
+        for (var subscription : modelSubscriptions) {
+            subscription.close();
+        }
+        modelSubscriptions.clear();
         // Before the window's own trees: a popup holds a render tree of its own
         // over the same fonts, and the fonts go last.
         for (var popup : List.copyOf(popups)) {
             popup.close();
         }
         popups.clear();
-        if (tree != null) {
-            tree.unmount();
-        }
-        if (render != null) {
-            render.close();
-        }
+        tree.unmount();
+        render.close();
         // After the tree, so a widget still holding an icon has already gone.
         application.stop();
-        if (fonts != null) {
-            fonts.close();
-        }
+        fonts.close();
         // And hand the window back before the process goes away. Not tidiness:
         // `Goldberry.stop()` ends the loop with the window still open, so without
         // this the process exits with a live Wayland surface and SDL never quit --
@@ -1400,6 +1407,8 @@ final class Launcher implements Host {
     }
 
     private Overlay attach(Overlay entry) {
+        // Never null, for WindowRoot.children's reason.
+        //noinspection DataFlowIssue
         var next = new ArrayList<>(overlays.get());
         next.add(entry);
         // A fresh list rather than a mutation of the one in the property: the
@@ -1860,8 +1869,7 @@ final class Launcher implements Host {
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.bind.Subscription onFullscreenChanged(
-            java.util.function.Consumer<Boolean> listener) {
+    public Subscription onFullscreenChanged(java.util.function.Consumer<Boolean> listener) {
         return window.onFullscreenChanged(listener);
     }
 

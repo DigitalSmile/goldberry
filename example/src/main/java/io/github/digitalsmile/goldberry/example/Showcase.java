@@ -595,9 +595,6 @@ public final class Showcase implements Application {
     /// correct behaviour and a useless demonstration.
     private void startTour() {
         actions.pickScreen("navigation");
-        if (host == null) {
-            return;
-        }
         // After the frame that switches screens, so the targets exist to be
         // found. §5 asks a tour to wait for a frame before positioning, and this
         // is that wait at its coarsest: the screen has to be *built* before any

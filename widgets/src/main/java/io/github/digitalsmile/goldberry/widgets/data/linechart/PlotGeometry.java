@@ -223,9 +223,9 @@ record PlotGeometry(
     /// Built on demand rather than held, because a `record` with an array in it
     /// is compared by identity anyway and this is three field reads.
     Scale timeScale() {
-        var times = Objects.requireNonNull(this.times, "only a plot with a time axis has a time scale");
-        var first = times[0];
-        var last = times[times.length - 1];
+        var stamps = Objects.requireNonNull(this.times, "only a plot with a time axis has a time scale");
+        var first = stamps[0];
+        var last = stamps[stamps.length - 1];
         return Scale.linear(first, last, left, right());
     }
 

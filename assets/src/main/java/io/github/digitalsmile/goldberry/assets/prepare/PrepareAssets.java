@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.zip.ZipFile;
 
 /// Prepares every bundled asset into resources `:core` packages.
@@ -40,26 +43,27 @@ public final class PrepareAssets {
             System.exit(2);
             return;
         }
-        var cache = new AssetCache(Path.of(args[0]));
         var resources = Path.of(args[1]).resolve(root(args));
         var licences = args.length > 2 && !args[2].startsWith("--") ? Path.of(args[2]) : null;
         var wanted = selection(args);
 
         Files.createDirectories(resources);
 
-        for (var asset : Asset.all()) {
-            if (!wanted.contains(asset.name())) {
-                continue;
+        try (var cache = new AssetCache(Path.of(args[0]))) {
+            for (var asset : Asset.all()) {
+                if (!wanted.contains(asset.name())) {
+                    continue;
+                }
+                var archive = cache.fetch(asset);
+                extract(asset, archive, resources);
+                if (licences != null) {
+                    vendorLicence(cache, asset, archive, licences);
+                }
             }
-            var archive = cache.fetch(asset);
-            extract(asset, archive, resources);
-            if (licences != null) {
-                vendorLicence(cache, asset, archive, licences);
-            }
-        }
 
-        if (wanted.contains(Asset.LUCIDE.name())) {
-            compileIcons(cache.fetch(Asset.LUCIDE), resources);
+            if (wanted.contains(Asset.LUCIDE.name())) {
+                compileIcons(cache.fetch(Asset.LUCIDE), resources);
+            }
         }
     }
 
@@ -96,11 +100,11 @@ public final class PrepareAssets {
     /// ([ADR-0384], [ADR-0456]). The selection is by name so that a build script says which
     /// assets it means rather than an index into a list.
     /// Package-private for [#root(String[])]'s reason.
-    static java.util.Set<String> selection(String[] args) {
+    static Set<String> selection(String[] args) {
         for (var argument : args) {
             if (argument.startsWith("--only=")) {
-                var names = java.util.Set.of(argument.substring("--only=".length()).split(","));
-                var known = Asset.all().stream().map(Asset::name).collect(java.util.stream.Collectors.toSet());
+                var names = Set.of(argument.substring("--only=".length()).split(","));
+                var known = Asset.all().stream().map(Asset::name).collect(Collectors.toSet());
                 for (var name : names) {
                     if (!known.contains(name)) {
                         throw new IllegalArgumentException(
@@ -110,7 +114,7 @@ public final class PrepareAssets {
                 return names;
             }
         }
-        return Asset.all().stream().map(Asset::name).collect(java.util.stream.Collectors.toSet());
+        return Asset.all().stream().map(Asset::name).collect(Collectors.toSet());
     }
 
     /// Pulls the individual entries an asset contributes out of its archive —
@@ -124,7 +128,7 @@ public final class PrepareAssets {
             var destination = asset.extract().values().iterator().next();
             var target = resources.resolve(destination);
             Files.createDirectories(target.getParent());
-            Files.copy(archive, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(archive, target, StandardCopyOption.REPLACE_EXISTING);
             System.out.println("  " + asset.name() + " -> " + destination
                     + " (" + Files.size(target) / 1024 + " KiB)");
             return;
@@ -142,7 +146,7 @@ public final class PrepareAssets {
                 var target = resources.resolve(wanted.getValue());
                 Files.createDirectories(target.getParent());
                 try (var in = zip.getInputStream(entry)) {
-                    Files.copy(in, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                 }
                 System.out.println("  " + asset.name() + " -> " + wanted.getValue()
                         + " (" + Files.size(target) / 1024 + " KiB)");
@@ -203,7 +207,7 @@ public final class PrepareAssets {
                 }
                 try (var in = zip.getInputStream(entry)) {
                     Files.copy(in, licences.resolve(wanted.getValue()),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            StandardCopyOption.REPLACE_EXISTING);
                 }
             }
             System.out.println("  vendored licenses/" + wanted.getValue()

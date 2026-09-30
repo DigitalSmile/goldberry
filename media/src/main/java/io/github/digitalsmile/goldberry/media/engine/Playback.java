@@ -875,6 +875,16 @@ public final class Playback implements AutoCloseable {
         return thread;
     }
 
+    /// Whether `track` can be decoded, and if not the warning that `current`
+    /// plays on. One message for the audio switch and the video one.
+    private boolean decodes(Demuxer opened, Track track, Track current) {
+        if (Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
+            return true;
+        }
+        LOG.warn("no decoder for {} on track {}; track {} plays on", track.codecName(), track.index(), current.index());
+        return false;
+    }
+
     /// Plays `track` in place of the audio track playing: retires the audio
     /// thread, starts one on `track`, and seeks to where playback is, so that
     /// every queue starts over at one position and the new track comes in on the
@@ -885,12 +895,7 @@ public final class Playback implements AutoCloseable {
         if (current == null || current.index() == track.index()) {
             return;
         }
-        if (!Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
-            LOG.warn(
-                    "no decoder for {} on track {}; track {} plays on",
-                    track.codecName(),
-                    track.index(),
-                    current.index());
+        if (!decodes(opened, track, current)) {
             return;
         }
         var retiring = audioWorker;
@@ -943,12 +948,7 @@ public final class Playback implements AutoCloseable {
         if (current == null || pictures == null || current.index() == track.index()) {
             return;
         }
-        if (!Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
-            LOG.warn(
-                    "no decoder for {} on track {}; track {} plays on",
-                    track.codecName(),
-                    track.index(),
-                    current.index());
+        if (!decodes(opened, track, current)) {
             return;
         }
         var retiring = videoWorker;

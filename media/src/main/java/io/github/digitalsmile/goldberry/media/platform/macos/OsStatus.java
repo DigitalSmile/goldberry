@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.media.platform.macos;
 
+import java.io.Serial;
+
 import org.jspecify.annotations.Nullable;
 
 /// Apple's `OSStatus` error codes, and the exception a failed framework call
@@ -89,6 +91,7 @@ final class OsStatus {
     /// A framework call that answered an error.
     static final class Failure extends RuntimeException {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final int status;

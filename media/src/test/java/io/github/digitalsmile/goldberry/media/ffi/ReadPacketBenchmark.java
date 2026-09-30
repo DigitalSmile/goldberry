@@ -74,16 +74,22 @@ class ReadPacketBenchmark {
             var buffer = arena.allocate(BLOCK);
             var unsized = MemorySegment.ofAddress(buffer.address());
 
+            // What the stub reports reading, summed and checked, so the calls are
+            // a result somebody reads and not code the JIT may drop.
+            var through = 0L;
             for (var i = 0; i < WARMUP; i++) {
-                var n = (int) call.invokeExact(MemorySegment.NULL, unsized, BLOCK);
+                through += (int) call.invokeExact(MemorySegment.NULL, unsized, BLOCK);
                 callbacks.read(MemorySegment.NULL, unsized, BLOCK);
             }
 
             var started = System.nanoTime();
             for (var i = 0; i < CALLS; i++) {
-                var n = (int) call.invokeExact(MemorySegment.NULL, unsized, BLOCK);
+                through += (int) call.invokeExact(MemorySegment.NULL, unsized, BLOCK);
             }
             var crossing = (System.nanoTime() - started) / (double) CALLS;
+            if (through <= 0) {
+                throw new AssertionError("the stub read nothing in " + (WARMUP + CALLS) + " calls");
+            }
 
             started = System.nanoTime();
             for (var i = 0; i < CALLS; i++) {

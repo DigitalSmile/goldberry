@@ -135,8 +135,17 @@ public record Canvas(
         @Nullable Predicate<CanvasStyle> animating)
         implements Widget.Leaf, Styled, Paints, Attributed<Canvas>, Handles, Semantics {
 
-    public Canvas {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Canvas(
+            @Nullable Painter painter,
+            @Nullable Input input,
+            @Nullable Attributes attributes,
+            @Nullable Predicate<CanvasStyle> animating) {
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.painter = painter;
+        this.input = input;
+        this.attributes = attributes;
+        this.animating = animating;
     }
 
     /// A canvas that draws a still picture — every canvas written before

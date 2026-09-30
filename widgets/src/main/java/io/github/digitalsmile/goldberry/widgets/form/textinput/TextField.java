@@ -249,8 +249,8 @@ record TextField(
                         };
                     // Neither can reach a field: `FIELD` is not vertical and takes
                     // no newline, so the map produces neither.
-                    case EditCommand.MoveLine ignored -> false;
-                    case EditCommand.Type ignored -> false;
+                    case EditCommand.MoveLine _ -> false;
+                    case EditCommand.Type _ -> false;
                     case EditCommand.Delete(var before, var word) ->
                         !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
                 };

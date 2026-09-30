@@ -130,6 +130,8 @@ public final class Frame {
 
     /// The read-back layers' pixels drawn so far, held until [#end()]: a
     /// threaded context may still be reading them after the blit returns.
+    /// Never queried, because holding them is the whole job.
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final List<ByteBuffer> drawnPixels = new ArrayList<>();
 
     private int borrowed;

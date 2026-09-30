@@ -303,7 +303,7 @@ public final class HttpIO implements MediaIO {
                 if (remaining <= 0) {
                     throw new HttpTimeoutException("no data from " + source.uri() + " in " + source.timeout());
                 }
-                changed.awaitNanos(Math.min(remaining, WAIT_SLICE_NANOS));
+                var _ = changed.awaitNanos(Math.min(remaining, WAIT_SLICE_NANOS));
                 if (closed) {
                     throw new AsynchronousCloseException();
                 }
@@ -629,6 +629,8 @@ public final class HttpIO implements MediaIO {
                         titles.put(at, title);
                         // Only the title in force at the reader is ever asked for.
                         var before = titles.floorKey(position);
+                        // floorKey answers null when every title starts after the reader.
+                        //noinspection ConstantValue
                         if (before != null) {
                             titles.headMap(before).clear();
                         }
@@ -727,7 +729,7 @@ public final class HttpIO implements MediaIO {
             var deadline = System.nanoTime() + delay;
             var remaining = delay;
             while (!closed && remaining > 0) {
-                changed.awaitNanos(remaining);
+                var _ = changed.awaitNanos(remaining);
                 remaining = deadline - System.nanoTime();
             }
             return !closed;
@@ -812,9 +814,15 @@ public final class HttpIO implements MediaIO {
         if (!matcher.matches()) {
             throw new IOException(source.uri() + " sent an unreadable Content-Range: " + value);
         }
-        var first = matcher.group(1) == null ? -1 : Long.parseLong(matcher.group(1));
-        var total = matcher.group(3).equals("*") ? -1 : Long.parseLong(matcher.group(3));
-        return new long[] {first, total};
+        try {
+            var first = matcher.group(1) == null ? -1 : Long.parseLong(matcher.group(1));
+            var total = matcher.group(3).equals("*") ? -1 : Long.parseLong(matcher.group(3));
+            return new long[] {first, total};
+        } catch (NumberFormatException tooLong) {
+            // Digits the pattern accepts and a long cannot hold: the server's
+            // fault, and the reader's to hear about as an I/O failure.
+            throw new IOException(source.uri() + " sent an unreadable Content-Range: " + value, tooLong);
+        }
     }
 
     /// A header's number, or -1 when it is missing or not a number.

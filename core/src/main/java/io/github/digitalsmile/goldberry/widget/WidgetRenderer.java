@@ -385,21 +385,20 @@ public final class WidgetRenderer {
         // cannot leave the tree below it resolving against the old number for a
         // frame -- and so the value is never a fact about a render that is over.
         lengthsBelowRoot = lengths;
-        var paragraphs =
+        var cache =
                 Objects.requireNonNull(this.paragraphs, "every constructor builds the cache with the paint context");
-        var textHitsBefore = FrameTrace.ENABLED ? paragraphs.hits() : 0;
-        var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
+        var textHitsBefore = FrameTrace.ENABLED ? cache.hits() : 0;
+        var textMissesBefore = FrameTrace.ENABLED ? cache.misses() : 0;
         var boxes = render(tree.root(), null, false, now);
         if (FrameTrace.ENABLED) {
-            tree.trace()
-                    .text((int) (paragraphs.hits() - textHitsBefore), (int) (paragraphs.misses() - textMissesBefore));
+            tree.trace().text((int) (cache.hits() - textHitsBefore), (int) (cache.misses() - textMissesBefore));
         }
         // The frame is over, so the cache knows what this one asked for and can
         // size itself to hold it. A cache smaller than one frame's working set
         // misses *every* lookup on the excess rather than merely missing more
         // often, which is what a document made of one paragraph per word turned
         // the default capacity into (ADR-0299).
-        paragraphs.frame();
+        cache.frame();
         if (boxes.isEmpty()) {
             throw new IllegalStateException("nothing in this widget tree paints; the root described only composition");
         }

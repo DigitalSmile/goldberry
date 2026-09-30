@@ -95,9 +95,13 @@ public record Breadcrumbs(List<Widget> children, int collapseAfter, Attributes a
     /// rather than stop the window opening.
     static final int MINIMUM_COLLAPSE_AFTER = 3;
 
-    public Breadcrumbs {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Breadcrumbs(@Nullable List<Widget> children, int collapseAfter, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.children = children;
+        this.collapseAfter = collapseAfter;
+        this.attributes = attributes;
     }
 
     /// A trail of crumbs, collapsing at §3's four.

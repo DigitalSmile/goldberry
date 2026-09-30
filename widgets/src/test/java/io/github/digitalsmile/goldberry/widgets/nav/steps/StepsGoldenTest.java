@@ -49,7 +49,7 @@ class StepsGoldenTest {
                 name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 
-    private static Widget page(Theme theme) {
+    private static Widget page() {
         var horizontal = new Steps(
                 2,
                 new Step("Account", "Who you are").reachable(true),
@@ -68,12 +68,12 @@ class StepsGoldenTest {
     @Test
     @DisplayName("a row with a current step, a row with a failed one, and two columns")
     void dark() {
-        paint("steps-dark", Theme.NORD_DARK, 560, 320, page(Theme.NORD_DARK));
+        paint("steps-dark", Theme.NORD_DARK, 560, 320, page());
     }
 
     @Test
     @DisplayName("and the same on light")
     void light() {
-        paint("steps-light", Theme.NORD_LIGHT, 560, 320, page(Theme.NORD_LIGHT));
+        paint("steps-light", Theme.NORD_LIGHT, 560, 320, page());
     }
 }

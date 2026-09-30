@@ -74,7 +74,17 @@ public record Step(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Step>, Semantics {
 
-    public Step {
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Step(
+            String label,
+            @Nullable String description,
+            boolean error,
+            boolean reachable,
+            int index,
+            int count,
+            @Nullable StepState state,
+            @Nullable Runnable onPress,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
@@ -83,6 +93,15 @@ public record Step(
         }
         state = state == null ? StepState.UPCOMING : state;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.description = description;
+        this.error = error;
+        this.reachable = reachable;
+        this.index = index;
+        this.count = count;
+        this.state = state;
+        this.onPress = onPress;
+        this.attributes = attributes;
     }
 
     /// A step with a name.
