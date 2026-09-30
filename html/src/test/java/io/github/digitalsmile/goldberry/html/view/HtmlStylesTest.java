@@ -64,7 +64,7 @@ class HtmlStylesTest {
                 ".html-em",
                 ".html-pre",
                 ".html-table",
-                ".html-quote-bar",
+                ".html-quote",
                 "button.html-a")) {
             assertTrue(css.contains(name), () -> "html.css has no rule for " + name);
         }

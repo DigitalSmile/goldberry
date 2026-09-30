@@ -22,8 +22,8 @@ import org.jspecify.annotations.Nullable;
 /// the headers has to stop where the headers do, and a border on the outer box
 /// would be under the panel as well.
 ///
-/// The rule it carries is a [TabRule] rather than a `border-bottom`, because §8's
-/// subset has no per-edge borders — see [TabIndicator].
+/// The rule it carries is a [TabRule] rather than a `border-bottom` — see that
+/// class for why it stayed one when §8 grew per-side borders.
 ///
 /// @param headers    the tabs, already told which of them is selected
 /// @param controller the header viewport's controller

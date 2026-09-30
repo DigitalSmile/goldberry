@@ -169,6 +169,16 @@ record TextField(
         }
         switch (event.kind()) {
             case PRESSED -> {
+                // The middle button is a paste where the platform has a primary
+                // selection and nothing here where it has not -- which the state
+                // finds out, so this node never learns which platform it is on
+                // (ADR-0504).
+                if (event.button() == PointerEvent.Button.MIDDLE) {
+                    if (editor.pastePrimaryAt(event.local().x())) {
+                        event.consume();
+                    }
+                    return;
+                }
                 if (event.button() != PointerEvent.Button.PRIMARY) {
                     return;
                 }
@@ -190,10 +200,11 @@ record TextField(
                 if (!Double.isNaN(event.dragX())) {
                     // Always extending: a drag *is* a selection, and the shift
                     // key adds nothing to one.
-                    editor.pointerAt(event.local().x(), true, 1);
+                    editor.dragTo(event.local().x());
                     event.consume();
                 }
             }
+            case RELEASED -> editor.released();
             default -> {}
         }
     }

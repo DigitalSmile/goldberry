@@ -518,3 +518,5 @@
 - [ADR-0501 A tray icon follows the desktop's theme, and stops when it closes](adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)
 - [ADR-0502 A node copies custom properties only when it changes one](adr/0502-a-node-copies-custom-properties-only-when-it-changes-one.md)
 - [ADR-0503 The GPU lane finds lavapipe, a device goes before SDL does, and a GPU golden has its own tolerance](adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md)
+- [ADR-0504 A selection is published where the platform has a primary selection](adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)
+- [ADR-0505 A border has four sides, and takes no room](adr/0505-a-border-has-four-sides-and-takes-no-room.md)

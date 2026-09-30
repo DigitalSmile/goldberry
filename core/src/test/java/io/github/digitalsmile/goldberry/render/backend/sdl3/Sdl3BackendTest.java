@@ -152,4 +152,28 @@ class Sdl3BackendTest {
             assertFalse(Sdl3Backend.surfaceWouldRecreateWindows(driver, Composition.ALWAYS));
         }
     }
+
+    /// ADR-0504: SDL answers the primary-selection calls on every driver, and
+    /// off X11 and Wayland it answers from a buffer inside this process. So the
+    /// driver's name is what decides whether a widget is offered one.
+    @Nested
+    @DisplayName("a primary selection")
+    class PrimarySelectionByDriver {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"x11", "wayland"})
+        @DisplayName("is offered where the window system has one")
+        void offered(String driver) {
+            assertTrue(Sdl3Backend.hasPrimarySelection(driver));
+        }
+
+        /// Including the two drivers the tests run on: a headless run of the
+        /// sdl3 backend must not pretend to have a desktop's selection.
+        @ParameterizedTest
+        @ValueSource(strings = {"windows", "cocoa", "dummy", "offscreen", "kmsdrm", "", "X11"})
+        @DisplayName("and not anywhere SDL would keep it to itself")
+        void notOffered(String driver) {
+            assertFalse(Sdl3Backend.hasPrimarySelection(driver));
+        }
+    }
 }

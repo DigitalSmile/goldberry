@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.document.DocumentLines;
@@ -96,6 +97,8 @@ public final class Editor {
     private boolean readOnly;
 
     private @Nullable Clipboard clipboard;
+
+    private @Nullable PrimarySelection primarySelection;
 
     /// The shaped text — one [Paragraph] per **hard line**, re-shaped a hard line
     /// at a time ([ADR-0411]).
@@ -262,6 +265,19 @@ public final class Editor {
     /// report `false`, so a key is not swallowed by a feature that is not there.
     public Editor clipboard(Clipboard value) {
         this.clipboard = Objects.requireNonNull(value, "clipboard");
+        return this;
+    }
+
+    /// The primary selection a finished selection is published to and a middle
+    /// click pastes from — X11's, where the host has one ([ADR-0504]).
+    ///
+    /// Hand it [io.github.digitalsmile.goldberry.Host#primarySelection()]'s answer
+    /// when there is one and nothing when there is not: without one,
+    /// [#pointerReleased()] publishes nothing and [#pastePrimaryAt] is a no-op
+    /// that reports `false`, so the caller's middle button can mean something
+    /// else. The editor never asks which platform it is on.
+    public Editor primarySelection(PrimarySelection value) {
+        this.primarySelection = Objects.requireNonNull(value, "primarySelection");
         return this;
     }
 
@@ -451,6 +467,27 @@ public final class Editor {
         if (command == null) {
             return false;
         }
+        var handled = perform(command);
+        if (handled && selects(command)) {
+            // A selection made from the keyboard is finished the moment the key
+            // lands -- there is no release to wait for, as there is for a drag.
+            publishSelection();
+        }
+        return handled;
+    }
+
+    /// Whether `command` makes a selection rather than moving past one:
+    /// `Shift` with a movement, and `Ctrl+A`.
+    private static boolean selects(EditCommand command) {
+        return switch (command) {
+            case EditCommand.Move(var _, var _, var extend) -> extend;
+            case EditCommand.MoveLine(var _, var _, var extend) -> extend;
+            case EditCommand.Simple simple -> simple == EditCommand.Simple.SELECT_ALL;
+            case EditCommand.Delete _, EditCommand.Type _ -> false;
+        };
+    }
+
+    private boolean perform(EditCommand command) {
         return switch (command) {
             case EditCommand.Simple simple -> simple(simple);
             case EditCommand.Move(var motion, var word, var extend) ->
@@ -508,6 +545,51 @@ public final class Editor {
         desiredX = Double.NaN;
         caretMoved();
         history.endRun();
+    }
+
+    /// The pointer came up: a selection the press and drag made is finished, and
+    /// goes on the primary selection if there is one ([ADR-0504]).
+    ///
+    /// On the release and not on every drag, because every write is an ownership
+    /// change the whole desktop is told about.
+    ///
+    /// @return whether a selection was published
+    public boolean pointerReleased() {
+        return publishSelection();
+    }
+
+    /// A middle click at a point in the text's own space: the caret goes there
+    /// and the primary selection's text goes in at it — X11's paste, as one
+    /// undoable edit ([ADR-0504]).
+    ///
+    /// Nothing happens without a primary selection, in a read-only editor, or
+    /// when the selection holds no text — and `false` says so, so the caller's
+    /// middle button is free to mean something else.
+    ///
+    /// @return whether anything was pasted
+    public boolean pastePrimaryAt(double x, double y) {
+        var selection = primarySelection;
+        if (readOnly || selection == null || !selection.hasText()) {
+            return false;
+        }
+        // Read before the caret moves: the text being pasted may well be this
+        // editor's own selection, which the move collapses. Collapsing it does
+        // not clear the primary selection, but asking first costs nothing.
+        var text = selection.text();
+        if (text.isEmpty()) {
+            return false;
+        }
+        pointerAt(x, y, false, 1);
+        return apply(edit.insert(multiline ? text : text.replaceAll("\\R", " ")), EditHistory.Kind.OTHER);
+    }
+
+    /// Puts a non-empty selection on the primary selection, if there is one.
+    private boolean publishSelection() {
+        var selection = primarySelection;
+        if (selection == null || !edit.hasSelection()) {
+            return false;
+        }
+        return selection.text(edit.selectedText());
     }
 
     /// Copies the selection. `false` when there is nothing selected or no

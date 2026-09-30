@@ -281,6 +281,11 @@ public record CanvasScreen() implements Widget.Stateful {
 
         private @Nullable Editor sticky;
 
+        /// Whether the gesture on the sticky began with the middle button — a
+        /// paste, so the drag after it selects nothing and its release publishes
+        /// nothing.
+        private boolean stickyPasting;
+
         /// The window, for its clipboard. Null in a test that renders the screen
         /// without one, which is why every use of it is guarded.
         private @Nullable Host host;
@@ -297,6 +302,9 @@ public record CanvasScreen() implements Widget.Stateful {
                                 + " and draws what it says.");
                 if (host != null) {
                     current.clipboard(host.clipboard());
+                    // Only where there is one: X11 and Wayland (ADR-0504). The
+                    // editor never learns which, and neither does this card.
+                    host.primarySelection().ifPresent(current::primarySelection);
                 }
                 sticky = current;
             }
@@ -848,19 +856,36 @@ public record CanvasScreen() implements Widget.Stateful {
                                                     var x = at.x() - 8 - STICKY_PADDING;
                                                     var y = at.y() - 8 - STICKY_PADDING;
                                                     switch (event.kind()) {
-                                                        case PRESSED ->
-                                                            setState(() -> sticky().pointerAt(
-                                                                            x,
-                                                                            y,
-                                                                            event.modifiers()
-                                                                                    .shift(),
-                                                                            event.clickCount()));
+                                                        case PRESSED -> {
+                                                            // The middle button is X11's paste, and
+                                                            // a no-op where there is no primary
+                                                            // selection (ADR-0504).
+                                                            stickyPasting =
+                                                                    event.button() == PointerEvent.Button.MIDDLE;
+                                                            if (stickyPasting) {
+                                                                setState(() -> sticky().pastePrimaryAt(x, y));
+                                                            } else {
+                                                                setState(() -> sticky().pointerAt(
+                                                                                x,
+                                                                                y,
+                                                                                event.modifiers()
+                                                                                        .shift(),
+                                                                                event.clickCount()));
+                                                            }
+                                                        }
                                                         // A drag extends the selection, which
                                                         // needs no capture of its own: the
                                                         // router captures on press (ADR-0281).
                                                         case MOVED -> {
-                                                            if (!Float.isNaN(event.pressX())) {
+                                                            if (!stickyPasting && !Float.isNaN(event.pressX())) {
                                                                 setState(() -> sticky().pointerAt(x, y, true, 1));
+                                                            }
+                                                        }
+                                                        // A finished selection goes on the
+                                                        // primary selection, once.
+                                                        case RELEASED -> {
+                                                            if (!stickyPasting) {
+                                                                sticky().pointerReleased();
                                                             }
                                                         }
                                                         default -> {}

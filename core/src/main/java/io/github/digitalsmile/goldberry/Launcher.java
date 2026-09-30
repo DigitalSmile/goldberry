@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
@@ -19,6 +20,7 @@ import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
@@ -1775,6 +1777,11 @@ final class Launcher implements Host {
     @Override
     public Clipboard clipboard() {
         return GoldberryRuntime.get().backend().clipboard();
+    }
+
+    @Override
+    public Optional<PrimarySelection> primarySelection() {
+        return GoldberryRuntime.get().backend().primarySelection();
     }
 
     @Override

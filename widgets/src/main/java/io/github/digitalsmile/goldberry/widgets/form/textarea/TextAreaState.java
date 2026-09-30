@@ -268,7 +268,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             case START -> edit.toStart(extend);
             case END -> edit.toEnd(extend);
         };
-        return apply(next, EditHistory.Kind.OTHER, false);
+        return published(apply(next, EditHistory.Kind.OTHER, false), extend);
     }
 
     @Override
@@ -288,7 +288,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             var next = lines < 0 ? edit.toStart(extend) : edit.toEnd(extend);
             var moved = apply(next, EditHistory.Kind.OTHER, false);
             preferredColumn = Double.NaN;
-            return moved;
+            return published(moved, extend);
         }
 
         // The column is in the **painted** space, so it carries the source line's
@@ -305,12 +305,35 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // Set *after* the apply, which clears it: a run of Up/Down keeps the
         // column it started with, and everything else abandons it.
         preferredColumn = column;
+        return published(moved, extend);
+    }
+
+    /// `Ctrl+A`, published whether or not it changed anything — `text-input`'s
+    /// rule, and here there is no `Tab` select-all to follow it.
+    @Override
+    public boolean selectAll() {
+        var changed = apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+        publishSelection();
+        return changed;
+    }
+
+    /// A keyboard selection is finished when its key lands, so a movement that
+    /// extended one publishes it. @return `moved`, for the caller's return
+    private boolean published(boolean moved, boolean extend) {
+        if (moved && extend) {
+            publishSelection();
+        }
         return moved;
     }
 
-    @Override
-    public boolean selectAll() {
-        return apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+    /// Puts a finished, non-empty selection on the primary selection, where the
+    /// platform has one ([ADR-0504]). A `text-area` has no masked mode, so
+    /// unlike `text-input` there is nothing it refuses.
+    private void publishSelection() {
+        if (!edit.hasSelection() || host == null) {
+            return;
+        }
+        host.primarySelection().ifPresent(primary -> primary.text(edit.selectedText()));
     }
 
     @Override
@@ -411,8 +434,14 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         return preedit.isEmpty() ? edit.caret() : edit.caret() + preedit.caret();
     }
 
+    /// Whether the pointer gesture in progress began with the primary button —
+    /// what makes a drag a selection and a release worth publishing. Not
+    /// `setState`: nothing drawn reads it.
+    private boolean selecting;
+
     @Override
     public void pointerAt(double x, double y, boolean extend, int clickCount) {
+        selecting = true;
         select(x, y, extend, clickCount, false);
         // Every press takes hold: whatever it selected, a drag from it extends, and
         // a drag can reach the edge.
@@ -421,7 +450,33 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
+    public boolean pastePrimaryAt(double x, double y) {
+        // A middle press ends any selecting gesture, so the drag after it moves
+        // nothing.
+        selecting = false;
+        var area = widget();
+        if (host == null || area.disabled() || area.readOnly()) {
+            return false;
+        }
+        var primary = host.primarySelection().orElse(null);
+        if (primary == null || !primary.hasText()) {
+            return false;
+        }
+        var pasted = primary.text();
+        if (pasted.isEmpty()) {
+            return false;
+        }
+        // The caret, then the text: the move changes no text, so the history
+        // records one step and `Ctrl+Z` leaves the caret where the press put it.
+        select(x, y, false, 1, false);
+        return insertPasted(pasted);
+    }
+
+    @Override
     public void dragTo(double x, double y) {
+        if (!selecting) {
+            return;
+        }
         if (!edge.isHeld()) {
             edge.hold(this::carry, ScrollAxis.VERTICAL);
         }
@@ -438,6 +493,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     @Override
     public void released() {
         edge.release();
+        if (selecting) {
+            selecting = false;
+            publishSelection();
+        }
     }
 
     @Override
@@ -749,7 +808,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (host == null) {
             return false;
         }
-        var pasted = host.clipboard().text();
+        return insertPasted(host.clipboard().text());
+    }
+
+    /// Inserts pasted text at the caret — `Ctrl+V`'s and a middle click's, which
+    /// are the same edit from two buffers.
+    private boolean insertPasted(String pasted) {
         if (pasted.isEmpty()) {
             return false;
         }

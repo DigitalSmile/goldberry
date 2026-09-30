@@ -223,6 +223,44 @@ class GoldenImageTest {
     }
 
     @Test
+    @DisplayName("a border per side: uniform as ever, one side, two widths, four colours, and rounded")
+    void borders() {
+        // Five boxes, each saying one thing a picture can check (ADR-0505). The
+        // first is the uniform stroke every golden before this one is made of;
+        // the second is the rule under a header that was asked for five times;
+        // the third is two widths in one colour, which must have no seam down
+        // its mitres; the fourth is four colours and four widths, mitred from
+        // each outer corner to its inner one; the fifth is the same with a
+        // radius, which is where the drawing is an approximation.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; flex-direction: row; padding: 12px; gap: 10px }
+                cell { background: #d8dee9; width: 44px; height: 60px }
+                cell.uniform { border: 2px solid #5e81ac; border-radius: 6px }
+                cell.rule { border-bottom: 3px solid #bf616a }
+                cell.widths { border: 2px solid #4c566a; border-left: 8px solid #4c566a }
+                cell.colours {
+                  border-width: 2px 4px 6px 8px;
+                  border-color: #bf616a #a3be8c #5e81ac #ebcb8b;
+                }
+                cell.rounded {
+                  border-width: 2px 4px 6px 8px;
+                  border-color: #bf616a #a3be8c #5e81ac #ebcb8b;
+                  border-radius: 14px;
+                }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("cell", "uniform"),
+                        new Node("cell", "rule"),
+                        new Node("cell", "widths"),
+                        new Node("cell", "colours"),
+                        new Node("cell", "rounded"));
+
+        GoldenImage.assertMatches(
+                "borders", 284, 84, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
     @DisplayName("the same tree under nord-light and nord-dark")
     void nordLight() {
         GoldenImage.assertMatches(

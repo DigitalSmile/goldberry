@@ -4,15 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -30,6 +35,7 @@ import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -80,7 +86,13 @@ class SelectionTest {
 
     /// A tree holding `view`, wired to a router and taken through one frame.
     private void mount(Widget view) {
-        tree = new ElementTree(view);
+        mount(view, null);
+    }
+
+    /// The same, in a window — which is the one way a press reaches a primary
+    /// selection, through the element that heard it.
+    private void mount(Widget view, @Nullable Host host) {
+        tree = new ElementTree(view, host);
         router = new PointerRouter();
         router.focusRoot(tree.root());
         router.windowBounds(LogicalRect.of(0, 0, 400, 300));
@@ -609,6 +621,131 @@ class SelectionTest {
 
     /// A clipboard that remembers, which is all this needs — the real one is the
     /// window's and is three methods wide.
+    /// A window with nothing in it but a primary selection: every other question
+    /// is answered by `Host`'s own default, or with nothing.
+    ///
+    /// A proxy rather than a class, because a `Host` is forty methods and what this
+    /// file asserts needs one of them.
+    private static Host hostWith(PrimarySelection primary) {
+        return (Host) Proxy.newProxyInstance(
+                Host.class.getClassLoader(), new Class<?>[] {Host.class}, (proxy, method, arguments) -> {
+                    if (method.getName().equals("primarySelection")) {
+                        return Optional.of(primary);
+                    }
+                    if (method.isDefault()) {
+                        return InvocationHandler.invokeDefault(proxy, method, arguments);
+                    }
+                    return switch (method.getName()) {
+                        case "equals" -> proxy == arguments[0];
+                        case "hashCode" -> System.identityHashCode(proxy);
+                        case "toString" -> "Host[a primary selection]";
+                        default -> method.getReturnType() == boolean.class ? Boolean.FALSE : null;
+                    };
+                });
+    }
+
+    /// X11's middle-click buffer, which a document fills and never pastes from
+    /// (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        @Test
+        @DisplayName("a drag publishes what it selected when the button comes up")
+        void aDragPublishesOnRelease() {
+            var primary = new Primary();
+            mount(MarkdownView.of(DOCUMENT).id("note"), hostWith(primary));
+
+            press(rectOf(1), 1);
+            moveTo(rectOf(2));
+            assertEquals(0, primary.writes, "a drag in progress is not an ownership change yet");
+
+            release(rectOf(2));
+
+            // From the middle of one word to the middle of the next, which is what
+            // the drag selected -- and exactly what a copy would take.
+            assertEquals(state().selectedText(), primary.text());
+            assertTrue(primary.text().contains(" "), "the drag crossed a word boundary");
+            assertEquals(1, primary.writes);
+        }
+
+        @Test
+        @DisplayName("a double click publishes its word, and a click that selects nothing publishes nothing")
+        void clicks() {
+            var primary = new Primary();
+            mount(MarkdownView.of(DOCUMENT).id("note"), hostWith(primary));
+
+            press(rectOf(2), 2);
+            release(rectOf(2));
+            assertEquals("brown", primary.text());
+
+            press(rectOf(0), 1);
+            release(rectOf(0));
+            assertEquals("brown", primary.text(), "a click is a selection of nothing");
+            assertEquals(1, primary.writes);
+        }
+
+        @Test
+        @DisplayName("Ctrl+A publishes the lot")
+        void selectAllPublishes() {
+            var primary = new Primary();
+            mount(MarkdownView.of(DOCUMENT).id("note"), hostWith(primary));
+            router.focusById("note", false);
+            var state = state();
+
+            state.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.A, Modifiers.of(Mod.CTRL), false, tree.root()));
+
+            assertEquals(state.text(), primary.text());
+        }
+
+        @Test
+        @DisplayName("the seam offers what is selected, and nothing when there is none")
+        void offers() {
+            var primary = new Primary();
+            var state = state();
+
+            assertFalse(state.offerTo(primary));
+
+            press(rectOf(2), 2);
+            assertTrue(state.offerTo(primary));
+            assertEquals("brown", primary.text());
+        }
+
+        @Test
+        @DisplayName("a window without one is not an error")
+        void noWindowNoPrimary() {
+            press(rectOf(2), 2);
+            release(rectOf(2));
+
+            assertTrue(state().hasSelection(), "the selection is still made; it just goes nowhere");
+        }
+    }
+
+    /// A primary selection with nothing under it, counting writes.
+    private static final class Primary implements PrimarySelection {
+
+        private String text = "";
+
+        private int writes;
+
+        @Override
+        public boolean hasText() {
+            return !text.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return text;
+        }
+
+        @Override
+        public boolean text(String value) {
+            text = value;
+            writes++;
+            return true;
+        }
+    }
+
     private static final class Recording implements Clipboard {
 
         private String text = "";

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.css.Border;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.css.Decoration;
@@ -582,7 +583,7 @@ class ButtonTest {
                     .fade(0.45);
 
             assertEquals(0x73804020, faded.background());
-            assertEquals(0x73102030, faded.decoration().borderColor());
+            assertEquals(Border.all(1, 0x73102030), faded.decoration().border());
         }
     }
 }

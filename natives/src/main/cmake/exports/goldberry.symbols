@@ -238,6 +238,18 @@ SDL_HasClipboardData
 # is the whole of what a user needs to be told. One SDL_free releases the array
 # and its strings together.
 SDL_GetClipboardMimeTypes
+#
+# And the primary selection, which is X11's middle-click buffer and Wayland's
+# too: selecting text publishes it, a middle click pastes it (ADR-0504). The
+# clipboard's text half again, with the same allocate-and-SDL_free read.
+#
+# SDL answers these on **every** video driver, and off X11 and Wayland it
+# answers from a buffer of its own inside this process -- a selection nobody
+# else can paste. So what decides whether an application is offered one is the
+# driver's name, in Java, and not whether these symbols are here.
+SDL_GetPrimarySelectionText
+SDL_SetPrimarySelectionText
+SDL_HasPrimarySelectionText
 
 # The system tray (sec. 9's `tray-icon`). SDL owns the platform menu here --
 # these entries are drawn by the desktop shell and not by Goldberry, which is

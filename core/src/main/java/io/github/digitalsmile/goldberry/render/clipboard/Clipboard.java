@@ -37,6 +37,14 @@ import io.github.digitalsmile.goldberry.render.Backend;
 /// data clipboard — or one written before this existed — is honest rather than
 /// broken: it reports that it holds nothing and accepts nothing.
 ///
+/// ## Not the primary selection
+///
+/// X11 has a second buffer, which selecting text fills and a middle click pastes,
+/// and Wayland carries it too. It is not this interface, and not a method on it:
+/// it is [PrimarySelection], which [Backend#primarySelection()] offers only where
+/// the platform has one — so `Ctrl+C` and `Ctrl+V` here mean the same thing on
+/// every platform, and a selection never replaces what was copied ([ADR-0504]).
+///
 /// ## Not a `Property`, and not watched
 ///
 /// Nothing here reports a change. X11 and Wayland deliver clipboard ownership

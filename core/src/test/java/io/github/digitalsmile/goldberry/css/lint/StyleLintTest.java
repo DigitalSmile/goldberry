@@ -53,12 +53,14 @@ class StyleLintTest {
         @Test
         @DisplayName("a property the subset does not have is reported")
         void unsupportedProperty() {
-            // `border-bottom` is the one that shipped in `table-head`, drew
-            // nothing, and left one debug line among thousands (ADR-0215).
-            var findings = dead("table-head { border-bottom: 1px solid red }");
+            // `border-bottom` was this example -- the one that shipped in
+            // `table-head`, drew nothing, and left one debug line among thousands
+            // (ADR-0215) -- until ADR-0505 made it a property. `border-style` is
+            // one §8 still refuses by design: style is a word inside a shorthand.
+            var findings = dead("table-head { border-style: dashed }");
 
             assertEquals(1, findings.size(), () -> findings.toString());
-            assertEquals("border-bottom", findings.getFirst().property());
+            assertEquals("border-style", findings.getFirst().property());
             assertEquals("table-head", findings.getFirst().selector());
         }
 
@@ -152,7 +154,7 @@ class StyleLintTest {
             // engine through an element that matches — so a rule whose *second*
             // selector is the live one would go unchecked if only the first were
             // built.
-            var findings = dead("button, table-head { border-bottom: 1px solid red }");
+            var findings = dead("button, table-head { border-style: dashed }");
 
             assertEquals(2, findings.size(), () -> findings.toString());
             assertEquals(
@@ -163,7 +165,7 @@ class StyleLintTest {
         @Test
         @DisplayName("a finding says where it was written")
         void findingsCarryTheirPosition() {
-            var findings = dead("button {\n  color: red;\n  border-bottom: 1px solid red;\n}");
+            var findings = dead("button {\n  color: red;\n  border-style: dashed;\n}");
 
             assertEquals(1, findings.size());
             assertEquals(3, findings.getFirst().line(), "the line the parser saw it at");
@@ -214,7 +216,7 @@ class StyleLintTest {
         @Test
         @DisplayName("only what was asked about is reported")
         void inForceIsNotLinted() {
-            var broken = sheet("table-head { border-bottom: 1px solid red }");
+            var broken = sheet("table-head { border-style: dashed }");
             var mine = sheet("button { color: #ff0000 }");
 
             var findings = new StyleLint(List.of(broken, mine)).check(mine);
@@ -281,12 +283,12 @@ class StyleLintTest {
         @Test
         @DisplayName("a finding reads as something an author could act on")
         void findingsAreLegible() {
-            var finding = dead("table-head { border-bottom: 1px solid red }").getFirst();
+            var finding = dead("table-head { border-style: dashed }").getFirst();
 
             var text = finding.toString();
             assertTrue(text.contains("table-head"), text);
-            assertTrue(text.contains("border-bottom"), text);
-            assertTrue(text.contains("1px solid red"), text);
+            assertTrue(text.contains("border-style"), text);
+            assertTrue(text.contains("dashed"), text);
         }
 
         @Test

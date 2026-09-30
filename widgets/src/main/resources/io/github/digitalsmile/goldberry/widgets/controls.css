@@ -1998,9 +1998,10 @@ option {
   color: var(--gb-segmented-text);
 }
 
-/* §3's "1px divider in `--gb-border`", as a node: §8's subset has one `border`
-   and no per-edge longhands, so a line between two cells is a box one pixel wide
-   -- `table-rule`'s answer (ADR-0215) and `separator`'s before it.
+/* §3's "1px divider in `--gb-border`", as a node. It was one because §8's subset
+   had no per-side border (ADR-0215), and it stays one now that it has (ADR-0505):
+   a divider fades on its own when the pill reaches it, and a segment's
+   `border-left` would fade with the segment's hover wash and its label.
  *
  * Where each one sits is `SegmentedDivider`'s, because it is a fraction of a
  * count; what a theme owns is here. The two beside the selection fade out rather
@@ -2419,11 +2420,10 @@ text-area:disabled {
    
    So this rule owns the fill, and `--gb-gutter-color` below owns the ink.
    
-   A **fill** and not a rule down its edge: §8's border is a shorthand over four
-   edges at once and has no per-edge longhands, so `border-right` is not a
-   declaration that exists (ADR-0107). One step of surface is what tells the
-   column from the text, which is the same way `table`'s header strip is told from
-   its body. */
+   A **fill** and not a rule down its edge. It was chosen while `border-right` was
+   not a declaration that existed (ADR-0107) and it is kept now that it is
+   (ADR-0505): one step of surface is what tells the column from the text, which
+   is the same way `table`'s header strip is told from its body. */
 text-area-gutter {
   background: var(--gb-surface);
 }
@@ -3313,11 +3313,10 @@ separator {
  * the application's own window and inherits from it — so only what actually
  * differs from the surrounding page is written here (ADR-0163).
  *
- * There is **no rule under it**. §8's subset has one `border` and no per-edge
- * longhands, so `border-bottom` is not a declaration that exists (ADR-0107), and
- * a bar separated from the page by its own surface colour does not need one. The
- * `tab-rule` trick — a 1px box pinned across the bottom — is available if it ever
- * turns out to.
+ * There is **no rule under it**: a bar separated from the page by its own surface
+ * colour does not need one. This said as well that `border-bottom` was not a
+ * declaration that existed (ADR-0107); it is since ADR-0505, and is what to write
+ * if a rule ever turns out to be wanted.
  */
 menubar {
   flex-direction: row;
@@ -3455,10 +3454,11 @@ tab-pager:disabled {
   background: transparent;
 }
 
-/* The rule under the headers, as a box: §8's subset has one `border` and no
-   per-edge longhands, so `border-bottom` is not a declaration that exists
-   (ADR-0107). Pinned across the bottom of the list, with the selected tab's
-   indicator drawn over it. */
+/* The rule under the headers, as a box. It was one because `border-bottom` was
+   not a declaration that existed (ADR-0107), and it stays one now that it is
+   (ADR-0505): pinned across the bottom of the list, it is under the selected
+   tab's indicator, and a border on the list would be drawn before the tabs and
+   the indicator both. */
 tab-rule {
   height: 1px;
   background: var(--gb-border);
@@ -3785,10 +3785,12 @@ table-head {
   flex-shrink: 0;
 }
 
-/* The line under the header. A node and not a `border-bottom`, because §8's
-   subset has one `border` and no per-edge longhands -- `menubar` documents the
-   same wall and answers it by having no rule at all, and §3's metrics row for a
-   table asks for one. So it is `separator`'s answer: a box a pixel tall. */
+/* The line under the header: `separator`'s answer, a box a pixel tall. It was a
+   node because §8's subset had no `border-bottom` (ADR-0215), and it stays one now
+   that it has (ADR-0505), because the two are not the same drawing here: a border
+   takes no room, so moving the line onto `table-head` would put it inside the
+   header's 36 rather than under it and move every row a pixel up, for a picture
+   that is already right. */
 table-rule {
   height: 1px;
   flex-shrink: 0;
@@ -4310,13 +4312,14 @@ group-box {
   border-radius: 8px;
 }
 
-/* The header row. The rule under it is a `border` on this node rather than a
+/* The header row. The rule under it is a border on this node rather than a
    separate box, which works here and did not for `tabs` (ADR-0107): a tab strip's
    rule has to stop where the headers stop, and this one runs the full width on
-   purpose. It is the border's *bottom* that is wanted and §8's subset has one
-   `border` and no per-edge longhands — so the whole box is bordered and three of
-   its edges are painted in the frame's own colour, which is what a full-width
-   1px rule under a header costs here. */
+   purpose. It is the border's *bottom* that is wanted, and this comment said so
+   for as long as the widget has existed while the rule itself was never written:
+   §8's subset had one `border` and no per-side longhands. It has them since
+   ADR-0505, and `docs/core-widgets.md`'s "ruled off from the body" is drawn. The
+   line sits inside the header's own padding, so no text moves. */
 group-box-title {
   padding: 8px 12px;
   font-size: var(--gb-font-heading);
@@ -4324,6 +4327,7 @@ group-box-title {
   color: var(--gb-text);
   background: var(--gb-surface-2);
   border-radius: 7px 7px 0 0;
+  border-bottom: 1px solid var(--gb-border);
   flex-shrink: 0;
 }
 

@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 ///
 /// It is also the only test that exercises `markdown.css` at all. Every rule in that
 /// file is a claim about the cascade — `em` resolving against the inherited font size,
-/// `border-left` on a quote, `transform: skewX` on a word — and a rule that the parser
+/// `border-left` on a quote and between cells, `transform: skewX` on a word — and a rule that the parser
 /// dropped silently would be invisible everywhere else.
 ///
 /// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them.

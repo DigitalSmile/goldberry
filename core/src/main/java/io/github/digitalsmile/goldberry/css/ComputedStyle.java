@@ -638,13 +638,58 @@ public record ComputedStyle(
                         .map(v -> decoration(decoration.corners(v)))
                         .orElseGet(() -> dropped(property, value));
 
+            // CSS's 1-4 side shorthand, in `padding`'s order, since the sides
+            // could differ (ADR-0505). One value is still every side, which is
+            // what every rule the toolkit ships writes.
             case "border-width" ->
-                points(value, context)
-                        .map(v -> decoration(decoration.borderWidth(v)))
+                sides(value, part -> points(part, context))
+                        .map(v -> decoration(
+                                decoration.border(decoration.border().widths(v.get(0), v.get(1), v.get(2), v.get(3)))))
                         .orElseGet(() -> dropped(property, value));
 
             case "border-color" ->
-                colour(value).map(v -> decoration(decoration.borderColor(v))).orElseGet(() -> dropped(property, value));
+                sides(value, ComputedStyle::colour)
+                        .map(v -> decoration(
+                                decoration.border(decoration.border().colours(v.get(0), v.get(1), v.get(2), v.get(3)))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // One side of the border, which §8 did not have and which rules kept
+            // reaching for: `border-bottom` under `table-head` and `tab-new`,
+            // `border-left` on a quotation, `border-right` down a gutter, and a
+            // rule between a document table's cells (ADR-0215, ADR-0505). The
+            // shorthand is `border`'s grammar over one side -- the style keyword
+            // is read and drawn solid, `none` is a zero width -- and it resets
+            // that side's colour the way `border` resets all four.
+            //
+            // The cascade applies declarations in the order they won, so `border`
+            // then `border-left` is a uniform border with its left side replaced,
+            // and `border-left` then `border` is a uniform border: later wins,
+            // per side, which is CSS's rule and ADR-0311's ordering.
+            case "border-top", "border-right", "border-bottom", "border-left" ->
+                stroke(value, context)
+                        .map(v -> decoration(decoration.border(
+                                decoration.border().side(sideOf(property), new Border.Line(v.width(), v.argb())))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" ->
+                points(value, context)
+                        .map(v -> {
+                            var side = sideOf(property);
+                            var border = decoration.border();
+                            return decoration(decoration.border(
+                                    border.side(side, border.side(side).width(v))));
+                        })
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-top-color", "border-right-color", "border-bottom-color", "border-left-color" ->
+                colour(value)
+                        .map(v -> {
+                            var side = sideOf(property);
+                            var border = decoration.border();
+                            return decoration(decoration.border(
+                                    border.side(side, border.side(side).argb(v))));
+                        })
+                        .orElseGet(() -> dropped(property, value));
 
             case "outline-width" ->
                 points(value, context)
@@ -2446,7 +2491,7 @@ public record ComputedStyle(
         return entries;
     }
 
-    /// The width and colour of a `border:` or `outline:` shorthand.
+    /// The width and colour of a `border:`, `border-<side>:` or `outline:` shorthand.
     private record Stroke(double width, int argb) {}
 
     /// CSS's `<width> || <style> || <color>` shorthand, in any order.
@@ -2553,6 +2598,37 @@ public record ComputedStyle(
                     case 4 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
                     default -> null;
                 });
+    }
+
+    /// CSS's 1-4 value side shorthand over any value — `border-width` and
+    /// `border-color` — as four values: top, right, bottom, left.
+    ///
+    /// [#insets]'s fill-in rule and its refusal: empty if any part fails, so
+    /// `border-color: red nonsense` is dropped whole rather than colouring two
+    /// sides of four.
+    private static <T> Optional<List<T>> sides(List<Token> value, Function<List<Token>, Optional<T>> each) {
+        var parts = new ArrayList<T>(4);
+        for (var token : split(value)) {
+            var parsed = each.apply(token);
+            if (parsed.isEmpty()) {
+                return Optional.empty();
+            }
+            parts.add(parsed.get());
+        }
+        return Optional.ofNullable(
+                switch (parts.size()) {
+                    case 1 -> List.of(parts.getFirst(), parts.getFirst(), parts.getFirst(), parts.getFirst());
+                    case 2 -> List.of(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
+                    case 3 -> List.of(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
+                    case 4 -> List.copyOf(parts);
+                    default -> null;
+                });
+    }
+
+    /// Which side a border longhand names: the second word of `border-top` and
+    /// of `border-top-width`.
+    private static Border.Side sideOf(String property) {
+        return Border.Side.valueOf(property.split("-", 3)[1].toUpperCase(Locale.ROOT));
     }
 
     /// CSS's 1-4 value corner shorthand, in CSS's order.

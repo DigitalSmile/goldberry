@@ -33,8 +33,10 @@ public final class GoldberryShim {
     /// ABI version and SDL's `SDL_INIT_*` bits on the layout table, which were
     /// hand-counted in Java and checked by nothing. 16 added `SDL_GPU`'s first
     /// surface, the property setters it is configured through, and its structs
-    /// and enumerators on the layout table (`docs/gpu-plan.md`, phase 1).
-    public static final int SUPPORTED_ABI_VERSION = 16;
+    /// and enumerators on the layout table (`docs/gpu-plan.md`, phase 1); 17
+    /// added the primary selection's three calls, X11's middle-click buffer
+    /// (ADR-0504).
+    public static final int SUPPORTED_ABI_VERSION = 17;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -410,6 +411,114 @@ class TextAreaTest {
             key(tree, Key.V, Modifiers.of(Mod.CTRL));
 
             assertEquals("one\ntwo\nthree", text(tree));
+        }
+    }
+
+    /// `text-input`'s primary-selection rules, over a second dimension; the
+    /// fuller set is `TextInputTest`'s (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        private PointerEvent pointer(
+                ElementTree tree, PointerEvent.Kind kind, float x, float y, PointerEvent.@Nullable Button button) {
+            var event = new PointerEvent(kind, x, y, button, 1, 8, 12, Modifiers.NONE, null);
+            event.localTo(new PointerEvent.Local(x, y, 300, 200));
+            box(tree).onPointer(event);
+            render(tree);
+            return event;
+        }
+
+        @Test
+        @DisplayName("a drag publishes on release, newlines and all")
+        void aDragPublishesOnRelease() {
+            var tree = mounted(new TextArea("one\ntwo", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.MOVED, 290, 30, null);
+            assertEquals(0, host.primaryWrites());
+
+            pointer(tree, PointerEvent.Kind.RELEASED, 290, 30, PointerEvent.Button.PRIMARY);
+
+            assertEquals("one\ntwo", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("Shift+Down publishes the lines it selected")
+        void theKeyboardPublishes() {
+            var tree = mounted(new TextArea("one\ntwo", null));
+            key(tree, Key.HOME, Modifiers.of(Mod.CTRL));
+
+            key(tree, Key.DOWN, Modifiers.of(Mod.SHIFT));
+
+            assertEquals("one\n", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a middle click pastes at the point, and one undo takes it back")
+        void aMiddleClickPastes() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextArea("dog", null));
+
+            var press = pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.MIDDLE);
+
+            assertTrue(press.isConsumed());
+            assertEquals("hot dog", text(tree));
+
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL));
+            assertEquals("dog", text(tree));
+        }
+
+        @Test
+        @DisplayName("a pasted paragraph stays a paragraph")
+        void keepsLines() {
+            host.primaryText("one\r\ntwo");
+            var tree = mounted(new TextArea());
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.MIDDLE);
+
+            assertEquals("one\ntwo", text(tree));
+        }
+
+        @Test
+        @DisplayName("a drag after a middle click selects nothing")
+        void aMiddleDragIsNotASelection() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextArea("dog", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.MIDDLE);
+            pointer(tree, PointerEvent.Kind.MOVED, 290, 12, null);
+            pointer(tree, PointerEvent.Kind.RELEASED, 290, 12, PointerEvent.Button.MIDDLE);
+
+            assertEquals("hot ", host.primaryText(), "nothing selected, nothing republished");
+        }
+
+        @Test
+        @DisplayName("read-only refuses the paste and still publishes a selection")
+        void readOnly() {
+            host.primaryText("pasted");
+            var tree = mounted(new TextArea("value", null).readOnly(true));
+
+            assertFalse(pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.MIDDLE)
+                    .isConsumed());
+            assertEquals("value", text(tree));
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            assertEquals("value", host.primaryText(), "reading is what a read-only area is for");
+        }
+
+        @Test
+        @DisplayName("without one, a middle click does nothing and a selection goes nowhere")
+        void absentIsANoOp() {
+            host.primarySelection(false).primaryText("somebody else's");
+            var tree = mounted(new TextArea("dog", null));
+
+            assertFalse(pointer(tree, PointerEvent.Kind.PRESSED, 8, 12, PointerEvent.Button.MIDDLE)
+                    .isConsumed());
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            assertEquals("dog", text(tree));
+            assertEquals(0, host.primaryWrites());
         }
     }
 

@@ -78,11 +78,12 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 ///   justification and no hyphenation. This is the one an engine would close, and it
 ///   is what `book/src/TODO.md` still tracks. Selecting text across those words does
 ///   work — the words say where they landed (ADR-0301).
-/// - **A table has no rules between its cells**, because §10's `border` is uniform
-///   — there is no `border-left` to draw one with. The head's fill and the space in
-///   the cells are what separate them.
 ///
-/// All three are in `book/src/TODO.md` rather than only here.
+/// **A table's rules between its cells were on that list and are not any more**
+/// (ADR-0505): the subset's border has four sides, so a row draws the line above it
+/// and a cell the line before it, and the `first` class on the leftmost cell and the
+/// top row — put there for this rule before it could be written — stops either
+/// doubling the table's own border.
 ///
 /// **A hard break was on that list and is not any more** (ADR-0426): a paragraph the
 /// author ended a line inside is a column of line rows rather than one row, so the
@@ -213,7 +214,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             case HtmlBlock(var html) ->
                 new Row(List.of(words.whole(html, Set.of("md-raw"))), classes("md-prose", "md-line"));
             case Table table -> table(table);
-            case TableRow row -> row(row);
+            case TableRow row -> row(row, true);
             case TableCell cell -> cell(cell, false);
         };
     }
@@ -346,14 +347,14 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         }
     }
 
-    /// A quotation: the bar, and the blocks beside it.
+    /// A quotation: its blocks, in a box whose `border-left` is the bar.
     ///
-    /// The bar is a widget rather than a `border-left`, because §10's CSS subset has
-    /// one border for a whole box and no way to ask for an edge — see `markdown.css`.
+    /// The bar was a widget beside the blocks while §10's CSS subset had one border
+    /// for a whole box and no way to ask for an edge. It is a declaration in
+    /// `markdown.css` since ADR-0505.
     private Widget quote(List<Block> children) {
-        var bar = new Row(List.of(), classes("md-quote-bar"));
         var body = new Column(blocks(children), classes("md-quote-body"));
-        return new Row(List.of(bar, body), classes("md-quote"));
+        return new Row(List.of(body), classes("md-quote"));
     }
 
     // --- lists -----------------------------------------------------------------
@@ -441,17 +442,20 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     private Widget table(Table table) {
         var rows = new ArrayList<Widget>(table.head().size() + table.body().size());
-        table.head().forEach(row -> rows.add(row(row)));
-        table.body().forEach(row -> rows.add(row(row)));
+        table.head().forEach(row -> rows.add(row(row, rows.isEmpty())));
+        table.body().forEach(row -> rows.add(row(row, rows.isEmpty())));
         return new Column(rows, classes("md-table"));
     }
 
-    private Widget row(TableRow row) {
+    /// One row, and whether it is the table's top one — which draws no rule above
+    /// it, because the table's own border is already there (ADR-0505).
+    private Widget row(TableRow row, boolean first) {
         var cells = new ArrayList<Widget>(row.cells().size());
         for (var i = 0; i < row.cells().size(); i++) {
             cells.add(cell(row.cells().get(i), i == 0));
         }
-        return new Row(cells, classes("md-row", row.header() ? "head" : "body"));
+        var kind = row.header() ? "head" : "body";
+        return new Row(cells, first ? classes("md-row", kind, "first") : classes("md-row", kind));
     }
 
     /// One cell — a wrapping row of words, like a paragraph, with the column's

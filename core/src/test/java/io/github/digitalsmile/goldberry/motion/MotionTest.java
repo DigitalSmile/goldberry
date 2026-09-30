@@ -12,7 +12,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.css.Border;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Decoration;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions.Timing;
@@ -347,6 +349,48 @@ class MotionTest {
 
             assertSame(
                     target, animations.apply(target, 0), "a static tree must not allocate a style per node per frame");
+        }
+    }
+
+    /// `border-color` is four colours since a box's sides can differ (ADR-0505),
+    /// and a transition moves each side from its own colour to its own target.
+    @Nested
+    @DisplayName("animating a border's colours")
+    class BorderColourOverlay {
+
+        private static ComputedStyle bordered(Border border) {
+            return ComputedStyle.INITIAL
+                    .decoration(Decoration.NONE.border(border))
+                    .transitions(Transitions.NONE.with(Animatable.BORDER_COLOR, FAST));
+        }
+
+        @Test
+        @DisplayName("each side moves on its own, and a side whose colour held does not move")
+        void perSide() {
+            var accent = new Border.Line(4, 0xFFFF0000);
+            var from = Border.all(1, 0xFF000000).side(Border.Side.LEFT, accent);
+            var to = Border.all(1, 0xFFFFFFFF).side(Border.Side.LEFT, accent);
+            var animations = new Animations();
+            animations.observe(bordered(from), 0);
+            animations.observe(bordered(to), 0);
+
+            var midway = animations.apply(bordered(to), 50).decoration().border();
+
+            assertNotEquals(0xFF000000, midway.top().argb());
+            assertNotEquals(0xFFFFFFFF, midway.top().argb());
+            assertEquals(accent, midway.left(), "the left side was red at both ends");
+            assertEquals(1, midway.top().width(), "a width is never animated");
+            assertEquals(to, animations.apply(bordered(to), 100).decoration().border(), "and it arrives");
+        }
+
+        @Test
+        @DisplayName("a width that changes with every colour held starts nothing")
+        void aWidthIsNotAColour() {
+            var animations = new Animations();
+            animations.observe(bordered(Border.all(1, 0xFF000000)), 0);
+            animations.observe(bordered(Border.all(3, 0xFF000000)), 0);
+
+            assertFalse(animations.isAnimating());
         }
     }
 

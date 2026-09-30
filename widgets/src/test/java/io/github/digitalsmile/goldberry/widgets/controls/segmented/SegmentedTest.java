@@ -23,6 +23,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.css.Border;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.css.StyleElement;
@@ -606,7 +607,9 @@ class SegmentedTest {
             var bar = styleOf("segmented");
 
             assertEquals(Length.points(1), bar.padding().top());
-            assertEquals(bar.decoration().borderWidth(), 1, 1e-9);
+            assertEquals(
+                    Border.all(1, bar.decoration().border().top().argb()),
+                    bar.decoration().border());
             assertEquals(bar.padding().top(), bar.padding().left());
             assertEquals(bar.padding().top(), bar.padding().bottom());
             assertEquals(bar.padding().left(), bar.padding().right());
@@ -622,7 +625,7 @@ class SegmentedTest {
 
             assertEquals(Length.points(1), divider.width());
             assertEquals(
-                    styleOf("segmented").decoration().borderColor(),
+                    styleOf("segmented").decoration().border().top().argb(),
                     divider.background(),
                     "the line between two segments is the line around them");
             assertNotNull(

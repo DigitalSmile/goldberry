@@ -234,10 +234,6 @@ description had no effect.
   ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
   deliver ownership changes and Windows has a viewer chain; what is missing is a
   consumer worth the plumbing.
-- **No primary selection.** X11's middle-click buffer has its own SDL calls
-  (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
-  the widgets that would fill it — a text field on X11 — would have to know they
-  are on X11.
 ## Content modules
 
 `docs/content-widgets.md`'s table has thirteen rows, and **four of them are
@@ -289,6 +285,15 @@ on, which in four cases is the same thing.
   - **A table's cells have no rules between them, and a fence does not scroll
     sideways.** Both are the CSS subset: `border` is uniform, so there is no
     `border-left`, and horizontal `scroll` is not in §10 either.
+    *The rules are closed by
+    [ADR-0505](adr/0505-a-border-has-four-sides-and-takes-no-room.md):* a border
+    has four sides now, a row draws the rule above it and a cell the rule before
+    it. Two things the entry could not have said: a border has never taken layout
+    room here — it is drawn over the padding, and every bordered widget counts on
+    that — and the first render's vertical rules stepped at every row, because
+    each row sized its columns by its own content, so the cells are
+    `flex-basis: 0` now. The quotation bar became the `border-left` it always
+    meant, with no pixel moved. **A fence still does not scroll sideways.**
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
@@ -847,6 +852,25 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**No primary selection.**~~ X11's middle-click buffer has its own SDL calls
+  (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
+  the widgets that would fill it — a text field on X11 — would have to know they
+  are on X11.
+
+  **Closed —
+  [ADR-0504](adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md).**
+  The three SDL calls are bound (ABI 17) and offered as an optional
+  `PrimarySelection` on `Backend` and `Host`: the sdl3 backend offers one only when
+  SDL's driver is `x11` or `wayland`, and the headless backend an in-memory one a
+  test can turn off. `text-input`, `text-area`, `Editor` and the content views
+  publish a finished selection — a pointer selection on release, a keyboard one
+  when the key lands, and not the select-all a Tab arrives with — and a middle
+  click in a field moves the caret there and pastes, as one undoable edit. A
+  `password` never publishes. The premise did not hold: no widget knows it is on
+  X11, because a field only asks its host whether a primary selection exists. The
+  trap was the one the entry did not name — SDL answers these calls on every
+  driver, from a private in-process buffer off X11 and Wayland, so the decision is
+  the driver's name in the backend and not whether the calls work.
 - ~~**`Styled.restyle` is an escape hatch with nine overrides now, and the honest risk is what goes into it.**~~
   What a widget writes there is unthemeable and unoverridable — right for a number
   nobody else can compute, wrong for anything else. It has one rule ("only what a

@@ -19,6 +19,7 @@ import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.composite.Compositor;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
@@ -198,6 +199,40 @@ public final class HeadlessBackend implements Backend {
     @Override
     public HeadlessClipboard clipboard() {
         return clipboard;
+    }
+
+    private final HeadlessPrimarySelection primarySelection = new HeadlessPrimarySelection(this);
+
+    private boolean primarySelectionPresent = true;
+
+    /// The primary selection, in memory — **present** unless a test has turned it
+    /// off with [#primarySelection(boolean)] ([ADR-0504]).
+    ///
+    /// Not narrowed, unlike [#clipboard()]: an `Optional<HeadlessPrimarySelection>`
+    /// does not override an `Optional<PrimarySelection>`. A test reaches the
+    /// seams through [#primaryBuffer()] instead.
+    @Override
+    public Optional<PrimarySelection> primarySelection() {
+        requireUiThread();
+        return primarySelectionPresent ? Optional.of(primarySelection) : Optional.empty();
+    }
+
+    /// Turns the primary selection on or off, for the test of a platform that has
+    /// none — Windows, macOS, SDL's own drivers. On by default.
+    ///
+    /// @param present whether [#primarySelection()] answers with one from now on
+    /// @return this backend, for a fluent set-up
+    public HeadlessBackend primarySelection(boolean present) {
+        requireUiThread();
+        this.primarySelectionPresent = present;
+        return this;
+    }
+
+    /// The buffer behind [#primarySelection()], whether or not it is currently
+    /// offered — so a test of the absent case can prove nothing was written to it.
+    public HeadlessPrimarySelection primaryBuffer() {
+        requireUiThread();
+        return primarySelection;
     }
 
     /// File dialogs a test scripts the answers to.

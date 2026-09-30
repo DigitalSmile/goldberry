@@ -27,7 +27,9 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// simply not there.
 ///
 /// So it is a 2px box pinned across the bottom of the header, out of flow, which
-/// is `segmented-indicator`'s shape for the same reason.
+/// is `segmented-indicator`'s shape for the same reason. The subset has
+/// `border-bottom` since ADR-0505 and this is still a box: it travels between
+/// tabs by a `transform` (ADR-0377), and a border cannot leave the tab it is on.
 ///
 /// **Always built**, selected or not: a node that only exists while a tab is
 /// selected cannot transition, because the first frame of a newly built element

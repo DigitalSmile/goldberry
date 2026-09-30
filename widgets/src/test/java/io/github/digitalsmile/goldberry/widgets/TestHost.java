@@ -23,6 +23,7 @@ import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessTray;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -529,6 +530,68 @@ public class TestHost implements Host {
     @Override
     public Clipboard clipboard() {
         return clipboard;
+    }
+
+    /// An in-memory primary selection, **present** unless a test turns it off —
+    /// the headless backend's arrangement, for its reason: the publishing and
+    /// the middle-click paste are only testable against one that exists
+    /// (ADR-0504).
+    private final StringBuilder primaryText = new StringBuilder();
+
+    private int primaryWrites;
+
+    private boolean primaryPresent = true;
+
+    private final PrimarySelection primary = new PrimarySelection() {
+
+        @Override
+        public boolean hasText() {
+            return !primaryText.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return primaryText.toString();
+        }
+
+        @Override
+        public boolean text(String text) {
+            primaryText.setLength(0);
+            primaryText.append(text == null ? "" : text);
+            primaryWrites++;
+            return true;
+        }
+    };
+
+    @Override
+    public Optional<PrimarySelection> primarySelection() {
+        return primaryPresent ? Optional.of(primary) : Optional.empty();
+    }
+
+    /// Turns the primary selection off, as on a platform with none — Windows,
+    /// macOS — or back on.
+    public TestHost primarySelection(boolean present) {
+        this.primaryPresent = present;
+        return this;
+    }
+
+    /// Puts `text` on the primary selection, as another application selecting
+    /// it would have. Not counted in [#primaryWrites()].
+    public TestHost primaryText(String text) {
+        primaryText.setLength(0);
+        primaryText.append(text);
+        return this;
+    }
+
+    /// What the primary selection holds, whether or not it is offered — so a
+    /// test of the absent case can prove nothing was written.
+    public String primaryText() {
+        return primaryText.toString();
+    }
+
+    /// How many times something on this host published a selection.
+    public int primaryWrites() {
+        return primaryWrites;
     }
 
     /// Real scriptable file dialogs, for the reason the clipboard below is real:

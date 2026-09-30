@@ -42,26 +42,21 @@ import io.github.digitalsmile.goldberry.paint.Box;
 /// @param corners       the four corner radii; [Corners#SQUARE] is a square box.
 ///                      One number until `border-radius: 7px 7px 0 0` needed two
 ///                      (ADR-0216) — see [Corners] for why a box ever wants that
-/// @param borderWidth   border thickness, drawn *inside* the box's edge as CSS's
-///                      `border-box` sizing requires
-/// @param borderColor   `0xAARRGGBB`, not premultiplied
+/// @param border        the four sides' widths and colours, drawn *inside* the
+///                      box's edge and over its padding. One width and one colour
+///                      until a table asked for a rule between its cells
+///                      (ADR-0505) — see [Border] for why a box ever wants four
 /// @param outlineWidth  ring thickness, drawn outside the edge
 /// @param outlineColor  `0xAARRGGBB`, not premultiplied
 /// @param outlineOffset the gap between the box's edge and the inside of the ring
 /// @param shadow        the drop shadow cast behind the box, [Shadow#NONE] for
 ///                      the overwhelming majority of boxes
 public record Decoration(
-        Corners corners,
-        double borderWidth,
-        int borderColor,
-        double outlineWidth,
-        int outlineColor,
-        double outlineOffset,
-        Shadow shadow) {
+        Corners corners, Border border, double outlineWidth, int outlineColor, double outlineOffset, Shadow shadow) {
 
     /// Square corners, no border, no ring, no shadow — what every box starts as.
     public static final Decoration NONE =
-            new Decoration(Corners.SQUARE, 0, CssColor.TRANSPARENT, 0, CssColor.TRANSPARENT, 0, Shadow.NONE);
+            new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, Shadow.NONE);
 
     public Decoration {
         // Clamped rather than refused. These arrive from a stylesheet, and §8's
@@ -69,12 +64,25 @@ public record Decoration(
         // radius should not take a window down mid-frame. The corners clamp
         // themselves, in [Corners], for the same reason.
         java.util.Objects.requireNonNull(corners, "corners");
+        java.util.Objects.requireNonNull(border, "border");
         java.util.Objects.requireNonNull(shadow, "shadow");
-        requireFinite(borderWidth, "border-width");
         requireFinite(outlineWidth, "outline-width");
         requireFinite(outlineOffset, "outline-offset");
-        borderWidth = Math.max(0, borderWidth);
         outlineWidth = Math.max(0, outlineWidth);
+    }
+
+    /// A decoration with the same border on all four sides, which is every border
+    /// the design system pins — the shape this record had before a side could
+    /// differ, kept because a uniform border is still the one a caller means.
+    public Decoration(
+            Corners corners,
+            double borderWidth,
+            int borderColor,
+            double outlineWidth,
+            int outlineColor,
+            double outlineOffset,
+            Shadow shadow) {
+        this(corners, Border.all(borderWidth, borderColor), outlineWidth, outlineColor, outlineOffset, shadow);
     }
 
     /// Whether a border would put ink on the screen.
@@ -83,7 +91,7 @@ public record Decoration(
     /// nothing, and so does a 0px one in `--gb-border`. Asked before building a
     /// path, because building one costs a native allocation.
     public boolean hasBorder() {
-        return borderWidth > 0 && (borderColor >>> 24) != 0;
+        return border.hasInk();
     }
 
     /// Whether a focus ring would put ink on the screen.
@@ -108,39 +116,46 @@ public record Decoration(
     }
 
     public Decoration corners(Corners value) {
-        return new Decoration(value, borderWidth, borderColor, outlineWidth, outlineColor, outlineOffset, shadow);
+        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadow);
     }
 
+    /// The same line on all four sides — `border: 1px solid red`.
     public Decoration border(double width, int argb) {
-        return new Decoration(corners, width, argb, outlineWidth, outlineColor, outlineOffset, shadow);
+        return border(Border.all(width, argb));
     }
 
+    public Decoration border(Border value) {
+        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadow);
+    }
+
+    /// Every side's width, colours kept — `border-width: 2px`.
     public Decoration borderWidth(double value) {
-        return new Decoration(corners, value, borderColor, outlineWidth, outlineColor, outlineOffset, shadow);
+        return border(border.widths(value, value, value, value));
     }
 
+    /// Every side's colour, widths kept — `border-color: red`.
     public Decoration borderColor(int argb) {
-        return new Decoration(corners, borderWidth, argb, outlineWidth, outlineColor, outlineOffset, shadow);
+        return border(border.colours(argb, argb, argb, argb));
     }
 
     public Decoration outline(double width, int argb, double offset) {
-        return new Decoration(corners, borderWidth, borderColor, width, argb, offset, shadow);
+        return new Decoration(corners, border, width, argb, offset, shadow);
     }
 
     public Decoration outlineWidth(double value) {
-        return new Decoration(corners, borderWidth, borderColor, value, outlineColor, outlineOffset, shadow);
+        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadow);
     }
 
     public Decoration outlineColor(int argb) {
-        return new Decoration(corners, borderWidth, borderColor, outlineWidth, argb, outlineOffset, shadow);
+        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadow);
     }
 
     public Decoration outlineOffset(double value) {
-        return new Decoration(corners, borderWidth, borderColor, outlineWidth, outlineColor, value, shadow);
+        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadow);
     }
 
     public Decoration shadow(Shadow value) {
-        return new Decoration(corners, borderWidth, borderColor, outlineWidth, outlineColor, outlineOffset, value);
+        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, value);
     }
 
     /// This decoration with every colour's alpha scaled by `alpha`.
@@ -155,8 +170,7 @@ public record Decoration(
         }
         return new Decoration(
                 corners,
-                borderWidth,
-                CssColor.fade(borderColor, alpha),
+                border.fade(alpha),
                 outlineWidth,
                 CssColor.fade(outlineColor, alpha),
                 outlineOffset,

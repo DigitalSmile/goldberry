@@ -102,8 +102,15 @@ interface AreaEditor {
     /// Where the caret is inside [#caretArea], as an x offset from its left edge.
     double caretOffset();
 
-    /// The pointer went down or was dragged to a point in this control.
+    /// The primary button went down at a point in this control.
     void pointerAt(double x, double y, boolean extend, int clickCount);
+
+    /// The middle button went down at a point: where there is a primary
+    /// selection, the caret goes there and its text goes in, as one undoable edit
+    /// ([ADR-0504]).
+    ///
+    /// @return whether anything was pasted, which is whether the press is consumed
+    boolean pastePrimaryAt(double x, double y);
 
     /// The pointer was dragged to a point, in this control's own coordinates —
     /// which may be past its edge, and then the text scrolls on while the drag is
@@ -115,7 +122,9 @@ interface AreaEditor {
     /// selects to the last line wholly on screen and lets the frames carry the rest.
     void dragTo(double x, double y);
 
-    /// The button came up, or the drag was otherwise over.
+    /// The button came up, or the drag was otherwise over — and a selection the
+    /// press and drag made is finished, and goes on the primary selection where
+    /// there is one ([ADR-0504]).
     void released();
 
     /// A frame is being rendered — where a drag held at the edge takes its step.

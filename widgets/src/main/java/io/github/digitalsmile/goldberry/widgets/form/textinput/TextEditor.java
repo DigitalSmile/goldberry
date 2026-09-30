@@ -125,13 +125,30 @@ interface TextEditor {
     /// Where the caret is inside [#caretArea], as an x offset from its left edge.
     double caretOffset();
 
-    /// The pointer went down or was dragged to `x`, measured from this field's
-    /// left edge.
+    /// The primary button went down at `x`, measured from this field's left edge.
     ///
-    /// @param extend     whether this extends the selection — `Shift` on a press,
-    ///                   and always on a drag
+    /// @param extend     whether this extends the selection — `Shift`
     /// @param clickCount 1 places the caret, 2 selects a word, 3 selects the lot
     void pointerAt(double x, boolean extend, int clickCount);
+
+    /// The pointer was dragged to `x` with a button down — always extending, and
+    /// **only** when the primary button started the gesture: a drag after a
+    /// middle-click paste is not a selection.
+    void dragTo(double x);
+
+    /// A button came up. A selection the press and drag made is finished now, and
+    /// goes on the primary selection where there is one ([ADR-0504]) — once per
+    /// selection rather than once per pointer move.
+    void released();
+
+    /// The middle button went down at `x`: where there is a primary selection,
+    /// the caret goes there and its text goes in, as one undoable edit — X11's
+    /// paste ([ADR-0504]).
+    ///
+    /// @return whether anything was pasted, which is whether the press is
+    ///         consumed; without a primary selection, in a read-only field, or
+    ///         with nothing to paste, it is not
+    boolean pastePrimaryAt(double x);
 
     /// Focus arrived or left. What turns the platform's text input on and off,
     /// and what starts and stops the blink.

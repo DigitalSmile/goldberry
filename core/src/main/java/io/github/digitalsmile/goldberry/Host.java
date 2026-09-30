@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
@@ -587,6 +588,20 @@ public interface Host {
     /// [Clipboard#none()], which accepts
     /// nothing and always reads empty.
     Clipboard clipboard();
+
+    /// The session's primary selection — X11's middle-click buffer — or empty
+    /// where the platform has none ([ADR-0504]).
+    ///
+    /// On [Host] for [#clipboard()]'s reason: the consumer is a widget. What a
+    /// `text-input` does with it is publish a finished selection and paste on a
+    /// middle click, and what it does **without** it is neither — so a field is
+    /// never told which platform it is on, only whether this exists.
+    ///
+    /// Empty by default, which is the right answer for a host that has not said:
+    /// a primary selection nobody else can paste from is not one.
+    default Optional<PrimarySelection> primarySelection() {
+        return Optional.empty();
+    }
 
     /// The platform's own open, save and folder dialogs — `docs/gaps.md` G9.
     ///

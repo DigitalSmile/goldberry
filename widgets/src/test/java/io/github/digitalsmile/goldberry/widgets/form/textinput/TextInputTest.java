@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -381,6 +382,188 @@ class TextInputTest {
             press(tree, 400, 1, Modifiers.of(Mod.SHIFT));
 
             assertEquals("Goldberry", field(tree).edit().selectedText());
+        }
+    }
+
+    /// X11's middle-click buffer, which the field fills and pastes from without
+    /// knowing it is X11's (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        private PointerEvent pointer(
+                ElementTree tree, PointerEvent.Kind kind, float x, PointerEvent.@Nullable Button button) {
+            // A press position, which is what makes a MOVED a drag; a release and a
+            // press carry theirs too.
+            var event = new PointerEvent(kind, x, 0, button, 1, 8, 0, Modifiers.NONE, null);
+            event.localTo(new PointerEvent.Local(x, 0, 200, 32));
+            field(tree).onPointer(event);
+            render(tree);
+            return event;
+        }
+
+        private PointerEvent middle(ElementTree tree, float x) {
+            return pointer(tree, PointerEvent.Kind.PRESSED, x, PointerEvent.Button.MIDDLE);
+        }
+
+        @Test
+        @DisplayName("a drag publishes its selection when the button comes up, and not before")
+        void aDragPublishesOnRelease() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            assertEquals(0, host.primaryWrites(), "a drag in progress is not an ownership change yet");
+
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.PRIMARY);
+
+            assertEquals("Goldberry", host.primaryText());
+            assertEquals(1, host.primaryWrites());
+        }
+
+        @Test
+        @DisplayName("a click that selects nothing publishes nothing")
+        void aClickPublishesNothing() {
+            host.primaryText("from another application");
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.RELEASED, 8, PointerEvent.Button.PRIMARY);
+
+            assertEquals("from another application", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a keyboard selection publishes when the key lands")
+        void theKeyboardPublishes() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.HOME);
+
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+
+            assertEquals("Go", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("Tab's select-all publishes nothing, and Ctrl+A after it does")
+        void tabDoesNotPublish() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            focus(tree, true, true);
+            assertTrue(field(tree).edit().hasSelection());
+            assertEquals(0, host.primaryWrites(), "arriving by Tab is not selecting anything");
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            assertEquals("Goldberry", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a password never publishes its selection")
+        void aPasswordNeverPublishes() {
+            var tree = mounted(new TextInput("secret", null).password(true));
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            key(tree, Key.HOME);
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.PRIMARY);
+
+            assertTrue(field(tree).edit().hasSelection(), "the selection is real, it just cannot leave");
+            assertEquals(0, host.primaryWrites(), "every X11 toolkit refuses this for a masked field");
+            assertEquals("", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a middle click puts the caret where it landed and pastes there")
+        void aMiddleClickPastesAtThePoint() {
+            host.primaryText("hot ");
+            // The caret starts at the end, so a paste that went in at the caret
+            // rather than at the click would read "doghot ".
+            var tree = mounted(new TextInput("dog", null));
+
+            var press = middle(tree, 8);
+
+            assertTrue(press.isConsumed());
+            assertEquals("hot dog", text(tree));
+            assertEquals(4, field(tree).edit().caret(), "after what was pasted");
+        }
+
+        @Test
+        @DisplayName("one undo takes the paste back")
+        void undoRevertsThePaste() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextInput("dog", null));
+            middle(tree, 8);
+
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL));
+
+            assertEquals("dog", text(tree));
+        }
+
+        @Test
+        @DisplayName("a pasted newline becomes a space, as a Ctrl+V's does")
+        void aNewlineIsFlattened() {
+            host.primaryText("two\nlines");
+            var tree = mounted(new TextInput());
+
+            middle(tree, 8);
+
+            assertEquals("two lines", text(tree));
+        }
+
+        @Test
+        @DisplayName("a drag after a middle click selects nothing")
+        void aMiddleDragIsNotASelection() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextInput("dog", null));
+
+            middle(tree, 8);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.MIDDLE);
+
+            assertFalse(field(tree).edit().hasSelection());
+            assertEquals("hot ", host.primaryText(), "and nothing was republished");
+        }
+
+        @Test
+        @DisplayName("a read-only or disabled field takes no paste")
+        void readOnlyAndDisabledRefuse() {
+            host.primaryText("pasted");
+
+            var readOnly = mounted(new TextInput("value", null).readOnly(true));
+            assertFalse(middle(readOnly, 8).isConsumed());
+            assertEquals("value", text(readOnly));
+
+            var disabled = mounted(new TextInput("value", null).disabled(true));
+            assertFalse(middle(disabled, 8).isConsumed());
+            assertEquals("value", text(disabled));
+        }
+
+        @Test
+        @DisplayName("without one, a middle click does nothing and a selection goes nowhere")
+        void absentIsANoOp() {
+            host.primarySelection(false).primaryText("somebody else's");
+            var tree = mounted(new TextInput("dog", null));
+
+            var press = middle(tree, 8);
+            assertFalse(press.isConsumed(), "the middle button is free to mean something else here");
+            assertEquals("dog", text(tree));
+            assertEquals(3, field(tree).edit().caret(), "not even the caret moved");
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            assertEquals(0, host.primaryWrites());
+            assertEquals("somebody else's", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("an empty primary selection is not a paste")
+        void emptyIsNotAPaste() {
+            var tree = mounted(new TextInput("dog", null));
+
+            assertFalse(middle(tree, 8).isConsumed());
+            assertEquals(3, field(tree).edit().caret());
         }
     }
 

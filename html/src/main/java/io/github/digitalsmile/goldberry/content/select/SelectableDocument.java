@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -14,6 +15,7 @@ import io.github.digitalsmile.goldberry.input.handler.Located;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -53,6 +55,9 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollScope;
 /// - **`Ctrl+C`** copies what is selected, with the separators the document implies:
 ///   a space between words, a newline between blocks. **`Ctrl+A`** takes the lot and
 ///   **`Escape`** lets it go.
+/// - A selection is **published to the primary selection** when it is finished — the
+///   button comes up, or `Ctrl+A` lands — where the platform has one, which is X11
+///   and Wayland: a middle click in another application pastes it ([ADR-0504]).
 /// - A link and an image are **part of the selection** — their boxes are washed and a
 ///   link's label is in what is copied — because a selection that skipped them would
 ///   copy "Read first." out of "Read the help first." An image contributes no text,
@@ -119,6 +124,11 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// Whether a press is still down, so a `MOVED` is a drag rather than a hover.
         private boolean dragging;
 
+        /// Whether the gesture in progress began with a press here — a drag, a
+        /// double or a triple click — so its release is a selection finished and
+        /// worth publishing ([ADR-0504]).
+        private boolean selecting;
+
         /// The viewport this document is in, carried on while a drag is held at its
         /// edge — and the clamp that keeps a pointer past the edge asking about the
         /// words at it rather than about nothing ([ADR-0500]).
@@ -168,6 +178,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
                         default -> selection.begin(caret);
                     }
                     dragging = event.clickCount() <= 1;
+                    selecting = true;
                     if (dragging) {
                         // The viewport is found from the element that heard the
                         // press, which is the one route from a widget to the tree
@@ -194,6 +205,13 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
                 case RELEASED -> {
                     dragging = false;
                     edge.release();
+                    // The selection is finished, so it goes on the primary selection
+                    // where the platform has one: once per gesture, because every
+                    // write is an ownership change the whole desktop hears about.
+                    if (selecting) {
+                        selecting = false;
+                        publish(event.target());
+                    }
                     // Not consumed: a release that follows a press the document handled
                     // is also what produces the CLICKED a link would want, and this node
                     // is the one behind them rather than the one in front.
@@ -250,6 +268,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
                 case A -> {
                     selection.select(new Caret(0, 0), geometry.end());
                     repaint(event.target());
+                    publish(event.target());
                     event.consume();
                 }
                 case C -> {
@@ -282,6 +301,27 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         boolean copyTo(Clipboard clipboard) {
             var text = geometry.text(selection.anchor(), selection.focus());
             return !text.isEmpty() && clipboard.text(text);
+        }
+
+        /// Puts a finished selection on the primary selection — X11's middle-click
+        /// buffer — where the window this document is in has one ([ADR-0504]).
+        ///
+        /// Found through the element, for [#copy]'s reason. A document is never a
+        /// paste target, so this is the only half of the primary selection it has.
+        private void publish(@Nullable Element target) {
+            if (target == null || selection.isEmpty()) {
+                return;
+            }
+            target.host().flatMap(Host::primarySelection).ifPresent(this::offerTo);
+        }
+
+        /// The same, against a primary selection somebody else found — [#copyTo]'s
+        /// seam, for a test with no window.
+        ///
+        /// @return whether there was a selection and it was accepted
+        boolean offerTo(PrimarySelection primary) {
+            var text = geometry.text(selection.anchor(), selection.focus());
+            return !text.isEmpty() && primary.text(text);
         }
 
         /// What a selection change costs: **one repaint**, and no rebuild.

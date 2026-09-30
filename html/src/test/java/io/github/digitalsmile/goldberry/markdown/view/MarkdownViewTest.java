@@ -289,6 +289,9 @@ class MarkdownViewTest {
             var cells = withClass(elements, "md-cell");
             assertEquals(4, cells.size());
             assertTrue(cells.getFirst().classes().contains("first"), "the leftmost cell draws no left border");
+            assertFalse(cells.get(1).classes().contains("first"), "every other cell draws the rule before it");
+            assertTrue(rows.getFirst().classes().contains("first"), "the top row draws no rule above it");
+            assertFalse(rows.get(1).classes().contains("first"), "a row under another draws the rule between them");
             assertTrue(cells.getFirst().classes().contains("head-cell"));
             assertEquals(2, withClass(elements, "end").size(), "the right-aligned column, head and body");
         }

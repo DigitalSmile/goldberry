@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
@@ -323,6 +324,136 @@ class EditorTest {
             var editor = editor("everything");
             assertTrue(editor.onKey(key(Key.A, new Modifiers(false, true, false, false))));
             assertEquals("everything", editor.edit().selectedText());
+        }
+    }
+
+    /// A primary selection with nothing under it, counting what was written.
+    private static final class Primary implements PrimarySelection {
+
+        private String held = "";
+
+        private int writes;
+
+        @Override
+        public boolean hasText() {
+            return !held.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return held;
+        }
+
+        @Override
+        public boolean text(String text) {
+            held = text;
+            writes++;
+            return true;
+        }
+    }
+
+    /// X11's primary selection, which the editor fills and pastes from without
+    /// knowing it is X11's (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        @Test
+        @DisplayName("a drag's selection is published when the pointer comes up, not before")
+        void publishedOnRelease() {
+            var primary = new Primary();
+            var editor = editor("one two three").primarySelection(primary);
+            editor.caretTo(4, false);
+            var from = editor.caret();
+            editor.caretTo(7, false);
+            var to = editor.caret();
+
+            editor.pointerAt(from.x(), from.top(), false, 1);
+            editor.pointerAt(to.x(), to.top(), true, 1);
+            assertEquals(0, primary.writes, "a drag in progress is not an ownership change yet");
+
+            assertTrue(editor.pointerReleased());
+            assertEquals("two", primary.text());
+            assertEquals(1, primary.writes);
+        }
+
+        @Test
+        @DisplayName("a click that selects nothing publishes nothing")
+        void aClickPublishesNothing() {
+            var primary = new Primary();
+            primary.text("from another application");
+            var editor = editor("hello").primarySelection(primary);
+
+            editor.pointerAt(0, 0, false, 1);
+
+            assertFalse(editor.pointerReleased());
+            assertEquals("from another application", primary.text(), "a click is not a selection");
+        }
+
+        @Test
+        @DisplayName("Shift+arrow and Ctrl+A publish at once, and a plain arrow does not")
+        void keyboardSelectionsPublish() {
+            var primary = new Primary();
+            var editor = editor("hello").primarySelection(primary);
+            editor.caretTo(0, false);
+
+            editor.onKey(key(Key.RIGHT, new Modifiers(true, false, false, false)));
+            assertEquals("h", primary.text());
+
+            editor.onKey(key(Key.A, new Modifiers(false, true, false, false)));
+            assertEquals("hello", primary.text());
+
+            var writes = primary.writes;
+            editor.onKey(key(Key.RIGHT));
+            assertEquals(writes, primary.writes, "collapsing a selection publishes nothing");
+        }
+
+        @Test
+        @DisplayName("a middle click moves the caret there and pastes, as one undo step")
+        void middleClickPastes() {
+            var primary = new Primary();
+            primary.text("big ");
+            var editor = editor("a dog").primarySelection(primary);
+            editor.caretTo(2, false);
+            var at = editor.caret();
+            editor.caretTo(5, false);
+
+            assertTrue(editor.pastePrimaryAt(at.x(), at.top()));
+
+            assertEquals("a big dog", editor.text());
+            assertEquals(6, editor.edit().caret(), "the caret ends after what was pasted");
+
+            assertTrue(editor.undo());
+            assertEquals("a dog", editor.text());
+        }
+
+        @Test
+        @DisplayName("is a no-op without one, in a read-only editor, and with nothing to paste")
+        void noOps() {
+            var none = editor("text");
+            assertFalse(none.pastePrimaryAt(0, 0));
+            assertFalse(none.pointerReleased());
+
+            var primary = new Primary();
+            primary.text("pasted");
+            var readOnly = editor("text").primarySelection(primary).readOnly(true);
+            assertFalse(readOnly.pastePrimaryAt(0, 0));
+            assertEquals("text", readOnly.text());
+
+            var empty = editor("text").primarySelection(new Primary());
+            assertFalse(empty.pastePrimaryAt(0, 0));
+        }
+
+        @Test
+        @DisplayName("a pasted newline is flattened in a single-line editor, as a Ctrl+V's is")
+        void flattened() {
+            var primary = new Primary();
+            primary.text("two\nlines");
+            var editor = editor("").primarySelection(primary);
+
+            assertTrue(editor.pastePrimaryAt(0, 0));
+
+            assertEquals("two lines", editor.text());
         }
     }
 

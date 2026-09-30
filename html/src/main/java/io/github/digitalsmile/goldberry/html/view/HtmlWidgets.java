@@ -216,8 +216,8 @@ final class HtmlWidgets {
             // ([Element]), and the fold's rule for anything in the wrong place —
             // a stray paragraph in a list, a tag nobody has heard of — is to draw it
             // where it is.
-            case "tr" -> row(element);
-            case "td", "th" -> cell(element);
+            case "tr" -> row(element, true);
+            case "td", "th" -> cell(element, true);
             default -> new Column(blocks(element.children()), classesOf(element, "html-block"));
         };
     }
@@ -249,15 +249,14 @@ final class HtmlWidgets {
         return new Column(rows, with(attributes, "html-lines"));
     }
 
-    /// A quotation: the bar, and the blocks beside it.
+    /// A quotation: its blocks, in a box whose `border-left` is the bar.
     ///
-    /// The bar is a widget rather than a `border-left`, because §10's CSS subset has one
-    /// border for a whole box and no way to ask for an edge — the same move
-    /// `markdown-view` makes, and `html.css` says so again beside the rule.
+    /// The bar was a widget beside the blocks while §10's CSS subset had one border
+    /// for a whole box and no way to ask for an edge. It is a declaration in
+    /// `html.css` since ADR-0505, and `markdown-view` made the same move.
     private Widget quote(Element element) {
-        var bar = new Row(List.of(), classes("html-quote-bar"));
         var body = new Column(blocks(element.children()), classes("html-quote-body"));
-        return new Row(List.of(bar, body), classesOf(element, "html-quote"));
+        return new Row(List.of(body), classesOf(element, "html-quote"));
     }
 
     // --- lists -----------------------------------------------------------------
@@ -360,7 +359,10 @@ final class HtmlWidgets {
                 continue;
             }
             switch (element.tag()) {
-                case "tr" -> rows.add(row(element));
+                // The first thing in the table draws no rule above it: the table's
+                // own border is already there (ADR-0505). A caption is a thing, so
+                // a head under one is ruled off from it.
+                case "tr" -> rows.add(row(element, rows.isEmpty()));
                 case "thead", "tbody", "tfoot" -> appendRows(element.children(), rows);
                 case "caption" -> rows.add(prose(element, "html-prose", "html-caption"));
                 // A `colgroup` and its `col`s describe widths this cascade cannot set
@@ -370,16 +372,20 @@ final class HtmlWidgets {
         }
     }
 
-    private Widget row(Element element) {
+    /// @param first whether nothing is above this row in its table, which is what
+    ///              draws no rule above it
+    private Widget row(Element element, boolean first) {
         var cells = new ArrayList<Widget>();
         var header = false;
         for (var node : element.children()) {
             if (node instanceof Element cell && ("td".equals(cell.tag()) || "th".equals(cell.tag()))) {
                 header = header || "th".equals(cell.tag());
-                cells.add(cell(cell));
+                cells.add(cell(cell, cells.isEmpty()));
             }
         }
-        return new Row(cells, classesOf(element, "html-row", header ? "head" : "body"));
+        var kind = header ? "head" : "body";
+        return new Row(
+                cells, first ? classesOf(element, "html-row", kind, "first") : classesOf(element, "html-row", kind));
     }
 
     /// One cell — a column of its blocks, so that a cell holding two paragraphs is two
@@ -387,12 +393,18 @@ final class HtmlWidgets {
     ///
     /// `align=` is honoured because it is what a hand-written table uses, and because
     /// the `text-align` an author would reach for instead is not in §10's subset.
-    private Widget cell(Element element) {
+    ///
+    /// @param first whether this is the leftmost cell of its row, which draws no
+    ///              rule before it — markdown's `first`, for the same reason
+    private Widget cell(Element element, boolean first) {
         minter.block();
-        var classes = new ArrayList<String>(3);
+        var classes = new ArrayList<String>(4);
         classes.add("html-cell");
         if ("th".equals(element.tag())) {
             classes.add("head-cell");
+        }
+        if (first) {
+            classes.add("first");
         }
         var align = element.attribute("align");
         if (align != null) {

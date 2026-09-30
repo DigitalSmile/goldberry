@@ -365,12 +365,22 @@ final class TextInputState extends State<TextInput> implements TextEditor {
                     case START -> edit.toStart(extend);
                     case END -> edit.toEnd(extend);
                 };
-        return apply(next, EditHistory.Kind.OTHER, false);
+        var moved = apply(next, EditHistory.Kind.OTHER, false);
+        if (moved && extend) {
+            // A selection made from the keyboard is finished when the key lands.
+            publishSelection();
+        }
+        return moved;
     }
 
+    /// `Ctrl+A`, which publishes even when everything was already selected: a
+    /// field reached by `Tab` selects all **without** publishing, and `Ctrl+A`
+    /// is the user saying they meant it.
     @Override
     public boolean selectAll() {
-        return apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+        var changed = apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+        publishSelection();
+        return changed;
     }
 
     @Override
@@ -496,8 +506,74 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         return preedit.isEmpty() ? at : at + preedit.caret();
     }
 
+    /// Whether the pointer gesture in progress began with the primary button —
+    /// which is what makes a drag a selection and a release worth publishing.
+    ///
+    /// Not `setState`: nothing drawn reads it.
+    private boolean selecting;
+
     @Override
     public void pointerAt(double x, boolean extend, int clickCount) {
+        selecting = true;
+        place(x, extend, clickCount);
+    }
+
+    @Override
+    public void dragTo(double x) {
+        if (selecting) {
+            place(x, true, 1);
+        }
+    }
+
+    @Override
+    public void released() {
+        if (selecting) {
+            selecting = false;
+            publishSelection();
+        }
+    }
+
+    @Override
+    public boolean pastePrimaryAt(double x) {
+        // A middle press ends any selecting gesture: what the drag after it does
+        // is nothing.
+        selecting = false;
+        var input = widget();
+        if (host == null || input.disabled() || input.readOnly()) {
+            return false;
+        }
+        var primary = host.primarySelection().orElse(null);
+        if (primary == null || !primary.hasText()) {
+            return false;
+        }
+        var pasted = primary.text();
+        if (pasted.isEmpty()) {
+            return false;
+        }
+        // The caret first, then the text at it: two changes to the edit and
+        // **one** to the history, because the move alters no text and only the
+        // insertion is recorded -- so one `Ctrl+Z` takes the paste back and
+        // leaves the caret where the press put it.
+        place(x, false, 1);
+        return insertPasted(pasted);
+    }
+
+    /// Puts a finished, non-empty selection on the primary selection, where the
+    /// platform has one ([ADR-0504]).
+    ///
+    /// **Never from a `password`**, for [#copy()]'s reason and more strongly: a
+    /// primary selection is readable by every application on the desktop with no
+    /// action from the user at all, and every X11 toolkit refuses it for a
+    /// masked field.
+    private void publishSelection() {
+        if (!edit.hasSelection() || widget().password() || host == null) {
+            return;
+        }
+        host.primarySelection().ifPresent(primary -> primary.text(edit.selectedText()));
+    }
+
+    /// Where a press or a drag lands: the caret, a word or the lot.
+    private void place(double x, boolean extend, int clickCount) {
         if (paragraph == null) {
             return;
         }
@@ -683,7 +759,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (host == null) {
             return false;
         }
-        var pasted = host.clipboard().text();
+        return insertPasted(host.clipboard().text());
+    }
+
+    /// Inserts pasted text at the caret, whichever buffer it came from — the
+    /// clipboard's `Ctrl+V` and the primary selection's middle click are the same
+    /// edit.
+    private boolean insertPasted(String pasted) {
         if (pasted.isEmpty()) {
             return false;
         }

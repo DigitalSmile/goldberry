@@ -34,6 +34,7 @@ import io.github.digitalsmile.goldberry.platform.PlatformCapabilities;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.composite.Compositor;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
@@ -104,6 +105,10 @@ public final class Sdl3Backend implements Backend {
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
     private final Clipboard clipboard = new Sdl3Clipboard();
+
+    /// The primary selection, where the video driver has one, and null where it
+    /// does not — decided once, from the driver SDL chose ([#hasPrimarySelection]).
+    private final @Nullable PrimarySelection primarySelection;
     private final Sdl3FileDialogs fileDialogs = new Sdl3FileDialogs(this::wakeup);
 
     /// The trays this application has up. Held so that closing the backend
@@ -235,6 +240,10 @@ public final class Sdl3Backend implements Backend {
             reportAbsentIntegrations(Sdl.get().videoDriver());
             agreeWithGtkAboutTheWindowSystem(Sdl.get().videoDriver());
             keepWindowsAcrossTheGpu(Sdl.get().videoDriver(), composition);
+            primarySelection = hasPrimarySelection(Sdl.get().videoDriver()) ? new Sdl3PrimarySelection() : null;
+            LOG.debug(
+                    "primary selection: {}",
+                    primarySelection != null ? "the window system's" : "none on this video driver");
             installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
@@ -331,6 +340,23 @@ public final class Sdl3Backend implements Backend {
                             + " and a page embedded in it closed with it",
                     Sdl.FRAMEBUFFER_ACCELERATION_HINT);
         }
+    }
+
+    /// Whether `videoDriver` has a primary selection that belongs to the desktop
+    /// rather than to this process (ADR-0504).
+    ///
+    /// **X11 and Wayland**, which are the two SDL drivers that implement
+    /// `SDL_SetPrimarySelectionText` against a window system. Every other driver —
+    /// Windows, Cocoa, `offscreen`, `dummy` — has SDL keep the text in a buffer of
+    /// its own, which the calls read back faithfully and which no other
+    /// application can paste from. Offering that would make a middle click paste
+    /// something nobody on that platform selected, so it is not offered.
+    ///
+    /// A Wayland compositor without `zwp_primary_selection_device_manager_v1` is
+    /// not told apart here: SDL refuses the write there and reads empty, which a
+    /// caller already has to handle.
+    static boolean hasPrimarySelection(String videoDriver) {
+        return "x11".equals(videoDriver) || "wayland".equals(videoDriver);
     }
 
     /// Whether SDL's default window surface would recreate a window given back
@@ -1644,6 +1670,13 @@ public final class Sdl3Backend implements Backend {
     @Override
     public Clipboard clipboard() {
         return clipboard;
+    }
+
+    /// X11's and Wayland's primary selection, and empty on every other driver —
+    /// see [#hasPrimarySelection(String)].
+    @Override
+    public Optional<PrimarySelection> primarySelection() {
+        return Optional.ofNullable(primarySelection);
     }
 
     /// The platform's file dialogs, held for [#clipboard()]'s reason: what the

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.PrimarySelection;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;
@@ -222,6 +223,20 @@ public interface Backend extends AutoCloseable {
     /// session, which is why this is on the backend and not on [BackendWindow].
     default Clipboard clipboard() {
         return Clipboard.none();
+    }
+
+    /// The session's primary selection — X11's middle-click buffer — or empty
+    /// where the platform has none ([ADR-0504]).
+    ///
+    /// **An [Optional], where [#clipboard()] is not**, because absence changes
+    /// what a widget does and not only what it reads: with no primary selection
+    /// a selection is published nowhere and a middle click is not a paste. See
+    /// [PrimarySelection] for why a clipboard that reads empty is honest and a
+    /// middle button that pastes nothing is not.
+    ///
+    /// Process-global, for the clipboard's reason.
+    default Optional<PrimarySelection> primarySelection() {
+        return Optional.empty();
     }
 
     /// The platform's own open, save and folder dialogs.

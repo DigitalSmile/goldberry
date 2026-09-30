@@ -8,6 +8,7 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -165,6 +166,54 @@ public final class SdlClipboard {
             var accepted = sdlClipboardCalls.setClipboardText().call(arena.allocateFrom(text == null ? "" : text));
             if (!accepted) {
                 LOG.debug("SDL_SetClipboardText() refused: {}", Sdl.get().lastError());
+            }
+            return accepted;
+        }
+    }
+
+    // --- the primary selection -----------------------------------------------
+
+    /// Whether the primary selection holds any non-empty text.
+    ///
+    /// [#hasText()] for X11's middle-click buffer, and cheap for the same reason.
+    ///
+    /// **Answered on every video driver**, and that is the caveat all three of
+    /// these carry: where the window system has no primary selection — anything
+    /// but `x11` and `wayland` — SDL keeps a buffer of its own inside this
+    /// process and answers from it. It is not the platform's, and nothing another
+    /// application does reaches it; `:core` is where that is decided (ADR-0504).
+    public boolean hasPrimaryText() {
+        return sdlClipboardCalls.hasPrimarySelectionText().call();
+    }
+
+    /// The primary selection's text, or `""` when it holds none.
+    ///
+    /// [#text()]'s three steps — call, copy, `SDL_free` — and its round trip to
+    /// the owning client.
+    public String primaryText() {
+        var pointer = sdlClipboardCalls.getPrimarySelectionText().call();
+        if (MemorySegment.NULL.equals(pointer)) {
+            return "";
+        }
+        try {
+            return readCString(pointer);
+        } finally {
+            release(pointer);
+        }
+    }
+
+    /// Puts `text` on the primary selection, replacing whatever was there — which
+    /// is what selecting text does in an X11 application.
+    ///
+    /// A refusal is logged and dropped, for [#text(String)]'s reason.
+    ///
+    /// @return whether SDL accepted it
+    public boolean primaryText(String text) {
+        try (var arena = Arena.ofConfined()) {
+            var accepted =
+                    sdlClipboardCalls.setPrimarySelectionText().call(arena.allocateFrom(text == null ? "" : text));
+            if (!accepted) {
+                LOG.debug("SDL_SetPrimarySelectionText() refused: {}", Sdl.get().lastError());
             }
             return accepted;
         }
@@ -411,7 +460,7 @@ public final class SdlClipboard {
             return List.of();
         }
         var pointers = array.reinterpret(count * ValueLayout.ADDRESS.byteSize());
-        var types = new java.util.ArrayList<String>(Math.toIntExact(count));
+        var types = new ArrayList<String>(Math.toIntExact(count));
         // A long counter for a long count. SDL will never report two billion
         // MIME types, but an int here would wrap rather than stop if it did.
         for (var i = 0L; i < count; i++) {

@@ -25,6 +25,9 @@ public record SdlClipboardCalls(
         GetClipboardData getClipboardData,
         HasClipboardData hasClipboardData,
         GetClipboardMimeTypes getClipboardMimeTypes,
+        GetPrimarySelectionText getPrimarySelectionText,
+        SetPrimarySelectionText setPrimarySelectionText,
+        HasPrimarySelectionText hasPrimarySelectionText,
         Free free) {
 
     /// Binds every function above.
@@ -40,6 +43,9 @@ public record SdlClipboardCalls(
                 new GetClipboardData(lookup),
                 new HasClipboardData(lookup),
                 new GetClipboardMimeTypes(lookup),
+                new GetPrimarySelectionText(lookup),
+                new SetPrimarySelectionText(lookup),
+                new HasPrimarySelectionText(lookup),
                 new Free(lookup));
     }
 
@@ -276,6 +282,93 @@ public record SdlClipboardCalls(
                 return (boolean) FD_SDL_HasClipboardText.invokeExact(address);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_HasClipboardText", t);
+            }
+        }
+    }
+
+    /// The primary selection's text — X11's middle-click buffer, which Wayland
+    /// carries too, through `zwp_primary_selection_device_manager_v1`.
+    ///
+    /// The clipboard's shape exactly: a **round trip to the owning client** on
+    /// both, and a string the caller frees with [SdlClipboardCalls.Free]. Where
+    /// the video driver has no primary selection SDL answers from a buffer of its
+    /// own in this process, which is why `:core` asks which driver it is on
+    /// before it offers this to anybody (ADR-0504).
+    ///
+    /// `char* SDL_GetPrimarySelectionText(void)`
+    public static final class GetPrimarySelectionText {
+
+        private static final MethodHandle FD_SDL_GetPrimarySelectionText =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+
+        private final MemorySegment address;
+
+        GetPrimarySelectionText(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetPrimarySelectionText");
+        }
+
+        /// Calls `SDL_GetPrimarySelectionText`.
+        ///
+        /// @return a NUL-terminated string the caller owns; empty rather than NULL on failure
+        public MemorySegment call() {
+            try {
+                return (MemorySegment) FD_SDL_GetPrimarySelectionText.invokeExact(address);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetPrimarySelectionText", t);
+            }
+        }
+    }
+
+    /// Makes this application the primary selection's owner, holding `text`.
+    ///
+    /// `bool SDL_SetPrimarySelectionText(const char*)`
+    public static final class SetPrimarySelectionText {
+
+        private static final MethodHandle FD_SDL_SetPrimarySelectionText =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetPrimarySelectionText(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetPrimarySelectionText");
+        }
+
+        /// Calls `SDL_SetPrimarySelectionText`.
+        ///
+        /// @param text the text to publish, NUL-terminated
+        /// @return false if the window system declined
+        public boolean call(MemorySegment text) {
+            try {
+                return (boolean) FD_SDL_SetPrimarySelectionText.invokeExact(address, text);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetPrimarySelectionText", t);
+            }
+        }
+    }
+
+    /// Whether the primary selection holds any non-empty text — the cheap
+    /// question, answered from what the window system already said.
+    ///
+    /// `bool SDL_HasPrimarySelectionText(void)`
+    public static final class HasPrimarySelectionText {
+
+        private static final MethodHandle FD_SDL_HasPrimarySelectionText =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        HasPrimarySelectionText(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_HasPrimarySelectionText");
+        }
+
+        /// Calls `SDL_HasPrimarySelectionText`.
+        ///
+        /// @return true if there is text to paste
+        public boolean call() {
+            try {
+                return (boolean) FD_SDL_HasPrimarySelectionText.invokeExact(address);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_HasPrimarySelectionText", t);
             }
         }
     }

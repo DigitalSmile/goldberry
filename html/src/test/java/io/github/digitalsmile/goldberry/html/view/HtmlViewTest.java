@@ -198,12 +198,14 @@ class HtmlViewTest {
         }
 
         @Test
-        @DisplayName("a quote as a bar and a column of its own blocks")
+        @DisplayName("a quote as a column of its own blocks, its bar a border")
         void quote() {
             var elements = mount("<blockquote><p>quoted</p></blockquote>");
 
             assertEquals(1, withClass(elements, "html-quote").size());
-            assertEquals(1, withClass(elements, "html-quote-bar").size(), "§10 has no border-left to draw it with");
+            assertTrue(
+                    withClass(elements, "html-quote-bar").isEmpty(),
+                    "the bar is the quote's border-left since ADR-0505, not a widget beside it");
             assertEquals(List.of("quoted"), wordsOf(withClass(elements, "html-quote")));
         }
 
@@ -234,6 +236,39 @@ class HtmlViewTest {
             assertEquals(4, withClass(elements, "html-cell").size());
             assertTrue(withClass(elements, "html-cell").getFirst().classes().contains("head-cell"));
             assertEquals(1, withClass(elements, "end").size(), "align= is what a hand-written table uses");
+        }
+
+        /// The rules between cells are one side of each (ADR-0505): a row draws the
+        /// line above it and a cell the line before it, and `first` is what stops the
+        /// top row and the leftmost cells drawing one over the table's own border.
+        @Test
+        @DisplayName("the top row and each row's leftmost cell are marked first, so only inner rules are drawn")
+        void tableRules() {
+            var elements = mount("""
+                    <table>
+                      <tr><th>a</th><th>b</th></tr>
+                      <tr><td>1</td><td>2</td></tr>
+                    </table>
+                    """);
+
+            var rows = withClass(elements, "html-row");
+            assertTrue(rows.getFirst().classes().contains("first"), "the table's border is above the top row");
+            assertFalse(rows.get(1).classes().contains("first"), "a row under another draws the rule between them");
+            var cells = withClass(elements, "html-cell");
+            assertEquals(
+                    List.of(true, false, true, false),
+                    cells.stream().map(cell -> cell.classes().contains("first")).toList(),
+                    "the leftmost cell of every row, and no other");
+        }
+
+        @Test
+        @DisplayName("a caption is ruled off from the rows under it")
+        void captionIsRuledOff() {
+            var elements = mount("<table><caption>Faces</caption><tr><td>a</td></tr></table>");
+
+            assertFalse(
+                    withClass(elements, "html-row").getFirst().classes().contains("first"),
+                    "the caption is the first thing in the table, so the row under it draws a rule");
         }
 
         @Test

@@ -80,6 +80,49 @@ class SdlClipboardTest {
         assertEquals(text, clipboard.text());
     }
 
+    // --- the primary selection (ADR-0504) ------------------------------------
+
+    @Test
+    @DisplayName("round-trips the primary selection, freeing what SDL allocated")
+    void roundTripsThePrimarySelection() {
+        requireVideo();
+        var clipboard = SdlClipboard.get();
+
+        assertTrue(clipboard.primaryText("selected é 🎨"), "SDL declined a primary-selection write");
+
+        assertTrue(clipboard.hasPrimaryText());
+        assertEquals("selected é 🎨", clipboard.primaryText());
+        // Twice, for the free: a double free shows up here and not later.
+        assertEquals("selected é 🎨", clipboard.primaryText());
+    }
+
+    @Test
+    @DisplayName("the primary selection is not the clipboard")
+    void thePrimarySelectionIsSeparate() {
+        requireVideo();
+        var clipboard = SdlClipboard.get();
+
+        clipboard.text("copied");
+        clipboard.primaryText("selected");
+
+        // The whole point of X11 having two: selecting something must not
+        // replace what Ctrl+C put away.
+        assertEquals("copied", clipboard.text());
+        assertEquals("selected", clipboard.primaryText());
+    }
+
+    @Test
+    @DisplayName("an empty primary selection reads as empty text")
+    void anEmptyPrimarySelectionIsEmptyText() {
+        requireVideo();
+        var clipboard = SdlClipboard.get();
+
+        clipboard.primaryText("");
+
+        assertFalse(clipboard.hasPrimaryText());
+        assertEquals("", clipboard.primaryText());
+    }
+
     // --- bytes under a MIME type (ADR-0286) ----------------------------------
 
     @Test

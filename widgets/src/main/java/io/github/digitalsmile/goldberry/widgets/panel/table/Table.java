@@ -234,15 +234,19 @@ public record Table<T>(
         return List.copyOf(parts);
     }
 
-    /// The line under the header — a **node**, because §8's subset has one
+    /// The line under the header — a **node**, because §8's subset had one
     /// `border` and no per-edge longhands.
     ///
-    /// `border-bottom` is not a declaration that exists here, and writing it got
+    /// `border-bottom` was not a declaration that existed, and writing it got
     /// exactly what the subset promises: silence and a debug line. `menubar` hit
     /// the same wall and answered it by not having a rule at all (ADR-0107);
     /// §3's metrics row for a table asks for one, so this is `separator`'s
-    /// answer instead — a box one pixel tall with a background, which is what a
-    /// rule is when a border cannot be one.
+    /// answer instead — a box one pixel tall with a background.
+    ///
+    /// It stays a node now that `border-bottom` exists (ADR-0505), because the
+    /// two are different drawings: a border takes no room, so on `table-head` it
+    /// would sit inside the header's 36 rather than under it, and every row would
+    /// move a pixel for a picture that is already right.
     record TableRule() implements Widget.Leaf, Styled, Paints {
 
         @Override

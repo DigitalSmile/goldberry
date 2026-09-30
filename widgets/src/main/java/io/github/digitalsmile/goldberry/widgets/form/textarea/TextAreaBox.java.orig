@@ -727,26 +727,17 @@ record TextAreaBox(
     /// control's padding to every inset it is given, so `-padding + border` is
     /// where it lands: the border's inner edge.
     private static Box strip(Box part, ComputedStyle style, AreaPadding padding, double gutterWidth) {
-        // Per side since a border's sides can differ (ADR-0505); the field's own
-        // rule is uniform, and a theme that gave it a heavier left edge should
-        // still see the strip start inside it.
-        var border = style.decoration().border();
-        var top = border.top().width();
-        var bottom = border.bottom().width();
-        var left = border.left().width();
+        var border = style.decoration().borderWidth();
         var corners = style.decoration().corners();
-        var fitted = new Corners(
-                Math.max(0, corners.topLeft() - Math.max(top, left)),
-                0,
-                0,
-                Math.max(0, corners.bottomLeft() - Math.max(bottom, left)));
+        var fitted =
+                new Corners(Math.max(0, corners.topLeft() - border), 0, 0, Math.max(0, corners.bottomLeft() - border));
         return part.position(Position.ABSOLUTE)
                 .inset(new Insets(
-                        Length.points((float) (top - padding.top())),
+                        Length.points((float) (border - padding.top())),
                         Length.UNDEFINED,
-                        Length.points((float) (bottom - padding.bottom())),
-                        Length.points((float) (left - padding.left()))))
-                .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - left)), Length.UNDEFINED)
+                        Length.points((float) (border - padding.bottom())),
+                        Length.points((float) (border - padding.left()))))
+                .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - border)), Length.UNDEFINED)
                 .decoration(part.decoration().corners(fitted));
     }
 
@@ -755,7 +746,7 @@ record TextAreaBox(
     /// Beside the clipped layer rather than in it, so the part of it over the
     /// padding is drawn and can be pressed.
     private static Box bar(Box part, ComputedStyle style, AreaPadding padding) {
-        var border = style.decoration().border().right().width();
+        var border = style.decoration().borderWidth();
         return part.position(Position.ABSOLUTE)
                 .inset(new Insets(ZERO, Length.points((float) (border - padding.right())), ZERO, Length.UNDEFINED));
     }

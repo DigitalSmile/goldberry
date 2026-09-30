@@ -12,8 +12,11 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
-/// The hairline under a [TabList] — a **part**, and a box for
-/// [TabIndicator]'s reason: there is no `border-bottom` in §8's subset.
+/// The hairline under a [TabList] — a **part**, and a box.
+///
+/// It was a box for [TabIndicator]'s reason, that §8's subset had no
+/// `border-bottom`, and it stays one now that it has (ADR-0505): a border on the
+/// list is drawn before the tabs, and the indicator has to lie over this line.
 ///
 /// It runs the full width of the strip and the selected tab's indicator is drawn
 /// *over* it, which is what makes a tab read as attached to its panel. Both are

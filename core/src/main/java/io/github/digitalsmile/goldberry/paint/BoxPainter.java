@@ -178,28 +178,31 @@ public final class BoxPainter {
             }
         }
 
-        if (decoration.hasBorder()) {
+        var border = decoration.border();
+        if (decoration.hasBorder() && border.isUniform()) {
             // Stroked down the middle of the path, so the path is inset by half
             // the width to put the ink *inside* the border box — which is what
             // `border-box` sizing means and what makes a 1px border on a 32px
             // control leave 30px of content rather than 32.
-            var inset = decoration.borderWidth() / 2;
+            //
+            // The uniform case, which is every border the design system pins,
+            // keeps exactly this drawing: four sides that are one line are one
+            // stroke (ADR-0505).
+            var line = border.top();
+            var inset = line.width() / 2;
             path.reset();
             RoundRect.addTo(
                     path,
                     inset,
                     inset,
-                    width - decoration.borderWidth(),
-                    height - decoration.borderWidth(),
+                    width - line.width(),
+                    height - line.width(),
                     decoration.corners().shrunkBy(inset));
-            frame.strokePath(
-                    x,
-                    y,
-                    path,
-                    decoration.borderWidth(),
-                    BlendStrokeCap.BUTT,
-                    BlendStrokeJoin.MITER_CLIP,
-                    decoration.borderColor());
+            frame.strokePath(x, y, path, line.width(), BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, line.argb());
+        } else if (decoration.hasBorder()) {
+            // Sides that differ are filled one region each, mitred where they
+            // meet — a stroke has one width (ADR-0505).
+            BorderPainter.paint(frame, path, border, x, y, width, height, decoration.corners());
         }
 
         if (box.text() != null) {

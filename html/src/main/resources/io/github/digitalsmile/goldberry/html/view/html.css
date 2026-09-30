@@ -229,20 +229,16 @@ picture {
 
 /* ---------------------------------------------------------------- quotes -- */
 
-/* **The bar is a widget, because §10's subset has no per-side border.** `border` is
-   uniform here -- one width and one colour for the whole box -- so a quotation drawn
-   with `border-left` was a rule the cascade dropped and a picture with an
-   unexplained indent in it. A 2px row beside the content is the same shape and is a
-   box the painter already knows how to fill. */
+/* **The bar is the quotation's `border-left`.** It was a 2px widget beside the
+   content while the subset's `border` was one line for the whole box, and a
+   `border-left` was a rule the cascade dropped; it is the declaration it always
+   wanted to be since ADR-0505. A border takes no room, so the padding is the old
+   bar's 2px and the old gap's 12 together, and the text starts where it did. */
 .html-quote {
   align-items: stretch;
-  gap: 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--gb-border-strong);
   color: var(--gb-text-muted);
-}
-
-.html-quote-bar {
-  width: 2px;
-  background: var(--gb-border-strong);
 }
 
 .html-quote-body {
@@ -326,28 +322,45 @@ picture {
   overflow: hidden;
 }
 
+/* **Rules between the cells**, one side of each (ADR-0505): a row draws the line
+   above it and a cell the line before it, so every pair of neighbours shares exactly
+   one. The first row and the first cell of each row draw none -- `first` is the
+   builder's, because the subset has no `:first-child` -- since the table's own
+   border is already there, and a square line at a rounded corner would show outside
+   the curve. A border takes no room here, so the 1px sits over the cell's padding
+   and no text moves. */
 .html-row {
   align-items: stretch;
+  border-top: 1px solid var(--gb-border);
+}
+
+.html-row.first {
+  border-top: none;
 }
 
 .html-row.head {
   background: var(--gb-surface-2);
 }
 
-/* **No rules between the cells.** Same reason as the quotation above: a border here
-   is a border on every side of every cell, and a grid drawn that way would put a
-   line round each one. What separates the columns is the space in them and what
-   separates the head is its fill -- which is how a modern table is drawn anyway.
-
-   The columns share the row by `flex-grow` alone: `flex-basis` is not in the subset
-   either, so a column's share follows its content rather than being exactly a
-   third, and a `<col width>` is read and not drawn. */
+/* **Every column is an equal share of its row**, from a zero basis. Each row is a
+   flex row of its own and nothing shares a column between them, so while the
+   share followed each row's content -- this said `flex-basis` was not in the subset,
+   and it has been since ADR-0373 -- a column started a few pixels further along in
+   one row than in the next. Space hid that; the rule before a cell drew it, as a
+   line with a step in it at every row (ADR-0505). A `<col width>` is still read
+   and not drawn. */
 .html-cell {
   flex-direction: column;
   gap: 4px;
   padding: 6px 8px;
   flex-grow: 1;
   flex-shrink: 1;
+  flex-basis: 0;
+  border-left: 1px solid var(--gb-border);
+}
+
+.html-cell.first {
+  border-left: none;
 }
 
 .html-cell.head-cell {
