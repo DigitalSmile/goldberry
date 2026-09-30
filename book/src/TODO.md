@@ -37,25 +37,6 @@ the mechanism the sentence named — while the entry itself sat on under
 other entry was a cost nobody had measured, and measuring it was the answer.
 
 ## Overlays, popups and windows
-- **A toast is not announced, and the only thing still missing is the bridge.**
-  The widget half is finished: a toast answers [Live#POLITE] and [Role#STATUS] and
-  names itself with its own text, which is the claim §7's "live region" is and the
-  claim a role and a name cannot make. It matters here and nowhere else in the
-  catalog because every other widget is announced when something *happens to it* —
-  the focus lands, the pointer arrives — and a toast has no such event: nobody
-  focuses it, nobody has to click it, and it is gone in five seconds. So a reader
-  that speaks only what is reached would still have said nothing about it on the
-  day the bridge landed. What is left is M5's AccessKit bridge and no decision
-  from the catalog. —
-  [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
-  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
-
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
 - **A popup may not give the *platform's* keyboard focus back, and the widget
   layer has nothing to do with it** — **the second half of this entry was wrong
   and has been measured.** A popup gets its own tree and its own router, and
@@ -96,19 +77,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
 ## The catalog: specified and unbuilt
 
-### What the last four widgets left behind
-- **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
-  `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
-  written on it: a role nothing consumes is a value written for a bridge that does
-  not exist. The AccessKit bridge is where the words arrive. —
-  [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
-
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
 ### `text-input`, and what §4 still owes
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -132,70 +100,12 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
   [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
-- **Four widgets announce what they are and cannot say what they hold.**
-  Each has a specification sentence with two halves and only the first is built.
-  `code-input` is "a single textbox with the whole code as its value" —
-  `Role.TEXT_FIELD`, one Tab stop, boxes with no role at all. `calendar` is "grid
-  with each cell's full date as its name" — `Role.GRID`, cells that are parts.
-  `date-picker` is "combobox owning a grid, with the formatted date as its value
-  text" — `Role.COMBO_BOX`. `color-picker` is "combobox with the hex as its value
-  text", and it gets *half* of that one: its closed swatch is a `Role.BUTTON`
-  whose accessible **name** is the hex, which is as close as a name can come to a
-  value. The second half of all four needs the same thing and there is nowhere to
-  put it: `Semantics` is a role, a name and a liveness, with **no value channel
-  and no per-cell channel** for any widget. So this is the AccessKit bridge's
-  entry rather than any of theirs, and the four are named because they are the
-  controls whose specifications spent a sentence on what they would say. M5. —
-  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
-  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
-  [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
-
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
-- **A trail is not a landmark, and a crumb is not a link.** §6 gives
-  `breadcrumbs` "navigation landmark containing links, current page marked", and
-  `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
-  boundary with content in it and no better word" — and the crumbs answer
-  `Role.BUTTON`, which is true of what pressing one does and silent about what it
-  *is*. The third of the three, "current page marked", **is** built, through
-  `:checked` and the accessible name.
-  Filed rather than guessed at, for the reason the two entries below are: a role
-  nothing can consume is a constant written for a bridge that does not exist, and
-  adding `LINK` and a landmark now would make this gap look closed. M5. —
-  [ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)
-
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
-- **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
-  answers `Role.SLIDER`, which is true as far as it goes — a control whose value
-  you move continuously — and says nothing about the second axis. `GROUP` is "a
-  boundary with content in it" and a plane has none; `GRID` promises cells
-  addressed by row and column, which is the one thing a continuous plane is not.
-  Filed rather than guessed at: the answer is probably a role *and* a second value
-  channel, and the shape of that depends on the AccessKit bridge nothing has
-  built. M5. —
-  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
-
-  **On hold —
-  [ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
-  The bridge this waits on is not being built and no milestone owns it. The entry
-  keeps its prose and its reasoning, which is still the right reasoning; what has
-  changed is that the thing at the end of it is not coming on a schedule. The way
-  back is a consumer asking, not a date.
+  **Read again on 2026-09-30, and it stands.** `DialogPanel` is still the only
+  widget that answers `isModal`. What is new is a *reader*: `web-view` asks
+  `Host.isModal` and parks its page while a modal is up
+  ([ADR-0444](adr/0444-a-page-stands-aside-for-a-modal.md)), which is a consumer
+  of the answer rather than a second thing that traps. (An "on hold" note for the
+  accessibility bridge sat here by mistake; this entry never waited on it.)
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
   `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
@@ -204,31 +114,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **A `tour` cannot find the viewport its target is in — read against the code,
-  and it stands.** §5 asks it to scroll a target into view, and `Stop` takes a
-  `ScrollController` the application supplies. Discovering it means walking from
-  an element to its nearest scrolling ancestor. `BuildContext.findAncestorState`
-  looks like the answer and is not: it walks up from the element being **built**,
-  and what a tour needs is a walk up from the **target it names** — a different
-  question, and one the tree offers no way to ask. ADR-0120 avoided the same wall
-  by turning the question around; here there is nothing to turn around, because
-  the tour is not the thing being revealed. —
-  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-
-  **Closed —
-  [ADR-0439](adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md).**
-  Both premises are true and the conclusion is false, which is why re-reading it
-  twice did not catch it. `Element` **implements** `BuildContext`, so
-  `findAncestorState` walks up from whatever element it is called on rather than
-  from the one being built; and `Host.anchor(id)` already returns a region whose
-  `owner()` is that element — the tour was calling it on every build for the
-  rectangle and discarding the owner. `ScrollScope.enclosing(target)` is the
-  walk. ADR-0120 had written down that `findAncestorState` "stays, because it is
-  how an application-level `scrollIntoView` from *inside* a scroll view reaches
-  the viewport", which is this call, kept for it, three hundred decisions
-  earlier. `Stop.within(controller)` survives for the application that means an
-  **outer** viewport, since the walk finds the innermost.
 - **A scrollbar's thumb stops being proportional on a very long document.** It is
   floored at 24px, so past about four screens the thumb no longer says how much
   is visible — only that there is a lot. The trade every scrollbar makes, named
@@ -240,75 +125,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   Every other consumer reads its own box. It obeys the third rule by construction for
   the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
   is laid out where it always was.
-- ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
-  and `currentColor`.~~ **It is now**
-  ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
-  and this entry closed the case on the wrong evidence. It was right that
-  `tab-new` stopped wanting one — what that widget reached for was a way to sit
-  somewhere other than the top of its row, which `align-self` answers
-  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — and wrong to conclude
-  from it that the property had no consumer, because `align-self` is the **cross**
-  axis. On the main axis a box that wants to centre itself, or to sit at the far
-  end of a row its container is not arranging for it, had no spelling at all:
-  `justify-content` is the container's decision about every child at once, and a
-  `flex-grow: 1` spacer is a box in the tree that draws nothing. `margin: 0 auto`
-  and `margin-left: auto` are what those are, and Yoga's binding has had the
-  `auto` call since ADR-0029.
-
-  The entry's other half stands and is worth keeping: three properties a widget
-  reached for and did not find, all silently ignored, and the subset is right to
-  be small. ~~and nothing warns when a
-  declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
-  `border-bottom` was written a fourth time, in `table-head`, and drew nothing
-  ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
-  `SupportedPropertyTest` resolves every rule the catalog and the showcase ship
-  through the real cascade and fails on anything reported as unsupported — so a
-  dead declaration is one failure with the property in it rather than a debug
-  line among thousands. **And on anything reported as a bad *value*, since
-  ADR-0216**: `border-radius: 7px 7px 0 0` and `background: none` were two more
-  rules doing nothing, with the property spelled right and the value refused.
-  **An application's stylesheet is still on its own**, deliberately: naming
-  `backdrop-filter` before it exists must not stop a window opening. (That
-  sentence said `box-shadow` until ADR-0310 built it; `backdrop-filter` and
-  `letter-spacing` are what is left of §8's unimplemented list.) —
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
-- **The catalog's specified surface roughly tripled, and most of it is built now.**
-  `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
-  `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,
-  `code-input`, autocomplete on both `text-input` and `select`, tree-select, `collapse`,
-  `carousel`, `statistic`, `skeleton`, `breadcrumbs`, `steps`, `wizard`, `message`,
-  `tour`, `tree`, `calendar`, `timeline`, and `button`'s `outlined` / `square` /
-  `circle` / `float` options — each with a `design-system.md` §3 metrics row and, where
-  it moves, a §3.1 row. §5 requires a spec **and** a metrics row **and** gallery
-  coverage before code, in that order: they had passed two gates of three, and the
-  third is what "built" means.
-
-  **This entry said "none of it is built", then "one of them is built now", then
-  "four widgets and four options are left" — and now none are.** The last four
-  went in on 2026-09-17: `link`
-  ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
-  `steps` and `wizard`
-  ([ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)),
-  `timeline` ([ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
-  and `button`'s `outlined` / `square` / `circle` / `float`
-  ([ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
-  What each left behind is its own entry under *The catalog* below.
-
-  Everything else on it went in: `segmented` first, then `affix`, the three
-  pickers, `code-input`, autocomplete on both controls, tree-select, `collapse`,
-  `carousel`, `statistic`, `skeleton`, `message`, `tour`, `tree`, `calendar`, and
-  `breadcrumbs` last.
-
-  **The way `segmented` went is still the argument for writing them down first**,
-  read from the other end: two of its five specified metrics and both of its
-  specified transitions turned out to be undrawable in §8's subset, and that was
-  found by implementing it rather than by writing it. The point of writing them
-  down first is that the arguments are cheap then and expensive later — `message`
-  against `toast`, `segmented` against `radio-group`, `code-input` against a
-  styled `text-input` are all decisions that would otherwise have been made by
-  whoever happened to need one, and none of them was.
 - **A virtual list can have its focused row scrolled out of existence.** Wheel
   far from the focus ring and the focused row leaves the window, is unmounted,
   and the router drops it — which is ADR-0180's rule doing exactly what it should
@@ -324,38 +140,11 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   different arithmetic, and it is worth it past about fifty columns, which is
   past where a table is the right thing to be looking at. —
   [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
-- **`tree` moved from deferred to specified, and `table` has since followed it**, which changes what M5 owes. ARCHITECTURE
-  §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
-  `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
-  needs it, so the two arrived together.
 - **A segmented control fills its parent when nothing gives it a width**, which is new
   and is a real loss of convenience: in a toolbar beside other widgets it takes the
   whole row until an author writes `width`. It buys the travelling indicator, and there
   is no third option under flexbox — content-sized cells cannot be travelled between,
   and a zero basis collapses the bar entirely.
-- **A toggle's thumb does not follow the pointer during the drag — and the design system
-  says it should not.** Left open as a defect after ADR-0075 and closed by reading
-  rather than by building: §1.7's first principle names the controls that track 1:1 —
-  "drags (**slider, knob, fader, splitter, scroll**) track the pointer 1:1" — and
-  `toggle` is not among them, while §3.1's `toggle` row asks for the opposite, "thumb
-  `translate` **base**". A switch here is a control with two positions that animates
-  between them, and tracking the finger would be a third behaviour neither document asks
-  for. It would also cost the mechanism the entry named: transient per-element state for
-  a value that is neither the model's nor the stylesheet's, which nothing else in the
-  catalog wants. Reopened only if the design system changes its mind, in writing. —
-  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md), `docs/design-system.md`
-  §1.7, §3.1
-- **The toggle does not shrink with a compact density**, and that is
-  **answered rather than open** (`docs/widgets-finishing.md`, ADR-0356): §3's row
-  carries no compact value for `toggle` where the rows that shrink carry one, so
-  the pill staying 36×20 inside a 28-tall row is the specification rather than a
-  gap. Kept here because the *screenshots* are what would say whether §1.3 meant
-  it. Read off §3 rather than decided: the rows with a compact value carry it in parentheses and the `toggle` row
-  does not, so the pill stays 36×20 while the row around it takes `--gb-toggle-height`.
-  Whether a 28-tall row holding a 20-tall pill is what §1.3 intends is a question for
-  whoever writes the compact screenshots. —
-  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md),
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
 ## The shell: the tray, and what it cannot say
 
 §9's `tray-icon` ships ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
@@ -381,12 +170,6 @@ description had no effect.
   open, and replacing one would mean re-inserting entries underneath a user. A
   declarative caller closes and reopens, which is correct and is also a flicker
   in the notification area on some shells.
-- **Nothing paints a tray icon for you, and nothing swaps it on a theme switch.**
-  The mechanism is there — `TrayIcon.icon(pixels)` and `BackendTray.icon` — and
-  §9's "theme-aware light/dark variants" is an application's two `PixelBuffer`s
-  and a `restyle` handler it has to write. The toolkit ships no default mark of
-  its own, so a tray with no icon is whatever the desktop draws for an
-  application that supplied none.
 - **An accelerator on a tray row is dropped**, with a warning. A shortcut is bound
   to a window and a tray has none. The same `Item` in a `menubar` still registers
   one, which makes this the first place in the catalog where one value means two
@@ -416,7 +199,8 @@ description had no effect.
   the shape is known — what is not known is whether a painter is a *value* a
   registry holds or a *method* on a model, which is the same question `@Action`
   answered for commands and would have to answer again here. Nothing has needed
-  it: every consumer so far is a chart widget written in Java.
+  it: every consumer so far is written in Java — the chart widgets, `web-view`'s
+  placeholder and the showcase's tile floor.
 - **A canvas has no intrinsic size**, so one in a `row` with nothing else to size
   it is zero wide and silently invisible. A measure function that guessed would be
   a number the toolkit invented and the application drew into; a diagnostic when a
@@ -435,7 +219,6 @@ description had no effect.
   does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
   that is the seam a painter should use too. Nothing has measured a painter that
   needs it.
-## Rendering without a window
 ## Editing text
 - **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
   not promise visual order for mixed-direction text, and a caret in it needs a
@@ -451,34 +234,17 @@ description had no effect.
   ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
   deliver ownership changes and Windows has a viewer chain; what is missing is a
   consumer worth the plumbing.
-- **No file lists.** `text/uri-list` is bytes like anything else and works today,
-  but nothing turns those bytes into paths. **Drag-and-drop is a different
-  platform mechanism and is built now**: `Window.onFileDrop` delivers one
-  `FileDrop` per gesture, with the paths and the point they landed on
-  ([ADR-0330](adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
-  unbound there is `SDL_EVENT_DROP_TEXT` — the same shape, and nothing has asked
-  for it.
-
-  **`SDL_EVENT_DROP_TEXT` closed —
-  [ADR-0408](adr/0408-a-dropped-line-of-text-is-a-dropped-file-in-every-way-but-one.md).**
-  "The same shape" turns out to be literal rather than loose: SDL tokenises
-  dropped text on `\r\n` and raises one event **per line**, then one shared
-  `DROP_COMPLETE` for both kinds — so `TextDrop` carries a list of lines, and
-  a test exists specifically to stop the shared completion turning a file drop
-  into a text drop. What had blocked it was diagnosed here and is worth
-  keeping: the blocker is a missing **constant**, not a missing symbol, so
-  adding the enum value fails the *layout probe* rather than the link, and the
-  bill is a shim row and an ABI bump on four platforms. ADR-0422 was bumping
-  the ABI anyway, so the bill was already paid.
 - **No primary selection.** X11's middle-click buffer has its own SDL calls
   (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
   the widgets that would fill it — a text field on X11 — would have to know they
   are on X11.
 ## Content modules
 
-`docs/content-widgets.md` specifies eleven optional modules; **one of them
-exists** — `:html`, whole, with no engine under either half — and none of the
-other ten is scheduled while M3 still owes client-side decorations and the rest
+`docs/content-widgets.md`'s table has thirteen rows, and **four of them are
+artifacts now**: `:html`, whole, with no engine under either half; `:emoji`;
+`:gpu`, built in part; and `:media`, in progress. `goldberry-charts` merged into
+`:widgets` and `goldberry-web` became a widget rather than a module. None of the
+other seven is scheduled while M3 still owes client-side decorations and the rest
 of §4. The shape they share is
 [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
@@ -504,12 +270,22 @@ on, which in four cases is the same thing.
     viewport with it. The same want a `text-area` has, and neither has it — an
     auto-scroll is a timer plus a clamp, and the interesting part is deciding what
     it does on a touchpad's fractional deltas.
+
+    *Closed by
+    [ADR-0500](adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md):*
+    a drag held past the edge carries the viewport on at a speed set by how far
+    past it the pointer is, through `EdgeScroll`, which `text-area` shares. There
+    were two faults rather than one — the selection also froze at the edge,
+    because every word is clipped to the viewport and a pointer below it was over
+    none. The touchpad answer is that the speed comes from the pointer's distance
+    and never from the wheel; a wheel mid-drag scrolls as usual, and the
+    fractional steps are applied unrounded.
   - **Emphasis is a faux oblique** — `transform: skewX(-10deg)` — because §6.1
     ships two upright faces. A third face is an asset decision rather than a code
     one, and `:assets` is where it would be made.
-  - **A hard break inside a paragraph does nothing.** A wrapping row has no widget
+  - ~~**A hard break inside a paragraph does nothing.**~~ A wrapping row has no widget
     meaning "start a new line here", and a `spacer` with `flex-grow` — the obvious
-    trick — makes the line before it look justified.
+    trick — makes the line before it look justified. *Closed by ADR-0426, below.*
   - **A table's cells have no rules between them, and a fence does not scroll
     sideways.** Both are the CSS subset: `border` is uniform, so there is no
     `border-left`, and horizontal `scroll` is not in §10 either.
@@ -573,27 +349,42 @@ on, which in four cases is the same thing.
   across them is undefined behaviour. —
   [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md),
   [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md)
+
+  **Narrower than it reads — found by the 2026-09-30 sweep.** Two of the three
+  gaps were closed for the toolkit's own reasons and the entry was not told:
+  gradients are exported (`bl_gradient_*` and `bl_context_set_fill_style`,
+  [ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)), and so are `bl_context_save` and
+  `restore`, whose comment in the symbol file now says a second clip depth is
+  needed ([ADR-0193](adr/0193-a-canvas-is-a-second-clip-depth.md)). There are 25
+  `bl_context_*` entries rather than twenty. Rounded geometry is cubic paths plus
+  `bl_path_elliptic_arc_to`, with no round-rectangle primitive. Whether what is
+  exported now is enough for `document_container` has not been checked against
+  its virtuals, and that check is the first commit of an engine-backed module.
+  Text selection is not something an engine would add any more: ADR-0301 built
+  it.
 - **No SDL audio or camera symbol is exported**, so `goldberry-camera`,
   `goldberry-mic` and the core `Sound` API that `content-widgets.md` §8 hands to
   SDL audio for UI effect sounds all begin at the same file. This is no longer a
   guess about what that costs: `tray-icon` began there too and paid eleven
   symbols, two binding classes and five probe constants for it
-  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). Of the 59
-  `SDL_*` entries now on the list, every one is video, window, event, clipboard
-  or tray. The modules' "zero new natives" claim is true of the binary and not of
-  the surface.
+  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). The modules'
+  "zero new natives" claim is true of the binary and not of the surface.
+
+  **Half of it moved, for `:media` — corrected 2026-09-30.** Audio *output* is
+  exported now: nine `SDL_*` audio-stream symbols, which `:media`'s `AudioSink`
+  writes through
+  ([ADR-0462](adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)), with SDL's
+  ALSA and PulseAudio drivers required on Linux
+  ([ADR-0488](adr/0488-the-linux-build-fails-without-the-audio-headers.md)). Of
+  the 149 `SDL_*` entries on the list, 56 are `SDL_GPU` and 9 are audio. Still
+  missing: every camera and recording symbol, and the core `Sound` API, so
+  `goldberry-camera` and `goldberry-mic` begin at the same file as before.
 - **The backend SPI has no PTY.** `goldberry-terminal` needs
   `Optional<Pty> openPty(cmd, env, size)` — `forkpty`/`openpty` on Linux and
   macOS, **ConPTY** on Windows — which is the same optional-capability shape as
   `gpuSurface()` and is the real platform work in that module. libvterm itself is
   a state machine and a cell grid, which is the part the text stack is already
   good at.
-- **`goldberry-media` breaks the one-library assumption.** LGPL relinkability
-  means libVLC stays a separate shared object with its plugin tree beside it, and
-  every packaging rule in `:natives` — one static library, hidden visibility, one
-  export list — assumes the opposite. It also needs a codec/patent note written
-  before it gets code, which `content-widgets.md` §8 says and this list repeats
-  because it is a gate rather than a caveat.
 - **`goldberry-pdf` is the only module that vendors a prebuilt.** PDFium's own
   build wants gn/depot_tools, so `:natives-pdf` consumes pinned,
   checksum-verified community binaries — which is a different supply-chain
@@ -607,39 +398,19 @@ on, which in four cases is the same thing.
   (`CodeBlock.language()`), so the seam is a real one rather than a plan. So
   `goldberry-html` either depends on `goldberry-code` optionally or keeps
   rendering them plain. The optional-dependency mechanic — a module that improves
-  when another is on the module path — does not exist in the toolkit yet, and
-  `goldberry-vector` needs the same thing for `image/svg+xml`. One mechanism, two
-  callers, and JPMS services are the obvious shape.
+  when another is on the module path — **exists now, as JPMS services**: `:core`
+  uses an `EmojiFont` that `:emoji` provides
+  ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md))
+  and a `Compositor` that `:gpu` provides
+  ([ADR-0479](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)),
+  and `video-view` draws through a GPU layer when `:gpu` is present
+  ([ADR-0484](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+  So `goldberry-html` → `goldberry-code` and `goldberry-vector` → `image/svg+xml`
+  are two more services of a known shape, and what is missing is the module.
 - **`goldberry-plot`'s colormaps are data with a provenance.** viridis-class
   tables are public domain, which is a claim the licence tooling has never had to
   check for something that is neither a font nor a library.
   `./gradlew checkLicenses` knows about artifacts.
-- **Text selection in `html-view` is deferred**, and it is the same
-  character-quad work as text-editing depth (`ARCHITECTURE.md` §17) and as
-  `pdf-view`'s selection.
-  Three widgets waiting on one mechanism is an argument for building it once, in
-  core, rather than in whichever module lands first.
-- ~~**`goldberry-web` is parked, not deferred.**~~ **Built, and not as a module**
-  ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). Every word of the
-  entry was true about Servo and none of it was about the question: libservo is
-  Rust-only against a deliberately unstable API, so the module would indeed own a
-  `cdylib` shim and its breakage — and nobody asked whether a page needed an
-  engine of this project's at all. `webview/webview` is MIT, is one header, and
-  **brings no engine**: it drives the WebKitGTK, WebView2 or WKWebView the desktop
-  already has, so neither condition that quarantines a content module applies.
-  **This is the fifth entry in this run of work that was wrong about itself**, and
-  it is the most expensive kind for the second time: "parked" reads like an answer
-  and stopped anybody re-reading it for two milestones.
-
-  What it is *not* is a widget. `webview/webview` cannot render offscreen, so a
-  page is always a platform window; and a Wayland session allows neither
-  reparenting a foreign surface nor placing a window where a widget is, so a
-  `web-view` in a layout would be a box on X11, Windows and macOS and a loose
-  window on the default Linux desktop. It ships as §9's second `widget.shell`
-  member instead — a value and the call that opens it, `tray-icon`'s shape. CEF-OSR
-  stays the documented escape hatch, and is still the only engine that would have
-  made a box possible.
-## Layout
 ## Style, colour and motion
 - ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
   ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
@@ -661,49 +432,11 @@ on, which in four cases is the same thing.
   pointer is dragging, and nothing here is dragged. —
   [ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md),
   [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
-- ~~**Nothing in the catalog uses a margin yet.**~~ **It does**
-  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)):
-  `dialog-actions` writes the top margin §2 asked for instead of the
-  `padding-top` that stood in for it, and `tour-card`'s footer lost the `Spacer`
-  that pushed Skip away from Back and Next — `margin-right: auto`, pixel for
-  pixel the same picture. The showcase's notice bar likewise. **`spacer` is not
-  deprecated**: it is a §1 widget an application writes in markup, and a document
-  has no stylesheet of its own to put a margin in, so the showcase's status bar
-  keeps one on purpose with the notice bar beside it as the comparison.
-- **A dropped declaration is reported once, and `align-items: start` is why.** The
-  Panels screen filled the console while it scrolled: `start` is CSS's alias for
-  `flex-start` and Yoga has only the second, so the declaration was dropped —
-  correctly — and reported *per element per style resolution*, which on a moving
-  screen is sixty times a second. The typo is fixed and the report is now
-  deduplicated by property and value, because a stylesheet is static and a value
-  that is not one cannot become one on the next frame. **What changed since**: `start` and `end` are
-  taken now, because they are not aliases but **CSS** — Box Alignment Level 3
-  defines them and Yoga has only the `flex-` pair, so the toolkit had been
-  dropping a declaration the specification allows
-  ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
-  `right` are still refused, and for a reason rather than an omission: they are
-  not the same as `start`/`end` under RTL.
 - **A popup's transparent corners need a compositor**, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
   the platform leaves there. The fallback that always works — filling the frame
   with the panel's own colour, for square corners — is kept in reserve. —
   [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
-- **`Styled.restyle` is an escape hatch with three callers now, and the honest risk is what goes into it.**
-  What a widget writes there is unthemeable and unoverridable — right for a number
-  nobody else can compute, wrong for anything else. It has one caller in the toolkit and
-  one rule ("only what a stylesheet could not have written"); a second caller that is
-  *not* a count is the signal to look at it again.
-- **A segment's focus ring lands exactly on the bar's edge.** §2.2's ring is 2px at a
-  2px offset and the bar's inset is 2, so the two coincide — legible in
-  `segmented-focus.png`, and an accident of two numbers derived separately rather than a
-  thing anyone chose. If either moves, look at the image.
-- **A generated registry can fail at class-init time now, and only for private
-  members.** A `VarHandle` lookup that cannot find its field throws
-  `ExceptionInInitializerError` where a direct field reference would have thrown
-  `NoSuchFieldError` at link time — the same class of failure with a different
-  exception, and both are impossible within one compilation, which is how a registry and
-  its model are always built. Recorded because it is the one thing ADR-0098 moved later
-  rather than earlier.
 ## Rendering and performance
 - **Opening a long note still shapes all of it, on the frame that opens it.** A
   keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
@@ -727,24 +460,16 @@ on, which in four cases is the same thing.
   `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
   how a runner pressing against the limit would say so in numbers. —
   [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md)
-- **How damage is computed, and the bug a resize found in it.** Each render object
-  remembers where it was, and a node that changed damages the union of where it **was**
-  and where it **is** — both, because damaging only the new position leaves the old
-  drawing on screen. It reads the node's *own* changed flag rather than its subtree's,
-  or a parent whose child moved would report the whole window. **A resize broke it in
-  the field**: a remembered rectangle belongs to the previous frame, so the union fits
-  neither when a window is dragged a pixel narrower, and the backend refused the frame
-  mid-drag. Damage is now clamped on the way out rather than only where each rectangle
-  is computed — and the regression test resizes by **one pixel**, because that is what a
-  drag produces and a test that jumped by fifty would have passed against a fix that
-  only handled large changes. Every damage test had used a single frame size, which is
-  the natural thing to write and the one case that cannot fail. —
-  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
-  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
-- **The rounded corners and the transforms have only been rasterized on linux-x64.**
-  Blend2D JITs its pipelines per CPU, so the four cubics and the eleventh golden's
-  rotations and skews on AVX-512, on Apple Silicon's NEON path and under MSVC are
-  answered by the next CI run rather than by argument — which is what the golden images'
+
+  **Partly answered by CI, as it said it would be.** The golden suites run on
+  `windows-x64` under MSVC and on `macos-aarch64`'s NEON path
+  (`windows.yml`, `macos.yml`), and both are green. What is still unmeasured is
+  AVX-512, and the thresholds themselves were still set on one machine.
+- **The rounded corners and the transforms have not been rasterized on AVX-512.**
+  Blend2D JITs its pipelines per CPU. The goldens now run on Apple Silicon's NEON
+  path and under MSVC in CI, and they pass there; the four cubics and the eleventh
+  golden's rotations and skews on AVX-512 are still answered by a future run
+  rather than by argument — which is what the golden images'
   per-channel *and* area tolerance is for. The transform half also rests on `BLMatrix2D`
   being six consecutive doubles in the order `matrix(a, b, c, d, e, f)` writes them,
   which the layout probe now checks against the compiled library on every target because
@@ -768,11 +493,6 @@ on, which in four cases is the same thing.
   pixel at the end of a line, in exchange for wrapping that costs no shaping at all.
   Re-shaping only the final lines, and only for painting, is the fix if it ever shows. —
   [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
-- **`customPropertiesFor` still walks to the root**, re-running the whole cascade at
-  every ancestor, so it is *O(depth × rules)* where it could be *O(rules)*. The style
-  cache amortises it almost to nothing, but a first frame and every invalidated subtree
-  still pay it. Worth doing when a deep tree makes a first frame visible. —
-  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
 - **`Element.update` invalidates a subtree only when the cascade could see the
   change.** ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
   rebuilt widget throws away what is below it when `matchesDiffer` says its
@@ -799,9 +519,14 @@ on, which in four cases is the same thing.
   ([ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
   `Window.resize` and `--resize=WxH` walk a window's size from outside,
   `FrameSummary` prints what a run cost at exit, and `showcase.yml` paints 300
-  frames while resizing on each runner and fails over `--late-budget`. What is
-  missing now is a **run**: that workflow fires on a tag or by hand, there is no
-  tag, and the only recorded numbers are 60 frames headless on one machine. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
+  frames while resizing on each runner. **It asserts no budget, on any platform**
+  ([ADR-0452](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)): Xvfb
+  reports no refresh rate, so "late" on a runner counts missed ticks of a
+  software timer. The first run was made by hand and all three legs report what
+  they cost — `linux-x64` 302 frames and 75 late, `macos-aarch64` 300 and 200 —
+  which are the first numbers any leg has produced, and two samples locate a
+  ceiling no better than none. What is missing now is a **budget somebody
+  measured**, on a display somebody chose, and there is still no tag. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
   so what this can prove is that three platforms' *drivers* hold the budget, not
   that hardware does. —
   [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md),
@@ -820,6 +545,13 @@ on, which in four cases is the same thing.
   visibly worse. Confirmed on GNOME only — KDE, Sway and the rest are untried, and the
   driver is logged at start-up so a report can say which one it got. —
   [ADR-0027](adr/0027-prefer-wayland-fall-back-to-x11.md)
+
+  **The preference itself has since been reversed**
+  ([ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md)): on a Wayland session
+  Goldberry asks for `x11,wayland`, unconditionally, because under XWayland the
+  window manager decorates the window. So the one-compositor evidence is now
+  evidence for a path taken only with `-Dgoldberry.backend.videoDriver=wayland`
+  or where there is no XWayland.
 - **The macOS window opens, and the CI leg still would not have caught it.** `gradlew
   run` failed with "No available video device", which points at the superbuild and was
   not the superbuild: macOS drives AppKit from the process's first thread and the java
@@ -859,18 +591,6 @@ on, which in four cases is the same thing.
   two unreliable ways to ask for a headless run. Reproducing this deliberately costs the
   developer their session, so it is not something to iterate on casually. gnome-shell
   46.0-0ubuntu6~24.04.14, Ubuntu 24.04, under VirtualBox/vmwgfx.
-- **Both ways to run the showcase headlessly were broken, and one of them cost a desktop
-  session.** `goldberry.backend.videoDriver` existed and was *not* in `:example`'s
-  forwarded-property list, so `-Dgoldberry.backend.videoDriver=dummy` reached the Gradle
-  daemon and stopped there — the exact failure the comment beside that list already
-  described for `goldberry.log.level`. The obvious fallback, `SDL_VIDEODRIVER=dummy` in
-  the environment, does not work either: a `JavaExec` fork inherits the **daemon's**
-  environment rather than the one `gradlew` was invoked with, so it applies or does not
-  depending on how the daemon happened to be started — which reads as flaky rather than
-  as broken. A run intended to be headless therefore opened a real Wayland surface and
-  took GNOME Shell down with it. The property is now forwarded, and `./gradlew run
-  -Pgoldberry.backend.videoDriver=dummy` is the checked way to drive the showcase
-  without a compositor.
 - **The toolkit never shut SDL down, and a compositor died of it.**
   `Sdl3Backend.close()` destroys every window and calls `SDL_Quit`; nothing called it.
   `Goldberry.run()` returning does not shut the runtime down — its contract says so —
@@ -884,7 +604,599 @@ on, which in four cases is the same thing.
   change a documented contract. Seen once, on GNOME 46.0 under VirtualBox/vmwgfx, after
   SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
   [ADR-0022](adr/0022-window-is-the-front-door.md)
-- **What does the release container actually compile into its Wayland driver?** Two
+
+  **Narrowed since:** `Goldberry.launch()`, the documented front door
+  ([ADR-0093](adr/0093-an-application-is-a-root-widget.md)), owns the
+  runtime and calls `Goldberry.shutdown()` itself, so the showcase no longer has to.
+  The open question is now only about `run()`, whose contract still says
+  `shutdown()` is rarely needed, and so only about applications that assemble the
+  loop by hand.
+- **No CI leg exercises Wayland.** `showcase.yml` runs under
+  `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
+  is never reached — which is why two consecutive decoration bugs shipped without a
+  single red tick. A Wayland leg needs a headless compositor in CI (`weston
+  --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
+  is the only thing that draws decorations matching the desktop, and its one requirement
+  is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
+  creates and so fails it; a launcher whose own `main` calls `JNI_CreateJavaVM` and then
+  the Java `main` runs Java on the primordial thread, and the plugin loads there —
+  demonstrated with a throwaway C launcher against the real showcase. `jpackage` does
+  not help; it goes through the same `ContinueInNewThread`. Shipping one is a
+  distribution change (a native binary per platform, VM argument handling, and a story
+  for `./gradlew run` and `java -jar`), so it is recorded as the answer and not yet
+  taken. Two things bound how much to invest in it: upstream is building an
+  out-of-process GTK plugin (libdecor MR 176) that dissolves the thread restriction
+  entirely when it ships, and the ecosystem's own answer on GNOME/Wayland is that every
+  non-GTK toolkit — Qt, Firefox, Chromium — draws its own decorations in-process, which
+  is the `SdlWindowFlag.BORDERLESS` design Goldberry has reserved but not built. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- **A window on GNOME/Wayland needs two packages from two different phases.**
+  `libdecor-0-dev` at build time, or SDL compiles no libdecor support at all
+  ([ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)), and
+  `libdecor-0-plugin-1-cairo` at run time, because the GTK plugin that libdecor pulls in
+  by default refuses to start off the process's initial thread and a JVM is never on it
+  ([ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)). Installing
+  either alone leaves the window bare. Whether Goldberry should carry its own
+  decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
+  standing question behind both records. Since
+  [ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md) this bites only where
+  Wayland is forced or there is no XWayland.
+- **CI is green, and the fixes that made it so were written blind.** Nine causes on
+  Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
+  passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
+  Windows or macOS test before a push, so a platform-specific regression is caught by
+  the Snapshot rather than locally. The annotations make that cheap to read, not free.
+  — [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+
+  **And it has happened since, twice.** Windows went red and was fixed blind again
+  ([ADR-0450](adr/0450-the-webview2-runtime-ships-with-windows-its-headers-do-not.md),
+  [ADR-0454](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
+  Then Snapshot runs 32 and 33 were red on every OS in `:natives:gpuTest`, whose
+  teardowns called SDL after a missing library had skipped their setup. That fix
+  ([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)) passes
+  here and has not been through a CI run: `master` has not been pushed since.
+- **Two workflows are written and have not passed.** `media.yml` builds FFmpeg and
+  runs `:media:check` with FFmpeg and the platform decoders required on
+  `macos-aarch64` and `linux-x64`, with GStreamer's plugins on the Linux runner
+  (`docs/media-plan.md`, phases 1 and 5). The GPU lane in `linux.yml` runs
+  lavapipe under the `offscreen` driver on both Linux targets with a device
+  required, and asks the macOS runners without requiring them
+  (`docs/gpu-plan.md`, 2026-09-24). Which runners can host a GPU device at all is
+  still the open question in `gpu-plan.md`'s measurements table. Both are
+  answered by a push. —
+  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0480](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
+
+  **The GPU lane had run, twice, and is repaired —
+  [ADR-0503](adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md).**
+  "Never run" was this list's mistake: Snapshot runs 32 and 33 both stopped at
+  the lane's own ICD check, because Mesa names the file `lvp_icd.json` now. Run
+  here on lavapipe, the lane then found a real bug — a test destroying a GPU
+  device after `SDL_Quit`, the `VULKAN_DestroyDevice` segfault that had been put
+  down to this machine's NVIDIA driver — and a golden blessed on Metal that no
+  other driver draws to the pixel. All three are fixed, and the lane passes here
+  as CI runs it. `media.yml` has still never run.
+- **Media on Windows and on `linux-aarch64` is written and untested.** The
+  superbuild and the loader cover all four targets, and linux-x64 and
+  macos-aarch64 are the only two that have run. D3D11VA is on by default on
+  Windows and has no runner to prove it; VAAPI is off by default on Linux, on
+  purpose, because it makes `libavutil` link `libva`. —
+  [ADR-0486](adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
+  `docs/media-plan.md`
+## The native build and its bindings
+- **The layout registry's constant half is where the value is.** When this was
+  written it was seven struct layouts and 61 constant rows, 48 of them Yoga
+  enumerators; it is 66 struct layouts now, 27 of them `SDL_GPU`, with the
+  constants generated from the binding enums. The struct half has a known limit —
+  `YGSize` is identical on all six targets, so its row proves nothing the round trip in
+  [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md) does not — but the constant
+  half is where the value is: `YGAlignCenter` is 2 and `YGJustifyCenter` is 1, and a
+  Java constant that drifts from either produces a layout that is wrong on every
+  platform at once and never an error. —
+  [ADR-0010](adr/0010-hand-written-ffm-bindings.md),
+  [ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)
+## Build, artifacts and release
+- **A build with no network cannot produce a usable `goldberry-core`.** The bundled
+  fonts and icons are fetched from upstream releases and cached, so this bites once per
+  checkout rather than once per build — but a jar assembled without the asset step
+  contains a toolkit that cannot render text. The build already needed network for the
+  native superbuild, so no new constraint; it is written down because the failure is far
+  from its cause. —
+  [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
+- **A release has never run against Central.** ~~The publishing chain has never
+  run against Central.~~ Central's side is done — the namespace, snapshots enabled
+  for it, the token, the key and the secrets — and snapshots have gone out since
+  run 17 on 2026-09-19. What has never run is `release.yml` → `publish.yml` → a
+  Central Portal deployment, which waits on the first tag.
+  `docs/releasing.md` is the list. —
+  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
+- **The macOS and Windows native showcases are built from unreviewed traces.** The
+  checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
+  CI traces the other two headlessly before building, for 120 frames, and uses what it
+  saw. A screen that run never reaches can lack a registration and fail when opened.
+  Diffing the first CI traces against the checked-in file says whether per-platform
+  traces are needed at all; if they are, they belong in the repository beside the
+  Linux one. The `macos-14` runner's 3 cores are the likeliest place for the build to
+  be slow (2.27 GiB peak and 1 min 23 s on 8 Linux threads). —
+  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
+- **A stale Linux trace is found by a native build, not before it.** The foreign
+  calls no longer depend on the trace at all — every holder and every upcall owner is
+  registered from the bindings, and `ForeignSurfaceTest` holds the owner list to the
+  sources that call `upcallStub` (ADR-0339). What the trace still carries is
+  reflection and resources, and a screen the run never opened can still lack a
+  reflective registration; with the showcase built only on a tag or by hand
+  (ADR-0340), that is found later than it was, on the release build. —
+  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+- **An application still adds its platform's natives jar by hand.** The `goldberry`
+  umbrella cannot pick `goldberry-natives:<v>:linux-x64` for the consumer's platform —
+  a POM has no way to — so the BOM lines up its version and the classifier is the
+  application's. A Gradle plugin, or module-metadata variants keyed on OS and
+  architecture, would close it. —
+  [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
+
+  **Narrowed —
+  [ADR-0438](adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md).**
+  Half the proposed fix does not work, and it was measured rather than argued.
+  **Module-metadata variants keyed on OS and architecture cannot close this**:
+  a variant is chosen by matching the *consumer's* attributes, and a plain JVM
+  consumer declares no operating system — so it resolves the unattributed jar
+  silently, exactly as today but with more machinery behind it. A consumer
+  that *does* declare one then fails with an ambiguity, because a variant that
+  is missing an attribute is compatible with every value of it, so the
+  ordinary `runtimeElements` ties with the platform-specific one. The three
+  ways out of that tie are all the consumer's: attributing the shared bindings
+  jar (which is not platform-specific), deleting the unattributed variant
+  (which breaks every consumer that works today), or a disambiguation rule —
+  and those are registered on the **consumer's** schema, where a producer
+  cannot put one. So a Gradle plugin is the whole of the answer, which is what
+  JavaFX, LWJGL and sqlite-jdbc each ship. It is not built: it is a new
+  published artifact with its own release surface, on a release path that
+  has never run. **`:media` has the same problem since ADR-0495**: an application
+  picks `goldberry-media`'s `ffmpeg-<target>` classifier by hand too. What did change is the documented snippet — **all four
+  classifiers**, because `NativeLibrary` picks at run time and the
+  one-platform form is the one that fails quietly for somebody building on
+  macOS for Linux.
+- **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
+  three native images to the tag's draft release with `gh release`; the first `v*` tag
+  is its first run, and a manual dispatch exercises everything but that step. —
+  [ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
+- **A release refuses to publish `goldberry-media` with two of its four FFmpeg
+  builds missing.** `media.yml` builds `macos-aarch64` and `linux-x64`, so a
+  snapshot carries those two `ffmpeg-<target>` classifiers, and the release path
+  requires `windows-x64` and `linux-aarch64` as well. Both are written in the
+  superbuild and neither has been built. —
+  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)
+- **The LGPL corresponding-source offer for FFmpeg is not decided.** The licence
+  texts, `NOTICE` and `ffmpeg-NOTICE.txt` with the tag and configure line ship
+  with the natives jar, and relinking is `-Dgoldberry.media.libdir`. What
+  LGPL-2.1 §6 also asks of a binary distributor — the source itself, or a written
+  offer of it — is not settled, and it gates FFmpeg's first appearance on Central
+  in a release. —
+  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
+
+## On hold: the accessibility bridge
+
+**On hold —
+[ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+Every entry in this section waits on the AccessKit bridge, which is not being
+built and which no milestone owns. Each keeps its prose and its reasoning, which
+is still the right reasoning; where one says "M5", read "no milestone". What has
+changed is that the thing at the end of them is not coming on a schedule. The
+way back is a consumer asking, not a date.
+
+- **A toast is not announced, and the only thing still missing is the bridge.**
+  The widget half is finished: a toast answers [Live#POLITE] and [Role#STATUS] and
+  names itself with its own text, which is the claim §7's "live region" is and the
+  claim a role and a name cannot make. It matters here and nowhere else in the
+  catalog because every other widget is announced when something *happens to it* —
+  the focus lands, the pointer arrives — and a toast has no such event: nobody
+  focuses it, nobody has to click it, and it is gone in five seconds. So a reader
+  that speaks only what is reached would still have said nothing about it on the
+  day the bridge landed. What is left is M5's AccessKit bridge and no decision
+  from the catalog. —
+  [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
+  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+- **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
+  `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
+  written on it: a role nothing consumes is a value written for a bridge that does
+  not exist. The AccessKit bridge is where the words arrive. —
+  [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+- **Four widgets announce what they are and cannot say what they hold.**
+  Each has a specification sentence with two halves and only the first is built.
+  `code-input` is "a single textbox with the whole code as its value" —
+  `Role.TEXT_FIELD`, one Tab stop, boxes with no role at all. `calendar` is "grid
+  with each cell's full date as its name" — `Role.GRID`, cells that are parts.
+  `date-picker` is "combobox owning a grid, with the formatted date as its value
+  text" — `Role.COMBO_BOX`. `color-picker` is "combobox with the hex as its value
+  text", and it gets *half* of that one: its closed swatch is a `Role.BUTTON`
+  whose accessible **name** is the hex, which is as close as a name can come to a
+  value. The second half of all four needs the same thing and there is nowhere to
+  put it: `Semantics` is a role, a name and a liveness, with **no value channel
+  and no per-cell channel** for any widget. So this is the AccessKit bridge's
+  entry rather than any of theirs, and the four are named because they are the
+  controls whose specifications spent a sentence on what they would say. M5. —
+  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
+  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
+  [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
+- **A trail is not a landmark, and a crumb is not a link.** §6 gives
+  `breadcrumbs` "navigation landmark containing links, current page marked", and
+  `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
+  boundary with content in it and no better word" — and the crumbs answer
+  `Role.BUTTON`, which is true of what pressing one does and silent about what it
+  *is*. The third of the three, "current page marked", **is** built, through
+  `:checked` and the accessible name.
+  Filed rather than guessed at, for the reason the two entries below are: a role
+  nothing can consume is a constant written for a bridge that does not exist, and
+  adding `LINK` and a landmark now would make this gap look closed. M5. —
+  [ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)
+- **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
+  answers `Role.SLIDER`, which is true as far as it goes — a control whose value
+  you move continuously — and says nothing about the second axis. `GROUP` is "a
+  boundary with content in it" and a plane has none; `GRID` promises cells
+  addressed by row and column, which is the one thing a continuous plane is not.
+  Filed rather than guessed at: the answer is probably a role *and* a second value
+  channel, and the shape of that depends on the AccessKit bridge nothing has
+  built. M5. —
+  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
+
+## Answered
+
+Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
+out of it is usually worth more than the fact that it is fixed.
+
+- ~~**`Styled.restyle` is an escape hatch with nine overrides now, and the honest risk is what goes into it.**~~
+  What a widget writes there is unthemeable and unoverridable — right for a number
+  nobody else can compute, wrong for anything else. It has one rule ("only what a
+  stylesheet could not have written"), and the count it was written for has
+  outgrown the sentence that watched it: `ColorSwatch`, `SegmentedDivider`,
+  `SegmentedIndicator`, `TabIndicator`, `Tab`, `ScrollContent`, `ScrollThumb`,
+  `ScrollViewport` and `AffixContent` (counted 2026-09-30). The signal this entry
+  set — a caller that is *not* a count — has not been read against those nine.
+
+  **Closed —
+  [ADR-0499](adr/0499-every-way-through-restyle-is-listed-with-its-reason.md).**
+  Read against the rule, seven of the nine write a number no stylesheet could
+  have: from a count, the application's data, a measurement, input, or a sum §8
+  has no `calc()` for. Two wrote something a stylesheet could have.
+  `SegmentedDivider`'s `opacity: 0` is the `beside-selection` class and a rule in
+  `controls.css` now, and `ScrollContent`'s `flex-shrink: 0` was a pin against the
+  stylesheet and is set in `render`. No picture changed. `RestyleSweepTest` holds
+  every override to a list with its reason, so a tenth fails until somebody
+  writes down why a stylesheet could not have written it.
+- ~~**Nothing paints a tray icon for you, and nothing swaps it on a theme switch.**~~
+  The mechanism is there — `TrayIcon.icon(pixels)` and `BackendTray.icon` — and
+  §9's "theme-aware light/dark variants" is an application's two `PixelBuffer`s
+  and a `Window.onSystemThemeChanged` handler it has to write, which rebuilds the
+  tray with the other one. The toolkit ships no default mark of
+  its own, so a tray with no icon is whatever the desktop draws for an
+  application that supplied none.
+
+  **Closed —
+  [ADR-0501](adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md).**
+  `TrayIcon.icons(forLightShell, forDarkShell)` carries §9's two variants, each
+  named for the panel it sits on rather than for its ink, and `Trays.show` swaps
+  the icon in place through `BackendTray.icon` on every theme change, leaving the
+  menu alone; `forLightShell` where the desktop says nothing, as CSS reads no
+  preference. Reality differed in two places. The swap could not be built without
+  a leak: `Host.onSystemThemeChanged` returned nothing, and a tray is closed and
+  shown again whenever its menu changes, so it returns a `Subscription` now, which
+  the tray's handle closes. And the setting SDL reports is the desktop's
+  *application* theme, not the panel's shade — GNOME's top bar is dark either way
+  — so a pair follows the best signal there is rather than the truth. The other
+  half stands on purpose: no default mark ships, because a tray icon names the
+  application and Goldberry's on every one that forgot would misname them all.
+- ~~**`customPropertiesFor` still walks to the root**~~, re-running the whole cascade at
+  every ancestor, so it is *O(depth × rules)* where it could be *O(rules)*. The style
+  cache amortises it almost to nothing — each level is cached against its parent
+  map's identity (ADR-0152), so an ancestor's cascade reruns only on a miss — but a
+  first frame and every invalidated subtree still pay it. Worth doing when a deep tree makes a first frame visible. —
+  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
+
+  **Closed —
+  [ADR-0502](adr/0502-a-node-copies-custom-properties-only-when-it-changes-one.md),
+  and the entry had the cause wrong.** Measured with `DeepTreeStyleBenchmark` at
+  depths 51, 101 and 201 against the catalog's sheets: the walk never re-ran an
+  ancestor's cascade, because ADR-0152's cache and the renderer's top-down order
+  make every ancestor a hit, and it cost 0.5–1.5% of a first frame. What cost was
+  the line after the cache check — each node copying the root's ~180 inherited
+  custom properties into a fresh map and comparing it back, to find that it
+  declared none: 48–63% of a first frame's style resolution. A node now copies
+  only when one of its own `--*` winners differs from what it inherits. First-frame
+  resolution is 1337 → 505 µs at depth 51 and 7796 → 4098 µs at 201, with identical
+  results, which `CustomPropertiesCacheTest` checks against an uncached walk. The
+  term that still grows with depth is descendant-combinator matching, recorded in
+  the ADR and not scheduled.
+- ~~**A `tour` cannot find the viewport its target is in — read against the code,
+  and it stands.**~~ §5 asks it to scroll a target into view, and `Stop` takes a
+  `ScrollController` the application supplies. Discovering it means walking from
+  an element to its nearest scrolling ancestor. `BuildContext.findAncestorState`
+  looks like the answer and is not: it walks up from the element being **built**,
+  and what a tour needs is a walk up from the **target it names** — a different
+  question, and one the tree offers no way to ask. ADR-0120 avoided the same wall
+  by turning the question around; here there is nothing to turn around, because
+  the tour is not the thing being revealed. —
+  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+
+  **Closed —
+  [ADR-0439](adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md).**
+  Both premises are true and the conclusion is false, which is why re-reading it
+  twice did not catch it. `Element` **implements** `BuildContext`, so
+  `findAncestorState` walks up from whatever element it is called on rather than
+  from the one being built; and `Host.anchor(id)` already returns a region whose
+  `owner()` is that element — the tour was calling it on every build for the
+  rectangle and discarding the owner. `ScrollScope.enclosing(target)` is the
+  walk. ADR-0120 had written down that `findAncestorState` "stays, because it is
+  how an application-level `scrollIntoView` from *inside* a scroll view reaches
+  the viewport", which is this call, kept for it, three hundred decisions
+  earlier. `Stop.within(controller)` survives for the application that means an
+  **outer** viewport, since the walk finds the innermost.
+- ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
+  and `currentColor`.~~ **It is now**
+  ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
+  and this entry closed the case on the wrong evidence. It was right that
+  `tab-new` stopped wanting one — what that widget reached for was a way to sit
+  somewhere other than the top of its row, which `align-self` answers
+  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — and wrong to conclude
+  from it that the property had no consumer, because `align-self` is the **cross**
+  axis. On the main axis a box that wants to centre itself, or to sit at the far
+  end of a row its container is not arranging for it, had no spelling at all:
+  `justify-content` is the container's decision about every child at once, and a
+  `flex-grow: 1` spacer is a box in the tree that draws nothing. `margin: 0 auto`
+  and `margin-left: auto` are what those are, and Yoga's binding has had the
+  `auto` call since ADR-0029.
+
+  The entry's other half stands and is worth keeping: three properties a widget
+  reached for and did not find, all silently ignored, and the subset is right to
+  be small. ~~and nothing warns when a
+  declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
+  `border-bottom` was written a fourth time, in `table-head`, and drew nothing
+  ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
+  `SupportedPropertyTest` resolves every rule the catalog and the showcase ship
+  through the real cascade and fails on anything reported as unsupported — so a
+  dead declaration is one failure with the property in it rather than a debug
+  line among thousands. **And on anything reported as a bad *value*, since
+  ADR-0216**: `border-radius: 7px 7px 0 0` and `background: none` were two more
+  rules doing nothing, with the property spelled right and the value refused.
+  **An application's stylesheet is still on its own**, deliberately: naming
+  `backdrop-filter` before it exists must not stop a window opening. (That
+  sentence said `box-shadow` until ADR-0310 built it; `backdrop-filter` and
+  `letter-spacing` are what is left of §8's unimplemented list.) —
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+- ~~**The catalog's specified surface roughly tripled, and most of it is built now.**~~
+  `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
+  `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,
+  `code-input`, autocomplete on both `text-input` and `select`, tree-select, `collapse`,
+  `carousel`, `statistic`, `skeleton`, `breadcrumbs`, `steps`, `wizard`, `message`,
+  `tour`, `tree`, `calendar`, `timeline`, and `button`'s `outlined` / `square` /
+  `circle` / `float` options — each with a `design-system.md` §3 metrics row and, where
+  it moves, a §3.1 row. §5 requires a spec **and** a metrics row **and** gallery
+  coverage before code, in that order: they had passed two gates of three, and the
+  third is what "built" means.
+
+  **This entry said "none of it is built", then "one of them is built now", then
+  "four widgets and four options are left" — and now none are.** The last four
+  went in on 2026-09-17: `link`
+  ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
+  `steps` and `wizard`
+  ([ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)),
+  `timeline` ([ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
+  and `button`'s `outlined` / `square` / `circle` / `float`
+  ([ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
+  What each left behind is its own entry under *The catalog* below.
+
+  Everything else on it went in: `segmented` first, then `affix`, the three
+  pickers, `code-input`, autocomplete on both controls, tree-select, `collapse`,
+  `carousel`, `statistic`, `skeleton`, `message`, `tour`, `tree`, `calendar`, and
+  `breadcrumbs` last.
+
+  **The way `segmented` went is still the argument for writing them down first**,
+  read from the other end: two of its five specified metrics and both of its
+  specified transitions turned out to be undrawable in §8's subset, and that was
+  found by implementing it rather than by writing it. The point of writing them
+  down first is that the arguments are cheap then and expensive later — `message`
+  against `toast`, `segmented` against `radio-group`, `code-input` against a
+  styled `text-input` are all decisions that would otherwise have been made by
+  whoever happened to need one, and none of them was.
+- ~~**`tree` moved from deferred to specified, and `table` has since followed it**~~, which changes what M5 owes. ARCHITECTURE
+  §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
+  `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
+  needs it, so the two arrived together.
+
+  **Answered — both are built.** `table` stopped waiting on virtualization when
+  virtualization arrived: it is a list with columns
+  ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)), and
+  `docs/ARCHITECTURE.md` §17 lists both as built. Nothing is left of M5's debt
+  here.
+- ~~**A toggle's thumb does not follow the pointer during the drag — and the design system
+  says it should not.**~~ Left open as a defect after ADR-0075 and closed by reading
+  rather than by building: §1.7's first principle names the controls that track 1:1 —
+  "drags (**slider, knob, fader, splitter, scroll**) track the pointer 1:1" — and
+  `toggle` is not among them, while §3.1's `toggle` row asks for the opposite, "thumb
+  `translate` **base**". A switch here is a control with two positions that animates
+  between them, and tracking the finger would be a third behaviour neither document asks
+  for. It would also cost the mechanism the entry named: transient per-element state for
+  a value that is neither the model's nor the stylesheet's, which nothing else in the
+  catalog wants. Reopened only if the design system changes its mind, in writing. —
+  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md), `docs/design-system.md`
+  §1.7, §3.1
+- ~~**The toggle does not shrink with a compact density**~~, and that is
+  **answered rather than open** (`docs/widgets-finishing.md`, ADR-0356): §3's row
+  carries no compact value for `toggle` where the rows that shrink carry one, so
+  the pill staying 36×20 inside a 28-tall row is the specification rather than a
+  gap. Kept here because the *screenshots* are what would say whether §1.3 meant
+  it. Read off §3 rather than decided: the rows with a compact value carry it in parentheses and the `toggle` row
+  does not, so the pill stays 36×20 while the row around it takes `--gb-toggle-height`.
+  Whether a 28-tall row holding a 20-tall pill is what §1.3 intends is a question for
+  whoever writes the compact screenshots. —
+  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md),
+  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+- ~~**No file lists.**~~ `text/uri-list` is bytes like anything else and works today,
+  but nothing turns those bytes into paths. **Drag-and-drop is a different
+  platform mechanism and is built now**: `Window.onFileDrop` delivers one
+  `FileDrop` per gesture, with the paths and the point they landed on
+  ([ADR-0330](adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
+  unbound there is `SDL_EVENT_DROP_TEXT` — the same shape, and nothing has asked
+  for it.
+
+  **`SDL_EVENT_DROP_TEXT` closed —
+  [ADR-0408](adr/0408-a-dropped-line-of-text-is-a-dropped-file-in-every-way-but-one.md).**
+  "The same shape" turns out to be literal rather than loose: SDL tokenises
+  dropped text on `\r\n` and raises one event **per line**, then one shared
+  `DROP_COMPLETE` for both kinds — so `TextDrop` carries a list of lines, and
+  a test exists specifically to stop the shared completion turning a file drop
+  into a text drop. What had blocked it was diagnosed here and is worth
+  keeping: the blocker is a missing **constant**, not a missing symbol, so
+  adding the enum value fails the *layout probe* rather than the link, and the
+  bill is a shim row and an ABI bump on four platforms. ADR-0422 was bumping
+  the ABI anyway, so the bill was already paid.
+
+  **The other half closed too —
+  [ADR-0406](adr/0406-a-uri-list-is-a-list-of-names.md).** "Nothing turns those
+  bytes into paths" stopped being true on 2026-09-19: `UriList` reads
+  `text/uri-list` into names, and the entry was never told. Found by the
+  2026-09-30 sweep.
+- ~~**`goldberry-media` breaks the one-library assumption.**~~ LGPL relinkability
+  means libVLC stays a separate shared object with its plugin tree beside it, and
+  every packaging rule in `:natives` — one static library, hidden visibility, one
+  export list — assumes the opposite. It also needs a codec/patent note written
+  before it gets code, which `content-widgets.md` §8 says and this list repeats
+  because it is a gate rather than a caveat.
+
+  **Answered — libVLC is gone, and both halves went another way.** `:media`
+  drives FFmpeg from Java
+  ([ADR-0460](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)) and binds
+  its own libraries outside `:natives`
+  ([ADR-0461](adr/0461-a-media-engine-binds-its-own-libraries.md)), so the
+  one-library rule is untouched and there is no plugin tree. FFmpeg ships as
+  shared objects under sonames of its own
+  ([ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)) in
+  `ffmpeg-<target>` classifier jars, and `-Dgoldberry.media.libdir` is the
+  relinking path
+  ([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)). The
+  codec note was written before the code: royalty-free codecs only, with the
+  `Decoder` SPI for the patented ones (`docs/goldberry-media.md`). What is still
+  open about shipping it is under *Build, artifacts and release*.
+- ~~**Text selection in `html-view` is deferred**~~, and it is the same
+  character-quad work as text-editing depth (`ARCHITECTURE.md` §17) and as
+  `pdf-view`'s selection.
+  Three widgets waiting on one mechanism is an argument for building it once, in
+  core, rather than in whichever module lands first.
+
+  **Answered —
+  [ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md).** Both
+  views select, copy and highlight, through geometry the frame already had rather
+  than character quads. The `goldberry-html` entry above has said so since
+  2026-09-13; this one was never struck. `pdf-view` is still unbuilt.
+- ~~**`goldberry-web` is parked, not deferred.**~~ **Built, and not as a module**
+  ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). Every word of the
+  entry was true about Servo and none of it was about the question: libservo is
+  Rust-only against a deliberately unstable API, so the module would indeed own a
+  `cdylib` shim and its breakage — and nobody asked whether a page needed an
+  engine of this project's at all. `webview/webview` is MIT, is one header, and
+  **brings no engine**: it drives the WebKitGTK, WebView2 or WKWebView the desktop
+  already has, so neither condition that quarantines a content module applies.
+  **This is the fifth entry in this run of work that was wrong about itself**, and
+  it is the most expensive kind for the second time: "parked" reads like an answer
+  and stopped anybody re-reading it for two milestones.
+
+  What it is *not* is a widget. `webview/webview` cannot render offscreen, so a
+  page is always a platform window; and a Wayland session allows neither
+  reparenting a foreign surface nor placing a window where a widget is, so a
+  `web-view` in a layout would be a box on X11, Windows and macOS and a loose
+  window on the default Linux desktop. It ships as §9's second `widget.shell`
+  member instead — a value and the call that opens it, `tray-icon`'s shape. CEF-OSR
+  stays the documented escape hatch, and is still the only engine that would have
+  made a box possible.
+
+  **That paragraph was overtaken the next day**
+  ([ADR-0442](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+  `web-view` **is** a widget wherever the window system allows a child window: on
+  X11 the page is reparented into the toolkit's window and is never the window
+  manager's ([ADR-0446](adr/0446-an-embedded-page-is-never-the-window-managers.md)),
+  and the window stays on the GPU
+  ([ADR-0491](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). On
+  macOS it is a subview
+  ([ADR-0458](adr/0458-a-page-on-macos-is-a-view-not-a-window.md)). On Windows
+  `SetParent` is written and unverified. On Wayland it opens nothing and paints
+  why, rather than a loose window. `WebViews.open` stays as the separate-window
+  form.
+- ~~**Nothing in the catalog uses a margin yet.**~~ **It does**
+  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)):
+  `dialog-actions` writes the top margin §2 asked for instead of the
+  `padding-top` that stood in for it, and `tour-card`'s footer lost the `Spacer`
+  that pushed Skip away from Back and Next — `margin-right: auto`, pixel for
+  pixel the same picture. The showcase's notice bar likewise. **`spacer` is not
+  deprecated**: it is a §1 widget an application writes in markup, and a document
+  has no stylesheet of its own to put a margin in, so the showcase's status bar
+  keeps one on purpose with the notice bar beside it as the comparison.
+- ~~**A dropped declaration is reported once, and `align-items: start` is why.**~~ The
+  Panels screen filled the console while it scrolled: `start` is CSS's alias for
+  `flex-start` and Yoga has only the second, so the declaration was dropped —
+  correctly — and reported *per element per style resolution*, which on a moving
+  screen is sixty times a second. The typo is fixed and the report is now
+  deduplicated by property and value, because a stylesheet is static and a value
+  that is not one cannot become one on the next frame. **What changed since**: `start` and `end` are
+  taken now, because they are not aliases but **CSS** — Box Alignment Level 3
+  defines them and Yoga has only the `flex-` pair, so the toolkit had been
+  dropping a declaration the specification allows
+  ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
+  `right` are still refused, and for a reason rather than an omission: they are
+  not the same as `start`/`end` under RTL.
+- ~~**A segment's focus ring lands exactly on the bar's edge.**~~ §2.2's ring is 2px at a
+  2px offset and the bar's inset is 2, so the two coincide — legible in
+  `segmented-focus.png`, and an accident of two numbers derived separately rather than a
+  thing anyone chose. If either moves, look at the image.
+
+  **Answered —
+  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md).** One of them
+  moved: the bar's inset is 1px now, and the ring sits off its edge. Answered on
+  2026-08-30 and found still open by the 2026-09-30 sweep.
+- ~~**A generated registry can fail at class-init time now, and only for private
+  members.**~~ A `VarHandle` lookup that cannot find its field throws
+  `ExceptionInInitializerError` where a direct field reference would have thrown
+  `NoSuchFieldError` at link time — the same class of failure with a different
+  exception, and both are impossible within one compilation, which is how a registry and
+  its model are always built. Recorded because it is the one thing ADR-0098 moved later
+  rather than earlier.
+
+  **Answered —
+  [ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md).** There is no
+  generated registry any more: the weaver rewrites the model's bytecode, and
+  `weaver/src/main` holds no `VarHandle`. ADR-0125 superseded both ADR-0096 and
+  ADR-0098, and this entry outlived them.
+- ~~**How damage is computed, and the bug a resize found in it.**~~ Each render object
+  remembers where it was, and a node that changed damages the union of where it **was**
+  and where it **is** — both, because damaging only the new position leaves the old
+  drawing on screen. It reads the node's *own* changed flag rather than its subtree's,
+  or a parent whose child moved would report the whole window. **A resize broke it in
+  the field**: a remembered rectangle belongs to the previous frame, so the union fits
+  neither when a window is dragged a pixel narrower, and the backend refused the frame
+  mid-drag. Damage is now clamped on the way out rather than only where each rectangle
+  is computed — and the regression test resizes by **one pixel**, because that is what a
+  drag produces and a test that jumped by fifty would have passed against a fix that
+  only handled large changes. Every damage test had used a single frame size, which is
+  the natural thing to write and the one case that cannot fail. —
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
+- ~~**Both ways to run the showcase headlessly were broken, and one of them cost a desktop
+  session.**~~ `goldberry.backend.videoDriver` existed and was *not* in `:example`'s
+  forwarded-property list, so `-Dgoldberry.backend.videoDriver=dummy` reached the Gradle
+  daemon and stopped there — the exact failure the comment beside that list already
+  described for `goldberry.log.level`. The obvious fallback, `SDL_VIDEODRIVER=dummy` in
+  the environment, does not work either: a `JavaExec` fork inherits the **daemon's**
+  environment rather than the one `gradlew` was invoked with, so it applies or does not
+  depending on how the daemon happened to be started — which reads as flaky rather than
+  as broken. A run intended to be headless therefore opened a real Wayland surface and
+  took GNOME Shell down with it. The property is now forwarded, and `./gradlew run
+  -Pgoldberry.backend.videoDriver=dummy` is the checked way to drive the showcase
+  without a compositor.
+- ~~**What does the release container actually compile into its Wayland driver?**~~ Two
   dependencies decide it and `linux.yml` installs neither. `egl` is one of the five
   specs in SDL's single `CheckWayland` `pkg_check_modules` — lose any one and the entire
   Wayland driver is dropped *silently*, and the container has no `mesa-libEGL-devel`.
@@ -930,53 +1242,7 @@ on, which in four cases is the same thing.
   sounds: it is libdecor at build time and says nothing about ADR-0084's
   plugin, because a bit that was set on the exact machine where the bug is
   would be the worst possible value.
-- **No CI leg exercises Wayland.** `showcase.yml` runs under
-  `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
-  is never reached — which is why two consecutive decoration bugs shipped without a
-  single red tick. A Wayland leg needs a headless compositor in CI (`weston
-  --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
-- **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
-  is the only thing that draws decorations matching the desktop, and its one requirement
-  is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
-  creates and so fails it; a launcher whose own `main` calls `JNI_CreateJavaVM` and then
-  the Java `main` runs Java on the primordial thread, and the plugin loads there —
-  demonstrated with a throwaway C launcher against the real showcase. `jpackage` does
-  not help; it goes through the same `ContinueInNewThread`. Shipping one is a
-  distribution change (a native binary per platform, VM argument handling, and a story
-  for `./gradlew run` and `java -jar`), so it is recorded as the answer and not yet
-  taken. Two things bound how much to invest in it: upstream is building an
-  out-of-process GTK plugin (libdecor MR 176) that dissolves the thread restriction
-  entirely when it ships, and the ecosystem's own answer on GNOME/Wayland is that every
-  non-GTK toolkit — Qt, Firefox, Chromium — draws its own decorations in-process, which
-  is the `SdlWindowFlag.BORDERLESS` design Goldberry has reserved but not built. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
-- **A window on GNOME/Wayland needs two packages from two different phases.**
-  `libdecor-0-dev` at build time, or SDL compiles no libdecor support at all
-  ([ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)), and
-  `libdecor-0-plugin-1-cairo` at run time, because the GTK plugin that libdecor pulls in
-  by default refuses to start off the process's initial thread and a JVM is never on it
-  ([ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)). Installing
-  either alone leaves the window bare. Whether Goldberry should carry its own
-  decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
-  standing question behind both records.
-- **CI is green, and the fixes that made it so were written blind.** Nine causes on
-  Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
-  passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
-  Windows or macOS test before a push, so a platform-specific regression is caught by
-  the Snapshot rather than locally. The annotations make that cheap to read, not free.
-  — [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
-## The native build and its bindings
-- **The layout registry is now mostly constants, not layouts.** Seven struct layouts and
-  61 constant rows, 48 of them Yoga enumerators. The struct half has a known limit —
-  `YGSize` is identical on all six targets, so its row proves nothing the round trip in
-  [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md) does not — but the constant
-  half is where the value is: `YGAlignCenter` is 2 and `YGJustifyCenter` is 1, and a
-  Java constant that drifts from either produces a layout that is wrong on every
-  platform at once and never an error. —
-  [ADR-0010](adr/0010-hand-written-ffm-bindings.md),
-  [ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)
-- **The export machinery has now caught the same class of bug three times.**
+- ~~**The export machinery has now caught the same class of bug three times.**~~
   `--exclude-libs,ALL` forced static-archive symbols local, so `SDL_Init` linked in
   without being exported; removing the flag fixed it, because a version script cannot
   promote a symbol already marked hidden. Blend2D then hit the identical wall from the
@@ -993,76 +1259,12 @@ on, which in four cases is the same thing.
   *same* dependency on visibility that this fix addresses. —
   [ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md),
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-## Build, artifacts and release
-- **A build with no network cannot produce a usable `goldberry-core`.** The bundled
-  fonts and icons are fetched from upstream releases and cached, so this bites once per
-  checkout rather than once per build — but a jar assembled without the asset step
-  contains a toolkit that cannot render text. The build already needed network for the
-  native superbuild, so no new constraint; it is written down because the failure is far
-  from its cause. —
-  [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
-- **The publishing chain has never run against Central.** Everything up to the upload
-  is built and was rehearsed locally with stand-in libraries; what cannot be done from
-  the repository is Central's side — the `io.github.digitalsmile` namespace, **snapshots
-  enabled for it** (off by default), a user token, a GPG key on a keyserver, and the
-  four secrets. Until then every snapshot run rehearses into `mavenLocal` and says so.
-  `docs/releasing.md` is the list. —
-  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
-- **The macOS and Windows native showcases are built from unreviewed traces.** The
-  checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
-  CI traces the other two headlessly before building, for 120 frames, and uses what it
-  saw. A screen that run never reaches can lack a registration and fail when opened.
-  Diffing the first CI traces against the checked-in file says whether per-platform
-  traces are needed at all; if they are, they belong in the repository beside the
-  Linux one. The `macos-14` runner's 3 cores are the likeliest place for the build to
-  be slow (2.27 GiB peak and 1 min 23 s on 8 Linux threads). —
-  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
-- **A stale Linux trace is found by a native build, not before it.** The foreign
-  calls no longer depend on the trace at all — every holder and every upcall owner is
-  registered from the bindings, and `ForeignSurfaceTest` holds the owner list to the
-  sources that call `upcallStub` (ADR-0339). What the trace still carries is
-  reflection and resources, and a screen the run never opened can still lack a
-  reflective registration; with the showcase built only on a tag or by hand
-  (ADR-0340), that is found later than it was, on the release build. —
-  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
-- **An application still adds its platform's natives jar by hand.** The `goldberry`
-  umbrella cannot pick `goldberry-natives:<v>:linux-x64` for the consumer's platform —
-  a POM has no way to — so the BOM lines up its version and the classifier is the
-  application's. A Gradle plugin, or module-metadata variants keyed on OS and
-  architecture, would close it. —
-  [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
 
-  **Narrowed —
-  [ADR-0438](adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md).**
-  Half the proposed fix does not work, and it was measured rather than argued.
-  **Module-metadata variants keyed on OS and architecture cannot close this**:
-  a variant is chosen by matching the *consumer's* attributes, and a plain JVM
-  consumer declares no operating system — so it resolves the unattributed jar
-  silently, exactly as today but with more machinery behind it. A consumer
-  that *does* declare one then fails with an ambiguity, because a variant that
-  is missing an attribute is compatible with every value of it, so the
-  ordinary `runtimeElements` ties with the platform-specific one. The three
-  ways out of that tie are all the consumer's: attributing the shared bindings
-  jar (which is not platform-specific), deleting the unattributed variant
-  (which breaks every consumer that works today), or a disambiguation rule —
-  and those are registered on the **consumer's** schema, where a producer
-  cannot put one. So a Gradle plugin is the whole of the answer, which is what
-  JavaFX, LWJGL and sqlite-jdbc each ship. It is not built: it is a new
-  published artifact with its own release surface, on a publishing chain that
-  has never run. What did change is the documented snippet — **all four
-  classifiers**, because `NativeLibrary` picks at run time and the
-  one-platform form is the one that fails quietly for somebody building on
-  macOS for Linux.
-- **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
-  three native images to the tag's draft release with `gh release`; the first `v*` tag
-  is its first run, and a manual dispatch exercises everything but that step. —
-  [ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
-
-## Answered
-
-Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
-out of it is usually worth more than the fact that it is fixed.
-
+  **Answered by CI, as it said it would be.** The Mach-O branch linked and passed
+  on `macos-14` ([ADR-0338](adr/0338-a-red-run-says-why-in-public.md)), and
+  Windows is green on both generators, with the force-link list moved into a file
+  like every other platform's
+  ([ADR-0454](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
 - ~~**Only a `popover` follows a scrolling anchor; a `menu` and a `select` hold the
   rectangle they opened against.**~~ Following is a property of having been opened
   **by id**, which is `Popover`'s documented shape and the one the entry that

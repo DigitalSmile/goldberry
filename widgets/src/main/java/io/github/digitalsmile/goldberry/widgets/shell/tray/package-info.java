@@ -6,7 +6,9 @@
 /// [io.github.digitalsmile.goldberry.widgets.shell.tray.TrayIcon] is a value carrying
 /// the same [io.github.digitalsmile.goldberry.widgets.menu.Menu] a `menubar` holds,
 /// and [io.github.digitalsmile.goldberry.widgets.shell.tray.Trays] is the call that
-/// shows it, reporting absence where the platform has no tray.
+/// shows it, reporting absence where the platform has no tray. A tray given a
+/// picture for each shade of shell keeps the one for the desktop's setting up,
+/// through a handle that stops listening when it closes (ADR-0501).
 ///
 /// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
 @NullMarked

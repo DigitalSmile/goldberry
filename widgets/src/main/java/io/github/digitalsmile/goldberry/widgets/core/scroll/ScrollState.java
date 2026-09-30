@@ -378,6 +378,21 @@ final class ScrollState extends State<Scroll> {
         notifyController();
     }
 
+    /// Moves by `dx`, `dy` now, the way the wheel does — [ScrollScope#nudge].
+    ///
+    /// The viewport's own clamp, and only along its axis: a step asked of the other
+    /// one is dropped rather than applied to an offset the content cannot show.
+    boolean nudge(double dx, double dy) {
+        var axis = widget().axis();
+        var x = axis.isHorizontal() ? clamp(offsetX + dx, viewport.overflowX(content)) : offsetX;
+        var y = axis.isVertical() ? clamp(offsetY + dy, viewport.overflowY(content)) : offsetY;
+        if (x == offsetX && y == offsetY) {
+            return false;
+        }
+        moveTo(x, y);
+        return true;
+    }
+
     /// Which way this viewport moves — [State#widget()] is `protected`, so a
     /// [ScrollScope] beside it in this package cannot read the widget itself.
     ScrollAxis axis() {

@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -77,8 +78,20 @@ public interface Styled extends Widget {
     /// anything it sets is unthemeable and unoverridable — which is right for a
     /// number nobody else can compute and wrong for everything else. The rule
     /// that keeps it honest: a widget may write here only what a stylesheet
-    /// could not have written, and the toolkit's own use is exactly two values,
-    /// both of them derived from a count no selector can express.
+    /// could not have written.
+    ///
+    /// In the toolkit that has meant five kinds of number, and nothing else: one
+    /// derived from a **count** (the fifth of five segments), the application's
+    /// own **data** (a swatch's colour, a tab's), a **measurement** (a thumb's
+    /// length, an underline's journey), **input** (a scroll offset, a drag), and
+    /// **arithmetic** over the cascade's own values that §8 has no `calc()` for
+    /// (a padding plus a gutter). A fact a selector could match on is not one of
+    /// them — it is a class, and
+    /// the stylesheet decides what it means. Nor is a property a widget must pin
+    /// against the stylesheet: that is `render`'s, after the style is applied,
+    /// because a pin is not a number a stylesheet could not have written. The
+    /// catalog's overrides are held to a list with a reason each, in `:widgets`'
+    /// `RestyleSweepTest`, so that the next one is added on purpose (ADR-0499).
     ///
     /// The style is also what this node's children inherit, so a widget that
     /// changed `color` here would change theirs. That is CSS's rule for an
@@ -86,8 +99,7 @@ public interface Styled extends Widget {
     /// patch: the node has one style, and this is it.
     ///
     /// @param resolved what the cascade produced for this node
-    default io.github.digitalsmile.goldberry.css.ComputedStyle restyle(
-            io.github.digitalsmile.goldberry.css.ComputedStyle resolved) {
+    default ComputedStyle restyle(ComputedStyle resolved) {
         return resolved;
     }
 
@@ -112,8 +124,8 @@ public interface Styled extends Widget {
     /// a value that is genuinely a property of the loop.
     ///
     /// @param frames what the loop has been doing, never null
-    default java.util.Set<String> classes(FrameStats frames) {
-        return java.util.Set.of();
+    default Set<String> classes(FrameStats frames) {
+        return Set.of();
     }
 
     /// Whether this node has pinned itself, for `:affixed`.

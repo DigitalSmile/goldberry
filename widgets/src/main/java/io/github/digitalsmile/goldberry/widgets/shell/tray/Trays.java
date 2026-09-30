@@ -53,12 +53,24 @@ public final class Trays {
 
     /// Shows `tray` on the desktop, if there is one.
     ///
+    /// A tray described with [TrayIcon#icons] starts on the picture for what the
+    /// desktop says now and **follows the setting** from then on: each change
+    /// swaps the icon in place, through [BackendTray#icon], and leaves the menu
+    /// alone. The handle that comes back owns that listening — closing it stops
+    /// it, and so does handing it an icon of the caller's own, which is the
+    /// caller taking the picture over. A tray with one picture, or none, is shown
+    /// exactly as described and listens to nothing.
+    ///
     /// @return the handle that takes it down, or empty when this session has no
     ///         notification area — see [Host#tray]
     public static Optional<BackendTray> show(Host host, TrayIcon tray) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(tray, "tray");
-        return host.tray(tray.spec());
+        var shown = host.tray(tray.spec(host.systemTheme()));
+        if (tray.picture() instanceof TrayIcon.ThemePair pair) {
+            return shown.map(backend -> ThemedTray.follow(host, backend, pair));
+        }
+        return shown;
     }
 
     /// The rows of `menu`, as the platform's vocabulary.

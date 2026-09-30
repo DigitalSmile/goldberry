@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css.cascade;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -453,17 +454,30 @@ public final class StyleResolver {
             return cached;
         }
 
-        var own = new LinkedHashMap<>(inherited);
+        // **Only what this node changes**, and the parent's map untouched. The
+        // inherited map is the root's 180-odd `--gb-*` properties, and this
+        // used to copy all of them into a fresh map at every node and compare
+        // the copy back against the original -- to find out, nearly always, that
+        // the node declares none. That was more than half of a first frame's
+        // style resolution, at any depth; the walk above was one percent of it
+        // (ADR-0502).
+        Map<String, List<Token>> own = null;
         for (var entry : (ownCascade == null ? cascade(element) : ownCascade).entrySet()) {
-            if (entry.getKey().startsWith("--")) {
-                own.put(entry.getKey(), entry.getValue());
+            var name = entry.getKey();
+            if (name.startsWith("--") && !entry.getValue().equals(inherited.get(name))) {
+                if (own == null) {
+                    own = new HashMap<>(inherited);
+                }
+                own.put(name, entry.getValue());
             }
         }
-        // The parent's own map when this node declares none, so a chain of nodes
-        // that define nothing shares one instance -- and a child's cache stays
-        // valid through all of them, because the identity it is keyed on does not
-        // change on the way down.
-        var resolved = own.equals(inherited) ? inherited : Map.copyOf(own);
+        // The parent's own map when this node changes nothing, so a chain of
+        // nodes that define nothing shares one instance -- and a child's cache
+        // stays valid through all of them, because the identity it is keyed on
+        // does not change on the way down. A node matched by the same rule as its
+        // parent re-declares the very tokens it inherits, changes nothing, and
+        // shares too.
+        var resolved = own == null ? inherited : Map.copyOf(own);
         element.cacheCustomProperties(this, inherited, resolved);
         return resolved;
     }

@@ -11,13 +11,13 @@ page is the other half: it says what works and what it cost to find out.
 |---|---|---|
 | [Foundation](#foundation) | **done** | The build, the module graph, the toolchain and the decision log |
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
-| [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
+| [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5**; `showcase.yml` reports what each leg's 300-frame walk cost and asserts no budget, because none has been measured ([ADR-0452](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)) |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **thirteen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1212 emoji of the face `goldberry-emoji` ships, each grouped by its upstream's own categories with a chip row to choose one, and each tile opening a dialog of the glyph at five sizes ([ADR-0386](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md), [ADR-0457](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)) — in a window that opens maximized and stops at 640×480 |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **seventeen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1212 emoji of the face `goldberry-emoji` ships, each grouped by its upstream's own categories with a chip row to choose one, and each tile opening a dialog of the glyph at five sizes ([ADR-0386](adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md), [ADR-0457](adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)) — in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
-| [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
-| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **the publishing chain is built and has never run** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
-| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). The other nine are unscheduled |
+| [M4 — GPU](#m4--gpu) | **started** | Windows present through the GPU by default and on the CPU where it cannot ([ADR-0480](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)); GPU layers in paint order, `canvas3d`, and `video-view` through a GPU layer ([ADR-0484](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)). `docs/gpu-plan.md`'s phases 1–6 have met their exits on Metal; the composited path has also run on Linux under X11, and the lavapipe lane has run twice and failed before its first test |
+| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **snapshots have gone to Central since run 17, and no release has run, because there is no tag** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
+| [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). **`:media` is the third**: audio and video over FFmpeg driven from Java, with the operating system's decoders behind the same SPI, published as an optional snapshot ([ADR-0460](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md), [ADR-0493](adr/0493-the-platform-decoders-are-part-of-media.md), [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)). The web engine turned out not to be a module: `web-view` is a widget in `:widgets` where the window system allows a child window ([ADR-0442](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)). The other seven are unscheduled |
 
 ## Foundation
 
@@ -201,7 +201,13 @@ evidence from one Linux VM.
   **Scheduled at M5**, where the shape of the job is written down — most of the
   machinery is already there, since `showcase.yml` opens a real window on all
   three runners and paints three frames on each. What it does not do is resize,
-  time anything, or assert a budget.
+  time anything, or assert a budget. **Two of the three have since been built**:
+  each leg walks its window's size for 300 frames and reports what they cost
+  ([ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)).
+  The third was built and taken out again, because the number it asserted had
+  never been measured
+  ([ADR-0452](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)) —
+  see [the frame evidence](#the-frame-evidence--built-run-and-asserting-no-budget).
 - **A window was laying its tree out twice per frame**, once to paint and once to find
   out where it had painted, and nobody had noticed. `HitTest.capture` took a frame and a
   box tree and built a whole second Yoga tree to answer. `HitTest.capture(RenderTree)`
@@ -231,6 +237,8 @@ evidence from one Linux VM.
   tracking**, now worth under a millisecond a frame; and **owning the renderer**, the
   only route to the zero-copy path
   ([ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)) was believed to have.
+  M4's composited window is that renderer: it owns the swapchain the frame is
+  presented on ([ADR-0479](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)).
   Blend2D's `thread_count` is a fourth, and only matters if paint ever becomes the
   bottleneck. — [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md),
   [ADR-0046](adr/0046-what-present-actually-does.md),
@@ -7326,7 +7334,77 @@ signature** — was never written down and was broken in two families.
 
 ## M4 — GPU
 
-**Not started.** `canvas3d` and the GPU composition path.
+**Started, and built in part.** `docs/gpu-plan.md` is the plan and its log:
+phases 1 to 6 have met their exits on Metal, on this project's one Mac, and
+phase 6b (zero-copy on macOS) and phase 7 (hardening) are open. The UI is still
+rasterized by Blend2D on the CPU
+([ADR-0002](adr/0002-cpu-rasterization-with-blend2d.md)); what M4 changes is how
+a painted frame reaches the screen, and what else can be on it.
+
+- **SDL_GPU is bound, for `:core` and `:gpu` alone**
+  ([ADR-0475](adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md)).
+  56 `SDL_GPU` functions are on the export list, their structs are checked by the
+  layout probe, and the wrappers in `natives.sdl.gpu` are exported to those two
+  modules and no others. Shaders are HLSL, compiled offline by DXC and
+  SPIRV-Cross into SPIR-V, DXIL and MSL, and committed
+  ([ADR-0476](adr/0476-shaders-are-hlsl-compiled-by-dxc-and-spirv-cross-and-committed.md));
+  the composite drives `SDL_GPU` directly rather than SDL's GPU renderer
+  ([ADR-0477](adr/0477-the-gpu-composites-with-sdl-gpu-directly.md)).
+- **`:gpu` has a public API**
+  ([ADR-0478](adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)):
+  devices, textures, buffers, shaders and pipelines as `AutoCloseable` resources
+  made from records, one frame of scoped passes, staged uploads and readback. It is
+  confined to the device's thread, misuse is refused in Java rather than in the
+  driver, and no `MemorySegment` or `SdlGpu…` type is in an exported signature.
+- **A window is composited through a seam `:core` declares and `:gpu` provides**
+  ([ADR-0479](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)).
+  `render.composite` is exported to `:gpu` alone, and `:gpu`'s `SdlCompositor`
+  provides its `Compositor` through `ServiceLoader`: the frame's damage goes up to
+  a UI texture, which is drawn onto the window's swapchain. **It is the default**
+  ([ADR-0480](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)):
+  a window presents through the GPU where it can and on the CPU where it cannot —
+  no `goldberry-gpu` on the module path, no device, a refused claim, a popup,
+  `goldberry.gpu=off` — and it says which, and why, in the log, in
+  `Window.presentation()` and in the showcase's bar
+  ([ADR-0492](adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)).
+- **GPU layers are placed in paint order**
+  ([ADR-0481](adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)).
+  `Frame.gpuLayer` clears a hole in the CPU frame and records the layer with its
+  scissor. A composited window draws the layer under the UI; headless,
+  `Offscreen`, a popup and any window the GPU cannot claim read it back into the
+  frame instead. Six z-order cases are goldens that agree both ways.
+- **`canvas3d` is a GPU layer an application renders into**
+  ([ADR-0482](adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)):
+  a `Canvas3dRenderer` on the window's device, drawn continuously or at each new
+  `revision`, and `--gb-canvas3d-unavailable` with the reason where there is no
+  GPU. The showcase's GPU screen has two cubes.
+- **`video-view` shows its pictures through a GPU layer when `:gpu` is present**
+  ([ADR-0483](adr/0483-video-pictures-wait-as-planes-for-a-view-that-uploads-them.md),
+  [ADR-0484](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+  The frame queue holds a picture's planes, and the shader converts them with the
+  stream's matrix and range, within one level of CPU present on ten fixture
+  pictures. A minute of 4K60 VP9 on VideoToolbox shows all 3600 pictures, 8- and
+  10-bit, where CPU present drops 1581 of 3598
+  ([ADR-0485](adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)).
+  Without `:gpu`, or where the layer cannot be placed, the view falls back to the
+  CPU and to converted pictures.
+- **Under X11 a window keeps the GPU with a page in it**
+  ([ADR-0491](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)): a child
+  window stacks above the swapchain there, and the window surface is the X
+  server's framebuffer, so a window given back from the GPU keeps its id. On macOS
+  and Windows a page still moves its window to the CPU, until someone measures
+  them.
+
+**What is not proven.** Everything above was built and measured on Metal. On
+Linux the composited path has run on this project's machine, under X11 on
+NVIDIA's Vulkan driver (ADR-0491, ADR-0492), and nowhere else; Windows (D3D12)
+waits for a host. **The GPU lane has run twice and never reached a test**: in
+Snapshot runs 32 and 33, both Linux legs of `linux.yml`'s `verify` job failed at
+the lane's own first check, `no lavapipe ICD in /usr/share/vulkan/icd.d`, and the
+macOS step, which does not require a device, passed. A device lost mid-render
+shows black and does not fall back, which is phase 7's. And on this machine
+`GpuLayerBackendTest` segfaults in `VULKAN_DestroyDevice` when it closes its
+device, which ends `:gpu:gpuTest`; ADR-0491 recorded it as found and left it.
 
 ## M5 — Hardening
 
@@ -7346,9 +7424,12 @@ cost is a permanent four-platform obligation in `:natives`. The semantics tree
 stays — every interactive node has a role and an accessible name, and a sweep
 enforces it — so what is missing is the reader, not the data. **What is left
 under M5 is therefore the release half alone**, and both halves of that are
-blocked on an account and a tag rather than on code.
+blocked on an account and a tag rather than on code. **The account is no longer
+one of them**: Central's secrets are set, and snapshots have gone out since run
+17 (2026-09-19). What is left is a tag, and the release's own preconditions
+below.
 
-### The frame evidence — built, and run once headless
+### The frame evidence — built, run, and asserting no budget
 
 [ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md).
 The three things that job needed are all built, in the order the work fell:
@@ -7371,7 +7452,12 @@ The three things that job needed are all built, in the order the work fell:
   after shutdown and a non-zero exit.
 - **A ceiling under it, on three runners.** `showcase.yml` runs each native image
   for 300 frames with `--resize=1580x1100 --late-budget=30`, and the summary line
-  goes into the step summary.
+  goes into the step summary. **Overtaken by
+  [ADR-0452](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)**: no
+  leg ever passed the ceiling, because 30 was reasoned about rather than measured,
+  so the workflow now runs the same walk with no `--late-budget` on any platform
+  and reports what it cost. What still fails the step is a run that does not log
+  `painted 300 frame(s); exiting` — a hang, a crash, an image that will not start.
 
 **Found on the way:** `Launcher.run` registered its own `onResize` and `onMove`
 *after* `Application.start`, into the one slot a window has, so an application's
@@ -7386,7 +7472,32 @@ refusing frames. Measuring there is real evidence about three platforms'
 is not a claim about hardware. The workflow has not run since the change; it runs
 on a tag or by hand, and the numbers it produces belong here when it has.
 
+**It has run, and these are its first numbers** (ADR-0452; the same two lines are
+in `showcase.yml`):
+
+| Leg | Frames | Late | Paint mean | Worst | Display |
+|---|---|---|---|---|---|
+| `linux-x64` | 302 | 75 | 10.14 ms | 1799.59 ms | 0.0 Hz |
+| `macos-aarch64` | 300 | 200 | 6.42 ms | 200.26 ms | 60.0 Hz |
+
+`display 0.0 Hz` is Xvfb reporting no refresh rate, so on Linux "late" counts
+missed ticks of the pacer's own timer, and on each leg the worst frame is
+start-up rather than the walk. Showcase run 24 (2026-09-21) was the first green
+on all three legs since the walk was added. **No frame regression is caught
+automatically**: the step summary is read by a person, and a budget waits on
+enough green runs to set one per platform from the top of a distribution.
+
 ### CI — green where it can be reproduced, and saying why where it cannot
+
+**Snapshot runs 32 and 33 went red, and the fix has not been through CI**
+([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)). Every
+per-OS Java job failed in `:natives:gpuTest`: the Java jobs build with no
+library, the GPU test classes skip their setup correctly, and eight of them then
+called SDL from their teardown regardless. The teardowns return when setup was
+skipped now, and `:natives:gpuTest`, `:gpu:gpuTest` and `:media:gpuTest` pass
+locally with no library. Run 31 (2026-09-23) is the last snapshot that went out.
+The same two runs failed the GPU lane on both Linux legs, for a reason ADR-0495
+does not touch — see [M4](#m4--gpu).
 
 **Snapshot run 12 went red and is repaired** ([ADR-0357](adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)):
 `WindowResizeTest` painted a frame without asking for the library, which fails every
@@ -7434,7 +7545,7 @@ declared (ADR-0160's rule, applied to the stylesheet and the documents and not t
 the pictures). Declared now, and `DeclaredResourcesTest` holds the manual list to
 every file under the showcase's resources.
 
-### Releasing — built, never run
+### Releasing — snapshots go out, and a release has never run
 
 [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md),
 [ADR-0334](adr/0334-central-is-fed-once-per-run.md),
@@ -7443,12 +7554,23 @@ every file under the showcase's resources.
 [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md);
 `docs/releasing.md` is the checklist.
 
+**Snapshots have gone to Central since run 17 (2026-09-19)**, which went out and
+failed partway, leaving `:widgets` and `:html` off that snapshot; `check`
+generates the javadoc since, so the same mistake fails on Linux four minutes in
+([ADR-0405](adr/0405-check-generates-the-published-javadoc.md)). **A release has
+never run**, because there is no tag. `goldberry-media` is published too, and a
+release refuses it until FFmpeg is built for `windows-x64` and `linux-aarch64`,
+which the Media workflow does not do yet; the LGPL's corresponding-source offer
+is still to be decided
+([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)).
+
 - **Calendar versions.** `goldberryVersion=2026.1` is the line being worked
   towards and never carries `-SNAPSHOT`; the build adds it, and drops it only for
   `-Pgoldberry.release=true` with a `v2026.1` tag that matches. A mismatched tag
   fails configuration. `CalendarVersion` and `BuildVersion` in build-logic, tested.
-- **Maven Central.** `goldberry.publish` on the six shipped libraries — POMs,
-  sources, javadoc, signing for releases, `:core`'s test fixtures kept out, and
+- **Maven Central.** `goldberry.publish` on the six shipped libraries — eight
+  since `:emoji` and `:media` joined — POMs, sources, javadoc, signing for
+  releases, `:core`'s test fixtures kept out, and
   `goldberry-natives` carrying all four classifier jars when a run hands them over.
   Rehearsed locally with stand-in libraries into a throwaway repository: every
   artifact and POM came out, and no POM names a build-time module.
@@ -7457,7 +7579,9 @@ every file under the showcase's resources.
   `-gpu` as `<optional>`, both generated from `PublishedModules` so a content
   module is one line. A consumer build against a local repository resolved the
   four without `goldberry-html`, and `goldberry-html` at the BOM's version once
-  asked for.
+  asked for. The optional list is `-html`, `-emoji`, `-gpu` and `-media` now,
+  and `goldberry-media` carries FFmpeg as `ffmpeg-<target>` classifier jars, the
+  shape of `goldberry-natives`' (ADR-0495).
 - **One uploader.** `publish.yml` calls the three per-OS workflows and publishes
   once; `snapshot.yml` (every push to master) and `release.yml` (every `v*` tag,
   dispatch rehearses) call it. The per-OS workflows lost their `push` trigger,
@@ -7490,9 +7614,17 @@ every file under the showcase's resources.
   methods by a script, and twenty links to types another package owns.
 - **Not done:** Central's side (namespace, snapshots enabled, token, signing key,
   secrets); pruning old showcase snapshots, which needs a token with
-  `delete:packages`.
+  `delete:packages`. **Central's side is done** — the secrets are set, and run 17
+  was the first snapshot to go out (`docs/releasing.md`).
 
 ## Content modules
+
+**Three of eleven, and a fourth that is not a module.** `:media` is the third,
+and the first with native libraries that are not `libgoldberry`'s (below). The
+parked web engine is built and is not a module at all: `web-view` is a widget in
+`:widgets` ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md),
+[ADR-0442](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+Seven of the eleven have no Gradle subproject, no artifact and no line of code.
 
 **Two of eleven.** `:emoji` is the second and is unlike the first: no parser, no
 native, one font. It left `:core` when the face was OpenMoji, whose CC BY-SA
@@ -7658,6 +7790,27 @@ And the two facts that make the first one cost more than it reads:
   would have been a box on three platforms and a loose window on the default Linux
   desktop.
 
+  **Overtaken by
+  [ADR-0442](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)**,
+  the same day, which keeps every fact above and drops the conclusion: that was
+  an argument against a *silent* fallback, not against embedding. A page is a
+  widget where the window system allows a child window. `WebView`, in
+  `…widgets.core.web`, has a box in the layout, and the page's own window is made
+  a child of the application's, placed over that box and moved with it —
+  reparented on X11 and XWayland, a subview on macOS, a `WS_CHILD` window on
+  Windows. **On Wayland it opens nothing and paints why.** The window form stays
+  beside it in `…widgets.shell.web`, `WebPage` and `WebViews.open`, for an
+  application that wants a page in a window of its own. What an embedded page
+  still cannot do follows from its being a window above the frame: nothing painted
+  covers it, a `scroll` does not clip it, and no golden image contains it. So a
+  modal parks it off the window's side
+  ([ADR-0444](adr/0444-a-page-stands-aside-for-a-modal.md)), it waits there until
+  it has loaded ([ADR-0445](adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)),
+  and on X11 it is never the window manager's
+  ([ADR-0446](adr/0446-an-embedded-page-is-never-the-window-managers.md)) and keeps
+  its window on the GPU
+  ([ADR-0491](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)).
+
   **Three things it cost that are worth knowing.** The native library is
   *separate* — `libgoldberry-webview`, linked into nothing and opened on demand,
   because GTK and WebKit in `libgoldberry`'s `NEEDED` would make them load-time
@@ -7697,6 +7850,41 @@ And the two facts that make the first one cost more than it reads:
   exercised on a Wayland session, through FFM and through a real `Host` with a
   real tray up — page opened, titled, sized, navigated, pumped and destroyed.
 
+### `:media` — FFmpeg from Java, and published
+
+`docs/goldberry-media.md` is the design and `docs/media-plan.md` the log: all
+seven of its phases are done on macOS, GPU present among them as M4's phase 6.
+
+- **FFmpeg's libraries, driven from Java**
+  ([ADR-0460](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)), in place
+  of libVLC. `avformat`, `avcodec`, `avutil`, `swresample` and `swscale`, with
+  dav1d for software AV1, built by a superbuild of `:media`'s own as shared
+  libraries; the Engine's threads, queues, clock and state machine are Java.
+  Royalty-free codecs only, and no FFmpeg network layer: every byte arrives
+  through a Java `MediaIO`.
+- **`:media` binds its own libraries**
+  ([ADR-0461](adr/0461-a-media-engine-binds-its-own-libraries.md)), the one module
+  besides `:natives` that holds a `MemorySegment`, under `:natives`' rules:
+  holders in `…media.ffi.calls`, a layout probe checked before any struct is read,
+  and no FFmpeg type in an exported signature. They are LGPL-2.1+ and stay
+  replaceable shared objects, under sonames no other FFmpeg has
+  ([ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)).
+- **The operating system's decoders are part of it**
+  ([ADR-0493](adr/0493-the-platform-decoders-are-part-of-media.md)): VideoToolbox
+  and AudioToolbox, GStreamer, Media Foundation, behind the same Decoder SPI for
+  H.264, HEVC, AAC, AC-3 and E-AC-3, in `…media.platform`. They were
+  `:media-platform` until then, optional in name only. macOS and Linux are built
+  and bit-exact against FFmpeg; Windows is written and has not run there
+  ([ADR-0489](adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)).
+- **Four widgets**: `audio-player`, `video-view`, `media-controls` and
+  `media-player`, with the showcase's Audio and Video screens over them.
+- **It is published, optional**
+  ([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)), as
+  `goldberry-media`, with FFmpeg as its `ffmpeg-<target>` classifier jars. A
+  snapshot carries the targets the Media workflow builds, `macos-aarch64` and
+  `linux-x64`; a release refuses to publish without all four. `media.yml` is
+  written and has not run on a runner yet.
+
 ## Module layout
 
 | Module | Artifact | Contents |
@@ -7706,17 +7894,23 @@ And the two facts that make the first one cost more than it reads:
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
 | `:weaver` | *not published* | The weaver, in two halves. **Catalog**: collects a module's `@Markup` widgets into a `WidgetCatalog` and declares it — every build runs this, because nothing finds annotated classes at run time ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)). **Models**: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, with the JDK's class-file API — only a **GraalVM native image** runs this, since an ordinary jar binds the same annotations reflectively ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Build-time only, like `:assets`: it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |
-| `:html` | `goldberry-html` | The first **optional** module, and the first widget outside `:widgets`: Markdown parsed through md4c into a sealed tree of records, written out as HTML, and rendered as `markdown-view` — `column`, `row` and `text` under the ordinary cascade rather than an engine ([ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md), [ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)). An application opts in: it adds the dependency and `MarkdownStyles.stylesheet()`, and nothing in `:core` or `:widgets` depends on it. `html-view` and its litehtml engine are **not** here |
-| `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
+| `:html` | `goldberry-html` | The first **optional** module, and the first widget outside `:widgets`: Markdown parsed through md4c into a sealed tree of records, written out as HTML, and rendered as `markdown-view` — `column`, `row` and `text` under the ordinary cascade rather than an engine ([ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md), [ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)). An application opts in: it adds the dependency and `MarkdownStyles.stylesheet()`, and nothing in `:core` or `:widgets` depends on it. `html-view` and its litehtml engine are **not** here. **`html-view` is now** ([ADR-0298](adr/0298-html-is-a-document-and-not-an-engine.md)): a parser in Java, folded into the same widgets. litehtml is still not |
+| `:emoji` | `goldberry-emoji` | **Optional.** The Noto Color Emoji face and nothing else, 5 MB of paint graphs an application that never draws an emoji should not carry. It reaches `:core` through an `EmojiFont` service ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)) |
+| `:media` | `goldberry-media`, with `ffmpeg-{platform}-{arch}` classifiers | **Optional.** Audio and video over FFmpeg driven from Java, the operating system's decoders behind the same Decoder SPI, and the four media widgets. The one module besides `:natives` that binds a native library itself, and its libraries are FFmpeg's own shared objects rather than `libgoldberry` ([ADR-0461](adr/0461-a-media-engine-binds-its-own-libraries.md), [ADR-0493](adr/0493-the-platform-decoders-are-part-of-media.md), [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)). It `requires static` `:gpu`, and shows video through a GPU layer when `:gpu` is on the path ([ADR-0484](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)) |
+| `:gpu` | `goldberry-gpu` | **Optional.** `canvas3d` and the GPU composition path: the public API over `SDL_GPU`, the `Compositor` `:core` declares and this module provides, GPU layers and the video layer `:media` draws with ([ADR-0478](adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md), [ADR-0479](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md), [ADR-0482](adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)). With it on the module path a window presents through the GPU by default ([ADR-0480](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)) |
 
-`:assets` is a fifth subproject and is not published: it is the build-time
+`:assets` is not published: it is the build-time
 tool that fetches the pinned fonts and icon set and compiles Lucide's 1544 SVGs
 into a path table, which `:core` packages
 ([ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
 
-`:example` is the sixth and is not published either: it is the showcase, and it
+`:example` is not published either: it is the showcase, and it
 runs on the module path so that what the module graph exposes to an application is
 exercised rather than assumed ([ADR-0023](adr/0023-logging-and-the-example-as-a-subproject.md)).
+
+`:bom` and `:toolkit` are published and hold no code: `goldberry-bom` pins every
+artifact's version, and `goldberry` is the umbrella an application starts from
+([ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)).
 
 Every module logs through SLF4J and binds no implementation. An application that
 adds one gets the toolkit's diagnostics; one that adds none gets silence, SLF4J's
@@ -7860,6 +8054,23 @@ The moves were made by `tools/refactor/move_package.py`, which is kept in the
 tree. A package move is four edits, and the fourth is the one nobody does by
 hand: the file *left behind* that used a type without an import, because it used
 to share a package with it.
+
+**A month and six modules later, the same rule was applied again.** The table
+above is ADR-0172's split. An audit of all 215 main packages there were on
+2026-09-30 made eleven more moves
+([ADR-0496](adr/0496-eleven-packages-split-by-role.md)) — among them
+`gpu.render` into `gpu.composite` for the compositor, the SDL_GPU enumerations
+into `sdl.gpu.enums`, `media.picture` and `media.view.gpu` out of `:media`,
+`paint.stroke`, `render.clipboard` and `widgets.data.plot` — and recorded the
+eleven it looked at and did not make. The QR encoder moved from a top-level
+`…goldberry.qr` to `…goldberry.image.qr`, beside the other formats `:core` owns
+([ADR-0494](adr/0494-the-qr-encoder-is-an-image-format.md)), and `:media-platform`
+became `:media`'s `…media.platform` with its packages unchanged
+([ADR-0493](adr/0493-the-platform-decoders-are-part-of-media.md)). **Every package
+now says what it is**: a `package-info.java` with a doc comment in every package
+that has a class, `@NullMarked` in every module NullAway checks, and
+`PackageInfoTest` in build-logic holding both
+([ADR-0497](adr/0497-every-package-says-what-it-is-and-is-null-marked.md)).
 
 ## Native artifacts
 

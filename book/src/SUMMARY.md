@@ -513,3 +513,8 @@
 - [ADR-0496 Eleven packages split by role](adr/0496-eleven-packages-split-by-role.md)
 - [ADR-0497 Every package says what it is, and is null-marked](adr/0497-every-package-says-what-it-is-and-is-null-marked.md)
 - [ADR-0498 Qodana reads a reviewed profile, and a bound value may be null](adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md)
+- [ADR-0499 Every way through restyle is listed with its reason](adr/0499-every-way-through-restyle-is-listed-with-its-reason.md)
+- [ADR-0500 A drag held at the edge carries the viewport on](adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md)
+- [ADR-0501 A tray icon follows the desktop's theme, and stops when it closes](adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)
+- [ADR-0502 A node copies custom properties only when it changes one](adr/0502-a-node-copies-custom-properties-only-when-it-changes-one.md)
+- [ADR-0503 The GPU lane finds lavapipe, a device goes before SDL does, and a GPU golden has its own tolerance](adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md)

@@ -16,10 +16,12 @@ import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessTray;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
@@ -186,8 +188,15 @@ public class TestHost implements Host {
     }
 
     @Override
-    public void onSystemThemeChanged(Consumer<SystemTheme> listener) {
+    public Subscription onSystemThemeChanged(Consumer<SystemTheme> listener) {
         systemThemeListeners.add(listener);
+        return () -> systemThemeListeners.remove(listener);
+    }
+
+    /// How many system-theme listeners are still registered — what a test reads
+    /// to say that something which stopped listening really did.
+    public int systemThemeListenerCount() {
+        return systemThemeListeners.size();
     }
 
     /// Changes the setting and tells every listener, the way a desktop does at
@@ -556,6 +565,12 @@ public class TestHost implements Host {
         // wrong: a tray row arrives with no event behind it, so nothing asks for
         // a frame unless the row does (ADR-0191).
         return trayBackend.createTray(spec.andThen(this::repaint));
+    }
+
+    /// The trays this host's backend has up, for a test whose handle is not the
+    /// backend's own — a tray that follows the theme comes back wrapped.
+    public List<HeadlessTray> trays() {
+        return trayBackend == null ? List.of() : trayBackend.trays();
     }
 
     /// What the last [#webView] was asked to open, or null if nothing was.

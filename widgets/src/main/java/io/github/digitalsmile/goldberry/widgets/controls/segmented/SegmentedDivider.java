@@ -46,11 +46,20 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// `base` to travel: a hairline that blinked out the instant a segment was
 /// clicked would beat the movement that explains it.
 ///
+/// Which two is a fact only this widget has, and it says so as a class,
+/// `beside-selection`; the `opacity: 0` is `controls.css`'s. It used to be written
+/// through [#restyle] with the place, and it was the one value there a stylesheet
+/// could have written once it was told which lines — so it moved, and a theme can
+/// dim them instead (ADR-0499).
+///
 /// @param boundary which gap this is — 1 is between the first two segments, and
 ///                 there are `count - 1` of them
 /// @param count    how many segments there are, which is the grid
 /// @param index    the selected segment, or -1 for none
 record SegmentedDivider(int boundary, int count, int index) implements Widget.Leaf, Styled, Paints {
+
+    /// The class a line next to the pill carries.
+    private static final Set<String> BESIDE = Set.of("beside-selection");
 
     SegmentedDivider {
         if (count <= 1) {
@@ -70,7 +79,7 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
 
     @Override
     public Set<String> classes() {
-        return Set.of();
+        return besideTheSelection() ? BESIDE : Set.of();
     }
 
     /// Whether the pill is on one side of this line or the other.
@@ -78,19 +87,17 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
         return boundary == index || boundary == index + 1;
     }
 
-    /// Where along the track this line sits, and whether it shows.
+    /// Where along the track this line sits.
     ///
     /// A percentage, so it needs no measurement — the same reason the indicator's
-    /// width is one. Written here rather than in `controls.css` because both
-    /// numbers come from a **count**, and a selector cannot count the segments.
-    /// The stylesheet keeps what a theme should own: the colour, the width, and
-    /// how long the fade takes.
+    /// width is one. Written here rather than in `controls.css` because it comes
+    /// from a **count**, and a selector cannot count the segments. The stylesheet
+    /// keeps what a theme should own: the colour, the width, whether the two
+    /// beside the pill show, and how long their fade takes.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        var placed =
-                resolved.inset(new Insets(Length.points(0), Length.UNDEFINED, Length.points(0), Length.percent((float)
-                        (100.0 * boundary / count))));
-        return besideTheSelection() ? placed.opacity(0) : placed;
+        return resolved.inset(new Insets(Length.points(0), Length.UNDEFINED, Length.points(0), Length.percent((float)
+                (100.0 * boundary / count))));
     }
 
     @Override

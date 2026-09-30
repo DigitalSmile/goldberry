@@ -9,6 +9,9 @@
 /// handle an owner holds to scroll a child into view, and
 /// [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollScope] finds the
 /// viewport around a widget from the widget itself.
+/// [io.github.digitalsmile.goldberry.widgets.core.scroll.EdgeScroll] carries a
+/// viewport on while a drag is held at its edge, which is how a selection keeps
+/// going past the bottom of a pane.
 /// [io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted] puts popup content
 /// that is taller than the screen into a viewport, which is how `menu` and `select`
 /// stay whole. The viewport, content and thumb are parts.

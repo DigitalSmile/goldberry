@@ -21,12 +21,14 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.EdgeScroll;
 
 /// §4's multi-line field.
 ///
@@ -873,6 +875,201 @@ class TextAreaTest {
 
             assertEquals(offset, box(tree).edit().caret(), "the caret did not come back to where the run started");
             assertEquals(column, caretX(tree), 0.5, "and it is in the same column on the screen");
+        }
+    }
+
+    /// A drag held past the top or bottom of the text ([ADR-0500]).
+    ///
+    /// Against a **virtual clock**, because what is asserted is a distance per frame
+    /// and the distance is a speed times the frame's time: against the wall clock the
+    /// test would be measuring the machine.
+    @Nested
+    @DisplayName("a drag held at the edge")
+    class HeldAtTheEdge {
+
+        private final Clock.Virtual clock = Clock.virtual();
+
+        private final WidgetRenderer renderer = new WidgetRenderer(
+                        List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+                .clock(clock);
+
+        /// Forty lines in an area that shows ten.
+        private ElementTree document() {
+            var text = new StringBuilder();
+            for (var line = 1; line <= 40; line++) {
+                text.append("line ").append(line).append('\n');
+            }
+            var tree = new ElementTree(new TextArea(text.toString(), null), host);
+            frame(tree);
+            box(tree).measured(new Extent(300, 200), new Extent(300, 200));
+            frame(tree);
+            return tree;
+        }
+
+        private void frame(ElementTree tree) {
+            tree.flush();
+            renderer.render(tree);
+        }
+
+        /// One frame, 16 ms after the last.
+        private void step(ElementTree tree) {
+            clock.advance(16);
+            frame(tree);
+        }
+
+        /// A pointer event of `kind` at `y` in the control's own coordinates — with a
+        /// press position, which is what makes a motion a drag ([ADR-0168]).
+        private PointerEvent pointer(ElementTree tree, PointerEvent.Kind kind, float y) {
+            return pointer(tree, kind, 8, y);
+        }
+
+        private PointerEvent pointer(ElementTree tree, PointerEvent.Kind kind, float x, float y) {
+            var event = new PointerEvent(kind, x, y, PointerEvent.Button.PRIMARY, 1, 8, 12, Modifiers.NONE, null);
+            event.localTo(new PointerEvent.Local(x, y, 300, 200));
+            box(tree).onPointer(event);
+            return event;
+        }
+
+        private TextAreaState state(ElementTree tree) {
+            return (TextAreaState) tree.root().state().orElseThrow();
+        }
+
+        /// Where the text stops: the padding, then ten lines.
+        private float bottom(ElementTree tree) {
+            return (float) (6 + TextArea.DEFAULT_MAX_ROWS * state(tree).lineHeight());
+        }
+
+        @Test
+        @DisplayName("scrolls on, frame by frame, while the pointer is held below it")
+        void scrollsOn() {
+            var tree = document();
+            pointer(tree, PointerEvent.Kind.PRESSED, 12);
+            frame(tree);
+            pointer(tree, PointerEvent.Kind.MOVED, bottom(tree) + 30);
+            frame(tree);
+            assertTrue(box(tree).isAnimating(), "held past the bottom of forty lines, and no frames asked for");
+
+            var offsets = new java.util.ArrayList<Double>();
+            var ends = new java.util.ArrayList<Integer>();
+            for (var i = 0; i < 12; i++) {
+                step(tree);
+                offsets.add(state(tree).scrolledBy());
+                ends.add(box(tree).edit().caret());
+            }
+
+            // Every frame further on than the one before, and by a fraction of a
+            // line rather than by a line: thirty pixels past the edge is forty-six
+            // past the band's inner edge, 460 a second, 7.4 a frame.
+            for (var i = 1; i < offsets.size(); i++) {
+                assertTrue(offsets.get(i) > offsets.get(i - 1), "frame " + i + " did not move on: " + offsets);
+                assertEquals(
+                        EdgeScroll.speed(EdgeScroll.BAND + 30) * 0.016,
+                        offsets.get(i) - offsets.get(i - 1),
+                        1e-6,
+                        "frame " + i + " moved by something other than speed times time");
+            }
+            assertTrue(ends.getLast() > ends.getFirst(), "the selection did not follow the text: " + ends);
+            assertEquals(0, box(tree).edit().anchor(), "the anchor stays where the press was");
+        }
+
+        @Test
+        @DisplayName("and selects only the lines wholly on screen, so it never jumps a line to chase the caret")
+        void noJump() {
+            var tree = document();
+            pointer(tree, PointerEvent.Kind.PRESSED, 12);
+            frame(tree);
+            // Far below: before the edge, this selected the line under the pointer
+            // outside the control and then scrolled all the way to it.
+            pointer(tree, PointerEvent.Kind.MOVED, 290, bottom(tree) + 400);
+            frame(tree);
+
+            assertEquals(0, state(tree).scrolledBy(), 1e-9, "a drag past the bottom jumped the text");
+            assertTrue(
+                    box(tree).edit().selectedText().startsWith("line 1\n")
+                            && box(tree).edit().selectedText().contains("line 10"),
+                    "selected '" + box(tree).edit().selectedText() + "', not the ten lines on screen");
+            assertFalse(box(tree).edit().selectedText().contains("line 11"));
+        }
+
+        @Test
+        @DisplayName("stops on the release")
+        void stopsOnRelease() {
+            var tree = document();
+            pointer(tree, PointerEvent.Kind.PRESSED, 12);
+            pointer(tree, PointerEvent.Kind.MOVED, bottom(tree) + 30);
+            frame(tree);
+            step(tree);
+            step(tree);
+            pointer(tree, PointerEvent.Kind.RELEASED, bottom(tree) + 30);
+            var released = state(tree).scrolledBy();
+            step(tree);
+            step(tree);
+
+            assertTrue(released > 0);
+            assertEquals(released, state(tree).scrolledBy(), 1e-9, "the text went on scrolling after the release");
+            assertFalse(box(tree).isAnimating());
+        }
+
+        @Test
+        @DisplayName("stops when the pointer comes back inside")
+        void stopsInside() {
+            var tree = document();
+            pointer(tree, PointerEvent.Kind.PRESSED, 12);
+            pointer(tree, PointerEvent.Kind.MOVED, bottom(tree) + 30);
+            frame(tree);
+            step(tree);
+            step(tree);
+            pointer(tree, PointerEvent.Kind.MOVED, 60);
+            var inside = state(tree).scrolledBy();
+            step(tree);
+            step(tree);
+
+            assertEquals(inside, state(tree).scrolledBy(), 1e-9);
+            assertFalse(box(tree).isAnimating());
+        }
+
+        @Test
+        @DisplayName("scrolls back up past the top")
+        void upPastTheTop() {
+            var tree = document();
+            wheelDown(tree);
+            var start = state(tree).scrolledBy();
+            pointer(tree, PointerEvent.Kind.PRESSED, 100);
+            pointer(tree, PointerEvent.Kind.MOVED, -20);
+            frame(tree);
+            step(tree);
+            step(tree);
+
+            assertTrue(state(tree).scrolledBy() < start, "held above the top, and the text did not come down");
+            assertTrue(box(tree).edit().caret() < box(tree).edit().anchor(), "the selection runs backwards");
+        }
+
+        @Test
+        @DisplayName("a wheel mid-drag scrolls as a wheel does, and the selection follows it")
+        void aWheelMidDrag() {
+            var tree = document();
+            pointer(tree, PointerEvent.Kind.PRESSED, 12);
+            pointer(tree, PointerEvent.Kind.MOVED, 60);
+            frame(tree);
+            var caret = box(tree).edit().caret();
+
+            var wheel = PointerEvent.wheel(8, 60, 0, 1, null);
+            box(tree).onPointer(wheel);
+            frame(tree);
+            frame(tree);
+
+            // Three lines, the notch -- not the edge's speed, which is zero here.
+            assertEquals(
+                    TextAreaBox.WHEEL_LINES * state(tree).lineHeight(),
+                    state(tree).scrolledBy(),
+                    0.5);
+            assertTrue(box(tree).edit().caret() > caret, "the text moved under a still pointer, the selection did not");
+            assertFalse(box(tree).isAnimating(), "a wheel started the edge");
+        }
+
+        private void wheelDown(ElementTree tree) {
+            box(tree).onPointer(PointerEvent.wheel(8, 60, 0, 3, null));
+            frame(tree);
         }
     }
 }

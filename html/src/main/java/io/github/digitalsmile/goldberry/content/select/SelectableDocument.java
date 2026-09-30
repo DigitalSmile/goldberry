@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Located;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
@@ -22,6 +23,9 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.EdgeScroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollScope;
 
 /// A rendered document a reader can select text in and copy from.
 ///
@@ -42,6 +46,10 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// - **Drag** to select, **double-click** for a word, **triple-click** for a block —
 ///   a paragraph, a heading, a cell, a line of a fence.
+/// - A drag **held at the edge** of the `scroll` around the document carries it on,
+///   faster the further past the edge the pointer is, and the selection follows the
+///   words that arrive ([EdgeScroll], [ADR-0500]). A wheel turned mid-drag scrolls
+///   as a wheel does, and the selection follows that too.
 /// - **`Ctrl+C`** copies what is selected, with the separators the document implies:
 ///   a space between words, a newline between blocks. **`Ctrl+A`** takes the lot and
 ///   **`Escape`** lets it go.
@@ -111,6 +119,11 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// Whether a press is still down, so a `MOVED` is a drag rather than a hover.
         private boolean dragging;
 
+        /// The viewport this document is in, carried on while a drag is held at its
+        /// edge — and the clamp that keeps a pointer past the edge asking about the
+        /// words at it rather than about nothing ([ADR-0500]).
+        private final EdgeScroll edge = new EdgeScroll();
+
         @Override
         public Widget build(BuildContext context) {
             // The fold registers every word into the geometry as it walks, in document
@@ -155,24 +168,69 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
                         default -> selection.begin(caret);
                     }
                     dragging = event.clickCount() <= 1;
+                    if (dragging) {
+                        // The viewport is found from the element that heard the
+                        // press, which is the one route from a widget to the tree
+                        // around it -- no controller wired, nothing the view was
+                        // handed ([ADR-0439]).
+                        var scope = ScrollScope.enclosing(event.target()).orElse(null);
+                        edge.hold(scope == null ? null : scope::nudge, scope == null ? ScrollAxis.BOTH : scope.axis());
+                        edge.pointer(event.x(), event.y());
+                    }
                     repaint(event);
                     event.consume();
                 }
                 case MOVED -> {
                     if (dragging) {
-                        selection.extendTo(geometry.at(event.x(), event.y()));
+                        // The pointer pulled back inside the viewport: past its edge
+                        // every word is clipped away and `at` answers nothing, which
+                        // is where a drag used to stop selecting.
+                        edge.pointer(event.x(), event.y());
+                        selection.extendTo(geometry.at(edge.x(), edge.y()));
                         repaint(event);
                         event.consume();
                     }
                 }
                 case RELEASED -> {
                     dragging = false;
+                    edge.release();
                     // Not consumed: a release that follows a press the document handled
                     // is also what produces the CLICKED a link would want, and this node
                     // is the one behind them rather than the one in front.
                 }
                 default -> {}
             }
+        }
+
+        /// One frame of a held drag, from the host's `render` — the one place the
+        /// frame clock is handed to a widget.
+        ///
+        /// Carries the viewport on when the pointer is at its edge, and then asks
+        /// again what is under the pointer **whether or not it moved it**: a wheel
+        /// turned mid-drag moves the words under a pointer that is holding still,
+        /// and a selection that waited for the pointer to move would lag the page.
+        /// The geometry is last frame's, which is what is on the screen; what this
+        /// step moves is painted next frame and selected the frame after.
+        ///
+        /// The selection is written and not repainted: this runs inside a frame
+        /// whose paint has not happened yet, and the wash reads it at paint time.
+        void frame(double nowMillis) {
+            if (!dragging) {
+                return;
+            }
+            edge.tick(nowMillis);
+            selection.extendTo(geometry.at(edge.x(), edge.y()));
+        }
+
+        /// Whether a held drag still has somewhere to carry the viewport.
+        boolean autoScrolling() {
+            return edge.isScrolling();
+        }
+
+        /// What clips the host, in window coordinates — which inside a `scroll` is
+        /// its viewport, and the rectangle every word here is clipped to.
+        void located(LogicalRect clip) {
+            edge.viewport(clip);
         }
 
         void onKey(KeyEvent event) {
@@ -283,8 +341,13 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
     /// handler per instance. It adds no padding, no background and no size: what a
     /// stylesheet reaches through `selection-host` is the **cursor**, which is the one
     /// visual thing a selectable region owes a reader.
+    ///
+    /// It is also the node that is told where the viewport around the document is,
+    /// and whose `render` steps a drag held at the viewport's edge — it is the one
+    /// node every document has whatever it says, so one clock serves the whole of it
+    /// ([ADR-0500]).
     record SelectionHost(Widget content, DocumentState state)
-            implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+            implements Widget.Leaf, Styled, Paints, Handles, Located, Semantics {
 
         @Override
         public String cssType() {
@@ -326,8 +389,22 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
             return Role.GROUP;
         }
 
+        /// The clip is what matters: inside a `scroll` it is the viewport, which is
+        /// what a held drag measures its edge against.
+        @Override
+        public void located(LogicalRect self, LogicalRect clip) {
+            state.located(clip);
+        }
+
+        /// While a drag is held past the viewport's edge and it has somewhere to go.
+        @Override
+        public boolean isAnimating() {
+            return state.autoScrolling();
+        }
+
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
+            state.frame(context.nowMillis());
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
     }

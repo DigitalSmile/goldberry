@@ -32,7 +32,9 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 /// So: a per-channel tolerance, and a cap on how much of the image may differ at
 /// all. Both are tight enough that a real regression — a colour that changed, a
 /// box in the wrong place, text that stopped shaping — moves thousands of pixels
-/// by tens of levels and cannot hide underneath them.
+/// by tens of levels and cannot hide underneath them. The numbers are
+/// [Tolerance#RASTER]; a GPU's aliased edges have a third, and the
+/// [Tolerance] overload says why ([ADR-0503]).
 ///
 /// ## Updating a golden
 ///
@@ -54,19 +56,6 @@ public final class GoldenImage {
 
     /// Rewrites the goldens instead of asserting on them.
     public static final String UPDATE_PROPERTY = "goldberry.golden.update";
-
-    /// The largest per-channel difference treated as the same colour.
-    ///
-    /// Two levels out of 256. A rounding disagreement between two SIMD pipelines
-    /// lands at one; a colour that actually changed is nowhere near this close.
-    private static final int CHANNEL_TOLERANCE = 2;
-
-    /// The share of pixels allowed to differ within that tolerance.
-    ///
-    /// Antialiased edges are where the pipelines disagree, and an edge is a
-    /// small fraction of a frame. A regression in a fill or a layout moves far
-    /// more than 2% of the image.
-    private static final double MAX_DIFFERING_FRACTION = 0.02;
 
     private static final Path GOLDEN_DIR = Path.of("src", "test", "resources", "golden");
     private static final Path FAILURE_DIR = Path.of("build", "golden-failures");
@@ -114,7 +103,7 @@ public final class GoldenImage {
     /// [#assertMatches(String, int, int, float, Consumer)] for a scene that
     /// renders itself.
     public static void assertMatches(String name, int width, int height, float scale, Scene scene) {
-        assertMatches(name, width, height, scale, scene, true);
+        assertMatches(name, width, height, scale, Tolerance.RASTER, scene, true);
     }
 
     /// The same, **without the second question** — the golden is compared and the
@@ -133,10 +122,24 @@ public final class GoldenImage {
     /// golden nothing checks at 2&times;, which is the blindness ADR-0157 was
     /// about.
     public static void assertMatchesAtOneScale(String name, int width, int height, float scale, Scene scene) {
-        assertMatches(name, width, height, scale, scene, false);
+        assertMatches(name, width, height, scale, Tolerance.RASTER, scene, false);
     }
 
-    private static void assertMatches(String name, int width, int height, float scale, Scene scene, boolean sweep) {
+    /// [#assertMatchesAtOneScale(String, int, int, float, Scene)] under a
+    /// tolerance other than [Tolerance#RASTER].
+    ///
+    /// For a picture a **GPU** rasterized, which is compared across drivers the
+    /// goldens were not blessed on: [Tolerance#GPU] is the only other
+    /// tolerance, and the reason is on it. A golden that Blend2D draws has no
+    /// business here — a Blend2D edge does not flip, so admitting one that did
+    /// would hide exactly the regression the golden exists for.
+    public static void assertMatchesAtOneScale(
+            String name, int width, int height, float scale, Tolerance tolerance, Scene scene) {
+        assertMatches(name, width, height, scale, tolerance, scene, false);
+    }
+
+    private static void assertMatches(
+            String name, int width, int height, float scale, Tolerance tolerance, Scene scene, boolean sweep) {
 
         // Through the shipped `Offscreen` rather than through a frame this
         // harness opens itself (ADR-0284). It owns the buffer, the frame and the
@@ -165,7 +168,7 @@ public final class GoldenImage {
         }
 
         var expected = Png.read(goldenFile);
-        var comparison = compare(expected, actual);
+        var comparison = compare(expected, actual, tolerance);
         if (comparison.matches()) {
             // Only once the image is right: a scene whose golden has drifted
             // would report both faults, and the first one is the one to read.
@@ -207,25 +210,30 @@ public final class GoldenImage {
         return new Png.Image(width, height, argb);
     }
 
-    private record Comparison(int differing, int worstChannel, int total, Png.Image diff) {
+    private record Comparison(
+            int differing, int strays, int worstChannel, int total, Tolerance tolerance, Png.Image diff) {
 
         boolean matches() {
-            return worstChannel <= CHANNEL_TOLERANCE && (double) differing / total <= MAX_DIFFERING_FRACTION;
+            return tolerance.admits(differing, strays, total);
         }
 
         String describe() {
             return String.format(
-                    "%d of %d pixels differ (%.2f%%, allowed %.2f%%), worst channel delta %d (allowed %d)",
+                    "%d of %d pixels differ (%.2f%%, allowed %.2f%%), worst channel delta %d (allowed %d),"
+                            + " %d beyond it (%.3f%%, allowed %.3f%%)",
                     differing,
                     total,
                     100.0 * differing / total,
-                    100 * MAX_DIFFERING_FRACTION,
+                    100 * tolerance.differing(),
                     worstChannel,
-                    CHANNEL_TOLERANCE);
+                    tolerance.channel(),
+                    strays,
+                    100.0 * strays / total,
+                    100 * tolerance.stray());
         }
     }
 
-    private static Comparison compare(Png.Image expected, Png.Image actual) {
+    private static Comparison compare(Png.Image expected, Png.Image actual, Tolerance tolerance) {
         if (expected.width() != actual.width() || expected.height() != actual.height()) {
             throw new AssertionFailedError("golden is " + expected.width() + "x" + expected.height()
                     + " but the scene rendered " + actual.width() + "x" + actual.height());
@@ -233,6 +241,7 @@ public final class GoldenImage {
 
         var diff = new int[expected.argb().length];
         var differing = 0;
+        var strays = 0;
         var worst = 0;
         for (var i = 0; i < diff.length; i++) {
             var a = expected.argb()[i];
@@ -245,11 +254,20 @@ public final class GoldenImage {
             if (delta > 0) {
                 differing++;
             }
+            if (delta > tolerance.channel()) {
+                strays++;
+            }
             // Magenta where they differ, scaled by how much, on black. A
             // greyscale diff is unreadable at a delta of two.
             var intensity = Math.min(255, delta * 32);
             diff[i] = 0xFF000000 | intensity << 16 | intensity;
         }
-        return new Comparison(differing, worst, diff.length, new Png.Image(expected.width(), expected.height(), diff));
+        return new Comparison(
+                differing,
+                strays,
+                worst,
+                diff.length,
+                tolerance,
+                new Png.Image(expected.width(), expected.height(), diff));
     }
 }

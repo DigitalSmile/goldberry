@@ -1435,9 +1435,10 @@ final class Launcher implements Host {
     ///
     /// A list rather than one slot, because an application may reasonably have two
     /// — the shell that swaps the stylesheet, and a settings screen showing what
-    /// the desktop currently says. Nothing removes one: a listener lives as long as
-    /// the window, which is what [Host#onSystemThemeChanged] promises.
-    private final List<java.util.function.Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
+    /// the desktop currently says. Each registration is removed by the
+    /// subscription it returned, which a tray following the setting closes with
+    /// itself (ADR-0501).
+    private final List<Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
 
     @Override
     public java.util.Optional<SystemTheme> systemTheme() {
@@ -1450,8 +1451,20 @@ final class Launcher implements Host {
     }
 
     @Override
-    public void onSystemThemeChanged(java.util.function.Consumer<SystemTheme> listener) {
-        systemThemeListeners.add(Objects.requireNonNull(listener, "listener"));
+    public Subscription onSystemThemeChanged(Consumer<SystemTheme> listener) {
+        Objects.requireNonNull(listener, "listener");
+        // An object of its own per registration, and removed by identity: the
+        // same listener registered twice is two registrations, closing one
+        // leaves the other, and closing it again finds nothing. A lambda here
+        // would not promise a fresh instance.
+        var registration = new Consumer<SystemTheme>() {
+            @Override
+            public void accept(SystemTheme theme) {
+                listener.accept(theme);
+            }
+        };
+        systemThemeListeners.add(registration);
+        return () -> systemThemeListeners.remove(registration);
     }
 
     /// Tells every listener, over a copy: a listener that reacts by adding another

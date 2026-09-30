@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
@@ -25,6 +26,7 @@ import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownView;
+import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
@@ -32,8 +34,14 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.EdgeScroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 
 /// Selecting text in a rendered document, end to end.
 ///
@@ -71,7 +79,7 @@ class SelectionTest {
     }
 
     /// A tree holding `view`, wired to a router and taken through one frame.
-    private void mount(io.github.digitalsmile.goldberry.widget.Widget view) {
+    private void mount(Widget view) {
         tree = new ElementTree(view);
         router = new PointerRouter();
         router.focusRoot(tree.root());
@@ -412,10 +420,10 @@ class SelectionTest {
         //
         // `height(...)` because this viewport is the root of the tree and nothing above
         // it bounds one: a `scroll` as tall as its content has nothing to scroll.
-        mount(new io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll(
-                        java.util.List.of(MarkdownView.of(DOCUMENT.repeat(8)).id("note")),
-                        io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis.VERTICAL,
-                        io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE.id("pane"))
+        mount(new Scroll(
+                        List.of(MarkdownView.of(DOCUMENT.repeat(8)).id("note")),
+                        ScrollAxis.VERTICAL,
+                        Attributes.NONE.id("pane"))
                 .height(200));
         // A viewport learns how much it overflows from the frame that laid it out
         // (ADR-0117), so the wheel has to come after one.
@@ -446,6 +454,157 @@ class SelectionTest {
             }
         }
         throw new AssertionError("the viewport is showing no words at all");
+    }
+
+    /// A drag held below a pane, for both views ([ADR-0500]).
+    ///
+    /// The pane is 200 tall in a window 300 tall, so the pointer can be put below it
+    /// and still be in the window — which is where a reader's pointer is when they
+    /// drag past the bottom of a preview beside an editor. Against a virtual clock,
+    /// because what is asserted is how far each frame moved, and that is a speed
+    /// times the frame's time.
+    @Nested
+    @DisplayName("a drag held past the edge of the pane")
+    class HeldAtTheEdge {
+
+        private final Clock.Virtual clock = Clock.virtual();
+
+        private final ScrollController pane = new ScrollController();
+
+        /// `view` in a pane 200 tall, taken through the frames that measure it.
+        private void inAPane(Widget view) {
+            renderer.clock(clock);
+            mount(new Scroll(List.of(view), ScrollAxis.VERTICAL, Attributes.NONE.id("pane"))
+                    .height(200)
+                    .controlledBy(pane));
+            frame();
+            frame();
+        }
+
+        /// One frame, 16 ms after the last.
+        private void step() {
+            clock.advance(16);
+            frame();
+        }
+
+        /// Presses on the first word on screen and drags to 60 below the pane.
+        private void dragBelow() {
+            var first = rectOf(firstVisible());
+            router.pointerPressed(first.left() + 1, first.top() + 1, PointerEvent.Button.PRIMARY, 1);
+            frame();
+            router.pointerMoved(200, 260);
+            frame();
+        }
+
+        private List<Double> offsets(int frames) {
+            var offsets = new ArrayList<Double>();
+            for (var i = 0; i < frames; i++) {
+                step();
+                offsets.add(pane.position().offsetY());
+            }
+            return offsets;
+        }
+
+        @Test
+        @DisplayName("a markdown-view's pane scrolls on, frame by frame, and the selection follows it")
+        void markdownScrollsOn() {
+            inAPane(MarkdownView.of(DOCUMENT.repeat(12)).id("note"));
+            scrollsOn();
+        }
+
+        @Test
+        @DisplayName("and an html-view's")
+        void htmlScrollsOn() {
+            inAPane(HtmlView.of("<p>The quick brown fox</p><p>jumps over it</p>".repeat(12)));
+            scrollsOn();
+        }
+
+        private void scrollsOn() {
+            dragBelow();
+            // Before the edge, this was where it ended: every word is clipped to the
+            // pane, a pointer below it is over none of them, and the drag stopped.
+            var selected = state().selectedText().length();
+            assertTrue(selected > 0, "the drag below the pane selected nothing");
+
+            var offsets = offsets(10);
+
+            // Sixty pixels past the edge is seventy-six past the band's inner edge,
+            // which is 760 a second and 12.16 a frame.
+            var perFrame = EdgeScroll.speed(EdgeScroll.BAND + 60) * 0.016;
+            for (var i = 1; i < offsets.size(); i++) {
+                assertEquals(
+                        perFrame,
+                        offsets.get(i) - offsets.get(i - 1),
+                        1e-6,
+                        "frame " + i + " moved by something other than speed times time: " + offsets);
+            }
+            assertTrue(
+                    state().selectedText().length() > selected,
+                    "the pane moved " + offsets.getLast() + " and the selection stayed at " + selected + " characters");
+        }
+
+        @Test
+        @DisplayName("the selection ends at a word on screen, at the bottom of the pane")
+        void theEndIsOnScreen() {
+            inAPane(MarkdownView.of(DOCUMENT.repeat(12)).id("note"));
+            dragBelow();
+            offsets(10);
+            frame();
+
+            var washed = state().washed();
+            var last = washed.getLast();
+            assertTrue(
+                    last.bottom() > 150 && last.top() < 200,
+                    "the last washed rectangle is at " + last + ", not at the bottom of the pane");
+        }
+
+        @Test
+        @DisplayName("it stops on the release")
+        void stopsOnRelease() {
+            inAPane(MarkdownView.of(DOCUMENT.repeat(12)).id("note"));
+            dragBelow();
+            offsets(3);
+            router.pointerReleased(200, 260, PointerEvent.Button.PRIMARY, 1);
+            var released = pane.position().offsetY();
+            var text = state().selectedText();
+
+            offsets(3);
+
+            assertTrue(released > 0);
+            assertEquals(released, pane.position().offsetY(), 1e-9, "the pane went on after the release");
+            assertEquals(text, state().selectedText(), "the selection went on after the release");
+            assertFalse(state().autoScrolling(), "a released drag kept the frame loop awake");
+        }
+
+        @Test
+        @DisplayName("and when the pointer comes back inside")
+        void stopsInside() {
+            inAPane(MarkdownView.of(DOCUMENT.repeat(12)).id("note"));
+            dragBelow();
+            offsets(3);
+            router.pointerMoved(200, 100);
+            var inside = pane.position().offsetY();
+
+            offsets(3);
+
+            assertEquals(inside, pane.position().offsetY(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("and at the end of the document, where it stops asking for frames")
+        void stopsAtTheEnd() {
+            inAPane(MarkdownView.of(DOCUMENT.repeat(5)).id("note"));
+            dragBelow();
+            offsets(80);
+
+            var end = pane.position();
+            assertEquals(end.overflowY(), end.offsetY(), 1e-6, "eighty frames did not reach the end");
+            step();
+            assertFalse(state().autoScrolling(), "a pane at its end kept the frame loop awake");
+            assertTrue(
+                    state().selectedText().endsWith("over it"),
+                    "the drag should have selected to the end of the document");
+        }
     }
 
     /// A clipboard that remembers, which is all this needs — the real one is the

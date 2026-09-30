@@ -4,7 +4,7 @@ Triage of 2026-09-30, at `5878e577`. This is item 6 of
 [the 2026-09-30 refactor](refactor-2026-09-30.md). The triage before this one is
 [ADR-0341](../book/src/adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md).
 
-**Status: applied, uncommitted, on 2026-09-30.** All ten batches are done. The
+**Status: done, committed in `f8d3cd48` on 2026-09-30.** All ten batches are done. The
 decisions are in
 [ADR-0498](../book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
 [What was done](#what-was-done) records each batch and where the plan below
@@ -319,7 +319,7 @@ Q2 and Q3 are cheaper to fix after it.
 
 ## What was done
 
-Applied on 2026-09-30 over `6dd0cde9`, and not yet committed. The decisions are
+Applied on 2026-09-30 over `6dd0cde9` and committed as `f8d3cd48`. The decisions are
 in
 [ADR-0498](../book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
 

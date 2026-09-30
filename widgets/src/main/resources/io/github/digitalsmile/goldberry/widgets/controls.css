@@ -2004,11 +2004,19 @@ option {
  *
  * Where each one sits is `SegmentedDivider`'s, because it is a fraction of a
  * count; what a theme owns is here. The two beside the selection fade out rather
- * than blinking, because the pill takes `base` to reach them. */
+ * than blinking, because the pill takes `base` to reach them.
+ *
+ * *Which* two is the widget's, as a class — a selector cannot compare a line's
+ * place with the pill's — and what happens to them is this sheet's: a theme that
+ * wanted them dimmed rather than gone writes a different number (ADR-0499). */
 segmented-divider {
   width: 1px;
   background: var(--gb-border);
   transition: opacity var(--gb-motion-fast) ease-enter;
+}
+
+segmented-divider.beside-selection {
+  opacity: 0;
 }
 
 /* §2.1's hover and press, as a **wash** rather than as a surface step -- the
@@ -3597,7 +3605,11 @@ scroll {
 
 /* The moving box. It has no appearance at all: it exists so that there is a
    single node to translate, and giving it a padding here would put the padding
-   *inside* the scrolled area, which is almost never what anyone means. */
+   *inside* the scrolled area, which is almost never what anyone means.
+
+   The `flex-shrink` is said here so that the sheet reads true, and pinned by
+   `ScrollContent.render` so that no later rule can undo it: a content box that
+   shrank to its viewport would leave nothing to scroll (ADR-0499). */
 scroll-content {
   flex-shrink: 0;
 }

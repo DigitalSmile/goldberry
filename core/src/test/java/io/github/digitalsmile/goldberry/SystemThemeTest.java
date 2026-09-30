@@ -206,6 +206,37 @@ class SystemThemeTest {
         assertEquals(List.of(), late, "a listener registered during the notification hears the *next* change");
     }
 
+    /// What a tray that follows the setting relies on: it is closed and shown
+    /// again every time its menu changes, and each showing listens (ADR-0501).
+    @Test
+    @Timeout(20)
+    @DisplayName("a closed subscription is not told, and the same listener's other one still is")
+    void aClosedSubscriptionIsNotTold() {
+        var closed = new ArrayList<SystemTheme>();
+        var twice = new ArrayList<SystemTheme>();
+
+        Goldberry.launch(
+                new TestApp(host -> {
+                    var gone = host.onSystemThemeChanged(closed::add);
+                    // One listener, two registrations: closing one must not take
+                    // the other with it.
+                    Consumer<SystemTheme> shared = twice::add;
+                    var first = host.onSystemThemeChanged(shared);
+                    host.onSystemThemeChanged(shared);
+                    gone.close();
+                    first.close();
+                    first.close();
+                    afterTurns(host, 2, () -> {
+                        backend.systemTheme(SystemTheme.DARK);
+                        afterTurns(host, 3, Goldberry::stop);
+                    });
+                }),
+                new String[] {"--frames=400"});
+
+        assertEquals(List.of(), closed, "a closed subscription was still told");
+        assertEquals(List.of(SystemTheme.DARK), twice, "closing one registration twice took the other one too");
+    }
+
     @Test
     @Timeout(20)
     @DisplayName("setting it to what it already is reports nothing")

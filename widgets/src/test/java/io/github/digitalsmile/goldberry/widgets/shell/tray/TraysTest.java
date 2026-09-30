@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.shell.tray;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -10,7 +11,11 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessTray;
+import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -149,5 +154,143 @@ class TraysTest {
         assertEquals("Goldberry — idle", spec.tooltip());
         assertEquals(5, spec.items().size());
         assertEquals(null, spec.icon(), "no icon was described, so the platform's default is asked for");
+    }
+
+    // -- A picture for each shade of shell (ADR-0501) -------------------------
+
+    private static final PixelFormat PIXELS = PixelFormat.BGRA32_PREMULTIPLIED;
+
+    /// Dark ink, for a light panel.
+    private final PixelBuffer forLightShell = PixelBuffer.allocate(PhysicalSize.of(32, 32), PIXELS);
+
+    /// A light mark, for a dark panel. A different size as well as a different
+    /// buffer, so that even `equals` could not mistake one for the other.
+    private final PixelBuffer forDarkShell = PixelBuffer.allocate(PhysicalSize.of(64, 64), PIXELS);
+
+    private static HeadlessTray onlyTray(TestHost host) {
+        var trays = host.trays();
+        assertEquals(1, trays.size(), "one tray was shown");
+        return trays.getFirst();
+    }
+
+    @Test
+    @DisplayName("starts a pair of icons on the one for what the desktop says now")
+    void aPairStartsOnTheDesktopsSetting() {
+        var host = new TestHost();
+        host.systemTheme(SystemTheme.DARK);
+
+        Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell));
+
+        assertSame(forDarkShell, onlyTray(host).icon().orElseThrow());
+    }
+
+    @Test
+    @DisplayName("shows the light-shell icon where the desktop says nothing, as CSS reads no preference")
+    void aSilentDesktopGetsTheLightShellIcon() {
+        var host = new TestHost();
+
+        Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell));
+
+        assertSame(forLightShell, onlyTray(host).icon().orElseThrow());
+    }
+
+    @Test
+    @DisplayName("swaps the icon in place when the desktop's theme changes, and keeps the menu")
+    void aThemeChangeSwapsTheIcon() {
+        var host = new TestHost();
+        host.systemTheme(SystemTheme.LIGHT);
+        Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell));
+        var shown = onlyTray(host);
+        var rows = shown.items();
+
+        host.systemTheme(SystemTheme.DARK);
+        assertSame(forDarkShell, shown.icon().orElseThrow(), "dusk arrived and the icon stayed dark ink");
+
+        host.systemTheme(SystemTheme.LIGHT);
+        assertSame(forLightShell, shown.icon().orElseThrow());
+
+        assertSame(shown, onlyTray(host), "a swap is not a rebuild: the same tray is up");
+        assertSame(rows, shown.items());
+    }
+
+    @Test
+    @DisplayName("stops listening when the tray is closed, so a rebuilt tray leaves nothing behind")
+    void closingStopsListening() {
+        var host = new TestHost();
+        var before = host.systemThemeListenerCount();
+
+        var tray = Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell))
+                .orElseThrow();
+        assertEquals(before + 1, host.systemThemeListenerCount());
+
+        tray.close();
+        tray.close();
+
+        assertTrue(tray.isClosed());
+        assertEquals(before, host.systemThemeListenerCount(), "the closed tray is still listening");
+        // A closed headless tray refuses a new icon, so a listener left behind
+        // would throw here rather than pass quietly.
+        host.systemTheme(SystemTheme.DARK);
+    }
+
+    @Test
+    @DisplayName("rebuilding a tray to change its menu keeps one listener, not one per rebuild")
+    void rebuildsDoNotAccumulateListeners() {
+        var host = new TestHost();
+        var before = host.systemThemeListenerCount();
+        var description = TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell);
+
+        var tray = Trays.show(host, description).orElseThrow();
+        for (var i = 0; i < 5; i++) {
+            tray.close();
+            tray = Trays.show(host, description.tooltip("Goldberry — " + i)).orElseThrow();
+        }
+
+        assertEquals(before + 1, host.systemThemeListenerCount());
+        host.systemTheme(SystemTheme.DARK);
+        assertSame(forDarkShell, onlyTray(host).icon().orElseThrow());
+    }
+
+    @Test
+    @DisplayName("stops following once the application sets an icon of its own")
+    void anExplicitIconTakesThePictureOver() {
+        var host = new TestHost();
+        var badge = PixelBuffer.allocate(PhysicalSize.of(48, 48), PIXELS);
+        var tray = Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell))
+                .orElseThrow();
+
+        tray.icon(badge);
+        host.systemTheme(SystemTheme.DARK);
+
+        assertSame(badge, onlyTray(host).icon().orElseThrow(), "a swap at dusk undid the application's badge");
+        assertEquals(0, host.systemThemeListenerCount());
+    }
+
+    @Test
+    @DisplayName("lets go of a tray that was taken down underneath its handle")
+    void aTrayClosedUnderneathStopsTheListening() {
+        var host = new TestHost();
+        Trays.show(host, TrayIcon.of("Goldberry", menu()).icons(forLightShell, forDarkShell));
+
+        // What a backend does to every tray it still has when it shuts down.
+        onlyTray(host).close();
+        host.systemTheme(SystemTheme.DARK);
+
+        assertEquals(0, host.systemThemeListenerCount());
+    }
+
+    @Test
+    @DisplayName("leaves a single-icon tray alone: shown as described, and listening to nothing")
+    void aSingleIconIsUnchanged() {
+        var host = new TestHost();
+        host.systemTheme(SystemTheme.LIGHT);
+
+        var tray = Trays.show(host, TrayIcon.of("Goldberry", menu()).icon(forLightShell))
+                .orElseThrow();
+        host.systemTheme(SystemTheme.DARK);
+
+        assertSame(onlyTray(host), tray, "a tray with one picture needs no handle of its own");
+        assertSame(forLightShell, onlyTray(host).icon().orElseThrow());
+        assertEquals(0, host.systemThemeListenerCount());
     }
 }

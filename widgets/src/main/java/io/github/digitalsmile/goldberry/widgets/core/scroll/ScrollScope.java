@@ -91,4 +91,17 @@ public final class ScrollScope {
     public void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
         viewport.reveal(self, clip, axes);
     }
+
+    /// Moves by `dx`, `dy` **at once**, clamped to what there is to show — what a
+    /// drag held at the edge asks for, once a frame ([EdgeScroll], [ADR-0500]).
+    ///
+    /// Not a [ScrollController#scrollBy], which glides: that is a programmatic move,
+    /// and a glide 240 ms long restarted on every frame of a drag would never arrive
+    /// anywhere. This is direct input, the wheel's route — it stops a glide, wakes the
+    /// bars and moves only along the viewport's own [#axis()].
+    ///
+    /// @return whether anything moved; false at the end
+    public boolean nudge(double dx, double dy) {
+        return viewport.nudge(dx, dy);
+    }
 }

@@ -245,6 +245,12 @@ record TextAreaBox(
         editor.measured(bounds);
     }
 
+    /// While a drag is held past the edge and the text has somewhere to go.
+    @Override
+    public boolean isAnimating() {
+        return editor.isAutoScrolling();
+    }
+
     @Override
     public void onFocusChanged(boolean gained, boolean fromKeyboard) {
         editor.focusChanged(gained, fromKeyboard);
@@ -272,10 +278,11 @@ record TextAreaBox(
                 // button is deliberately not tested here — a motion carries none
                 // ([ADR-0168]).
                 if (!Double.isNaN(event.dragX())) {
-                    editor.pointerAt(event.local().x(), event.local().y(), true, 1);
+                    editor.dragTo(event.local().x(), event.local().y());
                     event.consume();
                 }
             }
+            case RELEASED -> editor.released();
             case WHEEL -> {
                 // Only when there is somewhere to go. A control that swallowed
                 // every wheel would trap the page's scroll the moment the pointer
@@ -285,6 +292,10 @@ record TextAreaBox(
                 // **Not negated.** `deltaY` is positive down the document and so
                 // is the editor's offset, which is `scroll`'s convention and the
                 // one every scrollable thing in the toolkit shares.
+                //
+                // Mid-drag too: a wheel is a wheel whether or not a button is
+                // down, and a drag held at the edge takes its speed from the
+                // pointer and never from this ([ADR-0500]).
                 if (editor.scrollByLines(event.deltaY() * WHEEL_LINES)) {
                     event.consume();
                 }
@@ -521,6 +532,9 @@ record TextAreaBox(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
+        // A drag held at the edge steps here, before the layout below reads the
+        // offset -- so the step is drawn in the frame that took it ([ADR-0500]).
+        editor.frame(context.nowMillis());
         var padding = AreaPadding.of(style);
         var font = context.font(style);
         // One paragraph per hard line, re-using last frame's for every line the

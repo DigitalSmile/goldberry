@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
@@ -277,15 +278,17 @@ public interface Host {
     /// gone from saying nothing to saying nothing does not report a change, and
     /// [#systemTheme()] is still the way to ask what it is now.
     ///
-    /// **No handle comes back**, unlike the router's subscriptions: this is
-    /// application API, the caller is the application, and its listener lives as
-    /// long as the window it registered against — which is the lifetime of the
-    /// application itself. A widget that wants to follow the desktop should let the
-    /// application tell it, in whatever it already rebuilds from.
+    /// **A [Subscription] comes back**, as [#onFullscreenChanged]'s does. An
+    /// application's own listener lives as long as the window and may drop it,
+    /// but a tray that swaps its icon at dusk is closed and shown again every
+    /// time its menu changes, and each showing that could not stop listening
+    /// would leave one listener behind (ADR-0501). A widget that wants to follow
+    /// the desktop should still let the application tell it, in whatever it
+    /// already rebuilds from.
     ///
     /// @param listener told the new setting, on the UI thread
-    void onSystemThemeChanged(java.util.function.Consumer<
-            SystemTheme> listener);
+    /// @return what stops the listening; closing it twice is harmless
+    Subscription onSystemThemeChanged(Consumer<SystemTheme> listener);
 
     /// Opens a widget tree in a platform window of its own — a menu, a dropdown,
     /// a tooltip.
@@ -773,9 +776,9 @@ public interface Host {
     /// or stops, whoever asked: this application, or the user with the
     /// platform's own button. On the UI thread.
     ///
-    /// A [io.github.digitalsmile.goldberry.bind.Subscription], unlike
-    /// [#onSystemThemeChanged]: a widget listens here, and a widget leaves the
-    /// tree long before its window closes, so it has to be able to stop.
+    /// A [io.github.digitalsmile.goldberry.bind.Subscription]: a widget listens
+    /// here, and a widget leaves the tree long before its window closes, so it
+    /// has to be able to stop.
     ///
     /// @param listener told `true` on entering fullscreen and `false` on leaving
     /// @return what stops the listening; closing it twice is harmless

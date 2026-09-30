@@ -14,8 +14,11 @@ Goldberry is a declarative desktop UI toolkit written in pure Java
 over a small set of native C libraries bound via the Foreign Function & Memory
 API. No JNI, no bundled web engine, no platform widget wrapping.
 
-- **Starts in milliseconds.** CPU rasterization, no GPU context for plain UI,
-  GraalVM native-image as a first-class target.
+- **Starts in milliseconds.** CPU rasterization, GraalVM native-image as a
+  first-class target, and no GPU context unless `goldberry-gpu` is on the
+  module path — with it, a window presents its frame through the GPU by
+  default, for about 20 ms of device creation at the first frame
+  ([ADR-0480](book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
 - **Declarative.** Immutable widgets with a pure `build()`, expressed as Java
   records or as KDL markup. Markup and stylesheets hot-reload at runtime.
 - **Real layout and real styling.** Flexbox via Yoga, and a genuine CSS subset
@@ -33,8 +36,10 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > §6's navigation, §7's overlays and the chart family — all drawn to the design
 > system's metrics with rounded corners, a real focus ring, the §1.4 type scale
 > in two real weights, a `regular`/`compact` density that no widget mentions,
-> CSS transitions on a frame clock and golden images. What is not built is the
-> GPU milestone and nine of the eleven content modules.
+> CSS transitions on a frame clock and golden images. The GPU milestone is
+> built in part — composited windows, GPU layers, `canvas3d` and video through
+> the GPU, measured on Metal — and three of the eleven content modules are
+> built: `goldberry-html`, `goldberry-emoji` and `goldberry-media`.
 > See [Status](book/src/status.md) for what works, and [TODO](book/src/TODO.md) for what does not yet.
 >
 > **There is no screen-reader support, on any platform, and none is scheduled.**
@@ -46,15 +51,20 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > accessible name that a sweep enforces, so the data a bridge would need is
 > there. Nothing reads it.
 >
-> **A web page is a window, not a widget, and most builds cannot open one.**
-> `web-view` drives the desktop's own engine — WebKitGTK, WebView2, WKWebView —
-> through a **separate optional library**, so that GTK and WebKit are never
-> load-time dependencies of the toolkit
+> **A web page is a widget where the window system allows a child window, and
+> nothing on Wayland.** `web-view` drives the desktop's own engine — WebKitGTK,
+> WebView2, WKWebView — through a **separate optional library**, so that GTK and
+> WebKit are never load-time dependencies of the toolkit
 > ([ADR-0441](book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). Ask
-> `Goldberry.capabilities()` for `WEB_VIEW` before offering one. It cannot be a
-> box in a layout on every platform this ships to, so it is a box on none: the
-> engine has no offscreen surface and Wayland allows neither reparenting a
-> foreign surface nor placing a window where a widget is.
+> `Goldberry.capabilities()` for `WEB_VIEW` before offering one. The engine has
+> no offscreen surface, so a page is its own window, made a child of the
+> application's and placed over the widget's box: on X11 and macOS, and written
+> but unverified on Windows. Wayland allows neither reparenting a foreign surface
+> nor placing a window where a widget is, so there the widget opens nothing and
+> says why
+> ([ADR-0442](book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+> Nothing painted can cover a page, a `scroll` does not clip it, and no golden
+> image contains it.
 
 ## Quick start
 
@@ -63,7 +73,11 @@ Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
 Versions are calendar versions — `2026.1`, `2026.2`, `2026.2.1` — and every push
 to master publishes a `-SNAPSHOT` of the next one to the Central Portal's snapshot
 repository — `goldberry-bom` for the version, `goldberry` for the toolkit, and
-`goldberry-html` / `goldberry-gpu` when you want them. A release tag also
+`goldberry-html`, `goldberry-emoji`, `goldberry-gpu` and `goldberry-media` when
+you want them; `goldberry-media` also needs its FFmpeg for each platform, as
+`ffmpeg-<target>` classifier jars
+([ADR-0495](book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)).
+A release tag also
 attaches the showcase, as a GraalVM native binary per platform, to its GitHub
 Release. Nothing has been released yet. [`docs/releasing.md`](docs/releasing.md) has the coordinates and the
 release checklist.
@@ -1590,6 +1604,54 @@ drag ends is coalesced away rather than laid out twice
 Nothing in an application changes, and a `libgoldberry` built before the two
 symbols were exported loses live resize rather than the ability to open a window.
 
+## The GPU
+
+The UI is painted by Blend2D on the CPU whatever the window presents through
+([ADR-0002](book/src/adr/0002-cpu-rasterization-with-blend2d.md)).
+`goldberry-gpu` changes the last step. Put it on the module path and every
+window presents its frame through `SDL_GPU` — the frame's damage uploaded to a
+texture and drawn onto the window's swapchain — and on the CPU wherever that
+cannot be done: no device, a refused claim, a popup
+([ADR-0480](book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
+A window says which, and why, once per change:
+
+```text
+[GPU] "Goldberry — showcase on Linux / amd64" presents through the GPU (vulkan)
+```
+
+`Window.presentation()` answers the same thing in code
+([ADR-0492](book/src/adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)).
+Two properties change the policy: `-Dgoldberry.gpu=off` keeps every window on
+the CPU, and `-Dgoldberry.gpu.composite=auto` composites a window only while it
+shows GPU content (`never` and `always`, the default, are the other two).
+
+What the GPU path adds is **GPU layers**: opaque rectangles in the frame's paint
+order that the GPU fills and the UI is composited over, and that a window which
+cannot composite reads back into its frame instead
+([ADR-0481](book/src/adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)).
+Two widgets are built on them. `canvas3d` hands an application's renderer the
+window's device and a target at the box's size, every frame or at each new
+`revision`
+([ADR-0482](book/src/adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)):
+
+```java
+public interface Canvas3dRenderer {
+    void init(GpuDevice device);
+    default void resize(PhysicalSize size) {}
+    void render(GpuFrame frame, Canvas3dTarget target);
+    void dispose();
+}
+
+new Canvas3d(Cube.spinning()).continuous(true)   // the showcase's GPU screen
+```
+
+And `goldberry-media`'s `video-view` draws its pictures through one when `:gpu`
+is present, converting them from their planes in a shader
+([ADR-0484](book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+All of it is measured on Metal, and has also run on Linux under X11; the lane
+that would test it on every push has not yet reached a test. See
+[Status](book/src/status.md#m4--gpu).
+
 ## Run the showcase
 
 `:example` is an ordinary subproject that runs on the module path, which is what
@@ -1608,14 +1670,16 @@ A window opens, **maximized**, in three bands
   submenu built from the gallery's own list of screens;
 - a **bar** saying how long this process took to put a window up and what it
   found when it looked around, and a switch that changes the light everywhere;
-- a **gallery** of seven screens — Basic, Panels, Overlays, Forms, Navigation,
-  Collections, Charts — reachable by the strip, by `Ctrl+1`…`Ctrl+7`, and by
-  Edit ▸ Go to.
+- a **gallery** of seventeen screens — Basic, Panels, Overlays, Forms,
+  Navigation, Collections, Charts, Markdown, HTML, Canvas, Icons, Emoji, Motion,
+  Web view, Audio, Video and GPU — reachable by the strip, by `Ctrl+1`…`Ctrl+0`
+  for the first ten, and by Edit ▸ Go to.
 
-Every screen is a wall of cards in a `masonry`, and every card is a `card` or a
-`group-box`. Four of the seven are `.kdl` documents with Java appending the cards
-markup cannot write — an expression, a list the application edits, a channel that
-hands values back. The content is Middle-earth rather than `Item 1`, because a
+Most screens are a wall of cards in a `masonry`, every card a `card` or a
+`group-box`; Markdown and HTML are a `split-pane` of source and preview instead.
+Eight of the seventeen are `.kdl` documents with Java appending the cards markup
+cannot write — an expression, a list the application edits, a channel that hands
+values back. The content is Middle-earth rather than `Item 1`, because a
 placeholder label cannot show whether a sortable header or a wrapped paragraph
 *reads*; only whether it draws.
 

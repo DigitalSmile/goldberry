@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
 import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
@@ -45,8 +46,9 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileD
     }
 
     @Override
-    public void onSystemThemeChanged(Consumer<SystemTheme> listener) {
-        // Nothing ever changes it here.
+    public Subscription onSystemThemeChanged(Consumer<SystemTheme> listener) {
+        // Nothing ever changes it here, so there is nothing to stop.
+        return () -> {};
     }
 
     @Override

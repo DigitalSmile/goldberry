@@ -300,8 +300,10 @@ jobs:
       # missing device into a failure rather than a green tick over nothing
       # (ADR-0016).
       #
-      # Written before it could be run: no Linux host with a container runtime
-      # was at hand when it was added. Its first run is its first test.
+      # Written before it could be run, and its first two runs (Snapshot 32 and
+      # 33) failed at the ICD lookup: Mesa's packaging names the file
+      # `lvp_icd.json` now, where older releases wrote `lvp_icd.<arch>.json`, and
+      # the glob only knew the second. Both spellings are accepted.
       - name: Install lavapipe
         run: |
           sudo apt-get update
@@ -309,7 +311,7 @@ jobs:
 
       - name: GPU tests on lavapipe
         run: |
-          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.*.json | head -n 1)
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd.json /usr/share/vulkan/icd.d/lvp_icd.*.json 2>/dev/null | head -n 1)
           test -n "$icd" || { echo "::error::no lavapipe ICD in /usr/share/vulkan/icd.d"; exit 1; }
           export VK_DRIVER_FILES="$icd" VK_ICD_FILENAMES="$icd"
           vulkaninfo --summary

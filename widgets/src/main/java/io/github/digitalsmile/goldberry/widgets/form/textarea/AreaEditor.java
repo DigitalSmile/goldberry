@@ -105,6 +105,31 @@ interface AreaEditor {
     /// The pointer went down or was dragged to a point in this control.
     void pointerAt(double x, double y, boolean extend, int clickCount);
 
+    /// The pointer was dragged to a point, in this control's own coordinates —
+    /// which may be past its edge, and then the text scrolls on while the drag is
+    /// held there ([ADR-0500]).
+    ///
+    /// Not [#pointerAt] with `extend` set, which is what it was. A drag past the
+    /// bottom used to select the line under the pointer **outside** the control and
+    /// then scroll to it, which is a jump as far as the pointer had gone; this
+    /// selects to the last line wholly on screen and lets the frames carry the rest.
+    void dragTo(double x, double y);
+
+    /// The button came up, or the drag was otherwise over.
+    void released();
+
+    /// A frame is being rendered — where a drag held at the edge takes its step.
+    ///
+    /// Before [#laidOut], so the step is laid out and drawn in the frame that took
+    /// it.
+    ///
+    /// @param nowMillis the frame clock
+    void frame(double nowMillis);
+
+    /// Whether a drag held at the edge still has somewhere to go, which is whether
+    /// the control wants another frame.
+    boolean isAutoScrolling();
+
     /// The wheel turned over it, by `lines` — **positive is down the document**,
     /// which is [io.github.digitalsmile.goldberry.input.event.PointerEvent#deltaY()]'s
     /// own sign and convention.

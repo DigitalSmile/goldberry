@@ -16,7 +16,7 @@ Companion to `ARCHITECTURE.md`. Covers the optional content modules: HTML/markdo
 | `goldberry-media`   | FFmpeg + dav1d          | ≤ 6 MB      | LGPL-2.1+ (**dynamic link**), BSD-2 | **in progress** (2026-09-23, ADR-0460 to ADR-0463). FFmpeg driven from Java replaces libVLC. Royalty-free codecs only, and no FFmpeg network layer. Phases 1–3 built: audio, video with CPU present, and all four widgets. Design in `goldberry-media.md`, tracking in `media-plan.md` |
 | `goldberry-camera`  | SDL3 camera subsystem   | none new    | zlib (SDL3, already in core)  | planned |
 | `goldberry-mic`     | SDL3 audio recording    | none new    | zlib (SDL3, already in core)  | planned |
-| ~~`goldberry-web`~~ | webview/webview         | none new    | MIT                           | **not a module** — built as §9's `web-view` in `:widgets` (ADR-0441). Servo was the blocker and not the only route: `webview/webview` drives the desktop's own engine, so there is nothing heavy to quarantine. See §11 |
+| ~~`goldberry-web`~~ | webview/webview         | none new    | MIT                           | **not a module** — built as §9's `web-view` in `:widgets` (ADR-0441), a widget where the window system allows a child window (ADR-0442). Servo was the blocker and not the only route: `webview/webview` drives the desktop's own engine, so there is nothing heavy to quarantine. See §11 |
 | `goldberry-gpu`     | SDL_GPU (in `libgoldberry`) | none new | zlib (SDL3, already in core)  | **built in part** (M4, `gpu-plan.md`): the GPU API, composited windows (the default, ADR-0480), GPU layers (ADR-0481) and `canvas3d` (ADR-0482). A widget module like the others here, though its engine is the GPU rather than a library |
 | `goldberry-emoji`   | Noto Color Emoji        | font only   | SIL OFL 1.1                   | **built** (2026-09-17, ADR-0384) — the face reaches `:core` through an `EmojiFont` service and is routed into ordinary text by the itemizer (ADR-0393). **Noto's COLRv1 build** since 2026-09-23, drawn from its paint graphs (ADR-0456); it replaced OpenMoji, whose CC BY-SA asked for credit on screen |
 
@@ -339,8 +339,11 @@ Because everything is Blend2D, `Plot.renderTo(image)` gives publication-quality 
 > **This is no longer a content module, and `goldberry-web` does not exist.** A
 > web page ships as `web-view` in `:widgets`, beside `tray-icon` in §9's
 > `widget.shell` group
-> ([ADR-0441](../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). What
-> follows is why the module was dissolved rather than built.
+> ([ADR-0441](../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)), and it
+> is a widget wherever the window system allows a child window
+> ([ADR-0442](../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+> What follows is why the module was dissolved rather than built, and where a
+> page can be a box.
 
 **The parked entry was right about Servo and wrong that Servo was the question.**
 libservo is Rust-only against a deliberately unstable API, so the module would
@@ -362,9 +365,26 @@ placing a window where a widget is — so a `web-view` that was a box in a layou
 would be a box on X11, Windows and macOS and a loose window on the default Linux
 desktop.
 
-So a page is **a window the application opens**, not a widget: `WebViews.open`
-returns a handle that navigates, evaluates and closes. That is `tray-icon`'s
-shape, which is why it lives beside it.
+ADR-0441 concluded from this that a page is **a window the application opens**,
+not a widget, and that half of the section was overtaken the next day. The
+objection was to a *silent* fallback, not to embedding
+([ADR-0442](../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)),
+so `WebView` **is** a widget: it has a box, takes part in layout, and the page's
+own platform window is made a child of the application's, placed over that box
+and moved with it.
+
+| Session | What a `web-view` does |
+|---|---|
+| X11 | the page is reparented into the toolkit's window and is never the window manager's ([ADR-0446](../book/src/adr/0446-an-embedded-page-is-never-the-window-managers.md)); the window stays on the GPU ([ADR-0491](../book/src/adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)) |
+| macOS | the page is a subview of the window's content view ([ADR-0458](../book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md)) |
+| Windows | `SetParent`, written and not yet verified on a machine |
+| Wayland | **opens nothing and paints why**: the protocol allows neither reparenting a foreign surface nor placing a window where a widget is |
+
+A page parks itself while a modal is up
+([ADR-0444](../book/src/adr/0444-a-page-stands-aside-for-a-modal.md)), because
+a child window is drawn above everything the toolkit paints. `WebViews.open`
+stays as the separate-window form — a handle that navigates, evaluates and
+closes — which is `tray-icon`'s shape and why both live in `widget.shell`.
 
 **The native library is separate and optional.** `libgoldberry-webview` is built
 only where WebKit's development headers are present, is linked into nothing, and

@@ -35,13 +35,20 @@ import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 @DisplayName("GPU layers, through the backends")
 class GpuLayerBackendTest {
 
-    private SdlGpuDevice required;
+    private boolean sdlReached;
 
     @BeforeEach
     void video() {
         // SDL's video under the lane's driver, which every device here needs:
-        // the headless backend initialises none of its own.
-        required = GpuDeviceRequirement.enforce();
+        // the headless backend initialises none of its own. The device only
+        // proves one can be made, and goes at once: the backends make their own,
+        // and `Sdl3Backend.close()` ends in SDL_Quit, which a device still open
+        // does not survive. Kept to the end of the test, it was destroyed after
+        // that quit and took the JVM down in VULKAN_DestroyDevice, on lavapipe
+        // as on NVIDIA's driver.
+        try (SdlGpuDevice _ = GpuDeviceRequirement.enforce()) {
+            sdlReached = true;
+        }
         var videoDriver = System.getProperty(GpuDeviceRequirement.VIDEO_DRIVER_PROPERTY, "");
         if (!videoDriver.isBlank()) {
             System.setProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY, videoDriver);
@@ -55,10 +62,9 @@ class GpuLayerBackendTest {
         System.clearProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
         // Skipped before SDL was reached: nothing to give back, and no library to
         // call. Calling it anyway failed the test, and a build without it (ADR-0495).
-        if (required == null) {
+        if (!sdlReached) {
             return;
         }
-        required.close();
         Sdl.get().quit();
     }
 

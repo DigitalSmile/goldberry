@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.golden.Tolerance;
 import io.github.digitalsmile.goldberry.gpu.composite.CompositeHarness;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
@@ -122,12 +123,15 @@ class Canvas3dGoldenTest {
         }
         assertEquals("dispose", cube.calls.getLast(), "disposed with the tree");
 
-        GoldenImage.assertMatchesAtOneScale("canvas3d-cube", WIDTH, HEIGHT, 1f, (at, scale) -> {
+        // Rasterized and lit by the GPU: blessed on Metal and compared on whatever
+        // driver runs this, whose shading may round a level apart everywhere and
+        // whose aliased silhouette may give a pixel to the other side (ADR-0503).
+        GoldenImage.assertMatchesAtOneScale("canvas3d-cube", WIDTH, HEIGHT, 1f, Tolerance.GPU, (at, scale) -> {
             try (var scene = new Mounted(cube(new TestCube()))) {
                 return harness.readBack(surface -> scene.picture(at, scale.factor(), surface));
             }
         });
-        GoldenImage.assertMatchesAtOneScale("canvas3d-cube", WIDTH, HEIGHT, 1f, (at, scale) -> {
+        GoldenImage.assertMatchesAtOneScale("canvas3d-cube", WIDTH, HEIGHT, 1f, Tolerance.GPU, (at, scale) -> {
             try (var scene = new Mounted(cube(new TestCube()))) {
                 return harness.composited(surface -> scene.picture(at, scale.factor(), surface))
                         .image();

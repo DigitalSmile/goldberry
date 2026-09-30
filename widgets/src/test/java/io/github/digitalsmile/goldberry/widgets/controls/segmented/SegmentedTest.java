@@ -630,6 +630,30 @@ class SegmentedTest {
                     "a hairline that blinked would beat the pill that is still travelling");
         }
 
+        /// The widget says **which** lines are beside the pill and the stylesheet
+        /// says what that means — the half of the old `restyle` a stylesheet could
+        /// have written once it was told (ADR-0499).
+        @Test
+        @DisplayName("the hairlines beside the pill are hidden by the stylesheet, told which by the widget")
+        void besideTheSelectionIsTheStylesheets() {
+            var left = new SegmentedDivider(1, 4, 1);
+            var right = new SegmentedDivider(2, 4, 1);
+            var far = new SegmentedDivider(3, 4, 1);
+
+            assertEquals(Set.of("beside-selection"), left.classes());
+            assertEquals(left.classes(), right.classes());
+            assertEquals(Set.of(), far.classes(), "a line away from the pill is not beside it");
+
+            var hidden = styleOf("segmented-divider", left.classes());
+            assertEquals(0.0, hidden.opacity(), 1e-9);
+            assertEquals(1.0, styleOf("segmented-divider", far.classes()).opacity(), 1e-9);
+            assertEquals(
+                    1.0,
+                    left.restyle(styleOf("segmented-divider")).opacity(),
+                    1e-9,
+                    "restyle places the line and no longer decides whether it shows");
+        }
+
         /// The one layout property the control asserts, because it is the one
         /// that decides what a bar looks like in a column: given spare width the
         /// segments divide it, rather than huddling at the left of a plate that
@@ -767,23 +791,24 @@ class SegmentedTest {
         // ------------------------------------------------------------ helpers
 
         private static ComputedStyle styleOf(String type, Selector.PseudoClass... states) {
+            return styleOf(type, Set.of(), states);
+        }
+
+        private static ComputedStyle styleOf(String type, Set<String> classes, Selector.PseudoClass... states) {
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-            return ComputedStyle.of(resolver.resolve(new Probe(type, Set.of(states))), CssLength.Context.DEFAULT);
+            return ComputedStyle.of(
+                    resolver.resolve(new Probe(type, classes, Set.of(states))), CssLength.Context.DEFAULT);
         }
 
         /// A node that exists only to be styled, exactly as `DensityTest`'s does —
-        /// with the states it is in, because the rules under test are ordered
-        /// against each other by pseudo-class.
-        private record Probe(String type, Set<Selector.PseudoClass> states) implements StyleElement {
+        /// with the classes and the states it is in, because the rules under test
+        /// are ordered against each other by both.
+        private record Probe(String type, Set<String> classes, Set<Selector.PseudoClass> states)
+                implements StyleElement {
 
             @Override
             public String id() {
                 return null;
-            }
-
-            @Override
-            public Set<String> classes() {
-                return Set.of();
             }
 
             @Override

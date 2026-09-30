@@ -542,7 +542,7 @@ cleanly to the pinned SDL and a test fails if it does not.
 | A native image of the showcase with the GPU tab: registrations, shader resources, startup unchanged for a window with no GPU layer | open |
 | The frame-budget run (ADR-0342) in composited mode on the lanes that have a GPU | open |
 | Windows (D3D12) and Linux on hardware, when a host exists: written and unit-tested before, measured here | open |
-| `book/src/status.md` M4, `ARCHITECTURE.md` §12 and §16, `README.md` | open |
+| `book/src/status.md` M4, `ARCHITECTURE.md` §12 and §16, `README.md` | done (2026-09-30): phases 1–6 as built, the default GPU present and its fallbacks, video through a GPU layer, and the lavapipe lane's two runs, which failed before a test |
 
 **Exit:** M4 is done when phases 1–6 have met their exits, and this table's
 items are either done or recorded as waiting on a host.

@@ -12,6 +12,8 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.EdgeScroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollBar;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Composing;
 import io.github.digitalsmile.goldberry.widgets.form.parts.MaxLength;
@@ -60,6 +62,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// How far the content has been scrolled **up**, in logical pixels. Not
     /// `setState`: it is computed during `render` and applied in the same frame.
     private double scrollOffset;
+
+    /// A drag held at the top or bottom of the text, carrying [#scrollOffset] on —
+    /// the same mechanism the content views use, over this control's own offset
+    /// rather than a `scroll` around it ([ADR-0500]).
+    private final EdgeScroll edge = new EdgeScroll();
 
     /// Whether the caret is worth chasing yet.
     ///
@@ -406,6 +413,79 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public void pointerAt(double x, double y, boolean extend, int clickCount) {
+        select(x, y, extend, clickCount, false);
+        // Every press takes hold: whatever it selected, a drag from it extends, and
+        // a drag can reach the edge.
+        edge.hold(this::carry, ScrollAxis.VERTICAL);
+        edge.pointer(x, y, viewport());
+    }
+
+    @Override
+    public void dragTo(double x, double y) {
+        if (!edge.isHeld()) {
+            edge.hold(this::carry, ScrollAxis.VERTICAL);
+        }
+        var wasScrolling = edge.isScrolling();
+        edge.pointer(x, y, viewport());
+        select(edge.x(), edge.y(), true, 1, true);
+        if (edge.isScrolling() && !wasScrolling && isMounted()) {
+            // A pointer that reached the edge and selected nothing new has asked
+            // for no frame, and the frames are what carry the text on.
+            setState(() -> {});
+        }
+    }
+
+    @Override
+    public void released() {
+        edge.release();
+    }
+
+    @Override
+    public void frame(double nowMillis) {
+        if (edge.tick(nowMillis)) {
+            // New text under a pointer that has not moved.
+            select(edge.x(), edge.y(), true, 1, true);
+        }
+    }
+
+    @Override
+    public boolean isAutoScrolling() {
+        return edge.isScrolling();
+    }
+
+    /// One step of a held drag: the offset, moved now.
+    ///
+    /// Assigned rather than `setState`, because this runs inside `render`, before
+    /// [#laidOut] reads the offset — the field's own rule. The thumb was built with
+    /// the old offset, and `laidOut` asks for the rebuild that moves it.
+    private boolean carry(double dx, double dy) {
+        var next = Math.clamp(scrollOffset + dy, 0, maximumScroll());
+        if (next == scrollOffset) {
+            return false;
+        }
+        scrollOffset = next;
+        return true;
+    }
+
+    /// The text's visible box in this control's coordinates — what a held drag
+    /// measures its edge against — or null before a frame has shaped anything.
+    private @Nullable LogicalRect viewport() {
+        var shaped = document;
+        if (shaped == null) {
+            return null;
+        }
+        return LogicalRect.of(
+                0, (float) padding.top(), bounds.width(), (float) (visibleRows() * shaped.font().lineHeight()));
+    }
+
+    /// Where a press or a drag lands.
+    ///
+    /// @param whole whether to stop at the lines wholly on screen, which a **drag**
+    ///        does. A drag onto the half-shown line at the bottom would otherwise put
+    ///        the caret there, [#laidOut] would scroll the whole line into view, and
+    ///        a held edge moving a pixel a frame would move a line a frame instead.
+    ///        The line is selected when the edge has brought it in.
+    private void select(double x, double y, boolean extend, int clickCount, boolean whole) {
         var shaped = document;
         var layout = lines();
         if (shaped == null || layout.isEmpty()) {
@@ -413,6 +493,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         }
         var lineHeight = shaped.font().lineHeight();
         var row = (int) Math.floor((y - padding.top() + scrollOffset) / lineHeight);
+        if (whole && lineHeight > 0) {
+            var first = (int) Math.ceil(scrollOffset / lineHeight - WHOLE_TOLERANCE);
+            var last = (int) Math.floor((scrollOffset + visibleRows() * lineHeight) / lineHeight + WHOLE_TOLERANCE);
+            row = Math.clamp(row, first, Math.max(first, last - 1));
+        }
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
         // The press is where the user pressed, so the line's own indent comes off
         // it — the mirror of what the caret adds ([ADR-0324]).
@@ -429,6 +514,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         };
         apply(next, EditHistory.Kind.OTHER, false);
     }
+
+    /// How far a line may be cut off and still count as wholly on screen, in lines —
+    /// the rounding an offset built from fractional steps picks up.
+    private static final double WHOLE_TOLERANCE = 1e-6;
 
     @Override
     public boolean scrollByLines(double lines) {
@@ -452,6 +541,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             return false;
         }
         setState(() -> scrollOffset = next);
+        if (edge.isHeld()) {
+            // A wheel mid-drag moved the text under a pointer that did not move, and
+            // the selection follows what arrived — at the wheel's pace, which is the
+            // wheel's business and not the edge's ([ADR-0500]).
+            select(edge.x(), edge.y(), true, 1, true);
+        }
         return true;
     }
 
@@ -473,6 +568,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             // next keystroke would do it.
             solid();
         } else {
+            // A drag whose release went somewhere else -- another window took the
+            // focus with the button down -- must not go on scrolling by itself.
+            edge.release();
             stopBlinking();
             history.endRun();
             setState(() -> caretShown = true);
@@ -585,6 +683,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// scrolled to is nobody else's business.
     double scrolledBy() {
         return scrollOffset;
+    }
+
+    /// How tall a line was on the last frame, for the same tests — a drag held at the
+    /// edge is asserted in lines on screen, and the line is the font's.
+    double lineHeight() {
+        return document == null ? 0 : document.font().lineHeight();
     }
 
     /// Where each line sits in [#contentWidth()] — `text-align`, from the last

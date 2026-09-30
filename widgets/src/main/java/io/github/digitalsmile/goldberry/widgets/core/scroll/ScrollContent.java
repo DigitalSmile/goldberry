@@ -113,14 +113,12 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
 
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        // `flex-shrink: 0` is applied here rather than in `render` because it is
-        // the cascade's property and `Box` has no wither for it -- and because a
-        // stylesheet must not be able to set it back to 1, which is the one
-        // declaration that would silently turn this widget into a `column`.
-        var style = resolved.flexShrink(0);
+        var style = resolved;
         if (gutter > 0) {
             // Layout, not overlay: the bar's side of the content is padded by the
-            // gutter, so nothing is drawn under a bar that is always there.
+            // gutter, so nothing is drawn under a bar that is always there. A
+            // **sum** of the author's padding and the token, which is why it is
+            // here: §8 defers `calc()`, so no rule can add the two (ADR-0364).
             var padding = style.padding();
             style = style.padding(new Insets(
                     padding.top(),
@@ -184,6 +182,13 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
         return Box.of()
                 .children(boxes.toArray(Box[]::new))
                 .style(style)
+                // `flex-shrink: 0`, pinned after the style as the segmented
+                // indicator pins its `position`: a stylesheet must not be able to
+                // set it back to 1, which is the one declaration that would
+                // silently turn this widget into a `column`. Here rather than in
+                // `restyle`, because it is a pin against the stylesheet and not a
+                // number the stylesheet could not have written (ADR-0499).
+                .shrink(0)
                 // Along the axis being scrolled. A column for a vertical
                 // viewport, because several children written inside one are a
                 // document and stack -- and a **row** for a horizontal one,

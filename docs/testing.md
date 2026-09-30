@@ -56,6 +56,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
   | `PaintBenchmark` | `:core` | Painting a frame, and what Blend2D's workers do to it |
   | `TextBenchmark` | `:core` | The text path — shaping, the paragraph cache, wrapping |
   | `FrameBenchmark` | `:widgets` | A frame of a real widget tree, split by stage |
+  | `DeepTreeStyleBenchmark` | `:widgets` | A 50-, 100- and 200-deep tree's first frame and a middle ancestor's hover, against the catalog's sheets (ADR-0502) |
   | `TextAreaFrameBenchmark` | `:widgets` | One keystroke into a 2 kB, a 50 kB and a 500 kB note (ADR-0388) |
   | `MarkdownFrameBenchmark` | `:html` | The same keystroke through a `markdown-view`, with an md4c control row (ADR-0389) |
   | `BindingSchemeBenchmark` | `:weaver` | The two ways of binding a model, against each other |
