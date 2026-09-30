@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.log;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -20,9 +19,10 @@ import org.slf4j.Logger;
 ///
 /// Every phase is timed from **process start**, not from the toolkit's first
 /// line, because JVM start-up is part of what a user waits for and leaving it out
-/// would flatter the number. `ProcessHandle` supplies that instant; the deltas
-/// between marks come from [System#nanoTime()], which is monotonic where a wall
-/// clock is not.
+/// would flatter the number. [ProcessAge] supplies that zero — from the kernel's
+/// own clock on Linux, because `ProcessHandle`'s start instant is up to a second
+/// late there (ADR-0506) — and the deltas between marks come from
+/// [System#nanoTime()], which is monotonic where a wall clock is not.
 ///
 /// Marks are recorded whether or not anything is listening — they cost a
 /// timestamp and a queue append — and reported at **trace**. [#summarize()] prints
@@ -184,17 +184,7 @@ public final class Startup {
     }
 
     private static Duration processAgeAtInit() {
-        try {
-            return ProcessHandle.current()
-                    .info()
-                    .startInstant()
-                    .map(start -> Duration.between(start, Instant.now()))
-                    .orElse(Duration.ZERO);
-        } catch (RuntimeException e) {
-            // Some platforms and sandboxes decline to report it. A timeline from
-            // class-init is still worth having; it is just missing its prologue.
-            return Duration.ZERO;
-        }
+        return ProcessAge.now();
     }
 
     private static String millis(Duration duration) {

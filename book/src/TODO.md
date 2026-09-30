@@ -514,6 +514,14 @@ on, which in four cases is the same thing.
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+- **`libgoldberry-webview` is opened at start-up, and WebKitGTK with it.** The
+  backend asks it whether `Capability.WEB_VIEW` holds, and opening it maps
+  WebKitGTK and GTK 3: 26 ms of a 520 ms native start, before any page is asked
+  for. `docs/content-widgets.md` §11 calls the library "opened on demand"; the
+  capability question is the demand. Answering it without the library — a build
+  fact, like ADR-0422's — or on first use would take it off every start. —
+  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
@@ -571,11 +579,6 @@ on, which in four cases is the same thing.
   `gradlew run`, which is the path this bug was found on and the one an
   application author uses. —
   [ADR-0039](adr/0039-macos-needs-the-first-thread.md)
-- **"Starts in milliseconds" is still unproven.** The timeline exists and the first
-  numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while mapping
-  `libgoldberry` is under 2ms — but they were measured under `gradle run`, which adds a
-  launcher and its own JVM. The headline claim needs the example launched directly. —
-  [ADR-0028](adr/0028-the-start-up-timeline.md)
 - **The compositor still dies, and shutting down cleanly did not stop it — the core dump
   says whose bug it is.** The entry below concluded that exiting with a live Wayland
   surface was the trigger and that `Goldberry.shutdown()` was the fix. The showcase has
@@ -782,6 +785,23 @@ on, which in four cases is the same thing.
   [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
   [ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
 
+- **A native image resolves a host name before `main`.** About 50 ms of its 70 ms
+  before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
+  (`/etc/nsswitch.conf`, `/etc/hosts`, then the wait). The JVM does no such thing
+  — its one `nsswitch.conf` read is for the user's name — and logback resolves
+  `HOSTNAME` lazily and this configuration never asks, so it is not logback's
+  `ContextBase`. The image is stripped, so the stack did not say whose it is; a
+  build with symbols, or an `InetAddressResolverProvider` that prints its caller
+  (which found nothing on the JVM), would. —
+  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
+- **The native image cannot install the GLib log handler.** It logs "no handle
+  to bind a GLib callback to", and GLib's messages go to stderr there — what
+  ADR-0443 routes into the logger everywhere else. An upcall the image's
+  foreign-call registrations do not cover, which ADR-0339's rule says cannot
+  happen: every upcall owner is registered from the bindings. —
+  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+
 ## On hold: the accessibility bridge
 
 **On hold —
@@ -852,6 +872,22 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**"Starts in milliseconds" is still unproven.**~~ The timeline exists and the first
+  numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while mapping
+  `libgoldberry` is under 2ms — but they were measured under `gradle run`, which adds a
+  launcher and its own JVM. The headline claim needs the example launched directly. —
+  [ADR-0028](adr/0028-the-start-up-timeline.md)
+
+  **Closed — [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md).** Launched directly, timed from `exec`
+  by an outside clock: the native image opens its window in about 120 ms and
+  presents its first frame in about 520 ms (365 ms with the GPU off); the JVM
+  takes about 2 s, 1.3 s with a JDK 25 AOT cache. The entry's premise was the
+  timeline, and the timeline was wrong: its zero was `ProcessHandle`'s start
+  instant, which on Linux is built from a boot time in whole seconds and was
+  218 ms late on this boot, so ADR-0028's 533.8 ms "runtime starting" was
+  never what it said. `ProcessAge` reads the kernel's clock at both ends now and
+  agrees with the outside clock to 10 ms. SDL's video subsystem, the 99 ms this
+  entry named, is 14 ms.
 - ~~**No primary selection.**~~ X11's middle-click buffer has its own SDL calls
   (`SDL_GetPrimarySelectionText`) and is unbound: it is one platform's idea, and
   the widgets that would fill it — a text field on X11 — would have to know they

@@ -520,3 +520,4 @@
 - [ADR-0503 The GPU lane finds lavapipe, a device goes before SDL does, and a GPU golden has its own tolerance](adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md)
 - [ADR-0504 A selection is published where the platform has a primary selection](adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)
 - [ADR-0505 A border has four sides, and takes no room](adr/0505-a-border-has-four-sides-and-takes-no-room.md)
+- [ADR-0506 Start-up is timed from the kernel's clock, and a native window is up in a tenth of a second](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)

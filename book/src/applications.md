@@ -335,6 +335,31 @@ com.example.app
 Views in their own package, because they should be replaceable without touching
 the model. Everything else is flat: there is not enough of it to file.
 
+## Starting fast
+
+What a user waits for is the process, not the toolkit, so it depends on how the
+application is launched. For the showcase, from `exec` to its first frame on a
+Linux desktop
+([ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)):
+
+| Launch | First frame |
+|---|---|
+| GraalVM native image | about 520 ms, the window open at about 120 ms |
+| JVM with a JDK 25 AOT cache | about 1.3 s |
+| JVM, cold | about 2 s |
+
+A native image is the fastest and the one a release of the showcase ships. On
+the JVM, **train an AOT cache** (JEP 483, JEP 514, JEP 515): run the application
+once with `-XX:AOTCacheOutput=app.aot` through the screens a user opens first,
+then launch it with `-XX:AOTCache=app.aot`. Classes then arrive loaded and
+linked and the hot methods already profiled. The cache belongs to your
+application — it is specific to the JDK build and the module path, and it is
+trained on your screens — which is why the toolkit documents it rather than
+shipping one.
+
+`-Dgoldberry.log.level=TRACE` prints the start-up timeline after the first
+frame: each phase from process start, so you can see which part is yours.
+
 ## What the build does to all this
 
 Your model is plain Java; the build makes assignments to it observable, using the

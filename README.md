@@ -17,8 +17,13 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 - **Starts in milliseconds.** CPU rasterization, GraalVM native-image as a
   first-class target, and no GPU context unless `goldberry-gpu` is on the
   module path — with it, a window presents its frame through the GPU by
-  default, for about 20 ms of device creation at the first frame
+  default, for about 20 ms of device creation at the first frame on macOS and
+  190–320 ms on NVIDIA's Vulkan driver
   ([ADR-0480](book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
+  Measured from `exec`, the showcase's native image opens its window in about
+  120 ms and presents its first frame in about 520 ms (365 ms with the GPU
+  off); on the JVM the first frame takes about 2 s, 1.3 s with a JDK 25 AOT
+  cache ([ADR-0506](book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)).
 - **Declarative.** Immutable widgets with a pure `build()`, expressed as Java
   records or as KDL markup. Markup and stylesheets hot-reload at runtime.
 - **Real layout and real styling.** Flexbox via Yoga, and a genuine CSS subset
