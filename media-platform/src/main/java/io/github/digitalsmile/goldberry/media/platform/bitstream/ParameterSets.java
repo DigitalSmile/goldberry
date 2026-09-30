@@ -1,16 +1,23 @@
-package io.github.digitalsmile.goldberry.media.platform.macos;
+package io.github.digitalsmile.goldberry.media.platform.bitstream;
+
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-/// Reads what a VideoToolbox decoder has to know before its first picture from
-/// a track's decoder configuration record: MP4's `avcC` and `hvcC`, which
+import io.github.digitalsmile.goldberry.media.codec.CodecId;
+import io.github.digitalsmile.goldberry.media.codec.DecoderRequest;
+import io.github.digitalsmile.goldberry.media.codec.TrackParams;
+
+/// Reads what a platform decoder has to know before its first picture from a
+/// track's decoder configuration record: MP4's `avcC` and `hvcC`, which
 /// Matroska carries unchanged as `CodecPrivate`.
 ///
 /// The parameter sets themselves, which the format description is built from
@@ -29,11 +36,11 @@ import org.jspecify.annotations.Nullable;
 ///
 /// Only the fields up to those are parsed. Everything is bounds-checked, and a
 /// malformed record is [IllegalArgumentException].
-final class ParameterSets {
+public final class ParameterSets {
 
     /// The most pictures either codec can hold back: H.264's and HEVC's largest
     /// decoded picture buffer. The depth used when nothing says less.
-    static final int MAX_REORDER = 16;
+    public static final int MAX_REORDER = 16;
 
     private static final int H264_SPS_HEADER = 1;
     private static final int HEVC_NAL_VPS = 32;
@@ -58,18 +65,55 @@ final class ParameterSets {
     /// @param bitDepth     the luma bit depth
     /// @param chromaFormat `chroma_format_idc`: 0 monochrome, 1 4:2:0, 2 4:2:2,
     ///                     3 4:4:4
-    record Shape(int reorderDepth, int bitDepth, int chromaFormat) {
+    /// @param signal       the range and matrix the stream says it is coded in
+    public record Shape(int reorderDepth, int bitDepth, int chromaFormat, Signal signal) {
 
-        Shape {
+        public Shape {
             if (reorderDepth < 0 || reorderDepth > MAX_REORDER) {
                 throw new IllegalArgumentException("a reorder depth of " + reorderDepth);
             }
+            Objects.requireNonNull(signal, "signal");
+        }
+
+        /// A stream that signals no colour.
+        public Shape(int reorderDepth, int bitDepth, int chromaFormat) {
+            this(reorderDepth, bitDepth, chromaFormat, Signal.UNSPECIFIED);
         }
 
         /// Whether the provider's decoder hands this stream over as the frame
         /// contract asks: 8- or 10-bit, 4:2:0 or monochrome.
-        boolean decodable() {
+        public boolean decodable() {
             return (bitDepth == 8 || bitDepth == 10) && (chromaFormat == 0 || chromaFormat == 1);
+        }
+    }
+
+    /// The colour a stream's VUI signals (ITU-T H.264 §E.2.1): whether luma
+    /// spans 0–255, and the matrix, as ITU-T H.273's `MatrixCoefficients`.
+    ///
+    /// The stream's own word, which a decoder can lose on the way out: GStreamer's
+    /// `nvh264dec` and `openh264dec` report every stream as limited range. Read
+    /// from H.264's SPS; HEVC's VUI lies behind structures this reader does not
+    /// parse, so an HEVC stream's signal is unspecified here.
+    ///
+    /// @param range              the range, or [Range#UNSPECIFIED]
+    /// @param matrixCoefficients the matrix, or [#MATRIX_UNSPECIFIED]
+    public record Signal(Range range, int matrixCoefficients) {
+
+        /// `MatrixCoefficients` 2: unspecified.
+        public static final int MATRIX_UNSPECIFIED = 2;
+
+        /// A stream that signals nothing.
+        public static final Signal UNSPECIFIED = new Signal(Range.UNSPECIFIED, MATRIX_UNSPECIFIED);
+
+        /// Whether luma spans 0–255, if the stream says.
+        public enum Range {
+            UNSPECIFIED,
+            LIMITED,
+            FULL
+        }
+
+        public Signal {
+            Objects.requireNonNull(range, "range");
         }
     }
 
@@ -81,9 +125,9 @@ final class ParameterSets {
     /// @param nalLengthSize    the bytes of the length before each NAL unit in a
     ///                         packet: 1, 2 or 4
     /// @param shape            what the first SPS says
-    record Configuration(List<byte[]> parameterSets, int nalLengthSize, Shape shape) {
+    public record Configuration(List<byte[]> parameterSets, int nalLengthSize, Shape shape) {
 
-        Configuration {
+        public Configuration {
             parameterSets = List.copyOf(parameterSets);
             if (parameterSets.isEmpty()) {
                 throw new IllegalArgumentException("a configuration with no parameter sets");
@@ -95,8 +139,30 @@ final class ParameterSets {
         }
     }
 
+    /// `request`'s configuration record, read, when it is an H.264 or HEVC video
+    /// track whose record gives a stream the frame contract can carry; empty
+    /// otherwise, and for a record that does not read. What every system's video
+    /// provider claims.
+    public static Optional<Configuration> of(DecoderRequest request) {
+        if (!(request.params() instanceof TrackParams.Video video) || video.width() <= 0 || video.height() <= 0) {
+            return Optional.empty();
+        }
+        if (request.codec() != CodecId.H264 && request.codec() != CodecId.HEVC) {
+            return Optional.empty();
+        }
+        try {
+            var record = request.extradata().toArray(JAVA_BYTE);
+            var configuration = request.codec() == CodecId.H264 ? h264(record) : hevc(record);
+            return configuration.shape().decodable() ? Optional.of(configuration) : Optional.empty();
+        } catch (IllegalArgumentException e) {
+            // No record, or Annex B start codes rather than one: a stream whose
+            // packets are not in the form the providers read.
+            return Optional.empty();
+        }
+    }
+
     /// An H.264 stream's `avcC` (ISO/IEC 14496-15 §5.3.3.1).
-    static Configuration h264(byte[] avcC) {
+    public static Configuration h264(byte[] avcC) {
         if (avcC.length < 7 || avcC[0] != 1) {
             throw new IllegalArgumentException("not an avcC record");
         }
@@ -120,7 +186,7 @@ final class ParameterSets {
 
     /// The shape of an H.264 stream, from the payload of its SPS
     /// (ITU-T H.264 §7.3.2.1.1).
-    static Shape h264Sps(byte[] rbsp) {
+    public static Shape h264Sps(byte[] rbsp) {
         var r = new BitReader(rbsp);
         var profile = r.bits(8);
         var constraints = r.bits(8);
@@ -175,16 +241,8 @@ final class ParameterSets {
         }
         var heightMbs = (frameMbsOnly ? 1 : 2) * heightMapUnits;
 
-        var restricted = OptionalInt.empty();
-        if (r.flag()) { // vui_parameters_present_flag
-            try {
-                restricted = h264MaxReorder(r);
-            } catch (IllegalArgumentException e) {
-                // A VUI cut short, which some encoders write: fall back to the
-                // level, as if it said nothing.
-                restricted = OptionalInt.empty();
-            }
-        }
+        var vui = r.flag() ? h264Vui(r) : Vui.NONE; // vui_parameters_present_flag
+        var restricted = vui.maxReorder();
 
         int depth;
         if (restricted.isPresent()) {
@@ -200,11 +258,11 @@ final class ParameterSets {
             // Table A-1), as FFmpeg does when the SPS does not say.
             depth = maxDpbFrames(level, (constraints & 0x10) != 0, (long) widthMbs * heightMbs);
         }
-        return new Shape(Math.clamp(depth, 0, MAX_REORDER), bitDepth, chromaFormat);
+        return new Shape(Math.clamp(depth, 0, MAX_REORDER), bitDepth, chromaFormat, vui.signal());
     }
 
     /// An HEVC stream's `hvcC` (ISO/IEC 14496-15 §8.3.3.1).
-    static Configuration hevc(byte[] hvcC) {
+    public static Configuration hevc(byte[] hvcC) {
         if (hvcC.length < 23 || hvcC[0] != 1) {
             throw new IllegalArgumentException("not an hvcC record");
         }
@@ -235,7 +293,7 @@ final class ParameterSets {
 
     /// The shape of an HEVC stream, from the payload of its SPS
     /// (ITU-T H.265 §7.3.2.2.1).
-    static Shape hevcSps(byte[] rbsp) {
+    public static Shape hevcSps(byte[] rbsp) {
         var r = new BitReader(rbsp);
         r.skip(4); // sps_video_parameter_set_id
         var maxSubLayersMinus1 = r.bits(3);
@@ -270,7 +328,30 @@ final class ParameterSets {
 
     /// `max_num_reorder_frames` from an H.264 VUI (§E.1.1), or empty when the VUI
     /// has no bitstream restriction.
-    private static OptionalInt h264MaxReorder(BitReader r) {
+    /// What an H.264 VUI says that a provider uses.
+    ///
+    /// @param maxReorder `max_num_reorder_frames`, when the VUI gives it
+    /// @param signal     the colour, when the VUI gives it
+    private record Vui(OptionalInt maxReorder, Signal signal) {
+
+        static final Vui NONE = new Vui(OptionalInt.empty(), Signal.UNSPECIFIED);
+    }
+
+    /// Reads the VUI as far as `max_num_reorder_frames`. A VUI cut short, which
+    /// some encoders write, says nothing past where it stops, but the colour it
+    /// gave before that still counts.
+    private static Vui h264Vui(BitReader r) {
+        var signal = Signal.UNSPECIFIED;
+        try {
+            signal = h264VuiSignal(r);
+            return new Vui(h264MaxReorder(r), signal);
+        } catch (IllegalArgumentException e) {
+            return new Vui(OptionalInt.empty(), signal);
+        }
+    }
+
+    /// The VUI up to and including the colour description.
+    private static Signal h264VuiSignal(BitReader r) {
         if (r.flag()) { // aspect_ratio_info_present_flag
             if (r.bits(8) == 255) { // Extended_SAR
                 r.skip(32);
@@ -280,11 +361,21 @@ final class ParameterSets {
             r.skip(1);
         }
         if (r.flag()) { // video_signal_type_present_flag
-            r.skip(4); // video_format, video_full_range_flag
+            r.skip(3); // video_format
+            var range = r.flag() ? Signal.Range.FULL : Signal.Range.LIMITED; // video_full_range_flag
+            var matrix = Signal.MATRIX_UNSPECIFIED;
             if (r.flag()) { // colour_description_present_flag
-                r.skip(24);
+                r.skip(16); // colour_primaries, transfer_characteristics
+                matrix = r.bits(8); // matrix_coefficients
             }
+            return new Signal(range, matrix);
         }
+        return Signal.UNSPECIFIED;
+    }
+
+    /// The rest of the VUI, after the colour description, to
+    /// `max_num_reorder_frames`.
+    private static OptionalInt h264MaxReorder(BitReader r) {
         if (r.flag()) { // chroma_loc_info_present_flag
             r.ue();
             r.ue();
@@ -365,7 +456,7 @@ final class ParameterSets {
     /// The frames the decoded picture buffer holds at `level` for a picture of
     /// `macroblocks` macroblocks: MaxDpbMbs of Table A-1 over the picture's size,
     /// at most [#MAX_REORDER]. An unknown level allows the most.
-    static int maxDpbFrames(int level, boolean constraintSet3, long macroblocks) {
+    public static int maxDpbFrames(int level, boolean constraintSet3, long macroblocks) {
         var maxDpbMbs =
                 switch (level) {
                     case 9, 10 -> 396;

@@ -1,6 +1,7 @@
 # goldberry-media: the FFmpeg + dav1d superbuild, and the module's tests against
 # what it built (docs/media-plan.md, phase 1 "CI"). goldberry-media-platform's
-# tests run here too: they demux with that FFmpeg (ADR-0472).
+# tests run here too: they demux with that FFmpeg, and decode with the system's
+# decoders, VideoToolbox on macOS and GStreamer on Linux (ADR-0472, ADR-0489).
 #
 # Separate from linux.yml and macos.yml, because this build has its own
 # toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
@@ -37,7 +38,13 @@ jobs:
             tools: brew install meson pkg-config nasm ninja
           - target: linux-x64
             runner: ubuntu-24.04
-            tools: sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
+            # GStreamer's runtime and its decoders, for :media-platform: base has
+            # appsrc, appsink and the converters, good the audio parsers, bad the
+            # H.264 and HEVC parsers, and libav the decoders (ADR-0489). No
+            # development package: the providers bind the libraries with FFM.
+            tools: >-
+              sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
+              gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -64,12 +71,13 @@ jobs:
       - name: Test :media against it
         run: ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true --no-daemon
 
-      # The platform decoders are macOS's, so the macOS job requires them; on
-      # Linux the providers support nothing, and what needs a Mac skips.
+      # Each job requires its own system's platform decoders: VideoToolbox and
+      # AudioToolbox on macOS, GStreamer on Linux. A test for another system's
+      # decoders still skips, since the flag fails a test only on its own system.
       - name: Test :media-platform against it
         run: >-
           ./gradlew :media-platform:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
-          -Pgoldberry.platform.required=${{ startsWith(matrix.target, 'macos') }} --no-daemon
+          -Pgoldberry.platform.required=true --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:

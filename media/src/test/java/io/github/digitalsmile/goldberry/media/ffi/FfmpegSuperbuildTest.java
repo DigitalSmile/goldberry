@@ -32,6 +32,8 @@ class FfmpegSuperbuildTest {
 
     private static final Pattern SIZE_LIMIT = Pattern.compile("set\\(GOLDBERRY_MEDIA_SIZE_LIMIT (\\d+) CACHE");
 
+    private static final Pattern BUILD_SUFFIX = Pattern.compile("set\\(GOLDBERRY_FFMPEG_BUILD_SUFFIX \"([^\"]*)\"\\)");
+
     private final String cmakeLists = read(locateCmakeLists());
 
     @Test
@@ -48,6 +50,17 @@ class FfmpegSuperbuildTest {
         var dav1d = group(Pattern.compile(BLOCK.formatted("dav1d")), "ExternalProject_Add(dav1d");
         assertTrue(dav1d.contains("-Doptimization=2"), dav1d);
         assertTrue(dav1d.contains("--buildtype=release"), dav1d);
+    }
+
+    @Test
+    @DisplayName("names the libraries with the suffix the loader looks for, so no other FFmpeg is mistaken for them")
+    void buildSuffixIsTheLoaders() {
+        var matcher = BUILD_SUFFIX.matcher(cmakeLists);
+        assertTrue(matcher.find(), "no GOLDBERRY_FFMPEG_BUILD_SUFFIX in the media superbuild");
+        assertEquals(FfmpegPlatform.BUILD_SUFFIX, matcher.group(1));
+        assertFalse(FfmpegPlatform.BUILD_SUFFIX.isEmpty(), "an empty suffix is FFmpeg's own names (ADR-0490)");
+        var configure = group(CONFIGURE, "the GOLDBERRY_FFMPEG_CONFIGURE list");
+        assertTrue(configure.contains("--build-suffix=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}"), configure);
     }
 
     @Test

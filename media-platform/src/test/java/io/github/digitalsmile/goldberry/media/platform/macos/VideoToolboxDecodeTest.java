@@ -20,6 +20,7 @@ import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
+import io.github.digitalsmile.goldberry.media.platform.fixtures.Fixtures;
 
 /// VideoToolbox decoding the fixtures, against FFmpeg's own decoder.
 ///

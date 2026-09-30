@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.media.codec.DecoderRequest;
 import io.github.digitalsmile.goldberry.media.codec.Rational;
 import io.github.digitalsmile.goldberry.media.codec.TrackParams;
 import io.github.digitalsmile.goldberry.media.platform.PlatformDecoders;
+import io.github.digitalsmile.goldberry.media.platform.bitstream.ParameterSetsTest;
 
 /// What the providers claim, from requests made up here: no FFmpeg, and for the
 /// refusals no Mac either.
@@ -105,10 +106,18 @@ class ProvidersTest {
     }
 
     @Test
-    @DisplayName("PlatformDecoders lists both providers by name, on any system")
+    @DisplayName("PlatformDecoders lists every system's providers by name, on any system")
     void list() {
         var names = PlatformDecoders.providers().stream().map(p -> p.name()).toList();
-        assertEquals(List.of(VideoToolboxProvider.NAME, AudioToolboxProvider.NAME), names);
+        assertEquals(
+                List.of(
+                        VideoToolboxProvider.NAME,
+                        AudioToolboxProvider.NAME,
+                        "gstreamer-video",
+                        "gstreamer-audio",
+                        "mediafoundation-video",
+                        "mediafoundation-audio"),
+                names);
         assertEquals(
                 PlatformDecoders.available(),
                 PlatformDecoders.unavailableReason().isEmpty());

@@ -503,3 +503,5 @@
 - [ADR-0486 FFmpeg and dav1d are built at -O2, to fit the size gate](adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md)
 - [ADR-0487 With no audio device, media plays silently](adr/0487-with-no-audio-device-media-plays-silently.md)
 - [ADR-0488 The Linux build fails without the audio headers](adr/0488-the-linux-build-fails-without-the-audio-headers.md)
+- [ADR-0489 The Linux and Windows platform decoders are GStreamer and Media Foundation](adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)
+- [ADR-0490 Goldberry's FFmpeg has sonames of its own](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)

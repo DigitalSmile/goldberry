@@ -8,6 +8,7 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -31,12 +32,18 @@ import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.platform.linux.GStreamerAudioProvider;
+import io.github.digitalsmile.goldberry.media.platform.linux.GStreamerVideoProvider;
 import io.github.digitalsmile.goldberry.media.platform.macos.AudioToolboxProvider;
 import io.github.digitalsmile.goldberry.media.platform.macos.VideoToolboxProvider;
+import io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationAudioProvider;
+import io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationVideoProvider;
 
 /// A `MediaPlayer` playing H.264 and AAC through the platform providers, end to
 /// end: `docs/goldberry-media.md` §7's S8 with the operating system's decoders
-/// rather than a fake, and S7 turned around.
+/// rather than a fake, and S7 turned around. On whichever system it runs:
+/// VideoToolbox and AudioToolbox on macOS, GStreamer on Linux, Media
+/// Foundation on Windows.
 @DisplayName("MediaPlayer with the platform decoders")
 class PlatformPlaybackTest {
 
@@ -56,6 +63,21 @@ class PlatformPlaybackTest {
     }
 
     private MediaPlayer player;
+
+    /// The names this system's video and audio providers report.
+    private record Names(String video, String audio) {
+
+        static Names current() {
+            var os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+            if (os.startsWith("mac")) {
+                return new Names(VideoToolboxProvider.NAME, AudioToolboxProvider.NAME);
+            }
+            if (os.startsWith("windows")) {
+                return new Names(MediaFoundationVideoProvider.NAME, MediaFoundationAudioProvider.NAME);
+            }
+            return new Names(GStreamerVideoProvider.NAME, GStreamerAudioProvider.NAME);
+        }
+    }
 
     @BeforeEach
     void requirements() {
@@ -111,15 +133,15 @@ class PlatformPlaybackTest {
     }
 
     @Test
-    @DisplayName("found by ServiceLoader: an H.264 and AAC file plays to the end on VideoToolbox and AudioToolbox")
+    @DisplayName("found by ServiceLoader: an H.264 and AAC file plays to the end on the system's decoders")
     void playsThroughServiceLoader() {
         // No decoderProviders(…): the player asks ServiceLoader, which finds this
         // module's providers.
         play("clip-h264-high.mp4", MediaPlayer.builder());
         var ended = await(status -> status.state() == PlaybackState.ENDED || status.state() == PlaybackState.ERROR);
         assertEquals(PlaybackState.ENDED, ended.state(), () -> "failed: " + ended.error());
-        assertEquals(VideoToolboxProvider.NAME, ended.videoDecoder().orElseThrow());
-        assertEquals(AudioToolboxProvider.NAME, ended.audioDecoder().orElseThrow());
+        assertEquals(Names.current().video(), ended.videoDecoder().orElseThrow());
+        assertEquals(Names.current().audio(), ended.audioDecoder().orElseThrow());
         var picture = player.currentPicture().orElseThrow();
         assertEquals(160, picture.width());
         assertEquals(90, picture.height());
@@ -133,7 +155,7 @@ class PlatformPlaybackTest {
         play("clip-hevc.mp4", MediaPlayer.builder().decoderProviders(PlatformDecoders.providers()));
         var ended = await(status -> status.state() == PlaybackState.ENDED || status.state() == PlaybackState.ERROR);
         assertEquals(PlaybackState.ENDED, ended.state(), () -> "failed: " + ended.error());
-        assertEquals(VideoToolboxProvider.NAME, ended.videoDecoder().orElseThrow());
+        assertEquals(Names.current().video(), ended.videoDecoder().orElseThrow());
     }
 
     @Test
@@ -147,10 +169,10 @@ class PlatformPlaybackTest {
     }
 
     @Test
-    @DisplayName("the capabilities list the two providers by name")
+    @DisplayName("the capabilities list this system's two providers by name")
     void capabilities() {
         var providers = MediaCapabilities.current().providers();
-        assertTrue(providers.contains(VideoToolboxProvider.NAME), providers::toString);
-        assertTrue(providers.contains(AudioToolboxProvider.NAME), providers::toString);
+        assertTrue(providers.contains(Names.current().video()), providers::toString);
+        assertTrue(providers.contains(Names.current().audio()), providers::toString);
     }
 }

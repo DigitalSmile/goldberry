@@ -5,9 +5,10 @@ import org.junit.jupiter.api.Assumptions;
 
 /// What a test that needs the macOS frameworks does without them.
 ///
-/// Skips on any other system, and fails where `-Pgoldberry.platform.required=true`
-/// says they must be there: a macOS job that skips its platform decoders is a
-/// green tick over nothing (ADR-0016).
+/// Skips on any other system, and fails on macOS where
+/// `-Pgoldberry.platform.required=true` says they must be there: a macOS job that
+/// skips its platform decoders is a green tick over nothing (ADR-0016). The flag
+/// is a job's, and a Linux or Windows job sets it for its own system's decoders.
 final class PlatformRequirement {
 
     /// The switch that turns a skip into a failure.
@@ -23,7 +24,7 @@ final class PlatformRequirement {
         }
         var message = "the macOS frameworks are not available: "
                 + Frameworks.unavailableReason().orElse("unknown reason");
-        if (Boolean.getBoolean(REQUIRED_PROPERTY)) {
+        if (Boolean.getBoolean(REQUIRED_PROPERTY) && Frameworks.isMac(System.getProperty("os.name", ""))) {
             Assertions.fail(message);
         }
         Assumptions.abort(message);

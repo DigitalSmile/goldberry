@@ -3,7 +3,10 @@
 # superbuild's ffmpeg_package target.
 #
 # 1. Copies each of the five libraries under the name the others link against,
-#    resolving the version symlinks, because a jar cannot carry a symlink.
+#    resolving the version symlinks, because a jar cannot carry a symlink. Any
+#    library already in OUT goes first: the natives jar packs the whole
+#    directory, and a library under a name no longer built would ship beside
+#    the new one.
 # 2. Strips them.
 # 3. Fails the build when they are larger together than SIZE_LIMIT
 #    (goldberry-media.md §2: target 6 MB, fail above 7).
@@ -11,7 +14,7 @@
 #    configure line. The LGPL's relinking promise is only useful to someone who
 #    can rebuild what shipped.
 #
-# In: STAGE, OUT, SYSTEM, STRIP, SIZE_LIMIT, FFMPEG_REF, DAV1D_REF,
+# In: STAGE, OUT, SYSTEM, STRIP, SIZE_LIMIT, BUILD_SUFFIX, FFMPEG_REF, DAV1D_REF,
 #     CONFIGURE_LINE, TARGET_ID.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
@@ -21,11 +24,18 @@ cmake_minimum_required(VERSION 3.28)
 # would not be found.
 set(_libraries avutil:60 swresample:6 swscale:9 avcodec:62 avformat:62)
 
+file(GLOB _stale "${OUT}/*.so*" "${OUT}/*.dylib" "${OUT}/*.dll")
+if(_stale)
+    file(REMOVE ${_stale})
+endif()
+
 set(_total 0)
 set(_shipped "")
 foreach(_entry IN LISTS _libraries)
     string(REPLACE ":" ";" _pair "${_entry}")
     list(GET _pair 0 _stem)
+    # FFmpeg's FULLNAME: the library's name with --build-suffix after it.
+    set(_stem "${_stem}${BUILD_SUFFIX}")
     list(GET _pair 1 _major)
     if(SYSTEM STREQUAL "Darwin")
         set(_name "lib${_stem}.${_major}.dylib")
@@ -78,7 +88,9 @@ licence and linked statically into libavcodec.
 FFmpeg is dynamically linked. You may replace these libraries with your own
 build of the same major versions, by pointing -Dgoldberry.media.libdir at a
 directory holding them and an ffmpeg-layout.properties produced by
-ffmpeg_layout.c against your build's headers.
+ffmpeg_layout.c against your build's headers. Configure it with
+--build-suffix=${BUILD_SUFFIX}, as below, so that its libraries have the names
+these have.
 
 FFmpeg  ${FFMPEG_REF}  https://git.ffmpeg.org/ffmpeg.git
 dav1d   ${DAV1D_REF}  https://code.videolan.org/videolan/dav1d.git

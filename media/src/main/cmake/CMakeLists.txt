@@ -16,7 +16,8 @@
 #
 # Output, in ${CMAKE_INSTALL_PREFIX}/lib:
 #   the five libraries under the names they link against each other by
-#     (libavcodec.62.dylib, libavcodec.so.62, avcodec-62.dll), stripped;
+#     (libavcodec-goldberry.62.dylib, libavcodec-goldberry.so.62,
+#     avcodec-goldberry-62.dll), stripped;
 #   ffmpeg-layout.properties, the layout probe's output for this target;
 #   ffmpeg-NOTICE.txt, with the tags and the configure line the LGPL asks for.
 #
@@ -53,6 +54,15 @@ else()
     set(_hwaccel_default OFF)
 endif()
 option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" ${_hwaccel_default})
+
+# Every library's name carries this suffix (ADR-0490): libavcodec-goldberry.so.62,
+# not libavcodec.so.62. A distribution's FFmpeg of the same major has the plain
+# names, and a process that loads both would otherwise get one of them twice:
+# glibc satisfies a DT_NEEDED with any library already loaded under that soname,
+# so GStreamer's gst-libav, loaded after this FFmpeg, linked against it and lost
+# its H.264 decoder. FfmpegPlatform.BUILD_SUFFIX is the other copy, and
+# FfmpegSuperbuildTest holds the two together.
+set(GOLDBERRY_FFMPEG_BUILD_SUFFIX "-goldberry")
 
 # The size gate from goldberry-media.md §2: target 6 MB, fail above 7.
 set(GOLDBERRY_MEDIA_SIZE_LIMIT 7340032 CACHE STRING "Largest total size of the five stripped libraries, in bytes")
@@ -150,6 +160,7 @@ set(GOLDBERRY_FFMPEG_CONFIGURE
     --disable-everything --disable-programs --disable-doc --disable-network
     --disable-avdevice --disable-avfilter --disable-autodetect
     --enable-shared --disable-static --enable-pic --disable-debug --optflags=-O2
+    --build-suffix=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}
     --enable-demuxer=matroska,mov,avi,ogg,flac,mp3,wav,srt,webvtt,ass
     --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
     --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio
@@ -234,6 +245,7 @@ add_custom_target(ffmpeg_package ALL
         -DSYSTEM=${CMAKE_SYSTEM_NAME}
         -DSTRIP=${CMAKE_STRIP}
         -DSIZE_LIMIT=${GOLDBERRY_MEDIA_SIZE_LIMIT}
+        -DBUILD_SUFFIX=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}
         -DFFMPEG_REF=${GOLDBERRY_FFMPEG_REF}
         -DDAV1D_REF=${GOLDBERRY_DAV1D_REF}
         "-DCONFIGURE_LINE=${_configure_line}"

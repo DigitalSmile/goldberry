@@ -33,12 +33,17 @@ class FfmpegPlatformTest {
     }
 
     @Test
-    @DisplayName("names each library by its major, as the other libraries link against it")
+    @DisplayName("names each library by its major and the build suffix, as the other libraries link against it")
     void fileNames() {
-        assertEquals("libavcodec.so.62", FfmpegPlatform.of("Linux", "amd64").fileName(FfmpegLibrary.AVCODEC));
         assertEquals(
-                "libavutil.60.dylib", FfmpegPlatform.of("Mac OS X", "aarch64").fileName(FfmpegLibrary.AVUTIL));
-        assertEquals("swscale-9.dll", FfmpegPlatform.of("Windows 11", "amd64").fileName(FfmpegLibrary.SWSCALE));
+                "libavcodec-goldberry.so.62",
+                FfmpegPlatform.of("Linux", "amd64").fileName(FfmpegLibrary.AVCODEC));
+        assertEquals(
+                "libavutil-goldberry.60.dylib",
+                FfmpegPlatform.of("Mac OS X", "aarch64").fileName(FfmpegLibrary.AVUTIL));
+        assertEquals(
+                "swscale-goldberry-9.dll",
+                FfmpegPlatform.of("Windows 11", "amd64").fileName(FfmpegLibrary.SWSCALE));
     }
 
     @Test

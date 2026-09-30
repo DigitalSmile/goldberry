@@ -4,7 +4,8 @@ Made by `media-platform/src/test/fixtures/make-fixtures.sh` (a full FFmpeg on
 the developer's machine, `brew install ffmpeg`) from synthetic signals, so every
 clip is our own content and carries no third-party licence. They are the
 patent-pool codecs the published natives deliberately do not decode; the
-operating system's decoders play them (ADR-0472).
+operating system's decoders play them (ADR-0472): VideoToolbox and AudioToolbox,
+GStreamer, and Media Foundation (ADR-0489).
 
 - **audio:** one second of a 440 Hz sine at 12000/32768, 48 kHz stereo; or six
   channels, one frequency each (200, 300, 400, 60, 500 and 600 Hz in FFmpeg's
@@ -12,8 +13,9 @@ operating system's decoders play them (ADR-0472).
 - **video:** FFmpeg's `testsrc2` pattern at 25 fps.
 
 Each video clip has a `.framemd5` beside it: the MD5 of every picture as FFmpeg's
-own decoder made it, as NV12 (or P010 for 10-bit), which is what VideoToolbox
-must match byte for byte.
+own decoder made it, as NV12 (or P010 for 10-bit), which every platform decoder
+must match byte for byte. A decoder that hands over planar I420 or I010 is
+hashed as its semi-planar twin (`Fixtures.md5`).
 
 | File | Container | Codecs | Used for |
 |------|-----------|--------|----------|

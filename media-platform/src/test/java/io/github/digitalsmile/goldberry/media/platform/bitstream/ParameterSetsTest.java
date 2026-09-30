@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.media.platform.macos;
+package io.github.digitalsmile.goldberry.media.platform.bitstream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,27 +21,28 @@ import org.junit.jupiter.params.provider.CsvSource;
 /// The fixtures' expected depths are FFmpeg's own `has_b_frames` for each
 /// clip, as `ffprobe` reports it: the provider derives the depth as FFmpeg does.
 @DisplayName("ParameterSets")
-class ParameterSetsTest {
+public class ParameterSetsTest {
 
     private static final HexFormat HEX = HexFormat.of();
 
     /// `clip-h264-high.mp4`'s `avcC`: High, level 1.1, B-frames in a pyramid, and a
     /// VUI whose bitstream restriction says two.
-    static final byte[] AVCC_HIGH = HEX.parseHex(
+    public static final byte[] AVCC_HIGH = HEX.parseHex(
             "0164000bffe100196764000bacd9428df93011000003000100000300320f14299601" + "000668ebe112c8b0fdf8f800");
 
     /// `:media`'s `clip-h264-aac.mp4`: Constrained Baseline, no B-frames.
-    static final byte[] AVCC_BASELINE =
+    public static final byte[] AVCC_BASELINE =
             HEX.parseHex("0142c00bffe100186742c00bda0a37e4c044000003000400000300c83c50aa8001000468ce0fc8");
 
     /// `clip-hevc.mp4`'s `hvcC`, the x265 SEI array taken out: Main, three
     /// B-frames in a pyramid.
-    static final byte[] HVCC_MAIN = HEX.parseHex("0101600000009000000000001ef000fcfdf8f800000f03a00001001840010c01ffff"
-            + "01600000030090000003000003001e959409a10001002a4201010160000003009000000300000300"
-            + "1ea0142061f26595964932bc05a02000000300200000030321a2000100074401c172b46240");
+    public static final byte[] HVCC_MAIN =
+            HEX.parseHex("0101600000009000000000001ef000fcfdf8f800000f03a00001001840010c01ffff"
+                    + "01600000030090000003000003001e959409a10001002a4201010160000003009000000300000300"
+                    + "1ea0142061f26595964932bc05a02000000300200000030321a2000100074401c172b46240");
 
     /// `clip-hevc-10bit.mp4`'s `hvcC`, the same way: Main 10.
-    static final byte[] HVCC_MAIN10 =
+    public static final byte[] HVCC_MAIN10 =
             HEX.parseHex("0102200000009000000000001ef000fcfdfafa00000f03a00001001840010c01ffff"
                     + "02200000030090000003000003001e959409a10001002e4201010220000003009000000300000300"
                     + "1ea0142061f236595964932bc05a810104820000030002000003003210a2000100074401c172b46240");
@@ -228,7 +229,7 @@ class ParameterSetsTest {
     /// and level present so that they are passed over.
     ///
     /// @param reorders one depth per layer written: all of them, or the highest
-    static byte[] hevcSps(
+    public static byte[] hevcSps(
             int maxSubLayersMinus1,
             boolean everyLayer,
             int[] reorders,
@@ -267,7 +268,7 @@ class ParameterSetsTest {
     ///
     /// @param maxReorder the VUI's `max_num_reorder_frames`, behind NAL HRD
     ///                   parameters, or null for no VUI
-    static byte[] h264Sps(
+    public static byte[] h264Sps(
             int profile, int level, int pocType, int refFrames, int widthMbs, int heightMbs, Integer maxReorder) {
         var w = new BitWriter()
                 .bits(8, profile)
@@ -310,12 +311,12 @@ class ParameterSetsTest {
 
     /// A High-family H.264 SPS with a chroma format and bit depth, and scaling
     /// matrices so that they are passed over too.
-    static byte[] h264HighSps(int profile, int chromaFormat, int bitDepth) {
+    public static byte[] h264HighSps(int profile, int chromaFormat, int bitDepth) {
         return h264HighSps(profile, 0, chromaFormat, bitDepth);
     }
 
     /// The same, with `constraints` as the constraint_set flags byte.
-    static byte[] h264HighSps(int profile, int constraints, int chromaFormat, int bitDepth) {
+    public static byte[] h264HighSps(int profile, int constraints, int chromaFormat, int bitDepth) {
         var w = new BitWriter()
                 .bits(8, profile)
                 .bits(8, constraints)
@@ -349,7 +350,7 @@ class ParameterSetsTest {
     }
 
     /// `sps` in an `avcC` with a PPS, for the provider tests.
-    static byte[] avcC(byte[] sps) {
+    public static byte[] avcC(byte[] sps) {
         var out = new ByteArrayOutputStream();
         out.writeBytes(new byte[] {1, sps[0], sps[1], sps[2], (byte) 0xFF, (byte) 0xE1});
         out.write((sps.length + 1) >> 8);

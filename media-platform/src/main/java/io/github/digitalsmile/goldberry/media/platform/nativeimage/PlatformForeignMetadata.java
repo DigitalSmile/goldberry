@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.media.platform.macos;
+package io.github.digitalsmile.goldberry.media.platform.nativeimage;
 
 import java.io.IOException;
 import java.lang.foreign.AddressLayout;
@@ -11,21 +11,31 @@ import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import io.github.digitalsmile.goldberry.media.platform.linux.LinuxBindings;
+import io.github.digitalsmile.goldberry.media.platform.macos.MacBindings;
+import io.github.digitalsmile.goldberry.media.platform.windows.WindowsBindings;
 
 /// Writes this module's `reachability-metadata.json`: every foreign-call shape a
 /// native image of it needs.
 ///
-/// `:media`'s `FfmpegForeignMetadata` for the system frameworks (ADR-0339). It
-/// initialises every binding class, so each `FD_…` constant has been through
-/// [Framework#link] and is recorded, and it names the two callbacks the
-/// decoders hand the operating system. A traced run would record what that run
-/// happened to call, and a run on anything but a Mac would call nothing.
+/// `:media`'s `FfmpegForeignMetadata` for the system libraries (ADR-0339), on
+/// all three systems at once: VideoToolbox and AudioToolbox, GStreamer, and
+/// Media Foundation. An image is built for one system, but the metadata is the
+/// same file for all of them, and a shape an image never calls costs it
+/// nothing. Each system's package lists its bindings ([MacBindings],
+/// [LinuxBindings], [WindowsBindings]), which initialise every binding class so
+/// that each `FD_…` constant has been linked and recorded, and name the
+/// callbacks the decoders hand the system. A traced run would record what that
+/// run happened to call, on the one system it ran on.
 ///
 /// Linking a descriptor needs no library, so this runs on any operating system
-/// and opens no framework. There is no `resources` section: the module ships no
-/// native code, and its two service files are found by the image's own
+/// and opens nothing. There is no `resources` section: the module ships no
+/// native code, and its service files are found by the image's own
 /// `ServiceLoader` support.
 ///
 /// The grammar is repeated from `FfmpegForeignMetadata` rather than shared: that
@@ -36,20 +46,12 @@ import java.util.stream.Collectors;
 /// runs it as it is, and `:media-platform:foreignMetadata` is its only caller.
 final class PlatformForeignMetadata {
 
-    /// The classes whose `FD_…` constants are the downcall surface. A test checks
-    /// that every class in this package holding one is listed.
-    static final List<Class<?>> BINDINGS = List.of(
-            CoreFoundation.class,
-            CoreMedia.class,
-            CoreVideo.class,
-            VideoToolbox.class,
-            AudioToolbox.class,
-            CoreAudio.class);
-
-    /// Every upcall shape: VideoToolbox's output callback and AudioToolbox's
-    /// input procedure. A test checks that these are the descriptors the
-    /// decoders' `upcallStub`s are made with.
-    static final List<FunctionDescriptor> UPCALLS = List.of(VideoToolbox.OUTPUT_CALLBACK, AudioToolbox.INPUT_PROC);
+    /// Every upcall shape, of every system.
+    static final List<FunctionDescriptor> UPCALLS = Stream.of(
+                    MacBindings.UPCALLS, LinuxBindings.UPCALLS, WindowsBindings.UPCALLS)
+            .flatMap(List::stream)
+            .distinct()
+            .toList();
 
     private PlatformForeignMetadata() {}
 
@@ -66,16 +68,15 @@ final class PlatformForeignMetadata {
         Files.writeString(target, render(downcalls(), UPCALLS));
     }
 
-    /// Every downcall descriptor, after initialising every binding class.
+    /// Every distinct downcall descriptor of every system, in the order each
+    /// system's bindings first linked them. Two systems share shapes, and each is
+    /// written once.
     static List<FunctionDescriptor> downcalls() {
-        for (var binding : BINDINGS) {
-            try {
-                Class.forName(binding.getName(), true, binding.getClassLoader());
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-        return Framework.linked();
+        var all = new LinkedHashSet<FunctionDescriptor>();
+        all.addAll(MacBindings.downcalls());
+        all.addAll(LinuxBindings.downcalls());
+        all.addAll(WindowsBindings.downcalls());
+        return List.copyOf(all);
     }
 
     /// The whole file.

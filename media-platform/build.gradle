@@ -10,10 +10,10 @@ description = 'Goldberry media platform decoders: the operating system\'s own co
 // goldberry-media-platform (docs/goldberry-media.md §5, ADR-0472)
 //
 // DecoderProviders over the decoders the operating system ships and holds the
-// licences for: VideoToolbox and AudioToolbox on macOS today. It binds the
-// system frameworks itself, as :media binds FFmpeg (ADR-0461): the frameworks
-// are part of the OS, so there is nothing to build, package or unpack, and the
-// module is plain Java.
+// licences for: VideoToolbox and AudioToolbox on macOS, GStreamer's on Linux,
+// Media Foundation on Windows (ADR-0489). It binds the system libraries itself,
+// as :media binds FFmpeg (ADR-0461): they are part of the OS, so there is
+// nothing to build, package or unpack, and the module is plain Java.
 //
 // An application opts in by putting it on the module path. Nothing depends on
 // it, and on a system it has no decoders for, its providers support nothing.
@@ -61,7 +61,8 @@ tasks.withType(Test).configureEach {
 
     // `goldberry.media.required` turns a skip for want of FFmpeg into a failure,
     // as in :media; `goldberry.platform.required` does the same for want of the
-    // operating system's decoders, for a macOS job whose purpose is them
+    // operating system's decoders, for a job whose purpose is them: each system's
+    // tests fail on that system only (ADR-0489)
     // (ADR-0016).
     ['goldberry.media.required', 'goldberry.platform.required'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
@@ -105,7 +106,7 @@ def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
     group = 'build'
     description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.media.platform.macos.PlatformForeignMetadata'
+    mainClass = 'io.github.digitalsmile.goldberry.media.platform.nativeimage.PlatformForeignMetadata'
     // Linking a descriptor is restricted, and the generator links every one.
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)

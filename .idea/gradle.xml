@@ -28,6 +28,8 @@
             <option value="$PROJECT_DIR$/example" />
             <option value="$PROJECT_DIR$/gpu" />
             <option value="$PROJECT_DIR$/html" />
+            <option value="$PROJECT_DIR$/media" />
+            <option value="$PROJECT_DIR$/media-platform" />
             <option value="$PROJECT_DIR$/natives" />
             <option value="$PROJECT_DIR$/toolkit" />
             <option value="$PROJECT_DIR$/weaver" />

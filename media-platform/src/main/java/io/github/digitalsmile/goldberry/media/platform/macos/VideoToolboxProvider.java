@@ -1,14 +1,11 @@
 package io.github.digitalsmile.goldberry.media.platform.macos;
 
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-
 import java.util.Optional;
 
-import io.github.digitalsmile.goldberry.media.codec.CodecId;
 import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 import io.github.digitalsmile.goldberry.media.codec.DecoderRequest;
-import io.github.digitalsmile.goldberry.media.codec.TrackParams;
+import io.github.digitalsmile.goldberry.media.platform.bitstream.ParameterSets;
 
 /// H.264 and HEVC, decoded by macOS's VideoToolbox (`docs/goldberry-media.md`
 /// §5, ADR-0472).
@@ -56,21 +53,6 @@ public final class VideoToolboxProvider implements DecoderProvider {
     /// `request`'s configuration record, read, when it is a track this provider
     /// decodes; empty otherwise, and for a record it cannot read.
     static Optional<ParameterSets.Configuration> configuration(DecoderRequest request) {
-        if (!(request.params() instanceof TrackParams.Video video) || video.width() <= 0 || video.height() <= 0) {
-            return Optional.empty();
-        }
-        if (request.codec() != CodecId.H264 && request.codec() != CodecId.HEVC) {
-            return Optional.empty();
-        }
-        try {
-            var record = request.extradata().toArray(JAVA_BYTE);
-            var configuration =
-                    request.codec() == CodecId.H264 ? ParameterSets.h264(record) : ParameterSets.hevc(record);
-            return configuration.shape().decodable() ? Optional.of(configuration) : Optional.empty();
-        } catch (IllegalArgumentException e) {
-            // No record, or Annex B start codes rather than one: a stream whose
-            // packets are not in the form VideoToolbox reads.
-            return Optional.empty();
-        }
+        return ParameterSets.of(request);
     }
 }

@@ -118,8 +118,11 @@ on the decode thread.
   Media workflow runs `:media-platform:check` on both of its targets and
   requires the decoders on the macOS one.
 - Not done yet:
-  - Windows (Media Foundation, a COM API that needs its own binding layer) and
-    Linux (VAAPI decodes on hardware only, and has no audio).
+  - ~~Windows (Media Foundation, a COM API that needs its own binding layer) and
+    Linux (VAAPI decodes on hardware only, and has no audio).~~ Done
+    (2026-09-28), [ADR-0489](0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md):
+    GStreamer on Linux, built and tested; Media Foundation on Windows, written
+    and not yet run on Windows.
   - ~~Native-image metadata for the upcalls.~~ Done (2026-09-24):
     `:media-platform:foreignMetadata` writes it from the bindings into the jar,
     as `:media` does. `PlatformForeignMetadata` initialises every binding class

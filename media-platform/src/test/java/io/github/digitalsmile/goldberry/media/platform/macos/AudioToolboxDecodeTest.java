@@ -22,6 +22,8 @@ import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.codec.Received;
 import io.github.digitalsmile.goldberry.media.codec.SampleFormat;
+import io.github.digitalsmile.goldberry.media.platform.fixtures.Fixtures;
+import io.github.digitalsmile.goldberry.media.platform.fixtures.Tones;
 
 /// AudioToolbox decoding the fixtures.
 ///
@@ -170,34 +172,11 @@ class AudioToolboxDecodeTest {
         }
     }
 
-    /// The whole frequency between `from` and `to` Hz with the most power in
-    /// `samples`, by Goertzel's algorithm at each.
     static int dominant(float[] samples, int from, int to) {
-        var best = from;
-        var bestPower = -1.0;
-        for (var frequency = from; frequency <= to; frequency++) {
-            var coefficient = 2 * Math.cos(2 * Math.PI * frequency / RATE);
-            double previous = 0;
-            double beforePrevious = 0;
-            for (var sample : samples) {
-                var current = sample + coefficient * previous - beforePrevious;
-                beforePrevious = previous;
-                previous = current;
-            }
-            var power = previous * previous + beforePrevious * beforePrevious - coefficient * previous * beforePrevious;
-            if (power > bestPower) {
-                bestPower = power;
-                best = frequency;
-            }
-        }
-        return best;
+        return Tones.dominant(samples, RATE, from, to);
     }
 
     static double rms(float[] samples) {
-        var sum = 0.0;
-        for (var sample : samples) {
-            sum += (double) sample * sample;
-        }
-        return Math.sqrt(sum / samples.length);
+        return Tones.rms(samples);
     }
 }

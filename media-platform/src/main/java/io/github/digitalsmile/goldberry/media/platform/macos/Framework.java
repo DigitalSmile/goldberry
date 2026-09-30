@@ -35,7 +35,7 @@ enum Framework {
     private static final Linker LINKER = Linker.nativeLinker();
 
     /// Every descriptor linked so far, in the order linked, for the native-image
-    /// metadata [PlatformForeignMetadata] writes, as `FfmpegDowncalls` records
+    /// metadata `PlatformForeignMetadata` writes, as `FfmpegDowncalls` records
     /// `:media`'s (ADR-0339).
     private static final Set<FunctionDescriptor> LINKED = new LinkedHashSet<>();
 

@@ -1,2 +1,6 @@
 io.github.digitalsmile.goldberry.media.platform.macos.VideoToolboxProvider
 io.github.digitalsmile.goldberry.media.platform.macos.AudioToolboxProvider
+io.github.digitalsmile.goldberry.media.platform.linux.GStreamerVideoProvider
+io.github.digitalsmile.goldberry.media.platform.linux.GStreamerAudioProvider
+io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationVideoProvider
+io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationAudioProvider

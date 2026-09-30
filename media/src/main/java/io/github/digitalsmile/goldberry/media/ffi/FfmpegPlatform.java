@@ -17,6 +17,13 @@ import java.util.Objects;
 /// @param arch the CPU architecture
 public record FfmpegPlatform(Os os, Arch arch) {
 
+    /// What follows each library's name: FFmpeg's `--build-suffix`, which the
+    /// media superbuild configures (ADR-0490). It keeps these libraries apart
+    /// from a distribution's FFmpeg of the same major in one process: GStreamer's
+    /// gst-libav, loaded after them, would otherwise link against them by soname.
+    /// `FfmpegSuperbuildTest` holds it to the superbuild's.
+    public static final String BUILD_SUFFIX = "-goldberry";
+
     /// The operating systems FFmpeg natives are built for.
     public enum Os {
         LINUX,
@@ -85,9 +92,10 @@ public record FfmpegPlatform(Os os, Arch arch) {
     /// The file a library is installed as, **named by its major**: the name the
     /// other libraries link against, so the one to load.
     ///
-    /// `libavcodec.so.62`, `libavcodec.62.dylib`, `avcodec-62.dll`.
+    /// `libavcodec-goldberry.so.62`, `libavcodec-goldberry.62.dylib`,
+    /// `avcodec-goldberry-62.dll`.
     public String fileName(FfmpegLibrary library) {
-        var stem = library.stem();
+        var stem = library.stem() + BUILD_SUFFIX;
         var major = library.pinnedMajor();
         return switch (os) {
             case LINUX -> "lib" + stem + ".so." + major;

@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.media.platform.macos;
+package io.github.digitalsmile.goldberry.media.platform.bitstream;
 
 import java.io.ByteArrayOutputStream;
 

@@ -52,7 +52,7 @@ class FfmpegLibrariesTest {
     @DisplayName("names the first library that is missing, in load order")
     void missingLibrary() throws IOException {
         copyFixture();
-        assertEquals("no libavutil.so.60 in " + directory, reason(FfmpegLibraries.load(directory, PLATFORM)));
+        assertEquals("no libavutil-goldberry.so.60 in " + directory, reason(FfmpegLibraries.load(directory, PLATFORM)));
     }
 
     @Test
