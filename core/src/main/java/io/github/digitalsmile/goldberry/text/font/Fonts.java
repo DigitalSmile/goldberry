@@ -338,7 +338,7 @@ public final class Fonts implements AutoCloseable {
         }
     }
 
-    private static RuntimeException closeQuietly(AutoCloseable target, @Nullable RuntimeException failure) {
+    private static @Nullable RuntimeException closeQuietly(AutoCloseable target, @Nullable RuntimeException failure) {
         try {
             target.close();
             return failure;

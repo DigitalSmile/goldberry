@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// What each [Curve] draws — `charts.md` §3.1's "interpolation: linear, smooth,
 /// step".
 ///
-/// [CurvesTest] proves the property that matters about `SMOOTH` and needs no
+/// `CurvesTest` proves the property that matters about `SMOOTH` and needs no
 /// renderer to do it. This is the half only a picture can answer: that the chart
 /// actually asked for the curve, and that a band's two edges agree.
 class ChartCurveTest {

@@ -4,9 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import io.github.digitalsmile.goldberry.qr.Level;
-import io.github.digitalsmile.goldberry.qr.QrEncoder;
-import io.github.digitalsmile.goldberry.qr.QrMatrix;
+import io.github.digitalsmile.goldberry.image.qr.Level;
+import io.github.digitalsmile.goldberry.image.qr.QrEncoder;
+import io.github.digitalsmile.goldberry.image.qr.QrMatrix;
 
 /// The last few codes encoded, so that a rebuild is not a re-encode.
 ///

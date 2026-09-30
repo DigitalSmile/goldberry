@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.accordion;
 import java.util.List;
 import java.util.function.IntConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -51,7 +53,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 /// @param onOpen     what opening a section asks for, or null to keep it here
 /// @param children   the sections, and whatever else is between them
 /// @param attributes the `id` and classes, which land on the `column` node
-public record Accordion(int open, IntConsumer onOpen, List<Widget> children, Attributes attributes)
+public record Accordion(int open, @Nullable IntConsumer onOpen, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Accordion> {
 
     /// Nothing open, which is what an accordion of shut sections starts as.
@@ -77,7 +79,7 @@ public record Accordion(int open, IntConsumer onOpen, List<Widget> children, Att
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

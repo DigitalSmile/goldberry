@@ -56,16 +56,28 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param disabled   whether it refuses activation and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("button")
-public record Button(String label, Icon icon, Runnable onPress, boolean disabled, Attributes attributes)
+public record Button(
+        String label, @Nullable Icon icon, @Nullable Runnable onPress, boolean disabled, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Button>, Semantics {
 
-    public Button {
+    /// The canonical constructor, written out because `attributes` takes null for a default (ADR-0497).
+    public Button(
+            String label,
+            @Nullable Icon icon,
+            @Nullable Runnable onPress,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
             throw new IllegalArgumentException("a button with neither a label nor an icon has nothing to click on"
                     + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.icon = icon;
+        this.onPress = onPress;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// A button with a label and an action.
@@ -109,7 +121,7 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -143,7 +155,7 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
     public static final String FLOAT = "float";
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

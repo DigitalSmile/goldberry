@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -117,10 +119,10 @@ public record ListView<T>(
         List<T> items,
         Function<T, String> identity,
         Function<T, Widget> factory,
-        Function<T, String> text,
-        Function<T, String> itemMenu,
+        @Nullable Function<T, String> text,
+        @Nullable Function<T, String> itemMenu,
         Set<String> selected,
-        Consumer<Set<String>> onSelect,
+        @Nullable Consumer<Set<String>> onSelect,
         Selection selection,
         double rowHeight,
         boolean rowHeightFromToken,
@@ -184,7 +186,7 @@ public record ListView<T>(
     ///
     /// Null rather than empty because a caller in single-selection mode has a
     /// value or has none.
-    public String selectedOne() {
+    public @Nullable String selectedOne() {
         return selected.isEmpty() ? null : selected.iterator().next();
     }
 
@@ -194,7 +196,7 @@ public record ListView<T>(
     /// The two together, because a row nobody is listening to cannot change and a
     /// listener with no value has nothing to draw — ADR-0063's loop needs both
     /// ends or neither.
-    public ListView<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
+    public ListView<T> selected(Set<String> values, @Nullable Consumer<Set<String>> onSelect) {
         return new ListView<>(
                 items,
                 identity,
@@ -217,7 +219,7 @@ public record ListView<T>(
     /// to hand it over and unwrap it to read it back would be ceremony in the
     /// common case for the benefit of the rare one. What crosses inside is a set
     /// either way.
-    public ListView<T> selected(String value, Consumer<String> onSelect) {
+    public ListView<T> selected(@Nullable String value, @Nullable Consumer<String> onSelect) {
         return selected(
                 value == null ? Set.of() : Set.of(value),
                 onSelect == null
@@ -349,7 +351,7 @@ public record ListView<T>(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

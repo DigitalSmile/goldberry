@@ -84,10 +84,10 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("radio-group")
 public record RadioGroup(
-        String value,
+        @Nullable String value,
         List<Widget> children,
-        Observable<?> source,
-        Consumer<String> onChange,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
         boolean disabled,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup>, Semantics {
@@ -155,7 +155,7 @@ public record RadioGroup(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -165,7 +165,7 @@ public record RadioGroup(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -175,7 +175,7 @@ public record RadioGroup(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

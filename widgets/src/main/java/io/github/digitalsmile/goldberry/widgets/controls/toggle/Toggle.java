@@ -89,7 +89,7 @@ import org.jspecify.annotations.Nullable;
 /// @param onChange what the user asked for, `true` or `false`
 @Markup("toggle")
 public record Toggle(
-        String label, boolean on, Observable<?> source, Consumer<Boolean> onChange,
+        String label, boolean on, @Nullable Observable<?> source, @Nullable Consumer<Boolean> onChange,
         boolean disabled, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Toggle>, Bindable<Toggle> , Semantics {
 
@@ -151,7 +151,7 @@ public record Toggle(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -171,7 +171,7 @@ public record Toggle(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

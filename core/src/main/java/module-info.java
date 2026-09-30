@@ -181,12 +181,13 @@ module io.github.digitalsmile.goldberry.core {
     // through `Image` to do it.
     exports io.github.digitalsmile.goldberry.image.gif;
 
-    // The QR encoder, ISO/IEC 18004 (`docs/gaps.md` G47, ADR-0391). Beside the
+    // The QR encoder, ISO/IEC 18004 (`docs/gaps.md` G47, ADR-0391). Among the
     // codecs and for their reason: a specification with one right answer, small
     // enough that owning it costs less than linking it, and nothing in it names
     // a widget. An application that wants a code in a PNG rather than on screen
-    // reaches this directly.
-    exports io.github.digitalsmile.goldberry.qr;
+    // reaches this directly. Under `image` since ADR-0494, where the other
+    // formats already were.
+    exports io.github.digitalsmile.goldberry.image.qr;
 
     // Rendering a scene without a window (ADR-0284): a painter or a whole widget
     // tree into an `image.Image`. Its own package rather than part of `render`,
@@ -285,6 +286,9 @@ module io.github.digitalsmile.goldberry.core {
     uses io.github.digitalsmile.goldberry.render.composite.Compositor;
     exports io.github.digitalsmile.goldberry.render.event;
     exports io.github.digitalsmile.goldberry.render;
+    // The system clipboard's SPI and the `text/uri-list` it carries files in
+    // (ADR-0496).
+    exports io.github.digitalsmile.goldberry.render.clipboard;
     exports io.github.digitalsmile.goldberry.stats;
     // Geometry over a `paint.Path` that the rasterizer does not do for us
     // (ADR-0278): flattening a curve to straight segments, cutting a path into a
@@ -312,5 +316,8 @@ module io.github.digitalsmile.goldberry.core {
     // say it sixty times a second -- needs nothing but the two rectangles.
     exports io.github.digitalsmile.goldberry.paint.overflow;
     exports io.github.digitalsmile.goldberry.paint.tree;
+    // The pen: width, caps, joins and dashes. Values with no native handle,
+    // for `css.value`'s reason (ADR-0496).
+    exports io.github.digitalsmile.goldberry.paint.stroke;
     exports io.github.digitalsmile.goldberry.paint;
 }

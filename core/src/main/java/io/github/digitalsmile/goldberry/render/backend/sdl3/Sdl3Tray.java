@@ -61,7 +61,7 @@ final class Sdl3Tray implements BackendTray {
                 itemsOf(item.children()));
     }
 
-    private static @Nullable SdlTrayIcon iconOf(PixelBuffer icon) {
+    private static @Nullable SdlTrayIcon iconOf(@Nullable PixelBuffer icon) {
         if (icon == null) {
             return null;
         }

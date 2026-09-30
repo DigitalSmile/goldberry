@@ -340,7 +340,7 @@ public final class Paragraph {
         }
         // NaN never equals itself, so the first call always misses.
         if (maxWidth == memoWidth) {
-            return memo;
+            return Objects.requireNonNull(memo, "a width is remembered only together with its layout");
         }
 
         var lines = new ArrayList<TextLine>();

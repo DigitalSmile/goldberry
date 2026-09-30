@@ -13,7 +13,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDepthTarget;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuLoad;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTarget;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 
 /// One frame of GPU work: a command buffer, recorded into pass by pass, then

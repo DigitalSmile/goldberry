@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.table;
 
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -18,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// @param sort     the table's sort when it is this column's, else null
 /// @param onSort   asked to sort
 /// @param onResize asked for a new width
-record TableHeaderCell(Column<?> column, Sort sort, Consumer<String> onSort, TableHead.Resize onResize)
+record TableHeaderCell(Column<?> column, @Nullable Sort sort, Consumer<String> onSort, TableHead.Resize onResize)
         implements Widget.Stateful {
 
     @Override

@@ -569,7 +569,8 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             // the shim maps the page's window and reparents it inside this call,
             // so a page created over its box is visible — and empty — before
             // anything here could move it ([ADR-0445]).
-            var opened = host.embeddedWebView(widget().page().spec(), parkedAway(bounds));
+            var opened = Objects.requireNonNull(host, "sync() opens a page only once it has a host")
+                    .embeddedWebView(widget().page().spec(), parkedAway(bounds));
             if (opened.isPresent()) {
                 page = opened.get();
                 placed = bounds;

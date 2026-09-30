@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.function.IntConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -75,7 +77,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes the `id` and classes, which land on the `carousel` node
 @Markup("carousel")
 public record Carousel(
-        int index, IntConsumer onChange, boolean loop, Duration interval, List<Widget> children, Attributes attributes)
+        int index,
+        @Nullable IntConsumer onChange,
+        boolean loop,
+        @Nullable Duration interval,
+        List<Widget> children,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Carousel> {
 
     public Carousel(Widget... slides) {
@@ -118,7 +125,7 @@ public record Carousel(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

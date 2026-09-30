@@ -2,9 +2,11 @@ package io.github.digitalsmile.goldberry.media.audio;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -58,9 +60,11 @@ class OutputLatencyTest {
     }
 
     @Test
-    @DisplayName("on this module's own path no provider is installed")
+    @DisplayName("off macOS the installed provider answers nothing")
     void installedHere() {
-        // :media-platform is not on :media's test path, so the scan finds nothing.
+        // CoreAudio's provider is this module's own since ADR-0493, so the scan
+        // finds it everywhere; on any other system it has no device to read.
+        assumeFalse(System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("mac"));
         assertEquals(Optional.empty(), OutputLatency.installed().defaultOutput());
     }
 }

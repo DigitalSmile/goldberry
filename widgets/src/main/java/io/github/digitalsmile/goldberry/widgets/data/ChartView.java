@@ -52,7 +52,7 @@ record ChartView(String cssType, List<Widget> parts, Attributes attributes) impl
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

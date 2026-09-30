@@ -33,10 +33,10 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 public record Attributes(
         @Nullable String id,
         Set<String> classes,
-        Object key,
-        String tooltip,
-        String contextMenu,
-        String name,
+        @Nullable Object key,
+        @Nullable String tooltip,
+        @Nullable String contextMenu,
+        @Nullable String name,
         @Nullable Runnable onPointerEnter,
         @Nullable Runnable onPointerExit) {
 
@@ -51,7 +51,13 @@ public record Attributes(
     /// The six that every widget had before a hover hook was one of them, kept
     /// for the reason the three-argument form is (`docs/gaps.md` G33,
     /// [ADR-0327]).
-    public Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu, String name) {
+    public Attributes(
+            @Nullable String id,
+            Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name) {
         this(id, classes, key, tooltip, contextMenu, name, null, null);
     }
 
@@ -61,13 +67,18 @@ public record Attributes(
     /// the catalog and in most of its tests, and because a fourth positional
     /// argument on all of them would be four hundred edits to say `null`
     /// (ADR-0105).
-    public Attributes(String id, Set<String> classes, Object key) {
+    public Attributes(@Nullable String id, Set<String> classes, @Nullable Object key) {
         this(id, classes, key, null, null, null);
     }
 
     /// The five that every widget had before an accessible name was one of them,
     /// kept for the reason the three-argument form is (ADR-0260).
-    public Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
+    public Attributes(
+            @Nullable String id,
+            Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu) {
         this(id, classes, key, tooltip, contextMenu, null);
     }
 
@@ -116,7 +127,9 @@ public record Attributes(
     /// across a `setState` that replaced every widget in the window. An id that
     /// did not double as a key would be an id that looks like it identifies the
     /// node and does not, which is [#of(KdlNode)]'s rule too.
-    public Attributes id(String id) {
+    ///
+    /// Null clears both.
+    public Attributes id(@Nullable String id) {
         return new Attributes(id, classes, id, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
     }
 

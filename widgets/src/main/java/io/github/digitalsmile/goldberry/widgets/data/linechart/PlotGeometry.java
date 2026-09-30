@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.text.Paragraph;
-import io.github.digitalsmile.goldberry.widgets.data.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
 
 /// Where the plot area is inside the box, and what a coordinate in it means.
 ///
@@ -51,7 +52,7 @@ record PlotGeometry(
         double gutter,
         double lineHeight,
         Scale y,
-        double[] times) {
+        double @Nullable [] times) {
 
     /// A plot whose x is the point index — every chart without a time axis.
     PlotGeometry(
@@ -112,7 +113,7 @@ record PlotGeometry(
             boolean logarithmic,
             double width,
             double height,
-            double[] times) {
+            double @Nullable [] times) {
 
         if (labels.isEmpty() || width <= 0 || height <= 0) {
             return null;
@@ -222,6 +223,7 @@ record PlotGeometry(
     /// Built on demand rather than held, because a `record` with an array in it
     /// is compared by identity anyway and this is three field reads.
     Scale timeScale() {
+        var times = Objects.requireNonNull(this.times, "only a plot with a time axis has a time scale");
         var first = times[0];
         var last = times[times.length - 1];
         return Scale.linear(first, last, left, right());

@@ -65,8 +65,10 @@ final class AccordionState extends State<Accordion> {
         if (next == resolved()) {
             return;
         }
-        if (widget().isControlled()) {
-            widget().onOpen().accept(next);
+        // `isControlled()` is this handler being there.
+        var onOpen = widget().onOpen();
+        if (onOpen != null) {
+            onOpen.accept(next);
             return;
         }
         setState(() -> open = next);

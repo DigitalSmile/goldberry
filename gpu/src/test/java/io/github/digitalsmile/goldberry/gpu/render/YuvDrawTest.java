@@ -21,18 +21,18 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBlend;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFilter;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuGraphicsPipeline;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuLoad;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuSampler;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShader;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The Y'CbCr shaders against [YuvConversion], for every layout, matrix and
 /// range the frame contract can carry: media phase 4's colour half
@@ -84,6 +84,11 @@ class YuvDrawTest {
 
     @AfterAll
     static void destroyDevice() {
+        // Skipped before SDL was reached: nothing to give back, and no library to
+        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        if (device == null) {
+            return;
+        }
         if (device != null) {
             device.close();
         }

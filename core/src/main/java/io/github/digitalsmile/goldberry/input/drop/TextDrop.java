@@ -41,7 +41,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 /// file drop with a different spelling: a file manager that drags a file sends
 /// `SDL_EVENT_DROP_FILE`, and an application that wants to treat a dropped
 /// `file:` URL as a file can say so itself with
-/// [UriList][io.github.digitalsmile.goldberry.render.UriList] ([ADR-0406]).
+/// [UriList][io.github.digitalsmile.goldberry.render.clipboard.UriList] ([ADR-0406]).
 ///
 /// @param lines the dropped text, one entry per line the platform reported, in
 ///              order; never empty and no entry empty

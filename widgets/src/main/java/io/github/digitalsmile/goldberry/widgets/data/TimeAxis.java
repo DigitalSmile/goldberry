@@ -7,6 +7,9 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.TimeTicks;
+
 /// When each point happened — `content-widgets.md` §3.1's `java.time`-driven time
 /// axis.
 ///

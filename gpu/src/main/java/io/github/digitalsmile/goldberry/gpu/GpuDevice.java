@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
-import io.github.digitalsmile.goldberry.gpu.render.ApiAccess;
+import io.github.digitalsmile.goldberry.gpu.composite.ApiAccess;
 import io.github.digitalsmile.goldberry.gpu.render.StagingBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;

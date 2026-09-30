@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// The node a stylesheet calls `dialog`: the panel, its two keys, and the focus
 /// trap.
@@ -41,7 +41,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 /// @param onMotion   told what each frame says about the motion preference
 /// @param attributes the `id` and classes the document wrote
 record DialogPanel(
-        String title,
+        @Nullable String title,
         List<Widget> content,
         List<Widget> buttons,
         Runnable onEscape,
@@ -73,7 +73,7 @@ record DialogPanel(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 
@@ -262,7 +262,7 @@ record DialogPanel(
     }
 
     @Override
-    public String accessibleName() {
+    public @Nullable String accessibleName() {
         return title;
     }
 }

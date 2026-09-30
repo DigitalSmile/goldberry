@@ -7,6 +7,8 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
@@ -143,7 +145,7 @@ public final class ShowcaseModel {
     /// rather than stringifying it, so the screen shows the application's own
     /// spelling of a date it owns.
     @Bind("trip.date")
-    private LocalDate tripDate = LocalDate.of(2026, 9, 14);
+    private @Nullable LocalDate tripDate = LocalDate.of(2026, 9, 14);
 
     @Bind("trip.status")
     private String tripStatus = "Type a date, or press the chevron";
@@ -153,7 +155,7 @@ public final class ShowcaseModel {
     /// A **`LocalTime`**, for `trip.date`'s reason: §4 gives the control a typed
     /// value and a model that has parsed its own is what a picker formats from.
     @Bind("trip.time")
-    private LocalTime tripTime = LocalTime.of(9, 30);
+    private @Nullable LocalTime tripTime = LocalTime.of(9, 30);
 
     @Bind("trip.time-status")
     private String tripTimeStatus = "Type it, or turn the wheels";
@@ -288,7 +290,7 @@ public final class ShowcaseModel {
     private List<String> tabs = List.of("Rivendell", "Moria");
 
     @Bind("app.tab")
-    private String tab = "Rivendell";
+    private @Nullable String tab = "Rivendell";
 
     // --- the chips (ADR-0305) ------------------------------------------------
 
@@ -986,18 +988,18 @@ public final class ShowcaseModel {
     }
 
     /// The decoder the Audio screen wrote in Java, with its switch.
-    public io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcmDecoder() {
+    public io.github.digitalsmile.goldberry.example.media.JavaPcmDecoder javaPcmDecoder() {
         return javaPcm;
     }
 
-    private final io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder javaPcm =
-            new io.github.digitalsmile.goldberry.example.ui.JavaPcmDecoder();
+    private final io.github.digitalsmile.goldberry.example.media.JavaPcmDecoder javaPcm =
+            new io.github.digitalsmile.goldberry.example.media.JavaPcmDecoder();
 
     private final io.github.digitalsmile.goldberry.media.MediaPlayer audioPlayer =
-            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.audioPlayer(javaPcm);
+            io.github.digitalsmile.goldberry.example.media.ShowcaseMedia.audioPlayer(javaPcm);
 
     private final io.github.digitalsmile.goldberry.media.MediaPlayer videoPlayer =
-            io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.videoPlayer();
+            io.github.digitalsmile.goldberry.example.media.ShowcaseMedia.videoPlayer();
 
     /// The one picture this application ships, for whichever document names it.
     private final DocumentAssets assets = new DocumentAssets();

@@ -135,9 +135,9 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 @Markup("slider")
 public record Slider(
         double min, double max, double value, double step,
-        int ticks, String format, Scale scale,
-        Observable<?> source, DoubleConsumer onChange,
-        boolean disabled, Attributes attributes, DoubleConsumer onCommit, List<Span> spans)
+        int ticks, @Nullable String format, Scale scale,
+        @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
+        boolean disabled, Attributes attributes, @Nullable DoubleConsumer onCommit, List<Span> spans)
         implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
 
     /// A stretch of a slider's range, `from` up to `to`, in the slider's units.
@@ -182,17 +182,17 @@ public record Slider(
     /// Every component but [#spans()]: the canonical form before spans existed,
     /// which every slider that marks nothing still uses.
     public Slider(double min, double max, double value, double step,
-            int ticks, String format, Scale scale,
-            Observable<?> source, DoubleConsumer onChange,
-            boolean disabled, Attributes attributes, DoubleConsumer onCommit) {
+            int ticks, @Nullable String format, Scale scale,
+            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
+            boolean disabled, Attributes attributes, @Nullable DoubleConsumer onCommit) {
         this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, List.of());
     }
 
     /// Every component but [#onCommit()]: the canonical form before the commit
     /// hook existed, which every slider that does not need one still uses.
     public Slider(double min, double max, double value, double step,
-            int ticks, String format, Scale scale,
-            Observable<?> source, DoubleConsumer onChange,
+            int ticks, @Nullable String format, Scale scale,
+            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
             boolean disabled, Attributes attributes) {
         this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, null);
     }
@@ -200,7 +200,7 @@ public record Slider(
     /// The eight-argument form every unlabelled, unticked, linear slider wants —
     /// which is most of them.
     public Slider(double min, double max, double value, double step,
-            Observable<?> source, DoubleConsumer onChange,
+            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
             boolean disabled, Attributes attributes) {
         this(min, max, value, step, 0, null, Scale.LINEAR, source, onChange, disabled, attributes);
     }
@@ -264,7 +264,7 @@ public record Slider(
     /// would draw `0,5` where CI drew `0.5`, and the failure would be a pixel
     /// diff on a developer's machine that nobody could reproduce on another.
     /// A locale-aware label is the application's to pass in already formatted.
-    public String text() {
+    public @Nullable String text() {
         return format == null ? null : label(format, resolved());
     }
 
@@ -314,7 +314,7 @@ public record Slider(
     /// press is released, and after each key step — see "When a gesture ends".
     ///
     /// @param value the handler, or null for none
-    public Slider onCommit(DoubleConsumer value) {
+    public Slider onCommit(@Nullable DoubleConsumer value) {
         return new Slider(min, max, this.value, step, ticks, format, scale,
                 source, onChange, disabled, attributes, value, spans);
     }
@@ -354,7 +354,7 @@ public record Slider(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 

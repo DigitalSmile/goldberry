@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -67,7 +69,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes the `id` and classes, which land on the `collapse` node
 @Markup("collapse")
 public record Collapse(
-        String title, boolean open, Consumer<Boolean> onToggle, List<Widget> children, Attributes attributes)
+        String title, boolean open, @Nullable Consumer<Boolean> onToggle, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Collapse> {
 
     public Collapse(String title, Widget... kids) {
@@ -95,7 +97,7 @@ public record Collapse(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

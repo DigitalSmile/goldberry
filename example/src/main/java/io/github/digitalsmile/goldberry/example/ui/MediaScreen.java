@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -13,6 +14,8 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.example.media.JavaPcmDecoder;
+import io.github.digitalsmile.goldberry.example.media.ShowcaseMedia;
 import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaCapabilities;
 import io.github.digitalsmile.goldberry.media.MediaException;
@@ -506,8 +509,8 @@ public record MediaScreen(
                                             + PlatformDecoders.unavailableReason()
                                                     .orElse("not available")),
                     caption("Read from the loaded libraries, not from a list: this is what MediaCapabilities"
-                            + " answers. The system decoders are goldberry-media-platform's: the operating"
-                            + " system's own, which hold the licences the published natives do not."));
+                            + " answers. The system decoders are the operating system's own, which hold"
+                            + " the licences the published natives do not."));
         }
 
         private Widget javaDecoderCard(JavaPcmDecoder decoder) {
@@ -586,7 +589,8 @@ public record MediaScreen(
             try {
                 widget().player().setRate(speed);
             } catch (IllegalStateException e) {
-                setState(() -> message = e.getMessage());
+                var why = Objects.requireNonNull(e.getMessage(), "setRate says why it refused the rate");
+                setState(() -> message = why);
             }
         }
 

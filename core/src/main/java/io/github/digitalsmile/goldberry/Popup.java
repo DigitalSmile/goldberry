@@ -116,7 +116,9 @@ public final class Popup implements AutoCloseable {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y) {
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.@Nullable Button button,
+                    float x,
+                    float y) {
                 // A press inside a popup is somebody choosing an item.
                 return false;
             }
@@ -411,7 +413,7 @@ public final class Popup implements AutoCloseable {
     /// ignore the first arrow key.
     ///
     /// @param id the node to focus, or null to restore the default
-    public void focusOn(String id) {
+    public void focusOn(@Nullable String id) {
         this.focusId = id;
     }
 

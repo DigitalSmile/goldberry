@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// The node a stylesheet calls `message`.
 ///
@@ -35,7 +35,7 @@ record MessageBox(
         Message.Kind kind,
         String text,
         List<Widget> actions,
-        Runnable onDismiss,
+        @Nullable Runnable onDismiss,
         Phase phase,
         java.util.function.Consumer<Boolean> onMotion,
         Attributes attributes)
@@ -66,7 +66,7 @@ record MessageBox(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

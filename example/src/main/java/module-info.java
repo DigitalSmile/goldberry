@@ -42,11 +42,6 @@ module io.github.digitalsmile.goldberry.example {
     /// the module's widget catalog, and the screen drives a `MediaPlayer`.
     requires io.github.digitalsmile.goldberry.media;
 
-    /// `goldberry-media-platform`: the operating system's decoders, which the
-    /// Media screens pass to their players and the "This build" card names
-    /// (ADR-0472).
-    requires io.github.digitalsmile.goldberry.media.platform;
-
     /// `goldberry-gpu`: the GPU screen's `canvas3d` and the cube it draws with
     /// (`docs/gpu-plan.md`, phase 5). It is also what composites the showcase's
     /// windows (ADR-0480), which being on the module path was enough for.

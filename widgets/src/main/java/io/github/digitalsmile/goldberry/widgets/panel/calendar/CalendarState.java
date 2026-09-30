@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// What a [CalendarView] holds: which month is shown, which day the arrows are
 /// on, and the month that is fading out.

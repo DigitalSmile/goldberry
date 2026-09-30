@@ -13,12 +13,12 @@ import java.util.function.LongSupplier;
 
 import org.jspecify.annotations.Nullable;
 
-import io.github.digitalsmile.goldberry.media.Picture;
-import io.github.digitalsmile.goldberry.media.PictureForm;
-import io.github.digitalsmile.goldberry.media.VideoPicture;
-import io.github.digitalsmile.goldberry.media.VideoPlanes;
 import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
+import io.github.digitalsmile.goldberry.media.picture.Picture;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
+import io.github.digitalsmile.goldberry.media.picture.VideoPlanes;
 
 /// Prepared pictures waiting for their time, and the one being shown
 /// (`docs/goldberry-media.md` §1, "Frame queue", and §3, "Presentation").

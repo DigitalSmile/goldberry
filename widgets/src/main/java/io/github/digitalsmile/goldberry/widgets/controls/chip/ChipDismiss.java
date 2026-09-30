@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.controls.chip;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -27,7 +29,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param onDismiss what to ask, or null on a disabled chip — the chip passes
 ///                  null rather than wrapping a no-op, so a disabled × cannot
 ///                  fire by a route that forgot to check
-record ChipDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+record ChipDismiss(@Nullable Runnable onDismiss) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {

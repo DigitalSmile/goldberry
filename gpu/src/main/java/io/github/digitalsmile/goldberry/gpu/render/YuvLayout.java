@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.gpu.render;
 
 import java.util.List;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 
 /// How a picture's Y'CbCr planes are laid out: the four formats of the media
 /// engine's frame contract (`docs/goldberry-media.md` §5), each 4:2:0.

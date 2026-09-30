@@ -3,6 +3,9 @@ package io.github.digitalsmile.goldberry.widgets.controls.select;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
@@ -34,7 +37,7 @@ final class SelectState extends State<Select> {
     /// The open list, or null. Closed by choosing a row, by [#toggle], and by the
     /// popup's own light dismissal — a press outside or `Escape` — which this
     /// notices through [Popup#isOpen()] rather than being told.
-    private Popup list;
+    private @Nullable Popup list;
 
     /// Where the last frame painted the field, and what clipped it.
     ///
@@ -52,7 +55,7 @@ final class SelectState extends State<Select> {
     /// Read in `build` and **used** only from a click or a keypress, which is
     /// what [BuildContext#host()] allows: a build that read anything off a host
     /// would depend on the last frame, and nothing invalidates that.
-    private Host host;
+    private @Nullable Host host;
 
     @Override
     public Widget build(BuildContext context) {
@@ -77,7 +80,8 @@ final class SelectState extends State<Select> {
         // opened with -- so a user typing `n`, `o` down a country list watched
         // the tick stay on whatever was chosen before and nothing else move.
         if (isOpen()) {
-            list.content(panel());
+            Objects.requireNonNull(list, "isOpen() answered true, so the list is there")
+                    .content(panel());
         }
         return new SelectField(
                 select.label(),
@@ -139,7 +143,7 @@ final class SelectState extends State<Select> {
     /// widget's `value`, and `TextInputState.follow` overwrites the field only
     /// when this *changes* — so typing is never fought, and setting it back to
     /// the committed label is exactly how `Esc` restores ([ADR-0183]).
-    private String typedText;
+    private @Nullable String typedText;
 
     /// §3's editable closed control, or null for a `select` you cannot type in.
     ///
@@ -148,7 +152,7 @@ final class SelectState extends State<Select> {
     /// because everything an editable field needs — the edit model, the undo
     /// history, the clipboard, the caret's blink — already lives there and has
     /// rules in it. A second editor would be a second set of those rules.
-    private Widget editor(Select select) {
+    private @Nullable Widget editor(Select select) {
         if (!select.autocomplete()) {
             return null;
         }
@@ -338,7 +342,10 @@ final class SelectState extends State<Select> {
         // forwards keys to whatever popup is open (ADR-0104, ADR-0185).
         if (select.autocomplete()) {
             opened.get().takesFocus(false);
-        } else {
+        } else if (chosen != null) {
+            // Guarded only because `Popup.focusOn`'s parameter is not yet
+            // `@Nullable` although it documents null as the default -- which a
+            // popup just opened already has, so skipping the call is the same.
             opened.get().focusOn(chosen);
         }
         setState(() -> list = opened.get());
@@ -442,7 +449,7 @@ final class SelectState extends State<Select> {
     ///
     /// The **first** selected one for a `multiple`, which is the only answer that
     /// is not arbitrary when there are several.
-    private String chosenId(Select select) {
+    private @Nullable String chosenId(Select select) {
         if (select.isTree()) {
             return chosenTreeRow(select);
         }
@@ -471,7 +478,7 @@ final class SelectState extends State<Select> {
     /// Without it a tree select opened on its first row whatever it held, so the
     /// tree's typeahead — which moves from the focused row — started from the top
     /// rather than from the value, and `Down` did too.
-    private static String chosenTreeRow(Select select) {
+    private static @Nullable String chosenTreeRow(Select select) {
         var wanted = select.resolved();
         if (wanted == null) {
             return null;
@@ -574,7 +581,7 @@ final class SelectState extends State<Select> {
 
     /// The first enabled option at or after `from` whose label starts with
     /// `prefix`.
-    private static Option matching(List<Option> options, String prefix, int from) {
+    private static @Nullable Option matching(List<Option> options, String prefix, int from) {
         var wanted = prefix.toLowerCase(Locale.ROOT);
         for (var i = from; i < options.size(); i++) {
             var option = options.get(i);

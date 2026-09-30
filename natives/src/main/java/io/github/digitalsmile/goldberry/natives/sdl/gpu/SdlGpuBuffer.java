@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+
 /// A buffer on a [SdlGpuDevice]: vertices or indices, filled by a copy pass from
 /// a transfer buffer, and read by draws.
 public final class SdlGpuBuffer extends SdlGpuResource {

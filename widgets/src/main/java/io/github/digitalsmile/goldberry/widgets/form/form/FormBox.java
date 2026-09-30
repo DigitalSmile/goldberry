@@ -41,7 +41,7 @@ record FormBox(List<Widget> children, Attributes attributes) implements Widget.L
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

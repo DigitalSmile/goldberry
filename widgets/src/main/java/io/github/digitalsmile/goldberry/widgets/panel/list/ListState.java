@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
@@ -28,7 +31,7 @@ final class ListState<T> extends State<ListView<T>> {
 
     /// The window, for the keyboard moves that land on another row — captured in
     /// `build`, which is the only place a widget is handed one ([ADR-0140]).
-    private Host host;
+    private @Nullable Host host;
 
     /// How long a typeahead lasts before the next letter starts a new one.
     ///
@@ -50,7 +53,7 @@ final class ListState<T> extends State<ListView<T>> {
     /// that has left the model simply fails to be found and the range starts at
     /// the pressed row, which is what a reader who has re-sorted the model
     /// underneath their own selection means anyway.
-    private String anchor;
+    private @Nullable String anchor;
 
     /// How many rows beyond each edge of the viewport are built anyway.
     ///
@@ -240,8 +243,9 @@ final class ListState<T> extends State<ListView<T>> {
     /// Releases [#reaching] as soon as the focus lands or the attempts run out —
     /// holding it would pin a row nobody is looking at in the window for ever.
     private void reachAgain(String id, int attemptsLeft) {
-        host.after(java.time.Duration.ZERO, () -> {
-            if (host.focus(rowId(id), true) || attemptsLeft <= 1) {
+        var window = Objects.requireNonNull(host, "reach() goes on only with a host");
+        window.after(java.time.Duration.ZERO, () -> {
+            if (window.focus(rowId(id), true) || attemptsLeft <= 1) {
                 reaching = -1;
                 return;
             }
@@ -346,13 +350,14 @@ final class ListState<T> extends State<ListView<T>> {
 
     /// The identity of the first item from `start` onwards whose text begins with
     /// what has been typed, or null.
-    private String matching(int start) {
+    private @Nullable String matching(int start) {
         var list = widget();
         var wanted = typed.toLowerCase(Locale.ROOT);
         var items = list.items();
+        var reading = Objects.requireNonNull(list.text(), "only a list with text has a typeahead");
         for (var i = Math.max(0, start); i < items.size(); i++) {
             var item = items.get(i);
-            var text = list.text().apply(item);
+            var text = reading.apply(item);
             if (text != null && text.toLowerCase(Locale.ROOT).startsWith(wanted)) {
                 return list.identity().apply(item);
             }

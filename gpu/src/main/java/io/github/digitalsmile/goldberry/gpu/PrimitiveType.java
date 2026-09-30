@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPrimitiveType;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 
 /// How a pipeline assembles vertices into what it rasterizes.
 public enum PrimitiveType {

@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.example.ui.IconsScreen;
+import io.github.digitalsmile.goldberry.example.ui.sheet.IconsScreen;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;

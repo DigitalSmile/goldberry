@@ -25,6 +25,15 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// An SDL GPU device: Metal on macOS, Direct3D 12 on Windows, Vulkan elsewhere,
 /// or whichever the options name.

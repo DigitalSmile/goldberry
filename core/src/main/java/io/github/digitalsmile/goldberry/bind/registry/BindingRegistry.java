@@ -6,13 +6,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 
 /// What a path in markup means (§9's `bind` half).
 ///
-/// The counterpart of `ActionRegistry` in `:widgets`, and deliberately the same shape:
+/// The counterpart of [ActionRegistry], beside it, and deliberately the same shape:
 /// markup names, and this resolves. `checkbox bind="prefs.frost"` says *which*
 /// value, and cannot say what the value is or where it is stored — a markup file
 /// that could reach into an object graph would be code with a different syntax,
@@ -131,7 +133,7 @@ public final class BindingRegistry {
     ///
     /// @throws IllegalArgumentException if the path is malformed, or if this
     ///         registry is [#strict()] and the path is not bound
-    public Observable<?> resolve(String path) {
+    public @Nullable Observable<?> resolve(@Nullable String path) {
         if (path == null) {
             return null;
         }
@@ -157,7 +159,7 @@ public final class BindingRegistry {
     ///
     /// @throws IllegalArgumentException if the value held is not of `type`
     @SuppressWarnings("unchecked")
-    public <T> Observable<T> resolve(String path, Class<T> type) {
+    public <T> @Nullable Observable<T> resolve(@Nullable String path, Class<T> type) {
         Objects.requireNonNull(type, "type");
         var property = resolve(path);
         if (property == null) {

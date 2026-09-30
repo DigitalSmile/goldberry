@@ -849,7 +849,8 @@ public final class Window implements AutoCloseable {
         /// @return true when the press has been dealt with — a context menu
         ///         opening takes it, so the press does not also travel to whatever
         ///         it landed on
-        boolean pressed(io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y);
+        boolean pressed(
+                io.github.digitalsmile.goldberry.input.event.PointerEvent.@Nullable Button button, float x, float y);
 
         /// A key went down somewhere in this window.
         ///
@@ -954,6 +955,9 @@ public final class Window implements AutoCloseable {
     /// changed: `takeStylesDirty` clears on read, so the question it answers is
     /// exactly "did a pseudo-class change since the last time anyone asked".
     private void repaintIfRestyled() {
+        var router = Objects.requireNonNull(
+                this.router,
+                "reached only from input a router took, or its watcher did, and a watcher comes after one");
         if (router.takeStylesDirty()) {
             repaint();
         }

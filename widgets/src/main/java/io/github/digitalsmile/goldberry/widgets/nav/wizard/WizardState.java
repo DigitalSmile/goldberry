@@ -91,15 +91,13 @@ final class WizardState extends State<Wizard> {
         if (wizard.onBack() != null) {
             buttons.add(new Button(labels.back(), wizard.onBack())
                     .disabled(current == 0)
-                    .withAttributes(Attributes.NONE.id(id(wizard, "back"))));
+                    .withAttributes(named(id(wizard, "back"))));
         }
         var last = current >= count - 1;
         var affirmative = last ? wizard.onFinish() : wizard.onNext();
         if (affirmative != null) {
             buttons.add(new Button(last ? labels.finish() : labels.next(), affirmative)
-                    .withAttributes(Attributes.NONE
-                            .id(id(wizard, last ? "finish" : "next"))
-                            .classes("primary")));
+                    .withAttributes(named(id(wizard, last ? "finish" : "next")).classes("primary")));
         }
         return buttons;
     }
@@ -113,6 +111,12 @@ final class WizardState extends State<Wizard> {
         return id == null
                 ? "wizard-" + Integer.toHexString(System.identityHashCode(this)) + "-content"
                 : id + "-content";
+    }
+
+    /// No attributes but an id, when there is one. [Attributes#NONE] is what an
+    /// id of null gives, so a wizard with no id of its own names no buttons.
+    private static Attributes named(@Nullable String id) {
+        return id == null ? Attributes.NONE : Attributes.NONE.id(id);
     }
 
     private static @Nullable String id(Wizard wizard, String part) {

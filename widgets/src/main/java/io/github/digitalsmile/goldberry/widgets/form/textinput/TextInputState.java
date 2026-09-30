@@ -73,7 +73,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     private io.github.digitalsmile.goldberry.@Nullable Popup suggestions;
 
     /// Where the last frame painted this field, for anchoring the popover.
-    private io.github.digitalsmile.goldberry.render.model.LogicalRect fieldBounds;
+    private io.github.digitalsmile.goldberry.render.model.@Nullable LogicalRect fieldBounds;
 
     /// A list taller than the screen scrolls rather than losing its bottom, which
     /// is `menu`'s and `select`'s answer from the same helper (ADR-0179).
@@ -117,7 +117,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// The last frame's shaped text and the mask it was shaped from, kept so the
     /// pointer — which arrives outside a render pass — can turn an x into an
     /// offset.
-    private Paragraph paragraph;
+    private @Nullable Paragraph paragraph;
     private Mask mask = Mask.of("", false);
     private double leftPadding;
     private double rightPadding;
@@ -169,6 +169,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// Set in [#initState] and compared on every build. Without it an unbound
     /// field — whose `value` is a constant the widget was built with — would be
     /// reset to that constant by every rebuild, which is every keystroke.
+    @SuppressWarnings("NullAway.Init") // set in initState(), before anything reads it
     private String lastOffered;
 
     /// Takes a value the **application** changed, and ignores the echo of the

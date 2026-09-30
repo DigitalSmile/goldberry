@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -105,7 +107,7 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
             return "shape-" + name().toLowerCase(Locale.ROOT);
         }
 
-        static Shape of(String text) {
+        static Shape of(@Nullable String text) {
             if (text == null || text.isBlank()) {
                 return TEXT;
             }
@@ -161,7 +163,7 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

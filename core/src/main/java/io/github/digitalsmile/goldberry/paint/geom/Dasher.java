@@ -2,8 +2,8 @@ package io.github.digitalsmile.goldberry.paint.geom;
 
 import java.util.Objects;
 
-import io.github.digitalsmile.goldberry.paint.Dash;
 import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.stroke.Dash;
 
 /// Cuts a [Path] into the on runs of a [Dash] pattern.
 ///

@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// A GIF, as far as its first frame — `docs/gaps.md` G35a, [ADR-0329].
 ///
 /// ## Why this is Java and WebP is not
@@ -310,7 +312,7 @@ public final class GifDecoder {
     }
 
     /// The canvas the next frame starts from.
-    private static int[] disposed(int[] canvas, Screen screen, Patch patch, int disposal, int[] restore) {
+    private static int[] disposed(int[] canvas, Screen screen, Patch patch, int disposal, int @Nullable [] restore) {
         return switch (disposal) {
             case DISPOSE_BACKGROUND -> {
                 // The frame's own rectangle back to transparent. "Background" is
@@ -377,9 +379,9 @@ public final class GifDecoder {
 
         private final int width;
         private final int height;
-        private final int[] palette;
+        private final int @Nullable [] palette;
 
-        Screen(int width, int height, int[] palette) {
+        Screen(int width, int height, int @Nullable [] palette) {
             this.width = width;
             this.height = height;
             this.palette = palette;
@@ -393,7 +395,7 @@ public final class GifDecoder {
             return height;
         }
 
-        int[] palette() {
+        int @Nullable [] palette() {
             return palette;
         }
     }

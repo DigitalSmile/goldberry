@@ -51,15 +51,10 @@ rootProject.name = 'goldberry'
 // audio and video over FFmpeg driven from Java (ADR-0460). It is the one module
 // besides :natives that binds a native library itself, and its libraries are
 // FFmpeg's own shared objects rather than libgoldberry, built by a superbuild of
-// its own in media/src/main/cmake (ADR-0461). Not published until its natives
-// jar exists on all four targets.
-//
-// :media-platform is `goldberry-media-platform` (docs/goldberry-media.md §5,
-// ADR-0472): DecoderProviders over the operating system's own decoders --
-// VideoToolbox and AudioToolbox on macOS -- for the patent-pool codecs the
-// published natives do not build. The OS vendor holds those licences. It binds
-// the system frameworks itself and ships no native code. Optional: nothing
-// depends on it, and an application opts in by putting it on the module path.
+// its own in media/src/main/cmake (ADR-0461). The operating system's own
+// decoders -- VideoToolbox and AudioToolbox, GStreamer, Media Foundation -- are
+// part of it too, behind the same Decoder SPI; they were :media-platform until
+// ADR-0493.
 //
 // :example is the showcase. It is a subproject rather than a separate build so
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
@@ -78,7 +73,6 @@ include ':common',
         ':widgets',
         ':html',
         ':media',
-        ':media-platform',
         ':emoji',
         ':gpu',
         ':bom',

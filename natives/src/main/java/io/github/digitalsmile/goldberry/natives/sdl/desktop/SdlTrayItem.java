@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// One row of a tray menu, as a value.
 ///
 /// A tray menu is **described** rather than built: the platform's shell draws it,
@@ -24,7 +26,12 @@ import java.util.Objects;
 ///                 [Kind#SEPARATOR] is
 /// @param children the submenu's rows, empty for everything but [Kind#SUBMENU]
 public record SdlTrayItem(
-        Kind kind, String label, boolean enabled, boolean checked, Chosen onChosen, List<SdlTrayItem> children) {
+        Kind kind,
+        @Nullable String label,
+        boolean enabled,
+        boolean checked,
+        @Nullable Chosen onChosen,
+        List<SdlTrayItem> children) {
 
     /// What a row is. See the note above on why this is not a flags mask.
     public enum Kind {

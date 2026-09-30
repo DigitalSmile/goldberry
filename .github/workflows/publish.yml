@@ -51,9 +51,15 @@ jobs:
   macos:
     uses: ./.github/workflows/macos.yml
 
+  # FFmpeg for goldberry-media's `ffmpeg-<target>` classifiers, built and tested
+  # by the Media workflow on every target it has a runner for (ADR-0495). Each
+  # uploads its install as `ffmpeg-<target>`.
+  media:
+    uses: ./.github/workflows/media.yml
+
   maven:
     name: Maven Central (${{ inputs.release && 'release' || 'snapshot' }})
-    needs: [linux, windows, macos]
+    needs: [linux, windows, macos, media]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +127,24 @@ jobs:
           done
           find artifacts -type f | sort
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ffmpeg-*
+          path: ffmpeg-downloads
+
+      # `<target>/`, which :media's `ffmpegNativesJar*` tasks read. A snapshot
+      # carries the targets the Media workflow built; a release refuses to
+      # publish without all four (media/build.gradle, ADR-0495).
+      - name: Flatten into the layout :media expects
+        run: |
+          mkdir -p ffmpeg-artifacts
+          for dir in ffmpeg-downloads/ffmpeg-*; do
+            target="${dir#ffmpeg-downloads/ffmpeg-}"
+            mkdir -p "ffmpeg-artifacts/$target"
+            cp -R "$dir"/. "ffmpeg-artifacts/$target/"
+          done
+          find ffmpeg-artifacts -type f | sort
+
       # Every licence file must carry its verbatim upstream text before a release
       # is published. A snapshot warns instead: it is a build of work in progress,
       # and the check exists to stop the permanent thing (ADR-0015).
@@ -144,6 +168,7 @@ jobs:
           ./gradlew publishToMavenCentral --no-daemon \
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
+            -Pgoldberry.media.artifactsDir="$PWD/ffmpeg-artifacts" \
             -Pgoldberry.centralAutoRelease=$AUTO_RELEASE \
             $VERSION_ARGS
 
@@ -155,6 +180,7 @@ jobs:
           ./gradlew publishToMavenLocal --no-daemon \
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
+            -Pgoldberry.media.artifactsDir="$PWD/ffmpeg-artifacts" \
             $VERSION_ARGS
 
       - uses: actions/upload-artifact@v4

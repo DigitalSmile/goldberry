@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -39,7 +40,7 @@ final class TreeState extends State<Tree> {
 
     /// The window, for `Left`'s move to the parent — captured in `build`, which
     /// is the only place a widget is handed one ([ADR-0140]).
-    private io.github.digitalsmile.goldberry.Host host;
+    private io.github.digitalsmile.goldberry.@Nullable Host host;
 
     /// How long a typeahead lasts before the next letter starts a new one.
     ///
@@ -84,7 +85,7 @@ final class TreeState extends State<Tree> {
     /// Adds `node` and, if it is open, everything under it.
     ///
     /// @param parent the id of the row `Left` moves out to, or null at the top
-    private void flatten(TreeNode node, int depth, String parent, List<Widget> rows) {
+    private void flatten(TreeNode node, int depth, @Nullable String parent, List<Widget> rows) {
         var isOpen = expanded.contains(node.id());
         // **Nothing is an answer in a `NONE` tree**, which is a rule about the
         // selection and not about the node — so it is asked here rather than
@@ -150,7 +151,8 @@ final class TreeState extends State<Tree> {
                 }
                 expanded.add(sibling.id());
                 if (sibling.isLazy() && !fetched.containsKey(sibling.id())) {
-                    var children = sibling.supplier().get();
+                    var children = Objects.requireNonNull(sibling.supplier(), "isLazy() is a supplier being there")
+                            .get();
                     fetched.put(sibling.id(), List.copyOf(children == null ? List.of() : children));
                 }
             }
@@ -228,7 +230,7 @@ final class TreeState extends State<Tree> {
 
     /// The first visible row from `start` onwards whose label begins with what
     /// has been typed, or null.
-    private TreeNode matching(int start) {
+    private @Nullable TreeNode matching(int start) {
         var wanted = typed.toLowerCase(java.util.Locale.ROOT);
         for (var i = Math.max(0, start); i < visible.size(); i++) {
             var node = visible.get(i);
@@ -279,7 +281,8 @@ final class TreeState extends State<Tree> {
             if (!expanded.remove(node.id())) {
                 expanded.add(node.id());
                 if (node.isLazy() && !fetched.containsKey(node.id())) {
-                    var children = node.supplier().get();
+                    var children = Objects.requireNonNull(node.supplier(), "isLazy() is a supplier being there")
+                            .get();
                     fetched.put(node.id(), List.copyOf(children == null ? List.of() : children));
                 }
             }
@@ -294,7 +297,7 @@ final class TreeState extends State<Tree> {
     /// allowed to go stale — a row that has left the tree simply fails to be
     /// found and the range starts at the pressed row, which is what a reader who
     /// has re-sorted the model underneath their own selection means anyway.
-    private String anchor;
+    private @Nullable String anchor;
 
     /// Asks for a selection. It does **not** select — the value is the
     /// application's ([ADR-0063]).
@@ -372,7 +375,7 @@ final class TreeState extends State<Tree> {
     /// another row's element — the same door `dialog` opened and the same reason
     /// ([ADR-0176]). A root row has no parent and the key does nothing, which is
     /// what every tree does at the top level.
-    private void moveOut(String parent) {
+    private void moveOut(@Nullable String parent) {
         if (parent == null || host == null) {
             return;
         }
@@ -391,7 +394,8 @@ final class TreeState extends State<Tree> {
     /// Null and not `UNCHECKED`: "there is no box here" and "the box is empty"
     /// are different rows, and a row that drew an empty box where §3 asked for
     /// none would put a control on every heading in a `LEAF` tree.
-    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value checkStateOf(TreeNode node) {
+    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.@Nullable Value checkStateOf(
+            TreeNode node) {
 
         return switch (widget().checkable()) {
             case NONE -> null;
@@ -465,7 +469,7 @@ final class TreeState extends State<Tree> {
     /// partially ticked folder is asking for all of it, which is the only reading
     /// of that click that is ever what was meant. `Checkbox.Value.toggled()` has
     /// said so since it shipped and this is its second caller.
-    private void check(@Nullable TreeNode node) {
+    private void check(TreeNode node) {
         var tree = widget();
         var state = checkStateOf(node);
         if (state == null || tree.onCheck() == null) {

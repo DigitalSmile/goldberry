@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.table;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which column a [Table] is sorted by, and which way — §10's "sorting is the
 /// application's".
 ///
@@ -37,7 +39,7 @@ public record Sort(String column, boolean descending) {
     /// from its own handler, because this is a suggestion rather than a command.
     ///
     /// @param current what the table is sorted by now, or null for nothing
-    public static Sort next(Sort current, String column) {
+    public static Sort next(@Nullable Sort current, String column) {
         Objects.requireNonNull(column, "column");
         return current != null && column.equals(current.column())
                 ? new Sort(column, !current.descending())

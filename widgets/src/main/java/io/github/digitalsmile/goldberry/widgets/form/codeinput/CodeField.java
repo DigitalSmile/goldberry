@@ -78,7 +78,7 @@ record CodeField(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

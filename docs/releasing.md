@@ -14,8 +14,8 @@ How Goldberry is versioned, published and released. The reasoning is in
 |---|---|
 | Calendar versions, resolved in Gradle | **built**, tested (`CalendarVersionTest`, `BuildVersionTest`) |
 | `goldberry.publish` — POMs, sources, javadoc, signing, classifier jars | **built**, rehearsed locally into a throwaway repository |
-| `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu` optional | **built**, resolved by a local consumer build |
-| `snapshot.yml` → `publish.yml` → Central snapshots | **the secrets are set and the first run went out** (run 17, 2026-09-19) — and failed partway: `:widgets:javadoc` refused a broken `[link]` after seven of the nine modules had uploaded, leaving `:widgets` and `:html` off that snapshot. The next green snapshot overwrites it. `check` generates javadoc now, so the same mistake fails on Linux four minutes in ([ADR-0405](../book/src/adr/0405-check-generates-the-published-javadoc.md)) |
+| `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu`/`media` optional | **built**, resolved by a local consumer build; `media` and its `ffmpeg-linux-x64` classifier published into `mavenLocal` on 2026-09-30 (ADR-0495) |
+| `snapshot.yml` → `publish.yml` → Central snapshots | **the secrets are set and the first run went out** (run 17, 2026-09-19) — and failed partway: `:widgets:javadoc` refused a broken `[link]` after seven of the nine modules had uploaded, leaving `:widgets` and `:html` off that snapshot. The next green snapshot overwrites it. `check` generates javadoc now, so the same mistake fails on Linux four minutes in ([ADR-0405](../book/src/adr/0405-check-generates-the-published-javadoc.md)). **Runs 32 and 33 (2026-09-27, 2026-09-30) never reached the upload**: every per-OS Java job failed in `:natives:gpuTest`, where GPU test classes called SDL from their teardown after the missing library had skipped their setup. The teardowns now return when setup was skipped ([ADR-0495](../book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **done** (2026-09-17) — all seven upstream files copied verbatim from the pinned checkouts; the check passes with eleven components |
@@ -41,9 +41,10 @@ compiled.
 
 | What | Where | When |
 |---|---|---|
-| `goldberry-{common,natives,core,widgets,html,emoji,gpu}`, `goldberry-bom`, `goldberry` — `-SNAPSHOT` | `https://central.sonatype.com/repository/maven-snapshots/` | every push to master (`snapshot.yml`) |
+| `goldberry-{common,natives,core,widgets,html,emoji,gpu,media}`, `goldberry-bom`, `goldberry` — `-SNAPSHOT` | `https://central.sonatype.com/repository/maven-snapshots/` | every push to master (`snapshot.yml`) |
 | the same, released | Maven Central | a `v*` tag (`release.yml`) |
 | `goldberry-natives` classifiers `linux-x64`, `linux-aarch64`, `macos-aarch64`, `windows-x64` | beside `goldberry-natives` | with it |
+| `goldberry-media` classifiers `ffmpeg-<target>`: FFmpeg for each target the Media workflow built (`macos-aarch64` and `linux-x64` today). A release needs all four and refuses without them (ADR-0495) | beside `goldberry-media` | with it |
 | `goldberry-showcase-native-{linux-x64,macos-aarch64}.tar.gz`, `goldberry-showcase-native-windows-x64.exe` — the showcase as a GraalVM native image | the tag's GitHub Release, created as a draft; also the run's artifacts | a `v*` tag (`showcase.yml`); a manual run builds them as artifacts only |
 
 Consuming it — the BOM for the version, the umbrella for the toolkit, and the
@@ -59,6 +60,9 @@ dependencies {
     implementation 'io.github.digitalsmile:goldberry'                // common, natives, core, widgets
     implementation 'io.github.digitalsmile:goldberry-html'           // optional: Markdown and HTML
     implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the Noto Color Emoji face (OFL)
+    implementation 'io.github.digitalsmile:goldberry-gpu'            // optional: canvas3d and GPU composition
+    implementation 'io.github.digitalsmile:goldberry-media'          // optional: audio and video
+    runtimeOnly 'io.github.digitalsmile:goldberry-media::ffmpeg-linux-x64'   // FFmpeg, per target, as below
     // All four: `NativeLibrary` picks the right one at run time by `os.name` and
     // `os.arch`, so this works on every machine the application is built or run
     // on. Slim it to one line for a single target deliberately -- see below.

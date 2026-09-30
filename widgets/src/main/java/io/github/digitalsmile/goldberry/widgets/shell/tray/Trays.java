@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +122,7 @@ public final class Trays {
         return TrayItem.command(item.label(), checked -> run(press));
     }
 
-    private static void run(Runnable action) {
+    private static void run(@Nullable Runnable action) {
         if (action != null) {
             action.run();
         }

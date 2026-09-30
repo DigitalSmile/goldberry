@@ -11,21 +11,21 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuAddressMode;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBlend;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBufferUsage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCompareOp;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCullMode;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFilter;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFrontFace;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuIndexSize;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuPrimitiveType;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderStage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexInputRate;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 
 /// The public enums against the SDL ones they map onto: every constant maps,
 /// no two map to one, and each SDL constant the bindings model has its public

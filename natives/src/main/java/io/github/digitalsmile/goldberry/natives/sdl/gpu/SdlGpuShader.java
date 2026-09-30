@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+
 /// A compiled shader on a [SdlGpuDevice]. A pipeline made from it keeps working
 /// after it is closed.
 public final class SdlGpuShader extends SdlGpuResource {

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
@@ -63,7 +65,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// under a user who is only looking (§4).
 ///
 /// @param children the rows — the options, already told what they are
-public record SelectList(List<Widget> children, Consumer<String> onTypeahead)
+public record SelectList(List<Widget> children, @Nullable Consumer<String> onTypeahead)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     public SelectList {

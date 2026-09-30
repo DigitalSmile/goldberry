@@ -29,7 +29,7 @@ public sealed interface PublishedModule
         /**
          * An {@code <optional>} dependency of {@code goldberry}: listed, versioned
          * by the BOM, and added by an application that wants it -- the content
-         * modules, and {@code :gpu} (ADR-0190).
+         * modules, {@code :media} and {@code :gpu} (ADR-0190, ADR-0495).
          */
         OPTIONAL
     }

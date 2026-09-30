@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;

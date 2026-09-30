@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 
 /// The committed shader bytecode is the bytecode of the committed sources, and
 /// every shader the code names is there in the three formats (`docs/gpu-plan.md`,

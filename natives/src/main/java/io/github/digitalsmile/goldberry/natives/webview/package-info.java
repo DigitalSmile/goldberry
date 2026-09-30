@@ -11,4 +11,9 @@
 /// [io.github.digitalsmile.goldberry.natives.webview.WebviewLibrary] for why GTK
 /// and WebKit must not become load-time dependencies of the toolkit, and
 /// [ADR-0441] for why a page is a window rather than a widget.
+///
+/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+@NullMarked
 package io.github.digitalsmile.goldberry.natives.webview;
+
+import org.jspecify.annotations.NullMarked;

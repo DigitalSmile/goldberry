@@ -37,12 +37,10 @@ dependencies {
     implementation project(':emoji')
     // The Media screen (docs/media-plan.md). FFmpeg itself is a separate build,
     // found at run time -- see `run` below.
+    // It carries the operating system's own decoders too, for the H.264, HEVC,
+    // AAC, AC-3 and E-AC-3 samples the published natives do not build (ADR-0472,
+    // ADR-0489, ADR-0493).
     implementation project(':media')
-    // The operating system's own decoders for the Media screens: H.264, HEVC,
-    // AAC, AC-3 and E-AC-3 on macOS, which the published natives do not build
-    // (ADR-0472). On other systems it supports nothing and the H.264 sample
-    // errors as before.
-    implementation project(':media-platform')
     // The GPU (docs/gpu-plan.md, ADR-0479, ADR-0480, ADR-0482): the GPU screen's
     // `canvas3d` and its cube, whose shaders `:gpu:compileShaders` compiles
     // into this module's resources. Being on the module path is also what lets
@@ -100,7 +98,7 @@ def prepareCatalogs = tasks.register('prepareCatalogs', JavaExec) {
     description = 'Compiles the icon categories and emoji groups the showcase sheets are grouped by.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareCatalogs'
+    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareCatalogs'
     args assetCache.asFile.absolutePath,
             catalogResources.get().dir('io/github/digitalsmile/goldberry/example/catalog').asFile.absolutePath
 
@@ -121,7 +119,7 @@ tasks.register('vendorLicences', JavaExec) {
     description = 'Copies the Unicode licence into licenses/.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
     args assetCache.asFile.absolutePath,
             layout.buildDirectory.dir('generated/unused').get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
@@ -153,10 +151,9 @@ application {
     // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
             '--enable-native-access=io.github.digitalsmile.goldberry.natives',
-            // goldberry-media binds FFmpeg itself (ADR-0461).
+            // goldberry-media binds FFmpeg itself (ADR-0461), and the system's
+            // decoders (ADR-0472, ADR-0493).
             '--enable-native-access=io.github.digitalsmile.goldberry.media',
-            // goldberry-media-platform binds VideoToolbox and AudioToolbox (ADR-0472).
-            '--enable-native-access=io.github.digitalsmile.goldberry.media.platform',
     ]
 
     // macOS drives AppKit from the process's first thread, and the java launcher

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,7 @@ import io.github.digitalsmile.goldberry.frame.FrameSequence;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
@@ -49,12 +50,27 @@ final class Launcher implements Host {
     private final Application application;
     private final Options options;
 
+    // Built by [#run] rather than here, in the order the window needs them, and
+    // non-null from there on: everything that reads them runs inside `run` or is
+    // called back by the window it opened. `NullAway.Init` says exactly that and
+    // nothing more -- a read of one of them is still checked like any other.
+    @SuppressWarnings("NullAway.Init")
     private Window window;
+
+    @SuppressWarnings("NullAway.Init")
     private Fonts fonts;
+
+    @SuppressWarnings("NullAway.Init")
     private ElementTree tree;
+
+    @SuppressWarnings("NullAway.Init")
     private RenderTree render;
+
+    @SuppressWarnings("NullAway.Init")
     private PointerRouter router;
-    private WidgetRenderer renderer;
+
+    /// Null until [#renderer()] first builds one.
+    private @Nullable WidgetRenderer renderer;
 
     /// The steps a frame runs, in the order they have to run in — shared with
     /// `Offscreen`, which used to keep a second copy of them (ADR-0423).
@@ -62,6 +78,7 @@ final class Launcher implements Host {
     /// What is *not* in it is what makes a window a window: the damage pass, the
     /// frame ring, the HUD's stage timings and the model sweep are all below, and
     /// the sequence knows about none of them.
+    @SuppressWarnings("NullAway.Init")
     private FrameSequence sequence;
 
     /// The one clock this window runs on.
@@ -95,7 +112,7 @@ final class Launcher implements Host {
     ///                  where the heading used to be.
     /// @param anchor    the rectangle it was opened against
     /// @param placement the side, alignment and gap it was opened with
-    private record Placed(String anchorId, LogicalRect anchor, Placement placement) {}
+    private record Placed(@Nullable String anchorId, LogicalRect anchor, Placement placement) {}
 
     /// What [#replacePopups] needs, per open popup.
     ///
@@ -273,7 +290,7 @@ final class Launcher implements Host {
     private boolean stopping;
 
     /// The walk `--resize=` asked for, or null when the window is left alone.
-    private ResizeWalk resizeWalk;
+    private @Nullable ResizeWalk resizeWalk;
 
     /// The four flags the launcher understands on the command line, all for CI.
     ///
@@ -291,12 +308,16 @@ final class Launcher implements Host {
     ///                   ([ADR-0342])
     /// @param lateBudget how many refreshes the run may miss before it exits
     ///                   non-zero, or -1 for a run that is not judged
-    record Options(int frames, LogicalSize size, LogicalSize resize, long lateBudget) {
+    record Options(
+            int frames,
+            @Nullable LogicalSize size,
+            @Nullable LogicalSize resize,
+            long lateBudget) {
 
         static final Options NONE = new Options(0, null, null, -1);
 
         /// The two flags there were before the walk and the budget.
-        Options(int frames, LogicalSize size) {
+        Options(int frames, @Nullable LogicalSize size) {
             this(frames, size, null, -1);
         }
 
@@ -323,7 +344,7 @@ final class Launcher implements Host {
         }
 
         /// `WxH`, or null for anything that is not two numbers around an `x`.
-        private static LogicalSize pair(String flag, String text) {
+        private static @Nullable LogicalSize pair(String flag, String text) {
             // Trailing empties dropped is the behaviour wanted: the length
             // check below is what rejects `--size=800x` anyway.
             @SuppressWarnings("StringSplitter")
@@ -498,7 +519,9 @@ final class Launcher implements Host {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y) {
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.@Nullable Button button,
+                    float x,
+                    float y) {
                 // **A press that dismissed something is a dismissal and not a
                 // click**, which is what every desktop does: with a menu open,
                 // the click that puts it away does not also press the button it
@@ -734,10 +757,13 @@ final class Launcher implements Host {
         // been presented. And from where the window actually is, so a manager
         // that clamped or lagged the last request is walked from its answer
         // rather than from the ask; the resize itself asks for the next frame.
-        if (resizeWalk != null) {
+        // Into a local for the lambda: set once in [#run] and never cleared, so
+        // this is the same walk the field holds.
+        var walk = resizeWalk;
+        if (walk != null) {
             after(java.time.Duration.ZERO, () -> {
                 if (window.isOpen()) {
-                    window.resize(resizeWalk.next(window.size()));
+                    window.resize(walk.next(window.size()));
                 }
             });
         }
@@ -787,11 +813,11 @@ final class Launcher implements Host {
 
     /// This launcher's registration for "the hover or the focus moved", closed
     /// when the window goes ([ADR-0230]).
-    private io.github.digitalsmile.goldberry.bind.Subscription pointing;
+    private io.github.digitalsmile.goldberry.bind.@Nullable Subscription pointing;
 
     /// What an application does when a widget that named a menu is right-clicked
     /// — see [Host#onContextMenu].
-    private ContextMenuHandler contextMenus;
+    private @Nullable ContextMenuHandler contextMenus;
 
     /// Finds the menu a right-click asked for, and asks for it to be opened.
     ///
@@ -846,7 +872,8 @@ final class Launcher implements Host {
     /// right-click on the button" is the same rule as "the menu key on a focused
     /// button is that button's menu" — and a second copy of it would be a second
     /// chance for the two to disagree about which ancestor wins.
-    private boolean openContextMenu(io.github.digitalsmile.goldberry.widget.Element from, LogicalRect anchor) {
+    private boolean openContextMenu(
+            io.github.digitalsmile.goldberry.widget.@Nullable Element from, LogicalRect anchor) {
 
         if (contextMenus == null) {
             return false;
@@ -921,7 +948,7 @@ final class Launcher implements Host {
     private static final String TOOLTIP_MOVE_DELAY_TOKEN = "--gb-tooltip-delay-move";
 
     /// The tooltip that is showing, or null.
-    private Popup tooltip;
+    private @Nullable Popup tooltip;
 
     /// When the last tooltip was opened, in `System.nanoTime` units, or 0.
     ///
@@ -948,10 +975,10 @@ final class Launcher implements Host {
 
     /// The node it belongs to, so a hover that returns to the same widget does
     /// not close and reopen it.
-    private io.github.digitalsmile.goldberry.widget.Element tooltipOwner;
+    private io.github.digitalsmile.goldberry.widget.@Nullable Element tooltipOwner;
 
     /// The delay in flight, cancelled by anything that moves.
-    private EventLoop.Timer tooltipTimer;
+    private EventLoop.@Nullable Timer tooltipTimer;
 
     /// The pointer moved to a different node, or focus did.
     ///
@@ -1021,7 +1048,7 @@ final class Launcher implements Host {
     /// reason: focus that arrived by pointer is a side effect of the click, not a
     /// statement about where the user is working. **A tooltip follows the focus
     /// ring**, which is one sentence and is also exactly what the code now does.
-    private io.github.digitalsmile.goldberry.widget.Element tooltipTarget() {
+    private io.github.digitalsmile.goldberry.widget.@Nullable Element tooltipTarget() {
         var hovered = withTooltip(router.hovered());
         if (hovered != null) {
             return hovered;
@@ -1034,8 +1061,8 @@ final class Launcher implements Host {
     /// Walked upwards because a tooltip on a `button` has to survive the pointer
     /// being over the button's *label*, which is a different element and the one a
     /// hit test reports.
-    private io.github.digitalsmile.goldberry.widget.Element withTooltip(
-            io.github.digitalsmile.goldberry.widget.Element element) {
+    private io.github.digitalsmile.goldberry.widget.@Nullable Element withTooltip(
+            io.github.digitalsmile.goldberry.widget.@Nullable Element element) {
         for (var node = element;
                 node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
@@ -1048,7 +1075,7 @@ final class Launcher implements Host {
         return null;
     }
 
-    private static String tooltipTextOf(io.github.digitalsmile.goldberry.widget.Element element) {
+    private static @Nullable String tooltipTextOf(io.github.digitalsmile.goldberry.widget.Element element) {
         return element.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                 ? a.attributes().tooltip()
                 : null;
@@ -1108,7 +1135,7 @@ final class Launcher implements Host {
     /// for one. A panel over a menu therefore leaves the menu operable by arrows,
     /// which is what "a panel is not in the keyboard's way" has to mean if it
     /// means anything ([ADR-0319]).
-    private Popup topmostKeyboardPopup() {
+    private @Nullable Popup topmostKeyboardPopup() {
         for (var i = popups.size() - 1; i >= 0; i--) {
             var popup = popups.get(i);
             if (popup.isOpen() && popup.wantsKeyboard()) {
@@ -1119,7 +1146,7 @@ final class Launcher implements Host {
     }
 
     /// The popup on top: the last one opened that is still open.
-    private Popup topmostPopup() {
+    private @Nullable Popup topmostPopup() {
         for (var i = popups.size() - 1; i >= 0; i--) {
             if (popups.get(i).isOpen()) {
                 return popups.get(i);
@@ -1129,7 +1156,7 @@ final class Launcher implements Host {
     }
 
     /// The pending "has the application really lost focus" check, or null.
-    private EventLoop.Timer focusCheck;
+    private EventLoop.@Nullable Timer focusCheck;
 
     /// How long to wait before believing a focus-lost.
     ///
@@ -1494,7 +1521,7 @@ final class Launcher implements Host {
 
     @Override
     public java.util.Optional<Popup> popup(
-            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, @Nullable Fit fit) {
         return placed(content, anchor, placement, PopupKind.MENU, minimumWidth, fit);
     }
 
@@ -1514,7 +1541,12 @@ final class Launcher implements Host {
     /// measured and answers with what to open, which is nearly always the same
     /// widget ([ADR-0179]).
     private java.util.Optional<Popup> placed(
-            Widget content, LogicalRect anchor, Placement placement, PopupKind kind, float minimumWidth, Fit fit) {
+            Widget content,
+            LogicalRect anchor,
+            Placement placement,
+            PopupKind kind,
+            float minimumWidth,
+            @Nullable Fit fit) {
 
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
@@ -1589,7 +1621,7 @@ final class Launcher implements Host {
 
     @Override
     public java.util.Optional<Popup> popup(
-            Widget content, String anchorId, Placement placement, float minimumWidth, Fit fit) {
+            Widget content, String anchorId, Placement placement, float minimumWidth, @Nullable Fit fit) {
 
         Objects.requireNonNull(anchorId, "anchorId");
         var anchor = anchor(anchorId);

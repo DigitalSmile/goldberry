@@ -19,16 +19,16 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBlend;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFilter;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuLoad;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShader;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The toolkit's shaders drawing into a texture that is read back: phase 2's
 /// exit (`docs/gpu-plan.md`). On Metal here, on lavapipe on the GPU lane.
@@ -58,6 +58,11 @@ class DrawTest {
 
     @AfterAll
     static void destroyDevice() {
+        // Skipped before SDL was reached: nothing to give back, and no library to
+        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        if (device == null) {
+            return;
+        }
         if (device != null) {
             device.close();
         }

@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -15,17 +17,17 @@ import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.example.Showcase;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.image.ImageFormat;
+import io.github.digitalsmile.goldberry.image.qr.Level;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;
 import io.github.digitalsmile.goldberry.paint.CanvasStyle;
-import io.github.digitalsmile.goldberry.paint.Dash;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Gradient;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.paint.Stroke;
-import io.github.digitalsmile.goldberry.qr.Level;
+import io.github.digitalsmile.goldberry.paint.stroke.Dash;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -266,7 +268,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// Null rather than a sentinel: "nowhere" is a real state — it is the one
         /// the golden image is taken in — and a canvas that drew a crosshair at
         /// (0, 0) until touched would be drawing a lie.
-        private float[] at;
+        private float @Nullable [] at;
 
         /// The sticky's text, its caret and its undo stack.
         ///
@@ -275,13 +277,13 @@ public record CanvasScreen() implements Widget.Stateful {
         /// first use rather than in the constructor, because a `Font` needs the
         /// rasterizer and the tests that only read this screen's *shape* have
         /// none (ADR-0285).
-        private Font stickyFont;
+        private @Nullable Font stickyFont;
 
-        private Editor sticky;
+        private @Nullable Editor sticky;
 
         /// The window, for its clipboard. Null in a test that renders the screen
         /// without one, which is why every use of it is guarded.
-        private Host host;
+        private @Nullable Host host;
 
         private Editor sticky() {
             var current = sticky;
@@ -327,7 +329,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// picture goes where you are looking rather than replacing the card.
         /// Null at rest, so the golden is the same picture on every machine
         /// whatever happens to be on the clipboard.
-        private Image pasted;
+        private @Nullable Image pasted;
 
         private float pastedX;
 
@@ -552,7 +554,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// cannot read" are the same answer from `has(mime)` and completely
         /// different answers to somebody who has just pressed Ctrl+V, so the card
         /// says what the clipboard is offering (ADR-0286).
-        private static String describe(io.github.digitalsmile.goldberry.render.Clipboard board) {
+        private static String describe(io.github.digitalsmile.goldberry.render.clipboard.Clipboard board) {
             var types = board.types();
             if (types.isEmpty()) {
                 return board.hasText() ? "The clipboard holds text, not an image." : "The clipboard is empty.";

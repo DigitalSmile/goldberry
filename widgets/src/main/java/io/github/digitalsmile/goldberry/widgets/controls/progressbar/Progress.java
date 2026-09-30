@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
@@ -67,8 +69,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param indeterminate whether this reports progress it cannot measure
 /// @param source        §9's `bind`, read-only — see [#resolved()]
 @Markup("progress")
-public record Progress(double value, double max, boolean indeterminate, Observable<?> source, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Attributed<Progress>, Bindable<Progress> {
+public record Progress(
+        double value,
+        double max,
+        boolean indeterminate,
+        @Nullable Observable<?> source,
+        Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Progress>, Bindable<Progress> {
 
     public Progress {
         if (!Double.isFinite(max) || max <= 0) {
@@ -124,7 +130,7 @@ public record Progress(double value, double max, boolean indeterminate, Observab
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -134,7 +140,7 @@ public record Progress(double value, double max, boolean indeterminate, Observab
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -144,7 +150,7 @@ public record Progress(double value, double max, boolean indeterminate, Observab
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

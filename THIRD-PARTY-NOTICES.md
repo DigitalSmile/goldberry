@@ -65,12 +65,12 @@ same artifact as the four above and is disclosed beside them
 was built without an engine under it — the HTML parser is Java — so no second
 native library and no second notice file were needed after all.
 
-## Dynamically linked, in `goldberry-ffmpeg-natives`
+## Dynamically linked, in `goldberry-media`'s `ffmpeg-<platform>` classifiers
 
 The media engine's libraries (`docs/goldberry-media.md`, ADR-0460). They are
 **not** in `libgoldberry` and not in any artifact an application gets without
-asking: they ship in the `goldberry-ffmpeg-natives-<platform>` jar beside the
-optional `goldberry-media`, which is not published yet (`docs/media-plan.md`).
+asking: they ship in the `ffmpeg-<platform>` classifier jars of the optional
+`goldberry-media`, which an application adds by name (ADR-0495).
 
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
@@ -82,19 +82,22 @@ arrangement is shaped by it: dynamic linking, a library directory an end user
 can point elsewhere (`-Dgoldberry.media.libdir`), and a `ffmpeg-NOTICE.txt` in
 every natives jar quoting the exact tag and configure line, so that "the same
 library, rebuilt" is something a user can actually produce. An application
-that ships `goldberry-ffmpeg-natives` owes its users the LGPL notice and that
+that ships those classifier jars owes its users the LGPL notice and that
 replaceability; it owes no patent review for codecs, because none from a patent
 pool is built.
 
 ### The platform decoders bundle nothing
 
-`goldberry-media-platform` (ADR-0472) decodes the patent-pool codecs FFmpeg's
-build leaves out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the decoders
-the operating system already ships: VideoToolbox, AudioToolbox and Core Audio on
-macOS. It binds them with FFM from Java and contains no native code, no headers
-and no copy of any of them, so it has no row above and no file in `licenses/`.
-The frameworks are used under the operating system's own licence, and the codec
-licences are the operating system vendor's.
+`goldberry-media`'s system decoders (ADR-0472, ADR-0489; the separate
+`goldberry-media-platform` module until ADR-0493) decode the patent-pool codecs
+FFmpeg's build leaves out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the
+decoders the operating system already has: VideoToolbox, AudioToolbox and Core
+Audio on macOS, the GStreamer libraries and plugins a Linux distribution
+installs, and Media Foundation on Windows. They are bound with FFM from Java;
+the jar contains no native code, no headers and no copy of any of them, so they
+have no row above and no file in `licenses/`. They are used under the licences
+they were installed under, and the codec licences are the operating system
+vendor's or the distribution's.
 
 ## Embedded in the published jars
 

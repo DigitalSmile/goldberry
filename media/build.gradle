@@ -6,10 +6,11 @@ plugins {
     // its own and a KDL document finds it through the module path (ADR-0131),
     // as :html's `markdown-view` is found.
     id 'goldberry.weave'
-    // Not published yet (docs/media-plan.md): `goldberry.publish` and a line in
-    // `PublishedModules` arrive together with the natives jar, because a
-    // `goldberry-media` on Maven Central with no FFmpeg to load is a jar that
-    // fails on every machine that adds it.
+    // Published as goldberry-media, optional in the umbrella (ADR-0495). It
+    // arrives together with its natives -- FFmpeg as `ffmpeg-<target>`
+    // classifiers, below -- because a goldberry-media with no FFmpeg to load is a
+    // jar that fails on every machine that adds it.
+    id 'goldberry.publish'
 }
 
 description = 'Goldberry media: audio and video playback over FFmpeg, driven from Java'
@@ -208,7 +209,7 @@ tasks.register('ffmpegBuild', Exec) {
 }
 
 // ============================================================================
-// The natives jar: goldberry-ffmpeg-natives-<classifier> (goldberry-media.md §2)
+// The natives jar: goldberry-media's `ffmpeg-<classifier>` (goldberry-media.md §2)
 //
 // What `FfmpegLibraries` unpacks when no -Dgoldberry.media.libdir is set: the
 // five libraries and the layout file under
@@ -227,7 +228,7 @@ def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('
 mediaTargets.each { target ->
     tasks.register("ffmpegNativesJar${taskSuffix(target)}", Jar) {
         group = 'native'
-        description = "Packages FFmpeg for ${target} as goldberry-ffmpeg-natives-${target}."
+        description = "Packages FFmpeg for ${target} as goldberry-media's ffmpeg-${target} classifier."
 
         archiveBaseName = 'goldberry-ffmpeg-natives'
         archiveClassifier = target
@@ -264,6 +265,36 @@ mediaTargets.each { target ->
 
 def hostNativesJar = tasks.named("ffmpegNativesJar${taskSuffix(hostTargetId)}")
 
+// The natives ride the goldberry-media publication as `ffmpeg-<target>`
+// classifiers, as libgoldberry rides goldberry-natives, but only when a run hands
+// over FFmpeg builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with
+// every runner's build in hand (ADR-0334, ADR-0495).
+//
+// A snapshot carries the targets the Media workflow built. A release is
+// permanent, and one missing a target would leave that platform's users with a
+// player that cannot load FFmpeg under a version nobody can re-release, so it
+// refuses. Without -Pgoldberry.media.artifactsDir no classifier is attached,
+// which is what `publishToMavenLocal` on a laptop wants.
+if (mediaArtifactsDir.isPresent()) {
+    def built = mediaTargets.findAll { new File(mediaArtifactsDir.get(), "${it}/ffmpeg-layout.properties").isFile() }
+    def missing = mediaTargets - built
+    if (!project.version.toString().endsWith('-SNAPSHOT') && !missing.isEmpty()) {
+        throw new GradleException("A release of goldberry-media needs FFmpeg for every target; " +
+                "-Pgoldberry.media.artifactsDir has none for ${missing.join(', ')} (ADR-0495).")
+    }
+    if (!missing.isEmpty()) {
+        logger.warn("goldberry-media: this snapshot carries FFmpeg for ${built.join(', ') ?: 'no target'}, " +
+                "not for ${missing.join(', ')}")
+    }
+    publishing.publications.withType(MavenPublication).configureEach { publication ->
+        built.each { target ->
+            publication.artifact(tasks.named("ffmpegNativesJar${taskSuffix(target)}")) {
+                classifier = "ffmpeg-${target}"
+            }
+        }
+    }
+}
+
 // ============================================================================
 // What a native image of this module has to be told (ADR-0339)
 //
@@ -281,7 +312,7 @@ def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
     group = 'build'
     description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.media.ffi.FfmpegForeignMetadata'
+    mainClass = 'io.github.digitalsmile.goldberry.media.nativeimage.MediaForeignMetadata'
     // Linking a descriptor is restricted, and the generator links every one.
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
@@ -343,7 +374,10 @@ tasks.withType(Test).configureEach {
             systemProperty name, value.get()
         }
     }
-    ['goldberry.media.required'].each { name ->
+    // `goldberry.platform.required` does for the system decoders what
+    // `goldberry.media.required` does for FFmpeg, for a job whose purpose is
+    // them: each system's tests fail on that system only (ADR-0489).
+    ['goldberry.media.required', 'goldberry.platform.required'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()
@@ -359,7 +393,7 @@ tasks.withType(Test).configureEach {
 }
 
 // The tests tagged `natives-jar` load FFmpeg the way an application does: from
-// goldberry-ffmpeg-natives on the class path, unpacked into a temporary
+// goldberry-media's FFmpeg classifier on the class path, unpacked into a temporary
 // directory, with no -Dgoldberry.media.libdir. A JVM of their own, because
 // `FfmpegLibraries` loads once per process and the ordinary test task has
 // already loaded from the install directory.
@@ -505,11 +539,27 @@ tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'test
 // pass, so it applies only where the libraries are there -- `:html`'s condition,
 // for this module's library (ADR-0338). What is left uncovered is mostly the
 // loader's unpack path, which `testNativesJar` covers in a JVM of its own.
+//
+// The system decoders (ADR-0493) are counted where they run. Another system's
+// package is never reached here, and a floor over it would measure the
+// operating system rather than the tests; this system's is counted only when
+// -Pgoldberry.platform.required=true says the job has its decoders installed,
+// which is the rule `:media-platform`'s own floor kept.
 // ============================================================================
-tasks.named('jacocoTestCoverageVerification') {
+def hostSystem = hostTargetId.substring(0, hostTargetId.indexOf('-'))
+def platformRequired = providers.gradleProperty('goldberry.platform.required')
+        .orElse(providers.systemProperty('goldberry.platform.required'))
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+def uncountedSystems = ['linux', 'macos', 'windows'].findAll { !(platformRequired && it == hostSystem) }
+
+tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     onlyIf('FFmpeg is built for this machine') {
         new File(libraryDirectory.get(), 'ffmpeg-layout.properties').isFile()
     }
+    classDirectories.setFrom(sourceSets.main.output.classesDirs.asFileTree.matching {
+        uncountedSystems.each { exclude "io/github/digitalsmile/goldberry/media/platform/${it}/**" }
+    })
     violationRules {
         rule {
             limit { counter = 'LINE'; minimum = 0.88 }

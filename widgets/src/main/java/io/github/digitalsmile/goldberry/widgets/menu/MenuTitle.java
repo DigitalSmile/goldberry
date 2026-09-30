@@ -64,7 +64,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param onHovered  that the pointer has arrived, which the bar reads as
 ///                   "switch to me" only when something is already open
 record MenuTitle(
-        String label, Icon icon, boolean disabled, Attributes attributes, Runnable onActivate, Runnable onHovered)
+        String label,
+        @Nullable Icon icon,
+        boolean disabled,
+        Attributes attributes,
+        Runnable onActivate,
+        Runnable onHovered)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override

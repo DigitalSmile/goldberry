@@ -385,6 +385,8 @@ public final class WidgetRenderer {
         // cannot leave the tree below it resolving against the old number for a
         // frame -- and so the value is never a fact about a render that is over.
         lengthsBelowRoot = lengths;
+        var paragraphs =
+                Objects.requireNonNull(this.paragraphs, "every constructor builds the cache with the paint context");
         var textHitsBefore = FrameTrace.ENABLED ? paragraphs.hits() : 0;
         var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
         var boxes = render(tree.root(), null, false, now);
@@ -657,6 +659,7 @@ public final class WidgetRenderer {
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node (ADR-0054).
         var boxBegan = trace == null ? 0L : System.nanoTime();
+        var style = Objects.requireNonNull(painted, "a node that paints resolved a style of its own above");
         // Set for the duration of the call and cleared after, so a context that
         // outlived the render -- a painter closing over it, which is exactly what
         // `canvas` does -- cannot read a stale node's tokens.
@@ -667,8 +670,8 @@ public final class WidgetRenderer {
         // this node's (ADR-0348).
         boolean wantsFrame;
         try {
-            box = paints.render(painted, List.copyOf(children), paintContext).owner(element);
-            wantsFrame = paints.isAnimating(painted, paintContext);
+            box = paints.render(style, List.copyOf(children), paintContext).owner(element);
+            wantsFrame = paints.isAnimating(style, paintContext);
         } finally {
             currentElement = null;
         }

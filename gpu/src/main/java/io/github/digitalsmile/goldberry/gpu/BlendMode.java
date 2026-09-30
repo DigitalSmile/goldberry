@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
 
 /// How a pipeline's output meets what its target already holds.
 public enum BlendMode {

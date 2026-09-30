@@ -261,8 +261,9 @@ public final class BoxPainter {
             paintMark(frame, path, box.mark(), x, y, width, height);
         }
 
-        if (box.painting() != null) {
-            paintCanvas(frame, box, x, y, width, height, ambient);
+        var painter = box.painting();
+        if (painter != null) {
+            paintCanvas(frame, box, painter, x, y, width, height, ambient);
         }
 
         if (decoration.hasOutline()) {
@@ -529,7 +530,7 @@ public final class BoxPainter {
     /// around a canvas means eight pixels of surface, and painting at the box's
     /// own origin would put all of them on the right and the bottom.
     private static void paintCanvas(
-            Frame frame, Box box, double x, double y, double width, double height, Affine ambient) {
+            Frame frame, Box box, Painter painter, double x, double y, double width, double height, Affine ambient) {
 
         var left = resolve(box.padding().left(), width);
         var top = resolve(box.padding().top(), height);
@@ -558,11 +559,9 @@ public final class BoxPainter {
             // (0, 0) to the content corner, then everything the ancestors do.
             var painting = Affine.translate(x + left, y + top).then(ambient);
             frame.transform(painting.a(), painting.b(), painting.c(), painting.d(), painting.e(), painting.f());
-            box.painting()
-                    .paint(
-                            frame,
-                            new io.github.digitalsmile.goldberry.render.model.LogicalSize(
-                                    (float) contentWidth, (float) contentHeight));
+            var size = new io.github.digitalsmile.goldberry.render.model.LogicalSize(
+                    (float) contentWidth, (float) contentHeight);
+            painter.paint(frame, size);
         } finally {
             // In a finally, because a painter that throws is an application bug
             // and must not also be a window that draws wrong from then on. The

@@ -49,7 +49,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                   animation is over
 /// @param attributes the `id` and classes, which land on the button
 @Markup("action")
-public record DialogAction(String label, Role role, Runnable onPress, Attributes attributes)
+public record DialogAction(
+        String label, Role role, @Nullable Runnable onPress, Attributes attributes)
         implements Widget.Leaf, Attributed<DialogAction> {
 
     /// §7's two named roles, and the one it does not name.
@@ -106,7 +107,7 @@ public record DialogAction(String label, Role role, Runnable onPress, Attributes
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

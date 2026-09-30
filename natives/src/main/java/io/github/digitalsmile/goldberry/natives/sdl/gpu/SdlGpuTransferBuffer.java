@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// Memory pixels travel through between the CPU and a texture.
 ///

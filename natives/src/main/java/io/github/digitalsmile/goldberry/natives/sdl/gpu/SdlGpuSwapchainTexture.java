@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 import java.lang.foreign.MemorySegment;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+
 /// A claimed window's texture for one frame: rendered or blitted into, and
 /// presented when the command buffer that acquired it is submitted.
 ///

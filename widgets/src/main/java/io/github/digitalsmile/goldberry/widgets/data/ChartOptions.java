@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// Everything about a chart that is not its numbers.
 ///
 /// A chart is `series`, `categories`, **this**, and `attributes`. Before it there
@@ -37,12 +39,12 @@ public record ChartOptions(
         ChartStatus status,
         NullPolicy nulls,
         List<Threshold> thresholds,
-        TimeAxis time,
+        @Nullable TimeAxis time,
         Curve curve,
         boolean logY,
         Bounds bounds,
         Markers markers,
-        CrosshairGroup crosshair,
+        @Nullable CrosshairGroup crosshair,
         Fill fill) {
 
     /// What a chart that has been told nothing does: it has its data, a hole is

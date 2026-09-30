@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -209,7 +211,7 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
     // stateful widget in the catalog uses.
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

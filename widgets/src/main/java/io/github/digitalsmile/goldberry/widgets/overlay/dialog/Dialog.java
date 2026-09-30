@@ -141,7 +141,7 @@ public record Dialog(@Nullable String title, List<Widget> children, Attributes a
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

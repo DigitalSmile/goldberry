@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollScope;
 
 /// Which stop a [Tour] is showing, and how it moves between them.

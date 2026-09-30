@@ -11,6 +11,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.paint.stroke.Cap;
+import io.github.digitalsmile.goldberry.paint.stroke.Dash;
+import io.github.digitalsmile.goldberry.paint.stroke.Join;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
+
 /// The pen, and the pattern it is cut into.
 ///
 /// Both are values with no rasterizer under them, so everything here is about

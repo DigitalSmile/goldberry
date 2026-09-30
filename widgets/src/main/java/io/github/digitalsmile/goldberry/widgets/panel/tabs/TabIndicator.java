@@ -86,7 +86,7 @@ record TabIndicator(boolean selected, int colour, Tab.@Nullable Travel from) imp
     /// Null while nothing is travelling, which is a strip that has never changed
     /// its selection.
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return from == null ? null : from.id();
     }
 

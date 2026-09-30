@@ -6,6 +6,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -74,10 +76,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record Statistic(
         String label,
         String value,
-        String unit,
-        String delta,
+        @Nullable String unit,
+        @Nullable String delta,
         Direction direction,
-        io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline sparkline,
+        io.github.digitalsmile.goldberry.widgets.data.sparkline.@Nullable Sparkline sparkline,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Statistic> {
 
@@ -100,7 +102,7 @@ public record Statistic(
             return name().toLowerCase(Locale.ROOT);
         }
 
-        static Direction of(String text) {
+        static Direction of(@Nullable String text) {
             if (text == null || text.isBlank()) {
                 return NONE;
             }
@@ -149,7 +151,7 @@ public record Statistic(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -193,8 +195,8 @@ public record Statistic(
     /// Builds a `statistic` from markup.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Statistic(
-                node.stringProperty("label"),
-                node.stringProperty("value"),
+                Objects.requireNonNull(node.stringProperty("label"), "label"),
+                Objects.requireNonNull(node.stringProperty("value"), "value"),
                 node.stringProperty("unit"),
                 node.stringProperty("delta"),
                 Direction.of(node.stringProperty("direction")),
@@ -221,7 +223,7 @@ public record Statistic(
     /// One node holding both, because the unit is set against the value's
     /// baseline: `128 ms` is one reading and two boxes in a row, where a unit in
     /// its own top-level part would be a third line.
-    record StatisticValue(String text, String unit) implements Widget.Leaf, Styled, Paints {
+    record StatisticValue(String text, @Nullable String unit) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {

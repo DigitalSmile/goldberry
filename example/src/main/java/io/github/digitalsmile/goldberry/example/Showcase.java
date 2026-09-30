@@ -108,6 +108,7 @@ public final class Showcase implements Application {
     private final WindowActions window =
             new WindowActions(this::toggleMenu, this::toggleHud, this::openDialog, this::raiseToast);
 
+    @SuppressWarnings("NullAway.Init") // set in start(), before the window shows anything that reads it
     private Host host;
 
     /// The dialog that is showing, or null. One at a time: a second `Ctrl+O`
@@ -139,8 +140,14 @@ public final class Showcase implements Application {
     /// press anywhere in the window below it, or `Escape`. `isOpen()` is what
     /// this field is checked with rather than nullness alone.
     private @Nullable Popup menu;
+
+    @SuppressWarnings("NullAway.Init") // set in start(), before the window shows anything that reads it
     private Icon paletteIcon;
+
+    @SuppressWarnings("NullAway.Init") // set in start(), before the window shows anything that reads it
     private Icon plusIcon;
+
+    @SuppressWarnings("NullAway.Init") // set in start(), before the window shows anything that reads it
     private Screen screen;
 
     /// §9's `tray-icon`, while this desktop has one. Empty on a session with no
@@ -692,7 +699,7 @@ public final class Showcase implements Application {
         // ever opened.
         model.audioPlayer().close();
         model.videoPlayer().close();
-        io.github.digitalsmile.goldberry.example.ui.ShowcaseMedia.shutdown();
+        io.github.digitalsmile.goldberry.example.media.ShowcaseMedia.shutdown();
     }
 
     // --- the process ---------------------------------------------------------

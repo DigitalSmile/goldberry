@@ -12,15 +12,15 @@ import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.paint.Stroke;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.data.Lttb;
-import io.github.digitalsmile.goldberry.widgets.data.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Lttb;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
@@ -122,7 +122,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

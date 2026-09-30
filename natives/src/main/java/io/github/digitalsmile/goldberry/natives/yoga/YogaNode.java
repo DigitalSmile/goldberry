@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
@@ -223,7 +225,7 @@ public final class YogaNode implements AutoCloseable {
     /// Passing null clears it.
     ///
     /// @throws IllegalStateException if this node has children
-    public void setMeasureFunction(MeasureFunction function) {
+    public void setMeasureFunction(@Nullable MeasureFunction function) {
         requireUsable();
         if (function != null && !children.isEmpty()) {
             throw new IllegalStateException("a node with " + children.size() + " child(ren) may not have a measure"

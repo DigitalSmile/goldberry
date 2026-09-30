@@ -14,4 +14,9 @@
 /// platforms *and* live in a layout. See
 /// [ADR-0441](../../../../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md),
 /// and `WebViews` in `:widgets` for the door an application uses.
+///
+/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+@NullMarked
 package io.github.digitalsmile.goldberry.render.web;
+
+import org.jspecify.annotations.NullMarked;

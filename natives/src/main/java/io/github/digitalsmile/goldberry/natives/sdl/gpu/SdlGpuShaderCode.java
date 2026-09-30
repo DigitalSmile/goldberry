@@ -3,6 +3,9 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 import java.util.Arrays;
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+
 /// A shader's bytecode in one format, and what it declares.
 ///
 /// SDL cannot read a shader's resources out of its bytecode, so the counts are

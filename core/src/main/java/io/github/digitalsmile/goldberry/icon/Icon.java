@@ -6,7 +6,7 @@ import java.util.Objects;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.paint.Stroke;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 
 /// One bundled icon, parsed once and drawn many times.
 ///

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 /// Where a [Scroll] sits when it is first laid out, and where it stays as its
 /// content changes — `docs/gaps.md` G48.
 ///
@@ -36,7 +38,7 @@ public enum ScrollAnchor {
     /// The anchor `name` spells, for KDL's `anchor=` — defaulting to [#START]
     /// rather than throwing, for [ScrollAxis#parse]'s reason: a document that
     /// misspells an attribute should still show its content.
-    public static ScrollAnchor parse(String name) {
+    public static ScrollAnchor parse(@Nullable String name) {
         if (name == null) {
             return START;
         }

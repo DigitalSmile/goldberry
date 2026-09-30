@@ -7,6 +7,8 @@ import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 
 /// A window claimed by a [SdlGpuDevice]: it presents through a swapchain, and has
 /// no window surface while it is claimed (`docs/gpu-plan.md`, D3).

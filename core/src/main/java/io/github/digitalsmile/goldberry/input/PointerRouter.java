@@ -335,7 +335,7 @@ public final class PointerRouter {
     /// and a check on the outer rectangle alone would miss every one of them.
     private record Measurement(Widget widget, Extent bounds, Extent part) {
 
-        boolean sameAs(Measurement other) {
+        boolean sameAs(@Nullable Measurement other) {
             return other != null && other.widget == widget && other.bounds.equals(bounds) && other.part.equals(part);
         }
     }
@@ -401,7 +401,7 @@ public final class PointerRouter {
     /// window still notifies nobody.
     private record Location(Widget widget, LogicalRect self, LogicalRect clip, LogicalRect container) {
 
-        boolean sameAs(Location other) {
+        boolean sameAs(@Nullable Location other) {
             return other != null
                     && other.widget == widget
                     && other.self.equals(self)
@@ -502,7 +502,7 @@ public final class PointerRouter {
             // insertion did.
             var kept = anchors.get(element);
             var region0 = kept == null ? null : byElement.get(kept.node());
-            var anchor = region0 == null
+            var anchor = kept == null || region0 == null
                     ? pick(part, paintedRect(region), partRegion, byElement)
                     : within(kept.node(), region0, partRegion);
             if (anchor == null) {
@@ -537,7 +537,13 @@ public final class PointerRouter {
             HitTest.Region partRegion,
             java.util.Map<Element, HitTest.Region> byElement) {
         var picked = anchorIn(part, view, byElement);
-        return picked == null ? null : within(picked, byElement.get(picked), partRegion);
+        return picked == null
+                ? null
+                : within(
+                        picked,
+                        Objects.requireNonNull(
+                                byElement.get(picked), "anchorIn answers only with a node that has a region"),
+                        partRegion);
     }
 
     /// Where `node` sits inside the part, in the coordinates layout produced.
@@ -1229,7 +1235,7 @@ public final class PointerRouter {
     /// Walking two chains on every focus change is the cost, and it is a walk to
     /// the root of a widget tree per keystroke that moves focus — the same order
     /// as the pointer dispatch that already happens per motion.
-    private static void notifyFocusWithin(@Nullable Element lost, Element gained, boolean fromKeyboard) {
+    private static void notifyFocusWithin(@Nullable Element lost, @Nullable Element gained, boolean fromKeyboard) {
         if (lost == gained) {
             return;
         }
@@ -1365,7 +1371,7 @@ public final class PointerRouter {
     /// Strictly an ancestor: a scope is not itself one of the things its arrow
     /// keys move between, and a focusable widget that also declared itself a
     /// scope would otherwise rove within its own children from outside them.
-    private static @Nullable Element enclosingScope(Element element) {
+    private static @Nullable Element enclosingScope(@Nullable Element element) {
         if (element == null) {
             return null;
         }
@@ -1395,7 +1401,7 @@ public final class PointerRouter {
     /// Compared by **identity**: "who bound it" is a question about an object,
     /// not about a value that might be equal to another one. Null is nobody in
     /// particular, which is what an application's own binding is.
-    private record Binding(Runnable action, Object owner) {
+    private record Binding(Runnable action, @Nullable Object owner) {
 
         boolean ownedBy(Object candidate) {
             return owner == candidate;
@@ -1417,7 +1423,7 @@ public final class PointerRouter {
     /// else: it is never called, never compared by value, and never held past the
     /// binding it belongs to. A widget that binds while it is mounted passes
     /// itself.
-    public PointerRouter shortcut(Shortcut shortcut, Runnable action, Object owner) {
+    public PointerRouter shortcut(Shortcut shortcut, Runnable action, @Nullable Object owner) {
         shortcuts.put(
                 Objects.requireNonNull(shortcut, "shortcut"),
                 new Binding(Objects.requireNonNull(action, "action"), owner));
@@ -1602,7 +1608,7 @@ public final class PointerRouter {
     /// overlays on one window and the later one is drawn on top. Walking
     /// forwards would hand the keyboard to the dialog *underneath* the one the
     /// user is looking at.
-    private static @Nullable Element deepestModal(Element element) {
+    private static @Nullable Element deepestModal(@Nullable Element element) {
         if (element == null) {
             return null;
         }
@@ -1675,7 +1681,7 @@ public final class PointerRouter {
 
     /// Whether `element` is inside the modal that currently has the keyboard —
     /// vacuously true when nothing is modal.
-    private boolean isReachable(Element element) {
+    private boolean isReachable(@Nullable Element element) {
         var modal = deepestModal(focusRoot);
         if (modal == null || element == null) {
             return true;
@@ -1772,7 +1778,7 @@ public final class PointerRouter {
         return findById(focusRoot, id);
     }
 
-    private static @Nullable Element findById(Element element, String id) {
+    private static @Nullable Element findById(@Nullable Element element, String id) {
         if (element == null || id == null) {
             return null;
         }

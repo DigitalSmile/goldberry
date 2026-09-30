@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -28,7 +30,7 @@ final class BreadcrumbsState extends State<Breadcrumbs> {
     /// Read in `build` and **used** only from a click or a keypress, which is
     /// what [BuildContext#host()] allows: a build that read anything off a host
     /// would depend on the last frame, and nothing invalidates that.
-    private Host host;
+    private @Nullable Host host;
 
     /// Where the `…` was painted, in the window's coordinates.
     ///

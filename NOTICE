@@ -52,9 +52,9 @@ is also OPTIONAL: it sits beside goldberry-media, and nothing else needs it.
 FFmpeg's five libraries are loaded from a directory and replaceable with a
 user's own build of the same majors (-Dgoldberry.media.libdir). Each natives jar
 carries META-INF/ffmpeg-NOTICE.txt with the exact tags and configure line. No
-patent-pool codec is built into them. goldberry-media-platform, which decodes
-H.264, HEVC, AAC, AC-3 and E-AC-3, bundles nothing: it calls the decoders the
-operating system ships, under the operating system's licence.
+patent-pool codec is built into them. goldberry-media's system decoders, which
+decode H.264, HEVC, AAC, AC-3 and E-AC-3, bundle nothing: they call the decoders
+the operating system has, under the licences those were installed under.
 
 Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
 and the licenses/ directory.

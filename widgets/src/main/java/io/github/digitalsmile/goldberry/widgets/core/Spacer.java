@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.core;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -33,7 +35,7 @@ public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Pain
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -43,7 +45,7 @@ public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Pain
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

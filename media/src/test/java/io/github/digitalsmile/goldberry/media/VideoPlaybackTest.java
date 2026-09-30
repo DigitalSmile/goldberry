@@ -46,6 +46,10 @@ import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.picture.Picture;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
+import io.github.digitalsmile.goldberry.media.picture.VideoPlanes;
 
 /// The Engine playing video, end to end against FFmpeg: phase 3's exit criteria
 /// (`docs/goldberry-media.md` §8) and the scenarios they name.

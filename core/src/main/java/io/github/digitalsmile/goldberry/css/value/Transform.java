@@ -473,7 +473,7 @@ public record Transform(List<Function> functions, Origin origin) {
     }
 
     /// A function's arguments split on commas.
-    private static @Nullable List<List<Token>> arguments(List<Token> tokens) {
+    private static List<List<Token>> arguments(List<Token> tokens) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
         for (var token : tokens) {
@@ -575,7 +575,7 @@ public record Transform(List<Function> functions, Origin origin) {
         }
     }
 
-    private static @Nullable Length[] lengths(List<List<Token>> arguments, int count, CssLength.Context context) {
+    private static Length @Nullable [] lengths(List<List<Token>> arguments, int count, CssLength.Context context) {
         var values = new Length[count];
         for (var i = 0; i < count; i++) {
             var length = length(arguments.get(i), context);
@@ -704,7 +704,11 @@ public record Transform(List<Function> functions, Origin origin) {
                 // centres the other one rather than being taken as horizontal.
                 var only = keyword(parts.getFirst());
                 if (only == Axis.VERTICAL) {
-                    yield new Origin(Length.HALF, originLength(parts.getFirst(), context));
+                    yield new Origin(
+                            Length.HALF,
+                            Objects.requireNonNull(
+                                    originLength(parts.getFirst(), context),
+                                    "top and bottom are origin keywords, so they always resolve"));
                 }
                 var x = originLength(parts.getFirst(), context);
                 yield x == null ? null : new Origin(x, Length.HALF);

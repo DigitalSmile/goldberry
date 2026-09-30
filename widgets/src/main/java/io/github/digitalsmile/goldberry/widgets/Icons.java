@@ -111,7 +111,7 @@ public final class Icons {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not registered
-    public @Nullable Icon resolve(String name) {
+    public @Nullable Icon resolve(@Nullable String name) {
         if (name == null) {
             return null;
         }

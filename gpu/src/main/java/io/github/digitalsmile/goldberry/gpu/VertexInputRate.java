@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexInputRate;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 
 /// Whether a vertex buffer's elements advance per vertex or per instance.
 public enum VertexInputRate {

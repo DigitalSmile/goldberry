@@ -142,7 +142,7 @@ public final class ActionRegistry {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not bound
-    public Consumer<String> resolveValued(@Nullable String name) {
+    public @Nullable Consumer<String> resolveValued(@Nullable String name) {
         if (name == null) {
             return null;
         }
@@ -168,7 +168,7 @@ public final class ActionRegistry {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not bound
-    public Runnable resolve(String name) {
+    public @Nullable Runnable resolve(@Nullable String name) {
         if (name == null) {
             return null;
         }

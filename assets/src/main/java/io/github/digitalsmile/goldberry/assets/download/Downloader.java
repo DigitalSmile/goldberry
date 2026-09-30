@@ -25,7 +25,7 @@ import java.util.Objects;
 ///
 /// The checksum is not this class's business. A download that arrives whole and
 /// hashes wrong is a changed upstream, not a flaky one, and
-/// [io.github.digitalsmile.goldberry.assets.AssetCache] refuses it without retrying.
+/// [io.github.digitalsmile.goldberry.assets.prepare.AssetCache] refuses it without retrying.
 public final class Downloader {
 
     /// One request, and what came back.

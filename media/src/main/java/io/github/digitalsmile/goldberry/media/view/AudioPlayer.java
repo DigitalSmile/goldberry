@@ -84,6 +84,8 @@ public record AudioPlayer(MediaPlayer player, Attributes attributes)
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("audio-player takes no children");
         }
-        return new AudioPlayer(wiring.handle(node, "player", MediaPlayer.class), Attributes.of(node));
+        return new AudioPlayer(
+                Objects.requireNonNull(wiring.handle(node, "player", MediaPlayer.class), "player"),
+                Attributes.of(node));
     }
 }

@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.input;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which arrow keys rove inside a composite — `docs/design-system.md` §7.2.
 ///
 /// A composite is **one Tab stop** with the arrow keys moving focus between its
@@ -54,7 +56,7 @@ public enum FocusScope {
     ///
     /// @param axis the axis the pressed arrow lies on, or null for `Home`/`End`,
     ///             which belong to no axis and reach the ends of any scope
-    public boolean roves(Axis axis) {
+    public boolean roves(@Nullable Axis axis) {
         if (this == NONE) {
             return false;
         }

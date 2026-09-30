@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -36,7 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// @param muted     whether another series is isolated, so this one is not drawn
 /// @param onIsolate what a click reports, or null for a legend that is only a key
-record ChartLegendEntry(int slot, String name, boolean muted, java.util.function.IntConsumer onIsolate)
+record ChartLegendEntry(int slot, String name, boolean muted, java.util.function.@Nullable IntConsumer onIsolate)
         implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
 
     ChartLegendEntry(int slot, String name) {

@@ -19,4 +19,9 @@
 /// Nothing here allocates, owns or frees foreign memory. What crosses is a
 /// pointer to a string GLib owns for the length of one call, read into a Java
 /// `String` and handed on.
+///
+/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+@NullMarked
 package io.github.digitalsmile.goldberry.natives.glib;
+
+import org.jspecify.annotations.NullMarked;

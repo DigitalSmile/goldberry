@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.widgets.core.qrcode;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.image.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// Where the modules go, in whole device pixels, and how they are painted.

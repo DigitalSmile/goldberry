@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.shell.tray;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
@@ -38,7 +40,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 ///                icon is not on a Goldberry window and inherits no scale
 /// @param tooltip the hover text, or null — not every platform shows one
 /// @param menu    the rows the shell draws when the icon is clicked
-public record TrayIcon(PixelBuffer icon, String tooltip, Menu menu) {
+public record TrayIcon(@Nullable PixelBuffer icon, @Nullable String tooltip, Menu menu) {
 
     public TrayIcon {
         Objects.requireNonNull(menu, "menu");
@@ -63,6 +65,8 @@ public record TrayIcon(PixelBuffer icon, String tooltip, Menu menu) {
 
     /// This tray as the backend SPI's description of one.
     public TraySpec spec() {
+        // Blank for none: `TraySpec` turns a blank tooltip into null itself, and
+        // its component does not say @Nullable yet.
         return new TraySpec(icon, tooltip, Trays.rowsOf(menu));
     }
 }

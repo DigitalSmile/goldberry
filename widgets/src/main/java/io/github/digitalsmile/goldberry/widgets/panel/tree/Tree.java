@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -76,12 +78,12 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 public record Tree(
         List<TreeNode> roots,
         Set<String> selected,
-        Consumer<Set<String>> onSelect,
+        @Nullable Consumer<Set<String>> onSelect,
         Selection selection,
         boolean leafOnly,
         Checkable checkable,
         Set<String> checked,
-        Consumer<Set<String>> onCheck,
+        @Nullable Consumer<Set<String>> onCheck,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tree> {
 
@@ -111,7 +113,7 @@ public record Tree(
     /// application holds a field, and asking either to wrap it in a set to hand it
     /// over and unwrap it to read it back would be ceremony in the common case for
     /// the benefit of the rare one. What crosses inside is a set either way.
-    public Tree(List<TreeNode> roots, String selected, Consumer<String> onSelect) {
+    public Tree(List<TreeNode> roots, @Nullable String selected, @Nullable Consumer<String> onSelect) {
         this(
                 roots,
                 selected == null ? Set.of() : Set.of(selected),
@@ -131,7 +133,7 @@ public record Tree(
     ///
     /// Null rather than empty for the same reason the constructor above takes a
     /// `String`: a caller in single-selection mode has a value or has none.
-    public String selectedOne() {
+    public @Nullable String selectedOne() {
         return selected.isEmpty() ? null : selected.iterator().next();
     }
 
@@ -183,7 +185,7 @@ public record Tree(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -22,8 +24,8 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// One stop of a [Tour]: the veil, and the card beside the target.
@@ -48,13 +50,13 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 record TourStop(
         Stop stop,
         LogicalRect target,
-        LogicalRect cameFrom,
-        Phase travel,
+        @Nullable LogicalRect cameFrom,
+        @Nullable Phase travel,
         Phase arrival,
         LogicalRect window,
         int index,
         int count,
-        Runnable onBack,
+        @Nullable Runnable onBack,
         Runnable onNext,
         Runnable onSkip,
         java.util.function.Consumer<LogicalRect> onWindow,

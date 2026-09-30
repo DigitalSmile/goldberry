@@ -7,6 +7,8 @@ import java.util.function.BiConsumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
@@ -92,7 +94,7 @@ record SplitPaneView(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

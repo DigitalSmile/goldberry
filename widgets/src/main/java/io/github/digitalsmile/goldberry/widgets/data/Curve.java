@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import io.github.digitalsmile.goldberry.widgets.data.plot.Curves;
+
 /// How a line gets from one point to the next — `charts.md` §3.1's
 /// "interpolation: linear, smooth, step".
 ///

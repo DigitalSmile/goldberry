@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFrontFace;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 
 /// Which winding, in normalised device coordinates (y up), makes a triangle
 /// face front.

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCompareOp;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
 
 /// How a depth test compares a fragment's depth with the depth target's.
 public enum CompareOp {

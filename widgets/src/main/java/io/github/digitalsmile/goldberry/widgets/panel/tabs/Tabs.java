@@ -77,14 +77,14 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("tabs")
 public record Tabs(
-        String value,
+        @Nullable String value,
         List<Widget> children,
-        Observable<?> source,
-        Consumer<String> onChange,
-        Consumer<String> onClose,
-        Runnable onNew,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
+        @Nullable Consumer<String> onClose,
+        @Nullable Runnable onNew,
         boolean keepAlive,
-        BiConsumer<String, Integer> onReorder,
+        @Nullable BiConsumer<String, Integer> onReorder,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
@@ -100,12 +100,12 @@ public record Tabs(
 
     /// The shape a strip had before it could keep its tabs alive.
     public Tabs(
-            String value,
+            @Nullable String value,
             List<Widget> children,
-            Observable<?> source,
-            Consumer<String> onChange,
-            Consumer<String> onClose,
-            Runnable onNew,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<String> onClose,
+            @Nullable Runnable onNew,
             Attributes attributes) {
         this(value, children, source, onChange, onClose, onNew, false, null, attributes);
     }
@@ -166,7 +166,7 @@ public record Tabs(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -183,7 +183,7 @@ public record Tabs(
 
     /// Which tab is selected: the bound value if there is one, the written one
     /// otherwise.
-    public String selected() {
+    public @Nullable String selected() {
         if (source != null) {
             var bound = source.get();
             return bound == null ? null : bound.toString();

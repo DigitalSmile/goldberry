@@ -16,6 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.example.media.JavaPcmDecoder;
+import io.github.digitalsmile.goldberry.example.media.ShowcaseMedia;
 import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
 import io.github.digitalsmile.goldberry.media.PlaybackState;

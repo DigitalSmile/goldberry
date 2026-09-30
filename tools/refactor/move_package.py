@@ -34,7 +34,9 @@ def java_files(root: Path) -> list[Path]:
     out = []
     for p in root.rglob("*.java"):
         parts = p.parts
-        if "build" in parts or ".git" in parts or ".deps" in parts:
+        # `.claude` holds agents' git worktrees: whole copies of this repository,
+        # which a move must not rewrite behind the agent's back.
+        if "build" in parts or ".git" in parts or ".deps" in parts or ".claude" in parts:
             continue
         out.append(p)
     return out
@@ -200,6 +202,10 @@ def main() -> int:
         text = original = p.read_text(encoding="utf-8")
         for n in names:
             text = re.sub(rf"(?<![\w.$]){re.escape(old)}\.{n}(?![\w$])", f"{new}.{n}", text)
+            # A type-use annotation sits between the package and the simple
+            # name: `pkg.@Nullable Type`. The pattern above cannot see it.
+            text = re.sub(
+                rf"(?<![\w.$]){re.escape(old)}\.(@\w+(?:\.\w+)*\s+){n}(?![\w$])", rf"{new}.\g<1>{n}", text)
         if text != original:
             p.write_text(text, encoding="utf-8")
 

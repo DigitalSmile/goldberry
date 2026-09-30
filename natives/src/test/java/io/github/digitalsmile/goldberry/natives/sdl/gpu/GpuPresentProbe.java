@@ -11,6 +11,10 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// Phase 0's present measurements (`docs/gpu-plan.md`): what a frame costs on

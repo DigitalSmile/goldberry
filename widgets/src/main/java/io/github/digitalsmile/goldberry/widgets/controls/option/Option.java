@@ -101,7 +101,7 @@ import org.jspecify.annotations.Nullable;
 ///                   `select`'s list. See [#inAList()], which is the argument
 @Markup("option")
 public record Option(
-        String value, String label, Icon icon, boolean selected, Runnable onSelect,
+        String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect,
         boolean disabled, Attributes attributes, boolean roving)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> , Semantics {
 
@@ -120,7 +120,7 @@ public record Option(
     /// still the one to reach for: an option is [#roving()] unless a control says
     /// otherwise, because that is `segmented`'s and `radio-group`'s shape and
     /// they are two of the three callers.
-    public Option(String value, String label, @Nullable Icon icon, boolean selected, Runnable onSelect, boolean disabled, Attributes attributes) {
+    public Option(String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect, boolean disabled, Attributes attributes) {
         this(value, label, icon, selected, onSelect, disabled, attributes, true);
     }
 
@@ -176,7 +176,7 @@ public record Option(
     ///        `:disabled` twice and land the 45% at 20%. A `select`'s list is the
     ///        caller that really does pass its own: a row of a disabled combobox is
     ///        not pickable and nothing above it is drawn to say so.
-    public Option within(boolean isSelected, Runnable select, boolean alsoDisabled) {
+    public Option within(boolean isSelected, @Nullable Runnable select, boolean alsoDisabled) {
         return new Option(value, label, icon, isSelected, select, disabled || alsoDisabled,
                 attributes, roving);
     }

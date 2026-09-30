@@ -7,10 +7,10 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.image.qr.Level;
+import io.github.digitalsmile.goldberry.image.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.qr.Level;
-import io.github.digitalsmile.goldberry.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// new QrCode(link).level(Level.H).withAttributes(Attributes.NONE.name("Scan to sign in"));
 /// ```
 ///
-/// The picture is [io.github.digitalsmile.goldberry.qr.QrEncoder]'s and the
+/// The picture is [io.github.digitalsmile.goldberry.image.qr.QrEncoder]'s and the
 /// arithmetic that puts it on a pixel grid is [QrModules]'s. What is left here
 /// is a widget: a value that says which code, how much margin, and nothing else.
 ///

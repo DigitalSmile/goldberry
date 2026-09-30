@@ -13,8 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.digitalsmile.goldberry.image.qr.Level;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.qr.Level;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;

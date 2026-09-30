@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.platform.Capability;
 import io.github.digitalsmile.goldberry.platform.PlatformCapabilities;
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.composite.Compositor;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogs;

@@ -84,7 +84,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 @Markup("knob")
 public record Knob(
         double min, double max, double value, double step, int detents,
-        Observable<?> source, DoubleConsumer onChange,
+        @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
         boolean disabled, boolean circular, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> , Semantics {
 
@@ -145,8 +145,8 @@ public record Knob(
             double value,
             double step,
             int detents,
-            Observable<?> source,
-            DoubleConsumer onChange,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
             boolean disabled,
             Attributes attributes) {
         this(min, max, value, step, detents, source, onChange, disabled, false, attributes);
@@ -248,7 +248,7 @@ public record Knob(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -258,7 +258,7 @@ public record Knob(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -268,7 +268,7 @@ public record Knob(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
@@ -13,7 +14,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Gradient;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.paint.Stroke;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -22,11 +23,11 @@ import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.data.Fill;
-import io.github.digitalsmile.goldberry.widgets.data.Lttb;
-import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
-import io.github.digitalsmile.goldberry.widgets.data.Ticks;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Lttb;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Ticks;
 
 /// The drawn half of a chart — the `chart-plot` part itself, and the node the
 /// pointer lands on.
@@ -168,11 +169,11 @@ record ChartSurface(
     ///
     /// Once per render, so the policy is applied in one place and the painter,
     /// the axis and the readout all read the same answer
-    /// ([io.github.digitalsmile.goldberry.widgets.data.Gaps]).
-    private List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved() {
-        var out = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(series.size());
+    /// ([io.github.digitalsmile.goldberry.widgets.data.plot.Gaps]).
+    private List<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved> resolved() {
+        var out = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved>(series.size());
         for (var one : series) {
-            out.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.resolve(one.values(), options.nulls()));
+            out.add(io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.resolve(one.values(), options.nulls()));
         }
         return out;
     }
@@ -190,7 +191,7 @@ record ChartSurface(
     /// it **twice** — once of the positives-only data it would draw and once of
     /// the data as it came — and answering the first and then falling back would
     /// mean labelling one and drawing the other.
-    private Domain domain(List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+    private Domain domain(List<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved> resolved) {
         var min = Double.POSITIVE_INFINITY;
         var max = Double.NEGATIVE_INFINITY;
         // **Over what is shown**, so isolating a small series rescales the axis
@@ -202,7 +203,7 @@ record ChartSurface(
                 continue;
             }
             for (var value : resolved.get(s).values()) {
-                if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value)) {
+                if (io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.isValue(value)) {
                     min = Math.min(min, value);
                     max = Math.max(max, value);
                 }
@@ -272,7 +273,7 @@ record ChartSurface(
                     continue;
                 }
                 for (var value : resolved.get(s).values()) {
-                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value) && value > 0) {
+                    if (io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.isValue(value) && value > 0) {
                         anyPositive = true;
                         break;
                     }
@@ -282,9 +283,10 @@ record ChartSurface(
         }
         var domain = domain(resolved);
         if (logarithmic) {
-            var positive = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(resolved.size());
+            var positive =
+                    new ArrayList<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved>(resolved.size());
             for (var one : resolved) {
-                positive.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
+                positive.add(io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.positiveOnly(one));
             }
             // **Filtered only once the whole domain is known to be positive.** A
             // threshold at zero or a bound that reaches it is as fatal to
@@ -314,7 +316,7 @@ record ChartSurface(
         var axisMin = min;
         var axisMax = max;
         if (logarithmic) {
-            var ticks = io.github.digitalsmile.goldberry.widgets.data.LogTicks.of(min, max, Y_LABELS);
+            var ticks = io.github.digitalsmile.goldberry.widgets.data.plot.LogTicks.of(min, max, Y_LABELS);
             for (var value : ticks.values()) {
                 gridValues.add(value);
                 labels.add(context.paragraph(style, ticks.label(value)));
@@ -343,15 +345,17 @@ record ChartSurface(
         // other. It does not apply to a bar chart: a bar has a width and sits
         // *in* a band, and bands of unequal width are a different chart
         // (ADR-0203).
-        var timed = mode != ChartPlot.Mode.BAR
-                && options.time() != null
-                && options.time().covers(points());
-        var timeAxis = timed ? options.time() : null;
+        var time = options.time();
+        var timeAxis = mode != ChartPlot.Mode.BAR && time != null && time.covers(points()) ? time : null;
         var xLabels = new ArrayList<Paragraph>(categories.size());
         var timeTicks = new ArrayList<Double>();
-        if (timed) {
-            var ticks = io.github.digitalsmile.goldberry.widgets.data.TimeTicks.of(
-                    timeAxis.first(), timeAxis.last(), TIME_LABELS, timeAxis.zone());
+        if (timeAxis != null) {
+            // `covers` needs at least one point, so the axis has a first and a last.
+            var ticks = io.github.digitalsmile.goldberry.widgets.data.plot.TimeTicks.of(
+                    Objects.requireNonNull(timeAxis.first(), "a covering axis has a first instant"),
+                    Objects.requireNonNull(timeAxis.last(), "a covering axis has a last instant"),
+                    TIME_LABELS,
+                    timeAxis.zone());
             for (var tick : ticks.values()) {
                 xLabels.add(context.paragraph(style, ticks.label(tick, timeAxis.zone())));
                 timeTicks.add((double) tick.toEpochMilli());
@@ -361,8 +365,8 @@ record ChartSurface(
                 xLabels.add(context.paragraph(style, category));
             }
         }
-        var pointTimes = (double[]) null;
-        if (timed) {
+        var pointTimes = (double @Nullable []) null;
+        if (timeAxis != null) {
             pointTimes = new double[points()];
             for (var i = 0; i < pointTimes.length; i++) {
                 pointTimes[i] = timeAxis.millisAt(i);
@@ -428,7 +432,7 @@ record ChartSurface(
     private @Nullable Readout readout(
             ComputedStyle style,
             Context context,
-            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+            List<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved> resolved) {
 
         var index = hovered;
         if (!owns || index < 0 || index >= points() || series.isEmpty()) {
@@ -610,7 +614,7 @@ record ChartSurface(
 
     /// The tallest column of a stack — what an [ChartPlot.Mode#AREA] axis has to
     /// reach.
-    private double stackedMax(List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+    private double stackedMax(List<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved> resolved) {
 
         var longest = points();
         var tallest = 0.0;
@@ -689,7 +693,8 @@ record ChartSurface(
     /// One line of a readout: a series' colour, its name, and its value here.
     /// A threshold with its colour resolved and its word shaped — decided in
     /// `render`, where the cascade and the text stack are.
-    private record PaintedThreshold(double from, double to, int colour, Paragraph label) {
+    private record PaintedThreshold(
+            double from, double to, int colour, @Nullable Paragraph label) {
 
         boolean isLine() {
             return from == to;
@@ -711,12 +716,12 @@ record ChartSurface(
             List<Integer> colours,
             int grid,
             int ink,
-            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
+            List<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved> series,
             ChartPlot.Mode mode,
             double domainMin,
             double domainMax,
             List<PaintedThreshold> thresholds,
-            double[] times,
+            double @Nullable [] times,
             List<Double> timeTicks,
             io.github.digitalsmile.goldberry.widgets.data.Curve curve,
             List<Double> gridValues,
@@ -735,7 +740,7 @@ record ChartSurface(
             // thing that is null was exactly the crash.
             int ring,
             int isolated,
-            Readout readout,
+            @Nullable Readout readout,
             int hovered,
             PaintedGeometry painted) {
 
@@ -1123,10 +1128,10 @@ record ChartSurface(
                     }
                 }
                 case SMOOTH -> {
-                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves.tangents(xs, ys);
+                    var m = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.tangents(xs, ys);
                     for (var i = 0; i < xs.length - 1; i++) {
-                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves.controlFrom(xs, ys, m, i);
-                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves.controlTo(xs, ys, m, i);
+                        var from = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.controlFrom(xs, ys, m, i);
+                        var to = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.controlTo(xs, ys, m, i);
                         path.cubicTo(from[0], from[1], to[0], to[1], xs[i + 1], ys[i + 1]);
                     }
                 }
@@ -1167,11 +1172,11 @@ record ChartSurface(
                     }
                 }
                 case SMOOTH -> {
-                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves.tangents(flippedX, flippedY);
+                    var m = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.tangents(flippedX, flippedY);
                     for (var i = 0; i < n - 1; i++) {
-                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves.controlFrom(
+                        var from = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.controlFrom(
                                 flippedX, flippedY, m, i);
-                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves.controlTo(
+                        var to = io.github.digitalsmile.goldberry.widgets.data.plot.Curves.controlTo(
                                 flippedX, flippedY, m, i);
                         path.cubicTo(-from[0], from[1], -to[0], to[1], -flippedX[i + 1], flippedY[i + 1]);
                     }
@@ -1230,13 +1235,13 @@ record ChartSurface(
             // index where the total is unknown -- and drawing the bands above it
             // as though the missing one were zero would put them at a height
             // nobody reported (Gaps#stackRuns).
-            var shownSeries = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>();
+            var shownSeries = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.Resolved>();
             for (var s = 0; s < series.size(); s++) {
                 if (shows(s)) {
                     shownSeries.add(series.get(s));
                 }
             }
-            var runs = io.github.digitalsmile.goldberry.widgets.data.Gaps.stackRuns(shownSeries, longest);
+            var runs = io.github.digitalsmile.goldberry.widgets.data.plot.Gaps.stackRuns(shownSeries, longest);
 
             {
                 for (var s = 0; s < series.size(); s++) {
@@ -1484,6 +1489,7 @@ record ChartSurface(
         /// the edge it is approaching, which a fixed side would be for half of
         /// every chart.
         private void paintReadout(Frame frame, PlotGeometry geometry, double x) {
+            var readout = Objects.requireNonNull(this.readout, "painted only when there is a readout");
             var lineHeight = geometry.lineHeight();
             var titleLayout = readout.title().layout(Paragraph.UNCONSTRAINED);
 

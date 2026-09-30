@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
@@ -146,7 +148,7 @@ final class RuntimeBinding implements BoundModel {
     /// Built once and kept, like the woven `bindings()` — a document reload
     /// resolves its paths against the same registry, so the values survive it
     /// (ADR-0051).
-    private BindingRegistry bindings;
+    private @Nullable BindingRegistry bindings;
 
     private RuntimeBinding(Object model, Plan plan) {
         this.model = new WeakReference<>(model);
@@ -840,18 +842,20 @@ final class RuntimeBinding implements BoundModel {
     ///
     /// @param parser turns the `String` a document carries into the argument, or
     ///        null for an action that takes none
-    private record Act(String name, MethodHandle handle, Function<String, Object> parser) {
+    private record Act(
+            String name, MethodHandle handle, @Nullable Function<String, Object> parser) {
 
         boolean valued() {
             return parser != null;
         }
 
-        void invoke(Object model, String value) {
+        void invoke(Object model, @Nullable String value) {
             try {
-                if (parser == null) {
+                var parse = parser;
+                if (parse == null) {
                     handle.invokeExact(model);
                 } else {
-                    handle.invokeExact(model, argument(value));
+                    handle.invokeExact(model, argument(parse, value));
                 }
             } catch (RuntimeException | Error e) {
                 throw e;
@@ -866,9 +870,9 @@ final class RuntimeBinding implements BoundModel {
 
         /// `value` converted for the parameter, with the action's name on the
         /// refusal when it cannot be.
-        private Object argument(String value) {
+        private Object argument(Function<String, Object> parse, @Nullable String value) {
             try {
-                return parser.apply(value);
+                return parse.apply(value);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("the action \"" + name + "\" was given " + e.getMessage(), e);
             }
@@ -876,7 +880,7 @@ final class RuntimeBinding implements BoundModel {
 
         /// The `String` → parameter conversion, or null for a type no action may
         /// take. The same four the weaver emits a `parseXxx` for.
-        static Function<String, Object> parser(Class<?> param) {
+        static @Nullable Function<String, Object> parser(Class<?> param) {
             return switch (param.getName()) {
                 case "java.lang.String" -> value -> value;
                 case "double", "java.lang.Double" -> Act::real;
@@ -920,7 +924,7 @@ final class RuntimeBinding implements BoundModel {
 
         private final int hash;
 
-        Identity(Object model, ReferenceQueue<Object> queue) {
+        Identity(Object model, @Nullable ReferenceQueue<Object> queue) {
             super(model, queue);
             this.hash = System.identityHashCode(model);
         }

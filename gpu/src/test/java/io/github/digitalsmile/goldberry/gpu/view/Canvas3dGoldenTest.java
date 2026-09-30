@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.gpu.render.CompositeHarness;
+import io.github.digitalsmile.goldberry.gpu.composite.CompositeHarness;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import io.github.digitalsmile.goldberry.offscreen.Offscreen;

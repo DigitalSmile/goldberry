@@ -13,7 +13,7 @@ import java.util.ServiceLoader;
 /// where Bluetooth spends its 150–250 ms. A picture timed against a clock that
 /// ignores it leads its sound by that much. Only the operating system knows the
 /// number, so this is an SPI: a provider per system, found by [ServiceLoader].
-/// `goldberry-media-platform` has the CoreAudio one; WASAPI and PulseAudio ones
+/// `…media.platform.macos` has the CoreAudio one; WASAPI and PulseAudio ones
 /// are still to come, and until then those systems report nothing and
 /// [io.github.digitalsmile.goldberry.media.MediaPlayer#setAudioDelay] is the way to
 /// correct them by hand.

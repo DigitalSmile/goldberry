@@ -15,7 +15,7 @@ description = 'Goldberry: the toolkit in one dependency, with the optional modul
 // No code. What it carries is a POM:
 //
 //   required   goldberry-common, -natives, -core, -widgets    compile scope
-//   optional   goldberry-html, -gpu                           <optional>true</optional>
+//   optional   goldberry-html, -emoji, -gpu, -media           <optional>true</optional>
 //
 // both generated from `PublishedModules`, so a new content module is one line
 // there. An optional dependency is not resolved transitively -- an application

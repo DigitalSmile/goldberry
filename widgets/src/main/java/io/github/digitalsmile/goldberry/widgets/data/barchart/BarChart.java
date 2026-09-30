@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.barchart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -97,7 +99,7 @@ public record BarChart(List<Series> series, List<String> categories, ChartOption
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

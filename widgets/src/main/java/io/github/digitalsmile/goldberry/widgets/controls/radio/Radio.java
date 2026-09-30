@@ -22,6 +22,7 @@ import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import org.jspecify.annotations.Nullable;
 
 /// One option of a [RadioGroup] (§11, `docs/core-widgets.md` §3).
 ///
@@ -70,7 +71,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("radio")
 public record Radio(
-        String value, String label, boolean selected, Runnable onSelect, boolean disabled,
+        String value, String label, boolean selected, @Nullable Runnable onSelect, boolean disabled,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> , Semantics {
 
@@ -117,7 +118,7 @@ public record Radio(
     ///        and land the 45% at 20%. What a caller puts here is whatever
     ///        disabling it has that the option does not know about — which for a
     ///        combobox's list is the field's, and for a group is nothing.
-    Radio within(boolean isSelected, Runnable select, boolean alsoDisabled) {
+    Radio within(boolean isSelected, @Nullable Runnable select, boolean alsoDisabled) {
         return new Radio(value, label, isSelected, select, disabled || alsoDisabled, attributes);
     }
 
@@ -132,7 +133,7 @@ public record Radio(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

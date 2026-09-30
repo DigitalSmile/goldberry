@@ -9,7 +9,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// What a [Collapse] shows when it is open — §5's "region".
 ///
@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 /// which is `tab`'s arrival exactly, and for the same reason: a newly built
 /// element has no previous style for the cascade to interpolate from, so this is
 /// a function of the frame clock rather than a transition
-/// ([io.github.digitalsmile.goldberry.widgets.core.Phase]).
+/// ([io.github.digitalsmile.goldberry.widgets.core.presence.Phase]).
 ///
 /// Closing is **instant**, and asymmetric on purpose: the body's absence is this
 /// widget's whole claim, and holding a subtree alive for 160ms after it has been

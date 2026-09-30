@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.tree;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -36,7 +38,7 @@ record TreeBox(List<Widget> children, Attributes attributes) implements Widget.L
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

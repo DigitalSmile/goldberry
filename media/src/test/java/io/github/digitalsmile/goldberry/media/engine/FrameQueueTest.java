@@ -22,11 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import io.github.digitalsmile.goldberry.media.PictureForm;
-import io.github.digitalsmile.goldberry.media.VideoPicture;
-import io.github.digitalsmile.goldberry.media.VideoPlanes;
 import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
+import io.github.digitalsmile.goldberry.media.picture.VideoPlanes;
 
 /// The frame queue's rules with no FFmpeg: a full queue makes [FrameQueue#obtain]
 /// wait, and the three ways to end that wait. Only [FrameQueue#releaseWaiters()]

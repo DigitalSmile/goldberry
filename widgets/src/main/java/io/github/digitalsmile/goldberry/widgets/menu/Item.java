@@ -81,10 +81,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 @Markup("item")
 public record Item(
         String label,
-        Icon icon,
-        String accelerator,
-        Runnable onPress,
-        Boolean checked,
+        @Nullable Icon icon,
+        @Nullable String accelerator,
+        @Nullable Runnable onPress,
+        @Nullable Boolean checked,
         boolean disabled,
         List<Widget> submenu,
         boolean reservesLead,
@@ -92,7 +92,19 @@ public record Item(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item>, Semantics {
 
-    public Item {
+    /// The canonical constructor, written out because `submenu`, `signals` and `attributes` take null
+    /// for a default (ADR-0497).
+    public Item(
+            String label,
+            @Nullable Icon icon,
+            @Nullable String accelerator,
+            @Nullable Runnable onPress,
+            @Nullable Boolean checked,
+            boolean disabled,
+            @Nullable List<Widget> submenu,
+            boolean reservesLead,
+            @Nullable MenuSignals signals,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         submenu = List.copyOf(submenu == null ? List.of() : submenu);
         signals = signals == null ? MenuSignals.NONE : signals;
@@ -101,10 +113,20 @@ public record Item(
                     "a menu item with neither a label nor an icon has nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.icon = icon;
+        this.accelerator = accelerator;
+        this.onPress = onPress;
+        this.checked = checked;
+        this.disabled = disabled;
+        this.submenu = submenu;
+        this.reservesLead = reservesLead;
+        this.signals = signals;
+        this.attributes = attributes;
     }
 
     /// A command.
-    public Item(String label, Runnable onPress) {
+    public Item(String label, @Nullable Runnable onPress) {
         this(label, null, null, onPress, null, false, List.of(), false, MenuSignals.NONE, Attributes.NONE);
     }
 

@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.media.MediaError;
 import io.github.digitalsmile.goldberry.media.MediaException;
-import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.codec.Decoder;
 import io.github.digitalsmile.goldberry.media.codec.Frame;
 import io.github.digitalsmile.goldberry.media.codec.Received;
@@ -17,6 +16,7 @@ import io.github.digitalsmile.goldberry.media.ffi.Decoders;
 import io.github.digitalsmile.goldberry.media.ffi.Demuxer;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegDecoder;
 import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
 
 /// The video decode thread of one [Playback] (`docs/goldberry-media.md` §3,
 /// "Video decode").

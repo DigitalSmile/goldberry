@@ -101,9 +101,9 @@ final class ScrollState extends State<Scroll> {
     }
 
     /// The controller currently pointed at this state.
-    private ScrollController held;
+    private @Nullable ScrollController held;
 
-    private void attach(ScrollController controller) {
+    private void attach(@Nullable ScrollController controller) {
         held = controller;
         if (controller != null) {
             controller.attached = this;

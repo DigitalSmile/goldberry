@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// Where the cut-out is **right now**, between the stop being left and the one being
 /// arrived at.

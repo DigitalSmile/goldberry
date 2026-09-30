@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuIndexSize;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 
 /// How wide each index in an index buffer is.
 public enum IndexFormat {

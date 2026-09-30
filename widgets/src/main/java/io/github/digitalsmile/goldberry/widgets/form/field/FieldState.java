@@ -186,7 +186,8 @@ final class FieldState extends State<Field> implements Validated {
         }
         complained = true;
         var result = widget().rule().check(value());
-        var next = result.isValid() ? "" : result.message();
+        var failure = result.message();
+        var next = failure == null ? "" : failure;
         if (!next.equals(message)) {
             setState(() -> message = next);
         }

@@ -8,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.paint.stroke.Dash;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 
 /// What a dashed stroke actually puts on the surface.
 ///

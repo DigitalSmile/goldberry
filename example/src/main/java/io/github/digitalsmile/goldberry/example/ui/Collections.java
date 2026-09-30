@@ -5,8 +5,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import org.jspecify.annotations.Nullable;
-
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -290,7 +288,7 @@ public final class Collections {
                 setState(() -> selected = values);
             }
 
-            private void check(@Nullable Set<String> values) {
+            private void check(Set<String> values) {
                 setState(() -> checked = values);
             }
 

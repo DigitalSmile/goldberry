@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.list;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -48,7 +50,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///                  the list is not virtual
 record ListBox(
         List<Widget> children,
-        java.util.function.BiConsumer<
+        java.util.function.@Nullable BiConsumer<
                         io.github.digitalsmile.goldberry.render.model.LogicalRect,
                         io.github.digitalsmile.goldberry.render.model.LogicalRect>
                 onLocated,
@@ -61,7 +63,7 @@ record ListBox(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

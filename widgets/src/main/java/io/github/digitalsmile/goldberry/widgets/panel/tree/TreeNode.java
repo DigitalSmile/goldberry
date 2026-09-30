@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 /// One node of a [Tree] — `docs/core-widgets.md` §3's "observable node model with
 /// a children supplier".
 ///
@@ -39,7 +41,11 @@ import java.util.function.Supplier;
 /// @param children the children it already has, empty for a leaf and ignored when
 ///                 `supplier` is set
 /// @param supplier where to get the children the first time it expands, or null
-public record TreeNode(String id, String label, List<TreeNode> children, Supplier<List<TreeNode>> supplier) {
+public record TreeNode(
+        String id,
+        String label,
+        List<TreeNode> children,
+        @Nullable Supplier<List<TreeNode>> supplier) {
 
     public TreeNode {
         Objects.requireNonNull(id, "id");

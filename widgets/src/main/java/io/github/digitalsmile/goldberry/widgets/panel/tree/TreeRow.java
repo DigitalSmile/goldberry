@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -70,7 +72,7 @@ record TreeRow(
         boolean expanded,
         boolean selectable,
         boolean selected,
-        io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value check,
+        io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.@Nullable Value check,
         Runnable onToggle,
         java.util.function.Consumer<io.github.digitalsmile.goldberry.input.key.Modifiers> onSelect,
         Runnable onOut,

@@ -84,7 +84,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     description = 'Fetches the pinned fonts and icon set and prepares them as resources.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
     // Everything but the emoji face, which ships as `goldberry-emoji`
     // (ADR-0384, ADR-0456).
     args assetCache.asFile.absolutePath,
@@ -120,7 +120,7 @@ tasks.register('vendorLicences', JavaExec) {
     description = 'Copies the upstream asset licences into licenses/ from the pinned archives.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,

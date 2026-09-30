@@ -11,8 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.github.digitalsmile.goldberry.paint.Dash;
 import io.github.digitalsmile.goldberry.paint.Path;
+import io.github.digitalsmile.goldberry.paint.stroke.Dash;
 
 /// The arithmetic that cuts a path into dashes, with no rasterizer under it.
 ///

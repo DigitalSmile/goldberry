@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.paint.overflow;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// A box that did not fit the box it was laid out in.
@@ -54,7 +56,7 @@ public record Overrun(String container, String child, float overrunX, float over
     /// line box is the normal consequence rather than a defect. The measured
     /// distribution has a cliff exactly there: 385 reports overran by more than
     /// one pixel and only 23 by more than two.
-    public static Overrun between(String container, String child, LogicalRect parent, LogicalRect box) {
+    public static @Nullable Overrun between(String container, String child, LogicalRect parent, LogicalRect box) {
         if (parent.size().width() <= 0 || parent.size().height() <= 0) {
             return null;
         }

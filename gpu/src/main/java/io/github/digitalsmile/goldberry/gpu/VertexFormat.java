@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuVertexFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
 
 /// How one [VertexAttribute] is stored in its buffer.
 public enum VertexFormat {

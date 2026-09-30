@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
@@ -57,14 +59,14 @@ public final class FieldListeners {
     /// `repaint = false`. **Which fields ask is decided in the build**, so a value
     /// nothing displays costs not a branch here but an instruction that is not
     /// there (ADR-0135).
-    private List<Runnable> repaint;
+    private @Nullable List<Runnable> repaint;
 
     /// Listeners for a change to a field declared `@Bind(restyle = true)`.
     ///
     /// Separate from [#repaint] because a restyle is much more expensive than
     /// a repaint — every resolved style is thrown away — and the common case is a
     /// change that moves no rule at all (ADR-0133).
-    private List<Runnable> restyle;
+    private @Nullable List<Runnable> restyle;
 
     /// A store for a model with `fields` woven `@Bind` fields.
     ///
@@ -108,7 +110,10 @@ public final class FieldListeners {
         if (repaint == null) {
             repaint = new ArrayList<>(2);
         }
-        repaint.add(listener);
+        // The list, not the field, for the subscription to hold: made once and
+        // never replaced, so the two are the same list.
+        var listeners = repaint;
+        listeners.add(listener);
         return new Subscription() {
 
             private boolean closed;
@@ -117,7 +122,7 @@ public final class FieldListeners {
             public void close() {
                 if (!closed) {
                     closed = true;
-                    repaint.remove(listener);
+                    listeners.remove(listener);
                 }
             }
         };
@@ -130,7 +135,10 @@ public final class FieldListeners {
         if (restyle == null) {
             restyle = new ArrayList<>(1);
         }
-        restyle.add(listener);
+        // The list, not the field, for the subscription to hold: made once and
+        // never replaced, so the two are the same list.
+        var listeners = restyle;
+        listeners.add(listener);
         return new Subscription() {
 
             private boolean closed;
@@ -139,7 +147,7 @@ public final class FieldListeners {
             public void close() {
                 if (!closed) {
                     closed = true;
-                    restyle.remove(listener);
+                    listeners.remove(listener);
                 }
             }
         };

@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -43,7 +44,7 @@ public final class ReloadableSource<T> {
 
     private T current;
     private String lastText;
-    private RuntimeException lastFailure;
+    private @Nullable RuntimeException lastFailure;
 
     private ReloadableSource(Path file, Function<String, T> parser, T initial, String initialText) {
         this.file = file;

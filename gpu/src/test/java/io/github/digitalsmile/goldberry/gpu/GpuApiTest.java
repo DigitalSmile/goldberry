@@ -80,6 +80,11 @@ class GpuApiTest {
 
     @AfterAll
     static void destroyDevice() {
+        // Skipped before SDL was reached: nothing to give back, and no library to
+        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        if (sdl == null) {
+            return;
+        }
         if (sdl != null) {
             sdl.close();
         }

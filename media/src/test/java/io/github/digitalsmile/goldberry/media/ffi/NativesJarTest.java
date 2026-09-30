@@ -18,14 +18,14 @@ import io.github.digitalsmile.goldberry.media.codec.MediaType;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
 import io.github.digitalsmile.goldberry.media.io.Source;
 
-/// FFmpeg found the way an application finds it: in `goldberry-ffmpeg-natives`
-/// on the class path, with nothing naming a directory.
+/// FFmpeg found the way an application finds it: in `goldberry-media`'s
+/// `ffmpeg-<target>` jar on the class path, with nothing naming a directory.
 ///
 /// Run only by `:media:testNativesJar`, in a JVM of its own, because the loader
 /// loads once per process. It checks the one path no other test takes: the
 /// resource layout the jar task writes, against the one [FfmpegPlatform] reads.
 @Tag("natives-jar")
-@DisplayName("goldberry-ffmpeg-natives, on the class path")
+@DisplayName("goldberry-media's FFmpeg classifier, on the class path")
 class NativesJarTest {
 
     @Test

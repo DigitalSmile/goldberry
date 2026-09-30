@@ -2,9 +2,12 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
@@ -22,7 +25,7 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// One toast on screen — the node a stylesheet calls `toast`.
 ///
@@ -56,7 +59,7 @@ record ToastBox(
         Corner corner,
         Phase phase,
         boolean leaving,
-        Reflow reflow,
+        @Nullable Reflow reflow,
         Consumer<Boolean> onHover,
         Runnable onAction,
         Runnable onDismiss,
@@ -109,7 +112,8 @@ record ToastBox(
             // in the catalog: a toast is not a place to put a filled button, and
             // the only thing on a toast that can be pressed does not need to
             // shout to be found.
-            parts.add(new Button(toast.label(), onAction).withAttributes(Attributes.NONE.classes("ghost")));
+            parts.add(new Button(Objects.requireNonNull(toast.label(), "hasAction() says there is a label"), onAction)
+                    .withAttributes(Attributes.NONE.classes("ghost")));
         }
         return List.copyOf(parts);
     }

@@ -29,7 +29,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param sort    what it is sorted by, or null
 /// @param onSort  asked to sort by a column key
 /// @param onResize asked for a column's new width
-record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> onSort, Resize onResize)
+record TableHead(
+        List<? extends Column<?>> columns, @Nullable Sort sort, Consumer<String> onSort, Resize onResize)
         implements Widget.Leaf, Styled, Paints, Semantics {
 
     /// Asked for a column's new width, in logical pixels.
@@ -70,7 +71,7 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
     /// This column's place in the sort: `null` when the table is sorted by
     /// something else, which is what makes the caret appear on exactly one
     /// header.
-    private Sort sortOf(Column<?> column) {
+    private @Nullable Sort sortOf(Column<?> column) {
         return sort != null && sort.on(column.key()) ? sort : null;
     }
 
@@ -101,7 +102,7 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
     /// @param onResize   asked for a new width
     record TableHeader(
             Column<?> column,
-            Sort sort,
+            @Nullable Sort sort,
             Consumer<String> onSort,
             double width,
             @Nullable DoubleConsumer onMeasured,
@@ -239,7 +240,7 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
     /// @param sort the sort when this is the sorted column, and null when it is
     ///             merely sortable — in which case the box is kept and nothing is
     ///             drawn in it
-    record SortCaret(Sort sort) implements Widget.Leaf, Styled, Paints {
+    record SortCaret(@Nullable Sort sort) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {

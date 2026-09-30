@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -23,7 +25,7 @@ record CollapseSection(
         String title,
         boolean open,
         Runnable onToggle,
-        io.github.digitalsmile.goldberry.widgets.core.Phase phase,
+        io.github.digitalsmile.goldberry.widgets.core.presence.Phase phase,
         List<Widget> body,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
@@ -39,7 +41,7 @@ record CollapseSection(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -58,7 +60,7 @@ record CollapseSection(
     /// The node that *carries* the phase answers for it as well as the node that
     /// draws with it. The renderer ORs `isAnimating` over the whole tree, so this
     /// changes no behaviour — what it buys is that `AnimationSweepTest`'s rule
-    /// stays sharp: a widget holding a [io.github.digitalsmile.goldberry.widgets.core.Phase]
+    /// stays sharp: a widget holding a [io.github.digitalsmile.goldberry.widgets.core.presence.Phase]
     /// answers the frame loop, with no exception for "it hands it to a child"
     /// that nothing could check ([ADR-0228]).
     ///

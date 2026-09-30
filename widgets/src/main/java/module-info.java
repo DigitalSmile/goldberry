@@ -66,6 +66,9 @@ module io.github.digitalsmile.goldberry.widgets {
     /// a catalog, and once there was one, `:core` was shipping five widgets it
     /// had no other use for.
     exports io.github.digitalsmile.goldberry.widgets.core;
+    /// How an overlay or a panel arrives and leaves: [io.github.digitalsmile.goldberry.widgets.core.presence.Phase]
+    /// and its `Departure`, which nine packages share (ADR-0496).
+    exports io.github.digitalsmile.goldberry.widgets.core.presence;
     exports io.github.digitalsmile.goldberry.widgets.core.affix;
     exports io.github.digitalsmile.goldberry.widgets.core.canvas;
 
@@ -84,7 +87,7 @@ module io.github.digitalsmile.goldberry.widgets {
     /// makes a rebuild free and the device-pixel arithmetic that keeps a module
     /// whole are parts, and a part is not constructible from outside
     /// (ADR-0065). The **encoder** is not here at all — it is
-    /// [io.github.digitalsmile.goldberry.qr.QrEncoder] in `:core`, beside the
+    /// [io.github.digitalsmile.goldberry.image.qr.QrEncoder] in `:core`, beside the
     /// image codecs, because a specification is not a widget.
     exports io.github.digitalsmile.goldberry.widgets.core.qrcode;
 
@@ -92,6 +95,10 @@ module io.github.digitalsmile.goldberry.widgets {
     /// theme palette rather than on a chart engine (`content-widgets.md` §3).
     /// `sparkline` is the first and the smallest — no axes, no legend.
     exports io.github.digitalsmile.goldberry.widgets.data;
+    /// The arithmetic between a series and a plot -- scales, ticks,
+    /// downsampling, gaps, curves -- which every chart shares and none owns
+    /// (ADR-0496).
+    exports io.github.digitalsmile.goldberry.widgets.data.plot;
     exports io.github.digitalsmile.goldberry.widgets.data.sparkline;
     exports io.github.digitalsmile.goldberry.widgets.data.linechart;
     exports io.github.digitalsmile.goldberry.widgets.data.areachart;

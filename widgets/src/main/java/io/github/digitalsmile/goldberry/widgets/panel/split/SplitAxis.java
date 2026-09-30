@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.split;
 
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which way a [SplitPane]'s two children are laid out.
 ///
 /// **Named after the arrangement, not after the divider**, which is the one thing
@@ -34,7 +36,7 @@ public enum SplitAxis {
     }
 
     /// Parses the `axis=` attribute.
-    static SplitAxis of(String text) {
+    static SplitAxis of(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return HORIZONTAL;
         }

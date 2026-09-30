@@ -68,7 +68,7 @@ record ScrollViewport(
         ScrollTarget onScroll,
         boolean anchored,
         ScrollShift onShift,
-        Boolean draggingVertical,
+        @Nullable Boolean draggingVertical,
         java.util.function.BiConsumer<Boolean, Boolean> onDrag,
         java.util.function.BiConsumer<Extent, Extent> onMeasured,
         double line,
@@ -149,7 +149,7 @@ record ScrollViewport(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widgets.Icons;
 
 /// The **objects** a document may name — a `FormController`, a `Validator`.
@@ -90,7 +92,7 @@ public final class Named {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not registered, or if what is registered is not a `type`
-    public <T> T resolve(String name, Class<T> type) {
+    public <T> @Nullable T resolve(@Nullable String name, Class<T> type) {
         Objects.requireNonNull(type, "type");
         if (name == null || name.isEmpty()) {
             return null;

@@ -87,7 +87,7 @@ public record VideoView(MediaPlayer player, Fit fit, Attributes attributes)
             throw new IllegalArgumentException("video-view takes no children");
         }
         return new VideoView(
-                wiring.handle(node, "player", MediaPlayer.class),
+                Objects.requireNonNull(wiring.handle(node, "player", MediaPlayer.class), "player"),
                 Fit.named(node.stringProperty("fit")),
                 Attributes.of(node));
     }

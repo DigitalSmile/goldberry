@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
+import org.jspecify.annotations.Nullable;
 
 /// The curve between a control's **value** and its **position** along its track.
 ///
@@ -80,7 +81,7 @@ public sealed interface Scale {
     /// Strict for the reason every §9 registry is: `scale="dB"` resolving quietly
     /// to linear would give a fader that works and is wrong, which is the failure
     /// a typo in markup should never be able to produce ([ADR-0062]).
-    static Scale of(String token) {
+    static Scale of(@Nullable String token) {
         if (token == null || token.isEmpty() || token.equals(LINEAR.token())) {
             return LINEAR;
         }

@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.markdown.view.MarkdownStyles;
 import io.github.digitalsmile.goldberry.markdown.view.MarkdownView;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;

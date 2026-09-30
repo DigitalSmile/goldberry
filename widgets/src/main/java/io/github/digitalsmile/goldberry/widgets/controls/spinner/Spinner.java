@@ -139,7 +139,7 @@ public record Spinner(SpinnerSize size, Attributes attributes)
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

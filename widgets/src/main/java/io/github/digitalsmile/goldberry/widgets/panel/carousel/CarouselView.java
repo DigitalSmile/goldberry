@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// **This is the `carousel` a stylesheet selects.**
 ///
@@ -65,7 +65,7 @@ record CarouselView(
         boolean rotates,
         boolean canGoBack,
         boolean canGoForward,
-        Widget slide,
+        @Nullable Widget slide,
         Attributes attributes,
         IntConsumer onGo,
         IntConsumer onStep,
@@ -82,7 +82,7 @@ record CarouselView(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -212,7 +212,7 @@ record CarouselView(
     /// and so the **arrival** has somewhere to live: the animation belongs to the
     /// viewport rather than to the slide, because the slide is the author's widget
     /// and a carousel must not reach inside it.
-    record CarouselViewport(Widget slide, Phase phase, int direction) implements Widget.Leaf, Styled, Paints {
+    record CarouselViewport(@Nullable Widget slide, Phase phase, int direction) implements Widget.Leaf, Styled, Paints {
 
         /// How far the arriving slide travels, in logical pixels.
         ///

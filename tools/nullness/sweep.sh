@@ -10,8 +10,14 @@ passes="${2:-8}"
 log=$(mktemp)
 
 for i in $(seq 1 "$passes"); do
-    ./gradlew ":${module}:compileJava" -Pgoldberry.lenient -Pgoldberry.nullaway=warn --no-daemon >"$log" 2>&1
+    # `--rerun`: a warning is printed once, by the compile that finds it, and an
+    # UP-TO-DATE task replays nothing, so an already-built module looked clean.
+    ./gradlew ":${module}:compileJava" --rerun -Pgoldberry.lenient -Pgoldberry.nullaway=warn --no-daemon >"$log" 2>&1
     status=$?
+    # `-Pgoldberry.nullaway=warn` makes javac print NullAway's findings as
+    # warnings, and everything below reads `error:`. Without this a sweep saw
+    # nothing and declared the module clean after one pass.
+    sed -i 's/warning: \[NullAway\]/error: [NullAway]/' "$log"
     count=$(grep -c 'error: \[NullAway\]' "$log" || true)
     other=$(( $(grep -c 'error:' "$log" || true) - count ))
     echo "pass $i: $count NullAway, $other other errors"

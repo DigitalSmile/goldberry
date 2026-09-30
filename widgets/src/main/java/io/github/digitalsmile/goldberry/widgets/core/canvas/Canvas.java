@@ -185,7 +185,7 @@ public record Canvas(
     /// constructor's overload, without which a method reference to a
     /// three-parameter painter has nothing to match at the three-argument call
     /// site.
-    public Canvas(StyledPainter painter, Input input, Attributes attributes) {
+    public Canvas(@Nullable StyledPainter painter, @Nullable Input input, Attributes attributes) {
         this((Painter) painter, input, attributes);
     }
 
@@ -221,7 +221,7 @@ public record Canvas(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -231,7 +231,7 @@ public record Canvas(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 
@@ -340,7 +340,10 @@ public record Canvas(
         // laid out by Yoga and painted *over* whatever the painter drew, which is
         // a `stack` and not a canvas.
         var painting = painter instanceof StyledPainter styled ? styled.bound(context.canvasStyle(style)) : painter;
-        return Box.of().style(style).painting(painting);
+        var box = Box.of().style(style);
+        // A box paints nothing until told otherwise, so a canvas with no painter
+        // (one from markup) is that box -- `Box.painting` does not take null yet.
+        return painting == null ? box : box.painting(painting);
     }
 
     /// Whether [#animating(Predicate)] asks for another frame.

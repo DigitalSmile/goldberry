@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu.render;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderStage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 
 /// The toolkit's shaders: one per file in `src/main/shaders`, compiled by
 /// `:gpu:compileShaders` into SPIR-V, DXIL and MSL (`docs/gpu-plan.md`, D7).

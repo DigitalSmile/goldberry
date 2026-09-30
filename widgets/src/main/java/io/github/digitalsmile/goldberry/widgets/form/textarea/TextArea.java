@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.text.edit.TextEdit;
@@ -99,10 +101,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 @Markup("text-area")
 public record TextArea(
         String value,
-        Observable<?> source,
-        Consumer<String> onChange,
-        Consumer<TextEdit> onEdit,
-        TextEdit edit,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
+        @Nullable Consumer<TextEdit> onEdit,
+        @Nullable TextEdit edit,
         String placeholder,
         int rows,
         int maxRows,
@@ -129,7 +131,23 @@ public record TextArea(
     /// the bottom of a form, which is the one thing auto-grow must not do.
     public static final int DEFAULT_MAX_ROWS = 10;
 
-    public TextArea {
+    /// The canonical constructor, written out because `value`, `placeholder` and `attributes` take null
+    /// for a default (ADR-0497).
+    public TextArea(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<TextEdit> onEdit,
+            @Nullable TextEdit edit,
+            @Nullable String placeholder,
+            int rows,
+            int maxRows,
+            int maxLength,
+            boolean fill,
+            boolean gutter,
+            boolean readOnly,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         value = value == null ? "" : value;
         placeholder = placeholder == null ? "" : placeholder;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -144,6 +162,20 @@ public record TextArea(
             throw new IllegalArgumentException("a maximum length is a count of characters or " + UNLIMITED
                     + " for no limit, and " + maxLength + " is neither");
         }
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.onEdit = onEdit;
+        this.edit = edit;
+        this.placeholder = placeholder;
+        this.rows = rows;
+        this.maxRows = maxRows;
+        this.maxLength = maxLength;
+        this.fill = fill;
+        this.gutter = gutter;
+        this.readOnly = readOnly;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// The eleven components an area had before it was also an editor.
@@ -154,8 +186,8 @@ public record TextArea(
     /// `null` ([ADR-0332]).
     public TextArea(
             String value,
-            Observable<?> source,
-            Consumer<String> onChange,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
             String placeholder,
             int rows,
             int maxRows,
@@ -187,7 +219,7 @@ public record TextArea(
     }
 
     /// An area holding `value`, reporting every change.
-    public TextArea(String value, Consumer<String> onChange) {
+    public TextArea(String value, @Nullable Consumer<String> onChange) {
         this(
                 value,
                 null,
@@ -522,12 +554,12 @@ public record TextArea(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

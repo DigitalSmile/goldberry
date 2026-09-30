@@ -86,18 +86,18 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record Tab(
         String value,
         String label,
-        Icon icon,
+        @Nullable Icon icon,
         int colour,
         boolean closable,
         List<Widget> content,
         boolean selected,
-        Runnable onSelect,
-        Runnable onClose,
-        java.util.function.BooleanSupplier animating,
-        java.util.function.DoubleUnaryOperator visibility,
-        java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
+        @Nullable Runnable onSelect,
+        @Nullable Runnable onClose,
+        java.util.function.@Nullable BooleanSupplier animating,
+        java.util.function.@Nullable DoubleUnaryOperator visibility,
+        java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> reveal,
         double dragOffset,
-        Travel travel,
+        @Nullable Travel travel,
         Attributes attributes)
         implements Widget.Leaf,
                 Styled,
@@ -140,16 +140,16 @@ public record Tab(
     public Tab(
             String value,
             String label,
-            Icon icon,
+            @Nullable Icon icon,
             int colour,
             boolean closable,
             List<Widget> content,
             boolean selected,
-            Runnable onSelect,
-            Runnable onClose,
-            java.util.function.BooleanSupplier animating,
-            java.util.function.DoubleUnaryOperator visibility,
-            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
+            @Nullable Runnable onSelect,
+            @Nullable Runnable onClose,
+            java.util.function.@Nullable BooleanSupplier animating,
+            java.util.function.@Nullable DoubleUnaryOperator visibility,
+            java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> reveal,
             Attributes attributes) {
         this(
                 value,
@@ -271,12 +271,12 @@ public record Tab(
     /// without one again ([ADR-0120]).
     Tab wired(
             boolean isSelected,
-            Runnable select,
-            Runnable close,
+            @Nullable Runnable select,
+            @Nullable Runnable close,
             java.util.function.BooleanSupplier isAnimating,
             java.util.function.DoubleUnaryOperator howVisible,
-            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
-            Travel journey) {
+            java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> reveal,
+            @Nullable Travel journey) {
         return new Tab(
                 value,
                 label,
@@ -308,7 +308,7 @@ public record Tab(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -39,7 +41,7 @@ record CrumbTrail(List<Widget> children, Attributes attributes) implements Widge
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -49,7 +51,7 @@ record CrumbTrail(List<Widget> children, Attributes attributes) implements Widge
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

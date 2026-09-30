@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -189,7 +191,7 @@ public record LineChart(List<Series> series, List<String> categories, ChartOptio
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

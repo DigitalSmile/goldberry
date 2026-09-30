@@ -8,7 +8,7 @@ import java.util.Locale;
 
 import io.github.digitalsmile.goldberry.gpu.TextureFormat;
 import io.github.digitalsmile.goldberry.gpu.TextureSpec;
-import io.github.digitalsmile.goldberry.gpu.render.CompositeHarness;
+import io.github.digitalsmile.goldberry.gpu.composite.CompositeHarness;
 import io.github.digitalsmile.goldberry.render.model.PhysicalRect;
 
 /// D8's second half (`docs/gpu-plan.md`, phase 6; ADR-0484): what a

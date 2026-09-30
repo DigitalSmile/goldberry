@@ -23,6 +23,10 @@ import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
 import io.github.digitalsmile.goldberry.media.ffi.Hardware;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.picture.Picture;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
+import io.github.digitalsmile.goldberry.media.picture.VideoPlanes;
 import io.github.digitalsmile.goldberry.media.subtitle.Cue;
 import io.github.digitalsmile.goldberry.media.subtitle.Subtitles;
 
@@ -285,10 +289,9 @@ public final class MediaPlayer implements AutoCloseable {
     ///
     /// The audio clock already takes off what the sink reports
     /// ([#audioLatency()]): SDL's buffers everywhere, and the device's own
-    /// latency where a provider can read it (CoreAudio, with
-    /// `goldberry-media-platform`). This is for the rest: a system with no
-    /// provider yet, a Bluetooth device that under-reports, a receiver between
-    /// the computer and the speakers. **Positive** when the sound is heard later
+    /// latency where a provider can read it (CoreAudio, on macOS). This is for
+    /// the rest: a system with no provider yet, a Bluetooth device that
+    /// under-reports, a receiver between the computer and the speakers. **Positive** when the sound is heard later
     /// than that, which holds the pictures back to meet it. **Negative** when the
     /// picture is the late one, as on a television that processes it, which
     /// brings the pictures forward.

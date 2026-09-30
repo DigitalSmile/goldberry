@@ -154,7 +154,8 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
             throw new IllegalArgumentException("canvas3d takes no children");
         }
         return new Canvas3d(
-                wiring.handle(node, "renderer", Canvas3dRenderer.class),
+                // Required, and refused with the constructor's own message when absent.
+                Objects.requireNonNull(wiring.handle(node, "renderer", Canvas3dRenderer.class), "renderer"),
                 node.booleanProperty("continuous"),
                 Depth.named(node.stringProperty("depth")),
                 (long) node.numberProperty("revision", 0),

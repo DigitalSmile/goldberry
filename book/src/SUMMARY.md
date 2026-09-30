@@ -507,3 +507,8 @@
 - [ADR-0490 Goldberry's FFmpeg has sonames of its own](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
 - [ADR-0491 A page under X11 keeps its window on the GPU](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)
 - [ADR-0492 A window says whether it presents through the GPU](adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)
+- [ADR-0493 The platform decoders are part of media](adr/0493-the-platform-decoders-are-part-of-media.md)
+- [ADR-0494 The QR encoder is an image format](adr/0494-the-qr-encoder-is-an-image-format.md)
+- [ADR-0495 Media is published, and snapshots publish again](adr/0495-media-is-published-and-snapshots-publish-again.md)
+- [ADR-0496 Eleven packages split by role](adr/0496-eleven-packages-split-by-role.md)
+- [ADR-0497 Every package says what it is, and is null-marked](adr/0497-every-package-says-what-it-is-and-is-null-marked.md)

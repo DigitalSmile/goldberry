@@ -56,7 +56,7 @@ public final class PointerEvent {
     private Modifiers gestureModifiers = Modifiers.NONE;
     private final float x;
     private final float y;
-    private final Button button;
+    private final @Nullable Button button;
     private final int clickCount;
     private final float deltaX;
     private final float deltaY;
@@ -210,7 +210,7 @@ public final class PointerEvent {
             Kind kind,
             float x,
             float y,
-            Button button,
+            @Nullable Button button,
             int clickCount,
             float pressX,
             float pressY,
@@ -259,7 +259,7 @@ public final class PointerEvent {
             Kind kind,
             float x,
             float y,
-            Button button,
+            @Nullable Button button,
             int clickCount,
             float deltaX,
             float deltaY,
@@ -287,7 +287,7 @@ public final class PointerEvent {
             Kind kind,
             float x,
             float y,
-            Button button,
+            @Nullable Button button,
             int clickCount,
             float deltaX,
             float deltaY,
@@ -412,7 +412,7 @@ public final class PointerEvent {
     /// it by accident. A null button compares equal to nothing and **unequal to
     /// everything**, so `!= PRIMARY` is true for a move and the guard fires
     /// backwards.
-    public Button button() {
+    public @Nullable Button button() {
         if (button == null) {
             reportButtonRead();
         }

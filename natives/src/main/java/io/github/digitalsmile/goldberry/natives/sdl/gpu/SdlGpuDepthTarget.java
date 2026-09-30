@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+
 /// The depth texture a render pass tests and writes, and what the pass does with
 /// it first.
 ///

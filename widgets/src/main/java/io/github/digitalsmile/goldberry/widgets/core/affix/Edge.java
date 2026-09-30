@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.core.affix;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which side of the viewport an [Affix] pins itself to — §1's `edge=`.
 public enum Edge {
     TOP,
@@ -28,7 +30,7 @@ public enum Edge {
     /// document that misspells an attribute should still show its content, which
     /// is the registry's rule everywhere else.
     @SuppressWarnings("StringSplitter") // trimmed first, so there is no empty leading word
-    public static Edge parse(String name) {
+    public static Edge parse(@Nullable String name) {
         if (name == null || name.isBlank()) {
             return TOP;
         }
@@ -43,7 +45,7 @@ public enum Edge {
     /// The second edge `name` spells — `left` in `"top left"` — or null when it
     /// names one, or a second on the same axis as the first (ADR-0371).
     @SuppressWarnings("StringSplitter") // trimmed first, so there is no empty leading word
-    public static Edge parseCross(String name) {
+    public static @Nullable Edge parseCross(@Nullable String name) {
         if (name == null) {
             return null;
         }

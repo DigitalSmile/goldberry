@@ -3,6 +3,9 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 import java.lang.foreign.MemorySegment;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+
 /// A graphics pipeline: two shaders, how vertices are assembled and read, one
 /// colour target of one format with one blend, and an optional depth test, all
 /// as its [SdlGpuPipelineDescription] says.

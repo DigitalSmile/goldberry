@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -38,7 +40,7 @@ record TabDrag(Tab tab, String value, Listener drag) implements Widget.Stateless
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return tab.key();
     }
 

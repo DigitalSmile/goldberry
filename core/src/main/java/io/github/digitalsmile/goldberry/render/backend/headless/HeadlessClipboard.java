@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 
 /// The session clipboard a headless test gets — in memory, **lazy**, and able to
 /// refuse ([ADR-0407]).

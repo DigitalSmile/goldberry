@@ -186,8 +186,8 @@ class TourTest {
                     // depend on the clock.
                     null,
                     null,
-                    new io.github.digitalsmile.goldberry.widgets.core.Phase(
-                            io.github.digitalsmile.goldberry.widgets.core.Phase.Kind.SETTLED),
+                    new io.github.digitalsmile.goldberry.widgets.core.presence.Phase(
+                            io.github.digitalsmile.goldberry.widgets.core.presence.Phase.Kind.SETTLED),
                     LogicalRect.of(0, 0, 600, WINDOW),
                     0,
                     3,

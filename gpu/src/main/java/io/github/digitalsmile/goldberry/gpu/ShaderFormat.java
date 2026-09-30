@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.gpu;
 import java.util.EnumSet;
 import java.util.Set;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 
 /// The bytecode formats a device takes. Each driver takes its own family:
 /// Vulkan SPIR-V, Metal MSL or a metallib, Direct3D 12 DXIL or DXBC. A

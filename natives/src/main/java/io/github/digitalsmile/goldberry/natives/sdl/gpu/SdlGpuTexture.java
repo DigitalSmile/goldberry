@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+
 /// A 2D texture on a [SdlGpuDevice]: one mip level, one layer, one sample.
 public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget {
 

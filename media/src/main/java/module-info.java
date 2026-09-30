@@ -16,6 +16,16 @@
 /// What `:natives`' rule protects still holds here: `…media.ffi` is not exported,
 /// and no FFmpeg type appears in anything that is.
 ///
+/// **The operating system's own decoders are here too**, behind the same Decoder
+/// SPI: VideoToolbox and AudioToolbox on macOS, GStreamer on Linux, Media
+/// Foundation on Windows, for the patent-pool codecs the published natives do
+/// not build ([ADR-0472](../book/src/adr/0472-the-platform-decoders-bind-the-system-frameworks.md),
+/// ADR-0489). They were `goldberry-media-platform` until
+/// [ADR-0493](../book/src/adr/0493-the-platform-decoders-are-part-of-media.md):
+/// they bind the system's libraries and ship no native code, so being in this
+/// module costs an application nothing, and each supports nothing on a system
+/// that is not its own.
+///
 /// Consumers pass `--enable-native-access=io.github.digitalsmile.goldberry.media`
 /// (JEP 472).
 module io.github.digitalsmile.goldberry.media {
@@ -54,6 +64,10 @@ module io.github.digitalsmile.goldberry.media {
     /// and the errors.
     exports io.github.digitalsmile.goldberry.media;
 
+    /// A decoded picture, in either of the two forms a player hands a view:
+    /// converted to BGRA, or its planes as decoded (ADR-0483, ADR-0496).
+    exports io.github.digitalsmile.goldberry.media.picture;
+
     /// What a track *is*, in Goldberry's words rather than FFmpeg's: the codec, the
     /// kind of stream and its parameters. It is also the vocabulary the Decoder SPI
     /// is written in (phase 2).
@@ -76,6 +90,12 @@ module io.github.digitalsmile.goldberry.media {
     /// `media-player`.
     exports io.github.digitalsmile.goldberry.media.view;
 
+    /// The system decoders, listed for an application that builds its player's
+    /// providers itself: [io.github.digitalsmile.goldberry.media.platform.PlatformDecoders].
+    /// The implementations, `…platform.macos`, `…platform.linux` and
+    /// `…platform.windows`, are not exported.
+    exports io.github.digitalsmile.goldberry.media.platform;
+
     /// Opened to `:core`, which reads `media.css` out of this package.
     opens io.github.digitalsmile.goldberry.media.view to
             io.github.digitalsmile.goldberry.core;
@@ -91,6 +111,23 @@ module io.github.digitalsmile.goldberry.media {
     uses io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
 
     /// What the operating system says its playback device's latency is, taken
-    /// off the audio clock (ADR-0474). `goldberry-media-platform` has CoreAudio's.
+    /// off the audio clock (ADR-0474). CoreAudio's is below; an application may
+    /// bring another.
     uses io.github.digitalsmile.goldberry.media.audio.OutputLatency;
+
+    /// The system decoders, each of which supports nothing off its own system.
+    /// Found by `ServiceLoader` like an application's own, so a `MediaPlayer`
+    /// built with the default providers plays H.264, HEVC, AAC, AC-3 and E-AC-3
+    /// wherever the system can.
+    provides io.github.digitalsmile.goldberry.media.codec.DecoderProvider with
+            io.github.digitalsmile.goldberry.media.platform.macos.VideoToolboxProvider,
+            io.github.digitalsmile.goldberry.media.platform.macos.AudioToolboxProvider,
+            io.github.digitalsmile.goldberry.media.platform.linux.GStreamerVideoProvider,
+            io.github.digitalsmile.goldberry.media.platform.linux.GStreamerAudioProvider,
+            io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationVideoProvider,
+            io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationAudioProvider;
+
+    /// The default output device's latency, taken off the audio clock (ADR-0474).
+    provides io.github.digitalsmile.goldberry.media.audio.OutputLatency with
+            io.github.digitalsmile.goldberry.media.platform.macos.CoreAudioLatency;
 }

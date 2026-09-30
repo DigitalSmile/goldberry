@@ -1,9 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -37,7 +39,7 @@ import io.github.digitalsmile.goldberry.widgets.Icons;
 ///
 /// @param checked whether to draw a tick
 /// @param icon    the row's icon, drawn when there is no tick to draw
-record ItemLead(boolean checked, Icon icon) implements Widget.Leaf, Styled, Paints {
+record ItemLead(boolean checked, @Nullable Icon icon) implements Widget.Leaf, Styled, Paints {
 
     private static final Logger LOG = Logs.of(ItemLead.class);
 
@@ -126,6 +128,7 @@ record ItemLead(boolean checked, Icon icon) implements Widget.Leaf, Styled, Pain
     /// tolerance either, and it needs none: these are two numbers an author typed,
     /// not a sum of insets — the epsilon is for the `double`, not for the layout.
     private void reportIfItOverhangs(ComputedStyle style) {
+        var icon = Objects.requireNonNull(this.icon, "only a lead with an icon can overhang");
         if (!(style.width() instanceof Length.Points(var width)) || !(icon.size() > width + 0.5)) {
             return;
         }

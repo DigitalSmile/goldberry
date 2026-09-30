@@ -226,7 +226,7 @@ record TextAreaBox(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

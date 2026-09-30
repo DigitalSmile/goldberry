@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -210,7 +210,8 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// `Host`, and one passed in at construction would be a lifetime for an
         /// application to get wrong.
         private boolean copy(KeyEvent event) {
-            var host = event.target().host();
+            var host = Objects.requireNonNull(event.target(), "a key reaches a view only through a focused node")
+                    .host();
             return host.isPresent() && copyTo(host.get().clipboard());
         }
 

@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferBuffer;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The staging memory a device's uploads pass through: one transfer buffer,
 /// sized to the largest upload seen and grown by doubling, and cycled

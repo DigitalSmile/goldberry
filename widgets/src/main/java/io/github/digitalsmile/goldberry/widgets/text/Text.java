@@ -47,7 +47,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// the CSS spelling, which is what a rule of an application's own will be
 /// written against anyway ([ADR-0381]).
 @Markup("text")
-public record Text(String content, Observable<?> source, Attributes attributes)
+public record Text(String content, @Nullable Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Text>, Bindable<Text> {
 
     public Text(String content) {
@@ -98,7 +98,7 @@ public record Text(String content, Observable<?> source, Attributes attributes)
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -118,7 +118,7 @@ public record Text(String content, Observable<?> source, Attributes attributes)
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

@@ -12,6 +12,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -52,7 +53,7 @@ public final class HotReload implements AutoCloseable {
     private static final Duration QUIET_PERIOD = Duration.ofMillis(120);
 
     private final WatchService service;
-    private volatile Thread watcher;
+    private volatile @Nullable Thread watcher;
     private volatile boolean running = true;
 
     private HotReload(WatchService service) {

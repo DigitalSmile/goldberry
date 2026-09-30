@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.parse.CssTokenizer;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
@@ -104,7 +106,7 @@ public final class CssColor {
     ///
     /// @param text the colour, or null
     /// @return the colour as `0xAARRGGBB`, or null if `text` is not one
-    public static Integer parse(String text) {
+    public static @Nullable Integer parse(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
@@ -119,7 +121,7 @@ public final class CssColor {
     /// Parses a colour from a declaration's value tokens.
     ///
     /// @return the colour as `0xAARRGGBB`, or null if these tokens are not one
-    public static Integer parse(List<Token> value) {
+    public static @Nullable Integer parse(List<Token> value) {
         var tokens = withoutWhitespace(value);
         if (tokens.isEmpty()) {
             return null;
@@ -146,7 +148,7 @@ public final class CssColor {
     }
 
     /// `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`.
-    private static Integer fromHex(String digits) {
+    private static @Nullable Integer fromHex(String digits) {
         for (var i = 0; i < digits.length(); i++) {
             if (Character.digit(digits.charAt(i), 16) < 0) {
                 return null;
@@ -179,7 +181,7 @@ public final class CssColor {
 
     /// `rgb(46 52 64)`, `rgb(46, 52, 64)`, `rgba(46, 52, 64, 0.5)`,
     /// `rgb(46 52 64 / 50%)`.
-    private static Integer fromRgb(List<Token> tokens) {
+    private static @Nullable Integer fromRgb(List<Token> tokens) {
         if (!tokens.getLast().is(TokenType.CLOSE_PAREN)) {
             return null;
         }

@@ -20,6 +20,8 @@ import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// A rectangle with a flexbox style and children — the smallest thing that can
 /// be laid out and painted.
 ///
@@ -80,15 +82,15 @@ public record Box(
         Insets inset,
         boolean elevated,
         Overflow overflow,
-        Text text,
-        Glyph icon,
-        Mark mark,
+        @Nullable Text text,
+        @Nullable Glyph icon,
+        @Nullable Mark mark,
         // §1's `canvas`: the one content slot whose drawing is not the toolkit's.
         // Null for every box that is not one, which is all but a handful
         // (ADR-0193).
-        Painter painting,
+        @Nullable Painter painting,
         List<Box> children,
-        Object owner) {
+        @Nullable Object owner) {
 
     // `owner` is an opaque tag, not a field the layout or the paint reads.
     // Hit testing needs to get from a rectangle on screen back to whatever put
@@ -524,8 +526,8 @@ public record Box(
     ///
     /// The painter is handed the frame translated to this box's content corner
     /// and clipped to it, inside a `save`/`restore` pair, so it may leave the
-    /// context however it likes (ADR-0193).
-    public Box painting(Painter value) {
+    /// context however it likes (ADR-0193). Null takes the painter off.
+    public Box painting(@Nullable Painter value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, value, children, owner);

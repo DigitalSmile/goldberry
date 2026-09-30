@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 record TourVeil(
         @Nullable LogicalRect target,
         @Nullable LogicalRect cameFrom,
-        io.github.digitalsmile.goldberry.widgets.core.@Nullable Phase travel,
+        io.github.digitalsmile.goldberry.widgets.core.presence.@Nullable Phase travel,
         LogicalRect window)
         implements Widget.Leaf, Styled, Paints {
 

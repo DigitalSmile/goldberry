@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import org.jspecify.annotations.Nullable;
+
 /// Which way a [Scroll] moves — `docs/core-widgets.md` §1's "one or both axes".
 public enum ScrollAxis {
 
@@ -25,7 +27,7 @@ public enum ScrollAxis {
     /// The axis `name` spells, for KDL's `axis=` — defaulting to [#VERTICAL]
     /// rather than throwing, because a document that misspells an attribute
     /// should still show its content.
-    public static ScrollAxis parse(String name) {
+    public static ScrollAxis parse(@Nullable String name) {
         if (name == null) {
             return VERTICAL;
         }

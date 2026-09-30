@@ -28,7 +28,7 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 
 /// What a time axis draws — `content-widgets.md` §3.1's `java.time`-driven axis.
 ///
-/// [TimeTicksTest] has the ladder, which is where the calendar arithmetic lives.
+/// `TimeTicksTest` has the ladder, which is where the calendar arithmetic lives.
 /// This is the half that only a picture can answer: **does the chart actually
 /// place its points in time**, or has it merely relabelled the indices?
 class TimeAxisTest {

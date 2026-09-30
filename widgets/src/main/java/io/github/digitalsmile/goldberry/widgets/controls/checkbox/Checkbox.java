@@ -24,6 +24,7 @@ import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import org.jspecify.annotations.Nullable;
 
 /// A checkbox — binary or tri-state (§11, `docs/core-widgets.md` §3).
 ///
@@ -73,7 +74,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("checkbox")
 public record Checkbox(
-        String label, Value state, Observable<?> source, Runnable onChange, boolean disabled,
+        String label, Value state, @Nullable Observable<?> source, @Nullable Runnable onChange, boolean disabled,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Checkbox>, Bindable<Checkbox> , Semantics {
 
@@ -181,7 +182,7 @@ public record Checkbox(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -191,7 +192,7 @@ public record Checkbox(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -201,7 +202,7 @@ public record Checkbox(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

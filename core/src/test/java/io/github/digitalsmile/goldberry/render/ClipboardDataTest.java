@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 
 /// The clipboard's byte half — ADR-0286.
 ///

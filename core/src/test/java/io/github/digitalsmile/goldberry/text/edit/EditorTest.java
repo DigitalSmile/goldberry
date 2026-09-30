@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.text.font.Font;
 

@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.gpu;
 import java.util.EnumSet;
 import java.util.Set;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 
 /// What a texture may be used for. A texture is made for a set of them, and a
 /// use it was not made for is refused before the GPU sees it.

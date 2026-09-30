@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -50,13 +52,13 @@ final class FormState extends State<Form> implements FormAccess {
         super.dispose();
     }
 
-    private void attach(FormController controller) {
+    private void attach(@Nullable FormController controller) {
         if (controller != null) {
             controller.attached = this;
         }
     }
 
-    private void detach(FormController controller) {
+    private void detach(@Nullable FormController controller) {
         if (controller != null && controller.attached == this) {
             controller.attached = null;
         }

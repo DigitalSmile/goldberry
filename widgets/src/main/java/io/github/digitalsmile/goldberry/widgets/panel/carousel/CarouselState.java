@@ -1,13 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
 import java.time.Duration;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// Which slide a [Carousel] is showing, and whether the rotation is running.
 ///
@@ -25,7 +28,7 @@ final class CarouselState extends State<Carousel> {
     /// One timer, rescheduled after each slide rather than a repeating one,
     /// because "pause" then means "do not schedule the next" and needs no second
     /// mechanism to suspend.
-    private EventLoop.Timer pending;
+    private EventLoop.@Nullable Timer pending;
 
     /// The slide [#pending] was scheduled for, or `-1` when nothing is.
     ///
@@ -38,10 +41,10 @@ final class CarouselState extends State<Carousel> {
 
     /// The interval [#pending] was scheduled with, so a description that changes
     /// it is honoured rather than waited out.
-    private Duration scheduledInterval;
+    private @Nullable Duration scheduledInterval;
 
     /// The window this is being built into, captured for the timer.
-    private Host host;
+    private @Nullable Host host;
 
     /// Whether the pointer is over the carousel.
     ///
@@ -145,7 +148,7 @@ final class CarouselState extends State<Carousel> {
 
     /// **Only the current slide is built** — `tabs`'s bargain, for `tabs`'s
     /// reason: a slide nobody can see should not hold subscriptions or images.
-    private Widget slide(int current) {
+    private @Nullable Widget slide(int current) {
         var carousel = widget();
         return carousel.count() == 0 ? null : carousel.children().get(current);
     }
@@ -202,8 +205,10 @@ final class CarouselState extends State<Carousel> {
         }
         direction = forwards ? 1 : -1;
         arriving = new Phase(Phase.Kind.ENTERING);
-        if (widget().isControlled()) {
-            widget().onChange().accept(next);
+        // `isControlled()` is this handler being there.
+        var onChange = widget().onChange();
+        if (onChange != null) {
+            onChange.accept(next);
             return;
         }
         setState(() -> index = next);
@@ -285,7 +290,7 @@ final class CarouselState extends State<Carousel> {
             cancel();
             return;
         }
-        if (pending != null && scheduledFor == resolved() && widget().interval().equals(scheduledInterval)) {
+        if (pending != null && scheduledFor == resolved() && Objects.equals(widget().interval(), scheduledInterval)) {
             return;
         }
         schedule();
@@ -296,22 +301,26 @@ final class CarouselState extends State<Carousel> {
         if (!shouldRotate()) {
             return;
         }
+        // `shouldRotate` has just said there is a host and an interval: `rotates`
+        // is an interval being there.
+        var interval = Objects.requireNonNull(widget().interval(), "a carousel that rotates has an interval");
         scheduledFor = resolved();
-        scheduledInterval = widget().interval();
-        pending = host.after(widget().interval(), () -> {
-            pending = null;
-            // Checked again on firing, not only on scheduling: the pointer may
-            // have arrived, or the preference changed, in the interval — and a
-            // timer that had already been scheduled would otherwise advance one
-            // slide past the moment it was supposed to stop.
-            if (!shouldRotate()) {
-                return;
-            }
-            step(1);
-            // `schedule` re-asks `shouldRotate`, which is what stops a carousel
-            // at its last slide when it does not loop.
-            schedule();
-        });
+        scheduledInterval = interval;
+        pending = Objects.requireNonNull(host, "a carousel rotates only with a host")
+                .after(interval, () -> {
+                    pending = null;
+                    // Checked again on firing, not only on scheduling: the pointer may
+                    // have arrived, or the preference changed, in the interval — and a
+                    // timer that had already been scheduled would otherwise advance one
+                    // slide past the moment it was supposed to stop.
+                    if (!shouldRotate()) {
+                        return;
+                    }
+                    step(1);
+                    // `schedule` re-asks `shouldRotate`, which is what stops a carousel
+                    // at its last slide when it does not loop.
+                    schedule();
+                });
     }
 
     private void cancel() {

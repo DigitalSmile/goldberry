@@ -371,7 +371,7 @@ class ToastTest {
     /// Every test here builds a **real renderer**, which the rest of this file
     /// mostly does not need, because the reflow reads two things only a frame
     /// has: `toaster`'s resolved `gap`, and the clock a
-    /// [io.github.digitalsmile.goldberry.widgets.core.Phase]
+    /// [io.github.digitalsmile.goldberry.widgets.core.presence.Phase]
     /// runs on.
     @Nested
     @DisplayName("the sibling reflow")

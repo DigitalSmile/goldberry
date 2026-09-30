@@ -188,8 +188,10 @@ final class SplitPaneState extends State<SplitPane> {
         if (!past) {
             restore = Double.NaN;
         }
-        if (widget().isControlled()) {
-            widget().onResize().accept(next);
+        // `isControlled()` is this handler being there.
+        var onResize = widget().onResize();
+        if (onResize != null) {
+            onResize.accept(next);
             return;
         }
         setState(() -> position = next);

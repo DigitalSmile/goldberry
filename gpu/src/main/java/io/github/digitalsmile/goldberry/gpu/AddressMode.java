@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
 
 /// What a sampler reads outside a texture's 0 to 1.
 public enum AddressMode {

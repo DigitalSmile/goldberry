@@ -35,7 +35,7 @@ public final class ElementTree {
     /// Held on the tree rather than on each element because it is the same
     /// answer for all of them, and because a popup's tree has a different one
     /// from the window that opened it (ADR-0140).
-    private final io.github.digitalsmile.goldberry.Host host;
+    private final io.github.digitalsmile.goldberry.@Nullable Host host;
 
     /// Builds a tree from a root widget, with no window behind it.
     ///
@@ -51,7 +51,7 @@ public final class ElementTree {
     ///
     /// @param host the window this tree is drawn in, or null for a tree with no
     ///             window — a measurement, a test, a still picture
-    public ElementTree(Widget root, io.github.digitalsmile.goldberry.Host host) {
+    public ElementTree(Widget root, io.github.digitalsmile.goldberry.@Nullable Host host) {
         Objects.requireNonNull(root, "root");
         this.host = host;
         this.root = new Element(this, null, root);

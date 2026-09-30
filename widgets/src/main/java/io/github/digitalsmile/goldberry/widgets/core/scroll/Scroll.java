@@ -94,7 +94,7 @@ public record Scroll(
         List<Widget> children,
         ScrollAxis axis,
         double height,
-        ScrollController controller,
+        @Nullable ScrollController controller,
         ScrollAnchor anchor,
         @Nullable Boolean preserveOnPrepend,
         Attributes attributes)
@@ -184,7 +184,7 @@ public record Scroll(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

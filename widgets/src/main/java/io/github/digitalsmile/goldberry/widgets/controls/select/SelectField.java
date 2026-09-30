@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -70,7 +72,7 @@ record SelectField(
         List<String> widths,
         boolean placeholder,
         List<Widget> chips,
-        Widget editor,
+        @Nullable Widget editor,
         boolean open,
         boolean disabled,
         Attributes attributes,
@@ -87,7 +89,7 @@ record SelectField(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -117,7 +119,7 @@ record SelectField(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

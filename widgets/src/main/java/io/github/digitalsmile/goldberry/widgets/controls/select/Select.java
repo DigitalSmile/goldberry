@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -105,31 +107,57 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("select")
 public record Select(
-        String value,
+        @Nullable String value,
         List<Widget> children,
-        Observable<?> source,
-        Consumer<String> onChange,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
         String placeholder,
         boolean multiple,
         boolean autocomplete,
         boolean free,
-        Consumer<String> onQuery,
+        @Nullable Consumer<String> onQuery,
         List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> tree,
         boolean disabled,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
-    public Select {
+    /// The canonical constructor, written out because `children`, `placeholder`, `tree` and `attributes`
+    /// take null for a default (ADR-0497).
+    public Select(
+            @Nullable String value,
+            @Nullable List<Widget> children,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable String placeholder,
+            boolean multiple,
+            boolean autocomplete,
+            boolean free,
+            @Nullable Consumer<String> onQuery,
+            @Nullable List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> tree,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         tree = List.copyOf(
                 tree == null ? List.<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode>of() : tree);
         children = List.copyOf(children == null ? List.of() : children);
         placeholder = placeholder == null ? "" : placeholder;
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.value = value;
+        this.children = children;
+        this.source = source;
+        this.onChange = onChange;
+        this.placeholder = placeholder;
+        this.multiple = multiple;
+        this.autocomplete = autocomplete;
+        this.free = free;
+        this.onQuery = onQuery;
+        this.tree = tree;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// A select with a value and a handler, unbound — the Java spelling of
     /// `select value="…" change="…"`.
-    public Select(String value, Consumer<String> onChange, Option... options) {
+    public Select(@Nullable String value, Consumer<String> onChange, Option... options) {
         this(value, List.of(options), null, onChange, "", false, false, false, null, List.of(), false, Attributes.NONE);
     }
 
@@ -198,7 +226,7 @@ public record Select(
     /// wrote. A null, or a value no option carries, selects nothing rather than
     /// the first one — a control that guessed would report a value the user never
     /// picked, and this one would then show it as though they had.
-    public String resolved() {
+    public @Nullable String resolved() {
         if (source == null) {
             return value;
         }
@@ -315,12 +343,13 @@ public record Select(
     ///
     /// A tree's rows are not [Option]s, so [#selected()] cannot answer for one:
     /// the model is a different shape and the label has to be found in it.
-    public String treeLabel() {
+    public @Nullable String treeLabel() {
         var current = resolved();
         return current == null ? null : labelIn(tree, current);
     }
 
-    private static String labelIn(List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> nodes, String id) {
+    private static @Nullable String labelIn(
+            List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> nodes, String id) {
         for (var node : nodes) {
             if (node.id().equals(id)) {
                 return node.label();
@@ -404,7 +433,7 @@ public record Select(
     }
 
     /// The option [#resolved()] names, or null when nothing is selected.
-    public Option selected() {
+    public @Nullable Option selected() {
         var current = resolved();
         if (current == null) {
             return null;
@@ -467,12 +496,12 @@ public record Select(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

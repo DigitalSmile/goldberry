@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.gpu.GpuTexture;
 import io.github.digitalsmile.goldberry.gpu.Load;
 import io.github.digitalsmile.goldberry.gpu.TextureFormat;
 import io.github.digitalsmile.goldberry.gpu.TextureSpec;
-import io.github.digitalsmile.goldberry.gpu.render.CompositeHarness;
+import io.github.digitalsmile.goldberry.gpu.composite.CompositeHarness;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 

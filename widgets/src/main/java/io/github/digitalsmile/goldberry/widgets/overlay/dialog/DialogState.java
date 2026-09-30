@@ -12,8 +12,8 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.core.Departure;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Departure;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// A [Dialog]'s opening, its closing, and the one thing it has to ask the window
 /// for.
@@ -176,7 +176,7 @@ final class DialogState extends State<Dialog> {
     /// Idempotent: a second press during the closing animation is not a second
     /// answer, which matters more here than anywhere else in the catalog — two
     /// handlers on a save dialog is two saves.
-    private void close(Runnable then) {
+    private void close(@Nullable Runnable then) {
         // Every rule this used to spell out is [Departure]'s now: idempotent, two
         // flags, stop drawing before telling the application, and gone at once
         // when there is no window or the reader asked for no motion ([ADR-0234]).
@@ -189,7 +189,8 @@ final class DialogState extends State<Dialog> {
     /// describes the dialog: the elements it is asking about do not exist yet.
     /// The next turn of the event loop is the first moment they do.
     private void askForFocus() {
-        if (focusAsked || host == null) {
+        var window = host;
+        if (focusAsked || window == null) {
             return;
         }
         focusAsked = true;
@@ -200,7 +201,7 @@ final class DialogState extends State<Dialog> {
             // and `Dialogs.show` gives one to every dialog that arrives without.
             return;
         }
-        focusing = host.after(Duration.ZERO, () -> host.focus(id, false));
+        focusing = window.after(Duration.ZERO, () -> window.focus(id, false));
     }
 
     private void motion(boolean reduced) {

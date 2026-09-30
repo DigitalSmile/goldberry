@@ -2,6 +2,9 @@ package io.github.digitalsmile.goldberry.natives.sdl.gpu;
 
 import java.lang.foreign.MemorySegment;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+
 /// How a shader reads a texture: filtered one way, addressed one way outside 0
 /// to 1, one mip level.
 public final class SdlGpuSampler extends SdlGpuResource {

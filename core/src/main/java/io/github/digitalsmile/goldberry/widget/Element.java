@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 public final class Element implements BuildContext, StyleElement {
 
     private final ElementTree tree;
-    private Element parent;
+    private @Nullable Element parent;
 
     private Widget widget;
     private @Nullable State<?> state;
@@ -92,7 +92,7 @@ public final class Element implements BuildContext, StyleElement {
     /// The style the cascade resolved for this node last frame, if it is still
     /// good for `resolver` and `inherited`. Null means ask again.
     @Nullable
-    ComputedStyle cachedStyle(StyleResolver resolver, ComputedStyle inherited) {
+    ComputedStyle cachedStyle(StyleResolver resolver, @Nullable ComputedStyle inherited) {
         return styleResolver == resolver && styleInherited == inherited ? style : null;
     }
 
@@ -114,7 +114,7 @@ public final class Element implements BuildContext, StyleElement {
             customPropertiesInherited;
 
     @Override
-    public java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
+    public java.util.@Nullable Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
             cachedCustomProperties(
                     StyleResolver resolver,
                     java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited) {
@@ -131,7 +131,7 @@ public final class Element implements BuildContext, StyleElement {
         this.customProperties = resolved;
     }
 
-    void cacheStyle(StyleResolver resolver, ComputedStyle inherited, ComputedStyle resolved) {
+    void cacheStyle(StyleResolver resolver, @Nullable ComputedStyle inherited, ComputedStyle resolved) {
         this.styleResolver = resolver;
         this.styleInherited = inherited;
         this.style = resolved;
@@ -500,7 +500,9 @@ public final class Element implements BuildContext, StyleElement {
     /// three interfaces rather than one with a nullable method.
     private List<Widget> describe() {
         return switch (widget) {
-            case Widget.Stateful _ -> List.of(state.build(this));
+            case Widget.Stateful _ ->
+                List.of(Objects.requireNonNull(state, "a stateful widget's element creates its state when it is made")
+                        .build(this));
             case Widget.Stateless stateless -> List.of(stateless.build(this));
             case Widget.Leaf leaf -> leaf.children();
             default ->
@@ -711,7 +713,7 @@ public final class Element implements BuildContext, StyleElement {
     /// every selector except a descendant combinator — which is exactly the
     /// behaviour HTML has for a `<div>` nobody styled.
     @Override
-    public StyleElement parent() {
+    public @Nullable StyleElement parent() {
         return parent;
     }
 

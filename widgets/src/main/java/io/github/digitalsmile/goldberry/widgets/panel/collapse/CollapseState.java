@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// Whether a [Collapse] is open, when the application is not the one deciding.
 ///
@@ -76,8 +76,10 @@ final class CollapseState extends State<Collapse> {
             // whose `open` comes back from the application, animates too.
             arriving = new Phase(Phase.Kind.ENTERING);
         }
-        if (widget().isControlled()) {
-            widget().onToggle().accept(next);
+        // `isControlled()` is this handler being there.
+        var onToggle = widget().onToggle();
+        if (onToggle != null) {
+            onToggle.accept(next);
             return;
         }
         setState(() -> open = next);

@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// The veil over the window, and the half of a dialog's modality that is
 /// geometry rather than a rule.

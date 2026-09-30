@@ -10,6 +10,10 @@ import net.jqwik.api.Provide;
 import net.jqwik.api.constraints.DoubleRange;
 import net.jqwik.api.constraints.IntRange;
 
+import io.github.digitalsmile.goldberry.widgets.data.plot.Lttb;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Ticks;
+
 /// `docs/testing.md` §1.1's property-based half, over the three pieces of the
 /// chart stack that have invariants rather than answers.
 ///

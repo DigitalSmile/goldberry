@@ -37,6 +37,14 @@ module io.github.digitalsmile.goldberry.natives {
     // read it (ADR-0174).
     requires io.github.digitalsmile.goldberry.common;
 
+    // JSpecify's nullness annotations, which appear on exported signatures --
+    // `@Nullable` where a parameter takes null, since ADR-0497 -- so a consumer
+    // compiling against them has to be able to read them, as `-Xlint:exports`
+    // requires. `static`: nothing needs them at run time. This module runs no
+    // Error Prone (see its build script), so the annotations are its contract
+    // for the modules that do: `:core`'s NullAway reads them.
+    requires transitive static org.jspecify;
+
     // The wrapper packages, and only those. The `natives` package itself stays
     // unexported: NativeLibrary hands out a SymbolLookup, and a foreign type in
     // the public surface of this module is the boundary leaking by another name.
@@ -147,6 +155,12 @@ module io.github.digitalsmile.goldberry.natives {
     // it. The wrappers carry no MemorySegment, as ADR-0280 asks; the two readers
     // are the amendment ADR-0461 made for :media, made again.
     exports io.github.digitalsmile.goldberry.natives.sdl.gpu to
+            io.github.digitalsmile.goldberry.core,
+            io.github.digitalsmile.goldberry.gpu;
+    // SDL_GPU's enumerations: tables of C constants that touch no foreign
+    // memory, split from the wrappers that hold a handle as `blend2d.enums` is
+    // (ADR-0172, ADR-0496). The same two readers.
+    exports io.github.digitalsmile.goldberry.natives.sdl.gpu.enums to
             io.github.digitalsmile.goldberry.core,
             io.github.digitalsmile.goldberry.gpu;
     /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,

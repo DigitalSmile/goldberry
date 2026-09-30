@@ -81,7 +81,9 @@ public record MediaControls(MediaPlayer player, Attributes attributes)
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("media-controls takes no children");
         }
-        return new MediaControls(wiring.handle(node, "player", MediaPlayer.class), Attributes.of(node));
+        return new MediaControls(
+                Objects.requireNonNull(wiring.handle(node, "player", MediaPlayer.class), "player"),
+                Attributes.of(node));
     }
 
     /// The classes a transport bar carries for `status`: the owner's, the state's,

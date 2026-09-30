@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
@@ -68,7 +70,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///                   badge reports nothing back ([ADR-0063])
 /// @param attributes `id` and `class`, exactly as on every other widget
 @Markup("badge")
-public record Badge(String text, Observable<?> source, Attributes attributes)
+public record Badge(String text, @Nullable Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Badge>, Bindable<Badge> {
 
     public Badge {
@@ -110,7 +112,7 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
@@ -120,7 +122,7 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -130,7 +132,7 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

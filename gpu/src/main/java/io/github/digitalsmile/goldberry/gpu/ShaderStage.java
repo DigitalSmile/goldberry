@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderStage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 
 /// The stage a [Shader] runs in.
 public enum ShaderStage {

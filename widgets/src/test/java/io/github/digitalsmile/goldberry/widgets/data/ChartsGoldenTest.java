@@ -27,6 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Ticks;
 
 /// §11's other two axis charts, and the rules they do not share with
 /// `line-chart`.

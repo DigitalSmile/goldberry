@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PreeditEvent;
 import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.document.DocumentLines;

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.core;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.layout.Position;
@@ -85,7 +87,7 @@ public record Stack(List<Widget> children, Attributes attributes)
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -95,7 +97,7 @@ public record Stack(List<Widget> children, Attributes attributes)
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

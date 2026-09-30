@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.List;
 import java.util.Objects;
 
+import io.github.digitalsmile.goldberry.widgets.data.plot.Gaps;
+
 /// One line on a chart: what it is called, and what it did.
 ///
 /// **A name, not a colour.** Which colour a series takes is decided by its

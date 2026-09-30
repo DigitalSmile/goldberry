@@ -67,13 +67,13 @@ public final class HitTest {
     ///                (ADR-0281). The same as the box's own rectangle for a box
     ///                with no padding, which is most of them
     public record Region(
-            Object owner,
+            @Nullable Object owner,
             Cursor cursor,
             float left,
             float top,
             float width,
             float height,
-            Affine inverse,
+            @Nullable Affine inverse,
             Clip clip,
             LogicalRect content) {
 
@@ -91,7 +91,7 @@ public final class HitTest {
                 float top,
                 float width,
                 float height,
-                Affine inverse,
+                @Nullable Affine inverse,
                 Clip clip) {
             this(owner, cursor, left, top, width, height, inverse, clip, LogicalRect.of(left, top, width, height));
         }

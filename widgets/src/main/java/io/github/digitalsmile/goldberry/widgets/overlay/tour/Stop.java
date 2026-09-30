@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 
 /// One step of a [Tour] — `docs/core-widgets.md` §5: "each stop names a target by
@@ -25,7 +27,11 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 /// @param body     what it says
 /// @param scroll   the viewport to move, or null to use whichever one encloses
 ///                 the target — which is what almost every stop wants
-public record Stop(String targetId, String title, String body, ScrollController scroll) {
+public record Stop(
+        String targetId,
+        String title,
+        String body,
+        @Nullable ScrollController scroll) {
 
     public Stop {
         if (targetId == null || targetId.isBlank()) {

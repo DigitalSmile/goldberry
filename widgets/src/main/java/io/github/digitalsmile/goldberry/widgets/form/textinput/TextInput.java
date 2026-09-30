@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -86,8 +88,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 @Markup("text-input")
 public record TextInput(
         String value,
-        Observable<?> source,
-        Consumer<String> onChange,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
         String placeholder,
         int maxLength,
         boolean password,
@@ -103,7 +105,20 @@ public record TextInput(
     /// What [#maxLength] means when there is no limit.
     public static final int UNLIMITED = -1;
 
-    public TextInput {
+    /// The canonical constructor, written out because `value`, `placeholder`, `filter`, `suggestions`
+    /// and `attributes` take null for a default (ADR-0497).
+    public TextInput(
+            @Nullable String value,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable String placeholder,
+            int maxLength,
+            boolean password,
+            boolean readOnly,
+            @Nullable TextFilter filter,
+            java.util.@Nullable List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> suggestions,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         suggestions = java.util.List.copyOf(
                 suggestions == null
                         ? java.util.List.<io.github.digitalsmile.goldberry.widgets.controls.option.Option>of()
@@ -116,6 +131,17 @@ public record TextInput(
             throw new IllegalArgumentException("a maximum length is a count of characters or " + UNLIMITED
                     + " for no limit, and " + maxLength + " is neither");
         }
+        this.value = value;
+        this.source = source;
+        this.onChange = onChange;
+        this.placeholder = placeholder;
+        this.maxLength = maxLength;
+        this.password = password;
+        this.readOnly = readOnly;
+        this.filter = filter;
+        this.suggestions = suggestions;
+        this.disabled = disabled;
+        this.attributes = attributes;
     }
 
     /// An empty field.
@@ -347,12 +373,12 @@ public record TextInput(
     }
 
     @Override
-    public Observable<?> binding() {
+    public @Nullable Observable<?> binding() {
         return source;
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

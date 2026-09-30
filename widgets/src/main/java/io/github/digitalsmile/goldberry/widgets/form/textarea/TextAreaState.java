@@ -110,6 +110,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// The value the widget last offered, so a change to it can be told from a
     /// constant that has always been there — see
     /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput].
+    @SuppressWarnings("NullAway.Init") // set in initState(), before anything reads it
     private String lastOffered;
 
     /// The [TextEdit] the widget last offered through [TextArea#edit(TextEdit)],

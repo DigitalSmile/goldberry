@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.split;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -82,7 +84,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 public record SplitPane(
         SplitAxis axis,
         double position,
-        DoubleConsumer onResize,
+        @Nullable DoubleConsumer onResize,
         float firstMin,
         float secondMin,
         boolean collapsible,
@@ -160,7 +162,7 @@ public record SplitPane(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

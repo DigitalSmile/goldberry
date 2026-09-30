@@ -13,7 +13,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.Gradient;
 import io.github.digitalsmile.goldberry.paint.Path;
-import io.github.digitalsmile.goldberry.paint.Stroke;
+import io.github.digitalsmile.goldberry.paint.stroke.Stroke;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.semantics.Role;

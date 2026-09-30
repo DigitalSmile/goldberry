@@ -13,15 +13,15 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBlend;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuFilter;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuLoad;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTexture;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTextureUsage;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuTransferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// Phase 0's other half (`docs/gpu-plan.md`, D1 and D8): a composited frame with

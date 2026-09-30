@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -94,11 +95,13 @@ public final class SdlTray implements AutoCloseable {
     ///                because a tray whose menu appears on the second click is
     ///                worse than an empty one
     /// @return the tray, or empty if this desktop has none
-    public static Optional<SdlTray> open(SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
+    public static Optional<SdlTray> open(
+            @Nullable SdlTrayIcon icon, @Nullable String tooltip, List<SdlTrayItem> items) {
         return open(NativeLibrary.get().lookup(), icon, tooltip, items);
     }
 
-    static Optional<SdlTray> open(SymbolLookup lookup, SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
+    static Optional<SdlTray> open(
+            SymbolLookup lookup, @Nullable SdlTrayIcon icon, @Nullable String tooltip, List<SdlTrayItem> items) {
 
         Objects.requireNonNull(items, "items");
         var trayCalls = SdlTrayCalls.bind(lookup);
@@ -184,7 +187,7 @@ public final class SdlTray implements AutoCloseable {
     /// Replaces the icon. What a theme switch calls: the tray sits on the
     /// desktop's background, not on the toolkit's, so light and dark are the
     /// shell's question and not the cascade's.
-    public void icon(SdlTrayIcon icon) {
+    public void icon(@Nullable SdlTrayIcon icon) {
         requireOwner();
         requireOpen();
         var surface = surfaceOf(surfaceCalls, icon);

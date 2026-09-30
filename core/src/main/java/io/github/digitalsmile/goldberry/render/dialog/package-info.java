@@ -9,6 +9,11 @@
 /// redrawing the one piece of the desktop the desktop is certain to have, in a
 /// theme that does not match it, with none of the places, the search or the
 /// permissions a sandboxed platform routes through its own picker.
+///
+/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+@NullMarked
 package io.github.digitalsmile.goldberry.render.dialog;
+
+import org.jspecify.annotations.NullMarked;
 
 import io.github.digitalsmile.goldberry.render.Backend;

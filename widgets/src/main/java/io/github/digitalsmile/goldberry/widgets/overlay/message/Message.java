@@ -110,7 +110,7 @@ public record Message(
         String text,
         @Nullable Observable<?> source,
         List<Widget> actions,
-        Runnable onDismiss,
+        @Nullable Runnable onDismiss,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Message>, Bindable<Message> {
 
@@ -264,7 +264,7 @@ public record Message(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

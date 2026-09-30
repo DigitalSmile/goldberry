@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import io.github.digitalsmile.goldberry.image.Image;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
 
 /// Byte-exact goldens of decoded pictures (`docs/goldberry-media.md` §7, S5).
 ///

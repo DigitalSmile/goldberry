@@ -98,7 +98,7 @@ public final class RenderTree implements AutoCloseable {
         Objects.requireNonNull(box, "box");
         requireUsable();
 
-        reconcile(box, frame.scale().factor());
+        var root = reconcile(box, frame.scale().factor());
 
         var size = frame.size();
         // Yoga skips a subtree with nothing dirty in it, so on a static frame
@@ -120,7 +120,7 @@ public final class RenderTree implements AutoCloseable {
 
     /// Brings the retained tree in line with `box`, at `scale`. The half of
     /// [#update] that is not the layout pass, shared with [#measure].
-    private void reconcile(Box box, float scale) {
+    private RenderObject reconcile(Box box, float scale) {
         if (root != null && scale != pointScale) {
             // Every computed edge in the tree was rounded to the old grid. There
             // is no call that says "re-round everything", so the tree goes.
@@ -141,6 +141,7 @@ public final class RenderTree implements AutoCloseable {
         // placed inside of — so nothing shifts, and `ContainingBlock` says so by
         // handing every inset straight back.
         root.update(box, Insets.ZERO, config);
+        return root;
     }
 
     /// Lays the tree out against `available` and reports the size it wants, with
@@ -185,7 +186,7 @@ public final class RenderTree implements AutoCloseable {
         Objects.requireNonNull(scale, "scale");
         requireUsable();
 
-        reconcile(box, scale.factor());
+        var root = reconcile(box, scale.factor());
         root.node().calculateLayout(availableWidth, availableHeight);
         root.settle();
         var layout = root.layout();
@@ -376,7 +377,7 @@ public final class RenderTree implements AutoCloseable {
             Clip parentClip,
             Painting state) {
 
-        var box = object.box();
+        var box = object.appliedBox();
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
@@ -434,12 +435,12 @@ public final class RenderTree implements AutoCloseable {
         // an ordering *among* elevated siblings that ADR-0123 deliberately does
         // not define.
         for (var child : object.children()) {
-            if (!child.box().elevated()) {
+            if (!child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
             }
         }
         for (var child : object.children()) {
-            if (child.box().elevated()) {
+            if (child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
             }
         }
@@ -525,7 +526,10 @@ public final class RenderTree implements AutoCloseable {
 
         state.transform(transform);
         frame.drawLayer(
-                bounds.left(), bounds.top(), layer, parentAlpha * object.box().opacity());
+                bounds.left(),
+                bounds.top(),
+                layer,
+                parentAlpha * object.appliedBox().opacity());
     }
 
     /// The same walk, inside a layer: the promoted node itself is drawn here
@@ -534,7 +538,7 @@ public final class RenderTree implements AutoCloseable {
     private void paintIntoLayer(
             RenderObject object, double left, double top, double alpha, Affine transform, Painting state) {
 
-        var box = object.box();
+        var box = object.appliedBox();
         var layout = object.layout();
         state.transform(transform);
         var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
@@ -548,12 +552,12 @@ public final class RenderTree implements AutoCloseable {
             return;
         }
         for (var child : object.children()) {
-            if (!child.box().elevated()) {
+            if (!child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
             }
         }
         for (var child : object.children()) {
-            if (child.box().elevated()) {
+            if (child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
             }
         }
@@ -614,7 +618,7 @@ public final class RenderTree implements AutoCloseable {
     private static void accumulate(
             RenderObject object, double left, double top, Affine transform, double[] into, boolean root) {
 
-        var box = object.box();
+        var box = object.appliedBox();
         var layout = object.layout();
         var matrix = root ? transform : compose(transform, box.transform(), left, top, layout.width(), layout.height());
 
@@ -702,7 +706,7 @@ public final class RenderTree implements AutoCloseable {
             Clip parentClip,
             Consumer<BoxPainter.Placed> visitor) {
 
-        var box = object.box();
+        var box = object.appliedBox();
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
@@ -730,12 +734,12 @@ public final class RenderTree implements AutoCloseable {
         // accumulated alpha travels as a number rather than being applied twice on
         // the way down.
         for (var child : object.children()) {
-            if (!child.box().elevated()) {
+            if (!child.appliedBox().elevated()) {
                 visit(child, left, top, alpha, transform, clip, visitor);
             }
         }
         for (var child : object.children()) {
-            if (child.box().elevated()) {
+            if (child.appliedBox().elevated()) {
                 visit(child, left, top, alpha, transform, clip, visitor);
             }
         }
@@ -848,7 +852,7 @@ public final class RenderTree implements AutoCloseable {
             java.util.List<DamageRect> into,
             boolean[] everything) {
 
-        var box = object.box();
+        var box = object.appliedBox();
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();

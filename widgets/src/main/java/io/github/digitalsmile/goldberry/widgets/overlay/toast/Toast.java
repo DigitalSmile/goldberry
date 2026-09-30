@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 import java.time.Duration;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// One notification — `docs/core-widgets.md` §7's `toast`, as a **value**.
 ///
 /// ```java
@@ -38,7 +40,8 @@ import java.util.Objects;
 /// @param onPress what the action button does, or null
 /// @param timeout how long it stays once it has arrived — the clock stops while
 ///                the pointer is over it (§7's "hover-pause")
-public record Toast(String text, String label, Runnable onPress, Duration timeout) {
+public record Toast(
+        String text, @Nullable String label, @Nullable Runnable onPress, Duration timeout) {
 
     /// §2: "timeout 5s default".
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
@@ -48,7 +51,9 @@ public record Toast(String text, String label, Runnable onPress, Duration timeou
         this(text, null, null, DEFAULT_TIMEOUT);
     }
 
-    public Toast {
+    /// The canonical constructor, written out because `timeout` takes null for
+    /// [#DEFAULT_TIMEOUT] while the component never holds it (ADR-0497).
+    public Toast(String text, @Nullable String label, @Nullable Runnable onPress, @Nullable Duration timeout) {
         Objects.requireNonNull(text, "text");
         timeout = timeout == null ? DEFAULT_TIMEOUT : timeout;
         if (timeout.isNegative()) {
@@ -61,6 +66,10 @@ public record Toast(String text, String label, Runnable onPress, Duration timeou
             throw new IllegalArgumentException("a toast's action button is labelled \"" + label + "\" and does nothing."
                     + " Give it a handler, or leave the label out.");
         }
+        this.text = text;
+        this.label = label;
+        this.onPress = onPress;
+        this.timeout = timeout;
     }
 
     /// This toast with a button after its words — §7's "optional action button".

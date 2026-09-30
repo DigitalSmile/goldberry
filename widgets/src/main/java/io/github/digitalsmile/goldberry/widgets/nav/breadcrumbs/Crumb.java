@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -61,7 +63,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param current    supplied by [Breadcrumbs] on every build; not an attribute
 /// @param attributes `id` and `class`, exactly as on every other widget
 @Markup("crumb")
-public record Crumb(String label, Icon icon, Runnable onPress, boolean current, Attributes attributes)
+public record Crumb(
+        String label, @Nullable Icon icon, @Nullable Runnable onPress, boolean current, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Crumb>, Semantics {
 
     public Crumb {
@@ -107,7 +110,7 @@ public record Crumb(String label, Icon icon, Runnable onPress, boolean current, 
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -117,7 +120,7 @@ public record Crumb(String label, Icon icon, Runnable onPress, boolean current, 
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

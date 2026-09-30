@@ -118,7 +118,7 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
             throw new IllegalArgumentException("media-player takes no children");
         }
         return new MediaPlayerView(
-                wiring.handle(node, "player", MediaPlayer.class),
+                Objects.requireNonNull(wiring.handle(node, "player", MediaPlayer.class), "player"),
                 Fit.named(node.stringProperty("fit")),
                 Attributes.of(node));
     }

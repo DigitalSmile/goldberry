@@ -35,8 +35,8 @@ import io.github.digitalsmile.goldberry.media.ffi.calls.SwScaleCalls;
 /// 1. `-Dgoldberry.media.libdir=<dir>`. The LGPL says a user may replace the
 ///    library, and this is how (`docs/goldberry-media.md` §2). The build's tests
 ///    also use it to point at what `:media:ffmpegBuild` just made.
-/// 2. The `goldberry-ffmpeg-natives-<classifier>` jar on the class or module
-///    path. Its libraries are unpacked into a temporary directory, because a
+/// 2. `goldberry-media`'s `ffmpeg-<classifier>` jar on the class or module
+///    path (ADR-0495). Its libraries are unpacked into a temporary directory, because a
 ///    shared library has to be a file to be loaded.
 ///
 /// Either place holds the five libraries under the names the other libraries link
@@ -119,8 +119,9 @@ public final class FfmpegLibraries {
         } else {
             var unpacked = unpack(platform);
             if (unpacked == null) {
-                return new State.Unavailable("no goldberry-ffmpeg-natives-" + platform.classifier()
-                        + " on the class path; add it, or set -D" + LIBRARY_DIRECTORY_PROPERTY + "=<dir>");
+                return new State.Unavailable("no FFmpeg for " + platform.classifier()
+                        + " on the class path; add io.github.digitalsmile:goldberry-media::ffmpeg-"
+                        + platform.classifier() + ", or set -D" + LIBRARY_DIRECTORY_PROPERTY + "=<dir>");
             }
             directory = unpacked;
         }

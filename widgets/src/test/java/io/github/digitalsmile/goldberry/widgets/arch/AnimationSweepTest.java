@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// **A widget that is moving has to say so**, and the golden corpus cannot check
 /// it ([ADR-0226]).

@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.gpu;
 import java.util.EnumSet;
 import java.util.Set;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
 
 /// What a [GpuBuffer] may be used for.
 public enum BufferUsage {

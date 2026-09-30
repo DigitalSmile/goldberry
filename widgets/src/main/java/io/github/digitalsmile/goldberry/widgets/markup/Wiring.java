@@ -162,7 +162,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// An [Observable] and never a `Property`, which is the whole of one-way
     /// binding: markup names where a value comes from and has no way to name
     /// where it goes (ADR-0063).
-    public Observable<?> bound(KdlNode node) {
+    public @Nullable Observable<?> bound(KdlNode node) {
         return bindings.resolve(node.stringProperty("bind"));
     }
 
@@ -178,7 +178,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// @return the object, or null when the attribute is absent
     /// @throws IllegalArgumentException if the name is registered as something
     ///         that is not a `type`, or is unknown to a strict registry
-    public <T> T handle(KdlNode node, String attribute, Class<T> type) {
+    public <T> @Nullable T handle(KdlNode node, String attribute, Class<T> type) {
         return named.resolve(node.stringProperty(attribute), type);
     }
 
@@ -193,13 +193,13 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
 
     /// The action an attribute names, for a control that reports only *that*
     /// something happened.
-    public Runnable action(KdlNode node, String attribute) {
+    public @Nullable Runnable action(KdlNode node, String attribute) {
         return actions.resolve(node.stringProperty(attribute));
     }
 
     /// The action an attribute names, for a control that reports *what* it should
     /// become.
-    public Consumer<String> valued(KdlNode node, String attribute) {
+    public @Nullable Consumer<String> valued(KdlNode node, String attribute) {
         return actions.resolveValued(node.stringProperty(attribute));
     }
 

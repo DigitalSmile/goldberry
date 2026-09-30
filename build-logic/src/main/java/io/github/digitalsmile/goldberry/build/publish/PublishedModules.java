@@ -38,6 +38,10 @@ public final class PublishedModules {
             new Library("html", Inclusion.OPTIONAL),
             new Library("emoji", Inclusion.OPTIONAL),
             new Library("gpu", Inclusion.OPTIONAL),
+            // Audio and video over FFmpeg, and the operating system's decoders
+            // (ADR-0493). FFmpeg itself rides as `ffmpeg-<target>` classifiers,
+            // as libgoldberry rides `goldberry-natives` (ADR-0495).
+            new Library("media", Inclusion.OPTIONAL),
             new Bom(),
             new Umbrella());
 

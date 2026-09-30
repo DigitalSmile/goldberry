@@ -15,6 +15,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
+
 /// The parts of the GPU wrappers that are values: no library, no device.
 @DisplayName("SDL_GPU values")
 class SdlGpuValuesTest {

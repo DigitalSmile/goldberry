@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -41,7 +43,7 @@ import io.github.digitalsmile.goldberry.widgets.data.Series;
 /// @param isolated  the one being shown alone, or -1 for all of them
 /// @param onIsolate what a click reports, or null for a legend that is only a
 ///                  key — which is what `donut-chart` builds
-public record ChartLegend(List<Series> series, int isolated, java.util.function.IntConsumer onIsolate)
+public record ChartLegend(List<Series> series, int isolated, java.util.function.@Nullable IntConsumer onIsolate)
         implements Widget.Leaf, Styled, Paints {
 
     /// A legend nobody can click, which is every legend that came before the

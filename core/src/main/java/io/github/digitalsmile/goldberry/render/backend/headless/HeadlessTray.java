@@ -34,8 +34,8 @@ public final class HeadlessTray implements BackendTray {
     /// hold and re-describe, and the *live* state belongs to the tray.
     private final List<String> checked = new ArrayList<>();
 
-    private PixelBuffer icon;
-    private String tooltip;
+    private @Nullable PixelBuffer icon;
+    private @Nullable String tooltip;
     private boolean closed;
 
     HeadlessTray(HeadlessBackend backend, TraySpec spec) {
@@ -122,7 +122,8 @@ public final class HeadlessTray implements BackendTray {
             if (row.kind() == TrayItem.Kind.SEPARATOR) {
                 continue;
             }
-            var here = prefix.isEmpty() ? row.label() : prefix + "/" + row.label();
+            var label = Objects.requireNonNull(row.label(), "only a separator has no label");
+            var here = prefix.isEmpty() ? label : prefix + "/" + label;
             if (here.equals(path)) {
                 return row;
             }
@@ -140,7 +141,8 @@ public final class HeadlessTray implements BackendTray {
             if (row.kind() == TrayItem.Kind.SEPARATOR) {
                 continue;
             }
-            var here = prefix.isEmpty() ? row.label() : prefix + "/" + row.label();
+            var label = Objects.requireNonNull(row.label(), "only a separator has no label");
+            var here = prefix.isEmpty() ? label : prefix + "/" + label;
             all.add(here);
             all.addAll(paths(row.children(), here));
         }

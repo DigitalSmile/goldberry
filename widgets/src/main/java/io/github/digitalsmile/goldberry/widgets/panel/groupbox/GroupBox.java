@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -66,7 +68,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param content    what goes inside the frame
 /// @param attributes the `id` and classes, which land on the `group-box` node
 @Markup("group-box")
-public record GroupBox(String title, List<Widget> content, Attributes attributes)
+public record GroupBox(@Nullable String title, List<Widget> content, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<GroupBox> {
 
     public GroupBox(String title, Widget... kids) {
@@ -97,7 +99,7 @@ public record GroupBox(String title, List<Widget> content, Attributes attributes
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -107,7 +109,7 @@ public record GroupBox(String title, List<Widget> content, Attributes attributes
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

@@ -59,7 +59,7 @@ module io.github.digitalsmile.goldberry.gpu {
     /// Being on the module path is enough; an application need not require
     /// this module for its windows to be composited.
     provides io.github.digitalsmile.goldberry.render.composite.Compositor with
-            io.github.digitalsmile.goldberry.gpu.render.SdlCompositor;
+            io.github.digitalsmile.goldberry.gpu.composite.SdlCompositor;
 
     /// SDL_GPU's wrappers, which `:natives` exports to this module and to
     /// `:core` alone (ADR-0475). Not `transitive`: no type of `:natives` is in

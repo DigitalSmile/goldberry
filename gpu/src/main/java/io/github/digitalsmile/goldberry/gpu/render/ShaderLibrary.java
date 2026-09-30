@@ -8,7 +8,7 @@ import java.util.Optional;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShader;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderCode;
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 
 /// Loads a [BuiltInShader] in the format a device takes.
 ///

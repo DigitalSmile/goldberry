@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.assets.svg;
 /// Enough of SVG's path-data grammar to make one fragment safe to put after
 /// another.
 ///
-/// [io.github.digitalsmile.goldberry.assets.IconCompiler] turns every shape in an
+/// [io.github.digitalsmile.goldberry.assets.prepare.IconCompiler] turns every shape in an
 /// icon into a run of path data and joins them. That is only sound when each run
 /// starts from a point of its own, and SVG has a rule that makes it look sound
 /// when it is not:

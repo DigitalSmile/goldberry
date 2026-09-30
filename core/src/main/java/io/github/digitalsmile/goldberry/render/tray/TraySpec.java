@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.render.PixelBuffer;
 /// @param icon    the icon's pixels, or null for the platform's default
 /// @param tooltip the hover text, or null for none — not every platform shows one
 /// @param items   the menu's rows, possibly empty
-public record TraySpec(@Nullable PixelBuffer icon, String tooltip, List<TrayItem> items) {
+public record TraySpec(@Nullable PixelBuffer icon, @Nullable String tooltip, List<TrayItem> items) {
 
     public TraySpec {
         items = List.copyOf(items == null ? List.of() : items);

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.form.form;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -59,8 +61,11 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param onSubmit   run when every field passes, or null
 /// @param attributes the `id`, classes and key the document wrote
 @Markup("form")
-public record Form(List<Widget> children, Runnable onSubmit, FormController controller, Attributes attributes)
-        implements Widget.Stateful, Attributed<Form> {
+public record Form(
+        List<Widget> children,
+        @Nullable Runnable onSubmit,
+        @Nullable FormController controller,
+        Attributes attributes) implements Widget.Stateful, Attributed<Form> {
 
     public Form {
         children = List.copyOf(Objects.requireNonNull(children, "children"));
@@ -91,7 +96,7 @@ public record Form(List<Widget> children, Runnable onSubmit, FormController cont
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

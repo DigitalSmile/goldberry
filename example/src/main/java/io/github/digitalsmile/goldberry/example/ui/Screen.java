@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import io.github.digitalsmile.goldberry.example.ui.sheet.EmojiScreen;
+import io.github.digitalsmile.goldberry.example.ui.sheet.IconsScreen;
 
 /// The whole window, in three bands: a **menu bar**, a **bar**, and a **gallery**
 /// of thirteen screens under them.
@@ -187,24 +189,33 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         private final List<Subscription> watching = new ArrayList<>(3);
 
         /// The documents, inflated once — see [Panes].
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget bar;
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Masonry basic;
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Masonry panels;
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Masonry overlays;
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Masonry forms;
 
         /// The Markdown screen's two panes. **Not a `Masonry`**: that screen is one
         /// thing divided rather than a wall of cards, so its document's root is a
         /// `split-pane` and nothing is appended to it.
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget markdown;
 
         /// And the HTML screen's, which is the same shape for the same reason — see
         /// [HtmlScreen].
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget html;
 
         /// And the two media screens' players, each from its own document.
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget audio;
 
+        @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget video;
 
         @Override

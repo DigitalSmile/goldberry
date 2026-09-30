@@ -27,7 +27,7 @@ public final class KeyEvent {
     private final Key key;
     private final Modifiers modifiers;
     private final boolean repeat;
-    private final Element target;
+    private final @Nullable Element target;
     private Extent bounds = Extent.NONE;
     private Extent part = Extent.NONE;
     private boolean consumed;
@@ -86,7 +86,7 @@ public final class KeyEvent {
     }
 
     /// The focused node this was aimed at, or null if nothing had focus.
-    public Element target() {
+    public @Nullable Element target() {
         return target;
     }
 

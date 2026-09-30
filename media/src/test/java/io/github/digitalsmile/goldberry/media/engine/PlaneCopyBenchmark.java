@@ -11,11 +11,11 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.media.FfmpegRequirement;
-import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.codec.PixelFormat;
 import io.github.digitalsmile.goldberry.media.codec.VideoFrame;
 import io.github.digitalsmile.goldberry.media.ffi.FfmpegLibraries;
 import io.github.digitalsmile.goldberry.media.ffi.VideoConverter;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
 
 /// What the video thread pays to prepare one 4K picture in each [PictureForm]:
 /// the plane copy the planes form makes, against the swscale pass to BGRA the

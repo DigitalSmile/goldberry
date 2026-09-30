@@ -64,8 +64,9 @@ tasks.withType(JavaCompile).configureEach {
     // `@NullMarked`, which is what makes adopting it possible at all: a codebase
     // this size cannot be annotated in one commit, and a checker that shouted
     // about every unannotated file would be switched off within a day. The
-    // annotated set grows a package at a time and each one is checked from the
-    // moment it is marked.
+    // annotated set grew a package at a time, and since ADR-0497 it is every
+    // package: `PackageInfoTest` fails on one that is not marked, so a new
+    // package cannot opt out by forgetting its `package-info.java`.
     // ------------------------------------------------------------------------
     options.errorprone {
         // Off for tests, and off for the JMH source set: half of it is
@@ -113,6 +114,10 @@ tasks.withType(JavaCompile).configureEach {
         // "annotated 17 parameters" was 17 in the wrong module.
         if (providers.gradleProperty('goldberry.nullaway').orNull == 'warn') {
             warn('NullAway')
+            // javac prints at most 100 warnings and then stops, silently, so a
+            // sweep of a module with more saw a truncated list and "fixed" it
+            // (ADR-0497). A sweep wants every finding.
+            options.compilerArgs.addAll(['-Xmaxwarns', '100000', '-Xmaxerrs', '100000'])
         } else {
             error('NullAway')
         }

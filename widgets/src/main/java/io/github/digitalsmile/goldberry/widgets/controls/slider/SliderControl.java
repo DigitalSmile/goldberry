@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
 
@@ -117,7 +118,8 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
         children.add(new SliderTrack(
                 slider.fraction(), slider.ticks(), slider.disabled(), slider.spanFractions(), slider.isVertical()));
         if (slider.format() != null) {
-            children.add(new SliderValue(slider.text(), slider.disabled()));
+            children.add(new SliderValue(
+                    Objects.requireNonNull(slider.text(), "a slider with a format has a label"), slider.disabled()));
         }
         return List.copyOf(children);
     }

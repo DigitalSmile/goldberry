@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.form.field;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -76,7 +78,11 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes the `id`, classes and key the document wrote
 @Markup("field")
 public record Field(
-        String label, List<Widget> children, boolean required, Validator<String> validator, Attributes attributes)
+        String label,
+        List<Widget> children,
+        boolean required,
+        @Nullable Validator<String> validator,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Field> {
 
     /// What a `required` field says when it is empty, and the one message this
@@ -89,10 +95,22 @@ public record Field(
     /// instead, and gets it.
     public static final String REQUIRED_MESSAGE = "This field is required";
 
-    public Field {
+    /// The canonical constructor, written out because `label` and `attributes` take null for a default
+    /// (ADR-0497).
+    public Field(
+            @Nullable String label,
+            List<Widget> children,
+            boolean required,
+            @Nullable Validator<String> validator,
+            @Nullable Attributes attributes) {
         label = label == null ? "" : label;
         children = List.copyOf(Objects.requireNonNull(children, "children"));
         attributes = attributes == null ? Attributes.NONE : attributes;
+        this.label = label;
+        this.children = children;
+        this.required = required;
+        this.validator = validator;
+        this.attributes = attributes;
     }
 
     /// A labelled field around one control.
@@ -132,7 +150,7 @@ public record Field(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

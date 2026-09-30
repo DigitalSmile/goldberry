@@ -5,13 +5,16 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 
 /// What a [Tabs] remembers between builds: which tabs are arriving, and which
@@ -53,7 +56,7 @@ final class TabsState extends State<Tabs> {
     /// soon as it is acted on. A strip that pulled the selected tab into view on
     /// every frame would take the strip's scrollbar away from the user for as
     /// long as anything was selected, which is always.
-    private String pendingReveal;
+    private @Nullable String pendingReveal;
 
     /// The tabs on screen, in the order they are drawn: the application's, plus
     /// any that are still leaving.
@@ -78,7 +81,7 @@ final class TabsState extends State<Tabs> {
 
     /// The tab being dragged to a new place, how far it has travelled, and where
     /// the pointer is — or null while nothing is (ADR-0372).
-    private String dragging;
+    private @Nullable String dragging;
 
     private double dragOffset;
 
@@ -94,11 +97,11 @@ final class TabsState extends State<Tabs> {
     private final Map<String, LogicalRect> headerRects = new LinkedHashMap<>();
 
     /// Which tab the underline was under when the selection last changed.
-    private String underlined;
+    private @Nullable String underlined;
 
     /// The journey the underline is on: its number, and what is left of the
     /// displacement. Null when it is not on one.
-    private Tab.Travel travel;
+    private Tab.@Nullable Travel travel;
 
     /// How many journeys there have been, which is what makes each one a new
     /// element (see [TabIndicator#key()]).
@@ -158,7 +161,7 @@ final class TabsState extends State<Tabs> {
     /// nothing has measured — a tree painted with no router behind it — gets
     /// null and the underline simply appears where it belongs, exactly as it did
     /// before this existed ([ADR-0377]).
-    private Tab.Travel journey(String selected) {
+    private Tab.@Nullable Travel journey(@Nullable String selected) {
         if (selected == null) {
             underlined = null;
             travel = null;
@@ -295,7 +298,7 @@ final class TabsState extends State<Tabs> {
         for (var value : List.copyOf(phases.keySet())) {
             var tab = current.get(value);
             var leaving = tab == null;
-            if (leaving) {
+            if (tab == null) {
                 tab = departing.get(value);
                 if (tab == null) {
                     phases.remove(value);
@@ -303,7 +306,7 @@ final class TabsState extends State<Tabs> {
                 }
             }
             var isSelected = !leaving && value.equals(selected);
-            var phase = phases.get(value);
+            var phase = Objects.requireNonNull(phases.get(value), "the loop is over phases' own keys");
             // A tab on its way out answers nothing: it is not in the
             // application's list any more, so picking it would report a value
             // that does not exist and closing it twice is not a thing.
@@ -343,14 +346,15 @@ final class TabsState extends State<Tabs> {
 
     /// A page per tab this strip has shown and still has, the selected one
     /// visible and the rest hidden, so every one of them keeps its state.
-    private List<Widget> keptPages(Map<String, Tab> current, String selected) {
+    private List<Widget> keptPages(Map<String, Tab> current, @Nullable String selected) {
         kept.retainAll(current.keySet());
         if (selected != null && current.containsKey(selected)) {
             kept.add(selected);
         }
         var pages = new ArrayList<Widget>(kept.size());
         for (var value : kept) {
-            pages.add(new TabPage(value, current.get(value).content(), value.equals(selected)));
+            var tab = Objects.requireNonNull(current.get(value), "kept has just been cut down to current's keys");
+            pages.add(new TabPage(value, tab.content(), value.equals(selected)));
         }
         return pages;
     }

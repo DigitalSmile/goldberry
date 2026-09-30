@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.core.affix;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -78,8 +80,8 @@ public record Affix(
         List<Widget> children,
         Edge edge,
         double offset,
-        java.util.function.BiConsumer<LogicalRect, LogicalRect> onReveal,
-        Edge cross,
+        java.util.function.@Nullable BiConsumer<LogicalRect, LogicalRect> onReveal,
+        @Nullable Edge cross,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
@@ -131,7 +133,7 @@ public record Affix(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 

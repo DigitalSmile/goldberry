@@ -5,6 +5,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
+
 /// Everything a graphics pipeline is made from, checked before SDL sees it.
 ///
 /// One colour target, one sample, filled polygons: what the composited window

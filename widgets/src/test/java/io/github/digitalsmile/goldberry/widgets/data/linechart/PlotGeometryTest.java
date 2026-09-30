@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.github.digitalsmile.goldberry.widgets.data.Scale;
+import io.github.digitalsmile.goldberry.widgets.data.plot.Scale;
 
 /// The plot's own arithmetic, in both directions.
 ///

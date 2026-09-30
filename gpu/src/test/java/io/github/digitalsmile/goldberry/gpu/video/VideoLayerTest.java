@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.gpu.TextureFormat;
 import io.github.digitalsmile.goldberry.gpu.TextureSpec;
-import io.github.digitalsmile.goldberry.gpu.render.CompositeHarness;
+import io.github.digitalsmile.goldberry.gpu.composite.CompositeHarness;
 import io.github.digitalsmile.goldberry.gpu.render.YuvConversion;
 import io.github.digitalsmile.goldberry.image.Image;
 import io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher;

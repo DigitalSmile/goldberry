@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -62,7 +64,7 @@ public record Scrolling() implements Widget.Stateful {
         /// Which section has been asked for, until the frame that reveals it.
         /// Null the rest of the time, which is what keeps the callback from
         /// firing on every frame after the first jump.
-        private String wanted;
+        private @Nullable String wanted;
 
         @Override
         public Widget build(BuildContext context) {

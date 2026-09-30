@@ -188,8 +188,8 @@ public final class Menus {
             Menu menu,
             Placement placement,
             List<Popup> stack,
-            OpenMenu parent,
-            Siblings siblings) {
+            @Nullable OpenMenu parent,
+            @Nullable Siblings siblings) {
 
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchor, "anchor");
@@ -299,10 +299,10 @@ public final class Menus {
         private final List<Popup> stack;
 
         /// The menu this one hangs off, or null if it is the root.
-        private final OpenMenu parent;
+        private final @Nullable OpenMenu parent;
 
         /// A bar's two arrows, or null for a menu that is not a bar's.
-        private final Siblings siblings;
+        private final @Nullable Siblings siblings;
 
         /// The popup this menu became. Filled in as soon as it exists — which is
         /// before anything can be hovered, let alone pressed.
@@ -313,7 +313,7 @@ public final class Menus {
         /// branch they are down.
         private int openIndex = -1;
 
-        OpenMenu(Host host, Menu menu, List<Popup> stack, OpenMenu parent, Siblings siblings) {
+        OpenMenu(Host host, Menu menu, List<Popup> stack, @Nullable OpenMenu parent, @Nullable Siblings siblings) {
             this.host = host;
             this.menu = menu;
             this.stack = stack;
@@ -467,7 +467,7 @@ public final class Menus {
             if (self == null || !self.isOpen()) {
                 return;
             }
-            var row = self.anchor(item.attributes().id());
+            var row = self.anchor(Objects.requireNonNull(item.attributes().id(), "prepare() gives every row an id"));
             if (row.isEmpty()) {
                 return;
             }

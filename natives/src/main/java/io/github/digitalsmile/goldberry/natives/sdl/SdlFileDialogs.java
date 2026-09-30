@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -118,9 +119,9 @@ public final class SdlFileDialogs {
     ///
     /// @param kind            which of SDL's three functions to call
     /// @param owner           the window to be modal for, or **null** for none —
-    ///                        nullable rather than an `Optional` because this
-    ///                        module carries no annotations and the parameter is
-    ///                        one hop from a C pointer that has the same two states
+    ///                        `@Nullable` rather than an `Optional` because the
+    ///                        parameter is one hop from a C pointer that has the
+    ///                        same two states
     /// @param filters         the type dropdown; ignored for
     ///                        [SdlDialogKind#OPEN_FOLDER], which has nothing to filter
     /// @param defaultLocation where to start, or null for the platform's own idea
@@ -129,9 +130,9 @@ public final class SdlFileDialogs {
     /// @param callback        told once, possibly on another thread
     public void show(
             SdlDialogKind kind,
-            SdlWindowHandle owner,
+            @Nullable SdlWindowHandle owner,
             List<SdlFileFilter> filters,
-            String defaultLocation,
+            @Nullable String defaultLocation,
             boolean allowMany,
             SdlFileDialogCallback callback) {
 

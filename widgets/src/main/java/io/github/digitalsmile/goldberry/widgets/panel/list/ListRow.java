@@ -78,7 +78,7 @@ record ListRow(
         Attributes attributes,
         Consumer<Modifiers> onSelect,
         IntConsumer onEnd,
-        Consumer<String> onType,
+        @Nullable Consumer<String> onType,
         double checkedPitch)
         implements Widget.Leaf, Styled, Paints, Handles, Selects, Attributed<ListRow>, Semantics {
 

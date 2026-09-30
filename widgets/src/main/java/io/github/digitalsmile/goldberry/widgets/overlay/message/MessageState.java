@@ -6,8 +6,8 @@ import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Departure;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Departure;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// A [Message]'s arrival and its departure — the whole of its state, and it
 /// holds no value at all.

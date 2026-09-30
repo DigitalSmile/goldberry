@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.gpu;
 
-import io.github.digitalsmile.goldberry.natives.sdl.gpu.SdlGpuCullMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
 
 /// Which triangles a pipeline discards by the way they face.
 public enum CullMode {

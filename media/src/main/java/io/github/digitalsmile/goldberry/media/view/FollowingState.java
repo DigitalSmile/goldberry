@@ -7,10 +7,12 @@ import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.media.MediaPlayer;
-import io.github.digitalsmile.goldberry.media.PictureForm;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
 import io.github.digitalsmile.goldberry.media.PlayerStatus;
 import io.github.digitalsmile.goldberry.media.TimeRange;
+import io.github.digitalsmile.goldberry.media.picture.PictureForm;
+import io.github.digitalsmile.goldberry.media.view.gpu.GpuVideo;
+import io.github.digitalsmile.goldberry.media.view.gpu.VideoPresenter;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;

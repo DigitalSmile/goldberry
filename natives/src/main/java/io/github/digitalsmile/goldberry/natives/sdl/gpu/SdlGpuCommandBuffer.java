@@ -17,6 +17,12 @@ import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// Commands recorded for a [SdlGpuDevice], then submitted or cancelled, once.
 ///

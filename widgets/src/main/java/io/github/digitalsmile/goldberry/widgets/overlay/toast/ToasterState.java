@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.presence.Phase;
 
 /// The queue: what is showing, what is waiting, and every clock in the widget.
 ///
@@ -66,7 +66,7 @@ final class ToasterState extends State<Toaster> {
         /// 160ms of a dismissal fired `setState` on a state that had been
         /// disposed — an `IllegalStateException` out of the event loop, from a
         /// toast nobody could still see. The timer it was missing is the one
-        /// [io.github.digitalsmile.goldberry.widgets.core.Departure]
+        /// [io.github.digitalsmile.goldberry.widgets.core.presence.Departure]
         /// holds for `dialog` and `message`; a stack departs once *per entry*
         /// rather than once, so the field lives here ([ADR-0234]).
         EventLoop.@Nullable Timer exit;

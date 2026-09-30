@@ -2370,7 +2370,7 @@ The proposed API, near enough as written: a `qr-code` leaf in `widgets.core.qrco
 a scanner then refuses, a `FIGURE` named by `name=` and never by the payload, and a cache so a rebuild
 with an unchanged payload returns the same matrix rather than re-encoding it.
 
-The encoder is `io.github.digitalsmile.goldberry.qr` in `:core`, beside the image codecs and depending on
+The encoder is `io.github.digitalsmile.goldberry.qr` in `:core` (`…goldberry.image.qr` since ADR-0494), beside the image codecs and depending on
 nothing: numeric, alphanumeric and byte modes, all forty versions, Reed–Solomon over GF(256), the eight
 masks scored by §7.8.3's four rules, and the format and version BCH bits.
 

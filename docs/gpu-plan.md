@@ -524,7 +524,7 @@ Taken up when phase 6's measurements or battery use justify it.
 | Item | Status |
 |------|--------|
 | The SDL patch: `SDL_PROP_GPU_TEXTURE_CREATE_METAL_IOSURFACE_POINTER` and `…_METAL_IOSURFACE_PLANE_NUMBER`, a container that cannot be cycled, and the external `MTLTexture` released with it. Applied by the superbuild and checked. Offered upstream | open |
-| `PlaneSource.Surface`: FFmpeg's `AV_PIX_FMT_VIDEOTOOLBOX` frames (`data[3]` is the `CVPixelBufferRef`) and `:media-platform`'s VideoToolbox decoder, both asked for IOSurface-backed, Metal-compatible buffers | open |
+| `PlaneSource.Surface`: FFmpeg's `AV_PIX_FMT_VIDEOTOOLBOX` frames (`data[3]` is the `CVPixelBufferRef`) and `:media`'s VideoToolbox decoder, both asked for IOSurface-backed, Metal-compatible buffers | open |
 | Lifetime: the `CVPixelBuffer` is retained by the queue slot until the fence of the last frame that sampled it signals, so the decoder's pool cannot reuse a surface the GPU is still reading | open |
 | Copy-back skipped when the view is on a patched Metal device, and kept for CPU present, readback and every other device | open |
 | Parity: the zero-copy picture against the copy-back picture, byte for byte after the same shader | open |

@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.clipboard.Clipboard;
 import io.github.digitalsmile.goldberry.render.desktop.SystemTheme;
 import io.github.digitalsmile.goldberry.render.dialog.FileChoice;
 import io.github.digitalsmile.goldberry.render.dialog.FileDialogSpec;
@@ -390,7 +390,7 @@ public interface Host {
     ///            behaviour of the overload above
     java.util.Optional<Popup> popup(Widget content,
                                     LogicalRect anchor, Placement placement,
-                                    float minimumWidth, Fit fit);
+                                    float minimumWidth, @Nullable Fit fit);
 
     /// [#popup(Widget, LogicalRect, Placement, float, Fit)] as a panel that hangs
     /// off something the user is **still using**.

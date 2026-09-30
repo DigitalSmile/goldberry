@@ -137,6 +137,12 @@ public final class RenderObject implements AutoCloseable {
         return applied;
     }
 
+    /// [#box()] for a walk over a tree that has been laid out, where every
+    /// object has had [#update] apply a box to it.
+    Box appliedBox() {
+        return Objects.requireNonNull(applied, "a render object is walked only after update() has applied a box");
+    }
+
     /// Whether this object can take `box` without being rebuilt.
     ///
     /// Two things make it impossible. A **measured leaf and a container are

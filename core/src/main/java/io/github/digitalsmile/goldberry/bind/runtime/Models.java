@@ -43,6 +43,10 @@ public final class Models {
 
     private Models() {}
 
+    /// Why [#observable] cannot answer null: a model's registry is strict, woven
+    /// or not, so a path it does not bind throws rather than resolving to nothing.
+    private static final String STRICT = "a model's registry is strict, so a path it answers is bound";
+
     /// Every `@Bind` path on `model`, strict.
     ///
     /// @throws IllegalStateException if `model`'s class is annotated neither
@@ -86,7 +90,7 @@ public final class Models {
     /// @throws IllegalStateException if `model` publishes nothing
     @SuppressWarnings("unchecked")
     public static <T> Observable<T> observable(Object model, String path) {
-        return (Observable<T>) bindings(model).resolve(path);
+        return (Observable<T>) Objects.requireNonNull(bindings(model).resolve(path), STRICT);
     }
 
     /// The same, checked against the value currently held.
@@ -96,7 +100,7 @@ public final class Models {
     ///
     /// @throws IllegalArgumentException if the value held is not of `type`
     public static <T> Observable<T> observable(Object model, String path, Class<T> type) {
-        return bindings(model).resolve(path, type);
+        return Objects.requireNonNull(bindings(model).resolve(path, type), STRICT);
     }
 
     /// Calls `listener` after a `@Bind` field that asks for a frame changes.

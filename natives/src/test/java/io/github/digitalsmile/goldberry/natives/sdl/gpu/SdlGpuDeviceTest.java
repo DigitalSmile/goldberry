@@ -24,6 +24,13 @@ import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import io.github.digitalsmile.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// `SDL_GPU` through the wrappers, on a real device: Metal on macOS, Vulkan
@@ -50,6 +57,11 @@ class SdlGpuDeviceTest {
 
     @AfterAll
     static void destroyDevice() {
+        // Skipped before SDL was reached: nothing to give back, and no library to
+        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        if (device == null) {
+            return;
+        }
         if (device != null) {
             device.close();
         }

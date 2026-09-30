@@ -10,10 +10,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.image.qr.Level;
+import io.github.digitalsmile.goldberry.image.qr.QrEncoder;
+import io.github.digitalsmile.goldberry.image.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.qr.Level;
-import io.github.digitalsmile.goldberry.qr.QrEncoder;
-import io.github.digitalsmile.goldberry.qr.QrMatrix;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// "Modules are whole device pixels at every scale" — the promise, at 100%, 150%

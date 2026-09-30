@@ -1,7 +1,8 @@
 # goldberry-media: the FFmpeg + dav1d superbuild, and the module's tests against
-# what it built (docs/media-plan.md, phase 1 "CI"). goldberry-media-platform's
-# tests run here too: they demux with that FFmpeg, and decode with the system's
-# decoders, VideoToolbox on macOS and GStreamer on Linux (ADR-0472, ADR-0489).
+# what it built (docs/media-plan.md, phase 1 "CI"). The system decoders' tests
+# run in the same task: they demux with that FFmpeg, and decode with the
+# system's decoders, VideoToolbox on macOS and GStreamer on Linux (ADR-0472,
+# ADR-0489). They were :media-platform's until ADR-0493.
 #
 # Separate from linux.yml and macos.yml, because this build has its own
 # toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
@@ -20,7 +21,6 @@ on:
   pull_request:
     paths:
       - 'media/**'
-      - 'media-platform/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/media.yml'
   workflow_call:
@@ -38,7 +38,7 @@ jobs:
             tools: brew install meson pkg-config nasm ninja
           - target: linux-x64
             runner: ubuntu-24.04
-            # GStreamer's runtime and its decoders, for :media-platform: base has
+            # GStreamer's runtime and its decoders, for the system decoders: base has
             # appsrc, appsink and the converters, good the audio parsers, bad the
             # H.264 and HEVC parsers, and libav the decoders (ADR-0489). No
             # development package: the providers bind the libraries with FFM.
@@ -68,15 +68,14 @@ jobs:
       # `required`, so a test that could not load FFmpeg fails rather than skips:
       # a verification job that skips is a green tick over nothing (ADR-0016).
       # `check` includes the natives-jar test and the coverage floor.
-      - name: Test :media against it
-        run: ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true --no-daemon
-
-      # Each job requires its own system's platform decoders: VideoToolbox and
+      #
+      # Each job requires its own system's decoders too: VideoToolbox and
       # AudioToolbox on macOS, GStreamer on Linux. A test for another system's
-      # decoders still skips, since the flag fails a test only on its own system.
-      - name: Test :media-platform against it
+      # decoders still skips, since the flag fails a test only on its own system,
+      # and the coverage floor counts this system's decoders and no other's.
+      - name: Test :media against it
         run: >-
-          ./gradlew :media-platform:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
+          ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
           -Pgoldberry.platform.required=true --no-daemon
 
       - uses: actions/upload-artifact@v4

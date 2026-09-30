@@ -24,7 +24,6 @@ import io.github.digitalsmile.goldberry.media.HardwareDecoding;
 import io.github.digitalsmile.goldberry.media.MediaClock;
 import io.github.digitalsmile.goldberry.media.PictureGolden;
 import io.github.digitalsmile.goldberry.media.PlaybackState;
-import io.github.digitalsmile.goldberry.media.VideoPicture;
 import io.github.digitalsmile.goldberry.media.audio.AudioFormat;
 import io.github.digitalsmile.goldberry.media.audio.VirtualSink;
 import io.github.digitalsmile.goldberry.media.ffi.Ffmpeg;
@@ -34,6 +33,7 @@ import io.github.digitalsmile.goldberry.media.io.MediaIO;
 import io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
 import io.github.digitalsmile.goldberry.media.io.MemoryIO;
 import io.github.digitalsmile.goldberry.media.io.Source;
+import io.github.digitalsmile.goldberry.media.picture.VideoPicture;
 
 /// The Engine on a hardware decoder, and its fall to software: scenario S4 of
 /// `docs/goldberry-media.md` §7, with the failures injected through

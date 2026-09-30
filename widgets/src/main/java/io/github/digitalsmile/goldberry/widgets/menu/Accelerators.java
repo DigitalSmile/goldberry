@@ -151,7 +151,11 @@ public final class Accelerators {
                         previous,
                         binding.label());
             }
-            host.shortcut(binding.shortcut(), binding.action(), owner);
+            if (owner == null) {
+                host.shortcut(binding.shortcut(), binding.action());
+            } else {
+                host.shortcut(binding.shortcut(), binding.action(), owner);
+            }
             bound.add(binding.shortcut());
         }
         return bound;
@@ -176,7 +180,14 @@ public final class Accelerators {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(bound, "bound");
         for (var shortcut : bound) {
-            host.removeShortcut(shortcut, owner);
+            // No owner is the two-argument form's "whoever holds those keys now":
+            // by key, which is how an application gives up a key it took. Passing
+            // the null on asked the host for the keys *nobody* holds instead.
+            if (owner == null) {
+                host.removeShortcut(shortcut);
+            } else {
+                host.removeShortcut(shortcut, owner);
+            }
         }
     }
 }

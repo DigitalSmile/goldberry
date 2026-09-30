@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 /// A logarithmic value axis — `charts.md` §3.1's "log axis, with correct log tick
 /// labelling".
 ///
-/// [LogTicksTest] has the arithmetic. What only a picture answers is whether the
+/// `LogTicksTest` has the arithmetic. What only a picture answers is whether the
 /// chart is *using* it, and what it does with the readings a logarithm has no
 /// place for.
 class ChartLogTest {

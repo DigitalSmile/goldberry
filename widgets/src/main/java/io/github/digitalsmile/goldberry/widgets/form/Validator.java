@@ -67,7 +67,7 @@ public interface Validator<T> {
     }
 
     /// Checks `value`, which may be null when nothing has been entered.
-    Result check(T value);
+    Result check(@Nullable T value);
 
     /// This validator, then `next` — reporting the first failure.
     default Validator<T> and(Validator<T> next) {

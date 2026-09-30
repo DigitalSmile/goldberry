@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.accordion;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.layout.FlexDirection;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -36,7 +38,7 @@ record AccordionColumn(List<Widget> children, Attributes attributes) implements 
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

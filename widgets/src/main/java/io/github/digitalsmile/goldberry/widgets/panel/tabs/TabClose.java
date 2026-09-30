@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -26,7 +28,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// affordance costs no icon lookup and scales with the tab's own colour.
 ///
 /// @param onClose what to ask when it is clicked
-record TabClose(Runnable onClose) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+record TabClose(@Nullable Runnable onClose) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {

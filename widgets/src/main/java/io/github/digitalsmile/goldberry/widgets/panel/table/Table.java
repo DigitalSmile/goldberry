@@ -91,10 +91,10 @@ public record Table<T>(
         List<T> items,
         Function<T, String> identity,
         List<Column<T>> columns,
-        Sort sort,
-        Consumer<Sort> onSort,
+        @Nullable Sort sort,
+        @Nullable Consumer<Sort> onSort,
         Set<String> selected,
-        Consumer<Set<String>> onSelect,
+        @Nullable Consumer<Set<String>> onSelect,
         Selection selection,
         double rowHeight,
         @Nullable BiConsumer<String, Double> onResize,
@@ -127,13 +127,13 @@ public record Table<T>(
     }
 
     /// This table with `values` selected and `onSelect` told what was asked for.
-    public Table<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
+    public Table<T> selected(Set<String> values, @Nullable Consumer<Set<String>> onSelect) {
         return new Table<>(
                 items, identity, columns, sort, onSort, values, onSelect, selection, rowHeight, onResize, attributes);
     }
 
     /// The same, for the caller that holds one value.
-    public Table<T> selected(String value, Consumer<String> onSelect) {
+    public Table<T> selected(@Nullable String value, @Nullable Consumer<String> onSelect) {
         return selected(
                 value == null ? Set.of() : Set.of(value),
                 onSelect == null
@@ -171,7 +171,7 @@ public record Table<T>(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -258,7 +258,7 @@ public record Table<T>(
     }
 
     @Override
-    public Object key() {
+    public @Nullable Object key() {
         return attributes.key();
     }
 
