@@ -615,6 +615,120 @@ GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_gtk_conflict(void) {
     return 0;
 }
 
+#if defined(GOLDBERRY_WEBVIEW_GLIB)
+// TEARING A PAGE DOWN ON LINUX (ADR-0507).
+//
+// WebKitGTK renders a page in another process, WebKitWebProcess, which draws
+// through EGL into surfaces that belong to this one. webview_destroy releases
+// the view and returns; the message telling the renderer its page is gone is
+// sent from GLib's main context, which nothing iterates once the page is closed,
+// and the caller's next step is to destroy the X window the page was reparented
+// into -- which the server takes the page's own window down with. A renderer
+// still drawing then draws into a surface that has gone, and NVIDIA's EGL
+// answers that with SIGSEGV rather than an error: Ubuntu's crash dialog,
+// "WebKitWebProcess crashed in libnvidia-eglcore", after the showcase had shut
+// down cleanly.
+//
+// So the renderer is stopped first, the page destroyed second, and the queue
+// drained last, before the window can go. A renderer that dies on its own is
+// said out loud: a GLib warning in the `goldberry-webview` domain, which
+// ADR-0443 routes to `native.glib.goldberry-webview` beside the toolkit's lines.
+namespace goldberry_glib {
+
+/// The WebKitWebView webview/webview owns, or null.
+static WebKitWebView *web_view(void *w) {
+    void *controller = webview_get_native_handle(w, WEBVIEW_NATIVE_HANDLE_KIND_BROWSER_CONTROLLER);
+    return controller != nullptr && WEBKIT_IS_WEB_VIEW(controller) ? WEBKIT_WEB_VIEW(controller) : nullptr;
+}
+
+static void on_renderer_terminated(WebKitWebView *, WebKitWebProcessTerminationReason reason, gpointer) {
+    switch (reason) {
+        case WEBKIT_WEB_PROCESS_CRASHED:
+            g_log("goldberry-webview", G_LOG_LEVEL_WARNING,
+                  "the page's web process crashed; the page is blank until it is navigated again");
+            break;
+        case WEBKIT_WEB_PROCESS_EXCEEDED_MEMORY_LIMIT:
+            g_log("goldberry-webview", G_LOG_LEVEL_WARNING,
+                  "the page's web process exceeded its memory limit and was stopped");
+            break;
+        default:
+            // WEBKIT_WEB_PROCESS_TERMINATED_BY_API: stop_renderer below, on purpose.
+            break;
+    }
+}
+
+/// Keeps WebKit's default context alive past `exit()`, once per process.
+///
+/// WebKit holds its default WebKitWebContext in a C++ static, and drops it from
+/// the exit handlers. Finalising the context releases its website data manager,
+/// whose `~WebsiteDataStore` reaches `allDataStores()` -- a registry WebKit only
+/// lets its **main** thread touch, the one that started GTK, which is Goldberry's
+/// UI thread. The stock `java` launcher runs `main` on a thread of its own and
+/// calls `exit()` from its first one, so the exit handlers run on the wrong
+/// thread and WebKit crashes on purpose: `WTFCrashWithInfo` in
+/// `WebsiteDataStore.cpp:124`, SIGABRT after a clean shutdown. Whether it did
+/// depended on whether anything still held the context at exit, which is why it
+/// came and went; with the renderer stopped and the page released (below) it
+/// came every time.
+///
+/// One reference, taken here on the UI thread and never given back, means the
+/// static's release only counts down and nothing is finalised off the main
+/// thread. The cost is the context living until the process ends, which is the
+/// moment it is being asked to end at. A native image runs `main` on the first
+/// thread and never met this.
+static void pin_default_context() {
+    static bool pinned = false;
+    if (!pinned) {
+        pinned = true;
+        g_object_ref(webkit_web_context_get_default());
+    }
+}
+
+/// Says so when the page's renderer dies, rather than leaving a blank page, and
+/// pins the context every page shares.
+static void watch_renderer(void *w) {
+    if (w == nullptr) {
+        return;
+    }
+    pin_default_context();
+    if (WebKitWebView *view = web_view(w)) {
+        g_signal_connect(view, "web-process-terminated", G_CALLBACK(on_renderer_terminated), nullptr);
+    }
+}
+
+/// Stops the page's renderer before anything it draws into can go.
+///
+/// Termination rather than a polite close: a close is a message the renderer
+/// handles when it gets to it, and the window is destroyed in the next call.
+/// An embedded page's unload handlers do not run, which is the price, and the
+/// same thing closing the window under a browser tab costs.
+static void stop_renderer(void *w) {
+#if WEBKIT_CHECK_VERSION(2, 34, 0)
+    if (WebKitWebView *view = web_view(w)) {
+        webkit_web_view_terminate_web_process(view);
+    }
+#else
+    // Older than the call: the drain after the destroy is the whole defence.
+    (void) w;
+#endif
+}
+
+/// Runs what the teardown queued -- GTK unrealising the page's window, WebKit
+/// releasing its surfaces and noticing its renderer is gone -- before the caller
+/// destroys the window it was in. Bounded, and never blocking, for
+/// goldberry_webview_pump's reason: a context that keeps producing work must
+/// not hold the caller here.
+static void drain() {
+    for (int i = 0; i < 256; i++) {
+        if (!g_main_context_iteration(nullptr, FALSE)) {
+            break;
+        }
+    }
+}
+
+} // namespace goldberry_glib
+#endif
+
 /// Opens a page in a window of the engine's own.
 ///
 /// The second argument of `webview_create` is the native window to embed into,
@@ -651,8 +765,12 @@ GOLDBERRY_WEBVIEW_EXPORT void *goldberry_webview_create(int debug) {
         // application.
         return nullptr;
     }
-#endif
+    void *w = webview_create(debug, nullptr);
+    goldberry_glib::watch_renderer(w);
+    return w;
+#else
     return webview_create(debug, nullptr);
+#endif
 }
 
 /// Closes the window and frees the page.
@@ -680,6 +798,13 @@ GOLDBERRY_WEBVIEW_EXPORT void goldberry_webview_destroy(void *w) {
     if (com) {
         CoUninitialize();
     }
+#elif defined(GOLDBERRY_WEBVIEW_GLIB)
+    // The renderer first, the page second, and GLib's queue last -- all before
+    // this returns, because what the caller does next is destroy the window the
+    // page lives in (ADR-0507).
+    goldberry_glib::stop_renderer(w);
+    webview_destroy(w);
+    goldberry_glib::drain();
 #else
     webview_destroy(w);
 #endif

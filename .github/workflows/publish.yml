@@ -134,7 +134,10 @@ jobs:
 
       # `<target>/`, which :media's `ffmpegNativesJar*` tasks read. A snapshot
       # carries the targets the Media workflow built; a release refuses to
-      # publish without all four (media/build.gradle, ADR-0495).
+      # publish without all four (media/build.gradle, ADR-0495). Either way the
+      # binaries go with the `ffmpeg-sources` classifier, FFmpeg's and dav1d's
+      # source, which Gradle fetches from git on this runner -- and refuses to
+      # publish them without (ADR-0508).
       - name: Flatten into the layout :media expects
         run: |
           mkdir -p ffmpeg-artifacts

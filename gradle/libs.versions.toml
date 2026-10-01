@@ -121,6 +121,13 @@ webview2 = "1.0.1150.38"
 # avcodec.
 ffmpeg = "n8.1.3"
 dav1d = "1.5.4"
+# The commits those two tags name, for the reason Blend2D is pinned by one: a tag
+# can be moved. The superbuild refuses a checkout that is not at them, and so
+# does `:media:ffmpegSourcesJar`, the `ffmpeg-sources` classifier LGPL-2.1 §4
+# requires beside the binaries -- so the source published is the source built
+# (ADR-0508). Moving a tag above means moving its commit here too.
+ffmpegCommit = "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7"
+dav1dCommit = "54706fc6bc0cdecab7e9593974a4039cc038fca7"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

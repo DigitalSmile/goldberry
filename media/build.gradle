@@ -1,4 +1,7 @@
 import io.github.digitalsmile.goldberry.build.ToolResolver
+import io.github.digitalsmile.goldberry.build.publish.CorrespondingSource
+import io.github.digitalsmile.goldberry.build.publish.UpstreamSource
+import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     id 'goldberry.java-conventions'
@@ -265,6 +268,129 @@ mediaTargets.each { target ->
 
 def hostNativesJar = tasks.named("ffmpegNativesJar${taskSuffix(hostTargetId)}")
 
+// ============================================================================
+// The corresponding source: goldberry-media's `ffmpeg-sources` (ADR-0508)
+//
+// LGPL-2.1 §4 lets FFmpeg's object code be distributed only with its complete
+// corresponding source, or with equivalent access to it from the same place, and
+// a snapshot on Central is a distribution like a release. So the binaries above
+// never go out without this jar beside them, under the same coordinates:
+// FFmpeg and dav1d at exactly the pinned tags, the superbuild that compiles
+// them, the licence texts, and a README.txt on rebuilding and relinking.
+//
+// The trees come from git -- the repositories and tags the superbuild clones,
+// checked against the commits pinned beside the tags, which the superbuild
+// checks too -- so this is the source that was built and not a tarball that
+// shares a version number. It needs git and the network, once; it does not need
+// FFmpeg built, so the Java-only publishing job makes it.
+// ============================================================================
+// The clones outlive `clean`, as the superbuild's do (ADR-0038);
+// -Pgoldberry.media.sourcesDir puts them elsewhere.
+def sourcesCloneDir = providers.gradleProperty('goldberry.media.sourcesDir')
+        .map { file(it) }
+        .orElse(layout.projectDirectory.dir('.deps/sources').asFile)
+def upstreamSources = [
+        new UpstreamSource('ffmpeg', 'https://git.ffmpeg.org/ffmpeg.git',
+                libs.versions.ffmpeg.get(), libs.versions.ffmpegCommit.get()),
+        new UpstreamSource('dav1d', 'https://code.videolan.org/videolan/dav1d.git',
+                libs.versions.dav1d.get(), libs.versions.dav1dCommit.get()),
+]
+def gitExecutable = resolveTool('git')?.absolutePath ?: 'git'
+
+def sourceArchives = upstreamSources.collectEntries { source ->
+    def archive = layout.buildDirectory.file("ffmpeg-sources/${source.directory()}.tar")
+    def clone = new File(sourcesCloneDir.get(), "${source.name()}.git")
+    def task = tasks.register("${source.name()}SourceArchive") {
+        group = 'native'
+        description = "Takes ${source.name()} ${source.tag()} from git as a tar, for the ffmpeg-sources classifier."
+        inputs.property 'repository', source.repository()
+        inputs.property 'tag', source.tag()
+        inputs.property 'commit', source.commit()
+        outputs.file archive
+        doLast {
+            source.archive(gitExecutable, clone.toPath(), archive.get().asFile.toPath())
+        }
+    }
+    [(task): archive]
+}
+
+// The targets whose notices this jar quotes: those packaged beside it.
+def noticeDir = { String target ->
+    mediaArtifactsDir.isPresent()
+            ? new File(mediaArtifactsDir.get(), target)
+            : (target == hostTargetId ? superbuildInstallDir.get().dir('lib').asFile : null)
+}
+def noticedTargets = mediaTargets.findAll {
+    noticeDir(it) != null && new File(noticeDir(it), 'ffmpeg-NOTICE.txt').isFile()
+}
+
+tasks.register('ffmpegSourcesJar', Jar) {
+    group = 'native'
+    description = "Packages FFmpeg's and dav1d's source and build recipe as goldberry-media's ffmpeg-sources classifier."
+
+    archiveBaseName = 'goldberry-media'
+    archiveClassifier = CorrespondingSource.SOURCES
+    destinationDirectory = layout.buildDirectory.dir('ffmpeg-sources')
+
+    def ffmpeg = upstreamSources[0]
+    def dav1d = upstreamSources[1]
+    def readme = [
+            VERSION      : project.version.toString(),
+            TARGETS      : noticedTargets.isEmpty()
+                    ? 'none packaged with this build of the jar'
+                    : noticedTargets.collect { "ffmpeg-${it}".toString() }.join(', '),
+            FFMPEG_TAG   : ffmpeg.tag(),
+            FFMPEG_COMMIT: ffmpeg.commit(),
+            FFMPEG_DIR   : ffmpeg.directory(),
+            DAV1D_TAG    : dav1d.tag(),
+            DAV1D_COMMIT : dav1d.commit(),
+            DAV1D_DIR    : dav1d.directory(),
+    ]
+    // A filter's tokens are not an input by themselves.
+    inputs.property 'readme', readme
+
+    sourceArchives.each { task, archive ->
+        dependsOn task
+        from(tarTree(archive))
+    }
+    // The trees keep the modes git gave them, because FFmpeg's configure and its
+    // helpers are scripts an `unzip` has to find executable. Everything else is
+    // 0644 whatever this machine's umask, so the jar is the same wherever it is
+    // made. (`useFileSystemPermissions()` cannot be scoped to one `from`: on a
+    // child spec it applies to the whole archive.)
+    useFileSystemPermissions()
+    dirPermissions { unix('rwxr-xr-x') }
+    def trees = upstreamSources.collect { it.directory() + '/' }
+    eachFile { details ->
+        if (!trees.any { details.path.startsWith(it) }) {
+            details.permissions { unix('rw-r--r--') }
+        }
+    }
+    // The one file not from git: FFmpeg's version.sh reads it where there is no
+    // .git, as its release tarballs do, so a rebuild reports the same version.
+    from(resources.text.fromString("${ffmpeg.tag()}\n")) {
+        rename { 'VERSION' }
+        into ffmpeg.directory()
+        eachFile { it.permissions { unix('rw-r--r--') } }
+    }
+    from(superbuildSource) { into 'recipe/media/src/main/cmake' }
+    from(catalogFile) { into 'recipe/gradle' }
+    from(rootProject.file('licenses')) {
+        include 'ffmpeg.txt', 'dav1d.txt'
+        into 'licenses'
+    }
+    noticedTargets.each { target ->
+        from(noticeDir(target)) {
+            include 'ffmpeg-NOTICE.txt'
+            into "notices/${target}"
+        }
+    }
+    from('src/ffmpeg-sources') {
+        include 'README.txt'
+        filter(ReplaceTokens, tokens: readme)
+    }
+}
+
 // The natives ride the goldberry-media publication as `ffmpeg-<target>`
 // classifiers, as libgoldberry rides goldberry-natives, but only when a run hands
 // over FFmpeg builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with
@@ -290,6 +416,13 @@ if (mediaArtifactsDir.isPresent()) {
         built.each { target ->
             publication.artifact(tasks.named("ffmpegNativesJar${taskSuffix(target)}")) {
                 classifier = "ffmpeg-${target}"
+            }
+        }
+        // And their source beside them, or `goldberry.publish` refuses the lot
+        // (CorrespondingSource, ADR-0508).
+        if (!built.isEmpty()) {
+            publication.artifact(tasks.named('ffmpegSourcesJar')) {
+                classifier = CorrespondingSource.SOURCES
             }
         }
     }
@@ -327,7 +460,7 @@ tasks.named('jar') {
 tasks.register('cleanMediaDeps', Delete) {
     group = 'native'
     description = 'Discards the cached FFmpeg and dav1d sources.'
-    delete depsDir
+    delete depsDir, sourcesCloneDir
 }
 
 // ============================================================================

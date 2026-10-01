@@ -705,6 +705,16 @@ on, which in four cases is the same thing.
   platform at once and never an error. —
   [ADR-0010](adr/0010-hand-written-ffm-bindings.md),
   [ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)
+- **`VideoPlaybackTest` has two races, and one of them fails alone.**
+  `statistics` ("expected 4 shown, got 5") was believed to fail only when
+  `:media:test` and `:media:testWithoutGpu` ran side by side; on 2026-10-01 it
+  failed once in three runs on its own. `playsToTheEnd` failed in a full `check`
+  with `[BUFFERING, PLAYING, ENDED]` where it expects `OPENING` first — a status
+  listener attached after the first transition. Both are the test's clock and
+  the video thread meeting in an order the assertion does not allow, not a
+  player defect anybody has seen; and both make a red `check` mean less than it
+  should. —
+  [ADR-0463](adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
 ## Build, artifacts and release
 - **A build with no network cannot produce a usable `goldberry-core`.** The bundled
   fonts and icons are fetched from upstream releases and cached, so this bites once per
@@ -776,14 +786,6 @@ on, which in four cases is the same thing.
   requires `windows-x64` and `linux-aarch64` as well. Both are written in the
   superbuild and neither has been built. —
   [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)
-- **The LGPL corresponding-source offer for FFmpeg is not decided.** The licence
-  texts, `NOTICE` and `ffmpeg-NOTICE.txt` with the tag and configure line ship
-  with the natives jar, and relinking is `-Dgoldberry.media.libdir`. What
-  LGPL-2.1 §6 also asks of a binary distributor — the source itself, or a written
-  offer of it — is not settled, and it gates FFmpeg's first appearance on Central
-  in a release. —
-  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
-  [ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
 
 - **A native image resolves a host name before `main`.** About 50 ms of its 70 ms
   before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
@@ -872,6 +874,28 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The LGPL corresponding-source offer for FFmpeg is not decided.**~~ The licence
+  texts, `NOTICE` and `ffmpeg-NOTICE.txt` with the tag and configure line ship
+  with the natives jar, and relinking is `-Dgoldberry.media.libdir`. What
+  LGPL-2.1 §6 also asks of a binary distributor — the source itself, or a written
+  offer of it — is not settled, and it gates FFmpeg's first appearance on Central
+  in a release. —
+  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
+
+  **Closed —
+  [ADR-0508](adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md).**
+  The binaries are FFmpeg itself in object form, so the clause is LGPL-2.1 §4 and
+  not §6, as this entry had it: the complete corresponding source goes with
+  them, or is offered from the same place. `goldberry-media` publishes it as its
+  `ffmpeg-sources` classifier, one jar per version, beside every
+  `ffmpeg-<target>` — snapshots included, because a snapshot on Central is a
+  distribution too. It holds FFmpeg `n8.1.3` and dav1d `1.5.4` from `git
+  archive`, checked against commits now pinned beside the tags (the superbuild
+  checks its clones against the same ones), the superbuild as the recipe, every
+  target's notice, the licence texts, and a README on rebuilding offline and
+  relinking; 24 MB, byte-identical from a fresh clone. `goldberry.publish`
+  refuses any `ffmpeg-<target>` without it before a single module uploads.
 - ~~**"Starts in milliseconds" is still unproven.**~~ The timeline exists and the first
   numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while mapping
   `libgoldberry` is under 2ms — but they were measured under `gradle run`, which adds a

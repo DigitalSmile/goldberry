@@ -21,6 +21,11 @@
 #   ffmpeg-layout.properties, the layout probe's output for this target;
 #   ffmpeg-NOTICE.txt, with the tags and the configure line the LGPL asks for.
 #
+# The same files, with gradle/libs.versions.toml, are the build recipe in the
+# `ffmpeg-sources` classifier (ADR-0508). GOLDBERRY_FFMPEG_SOURCE_DIR and
+# GOLDBERRY_DAV1D_SOURCE_DIR build from that jar's source trees instead of
+# cloning, with nothing fetched.
+#
 # Driven from Gradle by `:media:ffmpegBuild` for the host. CI invokes it directly
 # per runner, like the libgoldberry superbuild (ADR-0012).
 # ============================================================================
@@ -40,6 +45,12 @@ set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
 # Windows, where there is no kernel support for `#!` and it has to be handed to
 # MSYS2's sh (docs/media-plan.md, "Local toolchain").
 set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Windows")
+
+# Empty: clone each upstream at its pinned tag, as every build of the shipped
+# libraries does. A directory: build from that tree instead, which is how the
+# `ffmpeg-sources` classifier is rebuilt with no network (its README.txt).
+set(GOLDBERRY_FFMPEG_SOURCE_DIR "" CACHE PATH "An FFmpeg source tree to build instead of cloning one")
+set(GOLDBERRY_DAV1D_SOURCE_DIR "" CACHE PATH "A dav1d source tree to build instead of cloning one")
 
 # The VP9/AV1 hardware decoders (phase 5, ADR-0470). On by default where the
 # hwaccel needs only what the OS ships: VideoToolbox on macOS and D3D11 on
@@ -98,6 +109,11 @@ endfunction()
 
 goldberry_pin(ffmpeg GOLDBERRY_FFMPEG_REF)
 goldberry_pin(dav1d GOLDBERRY_DAV1D_REF)
+# The commits those tags name (ADR-0508): a clone that is not at them is refused,
+# so the `ffmpeg-sources` classifier, which is refused the same way, is the
+# source of what this builds.
+goldberry_pin(ffmpegCommit GOLDBERRY_FFMPEG_COMMIT)
+goldberry_pin(dav1dCommit GOLDBERRY_DAV1D_COMMIT)
 message(STATUS "goldberry-media pins: ffmpeg ${GOLDBERRY_FFMPEG_REF}, dav1d ${GOLDBERRY_DAV1D_REF}; target ${GOLDBERRY_TARGET_ID}")
 
 ProcessorCount(_jobs)
@@ -107,6 +123,41 @@ endif()
 
 # Both upstreams install here, and the probe compiles against these headers.
 set(_stage "${GOLDBERRY_MEDIA_DEPS_DIR}/stage")
+
+# Where each upstream's source comes from: a shallow clone at the pinned tag,
+# checked against the pinned commit once it is fetched, or a tree handed over.
+find_package(Git QUIET)
+function(goldberry_source _name _repository _ref _given _out)
+    if(_given)
+        if(NOT EXISTS "${_given}")
+            message(FATAL_ERROR "No ${_name} source at '${_given}'.")
+        endif()
+        set(${_out} SOURCE_DIR "${_given}" PARENT_SCOPE)
+    else()
+        set(${_out}
+            GIT_REPOSITORY ${_repository}
+            GIT_TAG ${_ref}
+            GIT_SHALLOW TRUE
+            SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/${_name}-src"
+            PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(goldberry_verify_checkout _name _commit _given)
+    if(NOT _given)
+        ExternalProject_Add_Step(${_name} verify_commit
+            COMMAND ${CMAKE_COMMAND} -DGIT=${GIT_EXECUTABLE} -DSOURCE_DIR=<SOURCE_DIR>
+                -DNAME=${_name} -DCOMMIT=${_commit} -P "${CMAKE_CURRENT_SOURCE_DIR}/checkout.cmake"
+            DEPENDEES download
+            DEPENDERS configure
+            COMMENT "Checking that ${_name} is at the pinned commit")
+    endif()
+endfunction()
+
+goldberry_source(dav1d https://code.videolan.org/videolan/dav1d.git ${GOLDBERRY_DAV1D_REF}
+    "${GOLDBERRY_DAV1D_SOURCE_DIR}" _dav1d_source)
+goldberry_source(ffmpeg https://git.ffmpeg.org/ffmpeg.git ${GOLDBERRY_FFMPEG_REF}
+    "${GOLDBERRY_FFMPEG_SOURCE_DIR}" _ffmpeg_source)
 
 # ----------------------------------------------------------------------------
 # dav1d: the software AV1 decoder, built static and position-independent so it
@@ -118,11 +169,8 @@ set(_stage "${GOLDBERRY_MEDIA_DEPS_DIR}/stage")
 # stays release, which keeps NDEBUG and trim_dsp.
 # ----------------------------------------------------------------------------
 ExternalProject_Add(dav1d
-    GIT_REPOSITORY https://code.videolan.org/videolan/dav1d.git
-    GIT_TAG ${GOLDBERRY_DAV1D_REF}
-    GIT_SHALLOW TRUE
+    ${_dav1d_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d"
-    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d-src"
     BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d-build"
     CONFIGURE_COMMAND ${GOLDBERRY_MESON} setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${_stage} --libdir=lib
@@ -132,6 +180,7 @@ ExternalProject_Add(dav1d
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
     UPDATE_DISCONNECTED TRUE)
+goldberry_verify_checkout(dav1d ${GOLDBERRY_DAV1D_COMMIT} "${GOLDBERRY_DAV1D_SOURCE_DIR}")
 
 if(WIN32)
     # UNTESTED: meson names a static library libdav1d.a with every compiler, and
@@ -209,11 +258,8 @@ endif()
 
 ExternalProject_Add(ffmpeg
     DEPENDS dav1d
-    GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git
-    GIT_TAG ${GOLDBERRY_FFMPEG_REF}
-    GIT_SHALLOW TRUE
+    ${_ffmpeg_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg"
-    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-src"
     BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-build"
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env PKG_CONFIG_PATH=${_stage}/lib/pkgconfig
         ${_configure} --prefix=${_stage}
@@ -222,6 +268,7 @@ ExternalProject_Add(ffmpeg
     BUILD_COMMAND ${GOLDBERRY_MAKE} -j${_jobs}
     INSTALL_COMMAND ${GOLDBERRY_MAKE} install
     UPDATE_DISCONNECTED TRUE)
+goldberry_verify_checkout(ffmpeg ${GOLDBERRY_FFMPEG_COMMIT} "${GOLDBERRY_FFMPEG_SOURCE_DIR}")
 
 # ----------------------------------------------------------------------------
 # The layout probe (ffmpeg_layout.c): compiled against the headers FFmpeg just
@@ -248,6 +295,8 @@ add_custom_target(ffmpeg_package ALL
         -DBUILD_SUFFIX=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}
         -DFFMPEG_REF=${GOLDBERRY_FFMPEG_REF}
         -DDAV1D_REF=${GOLDBERRY_DAV1D_REF}
+        -DFFMPEG_COMMIT=${GOLDBERRY_FFMPEG_COMMIT}
+        -DDAV1D_COMMIT=${GOLDBERRY_DAV1D_COMMIT}
         "-DCONFIGURE_LINE=${_configure_line}"
         -DTARGET_ID=${GOLDBERRY_TARGET_ID}
         -P "${CMAKE_CURRENT_SOURCE_DIR}/package.cmake"

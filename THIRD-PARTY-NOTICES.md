@@ -86,6 +86,17 @@ that ships those classifier jars owes its users the LGPL notice and that
 replaceability; it owes no patent review for codecs, because none from a patent
 pool is built.
 
+**The source.** LGPL-2.1 §4 has FFmpeg's object code distributed only with its
+complete corresponding source, or with equivalent access to copy it from the
+same place. That place is `goldberry-media`'s `ffmpeg-sources` classifier
+(`goldberry-media-<version>-ffmpeg-sources.jar`), published beside the binaries
+under the same coordinates, snapshots included: FFmpeg and dav1d at exactly the
+pinned tags and commits, the media superbuild that compiled them, the licence
+texts, and a `README.txt` on rebuilding and relinking. Publication refuses an
+`ffmpeg-<platform>` classifier without it (ADR-0508). An application that
+redistributes the binaries takes the same obligation on with them, and shipping
+that jar beside them is the plain way to meet it.
+
 ### The platform decoders bundle nothing
 
 `goldberry-media`'s system decoders (ADR-0472, ADR-0489; the separate

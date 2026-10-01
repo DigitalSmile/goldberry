@@ -45,6 +45,7 @@ compiled.
 | the same, released | Maven Central | a `v*` tag (`release.yml`) |
 | `goldberry-natives` classifiers `linux-x64`, `linux-aarch64`, `macos-aarch64`, `windows-x64` | beside `goldberry-natives` | with it |
 | `goldberry-media` classifiers `ffmpeg-<target>`: FFmpeg for each target the Media workflow built (`macos-aarch64` and `linux-x64` today). A release needs all four and refuses without them (ADR-0495) | beside `goldberry-media` | with it |
+| `goldberry-media` classifier `ffmpeg-sources`: FFmpeg's and dav1d's complete source at the pinned tags, the superbuild, and how to rebuild and relink — LGPL-2.1 §4's corresponding source. One per version, about 24 MB. Every publication that carries an `ffmpeg-<target>` refuses to go without it, snapshots too (ADR-0508) | beside `goldberry-media` | with the `ffmpeg-<target>` classifiers |
 | `goldberry-showcase-native-{linux-x64,macos-aarch64}.tar.gz`, `goldberry-showcase-native-windows-x64.exe` — the showcase as a GraalVM native image | the tag's GitHub Release, created as a draft; also the run's artifacts | a `v*` tag (`showcase.yml`); a manual run builds them as artifacts only |
 
 Consuming it — the BOM for the version, the umbrella for the toolkit, and the
@@ -163,7 +164,12 @@ summary instead of failing.
 2. **Check the licences**: `./gradlew checkLicenses -Pgoldberry.releaseCheck=true`
    must pass. The release run enforces it. A bumped upstream pin in
    `libs.versions.toml` means re-copying that component's file from the new
-   checkout, since the copyright lines are the upstream's.
+   checkout, since the copyright lines are the upstream's. A bumped `ffmpeg` or
+   `dav1d` tag means its `ffmpegCommit` or `dav1dCommit` too
+   (`git ls-remote <repository> 'refs/tags/<tag>^{}'`): the superbuild and
+   `:media:ffmpegSourcesJar` both refuse a tag that does not name the pinned
+   commit, and publication refuses the FFmpeg binaries without that jar
+   (ADR-0508).
 3. **Tag the commit that declares the version**:
    ```sh
    git tag -a v2026.1 -m "Goldberry 2026.1"
@@ -204,4 +210,15 @@ for t in linux-x64:libgoldberry.so linux-aarch64:libgoldberry.so \
 done
 ./gradlew publishToMavenLocal -Dmaven.repo.local=/tmp/m2 \
     -Pgoldberry.skipNative=true -Pgoldberry.artifactsDir=/tmp/art -x test
+```
+
+With FFmpeg too, from a local `./gradlew :media:ffmpegBuild`: hand the install
+over as one target's build, and `goldberry-media` publishes `ffmpeg-linux-x64`
+with `ffmpeg-sources` beside it. The source jar fetches FFmpeg and dav1d from
+git the first time, into `media/.deps/sources`.
+
+```sh
+mkdir -p /tmp/ffmpeg && cp -r media/build/ffmpeg/linux-x64/install/lib /tmp/ffmpeg/linux-x64
+./gradlew :media:publishToMavenLocal -Dmaven.repo.local=/tmp/m2 \
+    -Pgoldberry.skipNative=true -Pgoldberry.media.artifactsDir=/tmp/ffmpeg -x test
 ```

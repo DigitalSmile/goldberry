@@ -11,11 +11,12 @@
 # 3. Fails the build when they are larger together than SIZE_LIMIT
 #    (goldberry-media.md §2: target 6 MB, fail above 7).
 # 4. Writes ffmpeg-NOTICE.txt: what was built, from which tags, with which
-#    configure line. The LGPL's relinking promise is only useful to someone who
-#    can rebuild what shipped.
+#    configure line, and where the source is: the `ffmpeg-sources` classifier
+#    of the same goldberry-media version (ADR-0508). The LGPL's relinking promise
+#    is only useful to someone who can rebuild what shipped.
 #
 # In: STAGE, OUT, SYSTEM, STRIP, SIZE_LIMIT, BUILD_SUFFIX, FFMPEG_REF, DAV1D_REF,
-#     CONFIGURE_LINE, TARGET_ID.
+#     FFMPEG_COMMIT, DAV1D_COMMIT, CONFIGURE_LINE, TARGET_ID.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 
@@ -92,8 +93,19 @@ ffmpeg_layout.c against your build's headers. Configure it with
 --build-suffix=${BUILD_SUFFIX}, as below, so that its libraries have the names
 these have.
 
-FFmpeg  ${FFMPEG_REF}  https://git.ffmpeg.org/ffmpeg.git
-dav1d   ${DAV1D_REF}  https://code.videolan.org/videolan/dav1d.git
+FFmpeg  ${FFMPEG_REF}  ${FFMPEG_COMMIT}  https://git.ffmpeg.org/ffmpeg.git
+dav1d   ${DAV1D_REF}  ${DAV1D_COMMIT}  https://code.videolan.org/videolan/dav1d.git
+
+The complete corresponding source of these libraries is published beside them,
+in the same repository and under the same coordinates, as the `ffmpeg-sources`
+classifier of the same goldberry-media version:
+
+  io.github.digitalsmile:goldberry-media:<version>:ffmpeg-sources
+  goldberry-media-<version>-ffmpeg-sources.jar
+
+It holds FFmpeg and dav1d at exactly the tags and commits above, the build
+recipe that produced this directory, and a README.txt saying how to rebuild
+and relink.
 
 FFmpeg was configured with:
   ${CONFIGURE_LINE}
