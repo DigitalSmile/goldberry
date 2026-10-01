@@ -108,11 +108,11 @@ class SiteTest {
     class Book {
 
         @Test
-        @DisplayName("ends with its suffix chapter: mdBook refuses a list after one")
-        void templateIsLast() {
-            var summary = Repository.read("book/src/SUMMARY.md").strip();
-            var lastLine = summary.substring(summary.lastIndexOf('\n') + 1);
-            assertEquals("[Template](adr/0000-template.md)", lastLine);
+        @DisplayName("lists no record: the log is read on GitHub, not built into the book (ADR-0512)")
+        void theLogIsNotInTheBook() {
+            var summary = Repository.read("book/src/SUMMARY.md");
+            assertTrue(
+                    summary.lines().noneMatch(line -> line.contains("](adr/")), "SUMMARY.md lists a record");
         }
     }
 

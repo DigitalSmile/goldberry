@@ -71,7 +71,7 @@ A semantic hue has three ranks. `--gb-danger` is what danger is, a fill;
 you may draw a glyph or a border with on a surface, and it clears 3:1 against
 it. `--gb-warning`, `--gb-success` and `--gb-info` have `-line` ranks for
 the same reason, and `-text` ranks for words on their fills
-([ADR-0175](../adr/0175-a-banner-says-its-kind-twice.md)).
+([ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md)).
 
 Above the aliases sit component tokens: `--gb-button-bg`,
 `--gb-button-bg-hover`, `--gb-checkbox-mark-checked`, `--gb-toggle-track-bg`,
@@ -145,7 +145,7 @@ they are tokens. A card wears level 1 and lifts to 2 on
 `card.interactive:hover`; a dialog, a toast and a tour card wear level 2; a
 popup is an edge rather than a shadow, because it is drawn in a window sized
 to itself and a shadow would be clipped
-([ADR-0312](../adr/0312-the-catalog-puts-the-two-new-properties-on.md)).
+([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)).
 Level 3 is defined and used by nothing.
 
 **Materials.** Of the three the specification names, `opaque` is every
@@ -202,7 +202,7 @@ One focus owner per window. The ring is 2 px of `--gb-focus`, 2 px outside
 the control, following its radius, and it appears only for keyboard focus. It
 is one rule over a list of types in the base layer, not one rule per control.
 A composite is one Tab stop with the arrow keys moving inside it
-([ADR-0073](../adr/0073-a-composite-is-one-tab-stop.md)).
+([ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)).
 
 ## Keyboard conventions
 
@@ -215,7 +215,7 @@ Accelerators are written against the desktop's **primary modifier**, which
 has a name: `Primary` in a string, `Shortcut.primary(key)` in Java. It is
 `Cmd` on macOS and `Ctrl` everywhere else, and nothing is translated: a
 shortcut that says `Ctrl` means the control key on every desktop
-([ADR-0378](../adr/0378-the-desktops-own-modifier-has-a-name.md)).
+([ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md)).
 
 In a dialog `Enter` presses the affirmative action and `Escape` the
 dismissive one, and the affirmative sits on the right. A button activates on
@@ -235,7 +235,7 @@ form's default action. Tab order is document order.
 `Density.COMPACT` is those tokens on `:root` and nothing else. The 16 px glyph
 inside a checkbox or a radio does not shrink, so compact costs margin around
 the target rather than a smaller target
-([ADR-0074](../adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)).
+([ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)).
 
 ## Scrollbars
 
@@ -243,7 +243,7 @@ Overlay by default: a 6 px thumb over the content that widens to 10 px with a
 track on hover, with no gutter reserved. `Scrollbars.ALWAYS` swaps in a
 classic 12 px gutter with an 8 px thumb and a `--gb-surface-2` track, and a
 layout must survive the gutter appearing
-([ADR-0364](../adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
+([ADR-0364](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
 
 ## Component metrics
 
@@ -285,7 +285,7 @@ enforced by a sweep over the source tree.
 
 Not built: a screen-reader bridge. Nothing on any platform reads the
 semantics tree, and the bridge is on hold with no milestone owning it
-([ADR-0440](../adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
+([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
 The tree stays, so a bridge would be an adapter rather than a rearchitecture.
 
 ## Governance
@@ -297,8 +297,8 @@ component contracts and the metrics tables are the stable tier.
 ## Read more
 
 - [Styling](styling.md): the CSS that reads these tokens
-- [ADR-0074](../adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md): density
-- [ADR-0175](../adr/0175-a-banner-says-its-kind-twice.md): three ranks of a hue
-- [ADR-0310](../adr/0310-a-shadow-is-a-stack-of-rectangles.md): elevation
-- [ADR-0378](../adr/0378-the-desktops-own-modifier-has-a-name.md): the primary modifier
-- [ADR-0440](../adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md): the bridge on hold
+- [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md): density
+- [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md): three ranks of a hue
+- [ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md): elevation
+- [ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md): the primary modifier
+- [ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md): the bridge on hold

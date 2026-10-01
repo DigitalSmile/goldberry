@@ -26,8 +26,11 @@ final class Book {
     /** Where mdBook reads the chapters from. */
     static final Path SOURCE = Path.of("book", "src");
 
-    /** The decision log, which the guide's rules do not apply to. */
+    /** The decision log, which is not a part of the book: it is read on GitHub (ADR-0512). */
     static final String LOG = "adr/";
+
+    /** Where a chapter links a record: the file on GitHub. */
+    static final String RECORDS_ON_GITHUB = "https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/";
 
     /** A chapter as {@code SUMMARY.md} lists it: {@code [Title](path.md)}. */
     private static final Pattern LISTED = Pattern.compile("\\[([^\\]]*)\\]\\(([^)]+\\.md)\\)");
@@ -60,6 +63,15 @@ final class Book {
      * names, relative to the chapter, and the fragment after the {@code #} if any.
      */
     record Link(String chapter, String href, String target, Optional<String> fragment) {
+
+        /** The record on GitHub this points at, as a path under {@code book/src}, if it does. */
+        Optional<String> record() {
+            if (!href.startsWith(RECORDS_ON_GITHUB)) {
+                return Optional.empty();
+            }
+            var file = target.substring(RECORDS_ON_GITHUB.length());
+            return Optional.of(LOG + file);
+        }
 
         /** Whether this points somewhere outside the book, which is not checked here. */
         boolean external() {
@@ -108,13 +120,18 @@ final class Book {
                 .toList();
     }
 
-    /** Every Markdown file under {@code book/src}, relative to it, with forward slashes. */
+    /**
+     * Every Markdown file under {@code book/src} that is a page of the book,
+     * relative to it, with forward slashes. The decision log under {@code adr/} is
+     * kept there for GitHub and is not built (ADR-0512).
+     */
     static List<String> pages() {
         var root = Repository.root().resolve(SOURCE);
         try (Stream<Path> files = Files.walk(root)) {
             return files.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".md"))
                     .map(path -> root.relativize(path).toString().replace('\\', '/'))
+                    .filter(page -> !page.startsWith(LOG))
                     .sorted()
                     .toList();
         } catch (IOException e) {

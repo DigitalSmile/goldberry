@@ -59,7 +59,7 @@ click on it lands nowhere rather than on whatever is behind it.
 `float=#true` wraps the button in a `Floated` widget that keeps it at
 `--gb-window-margin` from two window edges. It is placement, not appearance, so
 it composes with every variant and shape
-([ADR-0347](../adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
+([ADR-0347](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
 In Java the wrapper is `new Floated(button, Corner.BOTTOM_END)`.
 
 ### Styling
@@ -75,12 +75,12 @@ The metrics are height 32, padding 12, gap 6, radius 8, in `body-strong`.
 Compact density makes the height 28. `button.link` has 4 px of padding, the
 regular weight and the ink `--gb-button-link-text`. It hovers with the ghost
 wash and never underlines
-([ADR-0293](../adr/0293-a-button-that-reads-as-a-link.md)).
+([ADR-0293](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)).
 
 Disabled is 45% opacity on the whole control and never a colour remap, so a
 disabled danger button still looks dangerous. The fade is applied once, by the
 outermost disabled node
-([ADR-0379](../adr/0379-a-disabled-container-reaches-the-cascade.md)).
+([ADR-0379](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0379-a-disabled-container-reaches-the-cascade.md)).
 
 ### Keyboard
 
@@ -95,11 +95,11 @@ consumed.
 
 ### Read more
 
-- [ADR-0293: a button that reads as a link](../adr/0293-a-button-that-reads-as-a-link.md)
-- [ADR-0347: an icon-only button is a circle, and float is a place](../adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
-- [ADR-0260: a name is an attribute every widget has](../adr/0260-a-name-is-an-attribute-every-widget-has.md)
-- [ADR-0077: disabled propagates for input and not for paint](../adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
-- [ADR-0355: a button leaves](../adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
+- [ADR-0293: a button that reads as a link](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)
+- [ADR-0347: an icon-only button is a circle, and float is a place](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
+- [ADR-0260: a name is an attribute every widget has](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0260-a-name-is-an-attribute-every-widget-has.md)
+- [ADR-0077: disabled propagates for input and not for paint](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
+- [ADR-0355: a button leaves](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 
 ## `badge`
 
@@ -144,9 +144,9 @@ the binding answers, as a `text`'s does.
 
 Height 20, minimum width 20, padding 4, full radius, in `caption`. The minimum
 width equals the height so a one-digit badge is a circle
-([ADR-0259](../adr/0259-a-badge-with-one-digit-is-a-circle.md)). Each filled
+([ADR-0259](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0259-a-badge-with-one-digit-is-a-circle.md)). Each filled
 variant pins its own foreground token, because white on the warning hue is
-1.35:1 ([ADR-0087](../adr/0087-a-semantic-fill-brings-its-own-foreground.md)).
+1.35:1 ([ADR-0087](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)).
 
 ### Keyboard
 
@@ -154,8 +154,8 @@ None.
 
 ### Read more
 
-- [ADR-0259: a badge with one digit is a circle](../adr/0259-a-badge-with-one-digit-is-a-circle.md)
-- [ADR-0087: a semantic fill brings its own foreground](../adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+- [ADR-0259: a badge with one digit is a circle](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0259-a-badge-with-one-digit-is-a-circle.md)
+- [ADR-0087: a semantic fill brings its own foreground](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 
 ## `chip`
 
@@ -187,7 +187,7 @@ new Row(
 A chip selects nothing itself. Pressing raises `press` and the application
 decides. The bound value, or the written `selected`, is what draws the
 `:checked` state. That is the controlled loop every control runs
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)). Dismissing raises
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). Dismissing raises
 `dismiss` and removes nothing, because the list a row of chips shows is the
 application's.
 
@@ -212,7 +212,7 @@ application's.
 
 The dot's colour is a value and not a class, because a project's hue lives in a
 row of a database and a stylesheet cannot have a rule per project
-([ADR-0328](../adr/0328-a-dots-colour-is-data.md)). `withDot(0xFFBF616A)` is
+([ADR-0328](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0328-a-dots-colour-is-data.md)). `withDot(0xFFBF616A)` is
 the Java spelling, and `0` means the stylesheet decides.
 
 ### Styling
@@ -242,7 +242,7 @@ field, where `Backspace` is what a hand reaches for.
 
 ### Read more
 
-- [ADR-0305: a chip is a badge you can press](../adr/0305-a-chip-is-a-badge-you-can-press.md)
-- [ADR-0328: a dot's colour is data](../adr/0328-a-dots-colour-is-data.md)
-- [ADR-0063: data flows down, events flow up](../adr/0063-data-flows-down-events-flow-up.md)
-- [ADR-0192: a row of chips wraps and the chevron does not](../adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+- [ADR-0305: a chip is a badge you can press](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0305-a-chip-is-a-badge-you-can-press.md)
+- [ADR-0328: a dot's colour is data](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0328-a-dots-colour-is-data.md)
+- [ADR-0063: data flows down, events flow up](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
+- [ADR-0192: a row of chips wraps and the chevron does not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)

@@ -34,27 +34,27 @@ The `row` says which way its children go. The stylesheet says everything else: t
 
 ## Flexbox, from Yoga
 
-Goldberry does not implement a layout algorithm. It binds Yoga, the flexbox engine, and the CSS subset compiles to Yoga's properties. The vocabulary an application sees is the toolkit's own. `Length`, `Insets`, `Limits`, `FlexDirection`, `Justify`, `Align`, `Wrap`, `Position` and `Overflow` live in `dev.goldberry.layout`, and Yoga is translated in one file nothing else touches. That split is [ADR-0279](../adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md).
+Goldberry does not implement a layout algorithm. It binds Yoga, the flexbox engine, and the CSS subset compiles to Yoga's properties. The vocabulary an application sees is the toolkit's own. `Length`, `Insets`, `Limits`, `FlexDirection`, `Justify`, `Align`, `Wrap`, `Position` and `Overflow` live in `dev.goldberry.layout`, and Yoga is translated in one file nothing else touches. That split is [ADR-0279](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md).
 
 Yoga runs with CSS's defaults rather than its own. A box shrinks when its row is too narrow, because `flex-shrink` is 1 unless a rule says otherwise. Keep that in mind when a control looks squashed. [Sizing with CSS](sizing.md) lists every property the subset accepts.
 
 ## Logical pixels
 
-A `px` in a stylesheet is a logical pixel. The window's display scale is applied once, as a transform on the painting context, and nothing above it does arithmetic in device pixels. `8px` of padding is the same distance on a 100% display and a 200% one. The decision is [ADR-0031](../adr/0031-blend2d-and-the-borrowed-buffer.md).
+A `px` in a stylesheet is a logical pixel. The window's display scale is applied once, as a transform on the painting context, and nothing above it does arithmetic in device pixels. `8px` of padding is the same distance on a 100% display and a 200% one. The decision is [ADR-0031](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md).
 
 Edges still land on whole device pixels. The render tree hands Yoga the window's scale as its point scale factor, and Yoga rounds every edge to the device grid. At 1x a row of 101 points splits 51 and 50. At 2x it splits 50.5 and 50.5, which is the same tree on a finer grid.
 
 ## The box model
 
-A box has a width and a height, padding inside its edge, a margin outside it, and a border drawn on the edge. `min-width`, `max-width`, `min-height` and `max-height` bound it. They arrived in [ADR-0181](../adr/0181-a-box-may-say-how-small-and-how-large.md). An absolutely positioned child is placed from its parent's border box rather than its padding box, which is where Yoga and CSS differ. [ADR-0265](../adr/0265-yoga-measures-an-inset-from-the-border-box.md) records the difference.
+A box has a width and a height, padding inside its edge, a margin outside it, and a border drawn on the edge. `min-width`, `max-width`, `min-height` and `max-height` bound it. They arrived in [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md). An absolutely positioned child is placed from its parent's border box rather than its padding box, which is where Yoga and CSS differ. [ADR-0265](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0265-yoga-measures-an-inset-from-the-border-box.md) records the difference.
 
 ## Three trees
 
-A widget is an immutable record describing what should be on screen. Building it produces an element, which persists across rebuilds and holds state and focus. The element produces a render object, which owns a Yoga node, is laid out, and is painted. Layout runs on the third tree, so a rebuild that re-describes a node with the same type, id and classes keeps its computed style and its Yoga node. The model is [ADR-0004](../adr/0004-three-tree-retained-declarative-model.md) and the cache rule is [ADR-0315](../adr/0315-a-rebuild-is-not-a-restyle.md).
+A widget is an immutable record describing what should be on screen. Building it produces an element, which persists across rebuilds and holds state and focus. The element produces a render object, which owns a Yoga node, is laid out, and is painted. Layout runs on the third tree, so a rebuild that re-describes a node with the same type, id and classes keeps its computed style and its Yoga node. The model is [ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md) and the cache rule is [ADR-0315](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md).
 
 ## Text is a measured leaf
 
-Yoga knows nothing about glyphs. A box with text in it carries a measure function. Yoga proposes a width, the paragraph wraps at it and reports a height, and the flexbox algorithm sizes everything around that answer. The paragraph is shaped once, and every re-wrap is arithmetic over the glyphs it already has. That is what makes the callback cheap enough to answer inside a layout pass, and it is [ADR-0036](../adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md).
+Yoga knows nothing about glyphs. A box with text in it carries a measure function. Yoga proposes a width, the paragraph wraps at it and reports a height, and the flexbox algorithm sizes everything around that answer. The paragraph is shaped once, and every re-wrap is arithmetic over the glyphs it already has. That is what makes the callback cheap enough to answer inside a layout pass, and it is [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md).
 
 A box therefore has text or children, never both. Yoga asks a measured node for its size and never lays its children out.
 
@@ -66,7 +66,7 @@ The split holds across the catalogue. A `scroll` clips and translates. A `split-
 
 ## Controls do not shrink
 
-CSS's default `flex-shrink: 1` is wrong for a checkbox. A narrow window squashed every fixed-size part in the catalogue until the controls declared `flex-shrink: 0`, once, over a list of types. Text is deliberately left off that list. A label shrinks by wrapping, which is what a label should do. The record is [ADR-0076](../adr/0076-a-glyph-does-not-negotiate.md).
+CSS's default `flex-shrink: 1` is wrong for a checkbox. A narrow window squashed every fixed-size part in the catalogue until the controls declared `flex-shrink: 0`, once, over a list of types. Text is deliberately left off that list. A label shrinks by wrapping, which is what a label should do. The record is [ADR-0076](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md).
 
 When a widget of your own has a fixed size, give it the same declaration.
 
@@ -105,12 +105,12 @@ public Box render(ComputedStyle style, List<Box> boxes, Context context) {
 
 ## Read more
 
-- [ADR-0029 Yoga's node API, and who owns a node](../adr/0029-yogas-node-api-and-who-owns-a-node.md)
-- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](../adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
-- [ADR-0031 Blend2D, and painting into a borrowed buffer](../adr/0031-blend2d-and-the-borrowed-buffer.md)
-- [ADR-0004 Three-tree retained declarative model](../adr/0004-three-tree-retained-declarative-model.md)
-- [ADR-0315 A rebuild is not a restyle](../adr/0315-a-rebuild-is-not-a-restyle.md)
-- [ADR-0036 The paragraph is shaped once and wrapped many times](../adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
-- [ADR-0076 A glyph does not negotiate](../adr/0076-a-glyph-does-not-negotiate.md)
-- [ADR-0181 A box may say how small and how large](../adr/0181-a-box-may-say-how-small-and-how-large.md)
-- [ADR-0265 Yoga measures an inset from the border box](../adr/0265-yoga-measures-an-inset-from-the-border-box.md)
+- [ADR-0029 Yoga's node API, and who owns a node](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)
+- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
+- [ADR-0031 Blend2D, and painting into a borrowed buffer](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)
+- [ADR-0004 Three-tree retained declarative model](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)
+- [ADR-0315 A rebuild is not a restyle](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md)
+- [ADR-0036 The paragraph is shaped once and wrapped many times](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+- [ADR-0076 A glyph does not negotiate](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md)
+- [ADR-0181 A box may say how small and how large](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)
+- [ADR-0265 Yoga measures an inset from the border box](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0265-yoga-measures-an-inset-from-the-border-box.md)

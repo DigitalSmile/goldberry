@@ -21,12 +21,12 @@ below says which.
 
 | Number | What it measures | Record |
 |---|---|---|
-| 519 ms, 116 ms | The showcase's native image, median of 7 runs, timed from `exec`. The window is open at 116.2 ms in the run the record prints | [ADR-0506](../adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
-| 1980 ms, 1340 ms | The showcase on the JVM, cold and with an AOT cache, median of 5 runs | [ADR-0506](../adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
-| 3.13 ms, 4.28 ms | Median and 95th percentile of a 960×640 frame with text, paced to the display | [Status, M1](../status.md#m1--vertical-slice), from the pacing in [ADR-0047](../adr/0047-a-frame-nobody-sees-costs-full-price.md) |
-| 2.3 ms | A 3840×2160 paint in `PaintBenchmark`, down from 6.0 ms on one thread | [ADR-0042](../adr/0042-blend2ds-workers-and-how-many.md) |
-| 117 µs | One small box changed at 960×640, repainted inside its damage, down from 367 µs | [ADR-0072](../adr/0072-a-partial-repaint-needs-a-promise.md) |
-| 9.1 µs | Layout and the walk on a showcase-shaped tree when nothing changed, down from 190 µs | [ADR-0069](../adr/0069-the-render-tree-is-retained.md) |
+| 519 ms, 116 ms | The showcase's native image, median of 7 runs, timed from `exec`. The window is open at 116.2 ms in the run the record prints | [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
+| 1980 ms, 1340 ms | The showcase on the JVM, cold and with an AOT cache, median of 5 runs | [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
+| 3.13 ms, 4.28 ms | Median and 95th percentile of a 960×640 frame with text, paced to the display | [Status, M1](../status.md#m1--vertical-slice), from the pacing in [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
+| 2.3 ms | A 3840×2160 paint in `PaintBenchmark`, down from 6.0 ms on one thread | [ADR-0042](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0042-blend2ds-workers-and-how-many.md) |
+| 117 µs | One small box changed at 960×640, repainted inside its damage, down from 367 µs | [ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md) |
+| 9.1 µs | Layout and the walk on a showcase-shaped tree when nothing changed, down from 190 µs | [ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md) |
 
 ## The frame loop
 
@@ -54,11 +54,11 @@ present are the frame.
 
 | Stage | Cost | Record |
 |---|---|---|
-| Everything but rasterization, nothing changed | 3.5 µs, down from 354 µs | [ADR-0070](../adr/0070-the-cascade-resolves-invalidated-nodes.md) |
-| Rasterization on one thread | about 320 µs | [ADR-0070](../adr/0070-the-cascade-resolves-invalidated-nodes.md) |
-| Paint in a live window, four workers | 2.146 ms, from 2.856 ms synchronous | [ADR-0042](../adr/0042-blend2ds-workers-and-how-many.md) |
-| Present, unpaced | about 6.4 ms, of which 4.8 ms is blocking on the swapchain and 43 µs is this repository's code | [ADR-0046](../adr/0046-what-present-actually-does.md) |
-| Present, paced to the display | 1.20 ms, with paint falling to 1.61 ms beside it | [ADR-0047](../adr/0047-a-frame-nobody-sees-costs-full-price.md) |
+| Everything but rasterization, nothing changed | 3.5 µs, down from 354 µs | [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md) |
+| Rasterization on one thread | about 320 µs | [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md) |
+| Paint in a live window, four workers | 2.146 ms, from 2.856 ms synchronous | [ADR-0042](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0042-blend2ds-workers-and-how-many.md) |
+| Present, unpaced | about 6.4 ms, of which 4.8 ms is blocking on the swapchain and 43 µs is this repository's code | [ADR-0046](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0046-what-present-actually-does.md) |
+| Present, paced to the display | 1.20 ms, with paint falling to 1.61 ms beside it | [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
 
 Read the paint row with care. The same scene paints in 0.34 ms in a benchmark
 loop and in 2.15 ms in a running window, because `present` leaves the next

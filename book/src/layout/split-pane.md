@@ -85,6 +85,6 @@ The arrows across the axis are left alone, so a horizontal split has nothing to 
 
 ### Read more
 
-- [ADR-0165 A divider translates, and a rotation has three brakes](../adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
-- [ADR-0297 An editor fills its pane, and a split knows its own width](../adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md)
-- [ADR-0117 A widget may be told what it measured](../adr/0117-a-widget-may-be-told-what-it-measured.md)
+- [ADR-0165 A divider translates, and a rotation has three brakes](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- [ADR-0297 An editor fills its pane, and a split knows its own width](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md)
+- [ADR-0117 A widget may be told what it measured](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)

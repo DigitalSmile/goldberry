@@ -28,7 +28,7 @@ The engine applies these layout properties and drops every other one. A dropped 
 
 `start` and `end` are accepted for `flex-start` and `flex-end` wherever an alignment keyword is. `left` and `right` are not, because they are not the same under right-to-left text. A shorthand with one bad part is dropped whole, so `padding: 8px nonsense` applies to no edge rather than two.
 
-Not in the subset: `display`, `box-sizing`, `aspect-ratio`, `row-gap` and `column-gap`, `calc()`, grid, and `position: sticky`. A sticky header is an [affix](affix.md). A value the engine cannot express is dropped rather than approximated, and the reason is in [ADR-0005](../adr/0005-css-subset-and-kdl-as-the-contracts.md).
+Not in the subset: `display`, `box-sizing`, `aspect-ratio`, `row-gap` and `column-gap`, `calc()`, grid, and `position: sticky`. A sticky header is an [affix](affix.md). A value the engine cannot express is dropped rather than approximated, and the reason is in [ADR-0005](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0005-css-subset-and-kdl-as-the-contracts.md).
 
 ## Units
 
@@ -114,7 +114,7 @@ row id="tags" {
 #tags { flex-wrap: wrap; gap: 8px; align-content: flex-start; }
 ```
 
-`flex-wrap: wrap` lets a row break into lines. `align-content` places the lines across the container. Wrapped lines share a cross axis, which is [ADR-0374](../adr/0374-wrapped-lines-share-a-cross-axis.md).
+`flex-wrap: wrap` lets a row break into lines. `align-content` places the lines across the container. Wrapped lines share a cross axis, which is [ADR-0374](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0374-wrapped-lines-share-a-cross-axis.md).
 
 ## Growing, shrinking and the basis
 
@@ -144,7 +144,7 @@ card id="note" {
 #note { width: 50%; min-width: 320px; max-width: 640px; }
 ```
 
-`width` and `height` are preferred sizes. A cramped row shrinks a box below its `width` unless `flex-shrink` is 0 or `min-width` holds it. The four limits arrived in [ADR-0181](../adr/0181-a-box-may-say-how-small-and-how-large.md). "No limit" is undefined rather than zero, because a maximum of zero is a box that may not exist.
+`width` and `height` are preferred sizes. A cramped row shrinks a box below its `width` unless `flex-shrink` is 0 or `min-width` holds it. The four limits arrived in [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md). "No limit" is undefined rather than zero, because a maximum of zero is a box that may not exist.
 
 ## Position, inset and overflow
 
@@ -200,15 +200,15 @@ How the layers cascade and what else a sheet may say is in [Styling](../guide/st
 
 ## Read more
 
-- [ADR-0005 CSS subset and KDL as the contracts](../adr/0005-css-subset-and-kdl-as-the-contracts.md)
-- [ADR-0181 A box may say how small and how large](../adr/0181-a-box-may-say-how-small-and-how-large.md)
-- [ADR-0311 `margin` is room outside, and `auto` is the half that mattered](../adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
-- [ADR-0373 A column starts from nothing and grows](../adr/0373-a-column-starts-from-nothing-and-grows.md)
-- [ADR-0374 Wrapped lines share a cross axis](../adr/0374-wrapped-lines-share-a-cross-axis.md)
-- [ADR-0244 A child may say where it sits](../adr/0244-a-child-may-say-where-it-sits.md)
-- [ADR-0247 `start` is CSS, and `flex-start` is Yoga](../adr/0247-start-is-css-and-flex-start-is-yoga.md)
-- [ADR-0242 `em` is the element's own size](../adr/0242-em-is-the-elements-own-size.md)
-- [ADR-0416 `rem` is the root element's size, and the walk is what knows it](../adr/0416-rem-is-the-root-elements-size-and-the-walk-is-what-knows-it.md)
-- [ADR-0099 An indicator travels on a grid](../adr/0099-an-indicator-travels-on-a-grid.md)
-- [ADR-0074 Density is a token swap, and regular is no stylesheet at all](../adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
-- [ADR-0364 Always-shown scroll bars are a token sheet](../adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
+- [ADR-0005 CSS subset and KDL as the contracts](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0005-css-subset-and-kdl-as-the-contracts.md)
+- [ADR-0181 A box may say how small and how large](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)
+- [ADR-0311 `margin` is room outside, and `auto` is the half that mattered](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
+- [ADR-0373 A column starts from nothing and grows](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0373-a-column-starts-from-nothing-and-grows.md)
+- [ADR-0374 Wrapped lines share a cross axis](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0374-wrapped-lines-share-a-cross-axis.md)
+- [ADR-0244 A child may say where it sits](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md)
+- [ADR-0247 `start` is CSS, and `flex-start` is Yoga](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0247-start-is-css-and-flex-start-is-yoga.md)
+- [ADR-0242 `em` is the element's own size](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0242-em-is-the-elements-own-size.md)
+- [ADR-0416 `rem` is the root element's size, and the walk is what knows it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0416-rem-is-the-root-elements-size-and-the-walk-is-what-knows-it.md)
+- [ADR-0099 An indicator travels on a grid](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)
+- [ADR-0074 Density is a token swap, and regular is no stylesheet at all](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+- [ADR-0364 Always-shown scroll bars are a token sheet](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)

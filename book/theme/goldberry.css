@@ -10,7 +10,8 @@
  */
 
 :root {
-    --content-max-width: 860px;
+    /* mdBook sets html to 62.5%, so 1rem is 10px. Sizes below are in px. */
+    --content-max-width: 100%;
     --sidebar-target-width: 320px;
     --mono-font: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, "DejaVu Sans Mono", monospace;
     --sans-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -134,13 +135,14 @@ html, body, .menu-title, .sidebar {
 }
 body {
     -webkit-font-smoothing: antialiased;
-    font-size: 1.0rem;
+    font-size: 17px;
 }
 .content main {
-    line-height: 1.6;
+    line-height: 1.65;
+    padding-inline: 8px;
 }
 .content h1 {
-    font-size: 2.3rem;
+    font-size: 38px;
     font-weight: 700;
     letter-spacing: -0.035em;
     line-height: 1.1;
@@ -156,7 +158,7 @@ body {
     background: var(--gb-gold);
 }
 .content h2 {
-    font-size: 1.55rem;
+    font-size: 27px;
     font-weight: 650;
     letter-spacing: -0.02em;
     margin-block-start: 2.2em;
@@ -164,21 +166,21 @@ body {
     border-bottom: 1px solid var(--gb-line);
 }
 .content h3 {
-    font-size: 1.2rem;
+    font-size: 21px;
     font-weight: 600;
     letter-spacing: -0.01em;
     margin-block-start: 1.8em;
 }
 .content h4 {
-    font-size: 1rem;
+    font-size: 15px;
     font-weight: 650;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--gb-muted);
 }
 /* A widget's heading is its node name, set as a chip. */
-.content h2 > code,
-.content h3 > code {
+.content h2 code,
+.content h3 code {
     font-size: 0.8em;
     padding: 0.15em 0.5em;
     border-radius: 999px;
@@ -222,7 +224,7 @@ body {
     line-height: 1.5;
 }
 .content pre > code {
-    padding: 1.1rem 1.2rem;
+    padding: 18px 20px;
 }
 .content pre > .buttons {
     top: 6px;
@@ -291,7 +293,7 @@ body {
 }
 .content figcaption {
     margin-top: 0.5em;
-    font-size: 0.9rem;
+    font-size: 15px;
     color: var(--gb-muted);
 }
 
@@ -299,7 +301,7 @@ body {
 
 .sidebar .chapter li.part-title {
     margin-top: 1.4em;
-    font-size: 0.74rem;
+    font-size: 12px;
     font-weight: 650;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -332,11 +334,96 @@ body {
     background: color-mix(in srgb, var(--bg) 84%, transparent);
 }
 
+/* ---------- the header, as the landing page has it ---------- */
+
+/* goldberry.js replaces mdBook's centred title with the brand, the six parts
+   of the guide and a GitHub link. mdBook's own buttons stay at both ends. */
+#mdbook-menu-bar.gb-bar {
+    align-items: center;
+    min-height: var(--menu-bar-height);
+    gap: 4px;
+}
+.gb-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-inline: 4px 12px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--fg) !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+.gb-brand svg {
+    color: var(--gb-leaf);
+    flex: none;
+    transition: transform 0.3s ease;
+}
+.gb-brand:hover svg {
+    transform: rotate(-12deg);
+}
+.gb-brand em {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--gb-line);
+    color: var(--gb-muted);
+}
+.gb-nav {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.gb-nav a {
+    color: var(--gb-muted);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+.gb-nav a:hover,
+.gb-nav a[aria-current="true"] {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--gb-line) 55%, transparent);
+}
+.gb-nav a[aria-current="true"] {
+    background: color-mix(in srgb, var(--gb-gold) 35%, transparent);
+}
+.gb-github {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    margin-inline: 8px 2px;
+    border-radius: 999px;
+    border: 1px solid var(--gb-line);
+    background: var(--gb-card);
+    color: var(--fg) !important;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.gb-github:hover {
+    transform: translateY(-1px);
+    border-color: var(--gb-muted);
+}
+
 /* ---------- blocks the guide writes in HTML ---------- */
 
 /* <p class="gb-lede">A one-sentence summary under the title.</p> */
 .gb-lede {
-    font-size: 1.15rem;
+    font-size: 20px;
     line-height: 1.55;
     color: var(--gb-muted);
     max-width: 44em;
@@ -371,7 +458,7 @@ body {
     letter-spacing: -0.01em;
 }
 .gb-card span {
-    font-size: 0.92rem;
+    font-size: 15px;
     color: var(--gb-muted);
     line-height: 1.45;
 }
@@ -397,7 +484,7 @@ body {
 .gb-shot p {
     margin: 0;
     padding: 10px 14px;
-    font-size: 0.9rem;
+    font-size: 15px;
     color: var(--gb-muted);
     background: var(--gb-card);
     border-top: 1px solid var(--gb-line);
@@ -408,7 +495,7 @@ body {
     display: inline-block;
     padding: 2px 10px;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 13px;
     font-weight: 650;
     letter-spacing: 0.02em;
     background: color-mix(in srgb, var(--gb-gold) 35%, transparent);
@@ -433,21 +520,21 @@ body {
     background: var(--gb-card);
 }
 .gb-stats b {
-    font-size: 1.9rem;
+    font-size: 32px;
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1.1;
 }
 .gb-stats i {
     font-style: normal;
-    font-size: 1rem;
+    font-size: 17px;
     margin-inline-start: 4px;
     color: var(--gb-muted);
 }
 .gb-stats span {
     display: block;
     margin-top: 4px;
-    font-size: 0.9rem;
+    font-size: 15px;
     color: var(--gb-muted);
     line-height: 1.4;
 }
@@ -475,7 +562,7 @@ body {
     display: grid;
     place-items: center;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 15px;
     background: var(--gb-gold);
     color: var(--gb-gold-ink);
 }
@@ -494,8 +581,12 @@ body {
     margin: 0;
 }
 
+@media (max-width: 1500px) {
+    .gb-brand em { display: none; }
+}
 @media (max-width: 720px) {
-    .content h1 { font-size: 1.9rem; }
+    .content h1 { font-size: 30px; }
+    .gb-nav, .gb-github { display: none; }
 }
 
 @media print {

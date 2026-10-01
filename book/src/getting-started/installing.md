@@ -3,9 +3,9 @@
 <p class="gb-lede">Add the BOM for the version, the umbrella artifact for the toolkit, and one natives jar per platform you run on.</p>
 
 Every artifact is published under the group `dev.goldberry`
-([ADR-0510](../adr/0510-publish-under-dev-goldberry.md)). Versions are calendar
+([ADR-0510](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0510-publish-under-dev-goldberry.md)). Versions are calendar
 versions: `2026.1`, `2026.2`, `2026.2.1`
-([ADR-0333](../adr/0333-a-version-is-a-year-and-a-count.md)).
+([ADR-0333](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0333-a-version-is-a-year-and-a-count.md)).
 
 > [!NOTE]
 > No release has been cut yet. Every push to `master` publishes a `-SNAPSHOT`
@@ -74,7 +74,7 @@ dependencies {
 The BOM knows versions and not platforms. A POM has no notion of an operating
 system, so the umbrella depends on the bindings jar without a classifier and
 the platform jars are yours to add
-([ADR-0438](../adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md)).
+([ADR-0438](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md)).
 
 **Add all four.** `NativeLibrary` picks the right one at run time from
 `os.name` and `os.arch`, so the application runs on every machine it is built
@@ -91,7 +91,7 @@ developer building on macOS for an application that ships to Linux.
 ## Optional modules
 
 Each is one more line under the BOM. Nothing in the core knows they exist until
-they are on the path ([ADR-0190](../adr/0190-a-content-module-brings-its-own-natives.md)).
+they are on the path ([ADR-0190](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0190-a-content-module-brings-its-own-natives.md)).
 
 | Artifact | Adds | Chapter |
 |---|---|---|
@@ -110,7 +110,7 @@ runtimeOnly 'dev.goldberry:goldberry-media::ffmpeg-linux-x64'
 
 The toolkit logs through SLF4J and binds no implementation. Add one and the
 toolkit's diagnostics appear. Add none and you get silence, SLF4J's own
-no-provider warning included ([ADR-0023](../adr/0023-logging-and-the-example-as-a-subproject.md)).
+no-provider warning included ([ADR-0023](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0023-logging-and-the-example-as-a-subproject.md)).
 
 ```groovy
 runtimeOnly 'ch.qos.logback:logback-classic:1.6.3'
@@ -144,8 +144,8 @@ java --enable-native-access=dev.goldberry.natives --module-path lib --module com
 An application on the class path needs no `opens` and grants
 `--enable-native-access=ALL-UNNAMED` instead. The showcase runs modular, which
 is what catches an unexported package before a user does
-([ADR-0023](../adr/0023-logging-and-the-example-as-a-subproject.md),
-[ADR-0395](../adr/0395-a-resource-is-opened-to-whoever-reads-it.md)).
+([ADR-0023](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0023-logging-and-the-example-as-a-subproject.md),
+[ADR-0395](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0395-a-resource-is-opened-to-whoever-reads-it.md)).
 
 ## Read next
 

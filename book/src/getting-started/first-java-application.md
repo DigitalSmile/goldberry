@@ -25,7 +25,7 @@ hello/
 **Create the build.** The `application` plugin runs the program on the module
 path and passes the one JVM flag native access needs. On macOS the UI thread
 has to be the first thread, so the second flag is added there
-([ADR-0039](../adr/0039-macos-needs-the-first-thread.md)).
+([ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md)).
 
 ```groovy
 plugins {
@@ -68,7 +68,7 @@ application {
 
 **Declare the module.** Two `requires`, and one `opens` so the toolkit can read
 the model's fields and the resources beside it
-([ADR-0395](../adr/0395-a-resource-is-opened-to-whoever-reads-it.md)).
+([ADR-0395](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0395-a-resource-is-opened-to-whoever-reads-it.md)).
 
 ```java
 module com.example.hello {
@@ -85,7 +85,7 @@ module com.example.hello {
 **Write the model.** A class of fields marked `@Bind`, with the actions nested
 inside it as a record. Assigning a field is what notifies the window, so there
 is no setter to call and no event to raise
-([ADR-0134](../adr/0134-a-write-is-rewritten-wherever-it-is.md)).
+([ADR-0134](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md)).
 
 ```java
 package com.example.hello;
@@ -225,7 +225,7 @@ public final class Hello implements Application {
 A window opens with a heading, a line of text and two buttons. Press the
 first and the line counts. Nothing in the application repainted: assigning
 `label` told the bound `text` and asked the window for a frame
-([ADR-0128](../adr/0128-a-change-is-its-own-frame-request.md)).
+([ADR-0128](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0128-a-change-is-its-own-frame-request.md)).
 
 </div>
 </div>
@@ -234,11 +234,11 @@ first and the line counts. Nothing in the application repainted: assigning
 
 - `models()` is the whole of the wiring. The document's `bind=` and `press=`
   resolve against the objects in that list, and the same list is what the
-  window subscribes to ([ADR-0129](../adr/0129-a-value-is-named-one-way.md)).
+  window subscribes to ([ADR-0129](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0129-a-value-is-named-one-way.md)).
 - The inflater is built from `models()` and not from a second list, so the two
   cannot disagree. A name the document uses that no model declares fails when
   the document is inflated, naming the text, rather than on the first click
-  ([ADR-0062](../adr/0062-bind-is-a-path-and-nothing-else.md)).
+  ([ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
 - On the JVM the model is bound reflectively. The same class, woven, is what a
   native image runs ([Model weaving](../weaving.md)).
 
@@ -278,7 +278,7 @@ fails to parse keeps its last good value and logs the failure.
 ## Switch the theme
 
 Make the theme a bound value with `restyle = true`, and switching it is one
-assignment ([ADR-0133](../adr/0133-a-restyle-is-declared.md)):
+assignment ([ADR-0133](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0133-a-restyle-is-declared.md)):
 
 ```java
 @Bind(value = "app.light", restyle = true) private boolean light;

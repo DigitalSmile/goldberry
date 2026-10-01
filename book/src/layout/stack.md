@@ -52,11 +52,11 @@ With an inset, the child goes where the inset says. Zero pins it to the stack's 
 #avatar badge { top: 0; right: 0; }
 ```
 
-The difference between "no inset" and "an inset of zero" only shows on an absolute child, and `stack` is the widget that shows it. An inset is measured from the stack's border box rather than its padding box. That is Yoga's rule, and [ADR-0265](../adr/0265-yoga-measures-an-inset-from-the-border-box.md) explains it.
+The difference between "no inset" and "an inset of zero" only shows on an absolute child, and `stack` is the widget that shows it. An inset is measured from the stack's border box rather than its padding box. That is Yoga's rule, and [ADR-0265](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0265-yoga-measures-an-inset-from-the-border-box.md) explains it.
 
 ### Read more
 
-- [ADR-0250 A stack is one child in flow and the rest over it](../adr/0250-a-stack-is-one-child-in-flow.md)
-- [ADR-0244 A child may say where it sits](../adr/0244-a-child-may-say-where-it-sits.md)
-- [ADR-0099 An indicator travels on a grid](../adr/0099-an-indicator-travels-on-a-grid.md)
-- [ADR-0265 Yoga measures an inset from the border box](../adr/0265-yoga-measures-an-inset-from-the-border-box.md)
+- [ADR-0250 A stack is one child in flow and the rest over it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0250-a-stack-is-one-child-in-flow.md)
+- [ADR-0244 A child may say where it sits](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md)
+- [ADR-0099 An indicator travels on a grid](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)
+- [ADR-0265 Yoga measures an inset from the border box](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0265-yoga-measures-an-inset-from-the-border-box.md)

@@ -52,7 +52,7 @@ between a build and a frame is in that frame.
 `style=` and `class=` are two spellings of one thing. `text style="title"` and
 `text class="title"` both put the class `title` on the node, and a rule written
 `text.title` matches either. The difference is that `style=` is checked when the
-document inflates ([ADR-0381](../adr/0381-a-rank-has-two-spellings-and-one-meaning.md)).
+document inflates ([ADR-0381](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0381-a-rank-has-two-spellings-and-one-meaning.md)).
 
 ### The type scale
 
@@ -78,7 +78,7 @@ classes are its own stylesheet's and not the toolkit's.
 A `text` is a measured leaf: layout proposes a width, the paragraph wraps at it,
 and the height that comes back sizes the box. The paragraph is shaped once and
 re-wrapped by arithmetic
-([ADR-0036](../adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)).
+([ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)).
 
 To keep a label on one line, the stylesheet says so:
 
@@ -87,7 +87,7 @@ text.name { white-space: nowrap; text-overflow: ellipsis }
 ```
 
 `nowrap` stops the wrap and `ellipsis` marks the cut
-([ADR-0255](../adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)).
+([ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)).
 `text-align` places the lines inside the box.
 
 Static text cannot be selected or copied. A `text-input` with
@@ -100,7 +100,7 @@ styles is two `text` nodes in a `row`.
 An emoji in a line is routed to the colour face and drawn in layers, and the
 face is a module an application opts into. See
 [Text](../guide/text.md) and
-[ADR-0393](../adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md).
+[ADR-0393](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md).
 
 ### Styling
 
@@ -111,7 +111,7 @@ face is a module an application opts into. See
 
 A `text` sets no colour. `color` inherits from the nearest ancestor that sets
 one, which is a `card`, a `panel` or the window
-([ADR-0066](../adr/0066-a-weight-is-a-face-and-color-inherits.md)).
+([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
 
 ### Keyboard
 
@@ -119,11 +119,11 @@ None. A `text` is not a Tab stop.
 
 ### Read more
 
-- [ADR-0381: a rank has two spellings and one meaning](../adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
-- [ADR-0062: bind is a path and nothing else](../adr/0062-bind-is-a-path-and-nothing-else.md)
-- [ADR-0036: the paragraph is shaped once and wrapped many times](../adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
-- [ADR-0255: a label that does not fit is cut, not wrapped](../adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)
-- [ADR-0267: a text scale scales the text and not the layout](../adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)
+- [ADR-0381: a rank has two spellings and one meaning](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
+- [ADR-0062: bind is a path and nothing else](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)
+- [ADR-0036: the paragraph is shaped once and wrapped many times](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+- [ADR-0255: a label that does not fit is cut, not wrapped](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)
+- [ADR-0267: a text scale scales the text and not the layout](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)
 
 ## `link`
 
@@ -155,7 +155,7 @@ target. A link with neither is a word in the link ink that takes no focus.
 
 An external link draws the toolkit's 12 px `external-link` icon after the word.
 That icon is the one icon the toolkit builds itself, and the link's state owns
-it ([ADR-0346](../adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)).
+it ([ADR-0346](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)).
 
 ### Attributes
 
@@ -175,7 +175,7 @@ it ([ADR-0346](../adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)).
 
 The underline is `text-decoration: underline` in `controls.css`, drawn at the
 face's own position and thickness
-([ADR-0321](../adr/0321-a-rule-under-text-belongs-to-the-face.md)). The ink is
+([ADR-0321](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0321-a-rule-under-text-belongs-to-the-face.md)). The ink is
 `--gb-button-link-text`, a token measured for 4.5:1 on every surface, and not
 the accent.
 
@@ -195,6 +195,6 @@ nothing behind it is not a Tab stop.
 
 ### Read more
 
-- [ADR-0346: a link is a word, and the desktop opens the rest](../adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
-- [ADR-0321: a rule under text belongs to the face](../adr/0321-a-rule-under-text-belongs-to-the-face.md)
-- [ADR-0293: a button that reads as a link](../adr/0293-a-button-that-reads-as-a-link.md)
+- [ADR-0346: a link is a word, and the desktop opens the rest](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+- [ADR-0321: a rule under text belongs to the face](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0321-a-rule-under-text-belongs-to-the-face.md)
+- [ADR-0293: a button that reads as a link](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)

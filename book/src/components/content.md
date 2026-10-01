@@ -18,7 +18,7 @@ sheets.add(HtmlStyles.stylesheet());
 
 Nothing in the core knows the module exists. Its catalogue announces the two
 node names, and the inflater finds them when the module is on the module path
-([ADR-0131](../adr/0131-a-widget-package-announces-itself.md)).
+([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
 
 <div class="gb-shot">
 <img src="../images/markdown.webp" alt="The showcase's Markdown screen: a text area on the left holding Markdown source and the rendered document on the right, with headings, emphasis, a list, a task list and a table">
@@ -54,10 +54,10 @@ A live preview is a binding. The editor writes `note.source` through its action
 and the view reads the same property with `bind=`. Nothing watches the editor
 or schedules a render: a keystroke marks the view for rebuild and the next frame
 is the parsed document
-([ADR-0296](../adr/0296-a-preview-is-a-binding-not-a-callback.md)). A block
+([ADR-0296](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0296-a-preview-is-a-binding-not-a-callback.md)). A block
 whose source did not change keeps the widget it had, so a keystroke on a 50 kB
 note costs about 2 ms of build
-([ADR-0389](../adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
+([ADR-0389](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
 
 Markup may also carry the document as the node's argument. `syntax` picks the
 dialect, and a view with a document and a binding shows the document until the
@@ -74,12 +74,12 @@ application can walk for an outline before handing it to
 wants a preview and nothing else. `MarkdownHtml.of(document)` writes the same
 tree out as an HTML fragment, so a preview and the bytes a server hands out
 cannot drift
-([ADR-0295](../adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)).
+([ADR-0295](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)).
 
 ### Links, images and tasks
 
 A rendered document is read, and the application answers
-([ADR-0300](../adr/0300-a-document-is-read-and-the-application-answers.md)).
+([ADR-0300](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0300-a-document-is-read-and-the-application-answers.md)).
 A link is a `button.link`, a Tab stop that hands its `href` to `link=` and does
 nothing else: no browser opens and no path resolves. A `[[wiki link]]` hands its
 target to `wikilink=`, and a view with no handler draws it inert. An image is
@@ -93,7 +93,7 @@ The ordinal crosses as the string a document would have written.
 Drag across the document, double-click a word, triple-click a block, `Ctrl+A`
 and `Ctrl+C`. What lands on the clipboard has the space between words and the
 newline between blocks that the document implies
-([ADR-0301](../adr/0301-a-selection-is-geometry-the-frame-already-had.md)).
+([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)).
 Nothing to switch on. A drag repaints rather than rebuilds.
 
 ### Attributes
@@ -139,13 +139,13 @@ exists and the choice of where the scrollbar goes is the application's.
 
 ### Read more
 
-- [ADR-0293: A button that reads as a link](../adr/0293-a-button-that-reads-as-a-link.md)
-- [ADR-0294: A parser crosses the boundary once](../adr/0294-a-parser-crosses-the-boundary-once.md)
-- [ADR-0295: A document is a value and a paragraph is a row of words](../adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)
-- [ADR-0296: A preview is a binding, not a callback](../adr/0296-a-preview-is-a-binding-not-a-callback.md)
-- [ADR-0300: A document is read and the application answers](../adr/0300-a-document-is-read-and-the-application-answers.md)
-- [ADR-0301: A selection is geometry the frame already had](../adr/0301-a-selection-is-geometry-the-frame-already-had.md)
-- [ADR-0389: A block nobody typed in keeps its widget](../adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)
+- [ADR-0293: A button that reads as a link](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)
+- [ADR-0294: A parser crosses the boundary once](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0294-a-parser-crosses-the-boundary-once.md)
+- [ADR-0295: A document is a value and a paragraph is a row of words](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md)
+- [ADR-0296: A preview is a binding, not a callback](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0296-a-preview-is-a-binding-not-a-callback.md)
+- [ADR-0300: A document is read and the application answers](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0300-a-document-is-read-and-the-application-answers.md)
+- [ADR-0301: A selection is geometry the frame already had](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)
+- [ADR-0389: A block nobody typed in keeps its widget](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)
 
 ## `html-view`
 
@@ -179,7 +179,7 @@ An anchor becomes a `button.link` that hands its `href` to `link=`. It is a Tab
 stop, it hovers and it takes `Space` and `Enter`, so a help page is navigable
 from the keyboard. Whether the link may be followed is the application's: no
 browser opens, no relative path resolves and nothing is fetched
-([ADR-0298](../adr/0298-html-is-a-document-and-not-an-engine.md)). Selection
+([ADR-0298](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0298-html-is-a-document-and-not-an-engine.md)). Selection
 and copy work as in the Markdown view.
 
 ### Attributes
@@ -221,10 +221,10 @@ faces, is what an engine would buy and is not built.
 
 ### Read more
 
-- [ADR-0293: A button that reads as a link](../adr/0293-a-button-that-reads-as-a-link.md)
-- [ADR-0298: HTML is a document and not an engine](../adr/0298-html-is-a-document-and-not-an-engine.md)
-- [ADR-0300: A document is read and the application answers](../adr/0300-a-document-is-read-and-the-application-answers.md)
-- [ADR-0301: A selection is geometry the frame already had](../adr/0301-a-selection-is-geometry-the-frame-already-had.md)
+- [ADR-0293: A button that reads as a link](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)
+- [ADR-0298: HTML is a document and not an engine](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0298-html-is-a-document-and-not-an-engine.md)
+- [ADR-0300: A document is read and the application answers](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0300-a-document-is-read-and-the-application-answers.md)
+- [ADR-0301: A selection is geometry the frame already had](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)
 
 ## The web view
 
@@ -244,9 +244,9 @@ A `WebPage` is a value: `WebPage.of(url)`, `WebPage.ofHtml(html)` or
 and `on(name, callback)` for a function the page's own script can call. The
 widget follows the page it is handed, so navigating is rebuilding with another
 page
-([ADR-0449](../adr/0449-a-page-follows-the-value-that-describes-it.md)). A
+([ADR-0449](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0449-a-page-follows-the-value-that-describes-it.md)). A
 callback's return value resolves the page's promise and an exception rejects it
-([ADR-0448](../adr/0448-a-page-calls-back-through-a-name-it-was-given.md)).
+([ADR-0448](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0448-a-page-calls-back-through-a-name-it-was-given.md)).
 
 ```java
 var page = WebPage.ofHtml(DEMO)
@@ -261,7 +261,7 @@ returns empty where no page can be opened.
 The engine is WebKitGTK, WebView2 or WKWebView, driven through a separate
 optional library so that GTK and WebKit are never load-time dependencies of the
 toolkit
-([ADR-0441](../adr/0441-a-web-page-is-a-window-not-a-box.md)). Most machines
+([ADR-0441](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). Most machines
 cannot open a page, so an application asks first:
 
 ```java
@@ -276,7 +276,7 @@ return new Button("Open the handbook", () -> Desktop.browse(HANDBOOK));
 | Platform | What the page is | Status |
 |---|---|---|
 | X11, and XWayland | A GTK window reparented into this one | Works |
-| macOS | A `WKWebView`, a subview of the window's content view | Works ([ADR-0458](../adr/0458-a-page-on-macos-is-a-view-not-a-window.md)) |
+| macOS | A `WKWebView`, a subview of the window's content view | Works ([ADR-0458](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md)) |
 | Windows | A WebView2 child window | Written, unverified |
 | Wayland | Nothing | Refused, and says why |
 
@@ -286,7 +286,7 @@ Embedding means putting the engine's window inside the application's. Wayland
 does not allow a client to reparent a foreign surface, and no protocol proposes
 it. On a Wayland session the widget opens nothing and paints a message saying
 why, rather than dropping a loose window on the desktop
-([ADR-0442](../adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
 An application that wants a page there can ask SDL for the X11 driver with
 `-Dgoldberry.backend.videoDriver=x11`, which runs the window under XWayland.
 
@@ -298,20 +298,20 @@ invisible where they meet. A `scroll` does not clip it. `opacity`, `transform`
 and the frost material do not reach it. No golden image contains one. A `dialog`
 is the exception: while a modal is up the widget parks its page off the side of
 the window and brings it back when the dialog closes
-([ADR-0444](../adr/0444-a-page-stands-aside-for-a-modal.md)). A page is also
+([ADR-0444](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0444-a-page-stands-aside-for-a-modal.md)). A page is also
 opened parked and shown only once it reports itself loaded, with a `spinner` in
 its box until then
-([ADR-0445](../adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)).
+([ADR-0445](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)).
 
 Input is the page's. The window system delivers clicks and keys to the engine
 directly, and on macOS the backend drops key events while a page holds the
 keyboard
-([ADR-0459](../adr/0459-a-key-typed-into-a-page-is-the-pages.md)). Under X11 a
+([ADR-0459](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0459-a-key-typed-into-a-page-is-the-pages.md)). Under X11 a
 window keeps presenting through the GPU with a page in it
-([ADR-0491](../adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). A
+([ADR-0491](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). A
 page is taken down on WebKit's thread, and its context outlives the
 application's exit
-([ADR-0507](../adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)).
+([ADR-0507](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)).
 
 ### Styling
 
@@ -328,10 +328,10 @@ The page's own. The toolkit forwards nothing.
 
 ### Read more
 
-- [ADR-0441: A web page is a window, not a box](../adr/0441-a-web-page-is-a-window-not-a-box.md)
-- [ADR-0442: A page is a child window where the window system allows one](../adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)
-- [ADR-0444: A page stands aside for a modal](../adr/0444-a-page-stands-aside-for-a-modal.md)
-- [ADR-0445: A page is not shown before it can be seen](../adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)
-- [ADR-0448: A page calls back through a name it was given](../adr/0448-a-page-calls-back-through-a-name-it-was-given.md)
-- [ADR-0449: A page follows the value that describes it](../adr/0449-a-page-follows-the-value-that-describes-it.md)
-- [ADR-0507: A page is taken down on WebKit's thread and its context outlives exit](../adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)
+- [ADR-0441: A web page is a window, not a box](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)
+- [ADR-0442: A page is a child window where the window system allows one](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)
+- [ADR-0444: A page stands aside for a modal](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0444-a-page-stands-aside-for-a-modal.md)
+- [ADR-0445: A page is not shown before it can be seen](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)
+- [ADR-0448: A page calls back through a name it was given](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0448-a-page-calls-back-through-a-name-it-was-given.md)
+- [ADR-0449: A page follows the value that describes it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0449-a-page-follows-the-value-that-describes-it.md)
+- [ADR-0507: A page is taken down on WebKit's thread and its context outlives exit](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)

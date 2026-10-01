@@ -14,7 +14,7 @@ Third-party software is disclosed in [`THIRD-PARTY-NOTICES.md`](https://github.c
 ./gradlew checkLicenses
 ```
 
-A dependency named in one and not the other fails the build. The reasoning is in [ADR-0015](../adr/0015-licensing-and-third-party-disclosure.md).
+A dependency named in one and not the other fails the build. The reasoning is in [ADR-0015](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0015-licensing-and-third-party-disclosure.md).
 
 ## What a change passes
 
@@ -34,7 +34,7 @@ A dependency named in one and not the other fails the build. The reasoning is in
 | Markdown | No trailing whitespace, a final newline | `./gradlew formatMarkdown` |
 | Licences | `THIRD-PARTY-NOTICES.md` and `licenses/` agree | Editing both |
 
-[Tests and gates](testing.md) says what each one runs and why. The record behind the format-and-analysis tier is [ADR-0497](../adr/0497-every-package-says-what-it-is-and-is-null-marked.md), and the record behind the two test runs is [ADR-0155](../adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md).
+[Tests and gates](testing.md) says what each one runs and why. The record behind the format-and-analysis tier is [ADR-0497](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0497-every-package-says-what-it-is-and-is-null-marked.md), and the record behind the two test runs is [ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md).
 
 > [!TIP]
 > Run `./gradlew spotlessApply check` before pushing. The formatter is the one gate that fixes itself.
@@ -53,7 +53,7 @@ The gallery is the demo, the visual-regression corpus and the accessibility swee
 
 ## Decisions are recorded
 
-A change that chooses between designs gets an architecture decision record beside the code, in the same pull request. The log is the last part of this book, and [ADR-0001](../adr/0001-record-architecture-decisions.md) says why it exists. [Recording a decision](decisions.md) says how to write one and what the build checks about it.
+A change that chooses between designs gets an architecture decision record beside the code, in the same pull request. The log is the last part of this book, and [ADR-0001](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0001-record-architecture-decisions.md) says why it exists. [Recording a decision](decisions.md) says how to write one and what the build checks about it.
 
 ## The chapters
 

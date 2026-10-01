@@ -31,7 +31,7 @@ elements by the router, which is why they survive a rebuild.
 
 Hit testing runs against the snapshot taken while painting, not a fresh
 layout pass. A pointer event is about what the user can see, and that is the
-last frame drawn ([ADR-0054](../adr/0054-hit-testing-runs-against-the-painted-frame.md)).
+last frame drawn ([ADR-0054](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md)).
 A transform the painter applied is inverted once, from the very matrix the
 rasterizer used, so a scaled control responds where it is drawn.
 
@@ -53,7 +53,7 @@ dragging off is a gesture people rely on.
 
 A press takes an implicit capture until the release, so a drag that leaves a
 widget still reaches it and `:active` cannot get stuck. That is what makes a
-slider work ([ADR-0058](../adr/0058-a-press-captures-the-pointer.md)).
+slider work ([ADR-0058](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0058-a-press-captures-the-pointer.md)).
 `:hover` keeps following the pointer regardless: capture decides who is
 told, not what is highlighted. `router.capturePointer(element)` takes a
 capture that outlives the release, for the rare widget that needs one.
@@ -73,20 +73,20 @@ A widget is a value rebuilt every frame and cannot remember where a drag
 began. The router can, and reports it on every event of the gesture:
 `pressX()` and `pressY()` are where the button went down, and `dragX()` and
 `dragY()` are how far the pointer has travelled since, `NaN` when no button
-is held ([ADR-0075](../adr/0075-a-gestures-origin-is-the-routers.md)).
+is held ([ADR-0075](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
 
 `local()` is the pointer in the widget's own box, with `fractionX()` and
 `fractionY()` clamped to `0..1`. A control whose hit target is bigger than
 the thing being pointed along, a slider with a readout beside its track, names
 the part to measure against with `Handles.localPart()`
-([ADR-0079](../adr/0079-a-continuous-value-is-placed-by-ratio.md)). A
+([ADR-0079](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)). A
 control whose drag is a rate rather than a position, a knob, answers
 `gestureAnchor()` once on the press and gets it back as `anchor()` on every
 event after. A `canvas` reads `content()` instead of `local()`: it is
 measured from inside the padding, where the painter draws.
 
 A drag held at the edge of a viewport carries the viewport on, and the
-selection with it ([ADR-0500](../adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md)).
+selection with it ([ADR-0500](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md)).
 
 ## The wheel is lines
 
@@ -102,8 +102,8 @@ selection with it ([ADR-0500](../adr/0500-a-drag-held-at-the-edge-carries-the-vi
 Wheel deltas are in lines, fractional, positive down and right. A touchpad
 sends a fraction of a detent per frame and the fraction is preserved in
 `deltaY()`; a mouse's whole detents are in `ticksY()`
-([ADR-0056](../adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md),
-[ADR-0115](../adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
+([ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md),
+[ADR-0115](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
 Natural scrolling and SDL's away-from-the-user sign are both undone at the
 boundary, so a widget never sees either. `--gb-scroll-line` in the theme
 says how far one line moves a viewport.
@@ -114,7 +114,7 @@ A `KeyEvent` is a key going down or up, with its `Key`, its `Modifiers` and
 whether it is a repeat. A `TextEvent` is committed text: what the platform's
 compose and input method produced, which for anything but a Latin keyboard
 is not a key at all. One character can take several keystrokes
-([ADR-0055](../adr/0055-sdl-owns-keyboard-translation.md)).
+([ADR-0055](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0055-sdl-owns-keyboard-translation.md)).
 
 A widget that wants what the user typed implements `onText`, and says so
 with `wantsTextInput()`. That is what turns the platform's text input on,
@@ -140,7 +140,7 @@ everywhere else. `Shortcut.primary(Key.S)` builds it in Java, and `Mod`,
 `CmdOrCtrl` and `Primary` all spell it in a string. Nothing else is
 translated: a shortcut that says `Ctrl` means the control key on every
 desktop, which is what a terminal or an Emacs-bound editor needs
-([ADR-0378](../adr/0378-the-desktops-own-modifier-has-a-name.md)).
+([ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md)).
 `-Dgoldberry.input.primary=ctrl` or `=meta` overrides the answer, and the
 toolkit's own tests run with `ctrl` on every runner.
 
@@ -172,7 +172,7 @@ enters or leaves its subtree as a whole.
 
 A radio group, a tab list, a menu or a toolbar is one Tab stop, with the
 arrow keys moving focus inside it
-([ADR-0073](../adr/0073-a-composite-is-one-tab-stop.md)). The group says
+([ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)). The group says
 which arrows rove: `HORIZONTAL`, `VERTICAL`, or `BOTH` for a group whose
 direction is the stylesheet's, which is what `radio-group` answers. `Home`
 and `End` reach the ends of any scope. Traversal enters at the descendant
@@ -194,7 +194,7 @@ The cursor is a property of the painted rectangle, set from CSS or from
 code, and it inherits down the stack of rectangles under the pointer rather
 than the element tree. `cursor: pointer` on a button therefore covers the
 label inside it, and the shape freezes during a drag
-([ADR-0057](../adr/0057-the-cursor-rides-on-the-painted-box.md)). Custom
+([ADR-0057](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0057-the-cursor-rides-on-the-painted-box.md)). Custom
 image cursors are not built, and `grab` and `grabbing` fall back to `move`.
 
 ## Dropped files and text
@@ -210,7 +210,7 @@ A desktop reports a drop as a beginning, a position, one event per file and
 an end. The toolkit reassembles that into one `FileDrop` carrying every path
 and the point it landed on, in the window's logical coordinates, because a
 board needs to know where
-([ADR-0330](../adr/0330-a-dropped-file-arrives-somewhere.md)). Both
+([ADR-0330](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0330-a-dropped-file-arrives-somewhere.md)). Both
 listeners return a `Subscription` to close when a widget that listened
 leaves the tree.
 
@@ -232,7 +232,7 @@ key or `Shift+F10` on the focused widget finds the name by walking up from
 what is under the pointer, and hands it to the one handler the application
 registered with the point it happened at. What the name means is the
 catalogue's, which is why `Menus.contextMenus` is the line that turns a name
-into a menu ([ADR-0208](../adr/0208-a-context-menu-answers-the-keyboard.md)).
+into a menu ([ADR-0208](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0208-a-context-menu-answers-the-keyboard.md)).
 Bare `F10` is the menu bar's.
 
 ## What a custom widget implements
@@ -260,11 +260,11 @@ when it has one. The whole contract is in
 
 ## Read more
 
-- [ADR-0054](../adr/0054-hit-testing-runs-against-the-painted-frame.md): hit testing
-- [ADR-0055](../adr/0055-sdl-owns-keyboard-translation.md): keys and text
-- [ADR-0056](../adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md): the wheel
-- [ADR-0057](../adr/0057-the-cursor-rides-on-the-painted-box.md): the cursor
-- [ADR-0058](../adr/0058-a-press-captures-the-pointer.md): a press captures
-- [ADR-0073](../adr/0073-a-composite-is-one-tab-stop.md): composites
-- [ADR-0075](../adr/0075-a-gestures-origin-is-the-routers.md): gestures
-- [ADR-0378](../adr/0378-the-desktops-own-modifier-has-a-name.md): the primary modifier
+- [ADR-0054](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md): hit testing
+- [ADR-0055](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0055-sdl-owns-keyboard-translation.md): keys and text
+- [ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md): the wheel
+- [ADR-0057](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0057-the-cursor-rides-on-the-painted-box.md): the cursor
+- [ADR-0058](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0058-a-press-captures-the-pointer.md): a press captures
+- [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md): composites
+- [ADR-0075](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md): gestures
+- [ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md): the primary modifier

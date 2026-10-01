@@ -92,6 +92,26 @@ class BookTest {
         }
 
         @Test
+        @DisplayName("to a record points at GitHub and at a record that exists")
+        void aRecordLinkLandsOnARecord() {
+            var links = guide().stream()
+                    .flatMap(chapter -> Book.links(chapter.path()).stream())
+                    .toList();
+            var relative = links.stream()
+                    .filter(link -> !link.external() && link.target().contains("adr/"))
+                    .map(link -> link.chapter() + " -> " + link.href())
+                    .toList();
+            var missing = links.stream()
+                    .filter(link -> link.record().isPresent())
+                    .filter(link -> !Book.exists(link.record().orElseThrow()))
+                    .map(link -> link.chapter() + " -> " + link.href())
+                    .toList();
+            assertAll(
+                    () -> assertTrue(relative.isEmpty(), () -> "records linked as pages of the book: " + relative),
+                    () -> assertTrue(missing.isEmpty(), () -> "records on GitHub that do not exist: " + missing));
+        }
+
+        @Test
         @DisplayName("names a heading the page it lands on actually has")
         void landsOnAHeading() {
             var broken = guide().stream()
@@ -196,11 +216,11 @@ class BookTest {
         }
 
         @Test
-        @DisplayName("keeps the decision log out of search, which is where the index's size went")
-        void searchSkipsTheLog() {
+        @DisplayName("loads the script that builds the landing page's header, and the file exists")
+        void loadsTheHeader() {
             assertAll(
-                    () -> assertTrue(config.contains("[output.html.search.chapter]")),
-                    () -> assertTrue(config.contains("\"adr/\" = { enable = false }")));
+                    () -> assertTrue(config.contains("additional-js = [\"theme/goldberry.js\"]")),
+                    () -> assertTrue(Repository.exists("book/theme/goldberry.js")));
         }
 
         @Test

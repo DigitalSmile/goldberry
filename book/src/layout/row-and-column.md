@@ -69,9 +69,9 @@ There are no variant classes. The classes a row carries are the ones a document 
 
 ### Read more
 
-- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](../adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
-- [ADR-0247 `start` is CSS, and `flex-start` is Yoga](../adr/0247-start-is-css-and-flex-start-is-yoga.md)
-- [ADR-0076 A glyph does not negotiate](../adr/0076-a-glyph-does-not-negotiate.md)
+- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
+- [ADR-0247 `start` is CSS, and `flex-start` is Yoga](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0247-start-is-css-and-flex-start-is-yoga.md)
+- [ADR-0076 A glyph does not negotiate](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md)
 
 ## `column`
 
@@ -132,5 +132,5 @@ The CSS type is `column`. No parts and no pseudo-classes of its own, and no rule
 
 ### Read more
 
-- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](../adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
-- [ADR-0166 A raised thing is told apart by its edge](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+- [ADR-0279 Flexbox is the toolkit's vocabulary, not Yoga's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md)
+- [ADR-0166 A raised thing is told apart by its edge](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)

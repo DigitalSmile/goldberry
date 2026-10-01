@@ -95,9 +95,8 @@ python3 -m http.server -d /tmp/_site 8000
 Done on 2026-10-01: the guide, its theme, the search settings and the two
 drift guards are in [`book.md`](book.md), and the decision is
 [ADR-0511](../book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md).
-Of the questions this section used to list: the structure is six parts ahead
-of the log; search excludes `adr/` through `[output.html.search.chapter]`, which
-took the index from 19.5 MB to under 5 MB; the theme is `book/theme/goldberry.css`
+Of the questions this section used to list: the structure is six parts, and the
+log is not in the book at all, it is read on GitHub (ADR-0512); the theme is `book/theme/goldberry.css`
 over mdBook's `light` and `navy`; `kdl` samples are tested by `BookMarkupTest`
 and Java samples are not compiled. A link check of the built site is still a
 nice to have; `BookTest` checks the same links in the sources.

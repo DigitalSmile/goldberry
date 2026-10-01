@@ -17,19 +17,19 @@ is listed in `docs/ARCHITECTURE.md` §17.1. `docs/design-system.md` and
 of them and records where it knowingly departs. **Five of the seven were taken on
 2026-09-17** and each went the way the section says it should: the platform
 primary modifier is a modifier you can name
-([ADR-0378](adr/0378-the-desktops-own-modifier-has-a-name.md)), a disabled
+([ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md)), a disabled
 container reaches the cascade
-([ADR-0379](adr/0379-a-disabled-container-reaches-the-cascade.md)), `text style=`
-is built ([ADR-0381](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)), the
+([ADR-0379](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0379-a-disabled-container-reaches-the-cascade.md)), `text style=`
+is built ([ADR-0381](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0381-a-rank-has-two-spellings-and-one-meaning.md)), the
 `tooltip` row's radius and rank are what ships
-([ADR-0380](adr/0380-the-tooltip-row-is-what-ships.md)), and "one module or two"
+([ADR-0380](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0380-the-tooltip-row-is-what-ships.md)), and "one module or two"
 had been settled in `core-widgets.md` itself a month before anyone noticed. What
 is left is where the emoji font lives and who owes its attribution, whether
 `goldberry-charts` is an artifact, what "zero new natives" costs (see [Content
 modules](#content-modules)), and — recorded in §17.1 and never counted here —
 dual y-axes, the word `checkable` doing two jobs, and `masonry`'s missing row. **Pixel-precise wheel deltas left this list** and
 have now left the list below it too:
-[ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
+[ADR-0115](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
 difference rather than an agreement — what §2.4 wanted from "pixel-precise" is
 scrolling that does not quantize, and a fractional line delivers that without
 the mechanism the sentence named — while the entry itself sat on under
@@ -47,8 +47,8 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   the platform's own window focus — SDL gives a `POPUP_MENU` window focus on some
   drivers and not on others — which the headless backend cannot show and which no
   test here can currently reach. —
-  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+  [ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md),
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
 - **A popup's contents inherit nothing from the widget that opened them, and the
   answer this entry proposed is wrong for the widget it named.** They are the root
   of a second element tree, so no `color`, no `font-size` and no descendant
@@ -57,13 +57,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   the styling of the thing it describes, and the answer there is to pass the
   anchor's resolved style in" — and `tooltip` **pins** its typography for a stated
   reason, §1.4's `caption` rank being the one departure in its row that somebody
-  had thought about ([ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
+  had thought about ([ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
   Inheriting the anchor's `font-size` would draw a tooltip on a `display`-ranked
   heading at 28px. So the subject stands and the example does not: what is left is
   a `popover` or a `menu` whose *application* wanted a descendant selector to
   reach in, which nothing has asked for. —
-  [ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
+  [ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
+  [ADR-0103](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 - **60 ms is how long a focus-lost is disbelieved for, and it can now be told
   otherwise.** Long enough to cover the focus-lost/focus-gained pair that opening
   a popup produces, short enough that nobody sees a menu over another application.
@@ -74,7 +74,7 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   acts on the first of the pair every driver sends and is the exact bug the delay
   exists for. A driver that needs the flag will still *look* like a menu that
   closes as it opens until somebody sets it. —
-  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
+  [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)
 ## The catalog: specified and unbuilt
 
 - **The inflater accepts a property nothing reads.** `KdlInflater` refuses an
@@ -85,7 +85,7 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `BookMarkupTest` inflates every `kdl` sample and therefore cannot catch a
   misspelt attribute either. What it would take is a node that records which
   properties were read and an inflater that warns, or refuses, on the rest. —
-  [ADR-0511](adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
+  [ADR-0511](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
 
 ### `text-input`, and what §4 still owes
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
@@ -94,26 +94,26 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   Worth writing down because it is the second widget to need the measurement
   `render` cannot have, and a third would be an argument for handing the width to
   `render` rather than to `Measured`. —
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **Nothing re-places the caret when the font changes under it.** A restyle that
   changes `font-size` reshapes the paragraph and the caret follows, because both
   are computed in the same `render`. A *density* change does the same. Neither is
   broken; what is untested is a font-family fallback swapping mid-edit, which no
   test can currently provoke. —
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
   have. `sheet` is the plausible second, and it is not built. **A `wizard` is
   not**: §6 makes its content a focus-scope, and a wizard written inline that
   trapped the keyboard and the pointer would lock the window around it. It is
   tested in `:core` against bare widgets rather than through `dialog`, so the
   second one finds a mechanism rather than a dialog-shaped hole. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
-  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+  [ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
+  [ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 
   **Read again on 2026-09-30, and it stands.** `DialogPanel` is still the only
   widget that answers `isModal`. What is new is a *reader*: `web-view` asks
   `Host.isModal` and parks its page while a modal is up
-  ([ADR-0444](adr/0444-a-page-stands-aside-for-a-modal.md)), which is a consumer
+  ([ADR-0444](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0444-a-page-stands-aside-for-a-modal.md)), which is a consumer
   of the answer rather than a second thing that traps. (An "on hold" note for the
   accessibility bridge sat here by mistake; this entry never waited on it.)
 - **There is no third text rank, and one was invented and taken back out.** A
@@ -123,15 +123,15 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   much as to prose, and the Nord palette has nothing between muted and the border
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - **A scrollbar's thumb stops being proportional on a very long document.** It is
   floored at 24px, so past about four screens the thumb no longer says how much
   is visible — only that there is a lot. The trade every scrollbar makes, named
   here because it is a place the widget knowingly stops telling the truth. —
-  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+  [ADR-0117](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
 - **`Measured` has several consumers whose reason is a *sibling's* geometry**, which is new:
   a toast stack banks how tall each toast came out so that it can move the survivors
-  by the height of the hole when one goes ([ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)).
+  by the height of the hole when one goes ([ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)).
   Every other consumer reads its own box. It obeys the third rule by construction for
   the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
   is laid out where it always was.
@@ -143,13 +143,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   pressing one loses the place. Every recycling list has this unless it pins the
   focused index, and pinning it would keep a row nobody is looking at built for
   ever. —
-  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+  [ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - **A `table` focuses rows and not cells.** Right for §10's grid semantics and
   wrong for a spreadsheet, which is a different widget rather than an option on
   this one. Horizontal virtualization is absent for the same reason: it is a
   different arithmetic, and it is worth it past about fifty columns, which is
   past where a table is the right thing to be looking at. —
-  [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
+  [ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)
 - **A segmented control fills its parent when nothing gives it a width**, which is new
   and is a real loss of convenience: in a toolbar beside other widgets it takes the
   whole row until an author writes `width`. It buys the travelling indicator, and there
@@ -157,7 +157,7 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   and a zero basis collapses the bar entirely.
 ## The shell: the tray, and what it cannot say
 
-§9's `tray-icon` ships ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
+§9's `tray-icon` ships ([ADR-0191](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
 What follows is what it does not do, and in three cases what no platform lets it
 do — recorded here rather than left to be rediscovered by an author whose
 description had no effect.
@@ -166,7 +166,7 @@ description had no effect.
   registers a callback per *entry* and none for the icon itself. So a click on the
   icon opens the menu and nothing else can be attached to it. Doing this properly
   means going around SDL to three platform APIs, which is the move
-  [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md) declined when the
+  [ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md) declined when the
   wheel wanted it; the workable answer is a first row that means "open the window",
   which is what most tray applications ship anyway.
 - **A checkbox's tick can end up disagreeing with the application.** The shell
@@ -205,7 +205,7 @@ description had no effect.
 - **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
   with a registry the application owns
-  ([ADR-0043](adr/0043-icons-are-stroked-paths.md)) and `action` with another, so
+  ([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)) and `action` with another, so
   the shape is known — what is not known is whether a painter is a *value* a
   registry holds or a *method* on a model, which is the same question `@Action`
   answered for commands and would have to answer again here. Nothing has needed
@@ -221,7 +221,7 @@ description had no effect.
   chart whose data changed; it is wasteful for a canvas whose drawing is static
   and expensive. The seam for fixing it exists — a canvas that wants caching is a
   repaint boundary with a `Layer`
-  ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
+  ([ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
   measured a case that needs it.
 ## Images, and what the primitive is not
 - **`Image.decode` is still synchronous.** A large JPEG is tens of milliseconds,
@@ -241,7 +241,7 @@ description had no effect.
 ## The clipboard
 - **Nothing watches it.** There is no "the clipboard changed" notification, so a
   paste button cannot grey itself out until its menu opens and asks
-  ([ADR-0286](adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
+  ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
   deliver ownership changes and Windows has a viewer chain; what is missing is a
   consumer worth the plumbing.
 ## Content modules
@@ -252,33 +252,33 @@ artifacts now**: `:html`, whole, with no engine under either half; `:emoji`;
 `:widgets` and `goldberry-web` became a widget rather than a module. None of the
 other seven is scheduled while M3 still owes client-side decorations and the rest
 of §4. The shape they share is
-[ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
+[ADR-0190](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0190-a-content-module-brings-its-own-natives.md) and the summary
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
 on, which in four cases is the same thing.
 - **Both halves of `goldberry-html` are built, and neither has an engine under
   it.** `:html` ships `Markdown.parse`, `MarkdownHtml`, `markdown-view`, `Html.parse`
   and `html-view`
-  ([ADR-0294](adr/0294-a-parser-crosses-the-boundary-once.md),
-  [ADR-0295](adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md),
-  [ADR-0298](adr/0298-html-is-a-document-and-not-an-engine.md)),
+  ([ADR-0294](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0294-a-parser-crosses-the-boundary-once.md),
+  [ADR-0295](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0295-a-document-is-a-value-and-a-paragraph-is-a-row-of-words.md),
+  [ADR-0298](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0298-html-is-a-document-and-not-an-engine.md)),
   and what they do *not* do is a short list that mostly has one cause — there is no
   inline layout engine under either, because that is what litehtml would be:
   - **Neither can lay out a line of mixed faces as one shaped run**, so there is no
     justification and no hyphenation. This is the item that *is* litehtml's, and it
     is now **the whole** of what an engine would buy: links, images, task boxes
     (ADR-0300) and text selection
-    ([ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md)) all
+    ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)) all
     used to be on this list and none of them needed one.
   - **Dragging a selection past the edge of a viewport does not scroll on.** Both
     views select, copy and highlight
-    ([ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md)); what a
+    ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)); what a
     drag to the bottom of a pane does is stop selecting rather than carry the
     viewport with it. The same want a `text-area` has, and neither has it — an
     auto-scroll is a timer plus a clamp, and the interesting part is deciding what
     it does on a touchpad's fractional deltas.
 
     *Closed by
-    [ADR-0500](adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md):*
+    [ADR-0500](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md):*
     a drag held past the edge carries the viewport on at a speed set by how far
     past it the pointer is, through `EdgeScroll`, which `text-area` shares. There
     were two faults rather than one — the selection also froze at the edge,
@@ -296,7 +296,7 @@ on, which in four cases is the same thing.
     sideways.** Both are the CSS subset: `border` is uniform, so there is no
     `border-left`, and horizontal `scroll` is not in §10 either.
     *The rules are closed by
-    [ADR-0505](adr/0505-a-border-has-four-sides-and-takes-no-room.md):* a border
+    [ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md):* a border
     has four sides now, a row draws the rule above it and a cell the rule before
     it. Two things the entry could not have said: a border has never taken layout
     room here — it is drawn over the padding, and every bordered widget counts on
@@ -319,7 +319,7 @@ on, which in four cases is the same thing.
     `list` virtualization argument applied to a document, and nothing needs it yet.
 
   **Closed —
-  [ADR-0426](adr/0426-a-paragraph-is-one-row-of-words-until-somebody-ends-a-line.md).**
+  [ADR-0426](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0426-a-paragraph-is-one-row-of-words-until-somebody-ends-a-line.md).**
   A hard break is now its own `Words.Piece`, and a paragraph with one becomes
   a column of line rows; with none it builds exactly the single row it built
   before, which is why no `:html` golden moved. The CSS split is the decision:
@@ -338,9 +338,9 @@ on, which in four cases is the same thing.
   Markdown screen's editor is a `text-area` in the code face: a caret, a selection,
   undo, the clipboard and an input method. It has **line numbers** now
   (`gutter=#true`,
-  [ADR-0331](adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)) and a
+  [ADR-0331](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)) and a
   seam an application can write shortcuts against (`onEdit`/`edit`,
-  [ADR-0332](adr/0332-an-editor-is-handed-the-caret.md)), so `Ctrl+B`,
+  [ADR-0332](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0332-an-editor-is-handed-the-caret.md)), so `Ctrl+B`,
   list continuation and `Tab`-indent are an application's to write rather than
   impossible. What is still missing here is **highlighting** — Tree-sitter is what
   that waits on, and the fence's language already reaches the model for it to read
@@ -362,15 +362,15 @@ on, which in four cases is the same thing.
   second renderer over the same model rather than a replacement for one. Statically linking a second Blend2D into the module is the way out
   that does not work — two runtimes in one process, and a `BLContext` handed
   across them is undefined behaviour. —
-  [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md),
-  [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md)
+  [ADR-0190](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0190-a-content-module-brings-its-own-natives.md),
+  [ADR-0007](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0007-jpms-modules-enforce-the-native-boundary.md)
 
   **Narrower than it reads — found by the 2026-09-30 sweep.** Two of the three
   gaps were closed for the toolkit's own reasons and the entry was not told:
   gradients are exported (`bl_gradient_*` and `bl_context_set_fill_style`,
-  [ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)), and so are `bl_context_save` and
+  [ADR-0207](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0207-a-fill-may-be-a-ramp.md)), and so are `bl_context_save` and
   `restore`, whose comment in the symbol file now says a second clip depth is
-  needed ([ADR-0193](adr/0193-a-canvas-is-a-second-clip-depth.md)). There are 25
+  needed ([ADR-0193](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)). There are 25
   `bl_context_*` entries rather than twenty. Rounded geometry is cubic paths plus
   `bl_path_elliptic_arc_to`, with no round-rectangle primitive. Whether what is
   exported now is enough for `document_container` has not been checked against
@@ -382,15 +382,15 @@ on, which in four cases is the same thing.
   SDL audio for UI effect sounds all begin at the same file. This is no longer a
   guess about what that costs: `tray-icon` began there too and paid eleven
   symbols, two binding classes and five probe constants for it
-  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). The modules'
+  ([ADR-0191](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). The modules'
   "zero new natives" claim is true of the binary and not of the surface.
 
   **Half of it moved, for `:media` — corrected 2026-09-30.** Audio *output* is
   exported now: nine `SDL_*` audio-stream symbols, which `:media`'s `AudioSink`
   writes through
-  ([ADR-0462](adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)), with SDL's
+  ([ADR-0462](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)), with SDL's
   ALSA and PulseAudio drivers required on Linux
-  ([ADR-0488](adr/0488-the-linux-build-fails-without-the-audio-headers.md)). Of
+  ([ADR-0488](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0488-the-linux-build-fails-without-the-audio-headers.md)). Of
   the 149 `SDL_*` entries on the list, 56 are `SDL_GPU` and 9 are audio. Still
   missing: every camera and recording symbol, and the core `Sound` API, so
   `goldberry-camera` and `goldberry-mic` begin at the same file as before.
@@ -404,7 +404,7 @@ on, which in four cases is the same thing.
   build wants gn/depot_tools, so `:natives-pdf` consumes pinned,
   checksum-verified community binaries — which is a different supply-chain
   posture from every other native in the toolkit, where the superbuild compiles
-  from a pinned commit ([ADR-0030](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)).
+  from a pinned commit ([ADR-0030](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)).
   Worth an ADR of its own before the first jar.
 - **`goldberry-code` has a consumer before it has a widget, and the consumer now
   exists.** md4c's code fences want a highlighter; `markdown-view` renders a fence
@@ -415,11 +415,11 @@ on, which in four cases is the same thing.
   rendering them plain. The optional-dependency mechanic — a module that improves
   when another is on the module path — **exists now, as JPMS services**: `:core`
   uses an `EmojiFont` that `:emoji` provides
-  ([ADR-0384](adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md))
+  ([ADR-0384](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md))
   and a `Compositor` that `:gpu` provides
-  ([ADR-0479](adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)),
+  ([ADR-0479](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)),
   and `video-view` draws through a GPU layer when `:gpu` is present
-  ([ADR-0484](adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+  ([ADR-0484](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
   So `goldberry-html` → `goldberry-code` and `goldberry-vector` → `image/svg+xml`
   are two more services of a known shape, and what is missing is the module.
 - **`goldberry-plot`'s colormaps are data with a provenance.** viridis-class
@@ -428,7 +428,7 @@ on, which in four cases is the same thing.
   `./gradlew checkLicenses` knows about artifacts.
 ## Style, colour and motion
 - ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
-  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
+  ([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
   §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,
   `tour-card` and `toast` at level 2, and `affix:affixed` at level 1 with the
   `transition: box-shadow` §1.7's motion table has asked for since before there
@@ -445,13 +445,13 @@ on, which in four cases is the same thing.
   same transparent-popup compositor support the rounded corners are waiting on.
   `--gb-elevation-3` is unused and stays so: it is the level for a thing the
   pointer is dragging, and nothing here is dragged. —
-  [ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md),
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+  [ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md),
+  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 - **A popup's transparent corners need a compositor**, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
   the platform leaves there. The fallback that always works — filling the frame
   with the panel's own colour, for square corners — is kept in reserve. —
-  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
+  [ADR-0111](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)
 ## Rendering and performance
 - **Opening a long note still shapes all of it, on the frame that opens it.** A
   keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
@@ -466,7 +466,7 @@ on, which in four cases is the same thing.
   promise about what the scrollbar means. Nobody has reported it: the downstream
   editor's complaint was the keystroke, and `TextAreaFrameBenchmark` is where the
   number would have to come from first (ADR-0045). —
-  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md)
+  [ADR-0388](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md)
 - **The scale-invariance thresholds are calibrated on one CPU.** The worst honest
   disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
   Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
@@ -474,7 +474,7 @@ on, which in four cases is the same thing.
   by argument, exactly as the goldens' own tolerance is.
   `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
   how a runner pressing against the limit would say so in numbers. —
-  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md)
+  [ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md)
 
   **Partly answered by CI, as it said it would be.** The golden suites run on
   `windows-x64` under MSVC and on `macos-aarch64`'s NEON path
@@ -489,9 +489,9 @@ on, which in four cases is the same thing.
   being six consecutive doubles in the order `matrix(a, b, c, d, e, f)` writes them,
   which the layout probe now checks against the compiled library on every target because
   the operand crosses as `void*` and a reordered union would produce a skewed frame and
-  `BL_SUCCESS`. — [ADR-0064](adr/0064-a-rounded-rectangle-is-four-cubics.md),
-  [ADR-0068](adr/0068-the-transform-stack-is-java-side.md),
-  [ADR-0050](adr/0050-golden-images-have-a-tolerance.md)
+  `BL_SUCCESS`. — [ADR-0064](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md),
+  [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md),
+  [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)
 - **The units between the two text libraries are a convention, not a checked fact.**
   HarfBuzz reports positions in whatever scale its font was set to; Blend2D multiplies
   them by `size / units-per-em`. Both are right, and applying a size on both sides
@@ -501,13 +501,13 @@ on, which in four cases is the same thing.
   owning both objects and never scaling the shaper, plus a test that compares the inked
   span against the measured width. Anything that builds a `ShapedFont` and a `BlendFont`
   by hand can still get it wrong. —
-  [ADR-0034](adr/0034-one-size-and-the-design-unit-crossing.md)
+  [ADR-0034](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0034-one-size-and-the-design-unit-crossing.md)
 - **A line boundary keeps a kern it should drop.** Each line is a slice of the whole
   paragraph's single shaping, so the kern between the last character of one line and the
   first of the next is included where a per-line shaping would drop it. A fraction of a
   pixel at the end of a line, in exchange for wrapping that costs no shaping at all.
   Re-shaping only the final lines, and only for painting, is the fix if it ever shows. —
-  [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+  [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
 - **`Element.update` invalidates a subtree only when the cascade could see the
   change.** ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
   rebuilt widget throws away what is below it when `matchesDiffer` says its
@@ -515,35 +515,35 @@ on, which in four cases is the same thing.
   invalidates its own style alone when it did not. What is left is the case where
   the identity *did* move, which still costs the subtree and which nothing has
   measured as a problem. —
-  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md),
-  [ADR-0315](adr/0315-a-rebuild-is-not-a-restyle.md)
+  [ADR-0149](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0149-a-state-invalidates-what-it-can-reach.md),
+  [ADR-0315](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md)
 - **A HUD costs about three shaped paragraphs a frame, and reports the cost as
   its own.** Its readings are strings that change every frame, so no cache keyed
   on the string can hold them. The caption says so rather than hiding it, and the
   ways out are all worse than the disclosure: refreshing the text at 10 Hz would
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
-  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+  [ADR-0152](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 - **`libgoldberry-webview` is opened at start-up, and WebKitGTK with it.** The
   backend asks it whether `Capability.WEB_VIEW` holds, and opening it maps
   WebKitGTK and GTK 3: 26 ms of a 520 ms native start, before any page is asked
   for. `docs/content-widgets.md` §11 calls the library "opened on demand"; the
   capability question is the demand. Answering it without the library — a build
   fact, like ADR-0422's — or on first use would take it off every start. —
-  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
-  [ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0441](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
   macOS and Windows. The budget half is met with 3.9× of headroom
-  ([ADR-0047](adr/0047-a-frame-nobody-sees-costs-full-price.md)); the breadth half
+  ([ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md)); the breadth half
   is one VirtualBox VM. **Scheduled at M5** — see [status.md](status.md#m5--hardening) for
   the shape of it. The three things that were missing are **all built**
-  ([ADR-0342](adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
+  ([ADR-0342](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
   `Window.resize` and `--resize=WxH` walk a window's size from outside,
   `FrameSummary` prints what a run cost at exit, and `showcase.yml` paints 300
   frames while resizing on each runner. **It asserts no budget, on any platform**
-  ([ADR-0452](adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)): Xvfb
+  ([ADR-0452](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)): Xvfb
   reports no refresh rate, so "late" on a runner counts missed ticks of a
   software timer. The first run was made by hand and all three legs report what
   they cost — `linux-x64` 302 frames and 75 late, `macos-aarch64` 300 and 200 —
@@ -552,25 +552,25 @@ on, which in four cases is the same thing.
   measured**, on a display somebody chose, and there is still no tag. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
   so what this can prove is that three platforms' *drivers* hold the budget, not
   that hardware does. —
-  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md),
-  [ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
+  [ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md),
+  [ADR-0147](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
 - **A like-for-like Wayland frame measurement is still owed.** ADR-0037's numbers
   — paint 5.10 ms, present 1.92 ms, 7.86 ms median — were taken on **X11**, after
   the Wayland run crashed the compositor, and they are compared against ADR-0031's
   Wayland ones. Nothing in that work made present faster; the driver changed. The
   two rows should not be read against each other until the same frame has been
   measured twice on the same session type. —
-  [ADR-0037](adr/0037-what-the-text-path-costs.md),
-  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+  [ADR-0037](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0037-what-the-text-path-costs.md),
+  [ADR-0031](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)
 - **The Wayland preference is evidence from one compositor.** SDL chooses X11 on a
   Wayland session unless the compositor advertises `wp_fifo_manager_v1`, which GNOME's
   Mutter does not; Goldberry asks for `wayland,x11` instead, because XWayland resizes
   visibly worse. Confirmed on GNOME only — KDE, Sway and the rest are untried, and the
   driver is logged at start-up so a report can say which one it got. —
-  [ADR-0027](adr/0027-prefer-wayland-fall-back-to-x11.md)
+  [ADR-0027](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0027-prefer-wayland-fall-back-to-x11.md)
 
   **The preference itself has since been reversed**
-  ([ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md)): on a Wayland session
+  ([ADR-0086](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0086-x11-is-the-linux-default-for-now.md)): on a Wayland session
   Goldberry asks for `x11,wayland`, unconditionally, because under XWayland the
   window manager decorates the window. So the one-compositor evidence is now
   evidence for a path taken only with `-Dgoldberry.backend.videoDriver=wayland`
@@ -588,7 +588,7 @@ on, which in four cases is the same thing.
   would now turn a tick red. What that leg cannot catch is anything about
   `gradlew run`, which is the path this bug was found on and the one an
   application author uses. —
-  [ADR-0039](adr/0039-macos-needs-the-first-thread.md)
+  [ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md)
 - **The compositor still dies, and shutting down cleanly did not stop it — the core dump
   says whose bug it is.** The entry below concluded that exiting with a live Wayland
   surface was the trigger and that `Goldberry.shutdown()` was the fix. The showcase has
@@ -621,10 +621,10 @@ on, which in four cases is the same thing.
   `Goldberry.shutdown()`. Open: whether `run()` should shut down on return, which would
   change a documented contract. Seen once, on GNOME 46.0 under VirtualBox/vmwgfx, after
   SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
-  [ADR-0022](adr/0022-window-is-the-front-door.md)
+  [ADR-0022](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0022-window-is-the-front-door.md)
 
   **Narrowed since:** `Goldberry.launch()`, the documented front door
-  ([ADR-0093](adr/0093-an-application-is-a-root-widget.md)), owns the
+  ([ADR-0093](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0093-an-application-is-a-root-widget.md)), owns the
   runtime and calls `Goldberry.shutdown()` itself, so the showcase no longer has to.
   The open question is now only about `run()`, whose contract still says
   `shutdown()` is rarely needed, and so only about applications that assemble the
@@ -634,7 +634,7 @@ on, which in four cases is the same thing.
   is never reached — which is why two consecutive decoration bugs shipped without a
   single red tick. A Wayland leg needs a headless compositor in CI (`weston
   --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
   is the only thing that draws decorations matching the desktop, and its one requirement
   is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
@@ -649,31 +649,31 @@ on, which in four cases is the same thing.
   entirely when it ships, and the ecosystem's own answer on GNOME/Wayland is that every
   non-GTK toolkit — Qt, Firefox, Chromium — draws its own decorations in-process, which
   is the `SdlWindowFlag.BORDERLESS` design Goldberry has reserved but not built. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - **A window on GNOME/Wayland needs two packages from two different phases.**
   `libdecor-0-dev` at build time, or SDL compiles no libdecor support at all
-  ([ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)), and
+  ([ADR-0083](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)), and
   `libdecor-0-plugin-1-cairo` at run time, because the GTK plugin that libdecor pulls in
   by default refuses to start off the process's initial thread and a JVM is never on it
-  ([ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)). Installing
+  ([ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)). Installing
   either alone leaves the window bare. Whether Goldberry should carry its own
   decorations instead — `SdlWindowFlag.BORDERLESS` already describes the design — is the
   standing question behind both records. Since
-  [ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md) this bites only where
+  [ADR-0086](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0086-x11-is-the-linux-default-for-now.md) this bites only where
   Wayland is forced or there is no XWayland.
 - **CI is green, and the fixes that made it so were written blind.** Nine causes on
   Windows and macOS were diagnosed from runner logs and fixed on a Linux machine; all
   passed at `fd36169a` and `d478ecfe`. What that leaves: no machine here can run a
   Windows or macOS test before a push, so a platform-specific regression is caught by
   the Snapshot rather than locally. The annotations make that cheap to read, not free.
-  — [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+  — [ADR-0338](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0338-a-red-run-says-why-in-public.md)
 
   **And it has happened since, twice.** Windows went red and was fixed blind again
-  ([ADR-0450](adr/0450-the-webview2-runtime-ships-with-windows-its-headers-do-not.md),
-  [ADR-0454](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
+  ([ADR-0450](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0450-the-webview2-runtime-ships-with-windows-its-headers-do-not.md),
+  [ADR-0454](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
   Then Snapshot runs 32 and 33 were red on every OS in `:natives:gpuTest`, whose
   teardowns called SDL after a missing library had skipped their setup. That fix
-  ([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)) passes
+  ([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) passes
   here and has not been through a CI run: `master` has not been pushed since.
 - **Two workflows are written and have not passed.** `media.yml` builds FFmpeg and
   runs `:media:check` with FFmpeg and the platform decoders required on
@@ -684,11 +684,11 @@ on, which in four cases is the same thing.
   (`docs/gpu-plan.md`, 2026-09-24). Which runners can host a GPU device at all is
   still the open question in `gpu-plan.md`'s measurements table. Both are
   answered by a push. —
-  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
-  [ADR-0480](adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
+  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
 
   **The GPU lane had run, twice, and is repaired —
-  [ADR-0503](adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md).**
+  [ADR-0503](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md).**
   "Never run" was this list's mistake: Snapshot runs 32 and 33 both stopped at
   the lane's own ICD check, because Mesa names the file `lvp_icd.json` now. Run
   here on lavapipe, the lane then found a real bug — a test destroying a GPU
@@ -701,7 +701,7 @@ on, which in four cases is the same thing.
   macos-aarch64 are the only two that have run. D3D11VA is on by default on
   Windows and has no runner to prove it; VAAPI is off by default on Linux, on
   purpose, because it makes `libavutil` link `libva`. —
-  [ADR-0486](adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
+  [ADR-0486](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
   `docs/media-plan.md`
 ## The native build and its bindings
 - **The layout registry's constant half is where the value is.** When this was
@@ -709,12 +709,12 @@ on, which in four cases is the same thing.
   enumerators; it is 66 struct layouts now, 27 of them `SDL_GPU`, with the
   constants generated from the binding enums. The struct half has a known limit —
   `YGSize` is identical on all six targets, so its row proves nothing the round trip in
-  [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md) does not — but the constant
+  [ADR-0017](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0017-proving-the-struct-by-value-upcall.md) does not — but the constant
   half is where the value is: `YGAlignCenter` is 2 and `YGJustifyCenter` is 1, and a
   Java constant that drifts from either produces a layout that is wrong on every
   platform at once and never an error. —
-  [ADR-0010](adr/0010-hand-written-ffm-bindings.md),
-  [ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)
+  [ADR-0010](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0010-hand-written-ffm-bindings.md),
+  [ADR-0029](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)
 - **`VideoPlaybackTest` has two races, and one of them fails alone.**
   `statistics` ("expected 4 shown, got 5") was believed to fail only when
   `:media:test` and `:media:testWithoutGpu` ran side by side; on 2026-10-01 it
@@ -724,7 +724,7 @@ on, which in four cases is the same thing.
   the video thread meeting in an order the assertion does not allow, not a
   player defect anybody has seen; and both make a red `check` mean less than it
   should. —
-  [ADR-0463](adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
+  [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
 ## Build, artifacts and release
 - **A build with no network cannot produce a usable `goldberry-core`.** The bundled
   fonts and icons are fetched from upstream releases and cached, so this bites once per
@@ -732,14 +732,14 @@ on, which in four cases is the same thing.
   contains a toolkit that cannot render text. The build already needed network for the
   native superbuild, so no new constraint; it is written down because the failure is far
   from its cause. —
-  [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
+  [ADR-0033](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)
 - **A release has never run against Central.** ~~The publishing chain has never
   run against Central.~~ Central's side is done — the namespace, snapshots enabled
   for it, the token, the key and the secrets — and snapshots have gone out since
   run 17 on 2026-09-19. What has never run is `release.yml` → `publish.yml` → a
   Central Portal deployment, which waits on the first tag.
   `docs/releasing.md` is the list. —
-  [ADR-0334](adr/0334-central-is-fed-once-per-run.md)
+  [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md)
 - **The macOS and Windows native showcases are built from unreviewed traces.** The
   checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
   CI traces the other two headlessly before building, for 120 frames, and uses what it
@@ -748,7 +748,7 @@ on, which in four cases is the same thing.
   traces are needed at all; if they are, they belong in the repository beside the
   Linux one. The `macos-14` runner's 3 cores are the likeliest place for the build to
   be slow (2.27 GiB peak and 1 min 23 s on 8 Linux threads). —
-  [ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)
+  [ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)
 - **A stale Linux trace is found by a native build, not before it.** The foreign
   calls no longer depend on the trace at all — every holder and every upcall owner is
   registered from the bindings, and `ForeignSurfaceTest` holds the owner list to the
@@ -756,16 +756,16 @@ on, which in four cases is the same thing.
   reflection and resources, and a screen the run never opened can still lack a
   reflective registration; with the showcase built only on a tag or by hand
   (ADR-0340), that is found later than it was, on the release build. —
-  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+  [ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 - **An application still adds its platform's natives jar by hand.** The `goldberry`
   umbrella cannot pick `goldberry-natives:<v>:linux-x64` for the consumer's platform —
   a POM has no way to — so the BOM lines up its version and the classifier is the
   application's. A Gradle plugin, or module-metadata variants keyed on OS and
   architecture, would close it. —
-  [ADR-0336](adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
+  [ADR-0336](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
 
   **Narrowed —
-  [ADR-0438](adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md).**
+  [ADR-0438](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md).**
   Half the proposed fix does not work, and it was measured rather than argued.
   **Module-metadata variants keyed on OS and architecture cannot close this**:
   a variant is chosen by matching the *consumer's* attributes, and a plain JVM
@@ -789,13 +789,13 @@ on, which in four cases is the same thing.
 - **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
   three native images to the tag's draft release with `gh release`; the first `v*` tag
   is its first run, and a manual dispatch exercises everything but that step. —
-  [ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
+  [ADR-0340](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
 - **A release refuses to publish `goldberry-media` with two of its four FFmpeg
   builds missing.** `media.yml` builds `macos-aarch64` and `linux-x64`, so a
   snapshot carries those two `ffmpeg-<target>` classifiers, and the release path
   requires `windows-x64` and `linux-aarch64` as well. Both are written in the
   superbuild and neither has been built. —
-  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)
+  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)
 
 - **A native image resolves a host name before `main`.** About 50 ms of its 70 ms
   before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
@@ -805,19 +805,19 @@ on, which in four cases is the same thing.
   `ContextBase`. The image is stripped, so the stack did not say whose it is; a
   build with symbols, or an `InetAddressResolverProvider` that prints its caller
   (which found nothing on the JVM), would. —
-  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
 - **The native image cannot install the GLib log handler.** It logs "no handle
   to bind a GLib callback to", and GLib's messages go to stderr there — what
   ADR-0443 routes into the logger everywhere else. An upcall the image's
   foreign-call registrations do not cover, which ADR-0339's rule says cannot
   happen: every upcall owner is registered from the bindings. —
-  [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
-  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 
 ## On hold: the accessibility bridge
 
 **On hold —
-[ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
+[ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).**
 Every entry in this section waits on the AccessKit bridge, which is not being
 built and which no milestone owns. Each keeps its prose and its reasoning, which
 is still the right reasoning; where one says "M5", read "no milestone". What has
@@ -834,13 +834,13 @@ way back is a consumer asking, not a date.
   that speaks only what is reached would still have said nothing about it on the
   day the bridge landed. What is left is M5's AccessKit bridge and no decision
   from the catalog. —
-  [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
-  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+  [ADR-0225](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
+  [ADR-0177](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
 - **`Role` has no link and no list.** `link` answers `BUTTON`, and `steps`,
   `timeline` and `breadcrumbs` answer `GROUP` over `ROW`s, each with the reason
   written on it: a role nothing consumes is a value written for a bridge that does
   not exist. The AccessKit bridge is where the words arrive. —
-  [ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
+  [ADR-0346](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)
 - **Four widgets announce what they are and cannot say what they hold.**
   Each has a specification sentence with two halves and only the first is built.
   `code-input` is "a single textbox with the whole code as its value" —
@@ -855,9 +855,9 @@ way back is a consumer asking, not a date.
   and no per-cell channel** for any widget. So this is the AccessKit bridge's
   entry rather than any of theirs, and the four are named because they are the
   controls whose specifications spent a sentence on what they would say. M5. —
-  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
-  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
-  [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
+  [ADR-0276](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
+  [ADR-0274](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0274-a-calendar-is-told-what-day-it-is.md),
+  [ADR-0273](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 - **A trail is not a landmark, and a crumb is not a link.** §6 gives
   `breadcrumbs` "navigation landmark containing links, current page marked", and
   `Role` has neither a landmark nor `LINK`: the row answers `Role.GROUP` — "a
@@ -868,7 +868,7 @@ way back is a consumer asking, not a date.
   Filed rather than guessed at, for the reason the two entries below are: a role
   nothing can consume is a constant written for a bridge that does not exist, and
   adding `LINK` and a landmark now would make this gap look closed. M5. —
-  [ADR-0306](adr/0306-the-last-crumb-is-where-you-are.md)
+  [ADR-0306](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0306-the-last-crumb-is-where-you-are.md)
 - **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
   answers `Role.SLIDER`, which is true as far as it goes — a control whose value
   you move continuously — and says nothing about the second axis. `GROUP` is "a
@@ -877,7 +877,7 @@ way back is a consumer asking, not a date.
   Filed rather than guessed at: the answer is probably a role *and* a second value
   channel, and the shape of that depends on the AccessKit bridge nothing has
   built. M5. —
-  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
+  [ADR-0276](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
 
 ## Answered
 
@@ -890,11 +890,11 @@ out of it is usually worth more than the fact that it is fixed.
   LGPL-2.1 §6 also asks of a binary distributor — the source itself, or a written
   offer of it — is not settled, and it gates FFmpeg's first appearance on Central
   in a release. —
-  [ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md),
-  [ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
+  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0490](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)
 
   **Closed —
-  [ADR-0508](adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md).**
+  [ADR-0508](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md).**
   The binaries are FFmpeg itself in object form, so the clause is LGPL-2.1 §4 and
   not §6, as this entry had it: the complete corresponding source goes with
   them, or is offered from the same place. `goldberry-media` publishes it as its
@@ -910,9 +910,9 @@ out of it is usually worth more than the fact that it is fixed.
   numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while mapping
   `libgoldberry` is under 2ms — but they were measured under `gradle run`, which adds a
   launcher and its own JVM. The headline claim needs the example launched directly. —
-  [ADR-0028](adr/0028-the-start-up-timeline.md)
+  [ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md)
 
-  **Closed — [ADR-0506](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md).** Launched directly, timed from `exec`
+  **Closed — [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md).** Launched directly, timed from `exec`
   by an outside clock: the native image opens its window in about 120 ms and
   presents its first frame in about 520 ms (365 ms with the GPU off); the JVM
   takes about 2 s, 1.3 s with a JDK 25 AOT cache. The entry's premise was the
@@ -928,7 +928,7 @@ out of it is usually worth more than the fact that it is fixed.
   are on X11.
 
   **Closed —
-  [ADR-0504](adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md).**
+  [ADR-0504](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md).**
   The three SDL calls are bound (ABI 17) and offered as an optional
   `PrimarySelection` on `Backend` and `Host`: the sdl3 backend offers one only when
   SDL's driver is `x11` or `wayland`, and the headless backend an in-memory one a
@@ -951,7 +951,7 @@ out of it is usually worth more than the fact that it is fixed.
   set — a caller that is *not* a count — has not been read against those nine.
 
   **Closed —
-  [ADR-0499](adr/0499-every-way-through-restyle-is-listed-with-its-reason.md).**
+  [ADR-0499](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0499-every-way-through-restyle-is-listed-with-its-reason.md).**
   Read against the rule, seven of the nine write a number no stylesheet could
   have: from a count, the application's data, a measurement, input, or a sum §8
   has no `calc()` for. Two wrote something a stylesheet could have.
@@ -969,7 +969,7 @@ out of it is usually worth more than the fact that it is fixed.
   application that supplied none.
 
   **Closed —
-  [ADR-0501](adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md).**
+  [ADR-0501](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md).**
   `TrayIcon.icons(forLightShell, forDarkShell)` carries §9's two variants, each
   named for the panel it sits on rather than for its ink, and `Trays.show` swaps
   the icon in place through `BackendTray.icon` on every theme change, leaving the
@@ -987,10 +987,10 @@ out of it is usually worth more than the fact that it is fixed.
   cache amortises it almost to nothing — each level is cached against its parent
   map's identity (ADR-0152), so an ancestor's cascade reruns only on a miss — but a
   first frame and every invalidated subtree still pay it. Worth doing when a deep tree makes a first frame visible. —
-  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
+  [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md)
 
   **Closed —
-  [ADR-0502](adr/0502-a-node-copies-custom-properties-only-when-it-changes-one.md),
+  [ADR-0502](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0502-a-node-copies-custom-properties-only-when-it-changes-one.md),
   and the entry had the cause wrong.** Measured with `DeepTreeStyleBenchmark` at
   depths 51, 101 and 201 against the catalog's sheets: the walk never re-ran an
   ancestor's cascade, because ADR-0152's cache and the renderer's top-down order
@@ -1012,11 +1012,11 @@ out of it is usually worth more than the fact that it is fixed.
   question, and one the tree offers no way to ask. ADR-0120 avoided the same wall
   by turning the question around; here there is nothing to turn around, because
   the tour is not the thing being revealed. —
-  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+  [ADR-0268](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0268-a-tour-card-says-how-tall-it-came-out.md),
+  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 
   **Closed —
-  [ADR-0439](adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md).**
+  [ADR-0439](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md).**
   Both premises are true and the conclusion is false, which is why re-reading it
   twice did not catch it. `Element` **implements** `BuildContext`, so
   `findAncestorState` walks up from whatever element it is called on rather than
@@ -1030,11 +1030,11 @@ out of it is usually worth more than the fact that it is fixed.
   **outer** viewport, since the walk finds the innermost.
 - ~~**`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`.~~ **It is now**
-  ([ADR-0311](adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
+  ([ADR-0311](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)),
   and this entry closed the case on the wrong evidence. It was right that
   `tab-new` stopped wanting one — what that widget reached for was a way to sit
   somewhere other than the top of its row, which `align-self` answers
-  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — and wrong to conclude
+  ([ADR-0244](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md)) — and wrong to conclude
   from it that the property had no consumer, because `align-self` is the **cross**
   axis. On the main axis a box that wants to centre itself, or to sit at the far
   end of a row its container is not arranging for it, had no spelling at all:
@@ -1048,7 +1048,7 @@ out of it is usually worth more than the fact that it is fixed.
   be small. ~~and nothing warns when a
   declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
   `border-bottom` was written a fourth time, in `table-head`, and drew nothing
-  ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
+  ([ADR-0215](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
   `SupportedPropertyTest` resolves every rule the catalog and the showcase ship
   through the real cascade and fails on anything reported as unsupported — so a
   dead declaration is one failure with the property in it rather than a debug
@@ -1059,9 +1059,9 @@ out of it is usually worth more than the fact that it is fixed.
   `backdrop-filter` before it exists must not stop a window opening. (That
   sentence said `box-shadow` until ADR-0310 built it; `backdrop-filter` and
   `letter-spacing` are what is left of §8's unimplemented list.) —
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+  [ADR-0216](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0215](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
+  [ADR-0109](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - ~~**The catalog's specified surface roughly tripled, and most of it is built now.**~~
   `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
   `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,
@@ -1076,12 +1076,12 @@ out of it is usually worth more than the fact that it is fixed.
   **This entry said "none of it is built", then "one of them is built now", then
   "four widgets and four options are left" — and now none are.** The last four
   went in on 2026-09-17: `link`
-  ([ADR-0346](adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
+  ([ADR-0346](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0346-a-link-is-a-word-and-the-desktop-opens-the-rest.md)),
   `steps` and `wizard`
-  ([ADR-0344](adr/0344-a-list-of-steps-writes-where-each-one-stands.md)),
-  `timeline` ([ADR-0345](adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
+  ([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)),
+  `timeline` ([ADR-0345](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)),
   and `button`'s `outlined` / `square` / `circle` / `float`
-  ([ADR-0347](adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
+  ([ADR-0347](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
   What each left behind is its own entry under *The catalog* below.
 
   Everything else on it went in: `segmented` first, then `affix`, the three
@@ -1104,7 +1104,7 @@ out of it is usually worth more than the fact that it is fixed.
 
   **Answered — both are built.** `table` stopped waiting on virtualization when
   virtualization arrived: it is a list with columns
-  ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)), and
+  ([ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)), and
   `docs/ARCHITECTURE.md` §17 lists both as built. Nothing is left of M5's debt
   here.
 - ~~**A toggle's thumb does not follow the pointer during the drag — and the design system
@@ -1117,7 +1117,7 @@ out of it is usually worth more than the fact that it is fixed.
   for. It would also cost the mechanism the entry named: transient per-element state for
   a value that is neither the model's nor the stylesheet's, which nothing else in the
   catalog wants. Reopened only if the design system changes its mind, in writing. —
-  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md), `docs/design-system.md`
+  [ADR-0075](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md), `docs/design-system.md`
   §1.7, §3.1
 - ~~**The toggle does not shrink with a compact density**~~, and that is
   **answered rather than open** (`docs/widgets-finishing.md`, ADR-0356): §3's row
@@ -1128,18 +1128,18 @@ out of it is usually worth more than the fact that it is fixed.
   does not, so the pill stays 36×20 while the row around it takes `--gb-toggle-height`.
   Whether a 28-tall row holding a 20-tall pill is what §1.3 intends is a question for
   whoever writes the compact screenshots. —
-  [ADR-0075](adr/0075-a-gestures-origin-is-the-routers.md),
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+  [ADR-0075](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md),
+  [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
 - ~~**No file lists.**~~ `text/uri-list` is bytes like anything else and works today,
   but nothing turns those bytes into paths. **Drag-and-drop is a different
   platform mechanism and is built now**: `Window.onFileDrop` delivers one
   `FileDrop` per gesture, with the paths and the point they landed on
-  ([ADR-0330](adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
+  ([ADR-0330](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0330-a-dropped-file-arrives-somewhere.md)). What is still
   unbound there is `SDL_EVENT_DROP_TEXT` — the same shape, and nothing has asked
   for it.
 
   **`SDL_EVENT_DROP_TEXT` closed —
-  [ADR-0408](adr/0408-a-dropped-line-of-text-is-a-dropped-file-in-every-way-but-one.md).**
+  [ADR-0408](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0408-a-dropped-line-of-text-is-a-dropped-file-in-every-way-but-one.md).**
   "The same shape" turns out to be literal rather than loose: SDL tokenises
   dropped text on `\r\n` and raises one event **per line**, then one shared
   `DROP_COMPLETE` for both kinds — so `TextDrop` carries a list of lines, and
@@ -1151,7 +1151,7 @@ out of it is usually worth more than the fact that it is fixed.
   the ABI anyway, so the bill was already paid.
 
   **The other half closed too —
-  [ADR-0406](adr/0406-a-uri-list-is-a-list-of-names.md).** "Nothing turns those
+  [ADR-0406](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0406-a-uri-list-is-a-list-of-names.md).** "Nothing turns those
   bytes into paths" stopped being true on 2026-09-19: `UriList` reads
   `text/uri-list` into names, and the entry was never told. Found by the
   2026-09-30 sweep.
@@ -1164,15 +1164,15 @@ out of it is usually worth more than the fact that it is fixed.
 
   **Answered — libVLC is gone, and both halves went another way.** `:media`
   drives FFmpeg from Java
-  ([ADR-0460](adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)) and binds
+  ([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)) and binds
   its own libraries outside `:natives`
-  ([ADR-0461](adr/0461-a-media-engine-binds-its-own-libraries.md)), so the
+  ([ADR-0461](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0461-a-media-engine-binds-its-own-libraries.md)), so the
   one-library rule is untouched and there is no plugin tree. FFmpeg ships as
   shared objects under sonames of its own
-  ([ADR-0490](adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)) in
+  ([ADR-0490](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0490-goldberrys-ffmpeg-has-sonames-of-its-own.md)) in
   `ffmpeg-<target>` classifier jars, and `-Dgoldberry.media.libdir` is the
   relinking path
-  ([ADR-0495](adr/0495-media-is-published-and-snapshots-publish-again.md)). The
+  ([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)). The
   codec note was written before the code: royalty-free codecs only, with the
   `Decoder` SPI for the patented ones (`docs/goldberry-media.md`). What is still
   open about shipping it is under *Build, artifacts and release*.
@@ -1183,12 +1183,12 @@ out of it is usually worth more than the fact that it is fixed.
   core, rather than in whichever module lands first.
 
   **Answered —
-  [ADR-0301](adr/0301-a-selection-is-geometry-the-frame-already-had.md).** Both
+  [ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md).** Both
   views select, copy and highlight, through geometry the frame already had rather
   than character quads. The `goldberry-html` entry above has said so since
   2026-09-13; this one was never struck. `pdf-view` is still unbuilt.
 - ~~**`goldberry-web` is parked, not deferred.**~~ **Built, and not as a module**
-  ([ADR-0441](adr/0441-a-web-page-is-a-window-not-a-box.md)). Every word of the
+  ([ADR-0441](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)). Every word of the
   entry was true about Servo and none of it was about the question: libservo is
   Rust-only against a deliberately unstable API, so the module would indeed own a
   `cdylib` shim and its breakage — and nobody asked whether a page needed an
@@ -1209,19 +1209,19 @@ out of it is usually worth more than the fact that it is fixed.
   made a box possible.
 
   **That paragraph was overtaken the next day**
-  ([ADR-0442](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+  ([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
   `web-view` **is** a widget wherever the window system allows a child window: on
   X11 the page is reparented into the toolkit's window and is never the window
-  manager's ([ADR-0446](adr/0446-an-embedded-page-is-never-the-window-managers.md)),
+  manager's ([ADR-0446](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0446-an-embedded-page-is-never-the-window-managers.md)),
   and the window stays on the GPU
-  ([ADR-0491](adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). On
+  ([ADR-0491](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0491-a-page-under-x11-keeps-its-window-on-the-gpu.md)). On
   macOS it is a subview
-  ([ADR-0458](adr/0458-a-page-on-macos-is-a-view-not-a-window.md)). On Windows
+  ([ADR-0458](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md)). On Windows
   `SetParent` is written and unverified. On Wayland it opens nothing and paints
   why, rather than a loose window. `WebViews.open` stays as the separate-window
   form.
 - ~~**Nothing in the catalog uses a margin yet.**~~ **It does**
-  ([ADR-0312](adr/0312-the-catalog-puts-the-two-new-properties-on.md)):
+  ([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)):
   `dialog-actions` writes the top margin §2 asked for instead of the
   `padding-top` that stood in for it, and `tour-card`'s footer lost the `Spacer`
   that pushed Skip away from Back and Next — `margin-right: auto`, pixel for
@@ -1239,7 +1239,7 @@ out of it is usually worth more than the fact that it is fixed.
   taken now, because they are not aliases but **CSS** — Box Alignment Level 3
   defines them and Yoga has only the `flex-` pair, so the toolkit had been
   dropping a declaration the specification allows
-  ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
+  ([ADR-0247](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
   `right` are still refused, and for a reason rather than an omission: they are
   not the same as `start`/`end` under RTL.
 - ~~**A segment's focus ring lands exactly on the bar's edge.**~~ §2.2's ring is 2px at a
@@ -1248,7 +1248,7 @@ out of it is usually worth more than the fact that it is fixed.
   thing anyone chose. If either moves, look at the image.
 
   **Answered —
-  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md).** One of them
+  [ADR-0217](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0217-a-segmented-control-is-joined-again.md).** One of them
   moved: the bar's inset is 1px now, and the ring sits off its edge. Answered on
   2026-08-30 and found still open by the 2026-09-30 sweep.
 - ~~**A generated registry can fail at class-init time now, and only for private
@@ -1260,7 +1260,7 @@ out of it is usually worth more than the fact that it is fixed.
   rather than earlier.
 
   **Answered —
-  [ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md).** There is no
+  [ADR-0125](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md).** There is no
   generated registry any more: the weaver rewrites the model's bytecode, and
   `weaver/src/main` holds no `VarHandle`. ADR-0125 superseded both ADR-0096 and
   ADR-0098, and this entry outlived them.
@@ -1276,8 +1276,8 @@ out of it is usually worth more than the fact that it is fixed.
   drag produces and a test that jumped by fifty would have passed against a fix that
   only handled large changes. Every damage test had used a single frame size, which is
   the natural thing to write and the one case that cannot fail. —
-  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
-  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
+  [ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md)
 - ~~**Both ways to run the showcase headlessly were broken, and one of them cost a desktop
   session.**~~ `goldberry.backend.videoDriver` existed and was *not* in `:example`'s
   forwarded-property list, so `-Dgoldberry.backend.videoDriver=dummy` reached the Gradle
@@ -1300,11 +1300,11 @@ out of it is usually worth more than the fact that it is fixed.
   only to the packages SDL refuses to configure without. Answering it means reading
   `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` out of a container build's
   `SDL_build_config.h` — not another look at the table. —
-  [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md),
-  [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+  [ADR-0082](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md),
+  [ADR-0083](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
 
   **Half of this moved while G32 was being closed**
-  ([ADR-0325](adr/0325-a-build-says-what-it-can-ask-the-desktop.md)), and what is left is
+  ([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)), and what is left is
   now a packaging problem rather than an unknown. Measured in
   `quay.io/pypa/manylinux_2_28_x86_64`: `dbus-devel`, `systemd-devel`, `ibus-devel` and
   `mesa-libEGL-devel` all install and all provide their `.pc` files; `libdecor-devel` and
@@ -1319,7 +1319,7 @@ out of it is usually worth more than the fact that it is fixed.
   the container may be "it cannot" rather than "install this".
 
   **Closed —
-  [ADR-0422](adr/0422-what-sdl-compiled-is-the-fact-and-decorations-are-a-capability.md).**
+  [ADR-0422](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0422-what-sdl-compiled-is-the-fact-and-decorations-are-a-capability.md).**
   It guessed the honest form right: `Capability.WINDOW_DECORATIONS` and
   `Capability.WAYLAND`, warned about rather than required, because
   `libdecor-devel` is unavailable in the release container and a `REQUIRED`
@@ -1351,14 +1351,14 @@ out of it is usually worth more than the fact that it is fixed.
   question on the MSVC `.def` and Mach-O `-exported_symbols_list` branches is still
   answered by the next CI run rather than by argument — and the Mach-O branch has the
   *same* dependency on visibility that this fix addresses. —
-  [ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md),
-  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+  [ADR-0018](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0018-sdl-conventions-stop-at-the-boundary.md),
+  [ADR-0031](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)
 
   **Answered by CI, as it said it would be.** The Mach-O branch linked and passed
-  on `macos-14` ([ADR-0338](adr/0338-a-red-run-says-why-in-public.md)), and
+  on `macos-14` ([ADR-0338](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0338-a-red-run-says-why-in-public.md)), and
   Windows is green on both generators, with the force-link list moved into a file
   like every other platform's
-  ([ADR-0454](adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
+  ([ADR-0454](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0454-a-symbol-list-belongs-in-a-file-on-every-platform.md)).
 - ~~**Only a `popover` follows a scrolling anchor; a `menu` and a `select` hold the
   rectangle they opened against.**~~ Following is a property of having been opened
   **by id**, which is `Popover`'s documented shape and the one the entry that
@@ -1367,11 +1367,11 @@ out of it is usually worth more than the fact that it is fixed.
   no `Host.popup` overload takes an id *and* those two. It is one overload's worth
   of work and nothing has asked for it: a dropdown is dismissed by a press
   elsewhere, and the wheel over an open one scrolls its own list. —
-  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
-  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
+  [ADR-0270](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0145](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 
   **Closed —
-  [ADR-0432](adr/0432-a-menu-is-anchored-by-the-name-it-was-opened-with.md).**
+  [ADR-0432](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0432-a-menu-is-anchored-by-the-name-it-was-opened-with.md).**
   The overload exists — `Host.popup(content, anchorId, placement,
   minimumWidth, fit)` — and `Menus` opens by name through it. **The entry is
   wrong about `SelectState`**: a `select` has no id to be anchored by,
@@ -1389,11 +1389,11 @@ out of it is usually worth more than the fact that it is fixed.
   visible", so the mechanism is there; what is missing is a decision about what
   should happen — close it, hide it, or pin it to the viewport's edge — and
   nothing has asked for one yet. —
-  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
-  [ADR-0114](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
+  [ADR-0270](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0114](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
 
   **Closed —
-  [ADR-0433](adr/0433-a-popup-whose-anchor-leaves-goes-with-it.md).** The
+  [ADR-0433](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0433-a-popup-whose-anchor-leaves-goes-with-it.md).** The
   decision is **close**, and the other two were rejected for reasons worth
   keeping. *Pin* is the only one that makes the toolkit lie: a menu parked at
   the viewport's edge points at whatever row scrolled up to meet it and the
@@ -1426,11 +1426,11 @@ out of it is usually worth more than the fact that it is fixed.
   `masonry` **has no row in `docs/core-widgets.md` at all** — it is named once,
   as what the showcase's screens are made of — so §5's spec-then-metrics-then-
   gallery gate has nothing to have passed. —
-  [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
-  [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
+  [ADR-0222](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
+  [ADR-0196](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
 
   **Closed —
-  [ADR-0436](adr/0436-a-column-count-is-a-width-the-window-does.md).**
+  [ADR-0436](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0436-a-column-count-is-a-width-the-window-does.md).**
   `min-column-width` is built, exclusive with `columns`, defaulting to 320,
   with the wall's own width read through `Measured` from `MasonryBox` — and
   the resolved `gap` read with it, because `n` columns need `n` minimums
@@ -1458,18 +1458,18 @@ out of it is usually worth more than the fact that it is fixed.
   the tests and was a gap in the toolkit**: nothing enforced §1.4's 150% because
   nothing *implemented* it, so there was nothing for an image to be of.
   `renderer.textScale` exists now
-  ([ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)) — it
+  ([ADR-0267](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)) — it
   scales the text and deliberately not the boxes, which is the condition §1.4
   asks components to survive. What is left is **what to assert**: since
   `text-overflow: ellipsis` shipped, some cutting is correct, so "no text is
   clipped" is no longer the sentence, and a golden of eleven screens at 150%
   would pin every one of those decisions at once in a picture before anybody had
   taken them. —
-  [ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+  [ADR-0267](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
+  [ADR-0118](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)
 
   **Closed —
-  [ADR-0435](adr/0435-a-150-percent-check-is-a-rule-not-a-picture.md).** The
+  [ADR-0435](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0435-a-150-percent-check-is-a-rule-not-a-picture.md).** The
   assertion is a **rule**, not a picture, and it is differential between 100%
   and 150%: no line is cut without something asking for the cut, and no box
   overruns its container. Three candidates were rejected, one of them by
@@ -1493,10 +1493,10 @@ out of it is usually worth more than the fact that it is fixed.
   Nothing enforces the rule that keeps it safe — read geometry to interpret an
   input or to draw something that cannot affect layout, never to decide a size —
   and the scroll view obeys it by construction rather than by check. —
-  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+  [ADR-0117](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
 
   **Closed —
-  [ADR-0420](adr/0420-the-measured-rule-is-checked-by-a-fixed-point.md).**
+  [ADR-0420](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0420-the-measured-rule-is-checked-by-a-fixed-point.md).**
   `Settled`, a harness that drives the real frame loop to a fixed point and
   fails on oscillation, now holds six consumers to the rule. A *runtime* check
   was considered and refused, because it cannot tell an oscillation from a
@@ -1513,10 +1513,10 @@ out of it is usually worth more than the fact that it is fixed.
   of two lists, both unnamed, holding an item with the same identity. `tree` has
   the unscoped version of the same thing. What would close it properly is a focus
   name that is relative to a subtree, which the router has no notion of. —
-  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+  [ADR-0212](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 
   **Closed —
-  [ADR-0437](adr/0437-a-focus-name-resolves-in-the-composite-the-keyboard-is-in.md).**
+  [ADR-0437](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0437-a-focus-name-resolves-in-the-composite-the-keyboard-is-in.md).**
   `PointerRouter.focusById` resolves inside the enclosing `focus-scope` chain
   before falling back to the window. **The entry says the router "has no
   notion" of a subtree and it does** — `enclosingScope`, used for traversal
@@ -1535,9 +1535,9 @@ out of it is usually worth more than the fact that it is fixed.
   carries is `select-list`, so moving it renames a type in every stylesheet and
   every golden rather than editing one file. Autocomplete itself reaches markup
   through `suggestions=` and `options=` (ADR-0367). —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
+  [ADR-0182](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0182-a-select-may-hold-more-than-one.md)
 
-  **Closed — [ADR-0417](adr/0417-a-css-type-is-a-string-not-a-package.md).**
+  **Closed — [ADR-0417](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0417-a-css-type-is-a-string-not-a-package.md).**
   **The reason this entry sat is false.** `cssType()` returns the string
   literal `"select-list"`; nothing derives a CSS type from a class's package
   or simple name, so the move renamed nothing in any stylesheet, golden or
@@ -1553,7 +1553,7 @@ out of it is usually worth more than the fact that it is fixed.
   monotonic and reaches both ends exactly. **The door this entry named is open and
   a different one is shut**: "a widget being told a resolved metric" is
   `Paints.Context.length` and has been since
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
   — but it is a **`render`-time** read, and the pointer arrives at `onPointer`
   where there is no context to ask. `scroll` solved exactly that by banking the
   number into its `State`; a `Slider` is a `record` with nowhere to bank one, so
@@ -1561,11 +1561,11 @@ out of it is usually worth more than the fact that it is fixed.
   8px, and it is now a different sentence. The **tick marks do not
   have this problem**: their inset is half a thumb, written in the stylesheet beside the
   thumb's own width, so a mark and the thumb agree exactly while the finger is the thing
-  that is up to 8px out. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
-  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md)
+  that is up to 8px out. — [ADR-0080](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md),
+  [ADR-0079](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)
 
   **Closed —
-  [ADR-0430](adr/0430-a-slider-maps-the-pointer-over-its-travel.md).**
+  [ADR-0430](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0430-a-slider-maps-the-pointer-over-its-travel.md).**
   `slider` is stateful on `scroll`'s arrangement — `Slider` (record) builds
   `SliderControl` (the CSS type), and `SliderState` banks
   `--gb-slider-thumb-size` read at `render` for `onPointer` to use. The
@@ -1582,11 +1582,11 @@ out of it is usually worth more than the fact that it is fixed.
   clipped; `overflow: hidden` has shipped since ADR-0114, so the drawing is
   available. What is left is a design decision about a shipped animation rather
   than a missing mechanism — and it is the **only** thing left on ADR-0235's list,
-  now that the label half has been built ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
-  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
+  now that the label half has been built ([ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
+  [ADR-0235](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
 
   **Closed —
-  [ADR-0418](adr/0418-the-indeterminate-bar-runs-off-both-edges.md).** The
+  [ADR-0418](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0418-the-indeterminate-bar-runs-off-both-edges.md).** The
   sweep crosses and leaves — −100% to 333% of the bar's own width — with
   `overflow: hidden` written in `controls.css` rather than forced in Java, so
   the clip stays the stylesheet's. Two goldens moved and were re-blessed;
@@ -1600,7 +1600,7 @@ out of it is usually worth more than the fact that it is fixed.
   — is a different operation and would need a filter argument that
   `bl_image_scale` has and nothing has asked for.
 
-  **Closed — [ADR-0428](adr/0428-a-resampled-copy-is-not-a-scaled-blit.md).**
+  **Closed — [ADR-0428](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0428-a-resampled-copy-is-not-a-scaled-blit.md).**
   `bl_image_scale` is bound as `BlendScaledImage`, mirroring
   `BlendDecodedImage`. The filter argument the entry names is real and
   mandatory in C, and the answer is an enum **with** a default: no single
@@ -1612,13 +1612,13 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**The frame sequence exists twice.**~~ `Launcher.paint` and `Offscreen` run the
   same steps in the same order, and only one of them is the hot path with damage,
   frame statistics, the HUD and the models' refresh woven through it
-  ([ADR-0284](adr/0284-a-picture-with-no-window-under-it.md)). Extracting the
+  ([ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md)). Extracting the
   common core is the right refactor and was not taken during a feature: what holds
   them together meanwhile is that every golden image goes through `Offscreen`, so
   a divergence moves a picture.
 
   **Closed —
-  [ADR-0423](adr/0423-one-frame-sequence-shared-by-the-window-and-the-buffer.md).**
+  [ADR-0423](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0423-one-frame-sequence-shared-by-the-window-and-the-buffer.md).**
   `FrameSequence` in a new non-exported `frame` package holds the element
   tree, the render tree and the router, and both callers use it — every golden
   unmoved, which is the safety net this entry itself named. **The entry was
@@ -1633,7 +1633,7 @@ out of it is usually worth more than the fact that it is fixed.
   lifetime rather than a builder that renders once.
 
   **Closed —
-  [ADR-0424](adr/0424-a-tree-mounted-once-and-photographed-repeatedly.md).**
+  [ADR-0424](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0424-a-tree-mounted-once-and-photographed-repeatedly.md).**
   `Offscreen.strip(Widget)` returns a `Filmstrip`: a closeable object that
   mounts the tree once and answers `advance(millis)` and `frame()` repeatedly.
   The hard part was what stays alive between frames, which the record states
@@ -1644,7 +1644,7 @@ out of it is usually worth more than the fact that it is fixed.
   handed in and kept; nothing else can.
 
   **Closed —
-  [ADR-0425](adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
+  [ADR-0425](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
   `Studio` keeps a renderer over a font book and hands out wired `Offscreen`
   builders. **The entry named the wrong thing as the cost.** "A font book can
   be handed in and kept" is true, and the book was not the expensive part: the
@@ -1659,7 +1659,7 @@ out of it is usually worth more than the fact that it is fixed.
   checked first is the shaping cache and Blend2D's own worker pool.
 
   **Closed —
-  [ADR-0425](adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
+  [ADR-0425](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0425-what-a-render-may-keep-and-the-thread-it-may-keep-it-on.md).**
   Folded into the entry above, because they are one decision: the reusable
   unit is the renderer over a font book, and that is precisely the object that
   must not be shared across threads. **Both suspects the entry named were
@@ -1675,7 +1675,7 @@ out of it is usually worth more than the fact that it is fixed.
   because an editor drawn on a canvas has no viewport to measure. A caller that
   knows its own height moves the caret itself.
 
-  **Closed — [ADR-0410](adr/0410-a-page-is-the-callers-height.md).**
+  **Closed — [ADR-0410](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0410-a-page-is-the-callers-height.md).**
   `Editor.viewportHeight(double)` makes a page `max(1, floor(height /
   lineHeight))`, counted in **visual** lines, with ten kept as the fallback
   and defended against the four alternatives. A page is the screenful rather
@@ -1689,7 +1689,7 @@ out of it is usually worth more than the fact that it is fixed.
   the upcall path is covered in `:natives` against the real SDL instead.
 
   **Closed —
-  [ADR-0407](adr/0407-the-headless-clipboard-serialises-when-asked.md).** It
+  [ADR-0407](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0407-the-headless-clipboard-serialises-when-asked.md).** It
   holds a supplier per type now, so a test can assert that nothing was
   serialised until something asked. Every `read` calls the supplier again
   rather than caching, which is the platform's actual contract: a double that
@@ -1700,7 +1700,7 @@ out of it is usually worth more than the fact that it is fixed.
   "the compositor declined" is only ever taken on a real desktop.
 
   **Closed —
-  [ADR-0407](adr/0407-the-headless-clipboard-serialises-when-asked.md).**
+  [ADR-0407](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0407-the-headless-clipboard-serialises-when-asked.md).**
   `refuseWrites(boolean)` makes the `false` branch reachable from a test, with
   the default behaviour unchanged — a test seam rather than a new policy.
   Worth noting that `ClipboardDataTest`'s own javadoc asserted this gap ("what
@@ -1710,12 +1710,12 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**A `text-input` holding a long value shows its end, not its beginning.**~~
   `TextEdit.of` puts the caret at the end and the field keeps the caret in view
   from its first layout, which is what `text-area` did until
-  [ADR-0297](adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md).
+  [ADR-0297](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md).
   The fix is the same flag and the same argument; it is not done here because a
   field is not a document and changing two controls on one screen's evidence is how
   a fix becomes a regression somewhere nobody looked.
 
-  **Closed — [ADR-0412](adr/0412-a-field-shows-its-beginning.md).** An
+  **Closed — [ADR-0412](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0412-a-field-shows-its-beginning.md).** An
   untouched field shows the head; the caret stays at the end; a press, key,
   edit, composition or focus makes it chase again. No markup attribute — the
   default *is* the decision, and ADR-0326's own argument applies, that a call
@@ -1732,10 +1732,10 @@ out of it is usually worth more than the fact that it is fixed.
   which is the difference between "large" and "misaligned", but still larger than
   the column. An application that wants them to fit builds them at 16, and
   nothing says so at the door. —
-  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
+  [ADR-0143](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
 
   **Closed —
-  [ADR-0419](adr/0419-the-slot-size-is-named-where-the-icon-is-built.md).**
+  [ADR-0419](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0419-the-slot-size-is-named-where-the-icon-is-built.md).**
   `Icons.SLOT` and `Icons.bind(String)` name the size at the door, and
   `ItemLead` reports an overhang at **debug**, deduplicated by name, size and
   column — ADR-0394's rule, since a warning firing on every legitimately
@@ -1759,9 +1759,9 @@ out of it is usually worth more than the fact that it is fixed.
   or a path-clip call on the export list, and then one reversed sub-path per
   band. `ShadowPaintTest.throughATranslucentBox` pins the current behaviour, so
   the day that lands there is a test that says the deviation is gone. —
-  [ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+  [ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md)
 
-  **Closed — [ADR-0427](adr/0427-the-shadow-is-cut-out-of-its-box.md).** Each
+  **Closed — [ADR-0427](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0427-the-shadow-is-cut-out-of-its-box.md).** Each
   band is now filled together with the border box under
   `BL_FILL_RULE_EVEN_ODD`, so a point inside both is crossed twice and left
   empty — one extra sub-path per band, no extra fill. **The entry offered a
@@ -1782,7 +1782,7 @@ out of it is usually worth more than the fact that it is fixed.
   entry said sixteen, and filed them as one thing waiting for one decision.
   Measured against the arithmetic rather than against the sentence they were
   three, and fifteen are fixed
-  ([ADR-0258](adr/0258-the-edge-a-measurement-chose.md)). The **twelve control
+  ([ADR-0258](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0258-the-edge-a-measurement-chose.md)). The **twelve control
   boundaries** were a gap in the palette nobody had put anything in: Nord stops
   between `--nord3` and `--nord4`, which measure 1.17:1 and 6.39:1 against
   `--gb-surface-2`, so a palette edge is either invisible or a white ring around
@@ -1797,13 +1797,13 @@ out of it is usually worth more than the fact that it is fixed.
   border round it, or a fill that is not white — which is a sentence
   `docs/design-system.md` §3 does not contain and is the one genuine decision in
   the original sixteen. Twenty-two goldens moved, which is why this had waited. —
-  [ADR-0258](adr/0258-the-edge-a-measurement-chose.md),
-  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
-  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
-  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
+  [ADR-0258](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0258-the-edge-a-measurement-chose.md),
+  [ADR-0240](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0240-the-ring-follows-the-accent.md),
+  [ADR-0239](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0088](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
 
   **Closed —
-  [ADR-0429](adr/0429-a-light-themes-thumb-is-a-disc-with-an-edge.md).** The
+  [ADR-0429](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0429-a-light-themes-thumb-is-a-disc-with-an-edge.md).** The
   entry called this "the one genuine decision" and framed it as a choice
   between a border and a fill that is not white. **It is not a choice**: the
   groove needs a thumb at luminance ≤ 0.209 to clear 3:1, and the light accent
@@ -1827,10 +1827,10 @@ out of it is usually worth more than the fact that it is fixed.
   silently do and would score it as passing. The same is true of `--gb-selection`. A
   backdrop-aware check would need the painted frame rather than the cascade, which is a
   different kind of test. —
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+  [ADR-0087](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 
   **Closed —
-  [ADR-0431](adr/0431-a-translucent-fill-is-measured-on-the-frame.md).**
+  [ADR-0431](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0431-a-translucent-fill-is-measured-on-the-frame.md).**
   `BackdropContrastTest` renders real trees with the real rasterizer and reads
   the pixels back — five surfaces × four probes × two themes, forty pairs. It
   deliberately does not reimplement `src-over`: a hand-rolled compositor is a
@@ -1842,7 +1842,7 @@ out of it is usually worth more than the fact that it is fixed.
   fault, sampling three pixels into an unpadded row and reading ink over fill;
   the flat-region guard that caught it is why the rest is believable.
 - ~~**`rem` is the *configured* root size, not the root element's.**~~ What
-  [ADR-0242](adr/0242-em-is-the-elements-own-size.md) left: `em` resolves against
+  [ADR-0242](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0242-em-is-the-elements-own-size.md) left: `em` resolves against
   the element's own computed size now, and `rem` still reads
   `CssLength.Context.rootFontSize()`. CSS says the **root element's** computed
   `font-size`, so the two agree unless a root declares one — and recovering that
@@ -1850,10 +1850,10 @@ out of it is usually worth more than the fact that it is fixed.
   *parent's* style and not the root's. It needs a third thing threaded down, or a
   field on the renderer that is only correct after the root has resolved. Nothing
   in the catalog styles a root's `font-size`, so this is exact today. —
-  [ADR-0242](adr/0242-em-is-the-elements-own-size.md)
+  [ADR-0242](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0242-em-is-the-elements-own-size.md)
 
   **Closed —
-  [ADR-0416](adr/0416-rem-is-the-root-elements-size-and-the-walk-is-what-knows-it.md).**
+  [ADR-0416](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0416-rem-is-the-root-elements-size-and-the-walk-is-what-knows-it.md).**
   Both halves, split: the root's own `rem` falls out of the two-pass structure
   ADR-0242 already built for `em`, and descendants get it through
   `WidgetRenderer`. **The entry called the renderer-field shape "correct only
@@ -1867,10 +1867,10 @@ out of it is usually worth more than the fact that it is fixed.
   `controls.css` sets `color` on `checkbox`, `radio`, `toggle` and `slider` themselves;
   a primitive does not. The showcase now sets `color: var(--gb-text)` on its root, which
   is what an application should do — but nothing warns one that has not. —
-  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+  [ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)
 
   **Closed —
-  [ADR-0415](adr/0415-the-root-has-no-colour-is-a-fact-about-the-sheets.md).**
+  [ADR-0415](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0415-the-root-has-no-colour-is-a-fact-about-the-sheets.md).**
   `StyleLint.uncolouredRoot(root)` answers it as a lint asked for rather than
   a warning logged, which is ADR-0257's shape and avoids ADR-0394's trap of
   firing sixty times a second on a correct application. **The entry implies
@@ -1889,10 +1889,10 @@ out of it is usually worth more than the fact that it is fixed.
   annotating the interface, which moves every implementation and every caller —
   and would probably find real nullness bugs on the way, which is the argument
   for doing it rather than against. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
+  [ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md)
 
   **Closed —
-  [ADR-0413](adr/0413-a-signature-that-lies-turns-the-checker-off.md).** All
+  [ADR-0413](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0413-a-signature-that-lies-turns-the-checker-off.md).** All
   three are `@Nullable` now, `Selector.Compound` with them, and `css.lint` is
   marked rather than unmarked — which was the entry's point, that the lint's
   package was the wrong end to fix it from. **The entry predicted "real
@@ -1906,10 +1906,10 @@ out of it is usually worth more than the fact that it is fixed.
   28px. Renamed, and nothing prevents the next one: there is no prefix
   convention, no check, and the two sets of names are written in different files
   by different people. —
-  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
+  [ADR-0153](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
   **Closed —
-  [ADR-0414](adr/0414-a-rank-applies-to-anything-so-its-name-is-reserved.md).**
+  [ADR-0414](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0414-a-rank-applies-to-anything-so-its-name-is-reserved.md).**
   The convention is **not** a prefix, which is what the entry guessed: both
   namespaces are published vocabulary, and a widget's class is already
   namespaced by its type, so the seven §1.4 rank names are **reserved**
@@ -1924,10 +1924,10 @@ out of it is usually worth more than the fact that it is fixed.
   `text-area` did until ADR-0388. `TextDocument` is exported and is the obvious
   second caller. Nothing has measured an `Editor` over a document, so nothing has
   earned the change. —
-  [ADR-0388](adr/0388-a-note-is-shaped-a-line-at-a-time.md),
-  [ADR-0285](adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
+  [ADR-0388](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md),
+  [ADR-0285](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)
 
-  **Closed — [ADR-0411](adr/0411-an-editor-shapes-a-line-at-a-time.md).**
+  **Closed — [ADR-0411](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0411-an-editor-shapes-a-line-at-a-time.md).**
   `Editor` holds a `TextDocument` now, and the numbers the entry said nobody
   had taken are taken: a keystroke into 500 kB goes **111.5 ms → 1.4 ms**, and
   the characters shaped go **500 097 → 132** against 129 for a 2 kB document.
@@ -1949,11 +1949,11 @@ out of it is usually worth more than the fact that it is fixed.
   is about two worker counts agreeing, which is orthogonal. What no test at any scale
   covers is a **fractional scale other than 1.5** — 1.25 and 1.75 are ordinary
   Windows settings and neither is exercised. —
-  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md),
-  [ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md)
+  [ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md),
+  [ADR-0157](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0157-a-layer-is-blitted-into-its-own-size.md)
 
   **Closed —
-  [ADR-0434](adr/0434-every-check-sweeps-1-25-and-nothing-sweeps-1-75.md).**
+  [ADR-0434](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0434-every-check-sweeps-1-25-and-nothing-sweeps-1-75.md).**
   1.25 is in every `check`'s sweep and **1.75 goes nowhere**, which is the
   opposite of what the entry asked for and is arithmetic rather than thrift: a
   multiplier exercises Yoga's rounding, so what matters is the offsets `k·m
@@ -1970,17 +1970,17 @@ out of it is usually worth more than the fact that it is fixed.
   differ only at their outlines, which has the shape of ADR-0157's bug and is
   now recorded but unswept.
 - ~~**Present costs 6.6 ms with no compositor to wait for.**~~ The question ADR-0045 opened
-  while closing another. [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+  while closing another. [ADR-0031](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)
   measured present at ~10 ms and concluded "most of it is waiting on the compositor
   rather than copying". Under SDL's `dummy` video driver — no compositor, no display, no
   surface to hand anyone — present still measures **6.6 ms**, essentially the same as
   under Wayland. Whatever that time is, the explanation on record is wrong, and present
   is the largest single term in a frame. —
-  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md),
-  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
+  [ADR-0031](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0031-blend2d-and-the-borrowed-buffer.md),
+  [ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md)
 
   **Closed —
-  [ADR-0409](adr/0409-present-costs-a-tenth-of-a-millisecond-and-the-wait-is-the-rasterizers.md).**
+  [ADR-0409](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0409-present-costs-a-tenth-of-a-millisecond-and-the-wait-is-the-rasterizers.md).**
   The entry was right that the explanation on record was wrong and wrong about
   everything else, its own number included. Measured over 300 frames under the
   driver it names, present's median is **0.127 ms** and its p95 0.319 ms — off
@@ -2000,9 +2000,9 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**Nothing bumps `goldberryVersion` after a release.**~~ Forgetting leaves master
   publishing `2026.1-SNAPSHOT` after `2026.1` is out, which Maven orders below the
   release. A step in `release.yml` that opens the bump as a pull request would close
-  it. — [ADR-0333](adr/0333-a-version-is-a-year-and-a-count.md)
+  it. — [ADR-0333](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0333-a-version-is-a-year-and-a-count.md)
 
-  **Closed — [ADR-0421](adr/0421-the-release-line-moves-on-by-itself.md).**
+  **Closed — [ADR-0421](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0421-the-release-line-moves-on-by-itself.md).**
   That is exactly what landed, and the entry named the right shape: a `bump`
   job that `needs: publish`, checks out the default branch and opens
   `bump/<next>`. Two things it did not say. The *arithmetic* is the part with
@@ -2022,7 +2022,7 @@ out of it is usually worth more than the fact that it is fixed.
   what is left of this entry: Blend2D ships a JPEG decoder and no encoder, so it
   means a third codec library or a written one — neither worth it while a
   lossless WebP is a third of a PNG. —
-  [ADR-0385](adr/0385-webp-is-written-and-animated.md)
+  [ADR-0385](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0385-webp-is-written-and-animated.md)
 - ~~**Reduced motion is obeyed but not detected.**~~ **Detected, 2026-09-17**, and
   obeyed by a renderer the launcher builds: the settings portal on Linux,
   `SystemParametersInfoW` on Windows and `NSWorkspace` on macOS, each a read-only
@@ -2030,63 +2030,63 @@ out of it is usually worth more than the fact that it is fixed.
   behind any of them. "The desktop does not say" is still an answer and still is
   not an instruction. Asked once per process; a change mid-session waits for a
   restart. —
-  [ADR-0383](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
+  [ADR-0383](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0383-the-desktop-is-asked-whether-to-move-less.md)
 - ~~**Nothing detects the density the user wants.**~~ **Answered: there is
   nothing to detect, 2026-09-17.** Reduced motion was detectable because three
   desktops expose it; density is not, because none of them has such a setting —
   §1.3's compact mode is an application's own decision about its screens, which
   is what this entry suspected and what asking the three platforms confirmed. —
-  [ADR-0383](adr/0383-the-desktop-is-asked-whether-to-move-less.md)
+  [ADR-0383](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0383-the-desktop-is-asked-whether-to-move-less.md)
 - ~~**Layout verification has not yet passed in CI.**~~ **It has, since the first
   all-green snapshot.** The verify legs on all three runners ran the layout probe
   against the downloaded artifact at `d478ecfe`, which is the run
   `book/src/status.md` records as twelve green jobs. —
-  [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
+  [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - ~~**AsmJit's W^X handling on Apple Silicon is now reachable.**~~ **Reached, and
   green.** The showcase painted frames on `macos-14` on all three legs and the
   macOS goldens ran, which is the JIT it was a question about doing its work. What
   is still untried is AVX-512, which is a different machine and is on the
   scale-invariance entry rather than this one. —
-  [ADR-0338](adr/0338-a-red-run-says-why-in-public.md)
+  [ADR-0338](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0338-a-red-run-says-why-in-public.md)
 - ~~**`text` has no `style="body"` attribute.**~~ **It has, 2026-09-17**, and it is
   the same class the stylesheet already had a rule for: `style=` names a closed
   vocabulary and is checked, `class=` is the open one and is not. —
-  [ADR-0381](adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
+  [ADR-0381](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0381-a-rank-has-two-spellings-and-one-meaning.md)
 - ~~**One frame only.**~~ **Every frame of a GIF, 2026-09-17**, composited under
   the file's own disposal rules, with its delays and its loop count;
   `image.anim.Animation` says which one is showing and holds no clock. An
   animated **WebP** followed a few hours later, once `webpdemux` was linked —
   libwebp composites its own canvases, so the disposal model is upstream's there. —
-  [ADR-0382](adr/0382-a-gif-has-the-frames-after-the-first.md),
-  [ADR-0385](adr/0385-webp-is-written-and-animated.md)
+  [ADR-0382](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0382-a-gif-has-the-frames-after-the-first.md),
+  [ADR-0385](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0385-webp-is-written-and-animated.md)
 - ~~**A `tabs` indicator still cannot travel, though `segmented`'s does.**~~ **It
   travels, 2026-09-17**, by being displaced onto the header it is leaving and then
   let go of — a difference between two painted rectangles rather than a position,
   so a strip painted with no router behind it draws exactly what it drew before. —
-  [ADR-0377](adr/0377-an-underline-travels-by-being-let-go-of.md)
+  [ADR-0377](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0377-an-underline-travels-by-being-let-go-of.md)
 - ~~**Two key maps.**~~ **One, 2026-09-17**, and there were three by the time it was
   read again. `text.edit.keys` is the table; each editor keeps its own text and
   answers a sealed `EditCommand`, so a key added tomorrow fails to compile in the
   three places that have to answer it. Converging the *editors* is still the
   rewrite it always was. —
-  [ADR-0376](adr/0376-one-key-map-three-editors.md)
+  [ADR-0376](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0376-one-key-map-three-editors.md)
 - ~~**Nothing has a minimum size, so overflow is silent.**~~ **It says so once,
   2026-09-17.** The layout pass asks the root whether its line overran — one
   foreign call on a frame where everything fits — and names what is off the edge
   when it did. A `scroll` viewport and an absolute child are not overruns. —
-  [ADR-0375](adr/0375-a-box-that-does-not-fit-says-so.md)
+  [ADR-0375](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0375-a-box-that-does-not-fit-says-so.md)
 - ~~**`align-content` is still absent.**~~ **It is resolved, 2026-09-17**,
   defaulting to `stretch`, which is what every box in the catalog already did. It
   also gives `SPACE_BETWEEN` and its two neighbours a property that means them:
   they were constants the enum advertised and no declaration could reach. —
-  [ADR-0374](adr/0374-wrapped-lines-share-a-cross-axis.md)
+  [ADR-0374](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0374-wrapped-lines-share-a-cross-axis.md)
 - ~~**`flex-basis` is one of two layout properties §8 names and nothing
   resolves.**~~ **It resolves, 2026-09-17**, and `masonry` is the consumer that
   wanted it: `flex-basis: 0` with `flex-grow: 1` is 1/n of a row after its gaps,
   where the inline `width: 100/n %` it replaces was 1/n before them. The collapse
   that took it out in the first place is still real and is now the author's to
   avoid. —
-  [ADR-0373](adr/0373-a-column-starts-from-nothing-and-grows.md)
+  [ADR-0373](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0373-a-column-starts-from-nothing-and-grows.md)
 - ~~**`statistic`'s sparkline waits on `canvas`.**~~ **Built on 2026-08-23**, and
   the entry outlived it: `canvas` is in the catalog and the sparkline is the last
   child of the column, exactly as this said it would be.
@@ -2095,89 +2095,89 @@ out of it is usually worth more than the fact that it is fixed.
   `canvas` painter that decodes by hand can use it — which is what the entry
   itself named as the seam. A second cache *inside* `Image.decode` would be one
   the caller cannot see, cannot bound and cannot clear. —
-  [ADR-0358](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
+  [ADR-0358](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
 - ~~**Nothing reorders tabs.**~~ **A strip with `onReorder` does, 2026-09-17.** The
   dragged tab follows the pointer 1:1, which needs no interpolation, and the drop
   asks the application for the new index; the others still jump into place,
   which is ADR-0097's geometry and nothing asked for more. —
-  [ADR-0372](adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)
+  [ADR-0372](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)
 - ~~**An `affix` pins on one axis.**~~ **On one per axis, 2026-09-17**:
   `edge="top left"`. There was no rule to write about which wins, because each
   axis is its own subtraction. —
-  [ADR-0371](adr/0371-an-affix-pins-to-one-edge-per-axis.md)
+  [ADR-0371](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0371-an-affix-pins-to-one-edge-per-axis.md)
 - ~~**A reveal moves both axes at once.**~~ **By default, still, 2026-09-17**, and
   a caller that means one axis says so with `reveal(self, clip, axes)`. —
-  [ADR-0370](adr/0370-a-reveal-can-keep-to-one-axis.md)
+  [ADR-0370](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0370-a-reveal-can-keep-to-one-axis.md)
 - ~~**The circular drag is not built, and §3 offers it.**~~ **It is, opt-in,
   2026-09-17**, with no accumulated angle: a jump across the gap is recognised
   from the knob's current value, and held at the nearer end. —
-  [ADR-0369](adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
+  [ADR-0369](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
 - ~~**A `select tree=#true` has no typeahead.**~~ **It has the tree's own,
   2026-09-17.** The design question was answered by ADR-0209 (visible rows only).
   The defect was elsewhere: a tree moves its typeahead with `host.focus(id)`, and
   a popup's host asked only the window. Focus by name now tries the open popups,
   topmost first. —
-  [ADR-0368](adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
+  [ADR-0368](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0368-a-focus-by-name-reaches-the-popup-it-came-from.md)
 - ~~**A `list` is Java, like `canvas` and like autocomplete.**~~ **A document
   places one, 2026-09-17**, and `table` and `tree` the same way: `bind=` names the
   widget the model built, since its factory is code. Autocomplete names the bound
   list its answer lands in, with `suggestions=` or `options=`. —
-  [ADR-0367](adr/0367-a-document-places-a-list-it-cannot-describe.md)
+  [ADR-0367](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)
 - ~~**A tab's content is rebuilt when it is selected again.**~~ **Only by default,
   2026-09-17.** `keep-alive` keeps every shown tab mounted and hidden while another
   is selected, through a new `Styled.isHidden()`: kept, not rendered, not
   focusable. §5's lazy default is unchanged. —
-  [ADR-0366](adr/0366-a-kept-tab-is-hidden-not-removed.md)
+  [ADR-0366](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0366-a-kept-tab-is-hidden-not-removed.md)
 - ~~**A tab strip scrolls, and has no chevrons at either end.**~~ **It has them,
   2026-09-17**, while it overflows: a `ScrollController` can now say where its
   viewport is and when that changes, which was the missing question. —
-  [ADR-0365](adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
+  [ADR-0365](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
 - ~~**The "always show scroll bars" gutter is not built, and nothing switches
   it.**~~ **Both, 2026-09-17**, in density's shape rather than a settings
   mechanism: `Scrollbars.ALWAYS` is a token stylesheet an application passes to
   `Controls.stylesheets`, and a viewport that finds a gutter pads its content by it
   and stops fading its bars. —
-  [ADR-0364](adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
+  [ADR-0364](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
 - ~~**A revealed row lands rather than glides.**~~ **It glides, 2026-09-17**, over
   the overlay duration. The offset goes to the target at once and the viewport
   draws the way there on the frame clock, so direct input never waits; a reveal
   asked mid-glide measures where its row will be. —
-  [ADR-0363](adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
+  [ADR-0363](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
 - ~~**A `text-area` has no visible scrollbar.**~~ **It has `scroll`'s, 2026-09-17**:
   neither a `scroll` around the text nor a second bar. `ScrollBar` is three numbers
   and two callbacks, and a text area knows all three. —
-  [ADR-0362](adr/0362-a-text-area-draws-scrolls-bar.md)
+  [ADR-0362](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0362-a-text-area-draws-scrolls-bar.md)
 - ~~**A `table` has no column resizing.**~~ **It has, 2026-09-17**, by asking: a
   resizable column's header carries a grip, and a drag asks the application for a
   width in pixels anchored at the width the header last came out as. Not a
   `split-pane` between the headers, which divides one box between two panes. —
-  [ADR-0361](adr/0361-a-column-is-resized-by-asking.md)
+  [ADR-0361](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0361-a-column-is-resized-by-asking.md)
 - ~~**A pinned `affix` is not pushed out by the next one.**~~ **It is, 2026-09-17**,
   without knowing its sibling: an affix stays inside the box it is in, which is
   CSS's rule for `sticky`, so a section's header leaves with its section. The same
   change gave `table` a sticky header, which this entry was blocking. —
-  [ADR-0360](adr/0360-an-affix-stays-inside-its-container.md)
+  [ADR-0360](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)
 - ~~**A `select`'s *field* is as wide as its current value.**~~ **As wide as its
   widest option, 2026-09-17.** The value cell's preferred width is the widest of
   the option labels and the placeholder, shaped in `render`; a stylesheet's width
   still wins. —
-  [ADR-0359](adr/0359-a-select-is-as-wide-as-its-widest-option.md)
+  [ADR-0359](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0359-a-select-is-as-wide-as-its-widest-option.md)
 - ~~**There is no `img` widget.**~~ **There is, 2026-09-17**: `image`, with the
   `object-fit` modes, a natural size that takes part in layout, loading and error
   states and a decode that does not run on the UI thread, which is the list this
   entry said a catalogue entry would need. SVG is still not decoded. —
-  [ADR-0358](adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
+  [ADR-0358](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
 - ~~**A step's connector fills by colour, not by `scaleX`.**~~ **It grows,
   2026-09-17.** The reason given was that §8's subset has no `transform-origin`,
   and it has had one since ADR-0068. The sentence was copied from an older note
   and never checked against `TransformTest`. The connector is now a track with a
   fill scaled about its start edge. —
-  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+  [ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - ~~**A `badge` cannot be a timeline's marker.**~~ **It can, 2026-09-17**, from a
   `marker` child that `entry` lifts onto the axis. The slot is named rather than
   inferred, so a badge written as content stays content. The rail keeps its
   width and a wide marker overhangs it. —
-  [ADR-0356](adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+  [ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 - ~~**A floating button does not scale in.**~~ **It does, 2026-09-17**, from an
   `@starting-style`: the entering state the overlay layer had no way to give
   it, and CSS's own answer to "what does an element transition from on its first
@@ -2185,18 +2185,18 @@ out of it is usually worth more than the fact that it is fixed.
   the button, the stylesheet plays the exit on `fast`, and a host timer removes
   the overlay after it. A general closing phase for overlays is still not built,
   and nothing else has asked for one. —
-  [ADR-0352](adr/0352-an-element-enters-from-its-starting-style.md),
-  [ADR-0355](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
+  [ADR-0352](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0352-an-element-enters-from-its-starting-style.md),
+  [ADR-0355](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 - ~~**A field's room is `width - 2 × left padding`.**~~ **Each edge comes off
   once, 2026-09-17**, in `text-input` as in `text-area`. —
-  [ADR-0355](adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
+  [ADR-0355](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 - ~~**§8's subset has no `@keyframes` and is not going to grow one.**~~ **It has
   one, 2026-09-17.** ADR-0081's argument was about loops that must stay in phase,
   and those stay clock functions. What it did not cover is authored motion
   (sequences, staggers, fills) that otherwise needs a widget of its own.
   §1.7's rule 4 still binds the toolkit's sheets, and `ToolkitLoopsTest` checks
   it. —
-  [ADR-0353](adr/0353-a-stylesheet-may-name-keyframes.md)
+  [ADR-0353](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0353-a-stylesheet-may-name-keyframes.md)
 
 - ~~**The published javadoc is built with doclint off.**~~ **On, less `missing`,
   and clean across every published module.** The 120 errors were one idiom —
@@ -2204,7 +2204,7 @@ out of it is usually worth more than the fact that it is fixed.
   425 of them, moved by a script — and twenty `[Foo]` links to a type in another
   package or module, three of which named things that no longer existed. The
   `missing` group stays off because this codebase documents in prose. —
-  [ADR-0343](adr/0343-the-published-javadoc-is-linted.md)
+  [ADR-0343](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0343-the-published-javadoc-is-linted.md)
 - ~~**No licence text is vendored yet.**~~ **All seven are, 2026-09-17.** The
   superbuild's cached checkouts under `natives/.deps/<target>/<name>-src` *are*
   the pinned revisions — their `HEAD`s were compared against
@@ -2213,7 +2213,7 @@ out of it is usually worth more than the fact that it is fixed.
   `checkLicenses -Pgoldberry.releaseCheck=true` passes with eleven components.
   What stays true: a bumped pin means re-copying that one file, because the
   copyright lines are the upstream's and not the licence's. —
-  [ADR-0015](adr/0015-licensing-and-third-party-disclosure.md)
+  [ADR-0015](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0015-licensing-and-third-party-disclosure.md)
 - ~~**IME preedit is not drawn, and committed text already works.**~~ ~~**IME
   preedit is missing entirely.**~~ **Both were closed by `docs/gaps.md` G15 and
   G16 and the entries had not been struck.** `SDL_EVENT_TEXT_EDITING` and
@@ -2221,8 +2221,8 @@ out of it is usually worth more than the fact that it is fixed.
   where it will land, and `text-input` and `text-area` take one inline; a
   `password` deliberately does not, because a candidate window is an unmasked
   window. —
-  [ADR-0289](adr/0289-a-composition-is-not-an-edit.md),
-  [ADR-0292](adr/0292-a-field-composes-and-a-password-does-not.md)
+  [ADR-0289](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0289-a-composition-is-not-an-edit.md),
+  [ADR-0292](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0292-a-field-composes-and-a-password-does-not.md)
 - ~~**The native image's foreign registrations are generated but the fix is untested
   on an image.**~~ **Tested by hand on all three platforms, 2026-09-17.** A manual
   Showcase run built the image on Linux, macOS and Windows, and the html, canvas and
@@ -2232,7 +2232,7 @@ out of it is usually worth more than the fact that it is fixed.
   enforces. What is still open from this entry: CI runs the image for three frames
   and opens no screen, so a `--screen=<name>` launcher argument would let it do what
   the hand test did. —
-  [ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+  [ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
 
 - ~~**A `Validator` is over a `String`, and `date-picker` will want
   otherwise.**~~ **The second seam turned out to be a composition, and `field`
@@ -2248,8 +2248,8 @@ out of it is usually worth more than the fact that it is fixed.
   and a seam that took only one would make the other an application writing a
   try/catch to satisfy a method. An empty value passes without the parser running,
   for `matching`'s stated reason. —
-  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+  [ADR-0274](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0274-a-calendar-is-told-what-day-it-is.md),
+  [ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)
 - ~~**An absolutely positioned child is placed against the border box, and the
   clip is the padding box.**~~ **Fixed where ADR-0265 said it was, and the golden
   tail was somewhere else.** `ContainingBlock` shifts an absolute child's inset by
@@ -2269,9 +2269,9 @@ out of it is usually worth more than the fact that it is fixed.
   box instead of from the window. Both mean the border box and now say so, through
   `acrossBorderBox`, in terms of the padding their own style resolved rather than
   a number repeated in a stylesheet. —
-  [ADR-0272](adr/0272-an-absolute-child-is-placed-inside-the-padding.md),
-  [ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md),
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+  [ADR-0272](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0272-an-absolute-child-is-placed-inside-the-padding.md),
+  [ADR-0265](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0265-yoga-measures-an-inset-from-the-border-box.md),
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**A window that *moves* does not re-clamp its popups, and a scrolling anchor
   does not drag one.**~~ **Both halves are built, and the second one was a
   question nobody was asking rather than a report nobody was making.** The move
@@ -2293,9 +2293,9 @@ out of it is usually worth more than the fact that it is fixed.
   `painted()` now, in all three places, and the two rectangles are identical for
   every box nothing transformed — which is why it took a scrolling anchor to show
   it. —
-  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
-  [ADR-0231](adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md),
-  [ADR-0123](adr/0123-a-pinned-box-paints-after-its-siblings.md)
+  [ADR-0270](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0231](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md),
+  [ADR-0123](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)
 - ~~**Nothing reports a dropped frame.**~~ **`late` is a reading now, and the
   pacer is what can count it.** Both halves the entry named are in one number:
   the frames the loop never reached, which leave no record in a ring that only
@@ -2310,9 +2310,9 @@ out of it is usually worth more than the fact that it is fixed.
   **window** rather than a total, like every other number on `FrameStats`: a total
   only ever goes up, and somebody watching a HUD while they work would never see
   it come back to zero. —
-  [ADR-0271](adr/0271-a-frame-that-never-happened-is-counted.md),
-  [ADR-0146](adr/0146-a-hud-shows-where-the-frame-went.md),
-  [ADR-0101](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
+  [ADR-0271](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0271-a-frame-that-never-happened-is-counted.md),
+  [ADR-0146](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0146-a-hud-shows-where-the-frame-went.md),
+  [ADR-0101](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
 - ~~**"Pixel-precise wheel deltas" is not reachable through SDL.**~~ **A
   difference rather than an agreement**, and the entry that outlived its own
   resolution: §7.1 asked for pixel-precise deltas with a line-based fallback, SDL
@@ -2322,8 +2322,8 @@ out of it is usually worth more than the fact that it is fixed.
   without the mechanism the sentence named — so the honest change was to the
   document rather than to the backend. This had already been settled and said so
   in this file's own introduction while the entry sat on in the list below it. —
-  [ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md),
-  [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
+  [ADR-0115](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md),
+  [ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
 - ~~**Every pointer event now costs an `SDL_GetModState`.**~~ **Measured: 8.71
   ns a call, so 34.8 µs per second of dragging.** Polled per event rather than
   carried on it, because SDL's mouse events have no `mod` field where its keyboard
@@ -2336,7 +2336,7 @@ out of it is usually worth more than the fact that it is fixed.
   leaves it stuck down when a window loses focus mid-chord. The number is the
   answer: the next person to wonder should find the measurement rather than repeat
   the worry. —
-  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
+  [ADR-0089](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0089-a-knobs-gesture-is-a-rate.md)
 
 - ~~**A guard at the top of `onPointer` is a guard on every pointer kind, and
   nothing warns.**~~ **It warns now, once per kind per node type.** The entry's
@@ -2352,8 +2352,8 @@ out of it is usually worth more than the fact that it is fixed.
   guard still fires backwards against a value that now looks deliberate. All nine
   `button()` reads in the toolkit are already inside a kind check, so it fires on
   the mistake and on nothing else. —
-  [ADR-0266](adr/0266-a-null-button-is-unequal-to-everything.md),
-  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+  [ADR-0266](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0266-a-null-button-is-unequal-to-everything.md),
+  [ADR-0168](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - ~~**A widget can reach its window, and the in-window overlay layer is still the
   application's.**~~ **`Toasts.of(context)` is the door, and it is a map.** The
   entry had already shrunk once — `BuildContext.host()` answered the popup half —
@@ -2369,17 +2369,17 @@ out of it is usually worth more than the fact that it is fixed.
   three methods on the window. A general `host.service(Class)` is the shape to
   reach for **if `Menus` or `Dialogs` ever want the same thing**, which is
   ADR-0140's own rule about one consumer not being enough. —
-  [ADR-0264](adr/0264-a-widget-may-find-the-toast-stack.md),
-  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md),
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+  [ADR-0264](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0264-a-widget-may-find-the-toast-stack.md),
+  [ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md),
+  [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)
 - ~~**The enter/exit lifecycle is a tab's own, not the toolkit's.**~~ ~~**A tour
   has no arrival or exit.**~~ **The promotion happened two records ago, and the
   tour uses it now.** The first entry asked for `TabPhase` to be promoted "when
   the second consumer arrives"; it is `widgets.core.Phase`, moved there by
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md) — whose own
+  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md) — whose own
   javadoc says "there was never anything tab-shaped in it" — with the
   `closing → removed` half extracted into `Departure` by
-  [ADR-0234](adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md). Six
+  [ADR-0234](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md). Six
   families use one or both, **including `toast` and `dialog`**, which is to say
   both of the consumers the entry named as *wanting* it. So the second entry's
   "that is `TabPhase` again" was pointing at a wall that had been a door for
@@ -2392,9 +2392,9 @@ out of it is usually worth more than the fact that it is fixed.
   with no test naming it — neither of which an image would have shown. **The
   goldens did not move**: `TourGoldenTest` has a virtual clock now, so the
   settled tour is the picture it always was. —
-  [ADR-0269](adr/0269-a-tour-arrives-and-its-cut-out-travels.md),
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+  [ADR-0269](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0269-a-tour-arrives-and-its-cut-out-travels.md),
+  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md),
+  [ADR-0109](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - ~~**A tour card's height is estimated, not measured.**~~ **It is measured, and
   the mechanism was already in the file.** The entry said measuring "needs the
   measure-then-place machinery ADR-0104 built, which works on *windows* rather
@@ -2406,13 +2406,13 @@ out of it is usually worth more than the fact that it is fixed.
   the card's width is fixed and its content is the stop's own text, so the height
   does not depend on whether it was placed above or below — which is `masonry`'s
   argument rather than the scrollbar's, and is asserted rather than claimed. —
-  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+  [ADR-0268](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0268-a-tour-card-says-how-tall-it-came-out.md),
+  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - ~~**A tooltip's 500ms delay is a constant, and the token that would replace it
   cannot be read.**~~ **Both blockers expired, and one was never true.** The
   first — "nothing above the cascade can read a resolved custom property" — is
   `BuildContext.token`
-  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)), and the
+  ([ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md)), and the
   launcher holds an `Element`, which *is* a `BuildContext`. The second asked
   whether the design system should carry a duration that is not motion, and
   `design-system.md` §3's `tooltip` row had already answered: **"delay 500ms show
@@ -2424,8 +2424,8 @@ out of it is usually worth more than the fact that it is fixed.
   sibling with the cascade's own `ms`/`s` parser where its length parser is —
   made public rather than written twice, because two readers for one syntax
   disagree the day either grows a unit. —
-  [ADR-0262](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md),
-  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
+  [ADR-0262](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md),
+  [ADR-0105](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - ~~**A focus ring is only ever pictured on the dark theme, apart from one.**~~
   **There is a rule now, and it is a test.** The entry asked for "a rule about
   which states are worth a second theme rather than one more image", and the rule
@@ -2439,8 +2439,8 @@ out of it is usually worth more than the fact that it is fixed.
   passing by seeing nothing. Three images came with it — `menu-focus-light`,
   `menubar-focus-light`, `tabs-focus-light` — and doubling the whole corpus was
   the alternative and is not a rule so much as the absence of one. —
-  [ADR-0261](adr/0261-a-ring-is-photographed-on-both-themes.md),
-  [ADR-0240](adr/0240-the-ring-follows-the-accent.md)
+  [ADR-0261](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0261-a-ring-is-photographed-on-both-themes.md),
+  [ADR-0240](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0240-the-ring-follows-the-accent.md)
 - ~~**An icon-only segment has no accessible name, and neither does an icon-only
   button.**~~ **`name=` is on `Attributes` now, so every widget has one.** The
   entry separated two things that had drifted together: "§13's semantics are
@@ -2453,19 +2453,19 @@ out of it is usually worth more than the fact that it is fixed.
   `tooltip` and `context-menu` for their reason, which the entry had already
   written ("a gap the whole catalog shares"), and the label wins where there is
   one. —
-  [ADR-0260](adr/0260-a-name-is-an-attribute-every-widget-has.md)
+  [ADR-0260](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0260-a-name-is-an-attribute-every-widget-has.md)
 - ~~**`--gb-list-row-height` has no consumer.**~~ **It has two, and has had since
   `list` shipped.** `ListState` reads the token through `BuildContext.token`
-  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)) and
+  ([ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md)) and
   `list-row` writes `height: var(--gb-list-row-height)`, so the number the
   density decides is the number the rows are and the number the spacers are
   spaced by — which is now checked, since a disagreement between the last two is
-  reported ([ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)). The
+  reported ([ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md)). The
   entry's closing line, "`list` is M3", is the other half that expired: `list` is
   built. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
-  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+  [ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
 - ~~**A `static` `@Action` is still unsupported, and nothing refuses one
   explicitly.**~~ **Both paths refuse one by name, and both refusals are
   tested.** The entry was right that it cannot work — the woven path would
@@ -2477,7 +2477,7 @@ out of it is usually worth more than the fact that it is fixed.
   `RuntimeBindingTest.staticAction` are the two tests. Nothing was built to close
   this; it had been closed and the entry was not updated, which is the argument
   for reading an entry against the code before believing it. —
-  [ADR-0098](adr/0098-a-private-member-is-reached-by-a-handle.md)
+  [ADR-0098](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0098-a-private-member-is-reached-by-a-handle.md)
 - ~~**Nothing warns when a declaration is dropped for being unsupported, in an
   application's stylesheet.**~~ ~~**An application's stylesheet can still be all
   classes, and nothing says so.**~~ **Both are asked for now, which is what both
@@ -2498,10 +2498,10 @@ out of it is usually worth more than the fact that it is fixed.
   its own two guard tests, and **gained two sweeps it could not afford** — the
   light theme and the compact density, either of which can resolve a `var()` the
   other does not. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
-  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)
+  [ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0249](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0249-a-rule-that-can-name-a-type-does.md),
+  [ADR-0216](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0215](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)
 - ~~**`flex-grow` means nothing inside a `scroll`, and nothing says so.**~~ **It
   says so now, once per axis.** The entry expected this to be hard — "a
   diagnostic would have to know that a `grow` resolved against an unbounded main
@@ -2512,9 +2512,9 @@ out of it is usually worth more than the fact that it is fixed.
   set the growth itself, which no rule in any stylesheet would have shown.
   ADR-0251's `warnIfNestedOnTheSameAxis` is the shape, down to the static set
   that keeps it a message rather than a stream. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  [ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0116](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - ~~**A row height that disagrees with the stylesheet is a silent layout
   error.**~~ **It is reported now, and by a simpler mechanism than the entry
   predicted.** It asked for "a `Measured` assertion on the first built row"; what
@@ -2523,7 +2523,7 @@ out of it is usually worth more than the fact that it is fixed.
   is laid out — so the check is exact, free and a frame earlier than a
   measurement. Two things it turned up. **The mismatch has to be seen twice**,
   because the first build of a tree has no cascade
-  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)): a list
+  ([ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md)): a list
   reading the token answers the default on that build and the stylesheet's value
   on the next, so under a compact density there is one frame of a real
   disagreement that settles by itself — and reported naively, the form that
@@ -2532,15 +2532,15 @@ out of it is usually worth more than the fact that it is fixed.
   same height would report twenty times a frame and "seen twice" could not then
   tell a frame from a sibling. The entry's last sentence was already stale —
   reading `--gb-list-row-height` is ADR-0254's door and it is open. —
-  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
-  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
-  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+  [ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - ~~**A slider's value label is left-aligned in its box, because §8's subset has
   no `text-align`.**~~ **It is `text-align: end` now, and nothing had to be added
   to `Box`.** The entry's reason was quoting §8's own note — "`Box` cannot express
   them" — and that note was right about `backdrop-filter` and `letter-spacing`,
   wrong about this one, and has since been overtaken on `box-shadow` too
-  ([ADR-0310](adr/0310-a-shadow-is-a-stack-of-rectangles.md): a `Decoration`
+  ([ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md): a `Decoration`
   component and a stack of rounded rectangles, no `Box` field required). `Paragraph.paint` is already handed
   the box's width, because it has to be or the text could not wrap to it, and
   every `TextLine` has already measured itself: the two numbers an alignment
@@ -2551,13 +2551,13 @@ out of it is usually worth more than the fact that it is fixed.
   `slider-value.png` plus the showcase's Basic screen in its three variants,
   with `9%`, `50%` and `100%` finally lining up on their trailing edge. `left` and
   `right` are **refused**, for
-  [ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)'s reason: they are
+  [ADR-0247](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0247-start-is-css-and-flex-start-is-yoga.md)'s reason: they are
   not the same as `start`/`end` under RTL. `justify` is refused for a different
   one — it is a respacing rather than a placement, and a paragraph shaped once
   has nowhere to put the extra advance. —
-  [ADR-0256](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md),
-  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
-  [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
+  [ADR-0256](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md),
+  [ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
+  [ADR-0080](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md)
 - ~~**A menu row overflows rather than ellipsising, and the missing property is
   `white-space: nowrap`.**~~ ~~**A segment's label overflows its cell when it is
   longer than 1/n of the bar.**~~ **Both are cut now, and so are `option` and
@@ -2576,16 +2576,16 @@ out of it is usually worth more than the fact that it is fixed.
   one value, because CSS inherits `white-space` and does not inherit
   `text-overflow` and a bundle cannot be half-inherited — so `whiteSpace` had to
   join `inheritsSameAs` as well as `inheritingFrom`, which is
-  [ADR-0248](adr/0248-only-the-inherited-half-is-handed-down.md)'s standing
+  [ADR-0248](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0248-only-the-inherited-half-is-handed-down.md)'s standing
   warning. And **ADR-0148's `flex-shrink: 0` came off the label** rather than
   being reverted: it stopped the wrap by stopping the shrink, and `nowrap` stops
   the wrap without it. The accelerator keeps its own, because half of
   `Ctrl+Shift+K` is not a shortcut. What ADR-0235 left that is *not* closed is
   `progress`'s indeterminate sweep, which is a design decision about a shipped
   animation. —
-  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
-  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md),
-  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
+  [ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
+  [ADR-0235](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md),
+  [ADR-0148](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0148-a-menu-row-does-not-wrap.md)
 - ~~**`--gb-list-row-height` has no consumer, and no widget can read a resolved
   custom property at build time.**~~ **`BuildContext.token` is the other door,
   and it was three lines.** `Element` already implemented **both**
@@ -2604,15 +2604,15 @@ out of it is usually worth more than the fact that it is fixed.
   must be declared **at or above** the list, because `ListView` is a composition
   node whose state builds the `list` element — which is where it ships, on
   `:root`. —
-  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+  [ADR-0254](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - ~~**`--gb-caret-width` is not a token and the caret is one logical pixel.**~~
   **It is a token now, and it was an accessibility gap rather than a styling
   question.** The entry's diagnosis was right — a `caret { width: 3px }` is
   *overwritten* rather than honoured, because the caret's box is set after the
   cascade — and the token was not shipped only because nothing could read one,
-  which [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
+  which [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
   changed. A thicker caret is a **low-vision aid**, which is why §13 lists that
   kind of switch. Two things the entry did not mention. `text-input` and
   `text-area` each had their own `CARET_WIDTH = 1`, the second's comment saying
@@ -2622,9 +2622,9 @@ out of it is usually worth more than the fact that it is fixed.
   does not scroll short of showing it, hard-coded to 1 — a three-pixel caret
   against a one-pixel reserve is a caret clipped at the end of the text, which is
   the failure that would have looked like a text-rendering bug. —
-  [ADR-0253](adr/0253-a-caret-is-as-wide-as-the-theme-says.md),
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+  [ADR-0253](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0253-a-caret-is-as-wide-as-the-theme-says.md),
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**A window's maximized state is write-once and cannot be read back.**~~
   **All three are built, and the question the entry left open has an answer that
   follows from what maximizing is.** `Window.maximize()`, `restore()` and
@@ -2640,8 +2640,8 @@ out of it is usually worth more than the fact that it is fixed.
   and has not yet agreed. It is also what makes the interesting half work — an
   application can learn that the **user** maximized it, which no amount of
   tracking one's own calls can produce. —
-  [ADR-0252](adr/0252-a-window-is-maximized-when-the-platform-says-so.md),
-  [ADR-0221](adr/0221-a-window-may-open-maximized.md)
+  [ADR-0252](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0252-a-window-is-maximized-when-the-platform-says-so.md),
+  [ADR-0221](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0221-a-window-may-open-maximized.md)
 - ~~**A widget cannot read a resolved custom property, so `scroll`'s line height
   is a constant.**~~ **It can, and the entry was half stale when it was
   written.** `Paints.Context.color` has read one since ADR-0195 — that is how a
@@ -2653,9 +2653,9 @@ out of it is usually worth more than the fact that it is fixed.
   is ADR-0117's bargain unchanged — a paint always precedes an input. What is
   left is `list`, and it needs a different door; it is
   [above](#the-catalog-specified-and-unbuilt). —
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0195](adr/0195-a-painter-reads-the-theme-through-a-custom-property.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0195](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md),
+  [ADR-0116](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - ~~**Nested same-axis scrollers are banned in the canon and nothing enforces
   it.**~~ **A nested pair says so now, once.**
   `BuildContext.findAncestorState` is the whole implementation — it exists for
@@ -2666,12 +2666,12 @@ out of it is usually worth more than the fact that it is fixed.
   the rule going unheard — the author's problem was that nobody told them.
   Deduplicated by axis for ADR-0243's reason, because `build` runs per element
   per invalidation and a document that nests in four places has one mistake. —
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0243](adr/0243-a-missing-token-is-a-message-not-a-stream.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  [ADR-0251](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0243](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0243-a-missing-token-is-a-message-not-a-stream.md),
+  [ADR-0116](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - ~~**`stack` is still owed.**~~ **It is built, and it positions nothing.**
   The entry's own last sentence had become "what `stack` still wants is `stack`"
-  once [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md) took its last
+  once [ADR-0244](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md) took its last
   blocker. It is nine lines: the **first child stays in flow** so the box has a
   size — a stack whose children are all out of flow is a box of nothing, and this
   is what makes wrapping an existing widget in one a change that cannot move it —
@@ -2683,9 +2683,9 @@ out of it is usually worth more than the fact that it is fixed.
   where zero would stretch it and undefined leaves it where the alignment put
   it"*. Z-order is document order, which is the painter's existing rule for
   siblings. —
-  [ADR-0250](adr/0250-a-stack-is-one-child-in-flow.md),
-  [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md),
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+  [ADR-0250](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0250-a-stack-is-one-child-in-flow.md),
+  [ADR-0244](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md),
+  [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)
 - ~~**A style that really changes still re-resolves its whole subtree, and only
   the inherited properties can matter.**~~ **It compares the inherited half now,
   and the notion the entry wanted already existed.** `ComputedStyle` does have a
@@ -2699,8 +2699,8 @@ out of it is usually worth more than the fact that it is fixed.
   Two variables, because there are two jobs. The test for that is the one that
   matters and it was written against the mistake: folding the roles back together
   fails it. —
-  [ADR-0248](adr/0248-only-the-inherited-half-is-handed-down.md),
-  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+  [ADR-0248](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0248-only-the-inherited-half-is-handed-down.md),
+  [ADR-0142](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)
 - ~~**The rule buckets are only as good as the stylesheet, and nothing enforces
   that the toolkit's own stay type-first.**~~ **They are enforced, and measuring
   found the assumption was already half wrong.** 16 of 340 rules named no type,
@@ -2714,8 +2714,8 @@ out of it is usually worth more than the fact that it is fixed.
   on whatever it likes, and `:root` is the theme's token layer. `RuleBucketTest`
   holds those eight as an **exact set** — a threshold is a number somebody
   raises. —
-  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
-  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+  [ADR-0249](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0249-a-rule-that-can-name-a-type-does.md),
+  [ADR-0152](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 - ~~**`--gb-surface-2` has been mistaken for an elevation three times, and it is
   unresolved whether it should keep existing.**~~ **It stays, and the trap is an
   asserted fact now.** The look the entry asked for found **five** readers and
@@ -2730,8 +2730,8 @@ out of it is usually worth more than the fact that it is fixed.
   files**, a step up on dark and down on light, which is exactly why each
   consumer looked right to whoever wrote it and wrong to everybody on the other
   theme. The theme files carry the same sentence at the definition. —
-  [ADR-0245](adr/0245-the-second-surface-stays-and-says-so.md),
-  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+  [ADR-0245](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0245-the-second-surface-stays-and-says-so.md),
+  [ADR-0168](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - ~~**A `select`'s typeahead works closed and not open.**~~ **It works open, and
   the condition the entry set for adding a capture phase was met.** The entry
   named the fix — `Handles` had an `onKeyCapture` and no `onTextCapture` — and
@@ -2744,8 +2744,8 @@ out of it is usually worth more than the fact that it is fixed.
   `n`, `n`, `n` cycles the same options in the same order either way. It consumes
   what it acted on, leaves blank text alone — a space means "pick this one"
   everywhere else — and a `tree` gets none, which is [above](#the-catalog-specified-and-unbuilt). —
-  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+  [ADR-0246](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
+  [ADR-0141](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - ~~**Whether to accept CSS's alignment aliases is open.**~~ **They are taken,
   because they are not aliases.** `align-items: start` is **CSS** — Box Alignment
   Level 3 — and Yoga has only `flex-start`, so the toolkit was dropping a
@@ -2758,8 +2758,8 @@ out of it is usually worth more than the fact that it is fixed.
   so §2.4's bidi support means the toolkit cannot promise they stay equivalent.
   Two tests that encoded the old decision were rewritten, both in the group that
   exists because of this typo. —
-  [ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md),
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md)
+  [ADR-0247](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0247-start-is-css-and-flex-start-is-yoga.md),
+  [ADR-0216](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md)
 - ~~**`align-self` is not in §8's subset.**~~ **It is built, and the entry was
   wrong twice in the toolkit's favour.** §8 had listed
   `align-items/self/content` all along and named only `flex-basis` as
@@ -2775,9 +2775,9 @@ out of it is usually worth more than the fact that it is fixed.
   transposition survives. The clean sites were scripted and the four carrying
   inline commas edited by hand. **`stack` is one blocker lighter**; what it still
   wants is `stack` itself. —
-  [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md),
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md),
-  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
+  [ADR-0244](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0244-a-child-may-say-where-it-sits.md),
+  [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md),
+  [ADR-0111](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - ~~**Nothing warns that a `var()` resolved to nothing — it logs, per node, per
   frame.**~~ **It says it once, and the field is the resolver's rather than a
   static.** The entry named the fix — "once per property per stylesheet would
@@ -2796,9 +2796,9 @@ out of it is usually worth more than the fact that it is fixed.
   debugging it wants. A cycle is keyed by the property alone, because that is a
   fact about the property. The **drop** is unchanged and still happens every
   time; only the report is once. —
-  [ADR-0243](adr/0243-a-missing-token-is-a-message-not-a-stream.md),
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+  [ADR-0243](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0243-a-missing-token-is-a-message-not-a-stream.md),
+  [ADR-0216](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - ~~**`em` and `rem` do not resolve against the node's own `font-size`.**~~
   **`em` does now, in two passes, and the fix needed no plumbing at all.**
   `CssLength.Context` was always the right shape; what was missing is that
@@ -2814,8 +2814,8 @@ out of it is usually worth more than the fact that it is fixed.
   renders text at. `Transform` was the same bug in a second place and said so in
   a comment; it takes a `Context` now. What is left is `rem`, and it is
   [above](#style-colour-and-motion). —
-  [ADR-0242](adr/0242-em-is-the-elements-own-size.md),
-  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+  [ADR-0242](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0242-em-is-the-elements-own-size.md),
+  [ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)
 - ~~**Nothing validates an application's own theme.**~~ **`ThemeAudit` does, and
   the pairs are found by convention rather than listed.** The arithmetic was nine
   private lines in `ContrastTest`; it is `css.contrast.Contrast` now, in `:core`
@@ -2834,12 +2834,12 @@ out of it is usually worth more than the fact that it is fixed.
   audits against cannot drift. It does **not** cover the non-text floor: which
   token is a *mark* is not something a naming convention can tell, and those
   sixteen are [above](#style-colour-and-motion). —
-  [ADR-0241](adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md),
-  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+  [ADR-0241](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md),
+  [ADR-0239](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0087](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - ~~**§2.2's focus ring is below §1.2's floor on every surface of the light
   theme.**~~ **It follows the accent now, which is what the dark theme always
-  did.** Opened by [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
+  did.** Opened by [ADR-0239](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
   the moment the non-text floor was first measured, and the cause was a **ramp
   left behind** rather than a colour anyone chose: both themes set the ring to
   their accent, except that the light theme's accent had moved down the Frost
@@ -2848,8 +2848,8 @@ out of it is usually worth more than the fact that it is fixed.
   one. What it exposed is the more useful half and is [above](#style-colour-and-motion):
   changing a shipped colour moved **no golden**, because every focus golden in
   the catalog was `NORD_DARK`. —
-  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
-  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
+  [ADR-0240](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0240-the-ring-follows-the-accent.md),
+  [ADR-0239](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
 - ~~**Non-text contrast is not checked at all.**~~ **It is measured now, and the
   question the entry could not answer had a simpler answer than it looked.** What
   counts as the background of a mark drawn onto its own box is **its own box**: a
@@ -2864,8 +2864,8 @@ out of it is usually worth more than the fact that it is fixed.
   identifies a component, and measuring separately reported `--gb-border` failing
   everywhere when a decorative divider is supposed to be subtle. What the sweeps
   find is [above](#style-colour-and-motion) and is not this entry's any more. —
-  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
-  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
+  [ADR-0239](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0088](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
 - ~~**A wheel over a *disabled* control is swallowed outright, and the scroll
   view above it never gets a turn.**~~ **It chains now, and the answer was "per
   event kind" — for one kind.** The entry stated the question correctly and the
@@ -2881,9 +2881,9 @@ out of it is usually worth more than the fact that it is fixed.
   would have made the disabled knob start turning. What this also records is why
   nothing caught it: `DisabledPropagationTest`'s tree had **nothing above** the
   disabled container, so "refused" and "swallowed" logged identically. —
-  [ADR-0238](adr/0238-a-wheel-chains-past-a-dead-control.md),
-  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
-  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
+  [ADR-0238](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0238-a-wheel-chains-past-a-dead-control.md),
+  [ADR-0236](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
+  [ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - ~~**Nothing recomputes the cursor when the tree changes under a still
   pointer.**~~ **It does now, and the entry named half of it.** The cursor half is
   exactly as written — a fourth position field, remembered from every entry point
@@ -2899,9 +2899,9 @@ out of it is usually worth more than the fact that it is fixed.
   suppressed but nothing called it. Fixing only the cursor would have shipped a
   control drawing its hover wash while its cursor said `not-allowed`, so both
   halves went together; §2.1 left no decision to defer. —
-  [ADR-0237](adr/0237-the-pointer-state-follows-the-frame.md),
-  [ADR-0057](adr/0057-the-cursor-rides-on-the-painted-box.md),
-  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
+  [ADR-0237](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0237-the-pointer-state-follows-the-frame.md),
+  [ADR-0057](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0057-the-cursor-rides-on-the-painted-box.md),
+  [ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - ~~**A knob inside a scroll view is still untested, and `Kind.WHEEL` had
   exactly one consumer for a long time.**~~ **Both cases are tested, and the one
   the entry predicted would fail did.** These were two entries saying the same
@@ -2918,9 +2918,9 @@ out of it is usually worth more than the fact that it is fixed.
   refuses the wheel and the test passes before the fix. What the exercise turned
   up is one entry it did not close, above: a *disabled* control swallows a wheel
   for a reason that is the router's rather than the knob's. —
-  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
-  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  [ADR-0236](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
+  [ADR-0089](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0089-a-knobs-gesture-is-a-rate.md),
+  [ADR-0116](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - ~~**The overlay enter/exit lifecycle is a specification without a subject, and
   the imperative `AnimationController` has now lost all three of its own.**~~
   **The survey is done, and the answer is two objects rather than one
@@ -2935,9 +2935,9 @@ out of it is usually worth more than the fact that it is fixed.
   `tab` must **not** be converted — a toast's departure ends when its stack's
   queue says so and a tab's ends inside `render` — which is ADR-0092's rule about
   generalising from examples that already agree. —
-  [ADR-0234](adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md),
-  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md),
-  [ADR-0081](adr/0081-a-perpetual-loop-has-no-state.md)
+  [ADR-0234](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md),
+  [ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md),
+  [ADR-0081](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md)
 - ~~**Overlays do not animate in or out.**~~ **They do, and this was fixed by the
   widgets rather than by the layer — which is what the entry itself predicted.**
   §1.7's overlay curve wanted "a toast to arrive rather than appear, which is a
@@ -2946,7 +2946,7 @@ out of it is usually worth more than the fact that it is fixed.
   from 0.96 and fades ([ADR-0176]), a banner rises 2px ([ADR-0175]). The `stack`
   half of this entry stays open above, because it is a layout widget and this was
   never about one. —
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+  [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)
 - ~~**Two popups do not know about each other.**~~ **They still do not, and they
   do not have to: what was wrong is that `Escape` and a press outside were the
   same code.** A press that lands somewhere else is the user pointing at something
@@ -2959,8 +2959,8 @@ out of it is usually worth more than the fact that it is fixed.
   keyboard and the key reaches the **owner**. One more thing the entry did not
   say: the innermost popup is not always the one that goes, because a tooltip
   refuses light dismissal — so the walk looks past it rather than stopping. —
-  [ADR-0233](adr/0233-escape-steps-out-of-one-menu.md),
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
+  [ADR-0233](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0233-escape-steps-out-of-one-menu.md),
+  [ADR-0103](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 - ~~**A tooltip is plain text, has no maximum width of its own and does not
   follow the pointer.**~~ **All three are what §7 specifies for v1, so they are
   boundaries and not gaps** — and an entry that records a boundary belongs here
@@ -2969,7 +2969,7 @@ out of it is usually worth more than the fact that it is fixed.
   matter and stays open above: it is a number this toolkit chose rather than one
   §7 gave, and the token that would let an application change it cannot be read.
   —
-  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
+  [ADR-0105](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - ~~**`Placement` still clamps, and now two callers have stopped asking it
   to.**~~ **That is the design, stated, and there is nothing here to build.** A
   popup taller than the work area is clamped to the near edge; `menu` and `select`
@@ -2979,9 +2979,9 @@ out of it is usually worth more than the fact that it is fixed.
   tooltip that scrolled would be a tooltip that should have been a dialog. The
   entry read as a gap because it opens with "still", and what follows it is a
   division of responsibility rather than a shortfall. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+  [ADR-0179](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md),
+  [ADR-0118](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - ~~**Nothing hit-tests an overlay by rule.**~~ **Both halves are rules now, and
   the second was two mechanisms pretending to be one.** The topmost painted region
   taking the pointer was already true — the capture is in paint order and is
@@ -2995,7 +2995,7 @@ out of it is usually worth more than the fact that it is fixed.
   **ancestors**, and nothing else. The ancestors are the point rather than a
   loophole, because a scrim is the panel's parent and a click on it is what closes
   the dialog. —
-  [ADR-0232](adr/0232-modality-is-one-flag-and-not-a-scrim.md)
+  [ADR-0232](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)
 - ~~**`PointerRouter` has one listener slot, not a list.**~~ **It is a list, and
   the decision the entry was waiting for is that there is nothing to decide.**
   What is delivered is a **notification and not an event**: nothing is passed,
@@ -3007,7 +3007,7 @@ out of it is usually worth more than the fact that it is fixed.
   reads like a registration and behaved like an assignment, so a second caller
   silently dropped the first and a tooltip simply stopped appearing. It hands back
   a `Subscription` now, which the slot could not express at all. —
-  [ADR-0230](adr/0230-a-notification-has-listeners-and-an-event-has-one.md)
+  [ADR-0230](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0230-a-notification-has-listeners-and-an-event-has-one.md)
 - ~~**`--gb-*-line` has one consumer, and the widgets that should be next have
   not been looked at.**~~ **The survey is done, and it found a rank missing rather
   than a rank unused.** Six rules drew ink in a bare semantic hue and only **one**
@@ -3023,8 +3023,8 @@ out of it is usually worth more than the fact that it is fixed.
   been recording a colour below §1.2's floor. And the survey is a **lint** now —
   `noBareHueDrawsInk` reads the stylesheet, which is the one question a contrast
   measurement cannot answer. —
-  [ADR-0229](adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md),
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+  [ADR-0229](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md),
+  [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md)
 - ~~**`collapse` and `carousel` never stop asking for frames.**~~ **They ask
   their `Phase` now, and it was the same three lines the entry predicted.** The
   question the frame loop asks is *are you still moving*, and both were answering
@@ -3036,7 +3036,7 @@ out of it is usually worth more than the fact that it is fixed.
   will ever settle, so `CollapseSection` guards on `open`; and `CarouselTest`'s own
   `animating()` case asserted the bug, because it had been written against the
   implementation rather than against §1.7. —
-  [ADR-0228](adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
+  [ADR-0228](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
 - ~~**Every clock-driven arrival costs one wasted frame.**~~ **It does not, and
   "harmless and worth writing down" was one line short.** The entry had the
   diagnosis exactly right — the renderer asked whether a node was animating
@@ -3045,7 +3045,7 @@ out of it is usually worth more than the fact that it is fixed.
   clock is `render`. Asked afterwards, the answer is current. One line moved, and
   it is worth one frame of every animation in the toolkit. `TabMotionTest`
   documented the waste in a comment and now asserts its absence. —
-  [ADR-0228](adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
+  [ADR-0228](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
 - ~~**A `message` takes no `bind=`, so a banner whose text comes from a model has
   to be described away rather than emptied.**~~ **It takes one, and the thing that
   was missing was a *name* rather than a mechanism.** The entry had already named
@@ -3061,8 +3061,8 @@ out of it is usually worth more than the fact that it is fixed.
   `field-message`: doing so changes the spacing of every form, which five golden
   images say is a design decision about §4's "message slot" rather than a bug fix.
   —
-  [ADR-0227](adr/0227-a-widget-may-describe-nothing.md),
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+  [ADR-0227](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0227-a-widget-may-describe-nothing.md),
+  [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md)
 - ~~**A closing overlay used not to animate at all**, and every golden
   passed.~~ **The lesson has somewhere to live now, and it is a test rather than a
   paragraph.** The entry was right twice — the corpus cannot catch this by
@@ -3075,8 +3075,8 @@ out of it is usually worth more than the fact that it is fixed.
   beside it that names the method (which catches the animations a `Phase` does not
   describe — a tab's number, a scrollbar's idle clock). It found a real gap on its
   first run: `ScrollViewport` and `ScrollFade` had no such assertion anywhere. —
-  [ADR-0226](adr/0226-a-golden-cannot-see-an-animation-that-never-ran.md),
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+  [ADR-0226](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0226-a-golden-cannot-see-an-animation-that-never-ran.md),
+  [ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
 - ~~**A right-click does not select what it is over.**~~ **It does, and the
   premise was half right.** The toolkit still has no notion of what "select"
   means for an arbitrary widget — but the widget *under the pointer* does, and
@@ -3087,7 +3087,7 @@ out of it is usually worth more than the fact that it is fixed.
   asks it, once, immediately before opening. The rule the entry did not state is
   the one that makes it worth having: a row already **in** the selection leaves it
   alone, so right-clicking one of five chosen files opens a menu about the five. —
-  [ADR-0224](adr/0224-a-right-click-selects-what-it-is-over.md)
+  [ADR-0224](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0224-a-right-click-selects-what-it-is-over.md)
 - ~~**A bare `Alt` tap does not activate the menu bar, and `F10` does.**~~ **It
   does, and the entry had already written the design.** "Key-release tracking with
   a nothing-happened-in-between rule, at the window level" is exactly what shipped
@@ -3100,7 +3100,7 @@ out of it is usually worth more than the fact that it is fixed.
   another key, a repeat, a second modifier, a press, a wheel, a focus change, and
   deliberately *not* pointer motion. `F10` stays beside it as the binding that
   survives a compositor which eats `Alt`, and both toggle now. —
-  [ADR-0223](adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)
+  [ADR-0223](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)
 - ~~**`menubar` is not built, and it wants a menu that outlives one opening.**~~
   **Both halves ship, and the model that outlives an opening turned out to be the
   one the author already wrote.** What is built and discarded per opening is the
@@ -3108,16 +3108,16 @@ out of it is usually worth more than the fact that it is fixed.
   the bar is mounted. `Accelerators` walks that description and binds every
   command with a key on it, with no menu on screen and none needed. A bar's
   children are `item`s and a nested `item` is a heading, so no markup was added. —
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
-  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+  [ADR-0163](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0163-a-menu-bar-owns-its-menus.md),
+  [ADR-0106](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
 - ~~**`Left` and `Right` do not move between menus while one is showing.**~~
   **They do, and fixing either did fix both.** The missing item-to-popup callback
   is `MenuSignals`, and a bar hands its root menu a `Menus.Siblings` saying what
   the two arrows that leave it mean — wrapping at the ends and skipping a
   separator or a disabled heading. A submenu gets none, which is what keeps
   `Left` in one going back a level rather than leaping along the bar. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+  [ADR-0219](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0163](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0163-a-menu-bar-owns-its-menus.md)
 - ~~**An accelerator is unbound by key, so a `menubar` going away can take
   somebody else's binding with it.**~~ **The map remembers owners now, and
   `menubar` is the only thing that uses it** — which is what the entry predicted.
@@ -3127,8 +3127,8 @@ out of it is usually worth more than the fact that it is fixed.
   commands on one key is still last-writer-wins, and what changed is that the
   loser cannot unbind the winner. **A displaced binding is still not restored** —
   that needs a stack per key, and nothing has asked for one. —
-  [ADR-0220](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md),
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+  [ADR-0220](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md),
+  [ADR-0163](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0163-a-menu-bar-owns-its-menus.md)
 - ~~**The keyboard menu key does not open a context menu.**~~ **It does, and so
   does `Shift+F10`.** The entry named both pieces correctly: `Key.MENU` is SDL's
   `SDLK_APPLICATION`, and the element-wise anchor turned out to already exist as
@@ -3138,22 +3138,22 @@ out of it is usually worth more than the fact that it is fixed.
   named the menu is now one method both halves call, because "a right-click on a
   label is a right-click on the button" and "the menu key on a focused button is
   that button's menu" are the same rule. —
-  [ADR-0208](adr/0208-a-context-menu-answers-the-keyboard.md),
-  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
+  [ADR-0208](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0208-a-context-menu-answers-the-keyboard.md),
+  [ADR-0108](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)
 - ~~**A keyboard `Right` into a submenu waits 150ms.**~~ **It opens in the same
   frame.** `Item` can tell a hover from a keypress now: `hovered()` is what the
   pointer did and `open()` is what a key did, and the delay is for the pointer —
   it stops a submenu dropping out of one travelling past three rows, and a
   keypress has travelled past nothing. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+  [ADR-0219](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0112](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
 - ~~**`Left` does not close a submenu.**~~ **It does, and it is the arrow that
   opened it, undone.** In a submenu it closes back to the menu above; at the root
   of a bar's menu it moves along the bar; at the root of a context menu it does
   nothing, deliberately — a menu that vanished on an arrow key would be a menu
   nobody could navigate, and `Escape` is the key that means "put this away". —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+  [ADR-0219](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0112](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
 - ~~**Nothing marks the row whose submenu is showing.**~~ **`item.open` does.**
   The row keeps `:hover`'s wash for as long as its branch is on screen, which is
   what the pointer moving *into* the submenu made visible: the row it came from
@@ -3161,8 +3161,8 @@ out of it is usually worth more than the fact that it is fixed.
   pseudo-class, because "the branch that is showing" is a menu's own bookkeeping
   and not a state the element tree tracks — the shape `menu-title.open` already
   used. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
+  [ADR-0219](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0113](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)
 - ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
   order**: the × fades the banner while it is still described and tells the
   application when the fade is over, so nothing has to outlive the description.
@@ -3179,7 +3179,7 @@ out of it is usually worth more than the fact that it is fixed.
   wanted, and the gap comes from `toaster { gap }` through the channel ADR-0177
   opened for the frame clock. A column of `message`es still cannot have it, for
   ADR-0175's unchanged reason: a banner has no owner to hold the list. —
-  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)
+  [ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)
 - ~~**A toast cannot be dismissed by clicking it**~~ **The plate is the
   affordance now.** What §7's omission of a × meant is that a toast does not need
   a *second* affordance competing with its action for a 360×40 plate — not that a
@@ -3187,7 +3187,7 @@ out of it is usually worth more than the fact that it is fixed.
   because the plate is hit-testable and a click on it reached nothing and did
   nothing. The trade-off, stated: a click aimed at the action button that misses
   it dismisses without acting; the button is told first, so a hit is never lost. —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
+  [ADR-0182](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0182-a-select-may-hold-more-than-one.md)
 - ~~**A tooltip is plain text and has no maximum width of its own**~~ **It has one
   now: 320, and the number is a judgement rather than a specification.** §2's
   metrics row gives a tooltip a padding, a radius and two delays and no width, so
@@ -3199,7 +3199,7 @@ out of it is usually worth more than the fact that it is fixed.
   ragged pile back; **`popover`'s `minimumWidth` is a runtime measurement**
   (`field.size().width()`) that no declaration can express (ADR-0145); and
   **`text-area`'s max rows is built** and is a row count rather than a length. —
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
+  [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)
 - ~~**A menu caps itself by estimate, not by measurement.**~~ **It measures now,
   and so does `select`.** The popup facility takes a `Host.Fit` — a callback
   handed what the content measured and the room it has, between the measure and
@@ -3209,8 +3209,8 @@ out of it is usually worth more than the fact that it is fixed.
   Returning the content unchanged costs nothing; returning something else costs a
   second element tree, which is the right way round because nearly every popup
   fits. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+  [ADR-0179](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0118](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - ~~**A field refuses right-to-left text outright.**~~ **It takes it, and draws
   it mirrored.** The interim this entry asked for is chosen: a paragraph shapes
   bidi text with the direction forced to `LTR`, so the glyphs are right, their
@@ -3223,8 +3223,8 @@ out of it is usually worth more than the fact that it is fixed.
   half-measure of handling *uniformly* right-to-left paragraphs was not taken —
   it changes what `widthBetween` means to every caller, which is the same change
   full bidi needs. M5, with the IME preedit it sits beside. —
-  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+  [ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
   fourth registry — and the first attempt was refused by the codebase itself.**
   This entry guessed the answer was "a registry beside `actions` and `bindings`",
@@ -3234,14 +3234,14 @@ out of it is usually worth more than the fact that it is fixed.
   controller is. `Named` is the registry for objects that are neither methods,
   resources, nor values that change. **`scroll` still has the gap** — a
   `ScrollController` could be named the same way and nothing has done it. —
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+  [ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 - ~~**Nothing can ask for focus, so `field` has no click-to-focus.**~~ **A
   container can hand focus down now.** `Handles.delegatesFocus()` turns the
   router's walk round: a press that finds no focusable ancestor takes the first
   focusable *descendant* of a container that claims one. It has **one consumer**,
   which is one fewer than a mechanism should have — `group-box` and `card` are
   candidates and neither has asked. —
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+  [ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 - ~~**`Host.focus` still does not exist.**~~ **It does**, and `dialog` is what
   needed it: `host.focus(id, fromKeyboard)`, by **id** for `Host.anchor`'s reason
   — a widget has no element and never will. The rule that makes it useful was not
@@ -3250,8 +3250,8 @@ out of it is usually worth more than the fact that it is fixed.
   what a caller intends. It is refused for anything outside an open modal. **A
   form jumping to its first error is now two lines an application writes**, and
   nothing in the toolkit writes them. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+  [ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
+  [ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 - ~~**Nothing restores focus when a modal closes.**~~ **It does, and the entry
   understated the problem.** "The keyboard lands nowhere in particular" was the
   visible half; `Element.unmount` tells the element tree and nothing else, so the
@@ -3262,7 +3262,7 @@ out of it is usually worth more than the fact that it is fixed.
   somewhere to put the keyboard back, it goes there. The remembered element is
   indeed the first state the trap has held, kept to one slot, written at exactly
   one moment, and allowed to go stale on purpose. —
-  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md)
+  [ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)
 - ~~**`min-width` and `max-width` are not in the CSS subset**~~ **All four are,
   and `dialog` has the two numbers §2 asks it for.** One value rather than four
   components — the four are only meaningful together, and they are the same
@@ -3275,14 +3275,14 @@ out of it is usually worth more than the fact that it is fixed.
   `max-width` of 320 — a judgement rather than a specified number, because §2's
   metrics row gives it no width at all, and 320 so a label cannot reach a
   `dialog`'s minimum. `text-area`'s max rows shipped with the widget
-  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)). `toast`
+  ([ADR-0171](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)). `toast`
   **stays a width**: giving every toast the same width is what makes a stack of
   three read as a stack, and a maximum would size each one to its own string,
   which is the ragged pile. And `popover`'s `minimumWidth` is not a `min-width`
   consumer at all — it is "at least as wide as the control this dropped from"
-  ([ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)), a
+  ([ADR-0145](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)), a
   runtime measurement of a *different node*, which no stylesheet can state. —
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
+  [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)
 - ~~**A `field`'s error summary is a list and not a widget.**~~ **`message` is
   built and `Message.summary(errors)` is the summary** — one `danger` banner with
   a line per failure, and **empty** when nothing is wrong, because a summary of no
@@ -3294,54 +3294,54 @@ out of it is usually worth more than the fact that it is fixed.
   which is a notification from `Validated` to `FormAccess` that nothing else
   needs. **What is still open is a `form summary=#true`** that does exactly that,
   and it is waiting on that notification rather than on the banner. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+  [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md),
+  [ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)
 - ~~**A golden of a `text-area` is a golden of its first frame.**~~ **Both halves
   are fixed now.** The first was the gallery rendering twice and asserting on the
   second, 200ms in, which §7's `message` forced. The second — feeding the
   hit-test regions back *between* those frames — stayed open because nothing
   needed it badly enough, and `masonry` did: a layout that reads last frame
   cannot be photographed at all without it
-  ([ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
+  ([ADR-0196](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
   `Measured` is delivered by the **router**, from the rectangles a laid-out frame
   produced, so a harness that only rendered gave every self-measuring widget a
   first-frame answer for ever. The harness runs render → lay out → hand the
   router the regions, twice, which is what a window does — and the Forms image is
   now the one the running application shows, with its `text-area` wrapped at the
   width it actually has. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
-  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+  [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md),
+  [ADR-0171](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - ~~**`tree` is built in a first cut, and §3 asks for more.**~~ **All five of the
   leftovers are built, and one of them was never actually blocked.** The keyboard
   three — `Home`/`End`, `*`, type-to-select — needed rows the focused one cannot
   see, which is why they waited and why each is a callback the tree hands down
-  ([ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md)). The other two are
+  ([ADR-0209](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md)). The other two are
   `checkable=` and the selection models
-  ([ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+  ([ADR-0210](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
   **Multi-selection was recorded here as blocked on `list` and that reading was
   too strict**: `tree` defined the *node* model itself for the same reason, and
   wrote down that `list` will have to agree — the selection models are the shape
   every desktop list has, which makes it a small promise to make on `list`'s
   behalf. **`list` is built now and the promise was kept**: `Selection` moved to
   it and `tree` imports it, and nothing about the shape changed on the way
-  ([ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)). The checkbox needed a different question answered first, and it was in
+  ([ADR-0212](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0212-a-list-owns-the-models-a-tree-borrowed.md)). The checkbox needed a different question answered first, and it was in
   the design document rather than in the code: §3 spends the word `checkable`
   twice, on which rows are an *answer* and on whether rows carry a *box*. Both
   ship, under two names, and the disagreement is now in `ARCHITECTURE.md` §17.1.
   **§2's chevron `rotate` is two marks instead**, because §8's subset has no
   `transform` on a mark — the wall `select`'s chevron hit — so a closed row draws
   `>` and an open one `v`, and the cost is the animation. —
-  [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
-  [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
-  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
+  [ADR-0210](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md),
+  [ADR-0209](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md),
+  [ADR-0184](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - ~~**`list` renders every row, and `table` is still waiting on the recycler
   neither has.**~~ **Both are built, and the promise held.** The item-factory
   did survive contact: `virtualized(rowHeight)` calls the same function with the
   same items and nothing about the API moved
-  ([ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). `table`
+  ([ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). `table`
   turned out not to be waiting for the recycler at all but for `list` — a
   table's rows *are* a list's rows with more than one thing in them, so it
-  composes one ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)).
+  composes one ([ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)).
   **What is still out is rows of varying height**, which the arithmetic rules
   out rather than merely lacks: `index × height` is only a position if every row
   is that height, and the usual way round it — an estimate corrected as rows are
@@ -3351,8 +3351,8 @@ out of it is usually worth more than the fact that it is fixed.
   neither caller has to guess, and both give the same answer from the same helper
   — `Fitted`, which wraps content taller than the room in a viewport of the room's
   height and leaves everything else alone. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+  [ADR-0179](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0141](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - ~~**`select multiple=` … is not built**~~ **It is.** The selection is a set,
   `change` is a **toggle** in that mode — the set is the application's, so asking
   for a value it already holds can only mean taking it out — and the list stays
@@ -3361,26 +3361,26 @@ out of it is usually worth more than the fact that it is fixed.
   built too: `TextInput.suggesting(options)` offers a `SelectList` under the
   field, the rows commit on `Enter` rather than following the focus, and the
   field's text is never rewritten without the user choosing.
-  **`select autocomplete=#true` is built too** ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md)):
+  **`select autocomplete=#true` is built too** ([ADR-0183](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0183-a-combobox-is-a-select-you-can-type-in.md)):
   the closed control holds a real `text-input`, so the editing model, the undo
   history, the clipboard and the caret stay where their rules already are; the
   field stops being a Tab stop and delegates focus, so a combobox is one stop;
   `Esc` restores and a free-typed value is refused unless `free`, both off one
   nullable string of offered text that `TextInputState.follow` already knew how
-  to honour. **`tree=#true` is built too** ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
+  to honour. **`tree=#true` is built too** ([ADR-0184](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
   and so is a first cut of `tree` itself, which `list` had to agree with since §3
   says the two share an item-factory — and does, now that `list` is built and the
   selection models have moved to it (ADR-0212). —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+  [ADR-0182](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0182-a-select-may-hold-more-than-one.md),
+  [ADR-0141](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - ~~**A `select` opened from the keyboard does not give focus back to the
   field.**~~ **The field never loses it.** Measured rather than reasoned about:
   the owner window's router is not touched by a popup opening or closing, so the
   field keeps both its focus and its ring for as long as the list is up. What
   remains is the platform-level question above, which is not a control's problem
   and not this control's in particular. —
-  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+  [ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md),
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
 - ~~**A gradient fill needs a symbol the export list does not have.**~~ **It has
   six now, and the entry was right about which commit came first.** The widening
   is the whole of the interesting part: `bl_gradient_init_as`, `_destroy` and
@@ -3394,7 +3394,7 @@ out of it is usually worth more than the fact that it is fixed.
   the far stop, because `0x00000000` is transparent *black* and a green fading
   to it goes through grey. `goldberry-html` and `goldberry-vector` both start one
   commit further along. —
-  [ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)
+  [ADR-0207](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0207-a-fill-may-be-a-ramp.md)
 - ~~**`split-pane` is not built.**~~ ~~**`carousel` is not built.**~~ **Both
   ship, and §5 is complete.** The divider turned out to want `knob`'s gesture
   anchor rather than `slider`'s position — the pointer is somewhere inside a
@@ -3403,7 +3403,7 @@ out of it is usually worth more than the fact that it is fixed.
   after each slide, so that a pause is a timer not scheduled rather than one
   suspended. What did **not** ship is one of the carousel's three brakes; see the
   entry below. —
-  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+  [ADR-0165](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - ~~**A `carousel` does not pause when focus lands inside a slide.**~~ **The
   third brake ships, and it cost one line because something else needed the same
   thing.** This entry guessed the price wrong in an instructive direction: it said
@@ -3414,8 +3414,8 @@ out of it is usually worth more than the fact that it is fixed.
   `Handles.onFocusWithin`, a notification rather than a selector, reporting only
   the moves that cross a subtree's boundary. The selector-engine version is still
   unbuilt and now has no consumer asking for it. —
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
-  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+  [ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md),
+  [ADR-0165](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - ~~**`collapse`'s `accordion=` is not built.**~~ **It ships, as a widget rather
   than as a flag on `column`.** The flag belongs on the container — "one open at a
   time" is a rule about siblings — but honouring it needs state, and statefulness
@@ -3423,7 +3423,7 @@ out of it is usually worth more than the fact that it is fixed.
   every document a `State` it never uses. `column accordion=#true` inflates to an
   `Accordion` that reports `column` as its own CSS type, so the document writes
   what §5 says and an ordinary column pays nothing. —
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 
 - ~~**Per-corner radii do not exist, and `segmented` is the second control that
   wanted one.**~~ **They exist, `segmented` uses them, and the fourth asking is
@@ -3439,9 +3439,9 @@ out of it is usually worth more than the fact that it is fixed.
   bar is drawn joined again, with §3's hairline between its cells, and the design
   system's row is amended back. `button.square`'s joined buttons and `tabs` are
   the two callers of `Corners.inRow` that have not arrived yet. —
-  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md),
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0097](adr/0097-a-selection-that-travels-needs-a-geometry.md)
+  [ADR-0217](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0217-a-segmented-control-is-joined-again.md),
+  [ADR-0216](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0097](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)
 - ~~**`WaylandDecorationsTest` asserted `/proc` exists.**~~ **It asserts the
   platform's own half of the contract now.** One test read the real
   `/proc/thread-self` and asserted `Optional.of(false)` unconditionally — true on
@@ -3454,25 +3454,25 @@ out of it is usually worth more than the fact that it is fixed.
   branch macOS and Windows actually take. Gating with `@EnabledOnOs(LINUX)` would
   have left two of the three platforms asserting nothing about the call that runs
   on them. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - ~~**A popup hangs on screen when the application loses focus to another
   window**~~ **No popup of any kind holds the platform keyboard now**, so
   `anyWindowFocused` means what it says: the application is focused exactly when
   one of its own real windows is. A popup never relied on focus anyway — the owner
   has forwarded keys to whatever popup is open since ADR-0104, precisely because
   SDL focuses `POPUP_MENU` windows on some drivers and not others. —
-  [ADR-0189](adr/0189-no-popup-holds-the-keyboard.md)
+  [ADR-0189](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0189-no-popup-holds-the-keyboard.md)
 - **(was)** —
   **still open, and one candidate is eliminated.** `anyWindowFocused()` counts
   popup windows, so a popup holding platform focus keeps the whole check true. A
   `MENU`-kind popup is focusable and is the likely culprit; the suggestion panels
   are `TOOLTIP`-kind and `NOT_FOCUSABLE` since
-  [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
+  [ADR-0186](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
   can no longer be it. The next step is a real window and a log of `FocusChanged`
   per window id, which the headless backend cannot produce.
   **(earlier)**
   The window hides and the popup stays where it was. The mechanism
-  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
+  [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
   wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a
   settle delay if no window of the application is focused — so this is a fault
   *inside* it rather than a missing feature. Two candidates and no evidence yet:
@@ -3480,14 +3480,14 @@ out of it is usually worth more than the fact that it is fixed.
   or the platform not sending `FocusChanged` at all when the owner is hidden
   rather than deactivated. Diagnosing it needs a real window and a real
   compositor. —
-  [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+  [ADR-0185](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
 - ~~**`flex-wrap` is not in §8's subset.**~~ **It is, and it took the shape this
   entry predicted** — one component on `Box`, one on `ComputedStyle`, one line in
   the render tree, and 48 positional reconstructions. What it did not predict is
   the half that mattered: putting the property on the *field* wraps the chevron
   onto a second line under the chips, so the chips needed a box of their own. A
   golden image is what said so; nothing in the CSS looked wrong. —
-  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+  [ADR-0192](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
 - ~~**Nothing drives §3's select family through the real loop.**~~ **`SelectLoopTest`
   does**, and found a seventh defect on its first run: a click opened the list and
   closed it again in the same gesture, because the press focused the editor (which
@@ -3495,7 +3495,7 @@ out of it is usually worth more than the fact that it is fixed.
   an editable control now, and the signal is focus. What the harness still cannot
   reach is the platform's window flags — reverting `NOT_FOCUSABLE` fails nothing,
   because the headless backend has none. —
-  [ADR-0188](adr/0188-a-control-opens-on-one-signal.md)
+  [ADR-0188](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0188-a-control-opens-on-one-signal.md)
 - **(was) Nothing drives §3's select family through the real loop.** All three defects
   ADR-0185 fixed were found by running the application and were green in CI,
   because every test drives the widget by hand and each fault lives in the seam
@@ -3503,21 +3503,21 @@ out of it is usually worth more than the fact that it is fixed.
   platform's focus, the pointer. `MenusTest` does drive the real launcher against
   the headless backend and is the shape that would have caught them. Closing this
   is worth more than the three bugs were. —
-  [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+  [ADR-0185](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
 
 - ~~**The HUD's budgets assume a 60 Hz display.**~~ **They are shares of the
   display's own frame now.** `SDL_GetCurrentDisplayMode`'s refresh rate was
   already bound for the frame pacer; it reaches a `hud` through
   `FrameStats.displayHertz()`, and a platform that will not say falls back to 60
   with the reading showing dashes rather than a number it does not have. —
-  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
+  [ADR-0153](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 - ~~**A click costs one node's style.**~~ **It cost the whole tree's, and the
   HUD is what found it.** Hover and active apply to the ancestor chain, and every
   node in that chain invalidated its entire subtree in case a descendant
   combinator read the state — 74 of 78 elements per click on the showcase. This
   was never on this list because nothing could see it until the frame had a
   breakdown. —
-  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
+  [ADR-0149](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)
 - ~~**The style cache makes a settled frame free.**~~ **It did not, and had not
   since `scroll` shipped.** ADR-0070 measured style resolution as the largest
   term in a frame and cached it; the cache was keyed on the parent's style *by
@@ -3526,12 +3526,12 @@ out of it is usually worth more than the fact that it is fixed.
   or a `segmented` re-resolved on every frame, which in the showcase is every
   node on the screen: 10 069 µs to render 77 unchanged elements. This was never
   on this list, because nothing had measured it. —
-  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+  [ADR-0142](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)
 - ~~**Nothing tells the toolkit its window lost focus.**~~ **`FocusChanged`
   does.** A menu left open while the user switched applications stayed on screen
   over the one they switched *to*, because a popup is always-on-top by kind and
   light dismissal only ever saw a press inside the owner window. —
-  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
+  [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)
 - ~~**`option` lives in `…controls.segmented` and `select` will want it.**~~
   **It lives in `…controls.option`, and `select` wants exactly what `segmented`
   wanted.** The guess this entry refused to make — "a model, possibly a tree
@@ -3541,7 +3541,7 @@ out of it is usually worth more than the fact that it is fixed.
   the keyboard chooses or merely moves. ADR-0092's rule paid for itself twice
   over — it stopped a generalisation that would have been made from the wrong
   example. —
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+  [ADR-0141](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - ~~**A press that dismisses a popup also activates what it lands on.**~~ **It
   does not, and this was never written down as a gap because nothing had hit
   it.** With a list open, the press on the field that dismisses it was also read
@@ -3549,7 +3549,7 @@ out of it is usually worth more than the fact that it is fixed.
   took the press for the secondary button (ADR-0108); it now takes any press that
   actually closed something, which is what the click that puts a menu away does
   everywhere. —
-  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
+  [ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md)
 
 - ~~**A popup does not size itself to its content.**~~ **It does, in two passes.**
   `RenderTree.measure` lays a tree out with no surface; the second pass exists
@@ -3557,14 +3557,14 @@ out of it is usually worth more than the fact that it is fixed.
   definite — there is no parent for it to be "at most" of — so measuring against
   the window returns the window. Nothing definite first, then the width pinned
   only if the natural width overflows. —
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
 - ~~**Placement is not policy.**~~ **`Placement` is, and it is arithmetic.**
   Preferred side, flip only when the preferred side does not fit and the opposite
   one does, then shift along the cross axis; clamped to the near edge when it fits
   nowhere. Computed against the display's **work area** — `SDL_GetDisplayUsableBounds`,
   reached through `BackendWindow.workArea()` and translated by `position()` — which
   is the rectangle that excludes the taskbar a menu would otherwise open under. —
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
 - ~~**Focus does not travel into a popup.**~~ **The keyboard belongs to the open
   popup.** Its router focuses the first item after the first frame, and keys the
   owner window receives are forwarded to the topmost popup before the owner's own
@@ -3572,7 +3572,7 @@ out of it is usually worth more than the fact that it is fixed.
   whether a popup gets the keyboard is per-driver and a tooltip must never have
   it. What is still owed is the *return*: §7's "restores focus on close" is the
   widgets' to keep, and nothing yet remembers what had focus before a menu opened.
-  — [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+  — [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
 
 - ~~**`Sdl3Backend.translate`'s `MOUSE_WHEEL` branch has never run.**~~ **Answered: it
   runs, through the real SDL, on every CI run.** A test cannot turn a wheel — but
@@ -3588,9 +3588,9 @@ out of it is usually worth more than the fact that it is fixed.
   at exactly that offset. Under SDL's `dummy` video driver, so it needs no display and
   runs on all three platforms. The **cursor** half was already answered: the showcase
   sets `Cursor.CROSSHAIR` at start-up, so `SDL_CreateSystemCursor` and `SDL_SetCursor`
-  really run. — [ADR-0061](adr/0061-the-events-a-test-cannot-produce-are-pushed.md),
-  [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md),
-  [ADR-0057](adr/0057-the-cursor-rides-on-the-painted-box.md)
+  really run. — [ADR-0061](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0061-the-events-a-test-cannot-produce-are-pushed.md),
+  [ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md),
+  [ADR-0057](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0057-the-cursor-rides-on-the-painted-box.md)
 - ~~**Group opacity is a multiply, not a layer.**~~ **Answered: it is a layer.** A node
   with `opacity < 1` **and children** is composited through an offscreen raster drawn at
   full strength and faded once, which is what CSS specifies. `group-opacity.png` is two
@@ -3600,8 +3600,8 @@ out of it is usually worth more than the fact that it is fixed.
   each other, but by a fraction of a level on an antialiased edge, and an allocation and
   a blit per faded label is a poor trade. Three goldens with a `:disabled` control at
   45% moved, and the diff is confined to that control — the correction, reviewed rather
-  than accepted. — [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
-  [ADR-0064](adr/0064-a-rounded-rectangle-is-four-cubics.md)
+  than accepted. — [ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0064](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
 - ~~**`body-strong` is not drawn, and no control uses a weight.**~~ **Answered: a weight
   is a face.** `Inter-SemiBold.ttf` is extracted beside the variable file, `font-weight`
   resolves to one of two shipped faces in the cascade, and a button's label is Inter 600
@@ -3609,12 +3609,12 @@ out of it is usually worth more than the fact that it is fixed.
   symbols in both HarfBuzz and Blend2D — three export branches, answered only by a CI
   run across four targets — while §1.4 ships exactly two weights. The axis stays a real
   optimisation for the day an intermediate weight is specified. —
-  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+  [ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)
 - ~~**There is no italic face, and an application has asked for one.**~~ **Built, as two
   files rather than one.** `docs/gaps.md` G27 wanted italic beside underline and
   strikethrough; the other two came with
-  [ADR-0321](adr/0321-a-rule-under-text-belongs-to-the-face.md) and the faces with
-  [ADR-0323](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md). It was ADR-0066's
+  [ADR-0321](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0321-a-rule-under-text-belongs-to-the-face.md) and the faces with
+  [ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md). It was ADR-0066's
   question one step on — an italic is a *face*, because Inter's italic is drawn rather
   than slanted, and shearing the upright glyphs is a type-design decision rather than a
   workaround. **Two faces, so the matrix closes**: one would have left semibold italic
@@ -3622,7 +3622,7 @@ out of it is usually worth more than the fact that it is fixed.
   nobody chose. Matching is CSS's order (family, style, weight), so italic code stays
   upright code; `oblique` is dropped with a warning. The variable-axis answer ADR-0066
   deferred stays deferred, and stays the right change the day an *intermediate weight* is
-  specified — which is still nothing. — [ADR-0323](adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
+  specified — which is still nothing. — [ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)
 - ~~**Seven shipped `button` colour pairs are below §1.2's 4.5:1 floor.**~~ **Fixed, and
   the worst of them was a rule applied where it does not hold.** §1.2 had always said
   "every text/surface pair meets **WCAG 4.5:1** […] validated in CI against both
@@ -3653,14 +3653,14 @@ out of it is usually worth more than the fact that it is fixed.
   `KNOWN_FAILURES` is now empty and *stays*, asserted equal to the measured failures and
   asserted empty by name: nothing is exempt, and re-exempting a pair fails a test that
   says what happened —
-  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md),
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md),
-  [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
+  [ADR-0088](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0088-a-fill-that-carries-text-moves-away-from-it.md),
+  [ADR-0087](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md),
+  [ADR-0082](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
 - ~~**Nothing animates.**~~ **Answered for the properties that can.** The frame clock,
   the curves, the overlay, the whitelist, OKLCH interpolation and reduced motion all
   ship, and the frame loop goes idle the frame after a transition ends. What is left of
   §1.7 is listed below rather than here. —
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+  [ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
 - ~~**`transform` is in §1.7's whitelist and is not implemented.**~~ **Answered, and the
   trap it named is what the change is about.** `transform` and `transform-origin` parse,
   cascade, apply down the box subtree the way `opacity` does, animate through the
@@ -3677,7 +3677,7 @@ out of it is usually worth more than the fact that it is fixed.
   `translate(50%)` and the `50% 50%` origin default are proportions of a box that has no
   size until Yoga has run — and because halfway between `rotate(0)` and
   `rotate(180deg)`, interpolated entry by entry, is a collapsed box rather than a right
-  angle. — [ADR-0068](adr/0068-the-transform-stack-is-java-side.md)
+  angle. — [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md)
 - ~~**The check mark still does not scale.**~~ **Answered, and `transform` was never
   what was missing.** §1.7 and §3.1 specify the checkbox tick and the radio dot as
   "scale 0.6→1 + opacity"; the opacity half shipped with ADR-0067 and the scale did not
@@ -3692,9 +3692,9 @@ out of it is usually worth more than the fact that it is fixed.
   160, one dot growing in and the one it replaced shrinking out, and what it asserts is
   that **all three rings are the same 16px circle** — which is precisely what the naive
   fix gets wrong. §3.1 now has no unimplemented row for any shipped control. —
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md),
-  [ADR-0068](adr/0068-the-transform-stack-is-java-side.md),
-  [ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md)
+  [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md),
+  [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md),
+  [ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)
 - ~~**`:active` was set on one element, so no control had a pressed state.**~~
   **Fixed.** `:hover` walked the ancestor chain from the beginning; `:active` was set on
   the single deepest element the press landed on — so pressing a checkbox's 16px glyph
@@ -3705,7 +3705,7 @@ out of it is usually worth more than the fact that it is fixed.
   own parts you hit does not have one. Found by trying to write the radio's pressed
   appearance, not by a test — and the test that now covers it asserts the *ancestor*,
   which is the half the original test never looked at. —
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+  [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
 - ~~**An unnamed key crashed the window.**~~ **Fixed.** `keyPressed` built a `Shortcut`
   from every key that reached it, to use as a map key. `Shortcut` refuses to hold
   `Key.UNKNOWN` — an accelerator on it could never fire — so the
@@ -3713,7 +3713,7 @@ out of it is usually worth more than the fact that it is fixed.
   case: `Key` names the keys a *shortcut* might use, so every letter, digit and
   punctuation mark that arrives as text is `UNKNOWN`, and the crash was one keystroke
   away at all times. The accelerator tests never saw it because they only ever pressed
-  keys that had names. — [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+  keys that had names. — [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
 - ~~**A checkbox was invisible on the surface it normally sits on.**~~ **Fixed, and the
   reason CI missed it is the interesting half.** `--gb-checkbox-bg` was `nord1`, which
   is `--gb-surface`; the light theme's was `#ffffff`, which is *its* `--gb-surface`. The
@@ -3724,8 +3724,8 @@ out of it is usually worth more than the fact that it is fixed.
   image in this repository paints on `--gb-bg`**, so a control that disappears on
   `--gb-surface` was invisible to the entire suite;
   `controls-on-surface-{dark,light}.png` add the missing axis rather than one more
-  scene. — [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md),
-  [ADR-0050](adr/0050-golden-images-have-a-tolerance.md)
+  scene. — [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md),
+  [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)
 - ~~**`--gb-density` is not implemented.**~~ **Answered, and deliberately at four
   controls rather than at thirteen.** §1.3's `regular | compact` ships: every control
   sizes itself from `--gb-control-height`, and `density-compact.css` is a three-token
@@ -3750,7 +3750,7 @@ out of it is usually worth more than the fact that it is fixed.
   the floor is the *regular* default rather than an invariant, the trade is what a
   density preference *is*, and it is bounded by the glyph staying 16px so compact costs
   margin around the target rather than a smaller target. —
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md),
+  [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md),
   `docs/design-system.md` §1.3
 - ~~**A slider's groove was invisible on a surface.**~~ **Fixed, and it is the fourth
   instance of one defect.** `--gb-slider-track-bg` was `nord1` on the dark theme, which
@@ -3764,8 +3764,8 @@ out of it is usually worth more than the fact that it is fixed.
   asserts every entry in `Controls.controlTypes()` is in that scene, with `button`
   exempt and saying why, and the scene is one helper the golden and the guard share.
   Verified by deleting the slider from the scene and watching it fail by name. —
-  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md),
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+  [ADR-0079](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md),
+  [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
 - ~~**A slider has no tick marks and no value label.**~~ **Both ship, and the label
   needed exactly the mechanism this entry predicted.** A widget can name the **part**
   its pointer position is measured against — `Handles.localPart()`, a CSS type resolved
@@ -3773,8 +3773,8 @@ out of it is usually worth more than the fact that it is fixed.
   and a value mapped along the *control* is short by that width at every position, drawn
   correctly and reported nowhere. The marks hang out of a zero-height row, moved clear
   of the thumb by a `transform` so that adding a scale does not move the groove. —
-  [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
-  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md)
+  [ADR-0080](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md),
+  [ADR-0079](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)
 - ~~**`fader`'s dB scale is not implemented.**~~ **It ships, as a value rather than a
   function.** `Scale` is a sealed interface with two inverse methods and two records —
   the obvious `DoubleUnaryOperator` spelling is the wrong one, because §11's parity
@@ -3782,7 +3782,7 @@ out of it is usually worth more than the fact that it is fixed.
   arithmetic never are. `knob`'s taper is what it was built general for. What it does
   *not* have is a second curve: §3 names dB and nothing else, and inventing a `log` or
   an `exp` for symmetry would be inventing a scale the design system does not have
-  (Principle 3). — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
+  (Principle 3). — [ADR-0080](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md)
 - ~~**Arrow-key group navigation inside composites does not exist.**~~ **Answered, as a
   mechanism rather than as a radio group.** `Handles.focusScope()` makes a subtree one
   Tab stop with the arrows roving inside it, and `tabs`, `menu`, `select`'s popup list
@@ -3790,7 +3790,7 @@ out of it is usually worth more than the fact that it is fixed.
   halves, by the argument already written on Tab — traversal is a property of the tree
   and not of any node in it — and the test is written against bare widgets in `:core`
   rather than against `radio`, because the next three users will look nothing like a
-  radio. — [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+  radio. — [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
 - ~~**A focus scope has no axis.**~~ **Answered.** `Handles.focusScope()` returns a
   `FocusScope` — `NONE`, `HORIZONTAL`, `VERTICAL` or `BOTH` — and `radio-group` is the
   one composite in the catalog that legitimately answers `BOTH`, because its direction
@@ -3804,12 +3804,12 @@ out of it is usually worth more than the fact that it is fixed.
   something and the selection moved instead, with no error anywhere. `Home` and `End`
   belong to no axis and reach the ends of any scope, because they name a position in the
   set rather than a direction on screen. Four widgets unblocked by an enum. —
-  [ADR-0078](adr/0078-a-focus-scope-has-an-axis.md),
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+  [ADR-0078](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0078-a-focus-scope-has-an-axis.md),
+  [ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
 - ~~**A disabled group fades correctly only by an explicit undo.**~~ **Answered, and the
   undo is deleted rather than generalised.** A rule whose only job was to undo its own
   mechanism was the mechanism saying it was the wrong one. —
-  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
+  [ADR-0077](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - ~~**Layer promotion does not exist, so every animating frame repaints the window.**~~
   **Answered.** A promoted subtree is rasterized at full strength and untransformed, so
   its alpha and matrix apply to the *blit* — and a group that is only fading or moving
@@ -3822,8 +3822,8 @@ out of it is usually worth more than the fact that it is fixed.
   the fade is 199 µs against 554 µs**, 2.8×. `RenderTree.layersRepainted()` is public
   because a cached raster and a fresh one produce the same image, so no pixel assertion
   can tell them apart — which is exactly how the bug survived a test file written about
-  layer caching. — [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md),
-  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)
+  layer caching. — [ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md),
+  [ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)
 - ~~**Damage tracking says what to upload, not what to paint.**~~ **It paints what
   changed now.** `bl_context_clip_to_rect_d` and `bl_context_restore_clipping` are the
   third and fourth new exports, and `RenderTree.paint(frame, damage)` clips to the
@@ -3839,7 +3839,7 @@ out of it is usually worth more than the fact that it is fixed.
   is `Window`'s own, which retains by construction. A clipped repaint is asserted
   **pixel-identical** to a full one across a whole frame, because otherwise damage is a
   rendering bug with a performance excuse. —
-  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
+  [ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md)
 - ~~**A disabled container does not disable its descendants.**~~ **Answered, and the
   sentence turned out to have two halves that pull apart.** `docs/core-widgets.md` says
   "disables its descendants for **input and semantics**" — and deliberately not for
@@ -3860,19 +3860,19 @@ out of it is usually worth more than the fact that it is fixed.
   ADR-0059's two cases — a click that must not fall through, and a tooltip explaining
   *why* something is unavailable. `form`, `group-box` and a `dialog` in its `closing`
   phase all get this for free. —
-  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md),
-  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
+  [ADR-0077](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md),
+  [ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - ~~**The state and rebuild API.**~~ **Answered.** The stateful-widget lifecycle,
   rebuild scheduling and dirty-marking are settled: state lives on the element,
   `setState` mutates immediately and defers the rebuild, and the tree flushes dirty
   elements once per frame. —
-  [ADR-0052](adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md),
-  [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+  [ADR-0052](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md),
+  [ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)
 - ~~**KDL 2.0 Java parser.**~~ **Answered, by writing one.** No third-party parser was
   adopted: the tokenizer and parser are hand-written for the §9 subset, with the §9
   example document as a test. —
-  [ADR-0051](adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md),
-  [ADR-0005](adr/0005-css-subset-and-kdl-as-the-contracts.md)
+  [ADR-0051](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md),
+  [ADR-0005](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0005-css-subset-and-kdl-as-the-contracts.md)
 - ~~**`YGSize` struct-by-value upcall returns.**~~ **Answered, and now driven by Yoga
   itself.** A Java upcall returning `YGSize` by value is called from C and arrives
   intact; the return segment is allocated once per callback rather than per call, and an
@@ -3881,8 +3881,8 @@ out of it is usually worth more than the fact that it is fixed.
   passes with the constraints the flexbox algorithm arrived at — not by a C probe
   written for the purpose. Proven on linux-x64; the checks run on every target in CI, so
   the other five are answered by the next run rather than by argument. —
-  [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md),
-  [ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)
+  [ADR-0017](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0017-proving-the-struct-by-value-upcall.md),
+  [ADR-0029](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)
 - ~~**Windows has never been built.**~~ **Answered.** All four targets link, and all
   three export branches are now exercised rather than argued about: the ELF version
   script on both Linux targets, the Mach-O `-u,_symbol` / `-exported_symbols_list` pair
@@ -3892,10 +3892,10 @@ out of it is usually worth more than the fact that it is fixed.
   matches the golden images — which is also what answers Win64's 4-byte `long`, the one
   thing no other target could catch. **What Windows has not done is open a window**: the
   leg links the library and runs the Java tests, exactly the hole
-  [ADR-0039](adr/0039-macos-needs-the-first-thread.md) describes for macOS. The showcase
+  [ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md) describes for macOS. The showcase
   image workflow is what would close it. —
-  [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md),
-  [ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)
+  [ADR-0012](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0012-native-ci-runners-with-a-pinned-glibc.md),
+  [ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md)
 - ~~**Live resize stalls on Windows and macOS.**~~ **Taken, and half proven.** Both
   platforms run a modal loop during a resize gesture, so SDL does not return from event
   pumping until the drag ends and frames stopped with it. Goldberry now installs an
@@ -3910,22 +3910,22 @@ out of it is usually worth more than the fact that it is fixed.
   creates, and asserts that the resize *and* a frame come out of the watch re-entrantly.
   What is left is that Windows' and macOS' loops really do pump during a drag — SDL's
   own documented behaviour, and a human with a mouse is what would confirm it. —
-  [ADR-0060](adr/0060-a-resize-draws-from-inside-sdls-event-watch.md),
-  [ADR-0024](adr/0024-a-repaint-must-wake-the-loop.md)
+  [ADR-0060](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0060-a-resize-draws-from-inside-sdls-event-watch.md),
+  [ADR-0024](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0024-a-repaint-must-wake-the-loop.md)
 - ~~**Blend2D and AsmJit have no release tags.**~~ **Answered.** Neither upstream has
   ever cut one, so both are pinned by **commit SHA** instead — Blend2D at `6dbc2ce` and
   AsmJit at `0bd5787`, the pair that has actually built, linked and passed the tests.
   All six upstreams now resolve to exactly one commit, so the build is reproducible.
   What remains before publishing is the licence texts. —
-  [ADR-0030](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)
+  [ADR-0030](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)
 - ~~**Shaping itself is unverified: there is no font to shape with.**~~ **Answered.**
   Inter, JetBrains Mono and OpenMoji are fetched at build time, pinned by version and
   SHA-256, and packaged into `goldberry-core`
-  ([ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)). Shaping now
+  ([ADR-0033](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)). Shaping now
   runs against real outlines: real glyph ids rather than `.notdef`, a proportional face
   measurably different from a monospace one, and emoji resolving through OpenMoji.
   Right-to-left glyph *reordering* is still unchecked — it needs a script the bundled
-  faces cover. — [ADR-0032](adr/0032-shaping-is-utf16-in-glyphs-out.md)
+  faces cover. — [ADR-0032](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0032-shaping-is-utf16-in-glyphs-out.md)
 - ~~**Nothing draws a glyph or an icon yet.**~~ **Both do.** `bl_font_*` and
   `bl_context_fill_glyph_run_d_rgba32` were bound first; the path API followed —
   seventeen symbols, one per SVG command, plus the three stroke options an icon needs
@@ -3934,8 +3934,8 @@ out of it is usually worth more than the fact that it is fixed.
   parse and produce geometry. **What is still open is that an icon is not a `Box`**: the
   showcase draws them over its sidebar rather than laying them out in it, because
   nothing decides an icon's intrinsic size until the widget model does. —
-  [ADR-0043](adr/0043-icons-are-stroked-paths.md),
-  [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+  [ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md),
+  [ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)
 - ~~**A `Font` costs two copies of the font file, and there is one per size.**~~ **Two
   copies per *face* now, not per size.** `FontFace` holds HarfBuzz's whole font — which
   is size-independent because Goldberry never scales the shaper — and Blend2D's data and
@@ -3945,7 +3945,7 @@ out of it is usually worth more than the fact that it is fixed.
   objects are thread-confined and a per-thread cache of native memory has no hook that
   would ever free it. What remains is the two copies themselves: each library owns its
   own memory, and neither takes a borrowed buffer for font data. —
-  [ADR-0044](adr/0044-one-face-many-sizes.md)
+  [ADR-0044](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0044-one-face-many-sizes.md)
 - ~~**Nothing measures text for layout yet.**~~ **It does.** A `Paragraph` shapes once
   and wraps with arithmetic, and its measure function reports a height to Yoga through
   the `YGSize` upcall. What is still ahead is bidi run splitting — right-to-left text is
@@ -3957,9 +3957,9 @@ out of it is usually worth more than the fact that it is fixed.
   built**: the itemizer splits emoji out by UTS #51's sequence rules and a paragraph
   takes one measurement over up to two shapings, with the emoji face's advances
   rescaled into the base font's design units. —
-  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
-  [ADR-0393](adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md),
-  [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+  [ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
+  [ADR-0393](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md),
+  [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
 - ~~**The paragraph cache is a one-entry memo.**~~ **Both caches exist, and the numbers
   say why.** `ParagraphCache` holds shaped paragraphs keyed by `(font, text)`; the width
   memo stays inside each `Paragraph`. Shaping is 56 µs and a cache hit is 0.05 µs, while
@@ -3968,7 +3968,7 @@ out of it is usually worth more than the fact that it is fixed.
   rebuilds a widget tree; it exists because the measurement says it will be needed the
   moment something does. §6's third key component, the width bucket, is the
   per-paragraph memo, and the "resolved text style" is a `Font` until the CSS engine has
-  something better. — [ADR-0037](adr/0037-what-the-text-path-costs.md)
+  something better. — [ADR-0037](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0037-what-the-text-path-costs.md)
 - ~~**A fresh upcall stub per text box per frame is the largest cost of text in a layout
   pass.**~~ **Answered: the render tree is retained.** `RenderObject` owns a `YGNode`
   that survives the frame and keeps its measure callback for as long as the paragraph
@@ -3983,9 +3983,9 @@ out of it is usually worth more than the fact that it is fixed.
   caught by its own equivalence test: **Yoga does not dirty a node when its measure
   function is replaced**, so a paragraph swapped for longer text reported the height
   cached for the old one — six lines of prose laid out as one, with no error anywhere. —
-  [ADR-0069](adr/0069-the-render-tree-is-retained.md),
-  [ADR-0037](adr/0037-what-the-text-path-costs.md),
-  [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+  [ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md),
+  [ADR-0037](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0037-what-the-text-path-costs.md),
+  [ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)
 - ~~**The cascade is now the largest term in a frame.**~~ **Answered: it resolves
   invalidated nodes, which is what §5 always said it did.** A node's resolved style is
   cached on its element and checked by identity against two things — the **resolver**,
@@ -4000,8 +4000,8 @@ out of it is usually worth more than the fact that it is fixed.
   because the renderer mirrors three of them onto every styled element every frame.
   **The CPU a frame spends before rasterizing falls from 148 µs to 3.5 µs** — 354 µs to
   3.5 µs taken with the retained render tree, a factor of a hundred. —
-  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md),
-  [ADR-0052](adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)
+  [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md),
+  [ADR-0052](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)
 - ~~**The isolated paint benchmark and the in-app paint number disagree by 10×.**~~
   **Answered: it is `present`.** A frame that follows a present costs about four times
   what the same frame costs painted back-to-back — 2.19 ms against 0.57 ms, measured by
@@ -4013,14 +4013,14 @@ out of it is usually worth more than the fact that it is fixed.
   live application between two real frames, came out at 0.49 ms while those frames cost
   2.06 and 2.25. The mechanism is cache and TLB pollution; a synthetic 96 MB eviction
   between iterations reproduces 1.6× of the 3.8×. —
-  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
+  [ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md)
 - ~~**Every frame damages the whole window.**~~ **Answered for the upload.** Something
   now knows which parts changed: the retained render tree remembers each node's
   rectangle and reports the union of old and new for whatever moved. What is still true
   is that the *painting* is full-frame — see the damage entry above for why that needs
   an SPI change rather than more code here. —
-  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
-  [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+  [ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)
 - ~~**CMake arguments live in five places.**~~ **The refs do not any more.**
   `CMakeLists.txt` reads `gradle/libs.versions.toml` itself, so a ref bump is one edit
   and there is no default to drift from; a floating ref is refused at configure time.
@@ -4029,7 +4029,7 @@ out of it is usually worth more than the fact that it is fixed.
   back, across *every* workflow rather than three, which is what would have caught
   `example.yml` pinning Blend2D to a floating `master`. The rest of the argument list —
   build type, install prefix, target id — is still kept in step by hand. —
-  [ADR-0035](adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
+  [ADR-0035](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
 - ~~**Nothing warns at run time that a window came up undecorated.**~~ **Answered:
   `WaylandDecorations` warns, once, with the command that fixes it.** Not by asking SDL,
   which cannot answer — `libdecor_new` succeeds even when every plugin failed, so SDL
@@ -4038,18 +4038,18 @@ out of it is usually worth more than the fact that it is fixed.
   because the GTK plugin is *guaranteed* to fail in a JVM. The verdict is three-valued
   and stays silent when it cannot locate a plugin directory: a warning that is sometimes
   wrong is worse than none. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - ~~**A Goldberry window on GNOME/Wayland has no titlebar out of the box.**~~
   **Answered: X11 is the Linux default now.** On a Wayland session the backend asks SDL
   for `x11,wayland`, unconditionally — under XWayland the window manager decorates the
   window itself, which is the only configuration today that produces a titlebar matching
   the desktop. Wayland stays behind X11 rather than being dropped, so a session without
   XWayland still gets a window, and the
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md) warning still
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md) warning still
   fires there. `-Dgoldberry.backend.videoDriver=wayland` asks for Wayland anyway. The
-  cost is [ADR-0027](adr/0027-prefer-wayland-fall-back-to-x11.md)'s resize quality and
+  cost is [ADR-0027](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0027-prefer-wayland-fall-back-to-x11.md)'s resize quality and
   fractional scaling, given up for as long as decorations are unobtainable on the better
-  axis. — [ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md)
+  axis. — [ADR-0086](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0086-x11-is-the-linux-default-for-now.md)
 - ~~**A window on GNOME/Wayland had no titlebar and could not be resized.**~~
   **Answered: SDL was built without libdecor.** Wayland has no decoration protocol of
   its own, GNOME's compositor declines to draw them server-side, and every use of the
@@ -4059,7 +4059,7 @@ out of it is usually worth more than the fact that it is fixed.
   header removes resizing too. The Java side was never involved: `WindowSpec.of` asks
   for decorated and resizable and `Sdl3Backend.createWindow` passes exactly that. It
   only became visible when ADR-0082 added `egl` and the Wayland driver started being
-  built at all. — [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+  built at all. — [ADR-0083](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
 - ~~**`checkToolchain` passed and the build died two minutes later.**~~ **Answered: the
   table it checked had drifted from what SDL demands.** It probed `pkg-config --exists
   xss`, a module no distribution ships — SDL's own spec is `xscrnsaver` — so the row
@@ -4070,4 +4070,4 @@ out of it is usually worth more than the fact that it is fixed.
   `LinuxDependencies` in build-logic with a three-valued `Necessity`, and
   `LinuxDependenciesTest` asserts it against the packages the workflows install — the
   invariant that broke. —
-  [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
+  [ADR-0082](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)

@@ -1,18 +1,20 @@
 # The book: goldberry.dev/docs/
 
-The decision is [ADR-0511](../book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md).
+The decisions are [ADR-0511](../book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
+and [ADR-0512](../book/src/adr/0512-the-log-is-read-on-github-and-the-book-is-the-guide.md).
 How the site around it is deployed is in [`site.md`](site.md). This file is the
 runbook, the style guide and the status of the documentation itself.
 
 | Path | What it is |
 |---|---|
-| `book/src/SUMMARY.md` | The table of contents: the guide's six parts, the reference, then the decision log |
+| `book/src/SUMMARY.md` | The table of contents: the guide's six parts, then the reference |
 | `book/src/<part>/*.md` | The guide. One directory per part; the first chapter of a part is its `index.md` where the part has an overview |
-| `book/src/adr/` | The decision log, unchanged |
+| `book/src/adr/` | The decision log. Not listed in `SUMMARY.md`, so not built: it is read on GitHub, and `adr/README.md` is its index (ADR-0512) |
 | `book/src/images/` | Pictures the guide shows. The six showcase screenshots are copies of `site/assets/shots/` |
-| `book/theme/goldberry.css` | The landing page's tokens over mdBook's `light` and `navy` themes, and the few HTML blocks the guide uses |
+| `book/theme/goldberry.css` | The landing page's tokens over mdBook's `light` and `navy` themes, the header, and the few HTML blocks the guide uses. Sizes are in px: mdBook scales the root to 10 px, so a `rem` here is a tenth of what it looks |
+| `book/theme/goldberry.js` | Builds the landing page's header into mdBook's menu bar at load: the leaf, the six parts, GitHub |
 | `book/theme/favicon.{svg,png}` | The leaf mark |
-| `book/book.toml` | mdBook 0.5, which refuses an unknown key; search excludes `adr/` |
+| `book/book.toml` | mdBook 0.5, which refuses an unknown key |
 | `build-logic/.../site/BookTest.java` | The drift guards, in `./gradlew :build-logic:test` |
 | `example/src/test/.../BookMarkupTest.java` | Every `kdl` sample in the guide inflates against the real catalogue |
 
@@ -120,9 +122,12 @@ constructor they call is the one the record has.
 > Something that costs a session or a build.
 ```
 
-**Links** are relative and end in `.md`: `../adr/0063-data-flows-down-events-flow-up.md`,
-`../layout/scroll.md#keyboard`. mdBook rewrites them. `BookTest` resolves every
-one, fragment included, so a renamed heading fails the build.
+**Links** between chapters are relative and end in `.md`:
+`../layout/scroll.md#keyboard`. mdBook rewrites them. A record is linked on
+GitHub, `https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/<file>`,
+because the log is not built into the book. `BookTest` resolves every chapter
+link, fragment included, refuses a relative link into `adr/`, and checks that a
+GitHub record link names a file that exists.
 
 **Pictures** go under `book/src/images/`, as `webp` or `png`, with alt text that
 says what the picture shows. A golden image from `widgets/src/test/resources/golden`
@@ -224,7 +229,9 @@ Code first, documents after.
 | Step | State |
 |---|---|
 | `SUMMARY.md` restructured into the six parts, the reference and the log | done 2026-10-01 |
-| `book.toml`: `light`/`navy` with the page's tokens, fold, search without the log | done 2026-10-01: index 19.5 MB → 5.2 MB with the whole guide in it |
+| `book.toml`: `light`/`navy` with the page's tokens, fold | done 2026-10-01 |
+| The log out of the book, read on GitHub; record links point there | done 2026-10-01 (ADR-0512) |
+| Full width, type in px, the landing page's header | done 2026-10-01 (ADR-0512) |
 | `theme/goldberry.css`, favicon | done 2026-10-01 |
 | Overview (3), Getting started (4) | done 2026-10-01 |
 | Layout (9) | done 2026-10-01 |

@@ -20,7 +20,7 @@ the configuration.
 The window's line splits the frame into the buffer, the paint and the
 present, and paint into three parts, because the split is what said where a
 frame's time goes
-([ADR-0045](../adr/0045-a-frame-is-not-a-benchmark-iteration.md)):
+([ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md)):
 
 ```text
 frame <size> in <total>us: buffer <n>, paint <n> (begin <n>, draw <n>, end <n>), present <n>
@@ -34,7 +34,7 @@ The launcher adds a second line per frame that did something, split by the
 stages of the widget pipeline. It is a system property rather than a log
 level, because a diagnostic that cost an `isTraceEnabled()` per element per
 frame would be measuring itself
-([ADR-0101](../adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)):
+([ADR-0101](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)):
 
 ```sh
 ./gradlew run -Dgoldberry.trace.frames=true    # frames that did something
@@ -42,7 +42,7 @@ frame would be measuring itself
 ```
 
 The line that found a cascade slow per element, from
-[ADR-0151](../adr/0151-a-frame-can-say-what-it-did.md):
+[ADR-0151](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0151-a-frame-can-say-what-it-did.md):
 
 ```text
 frame 268 | build 0.010 style 8.636 layout 1.115 raster 1.304 ms
@@ -56,21 +56,21 @@ The counts beside the timings are the point. `resolved 3` beside
 too often. The two times a frame was slow
 for a reason nobody could see, the answer was a count and not a duration: a
 style cache missing on every element
-([ADR-0142](../adr/0142-a-style-handed-down-keeps-its-identity.md)) and a
+([ADR-0142](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)) and a
 click invalidating the whole tree
-([ADR-0149](../adr/0149-a-state-invalidates-what-it-can-reach.md)).
+([ADR-0149](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
 
 > [!TIP]
 > The showcase has a HUD on `Ctrl+F` that shows the same stages over the last
 > sixty frames
-> ([ADR-0146](../adr/0146-a-hud-shows-where-the-frame-went.md)). Switch it
+> ([ADR-0146](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0146-a-hud-shows-where-the-frame-went.md)). Switch it
 > on during a drag or a resize, when there is something to watch.
 
 ## The showcase under load
 
 The launcher reads four flags and leaves every other argument to the
 application
-([ADR-0342](../adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
+([ADR-0342](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md)):
 
 | Flag | What it does |
 |---|---|
@@ -100,7 +100,7 @@ frames: 300 frame(s) painted, 2 late; paint mean 1.31 ms, worst 8.90 ms; display
 step summary. It asserts no budget. The first number chosen, 30 late frames,
 had been reasoned about and never measured, and the first legs to reach it
 reported 75 and 200
-([ADR-0452](../adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)):
+([ADR-0452](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)):
 
 | Leg | Frames | Late | Paint mean | Worst | Display |
 |---|---|---|---|---|---|
@@ -152,7 +152,7 @@ Run one by name:
 `MarkdownFrameBenchmark` carries a control row, md4c timed on its own. Two
 runs whose parse times disagree are two runs on two differently loaded
 machines, and their other rows should not be compared
-([ADR-0389](../adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
+([ADR-0389](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
 
 ### JMH on `:core`
 
@@ -181,7 +181,7 @@ What `check` is owed instead is a count. `TextAreaKeystrokeCostTest` is the
 pair to `TextAreaFrameBenchmark` and runs under `check`: it asserts that a
 keystroke into a 500 kB note shapes and draws about what a keystroke into a
 2 kB note does, in characters. Run against the commit before
-[ADR-0388](../adr/0388-a-note-is-shaped-a-line-at-a-time.md) it fails with
+[ADR-0388](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md) it fails with
 500 005 characters shaped. After it, 2 021 against 1 941. `BlockReuseTest`
 does the same for a `markdown-view`, in blocks built, blocks kept and
 paragraphs shaped. A count says the same thing under a parallel build and a
@@ -191,7 +191,7 @@ millisecond does not.
 > A benchmark's scaffolding is still under `check`. `BindingBenchmark` runs
 > nightly only, so the two names it resolves are resolved by
 > `ShowcaseActionsTest` on every build
-> ([ADR-0397](../adr/0397-a-benchmarks-names-are-resolved-under-check.md)).
+> ([ADR-0397](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0397-a-benchmarks-names-are-resolved-under-check.md)).
 
 ## The flags
 
@@ -200,15 +200,15 @@ launch, and on `./gradlew run` the showcase forwards the ones below.
 
 | Property | Values | What it changes | Record |
 |---|---|---|---|
-| `goldberry.paint.threads` | `0` for synchronous painting, `N` to pin the worker count | Blend2D's workers. The default is up to four on any surface over 400×300 | [ADR-0042](../adr/0042-blend2ds-workers-and-how-many.md) |
-| `goldberry.frame.rate` | `N` overrides the display's rate, `0` measures the unthrottled loop | The pacer. `0` reproduces the numbers from before pacing | [ADR-0047](../adr/0047-a-frame-nobody-sees-costs-full-price.md) |
-| `goldberry.backend.vsync` | `false` | Stops asking SDL to hold each present until vertical blank | [ADR-0047](../adr/0047-a-frame-nobody-sees-costs-full-price.md) |
-| `goldberry.gpu` | `off` | Keeps every window on the CPU when `goldberry-gpu` is on the module path | [ADR-0480](../adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md) |
-| `goldberry.gpu.composite` | `always` by default, `auto`, `never` | Whether a window is composited always, only while it shows GPU content, or not at all | [ADR-0480](../adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md) |
-| `goldberry.backend.videoDriver` | `dummy` | SDL's video driver, for a headless run that touches no compositor | [ADR-0026](../adr/0026-sdl-picks-the-video-driver.md) |
-| `goldberry.trace.frames` | `true`, `all` | The launcher's per-frame stage line, with its counts | [ADR-0101](../adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md) |
-| `goldberry.log.native` | `false` | Gives GLib and SDL their stderr back, past the SLF4J bridge | [ADR-0443](../adr/0443-somebody-elses-log-line-is-still-a-log-line.md) |
-| `goldberry.log.level` | `TRACE` | The showcase's `logback.xml` level for `dev.goldberry`. Your application names its own | [ADR-0028](../adr/0028-the-start-up-timeline.md) |
+| `goldberry.paint.threads` | `0` for synchronous painting, `N` to pin the worker count | Blend2D's workers. The default is up to four on any surface over 400×300 | [ADR-0042](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0042-blend2ds-workers-and-how-many.md) |
+| `goldberry.frame.rate` | `N` overrides the display's rate, `0` measures the unthrottled loop | The pacer. `0` reproduces the numbers from before pacing | [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
+| `goldberry.backend.vsync` | `false` | Stops asking SDL to hold each present until vertical blank | [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
+| `goldberry.gpu` | `off` | Keeps every window on the CPU when `goldberry-gpu` is on the module path | [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md) |
+| `goldberry.gpu.composite` | `always` by default, `auto`, `never` | Whether a window is composited always, only while it shows GPU content, or not at all | [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md) |
+| `goldberry.backend.videoDriver` | `dummy` | SDL's video driver, for a headless run that touches no compositor | [ADR-0026](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0026-sdl-picks-the-video-driver.md) |
+| `goldberry.trace.frames` | `true`, `all` | The launcher's per-frame stage line, with its counts | [ADR-0101](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md) |
+| `goldberry.log.native` | `false` | Gives GLib and SDL their stderr back, past the SLF4J bridge | [ADR-0443](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0443-somebody-elses-log-line-is-still-a-log-line.md) |
+| `goldberry.log.level` | `TRACE` | The showcase's `logback.xml` level for `dev.goldberry`. Your application names its own | [ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md) |
 
 A tuning flag that is not understood is taken as the default. A typo should
 not stop a window opening.
@@ -217,7 +217,7 @@ not stop a window opening.
 
 The same 960×640 scene paints in 0.34 ms in `PaintBenchmark` and in 2.15 ms
 in the running showcase, both with four workers
-([ADR-0045](../adr/0045-a-frame-is-not-a-benchmark-iteration.md)). The gap
+([ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md)). The gap
 was chased one hypothesis at a time: the borrowed buffer, the icons, the
 display server, logging, a cold cache. The benchmark's own loop run inside the
 live application between two real frames was still four times faster than the

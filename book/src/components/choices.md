@@ -10,7 +10,7 @@ Every control here is controlled. Clicking a checkbox does not move the tick.
 It raises `change`, the application sets the value, and the tick moves when the
 bound value does. A control that will not move means the state did not change,
 which is where the bug is
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)).
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)).
 
 <div class="gb-shot"><img src="../images/checkbox-states-dark.png" alt="Three checkboxes on the dark theme labelled Off, On and Some: an empty box, a ticked box, and a box with a dash"><p>A <code>checkbox</code> in its three states. Mixed matches <code>:indeterminate</code>, not <code>:checked</code>.</p></div>
 
@@ -67,11 +67,11 @@ check-indicator:checked { background: var(--gb-accent) }
 ```
 
 The glyph is a part, which is a CSS type that is not a node a document can
-write ([ADR-0065](../adr/0065-a-part-is-styleable-and-not-constructible.md)).
+write ([ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
 The mark exists in every state at `opacity: 0` so that it can scale in when
 checked. Every control and part declares `flex-shrink: 0`. The label does not,
 so a cramped row ellipses the text and never squashes the glyph
-([ADR-0076](../adr/0076-a-glyph-does-not-negotiate.md)).
+([ADR-0076](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md)).
 
 The hit target is at least 32 square and the label gap is 8.
 
@@ -88,9 +88,9 @@ submit.
 
 ### Read more
 
-- [ADR-0065: a part is styleable and not constructible](../adr/0065-a-part-is-styleable-and-not-constructible.md)
-- [ADR-0063: data flows down, events flow up](../adr/0063-data-flows-down-events-flow-up.md)
-- [ADR-0076: a glyph does not negotiate](../adr/0076-a-glyph-does-not-negotiate.md)
+- [ADR-0065: a part is styleable and not constructible](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)
+- [ADR-0063: data flows down, events flow up](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
+- [ADR-0076: a glyph does not negotiate](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md)
 
 ## `toggle`
 
@@ -117,7 +117,7 @@ new Column(
 of 8 px or more asks for the direction dragged, so dragging right on a switch
 that is already on asks for on. A shorter drag is a click and flips it. The
 8 is half of the thumb's 16 px travel
-([ADR-0075](../adr/0075-a-gestures-origin-is-the-routers.md)).
+([ADR-0075](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
 
 ### Attributes
 
@@ -155,8 +155,8 @@ Where the thumb travels to is the stylesheet's decision. The track's padding is
 
 ### Read more
 
-- [ADR-0075: a gesture's origin is the router's](../adr/0075-a-gestures-origin-is-the-routers.md)
-- [ADR-0076: a glyph does not negotiate](../adr/0076-a-glyph-does-not-negotiate.md)
+- [ADR-0075: a gesture's origin is the router's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0075-a-gestures-origin-is-the-routers.md)
+- [ADR-0076: a glyph does not negotiate](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0076-a-glyph-does-not-negotiate.md)
 
 ## `radio`
 
@@ -213,8 +213,8 @@ The arrows are the group's. See below.
 
 ### Read more
 
-- [ADR-0073: a composite is one Tab stop](../adr/0073-a-composite-is-one-tab-stop.md)
-- [ADR-0077: disabled propagates for input and not for paint](../adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
+- [ADR-0073: a composite is one Tab stop](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
+- [ADR-0077: disabled propagates for input and not for paint](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 
 ## `radio-group`
 
@@ -276,14 +276,14 @@ the direction is a class and not an attribute.
 The group is one Tab stop and the arrows rove inside it. The entry point is
 derived from `:checked` rather than remembered, so the selection is the roving
 position and the two cannot disagree
-([ADR-0073](../adr/0073-a-composite-is-one-tab-stop.md)). Selection follows
+([ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)). Selection follows
 focus the controlled way: an arrow raises `change` and does not move the dot.
 
 ### Read more
 
-- [ADR-0073: a composite is one Tab stop](../adr/0073-a-composite-is-one-tab-stop.md)
-- [ADR-0078: a focus scope has an axis](../adr/0078-a-focus-scope-has-an-axis.md)
-- [ADR-0063: data flows down, events flow up](../adr/0063-data-flows-down-events-flow-up.md)
+- [ADR-0073: a composite is one Tab stop](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)
+- [ADR-0078: a focus scope has an axis](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0078-a-focus-scope-has-an-axis.md)
+- [ADR-0063: data flows down, events flow up](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
 
 ## `segmented`
 
@@ -341,7 +341,7 @@ The children are `option` nodes.
 Height 32, segment padding 12, radius 8 on the outer corners and 0 between,
 in `body-strong`. Segments are equal, each exactly `1/n` of the bar, so the
 indicator travels by a percentage and the bar takes the width it is given
-([ADR-0217](../adr/0217-a-segmented-control-is-joined-again.md)). A label
+([ADR-0217](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0217-a-segmented-control-is-joined-again.md)). A label
 that does not fit its segment is cut with an ellipsis.
 
 ### Keyboard
@@ -353,14 +353,14 @@ that does not fit its segment is cut with an ellipsis.
 | `Space` | selects the focused segment |
 
 `Up` and `Down` stay with whatever is above and below, because a bar has an
-axis of its own ([ADR-0078](../adr/0078-a-focus-scope-has-an-axis.md)).
+axis of its own ([ADR-0078](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0078-a-focus-scope-has-an-axis.md)).
 
 ### Read more
 
-- [ADR-0217: a segmented control is joined again](../adr/0217-a-segmented-control-is-joined-again.md)
-- [ADR-0097: a selection that travels needs a geometry](../adr/0097-a-selection-that-travels-needs-a-geometry.md)
-- [ADR-0099: an indicator travels on a grid](../adr/0099-an-indicator-travels-on-a-grid.md)
-- [ADR-0078: a focus scope has an axis](../adr/0078-a-focus-scope-has-an-axis.md)
+- [ADR-0217: a segmented control is joined again](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0217-a-segmented-control-is-joined-again.md)
+- [ADR-0097: a selection that travels needs a geometry](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)
+- [ADR-0099: an indicator travels on a grid](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)
+- [ADR-0078: a focus scope has an axis](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0078-a-focus-scope-has-an-axis.md)
 
 ## `select`
 
@@ -401,28 +401,28 @@ new Select(place, actions::choose, matches.toArray(Option[]::new))
 
 The closed control shows the selected option's label, or the placeholder. It is
 as wide as its widest option, so it does not change width as the value does
-([ADR-0359](../adr/0359-a-select-is-as-wide-as-its-widest-option.md)).
+([ADR-0359](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0359-a-select-is-as-wide-as-its-widest-option.md)).
 
 **`multiple=#true`** makes the selection a set. The bound value is a
 `Collection`, each chosen value is drawn as a chip inside the closed control
 with a ×, and `change` is a toggle: asking for a value the set already holds
 takes it out. The list stays open while values are picked
-([ADR-0182](../adr/0182-a-select-may-hold-more-than-one.md)).
+([ADR-0182](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0182-a-select-may-hold-more-than-one.md)).
 
 **`autocomplete=#true`** puts a real `text-input` in the closed control. Typing
 raises `query` with the text, the application answers by supplying new
 options, and the list narrows. The filtering is the application's, so a
 remote-backed combobox is the same widget with a slower model. A free-typed
 value is refused unless `free=#true`
-([ADR-0183](../adr/0183-a-combobox-is-a-select-you-can-type-in.md)). In
+([ADR-0183](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0183-a-combobox-is-a-select-you-can-type-in.md)). In
 markup, `options=` names a bound list of `Option` values that replaces the
 written ones each time it changes
-([ADR-0367](../adr/0367-a-document-places-a-list-it-cannot-describe.md)).
+([ADR-0367](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)).
 
 **A tree** is Java only. `select.tree(roots)` takes a list of `TreeNode` and
 opens a `tree` instead of a flat list, leaf-only by default. A tree's model is
 nodes with suppliers under them, which a document has no way to write
-([ADR-0184](../adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
+([ADR-0184](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
 
 ### Attributes
 
@@ -471,13 +471,13 @@ Typing on the closed control is typeahead over the labels.
 
 ### Read more
 
-- [ADR-0141: a select is a closed control and a list](../adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- [ADR-0182: a select may hold more than one](../adr/0182-a-select-may-hold-more-than-one.md)
-- [ADR-0183: a combobox is a select you can type in](../adr/0183-a-combobox-is-a-select-you-can-type-in.md)
-- [ADR-0184: a tree is a list that remembers what is open](../adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- [ADR-0359: a select is as wide as its widest option](../adr/0359-a-select-is-as-wide-as-its-widest-option.md)
-- [ADR-0367: a document places a list it cannot describe](../adr/0367-a-document-places-a-list-it-cannot-describe.md)
-- [ADR-0185: a list that hangs off a field does not take the keyboard](../adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+- [ADR-0141: a select is a closed control and a list](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- [ADR-0182: a select may hold more than one](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0182-a-select-may-hold-more-than-one.md)
+- [ADR-0183: a combobox is a select you can type in](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0183-a-combobox-is-a-select-you-can-type-in.md)
+- [ADR-0184: a tree is a list that remembers what is open](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
+- [ADR-0359: a select is as wide as its widest option](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0359-a-select-is-as-wide-as-its-widest-option.md)
+- [ADR-0367: a document places a list it cannot describe](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)
+- [ADR-0185: a list that hangs off a field does not take the keyboard](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
 
 ### `option`
 
@@ -520,7 +520,7 @@ every build. `new Option("list")` uses the value as the label.
 - Pseudo-classes: `:checked`, `:hover`, `:active`, `:focus-visible`, `:disabled`.
 
 A label that does not fit is cut with an ellipsis rather than wrapped
-([ADR-0255](../adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)).
+([ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)).
 
 #### Keyboard
 
@@ -529,5 +529,5 @@ arrows are the container's.
 
 #### Read more
 
-- [ADR-0141: a select is a closed control and a list](../adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- [ADR-0255: a label that does not fit is cut, not wrapped](../adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)
+- [ADR-0141: a select is a closed control and a list](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- [ADR-0255: a label that does not fit is cut, not wrapped](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)

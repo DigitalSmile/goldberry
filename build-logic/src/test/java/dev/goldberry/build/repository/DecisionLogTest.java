@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
  * answer was no, and two of them say it in italics rather than in a bullet, which
  * is what the review reported as missing. Reading 400 files to answer a question
  * a test can answer is the cost this class removes; the next record added without
- * a {@code SUMMARY.md} line is the failure it is really for.
+ * a line in the log's {@code README.md} is the failure it is really for.
  */
 class DecisionLogTest {
 
@@ -84,14 +84,14 @@ class DecisionLogTest {
         }
 
         @Test
-        @DisplayName("is listed in the book, so the log is reachable from the table of contents")
-        void isInTheSummary() {
-            var summary = read(Repository.root().resolve(Path.of("book", "src", "SUMMARY.md")));
+        @DisplayName("is listed in the log's README, so it is reachable from the directory GitHub shows")
+        void isInTheIndex() {
+            var index = read(Repository.root().resolve(RECORDS.resolve("README.md")));
             var unlisted = records().stream()
                     .map(record -> record.getFileName().toString())
-                    .filter(name -> !summary.contains("adr/" + name))
+                    .filter(name -> !index.contains("](" + name + ")"))
                     .toList();
-            assertTrue(unlisted.isEmpty(), () -> "records written and never linked from SUMMARY.md: " + unlisted);
+            assertTrue(unlisted.isEmpty(), () -> "records written and never linked from adr/README.md: " + unlisted);
         }
 
         @Test

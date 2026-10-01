@@ -8,12 +8,12 @@ Each of the three takes the application's own type and a few functions that
 describe it: how to identify an item, how to draw it, what to call it. The
 widget holds no copy of the data. Selection is a set of ids the application
 holds and hands back in, and every change arrives as the whole new set
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)).
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)).
 
 > [!IMPORTANT]
 > A list, a table or a tree is built in Java. Markup can **place** one the
 > model holds, with `bind=`, but cannot describe one: an item factory is code
-> ([ADR-0367](../adr/0367-a-document-places-a-list-it-cannot-describe.md)).
+> ([ADR-0367](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)).
 > The `kdl` samples below show the placing. The Java beside them is the widget.
 
 ## `list`
@@ -51,14 +51,14 @@ powers type-to-select.
 pitch. `virtualized(double)` names one. The list then builds only the rows a
 viewport can see, plus four either side, with a spacer above and below sized
 from the rest, so the showcase scrolls ten thousand rows
-([ADR-0213](../adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). A
+([ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). A
 list that is not virtualized builds every row.
 
 > [!WARNING]
 > A virtualized list's `list-row` height must be the pitch it was told. When a
 > stylesheet makes them differ by more than half a pixel the list logs it once
 > and the scroll range is wrong
-> ([ADR-0257](../adr/0257-a-diagnostic-is-asked-for-not-logged.md)).
+> ([ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md)).
 
 **Attributes**
 
@@ -104,14 +104,14 @@ class `selected` rather than a pseudo-class. The row height is
 
 A right-click selects the row it is over before the context menu opens, unless
 it is already selected
-([ADR-0224](../adr/0224-a-right-click-selects-what-it-is-over.md)).
+([ADR-0224](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0224-a-right-click-selects-what-it-is-over.md)).
 
 **Read more**
 
-- [ADR-0212: A list owns the models a tree borrowed](../adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
-- [ADR-0213: A virtual list is two spacers and a window](../adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- [ADR-0254: A build may ask the cascade for a number](../adr/0254-a-build-may-ask-the-cascade-for-a-number.md)
-- [ADR-0367: A document places a list it cannot describe](../adr/0367-a-document-places-a-list-it-cannot-describe.md)
+- [ADR-0212: A list owns the models a tree borrowed](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+- [ADR-0213: A virtual list is two spacers and a window](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+- [ADR-0254: A build may ask the cascade for a number](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md)
+- [ADR-0367: A document places a list it cannot describe](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)
 
 ## `table`
 
@@ -144,7 +144,7 @@ remaining width, `fixed(double)` takes pixels.
 `onSort` with the `Sort` the table would like next: the column, ascending, or
 the same column flipped. The application sorts its items and rebuilds, and the
 caret appears on the column `sort` names
-([ADR-0214](../adr/0214-a-table-is-a-list-with-columns.md)).
+([ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)).
 
 ```java
 private void sortBy(Sort next) {
@@ -154,9 +154,9 @@ private void sortBy(Sort next) {
 
 A `resizable` column has a grip after its header. Dragging it asks `onResize`
 for a new width, and the application decides what the column becomes
-([ADR-0361](../adr/0361-a-column-is-resized-by-asking.md)). The header stays
+([ADR-0361](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0361-a-column-is-resized-by-asking.md)). The header stays
 at the top while the rows scroll
-([ADR-0360](../adr/0360-an-affix-stays-inside-its-container.md)).
+([ADR-0360](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)).
 
 **Attributes**
 
@@ -199,9 +199,9 @@ table has no type-to-select.
 
 **Read more**
 
-- [ADR-0214: A table is a list with columns](../adr/0214-a-table-is-a-list-with-columns.md)
-- [ADR-0360: An affix stays inside its container](../adr/0360-an-affix-stays-inside-its-container.md)
-- [ADR-0361: A column is resized by asking](../adr/0361-a-column-is-resized-by-asking.md)
+- [ADR-0214: A table is a list with columns](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)
+- [ADR-0360: An affix stays inside its container](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)
+- [ADR-0361: A column is resized by asking](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0361-a-column-is-resized-by-asking.md)
 
 ## `tree`
 
@@ -234,14 +234,14 @@ children or a supplier of them. `TreeNode.leaf` has none, `TreeNode.of` has
 them now, and `TreeNode.lazy` fetches them the first time the node opens. The
 tree keeps which ids are open and what a supplier returned, so a rebuild with
 the same ids keeps the same shape
-([ADR-0184](../adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
+([ADR-0184](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
 
 **Checking and selecting are two different things.** Selection is the list's,
 a set of ids reported whole. `checkable(Checkable)` adds a checkbox per node:
 `LEAF` on leaves only, `ANY` on every node, `CASCADE` where a parent's box
 shows its children's state and checking it checks them all. The checked set
 is reported through `checked(Set, Consumer)` and never touches selection
-([ADR-0210](../adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+([ADR-0210](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
 
 **Attributes**
 
@@ -286,12 +286,12 @@ indent is 20px per level and the row height is `--gb-list-row-height`.
 | letters | type-to-select over the visible rows |
 
 The keyboard is the subject of
-[ADR-0209](../adr/0209-a-tree-finishes-its-keyboard.md). A click on the
+[ADR-0209](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md). A click on the
 chevron opens or closes without selecting. A click on a parent that cannot be
 selected opens it.
 
 **Read more**
 
-- [ADR-0184: A tree is a list that remembers what is open](../adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- [ADR-0209: A tree finishes its keyboard](../adr/0209-a-tree-finishes-its-keyboard.md)
-- [ADR-0210: A tree checks and selects two different things](../adr/0210-a-tree-checks-and-selects-two-different-things.md)
+- [ADR-0184: A tree is a list that remembers what is open](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
+- [ADR-0209: A tree finishes its keyboard](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md)
+- [ADR-0210: A tree checks and selects two different things](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)

@@ -6,7 +6,7 @@ A menu is a widget: a `menu` holds `item`s and `separator`s, and an `item`
 holding `item`s is a submenu. Opening one is not a widget's job. A `menubar`
 opens its own headings, and anything else goes through `Menus.open(host, …)`,
 because opening needs a `Host` and a widget must not have one
-([ADR-0106](../adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
+([ADR-0106](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
 
 ## `menubar`
 
@@ -57,7 +57,7 @@ new MenuBar(
 The bar owns its menus. It opens a heading's menu as a popup against the
 heading, swaps to the neighbour when the pointer runs along the bar with a menu
 down, and binds every accelerator its rows name while it is mounted
-([ADR-0163](../adr/0163-a-menu-bar-owns-its-menus.md)). A menu bar is a widget
+([ADR-0163](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0163-a-menu-bar-owns-its-menus.md)). A menu bar is a widget
 and not a property of the window, so a screen may have a second one.
 
 **Attributes**
@@ -86,14 +86,14 @@ The CSS type is `menubar`. Each heading is a `menu-title`, which matches
 
 A bare `Alt` is a gesture rather than a shortcut, which is why it has a
 registration of its own
-([ADR-0223](../adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)).
+([ADR-0223](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)).
 There are no mnemonics.
 
 **Read more**
 
-- [ADR-0163: A menu bar owns its menus](../adr/0163-a-menu-bar-owns-its-menus.md)
-- [ADR-0220: An accelerator is given back by whoever took it](../adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)
-- [ADR-0233: Escape steps out of one menu](../adr/0233-escape-steps-out-of-one-menu.md)
+- [ADR-0163: A menu bar owns its menus](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0163-a-menu-bar-owns-its-menus.md)
+- [ADR-0220: An accelerator is given back by whoever took it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)
+- [ADR-0233: Escape steps out of one menu](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0233-escape-steps-out-of-one-menu.md)
 
 ## `menu`
 
@@ -125,11 +125,11 @@ A document declares a menu. `Menus.open(host, anchorId, menu)` measures it,
 places it under the node with that id, flips it above when it would run off the
 bottom of the screen, and opens it in a window of its own, so it may hang past
 the window's edge
-([ADR-0104](../adr/0104-a-popup-is-measured-then-placed.md)). The answer is
+([ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)). The answer is
 empty when nothing with that id has been painted or the platform has no popup
-windows ([ADR-0102](../adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+windows ([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
 Choosing a command closes the whole stack. A menu too tall for the screen
-scrolls ([ADR-0118](../adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+scrolls ([ADR-0118](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
 
 **Attributes**
 
@@ -158,13 +158,13 @@ an `item-chevron`. The row height is `--gb-menu-item-height`.
 
 The pointer opens a submenu after 150 ms of resting on its row, so a pointer
 crossing three rows on the way somewhere does not drop one out
-([ADR-0112](../adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+([ADR-0112](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
 
 **Read more**
 
-- [ADR-0106: A menu is a widget and opening one is not](../adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
-- [ADR-0113: A submenu is placed beside its menu](../adr/0113-a-submenu-is-placed-beside-its-menu.md)
-- [ADR-0219: An item tells its menu what the keyboard did](../adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
+- [ADR-0106: A menu is a widget and opening one is not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- [ADR-0113: A submenu is placed beside its menu](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)
+- [ADR-0219: An item tells its menu what the keyboard did](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
 
 ### `item`
 
@@ -229,11 +229,11 @@ row shows the text as written. A `menubar` parses every accelerator under it
 with `Shortcut.of` and binds it on the window while the bar is mounted, so the
 key works with every menu shut. When the bar unmounts it gives back the keys
 it took and no others
-([ADR-0220](../adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+([ADR-0220](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
 
 `Primary` names the desktop's own modifier, `Cmd` on macOS and `Ctrl`
 elsewhere, so one document fits both
-([ADR-0378](../adr/0378-the-desktops-own-modifier-has-a-name.md)). `Ctrl`,
+([ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md)). `Ctrl`,
 `Control`, `Alt`, `Option`, `Meta`, `Cmd`, `Super` and `Win` are the other
 spellings.
 
@@ -246,7 +246,7 @@ spellings.
 ## Context menus
 
 Any widget names its context menu, and the application says what the name
-means ([ADR-0108](../adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+means ([ADR-0108](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
 
 ```kdl
 panel context-menu="content" {
@@ -263,10 +263,10 @@ panel context-menu="content" {
 A right-click walks up from the widget under the pointer to the first
 ancestor with a `context-menu` and opens that menu at the pointer. The `Menu`
 key, and `Shift+F10`, open the same menu at the focused widget instead
-([ADR-0208](../adr/0208-a-context-menu-answers-the-keyboard.md)). A name the
+([ADR-0208](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0208-a-context-menu-answers-the-keyboard.md)). A name the
 application never registered is logged and ignored. A right-click on a list
 row selects it first
-([ADR-0224](../adr/0224-a-right-click-selects-what-it-is-over.md)).
+([ADR-0224](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0224-a-right-click-selects-what-it-is-over.md)).
 
 In Java the attribute is `.contextMenu("content")` on any widget, or
 `.itemMenu(item -> "row-menu")` on a `list`.
@@ -276,7 +276,7 @@ In Java the attribute is `.contextMenu("content")` on any widget, or
 A tray icon is a menu somebody else draws. The application hands the desktop a
 tooltip, a picture and an ordinary `Menu`, and the desktop's shell themes it,
 spaces it and clicks it
-([ADR-0191](../adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). There is no
+([ADR-0191](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). There is no
 markup node for it.
 
 ```java
@@ -313,15 +313,15 @@ private Optional<BackendTray> tray = Optional.empty();
 Rows map as a desktop expects: a checkable `item` is a checkbox row, a nested
 `item` is a submenu, a disabled one is disabled. Icons and accelerators on rows
 are dropped with a warning, because the shell draws the rows and takes neither
-([ADR-0501](../adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)).
+([ADR-0501](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)).
 The menu cannot be changed in place. Close the tray and show a new one.
 
 > [!NOTE]
 > The tray is SDL3's. It has run for real on Linux under AppIndicator. The
 > Windows and macOS paths are compiled and unverified
-> ([ADR-0191](../adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
+> ([ADR-0191](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
 
 **Read more**
 
-- [ADR-0191: A tray is a menu somebody else draws](../adr/0191-a-tray-is-a-menu-somebody-else-draws.md)
-- [ADR-0501: A tray icon follows the desktop's theme and stops when it closes](../adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)
+- [ADR-0191: A tray is a menu somebody else draws](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)
+- [ADR-0501: A tray icon follows the desktop's theme and stops when it closes](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0501-a-tray-icon-follows-the-desktops-theme-and-stops-when-it-closes.md)

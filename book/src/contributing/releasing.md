@@ -6,7 +6,7 @@
 
 ## Versions
 
-Versions are `YEAR.RELEASE[.PATCH]`: `2026.1`, `2026.2`, `2026.2.1`. The release count starts at 1 each year, and there is no `.0` patch. What a user of a toolkit wants from the number is how old it is, and that is what the year answers. The record is [ADR-0333](../adr/0333-a-version-is-a-year-and-a-count.md).
+Versions are `YEAR.RELEASE[.PATCH]`: `2026.1`, `2026.2`, `2026.2.1`. The release count starts at 1 each year, and there is no `.0` patch. What a user of a toolkit wants from the number is how old it is, and that is what the year answers. The record is [ADR-0333](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0333-a-version-is-a-year-and-a-count.md).
 
 `gradle.properties` holds the line being worked towards, and never `-SNAPSHOT`:
 
@@ -31,7 +31,7 @@ A release tag that does not match the property fails the build before anything i
 
 ## Where things go
 
-The group is `dev.goldberry`, and the artifact ids are `goldberry-<module>`. The namespace is [ADR-0510](../adr/0510-publish-under-dev-goldberry.md), which moved it from an account name to the project's own domain while nothing had been released.
+The group is `dev.goldberry`, and the artifact ids are `goldberry-<module>`. The namespace is [ADR-0510](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0510-publish-under-dev-goldberry.md), which moved it from an account name to the project's own domain while nothing had been released.
 
 | What | Where | When |
 |---|---|---|
@@ -44,11 +44,11 @@ The group is `dev.goldberry`, and the artifact ids are `goldberry-<module>`. The
 
 The BOM knows versions and not platforms, so an application adds the `goldberry-natives` classifier jars itself. All four is the default worth writing, because `NativeLibrary` picks the right one at run time. [Installing](../getting-started/installing.md) has the dependency block.
 
-**FFmpeg's binaries do not go without their source.** The `ffmpeg-<target>` jars carry an LGPL library in object form, so the same publication carries `ffmpeg-sources` beside them. Every publication that carries a target refuses to go without it, snapshots too, and both the superbuild and the sources jar refuse a tag that does not name the pinned commit. The records are [ADR-0495](../adr/0495-media-is-published-and-snapshots-publish-again.md) and [ADR-0508](../adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md). A release needs all four targets' FFmpeg and refuses without them.
+**FFmpeg's binaries do not go without their source.** The `ffmpeg-<target>` jars carry an LGPL library in object form, so the same publication carries `ffmpeg-sources` beside them. Every publication that carries a target refuses to go without it, snapshots too, and both the superbuild and the sources jar refuse a tag that does not name the pinned commit. The records are [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md) and [ADR-0508](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md). A release needs all four targets' FFmpeg and refuses without them.
 
 ## Snapshots
 
-Every push to `master` runs `snapshot.yml`. It calls `publish.yml`, which builds Linux, macOS and Windows through the per-OS workflows, then publishes every module and every classifier jar in **one** Gradle invocation. It has to be one: a snapshot's classifier jars are listed in the metadata its upload writes, and a runner publishing its own platform would leave Central naming whichever finished last. That is [ADR-0334](../adr/0334-central-is-fed-once-per-run.md).
+Every push to `master` runs `snapshot.yml`. It calls `publish.yml`, which builds Linux, macOS and Windows through the per-OS workflows, then publishes every module and every classifier jar in **one** Gradle invocation. It has to be one: a snapshot's classifier jars are listed in the metadata its upload writes, and a runner publishing its own platform would leave Central naming whichever finished last. That is [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md).
 
 So a snapshot appears only after all three platforms are green. One broken platform stops every snapshot, which is the point. Runs are queued rather than cancelled, because an upload stopped halfway leaves a snapshot whose modules disagree about which build they are.
 
@@ -79,7 +79,7 @@ git push origin v2026.1
 
 A release stops in the Portal for a person to press Publish, unless the repository variable `CENTRAL_AUTO_RELEASE` is `true`. A release on Central is permanent, so the first few get looked at.
 
-Step 5 matters more than it looks. Until the bump is merged, `master` publishes `2026.1-SNAPSHOT`, which Maven orders *below* the release it follows, so a consumer on the snapshot silently goes backwards. That is why the release workflow opens the pull request itself, which is [ADR-0421](../adr/0421-the-release-line-moves-on-by-itself.md). If the job could not open it, the branch is pushed and this is what it ran:
+Step 5 matters more than it looks. Until the bump is merged, `master` publishes `2026.1-SNAPSHOT`, which Maven orders *below* the release it follows, so a consumer on the snapshot silently goes backwards. That is why the release workflow opens the pull request itself, which is [ADR-0421](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0421-the-release-line-moves-on-by-itself.md). If the job could not open it, the branch is pushed and this is what it ran:
 
 ```sh
 ./gradlew -q :core:bumpVersion
@@ -100,7 +100,7 @@ Patch branches publish no snapshots. `snapshot.yml` runs on `master` only.
 
 ## The showcase binaries
 
-Every release tag builds the showcase as a GraalVM native image on all three platforms, one file with `libgoldberry` inside it, and attaches the three to the tag's GitHub Release. It is a release artifact and not a package: there is no jlink image and no GitHub Packages upload. A push to `master` does not build it, because a native build on three runners is an artifact rather than a check. The record is [ADR-0340](../adr/0340-the-showcase-is-a-release-artifact-not-a-package.md).
+Every release tag builds the showcase as a GraalVM native image on all three platforms, one file with `libgoldberry` inside it, and attaches the three to the tag's GitHub Release. It is a release artifact and not a package: there is no jlink image and no GitHub Packages upload. A push to `master` does not build it, because a native build on three runners is an artifact rather than a check. The record is [ADR-0340](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md).
 
 The two Unix binaries are tarballs rather than zips, because the zip format the artifact upload writes does not carry the executable bit.
 

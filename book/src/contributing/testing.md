@@ -24,7 +24,7 @@
 | Accessibility | Contrast over the token tables, and sweeps that read the widget registry | `:widgets` |
 | Drift guard | A test that reads the repository rather than the JVM | `build-logic`, `:natives` |
 
-[Repository layout](repository.md#tests-as-drift-guards) lists the drift guards. The primary-modifier pin is [ADR-0396](../adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md).
+[Repository layout](repository.md#tests-as-drift-guards) lists the drift guards. The primary-modifier pin is [ADR-0396](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md).
 
 ## What `check` runs
 
@@ -48,7 +48,7 @@ CI's fast lane adds `checkLicenses` and `checkMarkdown`, and then runs the suite
 ./gradlew test -Pgoldberry.skipNative=true -Pgoldberry.nativeImage=true
 ```
 
-Two invocations rather than two tasks, because weaving rewrites the compiled classes in place and one build cannot hold both forms. Coverage survives the split: the exec file is named for the mode and the report reads every file it finds. The record is [ADR-0155](../adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md).
+Two invocations rather than two tasks, because weaving rewrites the compiled classes in place and one build cannot hold both forms. Coverage survives the split: the exec file is named for the mode and the report reads every file it finds. The record is [ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md).
 
 > [!IMPORTANT]
 > `-Pgoldberry.lenient` turns Error Prone off and is for triage only. Nothing in CI sets it, so `check` never passes with it.
@@ -61,21 +61,21 @@ The Java-only jobs build with `-Pgoldberry.skipNative=true`, so a test that rast
 ./gradlew test --continue -Dgoldberry.native.library=/nonexistent/libgoldberry.so
 ```
 
-Failures there are the defect. Skips are correct. That is [ADR-0357](../adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md).
+Failures there are the defect. Skips are correct. That is [ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md).
 
-The per-platform jobs do the opposite. They download the library their native job built and pass `-Dgoldberry.native.required=true`, so a skip is a failure. CI verifies the binary that ships and cannot pass without loading it, which is [ADR-0016](../adr/0016-verify-the-artifact-and-never-skip-the-check.md).
+The per-platform jobs do the opposite. They download the library their native job built and pass `-Dgoldberry.native.required=true`, so a skip is a failure. CI verifies the binary that ships and cannot pass without loading it, which is [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
 ### The GPU tests
 
-GPU tests are tagged `gpu`, left out of `test`, and run by `:natives:gpuTest`, `:gpu:gpuTest` and `:media:gpuTest` on the JVM's first thread, which macOS's Cocoa needs for a GPU device. They need a video driver with a Metal view or a Vulkan surface: the desktop's default, or `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, and never `dummy`. They skip without a device, and `-Pgoldberry.gpu.required=true` makes that a failure. The record is [ADR-0475](../adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md).
+GPU tests are tagged `gpu`, left out of `test`, and run by `:natives:gpuTest`, `:gpu:gpuTest` and `:media:gpuTest` on the JVM's first thread, which macOS's Cocoa needs for a GPU device. They need a video driver with a Metal view or a Vulkan surface: the desktop's default, or `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, and never `dummy`. They skip without a device, and `-Pgoldberry.gpu.required=true` makes that a failure. The record is [ADR-0475](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md).
 
 ## Goldens
 
-A golden compares a rendered frame against a committed PNG. **One** reference set serves every platform, compared with a per-channel tolerance of 2 of 256 and a cap of 2% of pixels allowed to differ at all. Both gates must pass. Blend2D compiles its rasterizer pipelines at run time for the CPU it finds, AVX2 on one runner and NEON on another, and the pipelines are not required to agree on the last bit of a blended subpixel. The tolerance absorbs antialiased edges and nothing else: a colour that changed or a box in the wrong place moves thousands of pixels by tens of levels. That is [ADR-0050](../adr/0050-golden-images-have-a-tolerance.md).
+A golden compares a rendered frame against a committed PNG. **One** reference set serves every platform, compared with a per-channel tolerance of 2 of 256 and a cap of 2% of pixels allowed to differ at all. Both gates must pass. Blend2D compiles its rasterizer pipelines at run time for the CPU it finds, AVX2 on one runner and NEON on another, and the pipelines are not required to agree on the last bit of a blended subpixel. The tolerance absorbs antialiased edges and nothing else: a colour that changed or a box in the wrong place moves thousands of pixels by tens of levels. That is [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md).
 
-**The scale sweep.** Every golden that matches is then redrawn at 2x and 1.5x and checked for describing the same picture, with nothing further committed. It exists because a layer blitted at the wrong size was invisible at 1x on every machine the goldens ran on, which is [ADR-0157](../adr/0157-a-layer-is-blitted-into-its-own-size.md). The sweep itself is [ADR-0162](../adr/0162-a-golden-is-checked-at-every-scale.md), and `-Dgoldberry.golden.scales=false` turns it off.
+**The scale sweep.** Every golden that matches is then redrawn at 2x and 1.5x and checked for describing the same picture, with nothing further committed. It exists because a layer blitted at the wrong size was invisible at 1x on every machine the goldens ran on, which is [ADR-0157](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0157-a-layer-is-blitted-into-its-own-size.md). The sweep itself is [ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md), and `-Dgoldberry.golden.scales=false` turns it off.
 
-Goldens render through the shipped `Offscreen` entry point, so every golden also tests the API an application would use to take the same picture. That is [ADR-0284](../adr/0284-a-picture-with-no-window-under-it.md).
+Goldens render through the shipped `Offscreen` entry point, so every golden also tests the API an application would use to take the same picture. That is [ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md).
 
 **Blessing a change.** After a deliberate visual change:
 
@@ -92,14 +92,14 @@ The task runs the whole suite with `goldberry.golden.update=true` and rewrites e
 |---|---|---|---|
 | Blocking at compile | Spotless with palantir-java-format | Every Java file | `spotlessCheck` fails, `spotlessApply` fixes. The step is wrapped so an import that only a `///` doc link uses is kept |
 | Blocking at compile | Error Prone | `src/main` | A finding is a compile error. Off for tests and JMH sources |
-| Blocking at compile | NullAway | `src/main`, every `@NullMarked` package | `OnlyNullMarked` mode, and since [ADR-0497](../adr/0497-every-package-says-what-it-is-and-is-null-marked.md) that is every package |
+| Blocking at compile | NullAway | `src/main`, every `@NullMarked` package | `OnlyNullMarked` mode, and since [ADR-0497](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0497-every-package-says-what-it-is-and-is-null-marked.md) that is every package |
 | Blocking after triage | PMD | `src/main` | The hand-picked rules in `config/pmd/ruleset.xml`. `module-info.java` is excluded on purpose, because PMD cannot read two modifiers on a `requires` |
 | Reports | SpotBugs | `src/main`, max effort | `build/reports/spotbugs/main.html` per module. The triage has not happened, so it does not gate |
 | Blocking | ArchUnit | The whole graph, from `:widgets` | `BoundaryTest` asserts the module arrows and the FFM boundary. `DeterminismTest` bans clocks, randomness and the default locale |
 | Blocking | Javadoc | Every published module | `check` generates it with doclint on, so a rotted `[link]` fails four minutes in rather than partway through an upload |
 | Blocking | `checkMarkdown` | `docs/`, `book/`, the top level | Trailing whitespace and a missing final newline. `formatMarkdown` fixes them |
 
-The javadoc gate is [ADR-0343](../adr/0343-the-published-javadoc-is-linted.md) and [ADR-0405](../adr/0405-check-generates-the-published-javadoc.md). The PMD exclusion and the Markdown tasks are [ADR-0398](../adr/0398-the-build-declares-what-it-actually-writes.md).
+The javadoc gate is [ADR-0343](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0343-the-published-javadoc-is-linted.md) and [ADR-0405](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0405-check-generates-the-published-javadoc.md). The PMD exclusion and the Markdown tasks are [ADR-0398](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0398-the-build-declares-what-it-actually-writes.md).
 
 > [!NOTE]
 > `:natives` runs no Error Prone. It is hand-written FFM bindings, and its contract is the layout probe. Its `@Nullable` annotations are still there, because `:core`'s NullAway reads them.
@@ -108,8 +108,8 @@ The javadoc gate is [ADR-0343](../adr/0343-the-published-javadoc-is-linted.md) a
 
 Three more analysers run and none of them blocks a merge:
 
-- **CodeQL**, in `codeql.yml`, on pull requests and weekly. The first triage is [ADR-0341](../adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md): every finding that stays is in its table with a reason. The alerts need a token to read, and `docs/testing.md` §2 has the recipe for running the same scan locally in about six minutes.
-- **Qodana**, in `qodana.yml`, against a committed baseline in `config/qodana/`. The gate fails on new high-severity findings only. The profile is reviewed as code, which is [ADR-0498](../adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
+- **CodeQL**, in `codeql.yml`, on pull requests and weekly. The first triage is [ADR-0341](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md): every finding that stays is in its table with a reason. The alerts need a token to read, and `docs/testing.md` §2 has the recipe for running the same scan locally in about six minutes.
+- **Qodana**, in `qodana.yml`, against a committed baseline in `config/qodana/`. The gate fails on new high-severity findings only. The profile is reviewed as code, which is [ADR-0498](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
 - **Codecov**, a step in `linux.yml`, guarded on its secret and silent until connected. `docs/testing.md` §7 is the checklist for connecting it.
 
 Coverage floors are per module and set from measured values: `:core` at 80% line and 68% branch, `:widgets` and `:html` at 87% and 71%. Each is a ratchet that catches a drop and never blocks a change that merely fails to raise it. They run on the linux-x64 verify leg, where the library is loaded.
@@ -129,7 +129,7 @@ What `check` is owed instead is the counting pair. `TextAreaKeystrokeCostTest` a
 
 The catalogue sweeps read the registry, not a list. `WidgetParityTest`, `ImmutabilityTest` and `ChainingTest` walk every widget `Widgets.inflater()` registers, and each has a `theExemptionsAreLive` test so an exemption cannot go stale. `SemanticsSweepTest` reads the source tree and fails on any focusable widget that does not implement `Semantics`, a role and an accessible name. Contrast is a unit test over the token tables: every text and surface pair at 4.5:1 or better in both themes.
 
-The AccessKit bridge that would export the semantics tree is on hold, and the sweep is unaffected. That is [ADR-0440](../adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).
+The AccessKit bridge that would export the semantics tree is on hold, and the sweep is unaffected. That is [ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md).
 
 ## The CI matrix
 
@@ -145,9 +145,9 @@ The AccessKit bridge that would export the semantics tree is on hold, and the sw
 | `qodana.yml` | Pull request and push | IntelliJ's inspections, new findings against the baseline |
 | `pages.yml` | Push touching `site/` or `book/` | The landing page and this book |
 
-The per-OS workflows have no `push` trigger of their own. A commit builds each library once, through `publish.yml`, and the library that passed verification is the one published. That is [ADR-0334](../adr/0334-central-is-fed-once-per-run.md), and `PublishWorkflowsTest` holds every workflow to it.
+The per-OS workflows have no `push` trigger of their own. A commit builds each library once, through `publish.yml`, and the library that passed verification is the one published. That is [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md), and `PublishWorkflowsTest` holds every workflow to it.
 
-**A failure names itself.** On a runner, every failed test and the build's own failure become check-run annotations, which the public API serves where a job log needs a login. That is [ADR-0338](../adr/0338-a-red-run-says-why-in-public.md).
+**A failure names itself.** On a runner, every failed test and the build's own failure become check-run annotations, which the public API serves where a job log needs a login. That is [ADR-0338](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0338-a-red-run-says-why-in-public.md).
 
 > [!NOTE]
 > Goldens run on every pull request, not behind a label. They are the assertion for painters, so gating them behind a label would mean the check that matters most runs least.

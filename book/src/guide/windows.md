@@ -60,9 +60,9 @@ and for repaints, and is the subject of
 | Method | Default | Record |
 |---|---|---|
 | `size()` | 960 by 640 | what the window restores to when un-maximized |
-| `minimumSize()` | no minimum | the window manager stops the drag at the floor, and the application never clamps a frame ([ADR-0304](../adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)) |
-| `maximized()` | false | a state the desktop owns, not a large size: it snaps to the work area and restores to `size()` ([ADR-0221](../adr/0221-a-window-may-open-maximized.md)) |
-| `icon()` | the platform's generic icon | several sizes of one `Image`; the backend picks which the platform scales from ([ADR-0351](../adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)) |
+| `minimumSize()` | no minimum | the window manager stops the drag at the floor, and the application never clamps a frame ([ADR-0304](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)) |
+| `maximized()` | false | a state the desktop owns, not a large size: it snaps to the work area and restores to `size()` ([ADR-0221](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0221-a-window-may-open-maximized.md)) |
+| `icon()` | the platform's generic icon | several sizes of one `Image`; the backend picks which the platform scales from ([ADR-0351](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)) |
 | `fonts()` | the bundled faces | faces the application ships ([Text, fonts and icons](text.md#shipping-a-face)) |
 
 `Goldberry.launch(app, args)` reads four flags from the array and ignores
@@ -152,7 +152,7 @@ or `Escape`, closes it. `popup.close()`, `isOpen()`, `lightDismiss(false)`,
 > `Optional.empty()` is a normal answer. Popup support belongs to the video
 > driver, and SDL's `dummy` driver has none. A caller that gets empty falls
 > back to an overlay at the cost of being clipped to the window
-> ([ADR-0102](../adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+> ([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
 > `Menus.open(host, "menu-button", menu)` does the measuring, placing,
 > opening and the submenus for a `Menu`.
 
@@ -165,7 +165,7 @@ Subscription following = host.onSystemThemeChanged(theme -> actions.pickTheme(th
 
 Empty means the desktop has no such setting, and that is a different answer
 from light: the first is a default, the second a theme
-([ADR-0322](../adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)).
+([ADR-0322](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)).
 The toolkit chooses nothing with the answer, and asking once at start-up is
 the bug `onSystemThemeChanged` exists to prevent.
 
@@ -181,7 +181,7 @@ A platform integration is compiled into the native library only where the
 machine that built it had the headers. Where it was not, the call answers
 "the desktop does not say", and `Goldberry.capabilities()` reports the
 difference from the library's own record of how it was built
-([ADR-0325](../adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
+([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
 The values are `SYSTEM_THEME`, `INPUT_METHOD`, `DEVICE_HOTPLUG`,
 `FILE_DIALOG`, `SCREENSAVER_INHIBIT`, `WINDOW_DECORATIONS`, `WAYLAND` and
 `WEB_VIEW`. It may be asked before a window is open, and is empty where there
@@ -200,7 +200,7 @@ Fullscreen is a state the platform owns. `setFullscreen` is a request whose
 answer arrives through `onFullscreenChanged`, several frames later on macOS,
 and the user can change it without the application, so `isFullscreen()` is
 what the platform last reported
-([ADR-0473](../adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)).
+([ADR-0473](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)).
 `canFullscreen()` is false for a host with no window under it, which is what
 a `media-player` reads to decide whether to offer the button at all.
 
@@ -215,7 +215,7 @@ There is one UI thread, and every window, style and box tree is confined to
 it. `Goldberry.async(work)` runs the work on a virtual thread and delivers
 its result on the UI thread, so every callback chained onto the future may
 touch a window with no hand-off to write
-([ADR-0020](../adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
+([ADR-0020](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
 `Goldberry.ui()` is the UI thread as an `Executor`, `Goldberry.isUiThread()`
 says whether you are on it, and `host.repaint()` is safe from anywhere.
 
@@ -228,7 +228,7 @@ a no-op once the model is woven
 > On macOS the JVM must start on the process's first thread, because AppKit
 > requires it. Run with `-XstartOnFirstThread`. Without it SDL reports
 > `No available video device`, and the toolkit's message says which flag is
-> missing ([ADR-0039](../adr/0039-macos-needs-the-first-thread.md)).
+> missing ([ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md)).
 
 ## Closing
 
@@ -258,9 +258,9 @@ here and drives it itself.
 
 ## Read more
 
-- [ADR-0093](../adr/0093-an-application-is-a-root-widget.md): what the launcher owns
-- [ADR-0100](../adr/0100-a-window-has-a-layer-above-its-application.md): the overlay layer
-- [ADR-0102](../adr/0102-a-popup-is-a-window-the-platform-may-refuse.md): popups
-- [ADR-0104](../adr/0104-a-popup-is-measured-then-placed.md): measure, then place
-- [ADR-0140](../adr/0140-a-widget-may-reach-its-window.md): `BuildContext.host()`
+- [ADR-0093](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0093-an-application-is-a-root-widget.md): what the launcher owns
+- [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md): the overlay layer
+- [ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md): popups
+- [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md): measure, then place
+- [ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md): `BuildContext.host()`
 - [Overlays](../components/overlays.md) and [Menus and the tray](../components/menus.md): the widgets that open over a window

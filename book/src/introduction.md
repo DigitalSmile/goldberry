@@ -91,7 +91,7 @@ in part, and three content modules exist: Markdown and HTML, emoji, and media.
 
 > [!IMPORTANT]
 > There is no screen-reader support on any platform, and none is scheduled
-> ([ADR-0440](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
+> ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
 > The rest of the accessibility baseline is built: keyboard reachability, a
 > focus ring, WCAG AA contrast, hit targets, reduced motion and text scale.
 > [Limitations](overview/limitations.md) lists the rest.
@@ -99,7 +99,7 @@ in part, and three content modules exist: Markdown and HTML, emoji, and media.
 ## About this book
 
 The six parts before the reference are the guide. The
-[decision log](adr/index.md) after it is the project's memory: one record per
+[decision log](https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr) on GitHub is the project's memory: one record per
 significant choice, with the forces, the alternatives and the costs. The guide
 links a record wherever it states a rule, so *why* is always one click away.
 Every page has an *edit this page* link to its source on GitHub.

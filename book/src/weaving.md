@@ -5,7 +5,7 @@ to them observable.
 
 **You do not have to run the weaver.** A plain jar binds a model reflectively and
 needs no build step at all; weaving is what a **GraalVM native image** is built
-from ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). The
+from ([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). The
 short version is [below](#you-probably-do-not-need-to-run-any-of-this); this page
 starts with what the weaver does, because that is the form everything else is
 described against.
@@ -57,7 +57,7 @@ There is no `Property`, no `set`/`get`, no listener registration, and no
 a module into a `WidgetCatalog`, declares it in the module descriptor, and
 `Widgets.inflater(...)` finds every catalog on the path. A module that ships
 widgets is found by an application that never names it
-([ADR-0131](adr/0131-a-widget-package-announces-itself.md)).
+([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
 
 ## What the weaver actually does
 
@@ -70,7 +70,7 @@ its output, using the JDK 25 class-file API (JEP 484). For the class above,
 3. every `putfield gain` rewritten into a call to it — in that class and in any
    other class in the same build that assigns to it, which is what lets an
    `@Actions` class beside the model change its values
-   ([ADR-0134](adr/0134-a-write-is-rewritten-wherever-it-is.md));
+   ([ADR-0134](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md));
 4. `bindings()` and `actions()`, built from the annotations, the second as one
    `invokedynamic` per action bootstrapped by `LambdaMetafactory`.
 
@@ -90,13 +90,13 @@ not virtual, so no subclass and no proxy can see one — **the class that declar
 the field is the only place the write can be observed.** Doing that to the
 compiled class in the build is the one option that needs no `-javaagent`, no
 `opens`, and nothing generated at runtime, which is also what lets the result go
-into a GraalVM native image ([ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md)).
+into a GraalVM native image ([ADR-0127](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0127-the-binding-schema-fits-a-closed-world.md)).
 
 ## You probably do not need to run any of this
 
 **Model weaving is for a native image.** An ordinary jar binds the same
 annotations at run time and needs no build step at all
-([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
+([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
 
 | | Woven | Bound at run time |
 |---|---|---|
@@ -207,7 +207,7 @@ wrote.
 
 The catalog half has no runtime equivalent and never will: finding annotated
 classes while the program runs means scanning the path, which is the thing a
-`provides` exists to avoid ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)).
+`provides` exists to avoid ([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
 So a module that ships widgets runs the weaver whatever it is building; a module
 that only keeps a model runs it only for an image.
 
@@ -357,7 +357,7 @@ jar.
 | `static` `@Bind` field | A binding belongs to an instance; a static one is shared by every window in the process |
 | `final` `@Bind` field (unless a `Property`) | A value that cannot change is not something to subscribe to |
 | an array | Only the *assignment* is observed, so `values[0] = x` would notify nobody. Hold a `List` and assign a new one |
-| a path that is not `a.b.c` | The grammar `Bindings` enforces at runtime, checked first ([ADR-0062](adr/0062-bind-is-a-path-and-nothing-else.md)) |
+| a path that is not `a.b.c` | The grammar `Bindings` enforces at runtime, checked first ([ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)) |
 | two members claiming one name | Two features quietly sharing one name presents as a value changing by itself |
 | an `@Action` taking two arguments | A control reports either *that* something happened or *what* it should become, never both |
 | an `@Action` parameter that is not `String`, `double`, `int`, `boolean` or a box | A valued action crosses as the string the document wrote down |
@@ -386,4 +386,4 @@ registry prints when it refuses a name.
 **Reading through a binding boxes a primitive.** `Models.observable(model,
 "app.gain").get()` on an `int` field allocates, where the old `Property<Integer>`
 handed back a box it already held. Writes got faster and reads got slower; the
-numbers are in [ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md).
+numbers are in [ADR-0125](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md).

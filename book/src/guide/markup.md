@@ -31,7 +31,7 @@ return it from `root()`.
 
 Goldberry parses [KDL 2.0](https://github.com/kdl-org/kdl/blob/main/SPEC.md)
 with a parser of its own, so that every node carries its line and column
-([ADR-0051](../adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
+([ADR-0051](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
 
 ```kdl
 // A node is a name, then arguments, then properties, then a child block.
@@ -86,14 +86,14 @@ twice.
 Widget names need no registration. Every module that ships `@Markup` widgets
 announces its catalogue as a service, and `Widgets.inflater` finds every
 catalogue on the path
-([ADR-0131](../adr/0131-a-widget-package-announces-itself.md)). A module you
+([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)). A module you
 never name still contributes its node names.
 
 ## The four registries
 
 A document names things it cannot build. Each kind of name resolves against a
 registry of its own, and the four answer four different questions
-([ADR-0170](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
+([ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
 
 | Attribute | Registry | What the name is | Where it comes from |
 |---|---|---|---|
@@ -106,7 +106,7 @@ registry of its own, and the four answer four different questions
 `Widgets.inflater(icons, models...)` reads the first two registries off the
 models themselves and keeps the icons explicit, because an icon is parsed and
 scaled to one size and markup must not be able to build one per reload
-([ADR-0043](../adr/0043-icons-are-stroked-paths.md)).
+([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)).
 `Widgets.inflater(named, icons, models...)` adds the fourth.
 
 > [!IMPORTANT]
@@ -127,7 +127,7 @@ no icon named "pluss" is registered. Registered: plus, palette
 
 That is the point of a registry: `press="delte"` is a typo, and a button that
 silently does nothing is the hardest kind of bug to notice
-([ADR-0062](../adr/0062-bind-is-a-path-and-nothing-else.md)).
+([ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
 
 A lenient registry resolves an unknown name to nothing. That is what a preview
 or a golden image wants, and `Widgets.inflater()` with no arguments binds
@@ -153,9 +153,9 @@ dots — `frost`, `prefs.frost`. Expressions are not part of the markup contract
 Negation, formatting and arithmetic stay in Java, where they are already
 testable. A bound widget is handed an `Observable` with no `set`, so markup
 reads a value and cannot write it. What the user did goes back up as an action
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)). The path and the
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). The path and the
 Java lookup `Models.observable(settings, "app.gain")` are one name against one
-registry ([ADR-0129](../adr/0129-a-value-is-named-one-way.md)).
+registry ([ADR-0129](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0129-a-value-is-named-one-way.md)).
 
 ## The attributes every node has
 
@@ -236,8 +236,8 @@ names an action and cannot be one.
 
 A document is data. It has no loop, no conditional, and no way to build a
 widget from a list. Those are Java, in a `build` method
-([ADR-0222](../adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
-[ADR-0110](../adr/0110-the-showcase-is-a-gallery-of-screens.md)):
+([ADR-0222](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
+[ADR-0110](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)):
 
 ```java
 @Override public Widget build(BuildContext context) {
@@ -273,10 +273,10 @@ own commands live on a record of `Runnable`s beside the view model
 
 ## Read more
 
-- [ADR-0051](../adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md): the parser, and why reloading is forgiving
-- [ADR-0062](../adr/0062-bind-is-a-path-and-nothing-else.md): a `bind` is a path
-- [ADR-0063](../adr/0063-data-flows-down-events-flow-up.md): one-way binding
-- [ADR-0129](../adr/0129-a-value-is-named-one-way.md): one name for a value
-- [ADR-0131](../adr/0131-a-widget-package-announces-itself.md): catalogues as services
-- [ADR-0170](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md): the fourth registry
+- [ADR-0051](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md): the parser, and why reloading is forgiving
+- [ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md): a `bind` is a path
+- [ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md): one-way binding
+- [ADR-0129](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0129-a-value-is-named-one-way.md): one name for a value
+- [ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md): catalogues as services
+- [ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md): the fourth registry
 - [Model weaving](../weaving.md): what the build does to a model

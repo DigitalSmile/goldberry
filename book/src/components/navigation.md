@@ -6,7 +6,7 @@ All three share one model. There is an ordered list, a current index, and a set
 of entries the application says are reachable. The widget draws the picture.
 The application moves the index. None of them decides on its own where the
 user may go next
-([ADR-0344](../adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
+([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
 
 ## `breadcrumbs`
 
@@ -33,7 +33,7 @@ new Breadcrumbs(
 
 The trail decides which crumb is current. It is always the last one written, so
 a document cannot mark one and a Java caller cannot either
-([ADR-0306](../adr/0306-the-last-crumb-is-where-you-are.md)). A trail longer
+([ADR-0306](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0306-the-last-crumb-is-where-you-are.md)). A trail longer
 than `collapse-after` keeps its first crumb and its tail and folds the middle
 into a `…` button. Pressing that button opens a menu of the hidden crumbs.
 
@@ -65,7 +65,7 @@ Only a crumb that has a `press` and is not current is a Tab stop.
 
 **Read more**
 
-- [ADR-0306: The last crumb is where you are](../adr/0306-the-last-crumb-is-where-you-are.md)
+- [ADR-0306: The last crumb is where you are](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0306-the-last-crumb-is-where-you-are.md)
 
 ### `crumb`
 
@@ -120,7 +120,7 @@ rest are upcoming, unless a step says `error`. The widget writes those four
 words as classes and never decides where the user may go: `clickable` raises a
 `change` with the index of a step the application marked `reachable`, and
 refuses the rest
-([ADR-0344](../adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
+([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
 
 **Attributes**
 
@@ -145,7 +145,7 @@ the current one also matches `:checked`. Its parts are `step-marker`,
 `step-body`, `step-label` and `step-description`. Between steps sits a
 `step-connector` holding a `step-connector-fill`, which scales from the step
 before it when that step is done
-([ADR-0356](../adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)).
+([ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)).
 The marker is a 24px disc with a 2px ring: the accent when current, `--gb-success`
 with a tick when done, `--gb-danger` with a cross on error, the ring alone
 when upcoming.
@@ -161,8 +161,8 @@ takes no arrow keys.
 
 **Read more**
 
-- [ADR-0344: A list of steps writes where each one stands](../adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
-- [ADR-0356: A connector grows from where you were](../adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+- [ADR-0344: A list of steps writes where each one stands](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
+- [ADR-0356: A connector grows from where you were](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 
 ### `step`
 
@@ -225,7 +225,7 @@ new Wizard(current,
 Back, Next and Finish only call their handlers. The application moves
 `current`, by rebuilding with a new index or by setting the bound value, and a
 wizard that will not advance is an application that did not move it
-([ADR-0344](../adr/0344-a-list-of-steps-writes-where-each-one-stands.md)). A
+([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)). A
 page the index has passed is done. A page marked `error` is drawn so in the
 indicator. Only the current page's children are built, and when the page
 changes the keyboard moves into the new content.
@@ -267,7 +267,7 @@ the indicator takes what [`steps`](#steps) takes when `go-to` is wired.
 
 **Read more**
 
-- [ADR-0344: A list of steps writes where each one stands, and a wizard moves nothing](../adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
+- [ADR-0344: A list of steps writes where each one stands, and a wizard moves nothing](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
 
 ### `page`
 

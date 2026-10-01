@@ -14,18 +14,18 @@ A field holds its own text, caret, selection and undo stack. None of those are
 things a model can hold, so `bind=` is the initial text and an override, and
 `change=` reports each new value. The field ignores the echo of its own
 keystroke rather than resetting the caret on every letter
-([ADR-0167](../adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)).
+([ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)).
 
 An input method composes inline. The composition is drawn underlined at the
 caret with its converting clause highlighted, held beside the value rather than
 in it, so `change=` fires once for the accepted candidate and not once per
 keystroke. A `password` refuses to compose, because a candidate window is a
 second, unmasked window showing what is being typed. Committed text still
-arrives ([ADR-0292](../adr/0292-a-field-composes-and-a-password-does-not.md)).
+arrives ([ADR-0292](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0292-a-field-composes-and-a-password-does-not.md)).
 
 Right-to-left editing is not built. A paragraph approximates bidirectional
 text rather than refusing it
-([ADR-0218](../adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
+([ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
 
 ## `text-input`
 
@@ -67,7 +67,7 @@ Suggestions under a field are `TextInput.suggesting(options)` in Java. The
 field reports what was typed through `change`, is rebuilt with a list, and
 reports a chosen suggestion through the same `change`. In markup,
 `suggestions=` names a bound `List<Option>` the answer lands in
-([ADR-0367](../adr/0367-a-document-places-a-list-it-cannot-describe.md)).
+([ADR-0367](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)).
 
 ### Attributes
 
@@ -95,17 +95,17 @@ reports a chosen suggestion through the same `change`. In markup,
 
 Height 32, padding 8, radius 4, in `body`. The fill is `--gb-surface-sunken`,
 an alpha, so a field is one step below the page, a panel or a card alike
-([ADR-0168](../adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)). The
+([ADR-0168](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)). The
 caret and the selection are one line tall, and the caret is
 `--gb-caret-width` wide
-([ADR-0253](../adr/0253-a-caret-is-as-wide-as-the-theme-says.md)).
+([ADR-0253](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0253-a-caret-is-as-wide-as-the-theme-says.md)).
 `text-align` places the value in the field and the caret with it
-([ADR-0324](../adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)).
+([ADR-0324](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0324-a-field-draws-the-text-its-stylesheet-resolved.md)).
 
 ### Keyboard
 
 One key map serves `text-input`, `text-area` and the canvas `Editor`
-([ADR-0376](../adr/0376-one-key-map-three-editors.md)).
+([ADR-0376](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0376-one-key-map-three-editors.md)).
 
 | Key | Does |
 |---|---|
@@ -124,16 +124,16 @@ and `Ctrl` elsewhere. Word movement stays on `Ctrl` everywhere.
 
 A click places the caret and a drag is a selection. Where the platform has a
 primary selection, a finished selection is published and a middle click pastes
-it at the pointer ([ADR-0504](../adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)).
+it at the pointer ([ADR-0504](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)).
 
 ### Read more
 
-- [ADR-0167: a field owns its caret and the model is told](../adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- [ADR-0168: a field is a well and a drag is a selection](../adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
-- [ADR-0292: a field composes and a password does not](../adr/0292-a-field-composes-and-a-password-does-not.md)
-- [ADR-0376: one key map, three editors](../adr/0376-one-key-map-three-editors.md)
-- [ADR-0412: a field shows its beginning](../adr/0412-a-field-shows-its-beginning.md)
-- [ADR-0504: a selection is published where the platform has a primary selection](../adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)
+- [ADR-0167: a field owns its caret and the model is told](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- [ADR-0168: a field is a well and a drag is a selection](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+- [ADR-0292: a field composes and a password does not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0292-a-field-composes-and-a-password-does-not.md)
+- [ADR-0376: one key map, three editors](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0376-one-key-map-three-editors.md)
+- [ADR-0412: a field shows its beginning](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0412-a-field-shows-its-beginning.md)
+- [ADR-0504: a selection is published where the platform has a primary selection](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0504-a-selection-is-published-where-the-platform-has-a-primary-selection.md)
 
 ## `text-area`
 
@@ -169,7 +169,7 @@ new Column(
 **`gutter=#true`** numbers the lines you typed, at the positions the wrap put
 them. A paragraph that soft-wraps into three lines takes one number and three
 lines' height, which is why a column of numbers built beside the control does
-not work ([ADR-0331](../adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)).
+not work ([ADR-0331](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)).
 
 **`fill=#true`** makes it an editor rather than a field: it takes the height
 its container gives it and scrolls inside that.
@@ -178,7 +178,7 @@ its container gives it and scrolls inside that.
 `change=` says what the text is now and nothing about where. `onEdit` is told
 a `TextEdit` of text, anchor and caret after every change, caret moves
 included, and `edit(TextEdit)` offers an edit the application computed, caret
-and all ([ADR-0332](../adr/0332-an-editor-is-handed-the-caret.md)). A
+and all ([ADR-0332](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0332-an-editor-is-handed-the-caret.md)). A
 `TextEdit` is not a value a document can write.
 
 ### Attributes
@@ -208,7 +208,7 @@ Minimum height 64, padding 8, radius 4. The gutter's ink is
 `--gb-gutter-color` and its room is `--gb-gutter-gap`, and the column is
 measured in whatever font the node resolved, which is why the showcase gives a
 gutter `class="mono"`. Past `max-rows` it draws `scroll`'s overlay bar over its
-own offset ([ADR-0362](../adr/0362-a-text-area-draws-scrolls-bar.md)).
+own offset ([ADR-0362](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0362-a-text-area-draws-scrolls-bar.md)).
 
 The height is the widget's and not the stylesheet's, because it is a function
 of how many lines the text wrapped into.
@@ -227,11 +227,11 @@ of how many lines the text wrapped into.
 
 ### Read more
 
-- [ADR-0171: a column is an x, and a width arrives late](../adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-- [ADR-0331: a gutter numbers hard lines at soft positions](../adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)
-- [ADR-0332: an editor is handed the caret](../adr/0332-an-editor-is-handed-the-caret.md)
-- [ADR-0362: a text-area draws scroll's bar](../adr/0362-a-text-area-draws-scrolls-bar.md)
-- [ADR-0388: a note is shaped a line at a time](../adr/0388-a-note-is-shaped-a-line-at-a-time.md)
+- [ADR-0171: a column is an x, and a width arrives late](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- [ADR-0331: a gutter numbers hard lines at soft positions](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)
+- [ADR-0332: an editor is handed the caret](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0332-an-editor-is-handed-the-caret.md)
+- [ADR-0362: a text-area draws scroll's bar](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0362-a-text-area-draws-scrolls-bar.md)
+- [ADR-0388: a note is shaped a line at a time](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md)
 
 ## `field`
 
@@ -278,7 +278,7 @@ nothing while the user is still in it, however wrong the value is. Once it has
 complained, it re-checks on every change so the message goes the instant the
 value is fixed. Submitting is the third moment, and the only one that makes an
 unvisited field speak
-([ADR-0169](../adr/0169-a-field-is-silent-until-you-leave-it.md)).
+([ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)).
 
 A validator returns a message, not a boolean, because a field that goes red
 without saying why is one somebody has to guess at. `required=#true` is
@@ -291,7 +291,7 @@ The field reads its value from the control's own `bind=`. It walks its
 children one level, so a hint under the control is not what gets validated.
 
 A click on the label focuses the control
-([ADR-0170](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
+([ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
 
 ### Attributes
 
@@ -318,7 +318,7 @@ Stacked is the default. The label column's width is `--gb-field-label-width`,
 one token, so an application moves every form at once. A field is two boxes
 because the subset has no grid: a label beside a body is a row, and a message
 under a control is a column
-([ADR-0169](../adr/0169-a-field-is-silent-until-you-leave-it.md)).
+([ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)).
 
 ### Keyboard
 
@@ -326,9 +326,9 @@ None of its own. The controls inside it have theirs.
 
 ### Read more
 
-- [ADR-0169: a field is silent until you leave it](../adr/0169-a-field-is-silent-until-you-leave-it.md)
-- [ADR-0170: a document names an object, and a label hands focus down](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- [ADR-0229: a hue has a rank for words as well as for lines](../adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md)
+- [ADR-0169: a field is silent until you leave it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)
+- [ADR-0170: a document names an object, and a label hands focus down](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- [ADR-0229: a hue has a rank for words as well as for lines](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md)
 
 ## `form`
 
@@ -364,7 +364,7 @@ the form. `submit()` makes every field check, returns whether all passed, and
 runs `submit=` when they did. `submit` carries nothing: `bind=` reads from the
 application's model, so an event carrying the bound values would hand an
 application its own data back
-([ADR-0169](../adr/0169-a-field-is-silent-until-you-leave-it.md)).
+([ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)).
 
 The fields are anywhere in the subtree: inside rows, inside cards, inside a
 `collapse`.
@@ -391,8 +391,8 @@ None. `Enter` in a field does not submit. A button's action calls
 
 ### Read more
 
-- [ADR-0169: a field is silent until you leave it](../adr/0169-a-field-is-silent-until-you-leave-it.md)
-- [ADR-0170: a document names an object, and a label hands focus down](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- [ADR-0169: a field is silent until you leave it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)
+- [ADR-0170: a document names an object, and a label hands focus down](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 
 ## `code-input`
 
@@ -426,7 +426,7 @@ The value is a string and the boxes are a drawing. There is no caret and no
 per-box array: the active box is the first empty one, derived on every frame.
 Typing appends, a paste of `123 456` drops the spaces and fills every box at
 once, and `complete` fires on the edit that filled the last box
-([ADR-0273](../adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)).
+([ADR-0273](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)).
 A character the type refuses is dropped rather than rejecting the whole paste.
 
 ### Attributes
@@ -467,7 +467,7 @@ not built, because a masked code must not have a way out.
 
 ### Read more
 
-- [ADR-0273: a code is a string and the boxes are a drawing](../adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
+- [ADR-0273: a code is a string and the boxes are a drawing](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 
 ## `date-picker`
 
@@ -497,7 +497,7 @@ one path and is parsed in one place. A date outside `min` and `max`, or one the
 the field unparsed rather than deleted. Parsing and formatting use the
 locale's short form, `DateFormat.of(locale)`, and the toolkit invents no date
 syntax of its own
-([ADR-0274](../adr/0274-a-calendar-is-told-what-day-it-is.md)).
+([ADR-0274](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0274-a-calendar-is-told-what-day-it-is.md)).
 
 The month is an argument and `today` may be null. Nothing in the catalogue
 reads the machine's clock, so a picker that opened on "this month" would be
@@ -546,9 +546,9 @@ selected day.
 
 ### Read more
 
-- [ADR-0274: a calendar is told what day it is](../adr/0274-a-calendar-is-told-what-day-it-is.md)
-- [ADR-0170: a document names an object, and a label hands focus down](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- [ADR-0203: a time axis is time, not a relabelled index](../adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
+- [ADR-0274: a calendar is told what day it is](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0274-a-calendar-is-told-what-day-it-is.md)
+- [ADR-0170: a document names an object, and a label hands focus down](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- [ADR-0203: a time axis is time, not a relabelled index](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
 
 ## `time-picker`
 
@@ -574,7 +574,7 @@ TimePicker.of(Models.observable(trip, "trip.time"), actions::setTime)
 Each column is a wheel: five rows centred on the value, wrapping at both ends,
 so `58 59 00 01 02` says what comes next. The wheels report on every turn,
 because there is no unchosen state for an hour
-([ADR-0275](../adr/0275-a-wheel-is-a-column-that-wraps.md)). `precision=` is
+([ADR-0275](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0275-a-wheel-is-a-column-that-wraps.md)). `precision=` is
 which columns the picker has, and the default format follows it. In Java,
 `onChange` receives a `LocalTime`, or null when the field is cleared. From
 markup, `change` carries the formatted text.
@@ -623,8 +623,8 @@ The arrows split by axis where a calendar's do not.
 
 ### Read more
 
-- [ADR-0275: a wheel is a column that wraps](../adr/0275-a-wheel-is-a-column-that-wraps.md)
-- [ADR-0274: a calendar is told what day it is](../adr/0274-a-calendar-is-told-what-day-it-is.md)
+- [ADR-0275: a wheel is a column that wraps](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0275-a-wheel-is-a-column-that-wraps.md)
+- [ADR-0274: a calendar is told what day it is](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0274-a-calendar-is-told-what-day-it-is.md)
 
 ## `color-picker`
 
@@ -653,7 +653,7 @@ The plane, the ramps and the presets all write hex into the field, so a value
 takes one path and is parsed in one place. The plane is HSV, because a
 saturation and value plane is HSV, and a colour with no saturation keeps its
 hue beside the hex so the hue ramp does not swing to red at the left edge
-([ADR-0276](../adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)).
+([ADR-0276](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)).
 
 `alpha` is off by default and refuses in both directions: a picker with no
 way to change alpha must not report one, so a translucent value is gated to
@@ -694,4 +694,4 @@ subset has no gradient.
 
 ### Read more
 
-- [ADR-0276: a plane is HSV and the hex is the value](../adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
+- [ADR-0276: a plane is HSV and the hex is the value](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)

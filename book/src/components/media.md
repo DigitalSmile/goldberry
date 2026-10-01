@@ -15,13 +15,13 @@ codecs a build decodes.
 
 The widgets are in `goldberry-media`. FFmpeg is driven from Java through the
 Foreign Function and Memory API, with no libVLC and no JNI
-([ADR-0460](../adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)). The
+([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)). The
 natives are published as classifier jars of the same artifact, one per target:
 `ffmpeg-linux-x64`, `ffmpeg-linux-aarch64`, `ffmpeg-windows-x64` and
 `ffmpeg-macos-aarch64`. An application names the ones it ships
-([ADR-0495](../adr/0495-media-is-published-and-snapshots-publish-again.md)), and
+([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)), and
 FFmpeg's source is published beside them as the `ffmpeg-sources` classifier
-([ADR-0508](../adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md)).
+([ADR-0508](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md)).
 
 Add the stylesheet beside the controls' own:
 
@@ -59,7 +59,7 @@ for a picture at a time, and `close`.
 
 In markup a player is a named object. The application registers it and a node
 names it with `player=`
-([ADR-0170](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)):
+([ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)):
 
 ```java
 var named = Named.strict().bind("video.player", player);
@@ -75,33 +75,33 @@ documents.
 A source with two voices or two angles offers a track menu, and
 `player.selectTrack(track)` switches over the same frame queue, so the old
 picture stays up until the new track's picture covers the position
-([ADR-0467](../adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md),
-[ADR-0469](../adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)).
+([ADR-0467](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md),
+[ADR-0469](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)).
 Text subtitles are read in Java from a SubRip, WebVTT, ASS or MP4 text track, or
 from a SubRip or WebVTT file through `player.loadSubtitles(source)`.
 `hideSubtitles()` turns them off and `currentSubtitles()` is what shows at the
 clock
-([ADR-0468](../adr/0468-text-subtitles-are-read-in-java.md)). Bitmap subtitles
+([ADR-0468](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0468-text-subtitles-are-read-in-java.md)). Bitmap subtitles
 are not built.
 
 A URL is read through a cache and buffered to a high-water mark, which the seek
 bar shades, and a live stream's ICY title is the player's `nowPlaying` line
-([ADR-0465](../adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)).
+([ADR-0465](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)).
 With no audio device, media plays silently
-([ADR-0487](../adr/0487-with-no-audio-device-media-plays-silently.md)).
+([ADR-0487](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0487-with-no-audio-device-media-plays-silently.md)).
 
 ### Bringing a codec
 
 H.264, HEVC, AAC, AC-3 and E-AC-3 are not in the published natives. They play
 through the operating system's own decoders, which are `DecoderProvider`s
 found by `ServiceLoader` and consulted before FFmpeg's
-([ADR-0472](../adr/0472-the-platform-decoders-bind-the-system-frameworks.md),
-[ADR-0493](../adr/0493-the-platform-decoders-are-part-of-media.md)):
+([ADR-0472](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0472-the-platform-decoders-bind-the-system-frameworks.md),
+[ADR-0493](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0493-the-platform-decoders-are-part-of-media.md)):
 
 | Provider | Codecs | System |
 |---|---|---|
 | `videotoolbox`, `audiotoolbox` | H.264, HEVC; AAC, AC-3, E-AC-3 | macOS |
-| `gstreamer-video`, `gstreamer-audio` | The same, with the decoders installed | Linux ([ADR-0489](../adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)) |
+| `gstreamer-video`, `gstreamer-audio` | The same, with the decoders installed | Linux ([ADR-0489](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)) |
 | `mediafoundation-video`, `mediafoundation-audio` | The same | Windows, written and not yet run there |
 
 An application brings its own codec the same way: implement `DecoderProvider`
@@ -114,7 +114,7 @@ provider for a patented codec holds the licence for it.
 Hardware decoding is a rung of the built-in decoder: on by default on macOS and
 Windows, switched with `setHardwareDecoding(HardwareDecoding.AUTO)` or `OFF`,
 and applied from the next source opened
-([ADR-0470](../adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)).
+([ADR-0470](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)).
 
 ## `media-player`
 
@@ -139,7 +139,7 @@ file says which codecs it could not play. Subtitles are lines over the foot of
 the picture, above the controls while they show and lower while they hide. `F`
 asks the window to fill its display, and a copy of the player covers the window
 with the class `is-fullscreen`
-([ADR-0473](../adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)).
+([ADR-0473](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)).
 
 ### Attributes
 
@@ -174,9 +174,9 @@ fullscreen.
 
 ### Read more
 
-- [ADR-0463: Video is converted as it is decoded and paced by the picture](../adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
-- [ADR-0468: Text subtitles are read in Java](../adr/0468-text-subtitles-are-read-in-java.md)
-- [ADR-0473: A window is fullscreen when the platform says so](../adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)
+- [ADR-0463: Video is converted as it is decoded and paced by the picture](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
+- [ADR-0468: Text subtitles are read in Java](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0468-text-subtitles-are-read-in-java.md)
+- [ADR-0473: A window is fullscreen when the platform says so](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)
 
 ## `video-view`
 
@@ -198,7 +198,7 @@ The view follows the player's status. A picture a paused seek lands on is shown
 when it is ready, and while the player plays it draws a new picture every frame.
 With `goldberry-gpu` on the module path the pictures go through a GPU layer, and
 a shader converts them from their planes with the stream's matrix and range
-([ADR-0484](../adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+([ADR-0484](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
 Without it, or where the layer cannot be placed, the view draws converted
 pictures on the CPU.
 
@@ -225,9 +225,9 @@ None of its own. Put a `media-controls` beside it.
 
 ### Read more
 
-- [ADR-0483: Video pictures wait as planes for a view that uploads them](../adr/0483-video-pictures-wait-as-planes-for-a-view-that-uploads-them.md)
-- [ADR-0484: video-view shows its pictures through a GPU layer when gpu is present](../adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)
-- [ADR-0485: The audio clock never jumps and 4K60 plays every picture](../adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)
+- [ADR-0483: Video pictures wait as planes for a view that uploads them](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0483-video-pictures-wait-as-planes-for-a-view-that-uploads-them.md)
+- [ADR-0484: video-view shows its pictures through a GPU layer when gpu is present](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)
+- [ADR-0485: The audio clock never jumps and 4K60 plays every picture](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)
 
 ## `audio-player`
 
@@ -271,9 +271,9 @@ As `media-controls`, without the picture keys.
 
 ### Read more
 
-- [ADR-0462: Media audio leaves through a sink and SDL](../adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)
-- [ADR-0465: Network media is read through a cache and buffered to a high-water mark](../adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)
-- [ADR-0474: The audio clock is what is heard](../adr/0474-the-audio-clock-is-what-is-heard.md)
+- [ADR-0462: Media audio leaves through a sink and SDL](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)
+- [ADR-0465: Network media is read through a cache and buffered to a high-water mark](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0465-network-media-is-read-through-a-cache-and-buffered-to-a-high-water-mark.md)
+- [ADR-0474: The audio clock is what is heard](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0474-the-audio-clock-is-what-is-heard.md)
 
 ## `media-controls`
 
@@ -326,6 +326,6 @@ to the bar from a control inside it that does not want it.
 
 ### Read more
 
-- [ADR-0467: An audio track is switched by retiring its thread and seeking](../adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md)
-- [ADR-0469: A video track is switched over the same frame queue](../adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)
-- [ADR-0470: Hardware decode is a rung of the built-in decoder, copied back](../adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)
+- [ADR-0467: An audio track is switched by retiring its thread and seeking](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0467-an-audio-track-is-switched-by-retiring-its-thread-and-seeking.md)
+- [ADR-0469: A video track is switched over the same frame queue](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0469-a-video-track-is-switched-over-the-same-frame-queue.md)
+- [ADR-0470: Hardware decode is a rung of the built-in decoder, copied back](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0470-hardware-decode-is-a-rung-of-the-built-in-decoder-copied-back.md)

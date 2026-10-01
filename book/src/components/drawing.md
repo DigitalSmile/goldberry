@@ -38,7 +38,7 @@ A `Painter` is `paint(Frame frame, LogicalSize size)`. The frame's origin is the
 canvas's top-left and the clip is its content box, so a painter cannot escape
 its bounds. The toolkit brackets the call in `save` and `restore`, so a painter
 may set a clip or a transform and leave it set
-([ADR-0193](../adr/0193-a-canvas-is-a-second-clip-depth.md)). It runs on the UI
+([ADR-0193](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)). It runs on the UI
 thread inside the frame, so it must not block and must not keep the frame.
 
 ```java
@@ -63,15 +63,15 @@ and factories `line`, `polyline`, `rect`, `roundRect`, `ellipse`, `circle` and
 `arc`. A path is a value, so `path.rotated(radians, cx, cy)`,
 `translated`, `scaled` and `transformed(affine)` make a turned copy, and
 `frame.concat` composes a transform onto the one the canvas already has
-([ADR-0390](../adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)).
+([ADR-0390](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)).
 A `Stroke` is `of(width)` or `round(width)`, with `cap`, `join`, `dashed(on, off)`
 and `dash(Dash)`. A dash is the toolkit's own arithmetic
-([ADR-0278](../adr/0278-a-dash-is-goldberrys-arithmetic-and-not-the-rasterizers.md)).
+([ADR-0278](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0278-a-dash-is-goldberrys-arithmetic-and-not-the-rasterizers.md)).
 
 A three-parameter painter is a `StyledPainter` and is handed a `CanvasStyle`:
 the node's resolved `font` and `ink`, this frame's `nowMillis`, and
 `reducedMotion`. So `canvas { color: var(--gb-text) }` reaches the drawing
-([ADR-0288](../adr/0288-a-painter-is-told-what-the-cascade-resolved.md)).
+([ADR-0288](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0288-a-painter-is-told-what-the-cascade-resolved.md)).
 
 ```java
 new Canvas((frame, size, style) -> {
@@ -81,7 +81,7 @@ new Canvas((frame, size, style) -> {
 
 A canvas is painted once and left there. `animating` asks for the next frame
 for as long as a predicate over the same `CanvasStyle` says so
-([ADR-0348](../adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)):
+([ADR-0348](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)):
 
 ```java
 new Canvas(floor::paint).animating(style -> style.nowMillis() - mounted < SETTLE_MILLIS);
@@ -92,7 +92,7 @@ new Canvas(floor::paint).animating(style -> style.nowMillis() - mounted < SETTLE
 An `Input` beside the painter makes the canvas hear the pointer and the keyboard.
 The events are the toolkit's own `PointerEvent` and `KeyEvent`, and
 `event.content()` is measured from the corner the painter draws at
-([ADR-0281](../adr/0281-a-canvas-hears-what-it-draws-on.md)).
+([ADR-0281](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0281-a-canvas-hears-what-it-draws-on.md)).
 
 ```java
 new Canvas(board::paint, new Input() {
@@ -137,12 +137,12 @@ true. Keys reach `onKey`. A canvas with no input is not a Tab stop.
 
 ### Read more
 
-- [ADR-0193: A canvas is a second clip depth](../adr/0193-a-canvas-is-a-second-clip-depth.md)
-- [ADR-0277: A path is a value and the rasterizer's is package-private](../adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md)
-- [ADR-0281: A canvas hears what it draws on](../adr/0281-a-canvas-hears-what-it-draws-on.md)
-- [ADR-0288: A painter is told what the cascade resolved](../adr/0288-a-painter-is-told-what-the-cascade-resolved.md)
-- [ADR-0348: A canvas asks for its next frame with what it was painted with](../adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)
-- [ADR-0390: A turned shape is a path and the frame can compose](../adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)
+- [ADR-0193: A canvas is a second clip depth](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)
+- [ADR-0277: A path is a value and the rasterizer's is package-private](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md)
+- [ADR-0281: A canvas hears what it draws on](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0281-a-canvas-hears-what-it-draws-on.md)
+- [ADR-0288: A painter is told what the cascade resolved](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0288-a-painter-is-told-what-the-cascade-resolved.md)
+- [ADR-0348: A canvas asks for its next frame with what it was painted with](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0348-a-canvas-asks-for-its-next-frame-with-what-it-was-painted-with.md)
+- [ADR-0390: A turned shape is a path and the frame can compose](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0390-a-turned-shape-is-a-path-and-the-frame-can-compose.md)
 
 ## `image`
 
@@ -174,15 +174,15 @@ decodes each source once per process, so ten thumbnails of one file decode
 once. While the pixels are on their way the box carries `.loading`. When they
 cannot be decoded it carries `.error` and shows Lucide's `image-off` with the
 alt text
-([ADR-0358](../adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)).
+([ADR-0358](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)).
 
 The record is `ImageView`. The Java name differs from the markup name because
 `Image` is the decoded value in `dev.goldberry.image`, which an application
 holds, pastes and encodes without a widget
-([ADR-0283](../adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)).
+([ADR-0283](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)).
 The format comes from the bytes: PNG, JPEG, QOI, WebP and GIF decode, and an
 animated GIF decodes to its first frame
-([ADR-0329](../adr/0329-two-more-codecs-one-fetched-and-one-written.md)).
+([ADR-0329](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0329-two-more-codecs-one-fetched-and-one-written.md)).
 
 > [!IMPORTANT]
 > An image needs `alt` text or `decorative=#true`, and is refused when it has
@@ -227,10 +227,10 @@ None. An image is not focusable.
 
 ### Read more
 
-- [ADR-0283: An image is a value](../adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)
-- [ADR-0329: Two more codecs, one fetched and one written](../adr/0329-two-more-codecs-one-fetched-and-one-written.md)
-- [ADR-0358: An image loads off the frame and is its own size](../adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
-- [ADR-0385: WebP is written and animated](../adr/0385-webp-is-written-and-animated.md)
+- [ADR-0283: An image is a value](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md)
+- [ADR-0329: Two more codecs, one fetched and one written](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0329-two-more-codecs-one-fetched-and-one-written.md)
+- [ADR-0358: An image loads off the frame and is its own size](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0358-an-image-loads-off-the-frame-and-is-its-own-size.md)
+- [ADR-0385: WebP is written and animated](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0385-webp-is-written-and-animated.md)
 
 An SVG does not decode. It is routed to a `goldberry-vector` module that does
 not exist, and shows the error state.
@@ -255,7 +255,7 @@ new QrCode(link, Level.L, 4, Attributes.NONE.id("qr-low"));
 The encoder is the toolkit's own, in `dev.goldberry.image.qr` beside the image
 codecs, and `QrEncoder.encode(payload, level)` returns the same `QrMatrix` with
 no widget
-([ADR-0494](../adr/0494-the-qr-encoder-is-an-image-format.md)). The widget
+([ADR-0494](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0494-the-qr-encoder-is-an-image-format.md)). The widget
 divides its box into a whole number of device pixels per module and turns the
 remainder into margin, so what changes between 100 % and 200 % is how many
 pixels a module is, never whether its edge lands on one. A box too small for one
@@ -291,5 +291,5 @@ None. A code is a figure.
 
 ### Read more
 
-- [ADR-0391: A QR code is a specification and a grid of squares](../adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md)
-- [ADR-0494: The QR encoder is an image format](../adr/0494-the-qr-encoder-is-an-image-format.md)
+- [ADR-0391: A QR code is a specification and a grid of squares](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md)
+- [ADR-0494: The QR encoder is an image format](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0494-the-qr-encoder-is-an-image-format.md)

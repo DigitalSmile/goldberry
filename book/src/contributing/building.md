@@ -22,16 +22,16 @@ Check for them first:
 ./gradlew :natives:checkToolchain
 ```
 
-The task prints the absolute path and version of each tool it will use, and names the packages to install if anything is absent. On Linux it also names the desktop development headers SDL needs, in terms of `apt` or `dnf`. The reasoning behind that list is [ADR-0082](../adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md).
+The task prints the absolute path and version of each tool it will use, and names the packages to install if anything is absent. On Linux it also names the desktop development headers SDL needs, in terms of `apt` or `dnf`. The reasoning behind that list is [ADR-0082](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md).
 
-The tools are searched for on the `PATH` first and then in the usual install directories. A Homebrew, MacPorts, `CMake.app` or `pip install --user` toolchain is found even from a Gradle daemon that an IDE started with a bare `PATH`. [ADR-0040](../adr/0040-find-the-native-tools-by-absolute-path.md) explains why that matters. To point at a tool somewhere else:
+The tools are searched for on the `PATH` first and then in the usual install directories. A Homebrew, MacPorts, `CMake.app` or `pip install --user` toolchain is found even from a Gradle daemon that an IDE started with a bare `PATH`. [ADR-0040](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0040-find-the-native-tools-by-absolute-path.md) explains why that matters. To point at a tool somewhere else:
 
 ```sh
 ./gradlew build -Pgoldberry.cmake=/path/to/cmake    # also -Pgoldberry.ninja
 ```
 
 > [!CAUTION]
-> The first native build downloads about 330 MB. The superbuild clones its upstreams, and HarfBuzz and SDL3 are most of it. Git reports its progress as it goes, so a configure step that looks idle is a slow connection rather than a stuck build. [ADR-0038](../adr/0038-the-superbuild-download-is-not-a-hang.md) records the time this cost before the progress meter was turned on.
+> The first native build downloads about 330 MB. The superbuild clones its upstreams, and HarfBuzz and SDL3 are most of it. Git reports its progress as it goes, so a configure step that looks idle is a slow connection rather than a stuck build. [ADR-0038](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0038-the-superbuild-download-is-not-a-hang.md) records the time this cost before the progress meter was turned on.
 
 The clones land in `natives/.deps/<target>`, outside `build/`, so `./gradlew clean` does not throw them away. To discard them on purpose:
 
@@ -39,7 +39,7 @@ The clones land in `natives/.deps/<target>`, outside `build/`, so `./gradlew cle
 ./gradlew :natives:cleanNativeDeps
 ```
 
-Once the sources are present the build is about a minute of work. Every upstream is pinned in `gradle/libs.versions.toml`, and the superbuild reads that file itself, so a pin that moves reconfigures the build. That is [ADR-0035](../adr/0035-the-catalog-is-the-only-place-a-ref-lives.md).
+Once the sources are present the build is about a minute of work. Every upstream is pinned in `gradle/libs.versions.toml`, and the superbuild reads that file itself, so a pin that moves reconfigures the build. That is [ADR-0035](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0035-the-catalog-is-the-only-place-a-ref-lives.md).
 
 ## Java only
 
@@ -73,7 +73,7 @@ Everything the build reads, in one place:
 
 ### A library built somewhere else
 
-Released artifacts are built on native runners per platform, so a locally built library is for development only. A `.so` from a developer machine links against the host's glibc and has a higher floor than the published one. Only the container build in CI ships, and [ADR-0012](../adr/0012-native-ci-runners-with-a-pinned-glibc.md) says why.
+Released artifacts are built on native runners per platform, so a locally built library is for development only. A `.so` from a developer machine links against the host's glibc and has a higher floor than the published one. Only the container build in CI ships, and [ADR-0012](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0012-native-ci-runners-with-a-pinned-glibc.md) says why.
 
 To check a library built somewhere else, a CI artifact or a colleague's build, point the tests at it instead of building one:
 
@@ -83,11 +83,11 @@ To check a library built somewhere else, a CI artifact or a colleague's build, p
   -Dgoldberry.native.required=true
 ```
 
-Supplying a library is also what tells the build not to build its own. Adding `goldberry.native.required=true` turns "no library, skip quietly" into a failure, which is how CI verifies that the artifact it just built loads. That is [ADR-0016](../adr/0016-verify-the-artifact-and-never-skip-the-check.md).
+Supplying a library is also what tells the build not to build its own. Adding `goldberry.native.required=true` turns "no library, skip quietly" into a failure, which is how CI verifies that the artifact it just built loads. That is [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
 ## Running the showcase
 
-`:example` is an ordinary subproject that runs on the module path, which is what catches an unexported package or a wrong `--enable-native-access`. The record is [ADR-0023](../adr/0023-logging-and-the-example-as-a-subproject.md).
+`:example` is an ordinary subproject that runs on the module path, which is what catches an unexported package or a wrong `--enable-native-access`. The record is [ADR-0023](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0023-logging-and-the-example-as-a-subproject.md).
 
 ```sh
 ./gradlew :natives:cmakeBuild     # once, to build libgoldberry
@@ -127,9 +127,9 @@ The showcase also builds as a GraalVM native image, one file with `libgoldberry`
 
 ### macOS
 
-AppKit has to be driven from the process's first thread, so any Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for you. An application of your own passes it itself, as it would for LWJGL or SWT. Without it `SDL_Init` fails with "No available video device", which says nothing about threads. The record is [ADR-0039](../adr/0039-macos-needs-the-first-thread.md).
+AppKit has to be driven from the process's first thread, so any Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for you. An application of your own passes it itself, as it would for LWJGL or SWT. Without it `SDL_Init` fails with "No available video device", which says nothing about threads. The record is [ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md).
 
-Only `macos-aarch64` is built. Intel Macs were dropped from the matrix in [ADR-0041](../adr/0041-three-platforms-four-artifacts-two-backends.md).
+Only `macos-aarch64` is built. Intel Macs were dropped from the matrix in [ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md).
 
 ### Linux
 
@@ -141,7 +141,7 @@ SDL's D-Bus, IBus and udev support is different. It compiles out silently, into 
 ./gradlew build -Pgoldberry.allowDegradedPlatform=true
 ```
 
-The library that produces reports no capabilities, so an application can tell "this desktop has no such setting" from "this build cannot ask". That is [ADR-0325](../adr/0325-a-build-says-what-it-can-ask-the-desktop.md).
+The library that produces reports no capabilities, so an application can tell "this desktop has no such setting" from "this build cannot ask". That is [ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md).
 
 ### Windows
 

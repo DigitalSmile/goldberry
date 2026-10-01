@@ -8,16 +8,18 @@ src = "src"
 [output.html]
 # The two themes are the landing page's: Nord on a near-white page, and Nord
 # dark. `theme/goldberry.css` recolours mdBook's `light` and `navy` to match and
-# hides the other three (docs/book.md).
+# hides the other three (docs/book.md). The decision log under src/adr is not
+# listed in SUMMARY.md and is therefore not built: it is read on GitHub (ADR-0512).
 default-theme = "light"
 preferred-dark-theme = "navy"
 additional-css = ["theme/goldberry.css"]
+# The landing page's header, built into the menu bar at load (docs/book.md).
+additional-js = ["theme/goldberry.js"]
 git-repository-url = "https://github.com/DigitalSmile/goldberry"
 # Each page links to its own source on GitHub (ADR-0509).
 edit-url-template = "https://github.com/DigitalSmile/goldberry/edit/master/book/{path}"
 
 [output.html.fold]
-# The decision log is five hundred chapters; folded, the sidebar is the guide.
 enable = true
 level = 1
 
@@ -26,9 +28,3 @@ limit-results = 20
 heading-split-level = 2
 boost-title = 3
 boost-hierarchy = 2
-
-[output.html.search.chapter]
-# The log is nineteen of the index's twenty megabytes, and a search for
-# `button` should find the component page before five hundred records that
-# mention one. The records stay in the book and on the print page.
-"adr/" = { enable = false }

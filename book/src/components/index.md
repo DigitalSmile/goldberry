@@ -12,7 +12,7 @@ Java that builds the same tree, and the stylesheet rules that reach it.
 A `button` is a `Button` record in Java, a `button` node in KDL and a `button`
 type in CSS. A test builds the same widget both ways and asserts the two values
 are equal, so the forms cannot drift
-([ADR-0059](../adr/0059-a-control-is-a-record-a-node-and-a-rule.md)).
+([ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)).
 
 ```kdl
 column {
@@ -53,9 +53,9 @@ any node, and the same five have Java withers on `Attributes.NONE`.
 |---|---|---|---|
 | `id` | string | none | The node's id for `#id` rules. It doubles as the reconciler's key, so a node with an id keeps its state and focus across a rebuild that reorders it |
 | `class` | string | none | Space-separated classes, for `.name` rules and variants |
-| `tooltip` | string | none | Text shown on hover, on any widget ([ADR-0105](../adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)) |
-| `context-menu` | string | none | The name of the menu a right-click opens, resolved by the application ([ADR-0108](../adr/0108-a-context-menu-is-a-name-on-a-widget.md)) |
-| `name` | string | none | The accessible name, which wins over any name the widget derives ([ADR-0260](../adr/0260-a-name-is-an-attribute-every-widget-has.md)) |
+| `tooltip` | string | none | Text shown on hover, on any widget ([ADR-0105](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)) |
+| `context-menu` | string | none | The name of the menu a right-click opens, resolved by the application ([ADR-0108](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)) |
+| `name` | string | none | The accessible name, which wins over any name the widget derives ([ADR-0260](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0260-a-name-is-an-attribute-every-widget-has.md)) |
 
 ```java
 var attributes = Attributes.NONE.id("save").classes("primary").tooltip("Ctrl+S");
@@ -65,15 +65,15 @@ new Button("Save", this::save).withAttributes(attributes);
 In Java a key may differ from the id. `Attributes.NONE.key(row)` keys a list
 item by its model row. The two hover hooks, `onPointerEnter` and
 `onPointerExit`, are Java only, because a `Runnable` is not a KDL value
-([ADR-0327](../adr/0327-a-hover-is-a-node-property-not-a-menus.md)).
+([ADR-0327](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0327-a-hover-is-a-node-property-not-a-menus.md)).
 
 Controls that can be disabled read `disabled=#true`. A disabled container
 disables every descendant for input: nothing inside it is clicked, focused or
 hovered
-([ADR-0077](../adr/0077-disabled-propagates-for-input-and-not-for-paint.md)).
+([ADR-0077](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md)).
 The cascade sees it too, so a rule can style a disabled subtree, while the fade
 stays on the node that declared it
-([ADR-0379](../adr/0379-a-disabled-container-reaches-the-cascade.md)).
+([ADR-0379](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0379-a-disabled-container-reaches-the-cascade.md)).
 
 ## What a name resolves against
 
@@ -84,26 +84,26 @@ model's annotations.
 | Attribute | Registry | What the name is |
 |---|---|---|
 | `press=`, `change=`, `link=`, `task=` | `ActionRegistry` | A method. `press` names an action with no argument, the others one that is handed a value |
-| `bind=` | `BindingRegistry` | A value to follow, read-only. The widget subscribes and rebuilds when it changes ([ADR-0062](../adr/0062-bind-is-a-path-and-nothing-else.md)) |
-| `icon=` | `Icons` | An icon the application built and will close ([ADR-0043](../adr/0043-icons-are-stroked-paths.md)) |
-| `controller=`, `validator=`, `player=`, `renderer=`, `images=` | `Named` | An object that neither changes nor needs closing ([ADR-0170](../adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)) |
+| `bind=` | `BindingRegistry` | A value to follow, read-only. The widget subscribes and rebuilds when it changes ([ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)) |
+| `icon=` | `Icons` | An icon the application built and will close ([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)) |
+| `controller=`, `validator=`, `player=`, `renderer=`, `images=` | `Named` | An object that neither changes nor needs closing ([ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)) |
 
 A registry is strict by default, so `press="delte"` fails at inflation rather
 than producing a button that does nothing. `Widgets.inflater()` with no
 arguments binds nothing and complains about nothing, which is what a preview
 wants. A value is named once, in its `@Bind` annotation, and a widget built in
 Java follows it by the same path
-([ADR-0129](../adr/0129-a-value-is-named-one-way.md)). Data flows down through
+([ADR-0129](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0129-a-value-is-named-one-way.md)). Data flows down through
 `bind=` and events flow up through actions. A widget is handed an `Observable`
 with no `set` on it, so a control built from markup cannot write the model
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)).
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)).
 
 ## Parts are not widgets
 
 A checkbox's glyph, a chart's plot and a legend's swatch are parts. Each is a
 CSS type a stylesheet can reach, `check-indicator` or `chart-legend-swatch`, and
 none is a node a document can create
-([ADR-0065](../adr/0065-a-part-is-styleable-and-not-constructible.md)). A part
+([ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)). A part
 outside its widget means nothing, so the inflater does not know its name. Each
 chapter's *Styling* section lists the parts a widget has.
 

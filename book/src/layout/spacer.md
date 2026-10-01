@@ -57,5 +57,5 @@ A spacer cannot be told not to grow. `flex-grow: 0` is the computed value when n
 
 ### Read more
 
-- [ADR-0311 `margin` is room outside, and `auto` is the half that mattered](../adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
-- [ADR-0373 A column starts from nothing and grows](../adr/0373-a-column-starts-from-nothing-and-grows.md)
+- [ADR-0311 `margin` is room outside, and `auto` is the half that mattered](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
+- [ADR-0373 A column starts from nothing and grows](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0373-a-column-starts-from-nothing-and-grows.md)

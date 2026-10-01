@@ -21,7 +21,7 @@ public record Gauge(double value, @Nullable Observable<?> source, Attributes att
 That is the whole registration. The build collects every `@Markup` class in
 the module into a catalogue and declares it as a service, and an application
 that never names your module gets `gauge` in its documents
-([ADR-0131](../adr/0131-a-widget-package-announces-itself.md)).
+([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
 
 ## The three shapes
 
@@ -34,7 +34,7 @@ that never names your module gets `gauge` in its documents
 A widget is a value. It holds no state, is rebuilt constantly, and must copy
 any collection it is handed. The element tree is what persists: `:hover`,
 focus and a `State` live on the element and survive a parent re-describing
-its child ([ADR-0052](../adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)).
+its child ([ADR-0052](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)).
 
 ```java
 record Counter(String label) implements Widget.Stateful {
@@ -58,7 +58,7 @@ subscription goes and `dispose` is where it is cancelled; after `dispose`,
 
 `BuildContext` answers `findAncestor(type)`, `findAncestorState(type)`,
 `host()` for the window's `Host`
-([ADR-0140](../adr/0140-a-widget-may-reach-its-window.md)), and
+([ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md)), and
 `token(name, fallback)` and `duration(name, fallback)` for a custom property
 resolved at this node.
 
@@ -80,7 +80,7 @@ would put a node in the cascade no author knows about.
 express: the position of the third of five segments, a thumb's length, a
 scroll offset. It runs after the cascade and before the frame's animations
 observe the style, so what a widget writes there transitions like anything
-else ([ADR-0099](../adr/0099-an-indicator-travels-on-a-grid.md)). A fact a
+else ([ADR-0099](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)). A fact a
 selector could match on is a class, not a restyle.
 
 ### Parts
@@ -89,7 +89,7 @@ A control with two surfaces a theme styles differently is two cascade
 nodes. The inner one is a part: a `Styled` leaf of its own, returned as a
 child from the control's `children()`, with a type name a stylesheet selects
 and no `@Markup`, so a document cannot build one on its own
-([ADR-0065](../adr/0065-a-part-is-styleable-and-not-constructible.md)).
+([ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
 
 ```java
 record GaugeNeedle(Attributes attributes) implements Widget.Leaf, Styled, Paints {
@@ -108,7 +108,7 @@ catalogue's `check-indicator`, `toggle-thumb` and `scroll-thumb` are parts.
 the cascade resolved for this node and the boxes its children produced, what
 box is it? The `Box` is a value, and the retained render tree is reconciled
 against it rather than mutated by the widget
-([ADR-0069](../adr/0069-the-render-tree-is-retained.md)).
+([ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md)).
 
 ```java
 @Override public Box render(ComputedStyle style, List<Box> children, Context context) {
@@ -151,7 +151,7 @@ the frame's time and `reducedMotion()` the user's preference.
 A widget that moves by CSS declares nothing: a transition is the renderer's
 to track. A widget that draws itself from `nowMillis()` says so with
 `isAnimating()`, and the frame loop keeps coming while it is true
-([ADR-0081](../adr/0081-a-perpetual-loop-has-no-state.md)):
+([ADR-0081](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md)):
 
 ```java
 @Override public boolean isAnimating() { return indeterminate; }
@@ -181,7 +181,7 @@ components. `Attributes.of(node)` reads `id`, `class`, `tooltip`,
 the element subscribes to: a change marks the element as needing a build, by
 the route a `setState` takes. The value is an `Observable` and never a
 `Property`, so a widget reads and watches and cannot write
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)). What the value
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). What the value
 means is the widget's business: `Gauge` reads a `Number` and falls back to
 its own `value` for anything else.
 
@@ -248,7 +248,7 @@ travelled ([Input and focus](input.md#gestures-where-the-drag-started)).
 | Method | Answer |
 |---|---|
 | `isFocusable()` | whether `Tab` stops here. False by default |
-| `focusScope()` | `NONE`, or `HORIZONTAL`, `VERTICAL` or `BOTH` for a composite whose descendants are one Tab stop ([ADR-0073](../adr/0073-a-composite-is-one-tab-stop.md)) |
+| `focusScope()` | `NONE`, or `HORIZONTAL`, `VERTICAL` or `BOTH` for a composite whose descendants are one Tab stop ([ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)) |
 | `localPart()` | the CSS type of the part `local()` is measured against, for a control bigger than the thing it points along |
 | `gestureAnchor()` | a number to remember for a drag, handed back as `anchor()` |
 | `wantsTextInput()` | whether to turn the platform's text input on while focused. A field says true; a board that wants arrow keys says false |
@@ -275,7 +275,7 @@ catalogue's source fails on one that does not. `Role` is the closed set:
 and null is an answer when something else names the widget. `live()` says
 whether the widget's arrival is worth interrupting a reader for, which only a
 toast's is. Nothing reads the tree yet, and the bridge that would is on hold
-([ADR-0440](../adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md));
+([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md));
 the data is there so that a bridge is an adapter.
 
 ## A widget must not hold a `close()`
@@ -291,7 +291,7 @@ rather than building one.
 
 Every built-in exists three ways, as a record, a node and a CSS type, and
 three sweeps over `Widgets.inflater().registered()` enforce it
-([ADR-0059](../adr/0059-a-control-is-a-record-a-node-and-a-rule.md)). Hold
+([ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)). Hold
 your own widgets to the same list:
 
 - **`WidgetParityTest`.** The node inflates with nothing bound. The widget
@@ -337,11 +337,11 @@ the wall clock in `render` is not.
 
 ## Read more
 
-- [ADR-0052](../adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md): state and rebuilds
-- [ADR-0059](../adr/0059-a-control-is-a-record-a-node-and-a-rule.md): a record, a node and a rule
-- [ADR-0065](../adr/0065-a-part-is-styleable-and-not-constructible.md): parts
-- [ADR-0069](../adr/0069-the-render-tree-is-retained.md): the retained render tree
-- [ADR-0081](../adr/0081-a-perpetual-loop-has-no-state.md): `isAnimating`
-- [ADR-0131](../adr/0131-a-widget-package-announces-itself.md): the catalogue
+- [ADR-0052](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md): state and rebuilds
+- [ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md): a record, a node and a rule
+- [ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md): parts
+- [ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md): the retained render tree
+- [ADR-0081](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md): `isAnimating`
+- [ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md): the catalogue
 - [Building an application](../applications.md#shipping-a-widget): where a widget goes in an application
 - [Model weaving](../weaving.md): the build step that writes the catalogue

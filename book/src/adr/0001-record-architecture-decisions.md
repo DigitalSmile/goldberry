@@ -20,7 +20,7 @@ someone who did not know what they were load-bearing for.
 ## Decision
 
 Keep an architecture decision log in `book/`, one immutable record per decision,
-following the conventions in [About these records](index.md). The design document
+following the conventions in [About these records](README.md). The design document
 stays the description of the system; the book becomes the description of the
 reasoning. New features and changes get a record before or alongside the code.
 

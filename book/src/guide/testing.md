@@ -20,7 +20,7 @@ void theSettingsScreenRenders() {
 
 Nothing opens. `Offscreen` runs the window's own sequence into memory: no
 backend, no SDL, no compositor
-([ADR-0284](../adr/0284-a-picture-with-no-window-under-it.md)).
+([ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md)).
 
 ## What ships, and what is test-scope
 
@@ -75,7 +75,7 @@ a picture cacheable and a golden image possible.
 Goldberry's own goldens are one reference set shared by every platform, and
 they are compared with a per-channel tolerance of 2 in 256 and a cap of 2% of
 pixels allowed to differ at all
-([ADR-0050](../adr/0050-golden-images-have-a-tolerance.md)). Blend2D
+([ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)). Blend2D
 compiles its pipelines for the CPU it finds, and AVX2, SSE2 and NEON agree on
 what they draw and not on the last bit of a blended edge. The tolerance
 absorbs antialiased edges and nothing else: a colour that changed or a box in
@@ -113,7 +113,7 @@ source, and no wall-clock or locale dependence. A widget that reads
 `System.nanoTime()` or `LocalDate.now()` in `build` is not photographable.
 Goldberry's own goldens are also redrawn at 2x and 1.5x and checked for
 describing the same picture, which is a second question rather than a
-second set of files ([ADR-0162](../adr/0162-a-golden-is-checked-at-every-scale.md)).
+second set of files ([ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md)).
 
 ## The virtual clock
 
@@ -131,7 +131,7 @@ A `WidgetRenderer` takes one with `.clock(clock)`, and a `Host` answers one
 from `clock()`, so a widget that asks how long ago something happened can be
 asked what happens after a timeout without sleeping. A mid-transition frame
 is then the exact frame at 50 ms, on every machine
-([ADR-0067](../adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+([ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
 
 ## Driving input
 
@@ -176,7 +176,7 @@ A press on a disabled widget sets nothing, and a popup that a test opens
 through a `Host` of its own is a widget tree it can inflate again. The
 toolkit's own tests run with `-Dgoldberry.input.primary=ctrl` on every
 runner, so a test that presses `Ctrl+C` is the same test on macOS
-([ADR-0396](../adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)).
+([ADR-0396](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)).
 Set the same property in your test task.
 
 ### A host for a test
@@ -222,14 +222,14 @@ exits. With `-Dgoldberry.backend.videoDriver=dummy` SDL opens no window, so
 that is a smoke test of the whole front door: the window spec, `start`,
 `root`, the first frames and `stop`. It needs the native library, and under
 `dummy` every `host.popup(...)` answers empty
-([ADR-0102](../adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
 
 ## Skipping without the native library
 
 A test that rasterizes needs `libgoldberry`. On a machine without it, the
 first paint throws `UnsatisfiedLinkError`, and a missing library is an
 ordinary state on a contributor's machine where a broken one is not
-([ADR-0357](../adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)).
+([ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)).
 This repository's tests call `RendererRequirement.enforce()`, which tries a
 two-by-two raster and aborts the test on `UnsatisfiedLinkError`,
 `NoClassDefFoundError` or `ExceptionInInitializerError`. It is a fixture, so
@@ -251,8 +251,8 @@ a library that is not in a jar on its path.
 
 ## Read more
 
-- [ADR-0050](../adr/0050-golden-images-have-a-tolerance.md): the tolerance
-- [ADR-0067](../adr/0067-motion-is-an-overlay-on-a-frame-clock.md): the virtual clock
-- [ADR-0284](../adr/0284-a-picture-with-no-window-under-it.md): `Offscreen`
-- [ADR-0357](../adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md): skipping without the library
+- [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md): the tolerance
+- [ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md): the virtual clock
+- [ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md): `Offscreen`
+- [ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md): skipping without the library
 - [Tests and gates](../contributing/testing.md): how this repository tests itself

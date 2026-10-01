@@ -41,7 +41,7 @@ can restyle completely.
 
 **Read more**
 
-- [ADR-0166: A raised thing is told apart by its edge](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+- [ADR-0166: A raised thing is told apart by its edge](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 
 ## `card`
 
@@ -64,9 +64,9 @@ new Card(
 
 The edge stays even though there is a shadow, because a card on another card
 casts onto the same colour and only the rim tells them apart
-([ADR-0166](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)). The
+([ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)). The
 shadow is `--gb-elevation-1`, which each theme ships
-([ADR-0310](../adr/0310-a-shadow-is-a-stack-of-rectangles.md)).
+([ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md)).
 
 **Attributes**
 
@@ -80,13 +80,13 @@ The CSS type is `card`: `--gb-surface-raised`, a 1px `--gb-border-strong`,
 radius 8, padding 12, gap 8. The variant class `interactive` adds a hover
 elevation: `card.interactive:hover` takes the accent edge and
 `--gb-elevation-2`, with the blur, offset and alpha moving together
-([ADR-0312](../adr/0312-the-catalog-puts-the-two-new-properties-on.md)). It is
+([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)). It is
 opt-in, because a card that lit up would promise it does something.
 
 **Read more**
 
-- [ADR-0164: Elevation is an edge and a closed section is absent](../adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- [ADR-0310: A shadow is a stack of rectangles](../adr/0310-a-shadow-is-a-stack-of-rectangles.md)
+- [ADR-0164: Elevation is an edge and a closed section is absent](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- [ADR-0310: A shadow is a stack of rectangles](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md)
 
 ## `group-box`
 
@@ -123,7 +123,7 @@ The CSS type is `group-box`. Its parts are `group-box-title`, a tinted header
 ruled off from the body with `--gb-surface-2` and `--gb-font-heading`, and
 `group-box-body`. The title part is absent when there is no title. A legend
 cut through the border is not available
-([ADR-0166](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)).
+([ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)).
 
 ## `collapse`
 
@@ -150,7 +150,7 @@ open as `open` says. The Java form is
 
 **An accordion is a column.** `column accordion=#true` inflates to an
 `Accordion` that re-issues each `collapse` child so only one is open at a time
-([ADR-0166](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)). A
+([ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)). A
 section the application already controls is left alone, and from markup an
 accordion starts with every section shut.
 
@@ -200,8 +200,8 @@ The header is the one Tab stop.
 
 **Read more**
 
-- [ADR-0164: Elevation is an edge and a closed section is absent](../adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- [ADR-0166: A raised thing is told apart by its edge](../adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+- [ADR-0164: Elevation is an edge and a closed section is absent](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- [ADR-0166: A raised thing is told apart by its edge](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 
 ## `carousel`
 
@@ -232,8 +232,8 @@ a `change` action and the carousel becomes controlled, showing the slide
 Nothing advances on its own unless `interval` is set. When it is, rotation
 has three brakes: it pauses while the pointer is over the strip, while the
 keyboard is anywhere inside it, and entirely under reduced motion
-([ADR-0165](../adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md),
-[ADR-0169](../adr/0169-a-field-is-silent-until-you-leave-it.md)). Without
+([ADR-0165](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md),
+[ADR-0169](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0169-a-field-is-silent-until-you-leave-it.md)). Without
 `loop` it also stops at the last slide.
 
 **Attributes**
@@ -268,7 +268,7 @@ The strip is one Tab stop when it has two or more slides.
 
 **Read more**
 
-- [ADR-0165: A divider translates and a rotation has three brakes](../adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- [ADR-0165: A divider translates and a rotation has three brakes](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 
 ## `skeleton`
 
@@ -313,13 +313,13 @@ reduced motion.
 
 The CSS type is `skeleton`, and both it and each `skeleton-bar` carry the class
 `shape-text`, `shape-title`, `shape-circle` or `shape-rect`
-([ADR-0414](../adr/0414-a-rank-applies-to-anything-so-its-name-is-reserved.md)).
+([ADR-0414](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0414-a-rank-applies-to-anything-so-its-name-is-reserved.md)).
 The last bar of a multi-line text skeleton also carries `last` and is 60%
 wide. Radius 4, or full for a circle.
 
 **Read more**
 
-- [ADR-0164: Elevation is an edge and a closed section is absent](../adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- [ADR-0164: Elevation is an edge and a closed section is absent](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
 
 ## `statistic`
 
@@ -359,7 +359,7 @@ machine's locale.
 
 A sparkline is Java only: `.sparkline(Sparkline)` takes the
 [`sparkline`](charts.md) widget and draws it 64×24 under the number
-([ADR-0193](../adr/0193-a-canvas-is-a-second-clip-depth.md)).
+([ADR-0193](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
 
 **Styling**
 
@@ -399,17 +399,17 @@ new Tabs("map",
 ```
 
 The strip is a model, a header and a panel
-([ADR-0107](../adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+([ADR-0107](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
 Which tab is selected is `value`, or the bound value, and the strip reports
 what the user wants through `change`, `close` and `new`. Adding and removing
 tabs needs no API: rebuild with a different list. A header row too wide for
 the strip pages from its ends
-([ADR-0365](../adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)).
+([ADR-0365](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)).
 `keep-alive` hides a left tab's content instead of dropping it, for an editor
 whose state is costly to rebuild
-([ADR-0366](../adr/0366-a-kept-tab-is-hidden-not-removed.md)). Reordering by
+([ADR-0366](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0366-a-kept-tab-is-hidden-not-removed.md)). Reordering by
 drag is Java only, through `onReorder(BiConsumer<String, Integer>)`
-([ADR-0372](../adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)).
+([ADR-0372](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0372-a-tab-is-dragged-and-the-strip-asks-where.md)).
 
 **Attributes**
 
@@ -451,11 +451,11 @@ The strip is one Tab stop.
 
 **Read more**
 
-- [ADR-0107: A tab strip is a model, a header and a panel](../adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
-- [ADR-0109: A tab arrives and departs on the frame clock](../adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
-- [ADR-0365: An overflowing tab strip pages from its ends](../adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
-- [ADR-0366: A kept tab is hidden, not removed](../adr/0366-a-kept-tab-is-hidden-not-removed.md)
-- [ADR-0377: An underline travels by being let go of](../adr/0377-an-underline-travels-by-being-let-go-of.md)
+- [ADR-0107: A tab strip is a model, a header and a panel](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
+- [ADR-0109: A tab arrives and departs on the frame clock](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+- [ADR-0365: An overflowing tab strip pages from its ends](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0365-an-overflowing-tab-strip-pages-from-its-ends.md)
+- [ADR-0366: A kept tab is hidden, not removed](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0366-a-kept-tab-is-hidden-not-removed.md)
+- [ADR-0377: An underline travels by being let go of](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0377-an-underline-travels-by-being-let-go-of.md)
 
 ### `tab`
 
@@ -519,7 +519,7 @@ new Timeline(
 
 The line goes on: `pending` draws a trailing unfilled marker after the last
 entry for what happens next, which is what tells a timeline from a list with
-dots ([ADR-0345](../adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)).
+dots ([ADR-0345](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)).
 
 **Attributes**
 
@@ -544,8 +544,8 @@ the `timeline-marker` and a `timeline-line`, beside a `timeline-side` holding
 
 **Read more**
 
-- [ADR-0345: A timeline is a list whose line goes on](../adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
-- [ADR-0356: A connector grows from where you were, and an entry has a marker slot](../adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+- [ADR-0345: A timeline is a list whose line goes on](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0345-a-timeline-is-a-list-whose-line-goes-on.md)
+- [ADR-0356: A connector grows from where you were, and an entry has a marker slot](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 
 ### `entry`
 

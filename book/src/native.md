@@ -3,13 +3,13 @@
 A Goldberry application can be built as a GraalVM native image: no class loading,
 no reflection on the binding path, and a start-up measured against the process
 rather than against a JVM. That is what
-[ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md) designed the
+[ADR-0127](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0127-the-binding-schema-fits-a-closed-world.md) designed the
 binding schema for.
 
-> **Built and run in CI on linux-x64, macOS and Windows** ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)) — *wired, not yet run there*. One 41 MiB file with nothing beside
+> **Built and run in CI on linux-x64, macOS and Windows** ([ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)) — *wired, not yet run there*. One 41 MiB file with nothing beside
 > it, starting in well under a second and painting at about 1 ms a frame
 > headless — faster than the JVM build over a short run, because there is nothing
-> to warm up ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)).
+> to warm up ([ADR-0161](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)).
 > The FFM downcalls, the six upcalls, the fonts, the icons, the stylesheets, the
 > KDL, the `WidgetCatalog` service and `libgoldberry` itself all travel inside it.
 >
@@ -47,7 +47,7 @@ No launcher, no `lib/` directory, nothing to set. `libgoldberry` is carried insi
 the binary as the same classifier-jar resource a released application would use,
 and unpacked to a temporary file on first use — a shared object has to be a real
 file to be `dlopen`ed, so it cannot be mapped straight out of the image
-([ADR-0159](adr/0159-a-native-image-carries-its-own-library.md)).
+([ADR-0159](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0159-a-native-image-carries-its-own-library.md)).
 
 That makes a **writable temp directory a requirement**, and
 `-Dgoldberry.native.library` is still the way out of one that is read-only or
@@ -87,7 +87,7 @@ glob, because that set is finite and a directory listing cannot be one screen
 short. The first image built here proved the point by omitting `nord-light.css`,
 `density-compact.css`, `JetBrainsMono.ttf` and `OpenMoji-black.ttf` — every one
 the far side of a toggle the run never flipped
-([ADR-0160](adr/0160-a-modules-own-resources-are-declared-not-traced.md)).
+([ADR-0160](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0160-a-modules-own-resources-are-declared-not-traced.md)).
 
 Because those declarations travel in the jars, an application building its own
 image gets the toolkit's resources without knowing it needs them.
@@ -98,7 +98,7 @@ screen the run never reaches contributes nothing. Re-run the metadata task after
 adding one, and read the diff.
 
 The **FFM descriptors are no longer traced at all**
-([ADR-0339](adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)).
+([ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)).
 This page used to say they were never run-dependent, because a holder links its
 handle in its class initializer; it forgot that a `…Calls` record binds when its
 wrapper is first *used*, so a run that opened no Markdown initialised no
@@ -113,7 +113,7 @@ and writes the `foreign` section itself, into the `goldberry-natives` jar under
 `nativeImage` depends on `weaveModels`, and the build orders it before `jar`.
 That is not a detail: an image built from unwoven classes would bind its models
 by reflection, which is the one thing an image must not do
-([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Everything on
+([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Everything on
 [the weaving page](weaving.md) about `-Pgoldberry.nativeImage=true` applies to
 building the modules by hand; `nativeImage` arranges it for you.
 
@@ -121,9 +121,9 @@ building the modules by hand; `nativeImage` arranges it for you.
 
 | Flag | Why |
 |---|---|
-| `--module-path` / `--module` | The showcase runs modular, as it does everywhere else ([ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md)) |
+| `--module-path` / `--module` | The showcase runs modular, as it does everywhere else ([ADR-0007](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0007-jpms-modules-enforce-the-native-boundary.md)) |
 | `--enable-native-access=…natives` | JEP 472, naming the one module that touches native code |
-| ~~`--no-fallback`~~ | Removed. A fallback image was a JVM in a trench coat; GraalVM 25.3 no longer builds them, and the flag only warned that it had no effect ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)) |
+| ~~`--no-fallback`~~ | Removed. A fallback image was a JVM in a trench coat; GraalVM 25.3 no longer builds them, and the flag only warned that it had no effect ([ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)) |
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
 
 Nothing about **class initialization** is passed here. `:natives` ships its own
@@ -134,7 +134,7 @@ naming the two classes that have an opinion, and they are opposite opinions:
 |---|---|---|
 | `NativeLibrary` | run time | It `dlopen`s in its initializer, which must not happen in the builder |
 | `Downcalls` | **build time** | It holds the shared `Linker`, and every holder's initializer calls `Downcalls.link` |
-| the `…calls` **packages** | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)) |
+| the `…calls` **packages** | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one ([ADR-0161](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)) |
 
 They are **packages** and they have to be. A holder is a nested class, and naming
 its enclosing class does not reach it — measured at 4538 ns/call against 8, and
@@ -143,7 +143,7 @@ nested classes in a flag is not a list anyone can maintain, and naming the
 *binding* packages instead would build-time initialize `Sdl` and `Blend2D`, whose
 holder idiom `dlopen`s the library in the builder. So the holders live in
 packages that contain nothing else
-([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+([ADR-0173](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
 
 All of them travel in the jar, so an application building its own image gets them
 without knowing they exist — the same argument ADR-0160 makes for resources.
@@ -178,7 +178,7 @@ native-image does not. That is why a holder's `call` names its own
 `FD_<symbol>` field rather than taking a handle, and why the handle is
 `static final` on the holder rather than a component of it: an instance field is
 a value read from an object, not a constant read from a class, and measures
-4540 ns/call ([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+4540 ns/call ([ADR-0173](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
 
 **And the list of packages is its own hazard.** `native-image.properties` is the
 one file in `:natives` that nothing compiles, runs or reads — it is a hand-typed
@@ -246,10 +246,10 @@ its export list.
 
 ## What is not built
 
-~~**No CI job.**~~ **Built** ([ADR-0337](adr/0337-the-native-showcase-is-built-on-every-platform.md)):
+~~**No CI job.**~~ **Built** ([ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)):
 every `showcase.yml` leg installs GraalVM Community, builds the image, runs it for
 three frames and uploads it; on a `v*` tag the three go on the tag's GitHub
-Release ([ADR-0340](adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)),
+Release ([ADR-0340](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)),
 and the workflow runs only on a tag or by hand. Linux builds from the checked-in
 trace; macOS and Windows trace first, and those traces are not reviewed. Neither
 task is wired into `build`, still, because a local build has no GraalVM to count on.

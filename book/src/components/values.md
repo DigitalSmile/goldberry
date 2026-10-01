@@ -9,7 +9,7 @@ that is known or unknown.
 A slider and a knob are controlled like every other control. Dragging raises
 `change` with the value asked for, the application sets the property, and the
 thumb moves when the bound value does
-([ADR-0063](../adr/0063-data-flows-down-events-flow-up.md)). The bound value
+([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). The bound value
 is any `Number`. Anything else leaves the written `value` standing.
 
 <div class="gb-shot"><img src="../images/slider-light.png" alt="Five horizontal sliders on the light theme at 0, 25, 50, 75 and 100 percent, each a thin groove with a filled part and a white disc thumb"><p>A <code>slider</code> at five values. The thumb is placed by flex ratio, not by a transform.</p></div>
@@ -55,15 +55,15 @@ with a value to draw.
 `scale="db"` places a linear gain at a position that is linear in decibels,
 with the floor at −60 dB. Half gain sits 90% of the way up and the bottom of
 the travel is silence exactly
-([ADR-0080](../adr/0080-a-value-is-measured-along-a-part.md)). It needs
+([ADR-0080](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md)). It needs
 `min >= 0` and `max > 0`.
 
 `commit=` is told the settled value when a press or drag is released and after
 each key step, for work that should not run per drag step, such as a media
-seek ([ADR-0464](../adr/0464-a-slider-says-when-a-gesture-ends.md)). In Java,
+seek ([ADR-0464](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0464-a-slider-says-when-a-gesture-ends.md)). In Java,
 `spans(List<Slider.Span>)` marks stretches of the range in the groove, such as
 a seek bar's buffered ranges
-([ADR-0466](../adr/0466-a-slider-marks-spans-of-its-range.md)). A document
+([ADR-0466](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0466-a-slider-marks-spans-of-its-range.md)). A document
 cannot write them.
 
 ### Attributes
@@ -91,7 +91,7 @@ cannot write them.
 
 The thumb lands `f` of the way along the track because `slider-fill` grows by
 `f` and `slider-rest` by `1 - f`. Nothing in Java learns the track's width
-([ADR-0079](../adr/0079-a-continuous-value-is-placed-by-ratio.md)). The value
+([ADR-0079](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)). The value
 is measured along `slider-track` and not along the control, which is what
 keeps a labelled slider honest at its far end.
 
@@ -114,11 +114,11 @@ left alone.
 
 ### Read more
 
-- [ADR-0079: a continuous value is placed by ratio](../adr/0079-a-continuous-value-is-placed-by-ratio.md)
-- [ADR-0080: a value is measured along a part](../adr/0080-a-value-is-measured-along-a-part.md)
-- [ADR-0430: a slider maps the pointer over its travel](../adr/0430-a-slider-maps-the-pointer-over-its-travel.md)
-- [ADR-0464: a slider says when a gesture ends](../adr/0464-a-slider-says-when-a-gesture-ends.md)
-- [ADR-0466: a slider marks spans of its range](../adr/0466-a-slider-marks-spans-of-its-range.md)
+- [ADR-0079: a continuous value is placed by ratio](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)
+- [ADR-0080: a value is measured along a part](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0080-a-value-is-measured-along-a-part.md)
+- [ADR-0430: a slider maps the pointer over its travel](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0430-a-slider-maps-the-pointer-over-its-travel.md)
+- [ADR-0464: a slider says when a gesture ends](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0464-a-slider-says-when-a-gesture-ends.md)
+- [ADR-0466: a slider marks spans of its range](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0466-a-slider-marks-spans-of-its-range.md)
 
 ## `knob`
 
@@ -148,13 +148,13 @@ new Row(
 Dragging up turns it up: 200 px of drag is the whole range, and `Shift` makes
 the drag ten times finer. The gesture is a rate from where the press started,
 so the value does not jump to the pointer
-([ADR-0089](../adr/0089-a-knobs-gesture-is-a-rate.md)). A click on the ring
+([ADR-0089](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0089-a-knobs-gesture-is-a-rate.md)). A click on the ring
 positions the value at that angle. A click on the dial grabs it and does not
 jump. The wheel steps it, down the document is down.
 
 `drag="circular"` turns the knob round its dial instead, following the angle
 of the pointer, and refuses to jump across the gap at the bottom
-([ADR-0369](../adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)).
+([ADR-0369](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)).
 
 Detents are positions the value is pulled to when a drag comes within a
 quarter of their spacing. Five detents over 0 to 100 are 0, 25, 50, 75 and 100.
@@ -201,9 +201,9 @@ owns `Right` and focus does not leave it.
 
 ### Read more
 
-- [ADR-0089: a knob's gesture is a rate](../adr/0089-a-knobs-gesture-is-a-rate.md)
-- [ADR-0369: a knob turns round its dial from its own value](../adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
-- [ADR-0078: a focus scope has an axis](../adr/0078-a-focus-scope-has-an-axis.md)
+- [ADR-0089: a knob's gesture is a rate](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0089-a-knobs-gesture-is-a-rate.md)
+- [ADR-0369: a knob turns round its dial from its own value](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0369-a-knob-turns-round-its-dial-from-its-own-value.md)
+- [ADR-0078: a focus scope has an axis](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0078-a-focus-scope-has-an-axis.md)
 
 ## `progress`
 
@@ -233,7 +233,7 @@ clamped to the track. An indeterminate bar sweeps by a `transform`, turns at
 the ends rather than running off them, and keeps the frame loop awake while it
 is on screen. Two indeterminate bars in one window are in step by
 construction, because the phase is read from the clock and nothing is stored
-([ADR-0081](../adr/0081-a-perpetual-loop-has-no-state.md)).
+([ADR-0081](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
 
 ### Attributes
 
@@ -257,7 +257,7 @@ progress:indeterminate progress-fill { background: var(--gb-accent) }
 ```
 
 Track height 4, full radius, `overflow: hidden` on the track so the sweep is
-cut at both edges ([ADR-0418](../adr/0418-the-indeterminate-bar-runs-off-both-edges.md)).
+cut at both edges ([ADR-0418](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0418-the-indeterminate-bar-runs-off-both-edges.md)).
 A value change moves the fill's width instantly and transitions its colour,
 because `width` is not on the motion whitelist. Under reduced motion the sweep
 holds still at a third of the track.
@@ -268,8 +268,8 @@ None. A progress bar takes nothing back.
 
 ### Read more
 
-- [ADR-0081: a perpetual loop has no state](../adr/0081-a-perpetual-loop-has-no-state.md)
-- [ADR-0418: the indeterminate bar runs off both edges](../adr/0418-the-indeterminate-bar-runs-off-both-edges.md)
+- [ADR-0081: a perpetual loop has no state](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md)
+- [ADR-0418: the indeterminate bar runs off both edges](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0418-the-indeterminate-bar-runs-off-both-edges.md)
 
 ## `spinner`
 
@@ -317,7 +317,7 @@ The diameter is the stylesheet's and the stroke is the widget's. `size=` puts
 a class on the node, `controls.css` gives that class a width, and the widget
 weights the stroke from the width the cascade resolved, so `#busy { width:
 48px }` gets a stroke to match
-([ADR-0447](../adr/0447-a-spinner-has-a-size-because-a-ring-has-a-stroke.md)).
+([ADR-0447](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0447-a-spinner-has-a-size-because-a-ring-has-a-stroke.md)).
 The ring takes `color`. Under reduced motion it stops.
 
 ### Keyboard
@@ -326,5 +326,5 @@ None.
 
 ### Read more
 
-- [ADR-0447: a spinner has a size because a ring has a stroke](../adr/0447-a-spinner-has-a-size-because-a-ring-has-a-stroke.md)
-- [ADR-0081: a perpetual loop has no state](../adr/0081-a-perpetual-loop-has-no-state.md)
+- [ADR-0447: a spinner has a size because a ring has a stroke](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0447-a-spinner-has-a-size-because-a-ring-has-a-stroke.md)
+- [ADR-0081: a perpetual loop has no state](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0081-a-perpetual-loop-has-no-state.md)

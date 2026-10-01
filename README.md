@@ -1792,7 +1792,8 @@ might be hiding it.
 | Where | What |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The design: what the system is, layer by layer — §2.1 is the package map |
-| [goldberry.dev/docs](https://goldberry.dev/docs/), from [`book/`](book/src/introduction.md) | The guide: overview, getting started, layout, components, performance, developer guide. Its last part is the decision log, why each significant choice was made, one decision at a time. `docs/book.md` is its runbook and style guide |
+| [goldberry.dev/docs](https://goldberry.dev/docs/), from [`book/`](book/src/introduction.md) | The guide: overview, getting started, layout, components, performance, developer guide. `docs/book.md` is its runbook and style guide |
+| [`book/src/adr/`](book/src/adr/README.md) | The decision log, read here on GitHub: why each significant choice was made, one decision at a time |
 | [`book/src/status.md`](book/src/status.md) | What is built, milestone by milestone, plus the module and package layout |
 | [`book/src/TODO.md`](book/src/TODO.md) | What is not: deferred items, known gaps, and the answered ones kept for their reasoning |
 

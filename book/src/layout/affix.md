@@ -104,8 +104,8 @@ There are no variant classes of its own.
 
 ### Read more
 
-- [ADR-0119 A widget may be told where it is](../adr/0119-a-widget-may-be-told-where-it-is.md)
-- [ADR-0123 A pinned box paints after its siblings](../adr/0123-a-pinned-box-paints-after-its-siblings.md)
-- [ADR-0124 A pinned `affix` is revealed by its hole](../adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)
-- [ADR-0360 An affix stays inside its container](../adr/0360-an-affix-stays-inside-its-container.md)
-- [ADR-0371 An affix pins to one edge per axis](../adr/0371-an-affix-pins-to-one-edge-per-axis.md)
+- [ADR-0119 A widget may be told where it is](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0119-a-widget-may-be-told-where-it-is.md)
+- [ADR-0123 A pinned box paints after its siblings](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)
+- [ADR-0124 A pinned `affix` is revealed by its hole](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)
+- [ADR-0360 An affix stays inside its container](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)
+- [ADR-0371 An affix pins to one edge per axis](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0371-an-affix-pins-to-one-edge-per-axis.md)

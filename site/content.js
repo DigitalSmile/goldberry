@@ -263,7 +263,7 @@ window.SITE = {
     licenseHref: "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE",
     note: "Open source.",
     columns: [
-      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "docs/adr/"], ["Native image", "docs/native.html"]] },
+      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"], ["Native image", "docs/native.html"]] },
       { title: "Project", links: [["GitHub", "https://github.com/DigitalSmile/goldberry"], ["Issues", "https://github.com/DigitalSmile/goldberry/issues"], ["Releases", "https://github.com/DigitalSmile/goldberry/releases"], ["Licence", "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE"]] },
       { title: "Page", links: [["Features", "#features"], ["Quick start", "#quickstart"], ["Performance", "#performance"], ["Compare", "#compare"], ["FAQ", "#faq"], ["llms.txt", "llms.txt"]] }
     ]
