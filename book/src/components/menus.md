@@ -39,15 +39,19 @@ new MenuBar(
                 new Item("New", actions::create).accelerator("Ctrl+N"),
                 new Item("Open…", actions::open).accelerator("Ctrl+O"),
                 new Separator(),
-                new Item("Quit", window::quit).accelerator("Ctrl+Q")),
+                new Item("Quit", window::quit).accelerator("Ctrl+Q")
+        ),
         new Item("View").submenu(
                 new Item("Frame rate", window::toggleHud).accelerator("Ctrl+F").checked(hudShown),
                 new Item("Theme").submenu(
                         new Item("Light", () -> actions.pick("light")),
-                        new Item("Dark", () -> actions.pick("dark")))),
+                        new Item("Dark", () -> actions.pick("dark"))
+                )
+        ),
         new Item("Help").submenu(
-                new Item("Nothing here yet").disabled(true)))
-    .id("app-menu");
+                new Item("Nothing here yet").disabled(true)
+        )
+).id("app-menu");
 ```
 
 The bar owns its menus. It opens a heading's menu as a popup against the
@@ -111,7 +115,8 @@ var rowMenu = new Menu(
         new Item("Rename", actions::rename),
         new Item("Duplicate", actions::duplicate),
         new Separator(),
-        new Item("Delete", actions::delete));
+        new Item("Delete", actions::delete)
+);
 
 Menus.open(host, "more-button", rowMenu).ifPresent(open -> this.menu = open);
 ```
@@ -278,15 +283,17 @@ markup node for it.
 private Optional<BackendTray> tray = Optional.empty();
 
 @Override public void start(Host host) {
-    tray = Trays.show(host, TrayIcon.of("Goldberry — showcase", new Menu(
-                    new Item("Switch the light", actions::toggleTheme),
-                    new Separator(),
-                    new Item("Screens").submenu(
-                            new Item("Basic", () -> actions.pickScreen("basic")),
-                            new Item("Panels", () -> actions.pickScreen("panels"))),
-                    new Separator(),
-                    new Item("Quit", () -> host.window().close())))
-            .icons(onLightShell, onDarkShell));
+    var menu = new Menu(
+            new Item("Switch the light", actions::toggleTheme),
+            new Separator(),
+            new Item("Screens").submenu(
+                    new Item("Basic", () -> actions.pickScreen("basic")),
+                    new Item("Panels", () -> actions.pickScreen("panels"))
+            ),
+            new Separator(),
+            new Item("Quit", () -> host.window().close())
+    );
+    tray = Trays.show(host, TrayIcon.of("Goldberry — showcase", menu).icons(onLightShell, onDarkShell));
 }
 
 @Override public void stop() {

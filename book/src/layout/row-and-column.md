@@ -20,8 +20,8 @@ row id="toolbar" {
 var toolbar = new Row(
         new Button("Find", this::find),
         new Spacer(),
-        new Button("New", this::create).styled("primary"))
-        .withAttributes(Attributes.NONE.id("toolbar"));
+        new Button("New", this::create).styled("primary")
+).withAttributes(Attributes.NONE.id("toolbar"));
 ```
 
 `new Row(Widget...)` takes the children. `new Row(List<Widget>, Attributes)` takes them with an id and classes, and `withAttributes` adds those to a row built the short way.
@@ -94,8 +94,9 @@ var confirm = new Column(
         new Row(
                 new Spacer(),
                 new Button("Cancel", this::dismiss),
-                new Button("Delete", this::delete).styled("danger")))
-        .withAttributes(Attributes.NONE.id("confirm"));
+                new Button("Delete", this::delete).styled("danger")
+        )
+).withAttributes(Attributes.NONE.id("confirm"));
 ```
 
 `new Column(Widget...)` and `new Column(List<Widget>, Attributes)` are the two constructors, exactly as on `row`.

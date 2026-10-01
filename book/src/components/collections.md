@@ -128,7 +128,8 @@ new Table<>(sorted, Walker::id, List.of(
         Column.<Walker>of("realm", "Realm", Walker::realm).sortable(true).weight(2),
         Column.<Walker>of("leagues", "Leagues", w -> String.valueOf(w.leagues()))
                 .sortable(true)
-                .fixed(96)))
+                .fixed(96)
+))
     .sorted(sort, this::sortBy)
     .selection(Selection.MULTIPLE)
     .selected(picked, this::pick)
@@ -217,7 +218,8 @@ List<TreeNode> lands = List.of(
                 TreeNode.leaf("shire", "The Shire"),
                 TreeNode.leaf("bree", "Bree")),
         TreeNode.lazy("erebor", "Erebor",
-                () -> List.of(TreeNode.leaf("dale", "Dale"))));
+                () -> List.of(TreeNode.leaf("dale", "Dale")))
+);
 
 new Tree(lands, selected, this::select)
         .checkable(Checkable.CASCADE)

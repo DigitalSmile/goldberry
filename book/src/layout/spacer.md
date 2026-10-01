@@ -20,8 +20,8 @@ row id="title-bar" {
 var bar = new Row(
         new Text("Goldberry"),
         new Spacer(),
-        new Button("Theme", this::theme))
-        .withAttributes(Attributes.NONE.id("title-bar"));
+        new Button("Theme", this::theme)
+).withAttributes(Attributes.NONE.id("title-bar"));
 ```
 
 `new Spacer()` is the whole constructor. `new Spacer(Attributes)` gives it an id and classes.

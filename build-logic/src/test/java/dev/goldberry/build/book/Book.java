@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -185,6 +186,75 @@ final class Book {
             }
         });
         return anchor.toString();
+    }
+
+    /**
+     * Where a {@code java} sample breaks the bracket rule: a call whose arguments
+     * start on their own lines closes on a line of its own, at the indent of the
+     * line that opened it. Each entry names the sample's chapter and line, and
+     * the line of the closing bracket within it.
+     *
+     * <p>Strings, text blocks, character literals and comments are skipped. A
+     * bracket opened and closed on one line is not an argument list this rule
+     * cares about, and neither is one whose first argument shares the opener's
+     * line, which is how a lambda's body is usually written.
+     */
+    static List<String> bracketFaults(Sample sample) {
+        var faults = new ArrayList<String>();
+        var code = sample.text();
+        var lines = code.split("\n", -1);
+        var starts = new int[lines.length];
+        for (var i = 1; i < lines.length; i++) {
+            starts[i] = starts[i - 1] + lines[i - 1].length() + 1;
+        }
+        var openers = new ArrayDeque<Integer>();
+        var i = 0;
+        while (i < code.length()) {
+            var c = code.charAt(i);
+            if (code.startsWith("//", i)) {
+                var end = code.indexOf('\n', i);
+                i = end < 0 ? code.length() : end;
+            } else if (code.startsWith("/*", i)) {
+                var end = code.indexOf("*/", i + 2);
+                i = end < 0 ? code.length() : end + 2;
+            } else if (code.startsWith("\"\"\"", i)) {
+                var end = code.indexOf("\"\"\"", i + 3);
+                i = end < 0 ? code.length() : end + 3;
+            } else if (c == '"' || c == '\'') {
+                var j = i + 1;
+                while (j < code.length() && code.charAt(j) != c) {
+                    j += code.charAt(j) == '\\' ? 2 : 1;
+                }
+                i = j + 1;
+            } else {
+                if (c == '(') {
+                    openers.push(i);
+                } else if (c == ')' && !openers.isEmpty()) {
+                    var opener = openers.pop();
+                    var openLine = lineOf(starts, opener);
+                    var closeLine = lineOf(starts, i);
+                    var afterOpener = lines[openLine].substring(opener - starts[openLine] + 1)
+                            .replaceAll("//.*$", "").strip();
+                    var beforeCloser = code.substring(starts[closeLine], i);
+                    if (openLine != closeLine && afterOpener.isEmpty()) {
+                        var indent = lines[openLine].replaceAll("^([ \t]*).*$", "$1");
+                        if (!beforeCloser.equals(indent)) {
+                            faults.add(sample.chapter() + ":" + sample.line() + " line " + (closeLine + 1));
+                        }
+                    }
+                }
+                i++;
+            }
+        }
+        return faults;
+    }
+
+    private static int lineOf(int[] starts, int index) {
+        var line = 0;
+        while (line + 1 < starts.length && starts[line + 1] <= index) {
+            line++;
+        }
+        return line;
     }
 
     /** Every fenced sample in a chapter, with the line its fence opens on. */

@@ -28,7 +28,8 @@ scroll id="chapters" {
 var hobbiton = new Affix(
         List.of(new Panel(new Text("Hobbiton"))),
         Edge.TOP, 0,
-        Attributes.NONE.id("section-hobbiton").classes("section"));
+        Attributes.NONE.id("section-hobbiton").classes("section")
+);
 ```
 
 `new Affix(Widget...)` pins to the top with no offset. `new Affix(children, edge, offset, attributes)` is the usual form, and `alsoPinnedTo(Edge)` adds an edge on the other axis. `Edge` is `dev.goldberry.widgets.core.affix.Edge`.

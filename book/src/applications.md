@@ -139,7 +139,8 @@ public record Panel(Settings settings, Settings.Commands actions) implements Wid
     @Override public Widget build(BuildContext context) {
         return new Column(
                 new Slider(0, 100, Models.observable(settings, "app.gain"), actions::setGain),
-                new Button("Louder", actions::louder));
+                new Button("Louder", actions::louder)
+        );
     }
 }
 ```

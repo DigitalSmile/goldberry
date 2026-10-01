@@ -189,11 +189,13 @@ import dev.goldberry.reload.ReloadableSource;
 
 private final ReloadableSource<Stylesheet> styles = ReloadableSource.load(
         Path.of("src/main/resources/com/example/app/app.css"),
-        css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        css -> Stylesheet.parse(CascadeLayer.APPLICATION, css)
+);
 
 private final ReloadableSource<List<KdlNode>> document = ReloadableSource.load(
         Path.of("src/main/resources/com/example/app/window.kdl"),
-        KdlParser::parse);
+        KdlParser::parse
+);
 
 @Override public void start(Host host) {
     reload = HotReload.watch(List.of(styles, document), Goldberry.ui(), source -> {

@@ -25,8 +25,9 @@ var chapters = new Scroll(
                 new Text("Hobbiton"),
                 new Text("Bree"),
                 new Text("Rivendell"),
-                new Text("Moria")))
-        .withAttributes(Attributes.NONE.id("chapters"));
+                new Text("Moria")
+        )
+).withAttributes(Attributes.NONE.id("chapters"));
 ```
 
 `new Scroll(Widget...)` is vertical. `new Scroll(List<Widget>, ScrollAxis, Attributes)` chooses the axis. Several children are wrapped in one moving box, so they stack as they would in a `column`.

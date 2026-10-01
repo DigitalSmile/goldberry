@@ -30,7 +30,8 @@ new Row(
         new Button("New", actions::create).withIcon(plus).styled("primary"),
         new Button("Delete", actions::delete).styled("danger"),
         new Button("Later").styled("ghost").disabled(true),
-        new Button("What is this?", actions::help).styled("link"));
+        new Button("What is this?", actions::help).styled("link")
+);
 ```
 
 The icon is borrowed. A widget is a value rebuilt every frame, so it must not
@@ -119,7 +120,8 @@ import dev.goldberry.widgets.controls.badge.Badge;
 new Row(
         new Badge("3"),
         new Badge("offline").styled("danger"),
-        Badge.of("passing", Models.observable(build, "build.state")).styled("success"));
+        Badge.of("passing", Models.observable(build, "build.state")).styled("success")
+);
 ```
 
 A count is the archetypal bound value. The argument stays as the fallback until
@@ -178,7 +180,8 @@ new Row(
         new Chip("Unread", false, actions::toggleUnread).bound(Models.observable(filter, "filter.unread")),
         new Chip("Live").withDot(true).styled("outlined", "success"),
         new Chip("java").withIcon(tag).onDismiss(() -> actions.drop("java")),
-        new Chip("Sealed").styled("outlined").disabled(true));
+        new Chip("Sealed").styled("outlined").disabled(true)
+);
 ```
 
 A chip selects nothing itself. Pressing raises `press` and the application

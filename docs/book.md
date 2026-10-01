@@ -82,6 +82,18 @@ The heading is what `BookTest` looks for, so every `@Markup` name in the
 repository has exactly one. A widget that has no markup name, `toast` or
 `web-view`, is documented in the same shape under a plain heading.
 
+**A Java sample closes a list on its own line.** When the arguments of a call
+start on their own lines, the closing bracket is on a line of its own, at the
+indent of the line that opened it, and a chained call follows it on the same
+line. `BookTest` checks every `java` block for this.
+
+```java
+new Row(
+        new Button("Cancel", this::dismiss),
+        new Button("Delete", this::delete).styled("danger")
+).styled("confirm");
+```
+
 **Samples inflate.** Every fenced `kdl` block in the guide is parsed and inflated
 by `BookMarkupTest` against `Widgets.inflater()`, with nothing bound, so an
 unknown node name or a refused attribute fails the build. A fragment that is

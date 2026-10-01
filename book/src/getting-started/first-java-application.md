@@ -250,7 +250,8 @@ file is saved. The same works for a document.
 ```java
 private final ReloadableSource<Stylesheet> styles = ReloadableSource.load(
         Path.of("src/main/resources/com/example/hello/hello.css"),
-        css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        css -> Stylesheet.parse(CascadeLayer.APPLICATION, css)
+);
 
 private HotReload reload;
 

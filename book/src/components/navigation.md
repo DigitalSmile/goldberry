@@ -27,8 +27,8 @@ new Breadcrumbs(
         new Crumb("Home", actions::goHome).withIcon(homeIcon),
         new Crumb("Library", actions::goLibrary),
         new Crumb("Reference", actions::goShelf),
-        new Crumb("The Red Book"))
-    .id("path");
+        new Crumb("The Red Book")
+).id("path");
 ```
 
 The trail decides which crumb is current. It is always the last one written, so

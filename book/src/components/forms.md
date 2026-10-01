@@ -54,7 +54,8 @@ new Column(
             .maxLength(5),
         new TextInput().password(true).placeholder("The word that opens the doors"),
         new TextInput("Copied from the Red Book", null).readOnly(true),
-        new TextInput("Speak, friend", null).disabled(true));
+        new TextInput("Speak, friend", null).disabled(true)
+);
 ```
 
 A filter rejects and never corrects: a keystroke or a paste the filter refuses
@@ -161,7 +162,8 @@ new Column(
         TextArea.of(Models.observable(doc, "doc.source"), actions::setSource)
             .fill(true)
             .onEdit(actions::remember)
-            .edit(pending));
+            .edit(pending)
+);
 ```
 
 **`gutter=#true`** numbers the lines you typed, at the positions the wrap put
@@ -265,8 +267,8 @@ new Form(
             .required(true)
             .validate(Validator.parsing(Integer::parseInt, "A port is a number")),
         new Field("", new Button("Enlist", actions::submit).styled("primary"))
-            .styled("actions"))
-    .styled("horizontal");
+            .styled("actions")
+).styled("horizontal");
 ```
 
 ### The validation model
@@ -347,8 +349,8 @@ var controller = new FormController();
 
 new Form(
         new Field("Name", new TextInput().placeholder("Peregrin Took")).required(true),
-        new Field("Port", new TextInput().placeholder("8080").filter(TextFilter.DIGITS)))
-    .controller(controller)
+        new Field("Port", new TextInput().placeholder("8080").filter(TextFilter.DIGITS))
+).controller(controller)
     .onSubmit(actions::enlist);
 
 controller.submit();      // validates every field, runs onSubmit when all pass
@@ -416,7 +418,8 @@ new Column(
             .length(6)
             .onComplete(actions::codeComplete),
         new CodeInput(6, null).mask(true),
-        new CodeInput(5, null).type(CodeType.ALNUM));
+        new CodeInput(5, null).type(CodeType.ALNUM)
+);
 ```
 
 The value is a string and the boxes are a drawing. There is no caret and no
@@ -642,7 +645,8 @@ import dev.goldberry.widgets.form.colorpicker.ColorPicker;
 new Row(
         ColorPicker.of(Models.observable(paint, "paint.colour"), actions::setColour)
             .presets(List.of(0xFFBF616A, 0xFFA3BE8C, 0xFF81A1C1)),
-        new ColorPicker("#bf616a80", null).alpha(true));
+        new ColorPicker("#bf616a80", null).alpha(true)
+);
 ```
 
 The plane, the ramps and the presets all write hex into the field, so a value

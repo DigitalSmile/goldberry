@@ -43,7 +43,8 @@ row id="confirm" {
 new Row(
         new Spacer(),
         new Button("Cancel", this::dismiss),
-        new Button("Delete", this::delete).styled("danger"))
+        new Button("Delete", this::delete).styled("danger")
+)
 ```
 
 </div>

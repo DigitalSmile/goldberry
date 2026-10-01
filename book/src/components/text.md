@@ -27,7 +27,8 @@ import dev.goldberry.widgets.text.TextRank;
 new Column(
         new Text("The Red Book").style(TextRank.TITLE),
         new Text("Marked in a hand that was not steady").styled("caption"),
-        Text.of("checking…", Models.observable(app, "app.status")));
+        Text.of("checking…", Models.observable(app, "app.status"))
+);
 ```
 
 The argument is what the text says. With `bind=`, the argument is the fallback
@@ -143,7 +144,8 @@ import dev.goldberry.widgets.text.Link;
 new Column(
         new Link("Read the docs", actions::showDocs),
         Link.external("Goldberry on the web", "https://goldberry.dev"),
-        Link.external("Write to us", "mailto:hello@example.org").visited(true));
+        Link.external("Write to us", "mailto:hello@example.org").visited(true)
+);
 ```
 
 `action=` is in-app navigation. `href=` is handed to the desktop's own handler

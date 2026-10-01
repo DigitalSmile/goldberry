@@ -80,7 +80,8 @@ import dev.goldberry.widgets.data.linechart.LineChart;
 new LineChart(
         List.of(Series.of("Downloads", 1200, 3400, 2900), Series.of("Installs", 800, 2100, 2400)),
         List.of("0.1", "0.2", "0.3"),
-        Attributes.NONE.id("downloads"));
+        Attributes.NONE.id("downloads")
+);
 ```
 
 The knobs are withers, and each returns a `LineChart`:
@@ -212,7 +213,8 @@ bar-chart id="sightings" {
 new BarChart(
         List.of(Series.of("Crebain", 18, 24, 14), Series.of("Riders", 3, 2, 5)),
         List.of("Mon", "Tue", "Wed"),
-        Attributes.NONE.id("sightings"));
+        Attributes.NONE.id("sightings")
+);
 ```
 
 The y axis includes zero and cannot be told otherwise, because a bar encodes its
@@ -267,8 +269,8 @@ area-chart id="provisions" {
 new AreaChart(
         List.of(Series.of("Lembas", 40, 52, 44), Series.of("Dried meat", 12, 9, 15)),
         List.of("Mon", "Tue", "Wed"),
-        Attributes.NONE.id("provisions"))
-    .curve(Curve.SMOOTH)
+        Attributes.NONE.id("provisions")
+).curve(Curve.SMOOTH)
     .fill(Fill.GRADIENT);
 ```
 
@@ -323,7 +325,8 @@ donut-chart id="packs" {
 ```java
 new DonutChart(
         List.of(Series.of("Lembas", 62), Series.of("Dried meat", 24), Series.of("Nothing", 14)),
-        Attributes.NONE.id("packs"));
+        Attributes.NONE.id("packs")
+);
 ```
 
 One number per slice: the first value of each series. A donut of two slices is

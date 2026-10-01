@@ -71,7 +71,8 @@ emoji slot, so `font-family: Inter, sans-serif` keeps the first name only.
 @Override public List<FontSource> fonts() {
     return List.of(FontSource.resource(
             "Forum", BundledFont.Weight.REGULAR, BundledFont.Style.UPRIGHT,
-            MyApp.class, "fonts/Forum-Regular.ttf"));
+            MyApp.class, "fonts/Forum-Regular.ttf"
+    ));
 }
 ```
 

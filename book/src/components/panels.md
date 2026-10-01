@@ -23,8 +23,8 @@ panel class="side" {
 ```java
 new Panel(
         new Text("The map"),
-        new Text("Where the road goes next."))
-    .styled("side");
+        new Text("Where the road goes next.")
+).styled("side");
 ```
 
 **Attributes**
@@ -58,8 +58,8 @@ card class="interactive" {
 ```java
 new Card(
         new Text("Surfaces").styled("card-title"),
-        new Text("Point at it and the shadow rises."))
-    .styled("interactive");
+        new Text("Point at it and the shadow rises.")
+).styled("interactive");
 ```
 
 The edge stays even though there is a shadow, because a card on another card
@@ -166,7 +166,8 @@ column accordion=#true {
 new Accordion(
         new Collapse("The Shire", new Text("Second breakfast kept.")),
         new Collapse("Rivendell", new Text("Council held.")),
-        new Collapse("Moria", new Text("Doors: Mellon.")));
+        new Collapse("Moria", new Text("Doors: Mellon."))
+);
 ```
 
 **Attributes**
@@ -216,11 +217,12 @@ carousel loop=#true interval=5000 {
 ```
 
 ```java
-new Carousel(0, null, true, Duration.ofSeconds(5), List.of(
+var slides = List.of(
         new Panel(new Text("Stage 1 of 3: Bag End")).styled("slide"),
         new Panel(new Text("Stage 2 of 3: Rivendell")).styled("slide"),
-        new Panel(new Text("Stage 3 of 3: Moria")).styled("slide")),
-        Attributes.NONE);
+        new Panel(new Text("Stage 3 of 3: Moria")).styled("slide")
+);
+new Carousel(0, null, true, Duration.ofSeconds(5), slides, Attributes.NONE);
 ```
 
 `new Carousel(Widget... slides)` is the short form: no loop, no rotation. Name
@@ -288,7 +290,9 @@ new Row(
         new Skeleton(Skeleton.Shape.CIRCLE),
         new Column(
                 new Skeleton(Skeleton.Shape.TITLE),
-                new Skeleton(Skeleton.Shape.TEXT, 2, Attributes.NONE)));
+                new Skeleton(Skeleton.Shape.TEXT, 2, Attributes.NONE)
+        )
+);
 ```
 
 A shimmer is a loop, and the design system allows one decoration to loop. It is
@@ -334,7 +338,8 @@ row {
 new Row(
         new Statistic("Leagues walked", "1,795").delta("+42", Statistic.Direction.UP),
         new Statistic("Days from Rivendell", "93").unit("d").delta("-2", Statistic.Direction.DOWN),
-        new Statistic("Companions lost", "1").delta("Gandalf", Statistic.Direction.NONE));
+        new Statistic("Companions lost", "1").delta("Gandalf", Statistic.Direction.NONE)
+);
 ```
 
 The value is a string. Formatting is the application's, because a number
@@ -508,8 +513,8 @@ timeline pending=#true {
 new Timeline(
         new Entry("Drafted").at("Mon"),
         new Entry("Reviewed").at("Thu").withMarker(new Badge("3")),
-        new Entry("Released", new Text("Tagged and published.")).at("Fri").withIcon(tag))
-    .pending(true);
+        new Entry("Released", new Text("Tagged and published.")).at("Fri").withIcon(tag)
+).pending(true);
 ```
 
 The line goes on: `pending` draws a trailing unfilled marker after the last

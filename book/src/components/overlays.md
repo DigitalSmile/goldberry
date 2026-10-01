@@ -155,10 +155,11 @@ popover {
 ```
 
 ```java
-host.popup(new Popover(
-            new Text("Saved a moment ago."),
-            new Button("Undo", actions::undo).styled("ghost")),
-        "save-button", Placement.BELOW)
+var popover = new Popover(
+        new Text("Saved a moment ago."),
+        new Button("Undo", actions::undo).styled("ghost")
+);
+host.popup(popover, "save-button", Placement.BELOW)
     .ifPresent(open -> this.hint = open);
 ```
 
@@ -204,7 +205,8 @@ new Column(
                 .actions(new Button("Stay signed in", actions::extend).styled("ghost")),
         new Message(Message.Kind.DANGER, "Could not save: the port is in use.")
                 .dismiss(actions::clear),
-        new Message(Message.Kind.SUCCESS, "Saved."));
+        new Message(Message.Kind.SUCCESS, "Saved.")
+);
 ```
 
 A message is not a toast. A toast is transient and floats over the window; a
@@ -353,7 +355,8 @@ target, and a card beside it says what it is.
 Tours.start(host, List.of(
         new Stop("demo-tabs", "A strip of your own", "Chapters that can be closed."),
         new Stop("jump-bar", "Jump to a chapter", "These bring a section into view."),
-        new Stop("gallery", "The gallery strip", "Every screen, and a Ctrl+digit for the first ten.")));
+        new Stop("gallery", "The gallery strip", "Every screen, and a Ctrl+digit for the first ten.")
+));
 ```
 
 A `Stop` names a target by id, with a title and a body. `Tours.start(host,

@@ -339,7 +339,8 @@ subtree ([ADR-0070](../adr/0070-the-cascade-resolves-invalidated-nodes.md)).
     var sheets = new ArrayList<>(Controls.stylesheets(
             settings.theme(),            // Theme.NORD_LIGHT or Theme.NORD_DARK
             settings.density(),          // Density.REGULAR or Density.COMPACT
-            settings.scrollbars()));     // Scrollbars.OVERLAY or Scrollbars.ALWAYS
+            settings.scrollbars()
+    ));     // Scrollbars.OVERLAY or Scrollbars.ALWAYS
     sheets.add(styles);
     return sheets;
 }

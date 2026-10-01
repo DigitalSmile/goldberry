@@ -40,7 +40,8 @@ new Column(
             .format("%.2f")
             .onCommit(actions::seek)
             .styled("vertical"),
-        new Slider(0, 100, 70, 0, null).disabled(true));
+        new Slider(0, 100, 70, 0, null).disabled(true)
+);
 ```
 
 The control snaps and clamps so no application has to. Steps count from `min`,
@@ -140,7 +141,8 @@ new Row(
         Knob.of(0, 100, 5, Models.observable(audio, "audio.gain"), actions::setGain).detents(5),
         Knob.of(0, 1, 0, Models.observable(audio, "audio.pan"), actions::setPan)
             .circular(true)
-            .styled("large"));
+            .styled("large")
+);
 ```
 
 Dragging up turns it up: 200 px of drag is the whole range, and `Shift` makes
@@ -222,7 +224,8 @@ import dev.goldberry.widgets.controls.progressbar.Progress;
 new Column(
         new Progress(0.4),
         Progress.of(100, Models.observable(download, "download.received")),
-        Progress.sweeping());
+        Progress.sweeping()
+);
 ```
 
 A determinate bar's fill is a plain width, the value divided by `max` and
@@ -287,7 +290,8 @@ import dev.goldberry.widgets.controls.spinner.SpinnerSize;
 new Row(
         new Spinner(SpinnerSize.SMALL),
         new Spinner(),
-        new Spinner(SpinnerSize.LARGE));
+        new Spinner(SpinnerSize.LARGE)
+);
 ```
 
 Small sits beside a line of text or inside a busy control, medium is the

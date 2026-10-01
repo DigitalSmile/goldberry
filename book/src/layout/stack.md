@@ -18,8 +18,8 @@ stack id="avatar" {
 ```java
 var avatar = new Stack(
         new Panel(new Text("GB")),
-        new Badge("3"))
-        .withAttributes(Attributes.NONE.id("avatar"));
+        new Badge("3")
+).withAttributes(Attributes.NONE.id("avatar"));
 ```
 
 `new Stack(Widget...)` and `new Stack(List<Widget>, Attributes)` are the two constructors. A stack of one child is that child in a box.

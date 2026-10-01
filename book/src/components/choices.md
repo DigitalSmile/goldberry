@@ -32,7 +32,8 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 new Column(
         Checkbox.of("Frosted sidebar", Models.observable(prefs, "prefs.frost"), actions::toggleFrost),
         new Checkbox("Sworn to the Fellowship", Checkbox.Value.CHECKED).disabled(true),
-        new Checkbox("Some of them", Checkbox.Value.MIXED));
+        new Checkbox("Some of them", Checkbox.Value.MIXED)
+);
 ```
 
 `MIXED` is a real state. A select-all over a partial selection is neither on
@@ -108,7 +109,8 @@ import dev.goldberry.widgets.controls.toggle.Toggle;
 
 new Column(
         Toggle.of("Frosted sidebar", Models.observable(prefs, "prefs.frost"), actions::setFrost),
-        new Toggle("Bound by oath", true).disabled(true));
+        new Toggle("Bound by oath", true).disabled(true)
+);
 ```
 
 `change` carries the state asked for, as a boolean, not "the other one". A drag

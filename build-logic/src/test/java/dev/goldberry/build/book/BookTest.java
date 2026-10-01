@@ -164,6 +164,23 @@ class BookTest {
     }
 
     @Nested
+    @DisplayName("a java sample")
+    class JavaSamples {
+
+        @Test
+        @DisplayName("closes a multi-line argument list on its own line, at the indent that opened it")
+        void closesOnItsOwnLine() {
+            var faults = guide().stream()
+                    .flatMap(chapter -> Book.samples(chapter.path()).stream())
+                    .filter(sample -> sample.language().equals("java"))
+                    .flatMap(sample -> Book.bracketFaults(sample).stream())
+                    .toList();
+            assertTrue(
+                    faults.isEmpty(), () -> "a closing bracket that shares a line with the last argument: " + faults);
+        }
+    }
+
+    @Nested
     @DisplayName("book.toml")
     class Configuration {
 
