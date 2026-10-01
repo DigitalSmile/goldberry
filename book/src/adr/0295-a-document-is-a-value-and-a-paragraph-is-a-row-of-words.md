@@ -38,10 +38,10 @@ neither an engine nor a wider paint surface.
 story. Inside it, Markdown gets a package of its own:
 
 ```
-io.github.digitalsmile.goldberry.markdown          Markdown, MarkdownSyntax
-io.github.digitalsmile.goldberry.markdown.model    the document, as records
-io.github.digitalsmile.goldberry.markdown.html     MarkdownHtml
-io.github.digitalsmile.goldberry.markdown.view     markdown-view
+dev.goldberry.markdown          Markdown, MarkdownSyntax
+dev.goldberry.markdown.model    the document, as records
+dev.goldberry.markdown.html     MarkdownHtml
+dev.goldberry.markdown.view     markdown-view
 ```
 
 The `…html` package that will hold litehtml's `html-view` is not written yet.

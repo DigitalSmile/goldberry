@@ -2,7 +2,8 @@
 
 How Goldberry is versioned, published and released. The reasoning is in
 [ADR-0333](../book/src/adr/0333-a-version-is-a-year-and-a-count.md) (versions),
-[ADR-0334](../book/src/adr/0334-central-is-fed-once-per-run.md) (Maven Central) and
+[ADR-0334](../book/src/adr/0334-central-is-fed-once-per-run.md) (Maven Central),
+[ADR-0510](../book/src/adr/0510-publish-under-dev-goldberry.md) (the `dev.goldberry` group) and
 [ADR-0336](../book/src/adr/0336-one-dependency-to-start-from-and-a-bom-to-line-up-the-rest.md)
 (the BOM and the umbrella) and
 [ADR-0340](../book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
@@ -16,6 +17,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 | `goldberry.publish` — POMs, sources, javadoc, signing, classifier jars | **built**, rehearsed locally into a throwaway repository |
 | `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu`/`media` optional | **built**, resolved by a local consumer build; `media` and its `ffmpeg-linux-x64` classifier published into `mavenLocal` on 2026-09-30 (ADR-0495) |
 | `snapshot.yml` → `publish.yml` → Central snapshots | **the secrets are set and the first run went out** (run 17, 2026-09-19) — and failed partway: `:widgets:javadoc` refused a broken `[link]` after seven of the nine modules had uploaded, leaving `:widgets` and `:html` off that snapshot. The next green snapshot overwrites it. `check` generates javadoc now, so the same mistake fails on Linux four minutes in ([ADR-0405](../book/src/adr/0405-check-generates-the-published-javadoc.md)). **Runs 32 and 33 (2026-09-27, 2026-09-30) never reached the upload**: every per-OS Java job failed in `:natives:gpuTest`, where GPU test classes called SDL from their teardown after the missing library had skipped their setup. The teardowns now return when setup was skipped ([ADR-0495](../book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) |
+| The `dev.goldberry` namespace on Central (ADR-0510) | **not yet verified**: until the TXT record is in place and snapshots are enabled for it (one-time setup, steps 1 and 2), `publish.yml` is refused. Snapshots before 2026-10-01 are under `io.github.digitalsmile` |
 | `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **done** (2026-09-17) — all seven upstream files copied verbatim from the pinned checkouts; the check passes with eleven components |
@@ -57,20 +59,20 @@ repositories {
     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }   // snapshots only
 }
 dependencies {
-    implementation platform('io.github.digitalsmile:goldberry-bom:2026.1-SNAPSHOT')
-    implementation 'io.github.digitalsmile:goldberry'                // common, natives, core, widgets
-    implementation 'io.github.digitalsmile:goldberry-html'           // optional: Markdown and HTML
-    implementation 'io.github.digitalsmile:goldberry-emoji'          // optional: the Noto Color Emoji face (OFL)
-    implementation 'io.github.digitalsmile:goldberry-gpu'            // optional: canvas3d and GPU composition
-    implementation 'io.github.digitalsmile:goldberry-media'          // optional: audio and video
-    runtimeOnly 'io.github.digitalsmile:goldberry-media::ffmpeg-linux-x64'   // FFmpeg, per target, as below
+    implementation platform('dev.goldberry:goldberry-bom:2026.1-SNAPSHOT')
+    implementation 'dev.goldberry:goldberry'                // common, natives, core, widgets
+    implementation 'dev.goldberry:goldberry-html'           // optional: Markdown and HTML
+    implementation 'dev.goldberry:goldberry-emoji'          // optional: the Noto Color Emoji face (OFL)
+    implementation 'dev.goldberry:goldberry-gpu'            // optional: canvas3d and GPU composition
+    implementation 'dev.goldberry:goldberry-media'          // optional: audio and video
+    runtimeOnly 'dev.goldberry:goldberry-media::ffmpeg-linux-x64'   // FFmpeg, per target, as below
     // All four: `NativeLibrary` picks the right one at run time by `os.name` and
     // `os.arch`, so this works on every machine the application is built or run
     // on. Slim it to one line for a single target deliberately -- see below.
-    runtimeOnly 'io.github.digitalsmile:goldberry-natives::linux-x64'
-    runtimeOnly 'io.github.digitalsmile:goldberry-natives::linux-aarch64'
-    runtimeOnly 'io.github.digitalsmile:goldberry-natives::macos-aarch64'
-    runtimeOnly 'io.github.digitalsmile:goldberry-natives::windows-x64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::linux-x64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::linux-aarch64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::macos-aarch64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::windows-x64'
 }
 ```
 
@@ -78,7 +80,7 @@ dependencies {
 <dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>io.github.digitalsmile</groupId>
+      <groupId>dev.goldberry</groupId>
       <artifactId>goldberry-bom</artifactId>
       <version>2026.1</version>
       <type>pom</type>
@@ -87,8 +89,8 @@ dependencies {
   </dependencies>
 </dependencyManagement>
 <dependencies>
-  <dependency><groupId>io.github.digitalsmile</groupId><artifactId>goldberry</artifactId></dependency>
-  <dependency><groupId>io.github.digitalsmile</groupId><artifactId>goldberry-gpu</artifactId></dependency>
+  <dependency><groupId>dev.goldberry</groupId><artifactId>goldberry</artifactId></dependency>
+  <dependency><groupId>dev.goldberry</groupId><artifactId>goldberry-gpu</artifactId></dependency>
 </dependencies>
 ```
 
@@ -124,9 +126,12 @@ a manual run of the *Showcase* workflow leaves them as the run's artifacts.
 
 Done by a person, once. Nothing here can be checked from the repository.
 
-1. **Central Portal namespace.** Sign in at <https://central.sonatype.com> with the
-   GitHub account that owns `DigitalSmile`; `io.github.digitalsmile` verifies from
-   it.
+1. **Central Portal namespace.** Sign in at <https://central.sonatype.com>, add the
+   namespace `dev.goldberry` (Namespaces → *Add Namespace*), and publish the
+   verification key it issues as a DNS **TXT** record on `goldberry.dev`. Central
+   verifies a reverse-domain namespace from the domain, not from a GitHub account
+   (ADR-0510). The old `io.github.digitalsmile` namespace keeps the snapshots
+   uploaded before the rename. Nothing is published there any more.
 2. **Enable snapshots for the namespace** (Namespaces → the namespace → *Enable
    SNAPSHOTs*). Off by default; without it every snapshot upload is refused.
 3. **A user token** (Account → *Generate User Token*). Its two halves are the

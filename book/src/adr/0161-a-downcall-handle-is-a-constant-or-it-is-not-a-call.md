@@ -93,11 +93,11 @@ signatures**, which is what makes this a small file rather than a parallel copy
 of the bindings.
 
 `:natives` ships the flag that makes it work, in
-`META-INF/native-image/io.github.digitalsmile/goldberry-natives/native-image.properties`:
+`META-INF/native-image/dev.goldberry/goldberry-natives/native-image.properties`:
 
 ```
-Args = --initialize-at-build-time=io.github.digitalsmile.goldberry.natives.Downcalls \
-       --initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary
+Args = --initialize-at-build-time=dev.goldberry.natives.Downcalls \
+       --initialize-at-run-time=dev.goldberry.natives.NativeLibrary
 ```
 
 Both classes have an opinion about *when* they are initialised and they are

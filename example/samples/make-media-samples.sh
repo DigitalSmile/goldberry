@@ -1,6 +1,6 @@
 #!/bin/sh
 # Regenerates the Media screen's sample clips in
-# src/main/resources/io/github/digitalsmile/goldberry/example/media/.
+# src/main/resources/dev/goldberry/example/media/.
 #
 # One synthetic piece of audio, written sample by sample below: twelve seconds of a
 # plucked arpeggio over a drone, 48 kHz stereo, panned note by note. It is our own
@@ -10,7 +10,7 @@
 #
 # Run from this directory: ./make-media-samples.sh
 set -eu
-out=../src/main/resources/io/github/digitalsmile/goldberry/example/media
+out=../src/main/resources/dev/goldberry/example/media
 work=$(mktemp -d)
 ff="ffmpeg -hide_banner -loglevel error -y -bitexact"
 # SVT-AV1 logs through its own channel; 1 is errors only.

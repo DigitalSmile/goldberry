@@ -138,7 +138,7 @@ job.onFinished(text -> {
 The reflective form needs private access, and JPMS is what grants it:
 
 ```java
-opens com.example.app to io.github.digitalsmile.goldberry.core;
+opens com.example.app to dev.goldberry.core;
 ```
 
 A classpath application needs nothing — the unnamed module is open. The refusal
@@ -238,7 +238,7 @@ source tree, the equivalent is:
 
 ```groovy
 configurations { goldberryWeaver }
-dependencies { goldberryWeaver "io.github.digitalsmile:goldberry-weaver:$goldberryVersion" }
+dependencies { goldberryWeaver "dev.goldberry:goldberry-weaver:$goldberryVersion" }
 
 def weave = tasks.register('weaveModels', JavaExec) {
     dependsOn tasks.compileJava
@@ -247,7 +247,7 @@ def weave = tasks.register('weaveModels', JavaExec) {
     // compiled against: regenerating a stack-map frame means resolving the
     // author's own types. The weaver's own jar alone is not enough.
     classpath = files(configurations.goldberryWeaver, classes, sourceSets.main.compileClasspath)
-    mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
+    mainClass = 'dev.goldberry.weaver.WeaverMain'
     argumentProviders.add({ [classes.get().asFile.absolutePath] } as CommandLineArgumentProvider)
     inputs.dir(classes)
     // A stamp, NOT `outputs.dir(classes)`. Declaring javac's own directory as
@@ -280,7 +280,7 @@ run one half; with neither it runs both:
       <phase>process-classes</phase>
       <goals><goal>java</goal></goals>
       <configuration>
-        <mainClass>io.github.digitalsmile.goldberry.weaver.WeaverMain</mainClass>
+        <mainClass>dev.goldberry.weaver.WeaverMain</mainClass>
         <arguments>
           <argument>${project.build.outputDirectory}</argument>
         </arguments>
@@ -292,7 +292,7 @@ run one half; with neither it runs both:
       <phase>process-test-classes</phase>
       <goals><goal>java</goal></goals>
       <configuration>
-        <mainClass>io.github.digitalsmile.goldberry.weaver.WeaverMain</mainClass>
+        <mainClass>dev.goldberry.weaver.WeaverMain</mainClass>
         <arguments>
           <argument>${project.build.testOutputDirectory}</argument>
         </arguments>
@@ -301,7 +301,7 @@ run one half; with neither it runs both:
   </executions>
   <dependencies>
     <dependency>
-      <groupId>io.github.digitalsmile</groupId>
+      <groupId>dev.goldberry</groupId>
       <artifactId>goldberry-weaver</artifactId>
       <version>${goldberry.version}</version>
     </dependency>
@@ -321,7 +321,7 @@ is a program that post-processes classes.
 
 ```
 java -cp goldberry-weaver.jar:target/classes:<compile classpath> \
-     io.github.digitalsmile.goldberry.weaver.WeaverMain target/classes
+     dev.goldberry.weaver.WeaverMain target/classes
 ```
 
 **The classpath is not optional**, which the shorter `java -jar` line this page

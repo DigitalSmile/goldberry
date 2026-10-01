@@ -1,6 +1,6 @@
-import io.github.digitalsmile.goldberry.build.ToolResolver
-import io.github.digitalsmile.goldberry.build.publish.CorrespondingSource
-import io.github.digitalsmile.goldberry.build.publish.UpstreamSource
+import dev.goldberry.build.ToolResolver
+import dev.goldberry.build.publish.CorrespondingSource
+import dev.goldberry.build.publish.UpstreamSource
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
@@ -216,7 +216,7 @@ tasks.register('ffmpegBuild', Exec) {
 //
 // What `FfmpegLibraries` unpacks when no -Dgoldberry.media.libdir is set: the
 // five libraries and the layout file under
-// io/github/digitalsmile/goldberry/media/natives/<classifier>/ -- the literal
+// dev/goldberry/media/natives/<classifier>/ -- the literal
 // `FfmpegPlatform.resourceDirectory()` returns -- and ffmpeg-NOTICE.txt under
 // META-INF/, beside the licence texts every Goldberry jar carries.
 //
@@ -244,7 +244,7 @@ mediaTargets.each { target ->
         if (sourceDir != null) {
             from(sourceDir) {
                 exclude 'ffmpeg-NOTICE.txt'
-                into "io/github/digitalsmile/goldberry/media/natives/${target}"
+                into "dev/goldberry/media/natives/${target}"
             }
             from(sourceDir) {
                 include 'ffmpeg-NOTICE.txt'
@@ -438,14 +438,14 @@ if (mediaArtifactsDir.isPresent()) {
 // ============================================================================
 def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
 def foreignMetadataFile = foreignMetadataDir.map {
-    it.file('META-INF/native-image/io.github.digitalsmile/goldberry-media/reachability-metadata.json')
+    it.file('META-INF/native-image/dev.goldberry/goldberry-media/reachability-metadata.json')
 }
 
 def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
     group = 'build'
     description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.media.nativeimage.MediaForeignMetadata'
+    mainClass = 'dev.goldberry.media.nativeimage.MediaForeignMetadata'
     // Linking a descriptor is restricted, and the generator links every one.
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
@@ -547,7 +547,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     group = 'verification'
     description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTargetId.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'
@@ -571,7 +571,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     }).withPropertyName('ffmpegLibraries').optional()
     outputs.file(summary)
     argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.media']
+        [summary.get().asFile.absolutePath, 'dev.goldberry.media']
     } as CommandLineArgumentProvider)
 }
 
@@ -594,7 +594,7 @@ tasks.register('videoPresentProbe', JavaExec) {
     group = 'verification'
     description = 'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time (docs/gpu-plan.md, phase 6).'
     classpath = sourceSets.test.runtimeClasspath + probeRuntime
-    mainClass = 'io.github.digitalsmile.goldberry.media.view.VideoPresentProbe'
+    mainClass = 'dev.goldberry.media.view.VideoPresentProbe'
     workingDir = projectDir
     systemProperty 'logback.configurationFile', file('src/test/probe/logback.xml').absolutePath
     jvmArgs '--enable-native-access=ALL-UNNAMED'
@@ -691,7 +691,7 @@ tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
         new File(libraryDirectory.get(), 'ffmpeg-layout.properties').isFile()
     }
     classDirectories.setFrom(sourceSets.main.output.classesDirs.asFileTree.matching {
-        uncountedSystems.each { exclude "io/github/digitalsmile/goldberry/media/platform/${it}/**" }
+        uncountedSystems.each { exclude "dev/goldberry/media/platform/${it}/**" }
     })
     violationRules {
         rule {

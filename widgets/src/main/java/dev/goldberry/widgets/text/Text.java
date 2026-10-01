@@ -1,0 +1,172 @@
+package dev.goldberry.widgets.text;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+
+/// A run of text — `docs/core-widgets.md` §2's `text`, and the whole of that
+/// package until `span` and `link` are built.
+///
+/// ```kdl
+/// text "Hello"
+/// text class="caption" bind="user.name"
+/// text style="title" "Two spellings of one thing"
+/// ```
+///
+/// The content is either written down or bound. `source` is §9's `bind`: when it
+/// is set, the text shown is whatever the property holds *now*, and `content` is
+/// what it falls back to before anything is bound — which is what a lenient
+/// inflater produces for a path nothing answers
+/// (ADR-0062).
+///
+/// Everything visual is the stylesheet's. This sets no size, no weight and no
+/// colour; `class="body"` and the rest of §1.4's scale are rules in
+/// `controls.css`, which is why a `text` with no ancestor setting `color` is
+/// still an open question rather than a default written here.
+///
+/// ## Two spellings of the type scale
+///
+/// §2 asks for `style="body"` and what shipped was `class="body"`. Both work:
+/// `style=` names a [TextRank] and is checked — a typo is refused where it is
+/// written rather than resolving to a class no rule matches — and `class=` is
+/// the CSS spelling, which is what a rule of an application's own will be
+/// written against anyway ([ADR-0381]).
+@Markup("text")
+public record Text(String content, @Nullable Observable<?> source, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Attributed<Text>, Bindable<Text> {
+
+    public Text(String content) {
+        this(content, null, Attributes.NONE);
+    }
+
+    public Text(String content, Attributes attributes) {
+        this(content, null, attributes);
+    }
+
+    /// Text that follows a property. Equivalent to `text bind="…"`.
+    public static Text of(Observable<?> source) {
+        return new Text("", Objects.requireNonNull(source, "source"), Attributes.NONE);
+    }
+
+    /// The same, with a fallback shown until the property has a value — what a
+    /// lenient inflater produces for a path nothing answers yet (ADR-0062).
+    public static Text of(String fallback, Observable<?> source) {
+        return new Text(fallback, Objects.requireNonNull(source, "source"), Attributes.NONE);
+    }
+
+    public Text {
+        Objects.requireNonNull(content, "content");
+    }
+
+    /// What this text says right now — the bound value, or the literal.
+    ///
+    /// Read at render rather than captured at build, so a change that arrives
+    /// between a build and a frame is shown by that frame rather than the one
+    /// after it. `null` in a property reads as the empty string: a value that has
+    /// not loaded yet is nothing to draw, not the word "null".
+    public String resolved() {
+        if (source == null) {
+            return content;
+        }
+        var value = source.get();
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    @Override
+    public Text bound(Observable<?> source) {
+        return new Text(content, source, attributes);
+    }
+
+    @Override
+    public Text withAttributes(Attributes attributes) {
+        return new Text(content, source, attributes);
+    }
+
+    @Override
+    public @Nullable Observable<?> binding() {
+        return source;
+    }
+
+    @Override
+    public String cssType() {
+        return "text";
+    }
+
+    @Override
+    public @Nullable String id() {
+        return attributes.id();
+    }
+
+    @Override
+    public Set<String> classes() {
+        return attributes.classes();
+    }
+
+    @Override
+    public @Nullable Object key() {
+        return attributes.key();
+    }
+
+    @Override
+    public Box render(ComputedStyle style, List<Box> children, Context context) {
+        // A measured leaf: Yoga proposes a width, the paragraph wraps at it, and
+        // the height that comes back is what sizes the box (ADR-0036).
+        return Box.text(context.paragraph(style, resolved()), style.color()).style(style);
+    }
+
+    /// Builds a `text` node from markup.
+    ///
+    /// A bound node keeps its argument as the fallback rather than refusing it:
+    /// `text bind="user.name" "…"` is what a lenient registry shows for a path
+    /// nothing answers yet, and it is what a designer laying out a screen wants
+    /// to see.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var source = wiring.bound(node);
+        var literal = Wiring.label(node);
+        var attributes = ranked(Attributes.of(node), node.stringProperty("style"));
+        return source == null ? new Text(literal, attributes) : new Text(literal, source, attributes);
+    }
+
+    /// `attributes` with `rank`'s class added, or unchanged when no `style=` was
+    /// written.
+    ///
+    /// Added to the classes rather than kept as a component of its own, because
+    /// the two spellings must be **one** thing below the markup: a rule written
+    /// `text.title` has to match a `text style="title"`, and a widget carrying a
+    /// rank the cascade could not see would be a second mechanism that looks like
+    /// the first ([ADR-0381]).
+    private static Attributes ranked(Attributes attributes, @Nullable String rank) {
+        return rank == null
+                ? attributes
+                : withClass(attributes, TextRank.of(rank).cssClass());
+    }
+
+    /// `attributes` with one more class, keeping the ones it had: a document may
+    /// write both spellings, and `text style="title" class="muted"` means both.
+    private static Attributes withClass(Attributes attributes, String added) {
+        var classes = new java.util.LinkedHashSet<>(attributes.classes());
+        classes.add(added);
+        return attributes.classes(classes.toArray(String[]::new));
+    }
+
+    /// This text at one of §1.4's ranks — the Java spelling of `style="title"`.
+    public Text style(TextRank rank) {
+        return withAttributes(
+                withClass(attributes, Objects.requireNonNull(rank, "rank").cssClass()));
+    }
+}

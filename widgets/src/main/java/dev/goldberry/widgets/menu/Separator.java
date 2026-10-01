@@ -1,0 +1,70 @@
+package dev.goldberry.widgets.menu;
+
+import java.util.List;
+import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+
+/// A rule between groups of menu items — `docs/core-widgets.md` §8's
+/// `separator`.
+///
+/// A line and nothing else: not focusable, not activatable, and skipped by the
+/// arrow keys for free, because focus traversal collects focusable nodes and this
+/// is not one.
+///
+/// Its whole appearance is `controls.css`'s. The widget contributes a box with no
+/// content, which is what a 1px rule is.
+@Markup("separator")
+public record Separator(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Separator> {
+
+    public Separator() {
+        this(Attributes.NONE);
+    }
+
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Separator(@Nullable Attributes attributes) {
+        attributes = attributes == null ? Attributes.NONE : attributes;
+        this.attributes = attributes;
+    }
+
+    @Override
+    public String cssType() {
+        return "separator";
+    }
+
+    @Override
+    public @Nullable String id() {
+        return attributes.id();
+    }
+
+    @Override
+    public Set<String> classes() {
+        return attributes.classes();
+    }
+
+    @Override
+    public Separator withAttributes(Attributes value) {
+        return new Separator(value);
+    }
+
+    @Override
+    public Box render(ComputedStyle style, List<Box> children, Context context) {
+        return Box.of().style(style);
+    }
+
+    /// Builds a `separator` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Separator(Attributes.of(node));
+    }
+}

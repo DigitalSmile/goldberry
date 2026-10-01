@@ -32,7 +32,7 @@ FFmpeg cannot join it:
 
 ## Decision
 
-**`:media` binds FFmpeg itself**, in `io.github.digitalsmile.goldberry.media.ffi`.
+**`:media` binds FFmpeg itself**, in `dev.goldberry.media.ffi`.
 That makes it the second module that holds a `MemorySegment`. The package is not
 exported.
 
@@ -75,7 +75,7 @@ in an SPI signature. It is not an FFmpeg type, and not a struct layout.
 
 - `ARCHITECTURE.md` §3.1 names the exception, and `module-info.java` for `:media`
   says it.
-- Consumers pass `--enable-native-access=io.github.digitalsmile.goldberry.media`
+- Consumers pass `--enable-native-access=dev.goldberry.media`
   as well as the one for `:natives`.
 - The GraalVM reachability metadata for this module (three upcall shapes, the
   downcall descriptors that `FfmpegDowncalls` records) is this module's to

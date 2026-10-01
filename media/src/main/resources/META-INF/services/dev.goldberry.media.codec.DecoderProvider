@@ -1,0 +1,6 @@
+dev.goldberry.media.platform.macos.VideoToolboxProvider
+dev.goldberry.media.platform.macos.AudioToolboxProvider
+dev.goldberry.media.platform.linux.GStreamerVideoProvider
+dev.goldberry.media.platform.linux.GStreamerAudioProvider
+dev.goldberry.media.platform.windows.MediaFoundationVideoProvider
+dev.goldberry.media.platform.windows.MediaFoundationAudioProvider

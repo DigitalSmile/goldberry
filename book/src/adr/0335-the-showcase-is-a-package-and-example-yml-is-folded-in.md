@@ -33,7 +33,7 @@ run the example's tests against a built library.
 ## Decision
 
 **The images are published to GitHub Packages** as a Maven artifact,
-`io.github.digitalsmile:goldberry-showcase:<version>`, one classifier per target:
+`dev.goldberry:goldberry-showcase:<version>`, one classifier per target:
 
 | Classifier | File |
 |---|---|

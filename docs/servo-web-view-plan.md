@@ -127,7 +127,7 @@ every native leg. This is the largest permanent cost in the plan.
 
 ### Phase 3 — the FFM binding
 
-`io.github.digitalsmile.goldberry.natives.servo`, mirroring `natives.webview`
+`dev.goldberry.natives.servo`, mirroring `natives.webview`
 exactly: a `ServoLibrary` loader, a `Servo` owning wrapper, a `calls` package, an
 ABI probe bound *before* the rest, qualified export to `:core`. The shape is
 known and the mistakes are already documented.

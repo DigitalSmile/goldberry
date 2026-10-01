@@ -520,6 +520,7 @@
 - [ADR-0507 A page is taken down on WebKit's thread, and its context outlives exit()](adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)
 - [ADR-0508 FFmpeg's source is published beside its binaries, from the same place](adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md)
 - [ADR-0509 goldberry.dev is the landing page, and the book is its /docs/](adr/0509-goldberry-dev-is-the-landing-page-and-the-book-is-its-docs.md)
+- [ADR-0510 Publish under dev.goldberry](adr/0510-publish-under-dev-goldberry.md)
 
 ---
 

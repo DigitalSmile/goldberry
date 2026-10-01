@@ -56,5 +56,5 @@ exclude:
       # idiom the whole package is made of -- the same reason :natives has Error
       # Prone disabled and sits outside the coverage gates. `media.ffi` is
       # FFmpeg's, written the same way.
-      - natives/src/main/java/io/github/digitalsmile/goldberry/natives
-      - media/src/main/java/io/github/digitalsmile/goldberry/media/ffi
+      - natives/src/main/java/dev/goldberry/natives
+      - media/src/main/java/dev/goldberry/media/ffi

@@ -10,7 +10,7 @@ description = 'Goldberry asset preparation: fetches the pinned fonts and icon se
 // no module-info because nothing consumes it as a module, and it targets the
 // same JDK as everything else only because there is no reason not to. §15's
 // artifact list is unchanged by it (ADR-0033).
-group = 'io.github.digitalsmile'
+group = 'dev.goldberry'
 version = providers.gradleProperty('goldberryVersion').get()
 
 def catalog = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')

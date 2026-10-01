@@ -1,0 +1,605 @@
+package dev.goldberry.render.backend.sdl3;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.lang.reflect.Modifier;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.natives.sdl.Sdl;
+import dev.goldberry.natives.sdl.SdlEventBuffer;
+import dev.goldberry.natives.sdl.SdlVideo;
+import dev.goldberry.natives.sdl.event.SdlEventType;
+import dev.goldberry.natives.sdl.event.SdlWheelDirection;
+import dev.goldberry.render.DamageRect;
+import dev.goldberry.render.event.BackendEvent;
+import dev.goldberry.render.event.EventSink;
+import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.render.window.BackendWindow;
+import dev.goldberry.render.window.WindowSpec;
+
+/// The event path, driven through the **real** SDL.
+///
+/// Two branches of [Sdl3Backend] had never run anywhere: the wheel, because no
+/// test can turn one and the showcase scrolls nothing, and the event watch,
+/// because it fires from inside a resize gesture. Both are reachable through
+/// `SDL_PushEvent`, which is SDL's own way to synthesize input — the event goes
+/// on the queue, comes back out of the ordinary pump, and takes the shipping
+/// route rather than a copy of it (ADR-0061).
+///
+/// Everything runs under SDL's `dummy` video driver, so there is no display, no
+/// compositor and nothing to see. That is the point: it runs in CI, on all three
+/// platforms, where a wheel and a drag are not available.
+class Sdl3EventPathTest {
+
+    /// A window big enough that a pointer position inside it is meaningful.
+    private static final LogicalSize SIZE = LogicalSize.of(320, 240);
+
+    @BeforeAll
+    static void requireLibrary() {
+        RendererRequirement.enforce();
+    }
+
+    @Test
+    @DisplayName("a wheel event reaches the sink with the toolkit's sign, not SDL's")
+    void wheelReachesTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), -2f, 3f, SdlWheelDirection.NORMAL, 120f, 64f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            assertSame(window, wheel.window());
+            // SDL's y is positive away from the user; the SPI's is positive down
+            // the document. The negation is the whole of the branch under test,
+            // and getting it wrong scrolls every document backwards.
+            assertEquals(-3f, wheel.deltaY());
+            assertEquals(-2f, wheel.deltaX());
+            // The position comes from the wheel arm's own fields. Reading it
+            // through the motion arm's accessors would give 3.0 here -- the
+            // vertical delta, which lands at exactly that offset.
+            assertEquals(120f, wheel.x());
+            assertEquals(64f, wheel.y());
+        });
+    }
+
+    @Test
+    @DisplayName("a flipped wheel event is un-flipped before the sign is applied")
+    void flippedWheelIsUndoneOnce() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(buffer -> buffer.writeWheel(id(window), 0f, 3f, SdlWheelDirection.FLIPPED, 10f, 10f)));
+
+            // Natural scrolling flips SDL's value; the SPI's negation flips it
+            // back. Two flips and one sign convention, and the user who turned
+            // the preference on scrolls the same way as the one who did not.
+            assertEquals(3f, only(events, BackendEvent.PointerWheel.class).deltaY());
+        });
+    }
+
+    @Test
+    @DisplayName("a fractional delta survives the crossing, because a touchpad sends only those")
+    void fractionalWheelSurvives() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), 0f, 0.125f, SdlWheelDirection.NORMAL, 10f, 10f)));
+
+            assertEquals(-0.125f, only(events, BackendEvent.PointerWheel.class).deltaY());
+        });
+    }
+
+    @Test
+    @DisplayName("a detent crosses beside its fraction, with the same sign applied")
+    void detentsCrossBesideTheFraction() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(buffer ->
+                            buffer.writeWheel(id(window), -1f, 1f, -1, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            // The vertical axis is negated on both numbers or on neither. A
+            // detent that disagreed with the fraction beside it would send a
+            // stepping control one way and a scroll view the other.
+            assertEquals(-1f, wheel.deltaY());
+            assertEquals(-1, wheel.ticksY());
+            assertEquals(-1f, wheel.deltaX());
+            assertEquals(-1, wheel.ticksX());
+        });
+    }
+
+    @Test
+    @DisplayName("a detent SDL accumulated arrives under a fraction too small to hold one")
+    void anAccumulatedDetentIsNotTheFractionsTruncation() {
+        withBackend((backend, window) -> {
+            // The case the integer_* pair exists for, and the one no function of
+            // this event's floats can produce: a trackpad has been reporting
+            // eighths, each of which truncates to zero, and SDL's own running
+            // total has just crossed a whole click.
+            var events = pump(
+                    backend,
+                    sink -> push(buffer ->
+                            buffer.writeWheel(id(window), 0f, 0.125f, 0, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            assertEquals(-0.125f, wheel.deltaY());
+            // Truncating the delta gives 0 here, which is a stepping control that
+            // never moves on a touchpad however long the user scrolls.
+            assertEquals(-1, wheel.ticksY());
+        });
+    }
+
+    @Test
+    @DisplayName("a resize is drawn from inside the event watch, before the pump returns")
+    void resizeIsHandledInsideTheWatch() {
+        withBackend((backend, window) -> {
+            // A frame is outstanding, so there is one for the watch to emit --
+            // which is what a modal resize loop starves the window of.
+            window.requestFrame();
+
+            var events = new ArrayList<BackendEvent>();
+            var nested = new ArrayList<BackendEvent>();
+            var depth = new int[1];
+            var pushed = new boolean[1];
+
+            EventSink sink = event -> {
+                events.add(event);
+                if (depth[0] > 0) {
+                    nested.add(event);
+                }
+                // Pushed from inside a handler, so the push happens while the
+                // pump is still running -- which is the situation SDL's own
+                // resize loop creates, and the only way to reach it from a test.
+                if (!pushed[0] && event instanceof BackendEvent.Exposed) {
+                    pushed[0] = true;
+                    depth[0]++;
+                    try {
+                        push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+                    } finally {
+                        depth[0]--;
+                    }
+                }
+            };
+
+            push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_EXPOSED, id(window), 0, 0));
+            backend.pumpEvents(sink, Duration.ofMillis(50));
+
+            assertTrue(pushed[0], "the seeded expose never arrived, so nothing was pushed");
+            // The resize arrived *inside* the push, not from the queue afterwards.
+            // Without the watch it would be at the end of the list instead, which
+            // during a real drag means "when the user lets go".
+            assertTrue(
+                    nested.stream().anyMatch(BackendEvent.Resized.class::isInstance),
+                    () -> "the resize was not delivered from the watch: " + names(events));
+            assertTrue(
+                    nested.stream().anyMatch(BackendEvent.FrameDue.class::isInstance),
+                    () -> "no frame was drawn during the resize: " + names(events));
+        });
+    }
+
+    /// A **window move** is not an event any test can produce on the platform —
+    /// there is no window manager under the dummy driver and nothing to drag —
+    /// so it is fabricated onto SDL's own queue and comes back out of the
+    /// ordinary pump ([ADR-0061], [ADR-0270]).
+    ///
+    /// The position is read off the window rather than out of the event, exactly
+    /// as the sizes are, which is why the event's own `data1`/`data2` here are
+    /// nothing in particular.
+    @Test
+    @DisplayName("a window move reaches the sink with the position read off the window")
+    void moveReachesTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0)));
+
+            var moved = only(events, BackendEvent.Moved.class);
+            assertSame(window, moved.window());
+            assertEquals(window.position().orElseThrow(), moved.position());
+        });
+    }
+
+    @Test
+    @DisplayName("the same move arriving twice is reported once")
+    void duplicateMoveIsCoalesced() {
+        withBackend((backend, window) -> {
+            // SDL reports `WINDOW_MOVED` for every pixel of a title-bar drag, and
+            // again for a move that put the window back where it already was.
+            // What a move costs above the SPI is a re-placement per open popup.
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0));
+            });
+
+            assertEquals(1L, count(events, BackendEvent.Moved.class), () -> "expected one move, got " + names(events));
+        });
+    }
+
+    @Test
+    @DisplayName("the same resize arriving twice is reported once")
+    void duplicateResizeIsCoalesced() {
+        withBackend((backend, window) -> {
+            // Exactly what the watch and the queue produce between them: the
+            // event is handled while the drag runs, and handed over again when it
+            // ends. A second layout pass and a second frame for a size the window
+            // already has is the cost of the watch if nothing coalesces.
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+            });
+
+            assertEquals(
+                    1L, count(events, BackendEvent.Resized.class), () -> "expected one resize, got " + names(events));
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer inside its window is reported exactly as it arrived")
+    void coordinatesInsideTheWindowAreTakenAsGiven() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 100f, 80f)));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            // The ordinary path, and the one ADR-0211's reconciliation must not
+            // touch: every event on every platform other than a macOS popup comes
+            // through here, so a correction that fired for one of these would
+            // move the pointer on all three.
+            assertEquals(100f, moved.x());
+            assertEquals(80f, moved.y());
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer at the far corner is still inside, so the bound is inclusive")
+    void theFarEdgeIsInside() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), SIZE.width(), SIZE.height())));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            // A coordinate exactly on the far edge is a coordinate in this
+            // window's space -- an exclusive bound would send the last row of
+            // pixels through the desktop reading for no reason.
+            assertEquals(SIZE.width(), moved.x());
+            assertEquals(SIZE.height(), moved.y());
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer outside its window is re-read from the desktop")
+    void coordinatesOutsideTheWindowAreReconciled() {
+        withBackend((backend, window) -> {
+            // Nowhere near a 320x240 window: the shape of a macOS popup's
+            // mouse-up, which arrives in the *owner's* space and stale
+            // (ADR-0211). The number itself is arbitrary -- what matters is that
+            // it cannot be in this window.
+            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 5000f, 5000f)));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            var origin = window.position();
+            if (origin.isEmpty()) {
+                // The documented fallback, asserted rather than skipped: a window
+                // that will not say where it is cannot have its coordinates
+                // second-guessed, so they arrive untouched.
+                assertEquals(5000f, moved.x());
+                assertEquals(5000f, moved.y());
+                return;
+            }
+            var pointer = Sdl.get().globalPointer();
+            assertEquals(pointer[0] - origin.get().x(), moved.x(), 1f);
+            assertEquals(pointer[1] - origin.get().y(), moved.y(), 1f);
+            // And the reading actually replaced the event's own, which is the
+            // half an equality against a computed value cannot show on a driver
+            // where both happen to be zero.
+            assertNotEquals(5000f, moved.x());
+        });
+    }
+
+    /// **The arm the reconciliation was never wired into.** A wheel carries a
+    /// pointer position exactly as a motion and a button do, and
+    /// [Sdl3Backend#inTheWindowsOwnSpace] says every window's coordinates are
+    /// settled before they leave the backend (ADR-0211) — but this one arm read
+    /// its position straight out of the event. A scroll over a macOS popup
+    /// therefore arrived in the *owner's* space, and stale, so the router looked
+    /// for a scrollable under a pointer that was never there.
+    ///
+    /// The inside-the-window half is `wheelReachesTheSink` above, which asserts
+    /// the position arrives untouched — the reconciliation must not move a
+    /// coordinate that was already right.
+    @Test
+    @DisplayName("a wheel outside its window is re-read from the desktop, like every other pointer event")
+    void wheelCoordinatesAreReconciled() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), 0f, 1f, SdlWheelDirection.NORMAL, 5000f, 5000f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            // The deltas are a property of the gesture and not of the space it
+            // happened in, so they cross unchanged either way.
+            assertEquals(-1f, wheel.deltaY());
+
+            var origin = window.position();
+            if (origin.isEmpty()) {
+                // The documented fallback, asserted rather than skipped, as for
+                // the motion above.
+                assertEquals(5000f, wheel.x());
+                assertEquals(5000f, wheel.y());
+                return;
+            }
+            var pointer = Sdl.get().globalPointer();
+            assertEquals(pointer[0] - origin.get().x(), wheel.x(), 1f);
+            assertEquals(pointer[1] - origin.get().y(), wheel.y(), 1f);
+            assertNotEquals(5000f, wheel.x(), "the wheel kept coordinates from another space");
+        });
+    }
+
+    @Test
+    @DisplayName("a press and a release in different spaces are both reconciled")
+    void aPressAndAReleaseAreReconciledAlike() {
+        withBackend((backend, window) -> {
+            // The bug's own shape: the press lands in the window and the release
+            // does not, because the platform wrote it in another window's space.
+            // Both arms go through the same reconciliation, so the release is
+            // brought back somewhere the router can find it.
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_DOWN, id(window), 60f, 40f, 1, 1));
+                push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_UP, id(window), 4000f, 4000f, 1, 1));
+            });
+
+            var pressed = only(events, BackendEvent.PointerPressed.class);
+            assertEquals(60f, pressed.x());
+            assertEquals(40f, pressed.y());
+
+            var released = only(events, BackendEvent.PointerReleased.class);
+            assertNotEquals(4000f, released.x(), "the release kept coordinates from another space");
+        });
+    }
+
+    @Test
+    @DisplayName("an event for an unknown window is dropped rather than guessed at")
+    void unknownWindowIsIgnored() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(Integer.MAX_VALUE, 0f, 1f, SdlWheelDirection.NORMAL, 0f, 0f)));
+
+            assertFalse(
+                    events.stream().anyMatch(BackendEvent.PointerWheel.class::isInstance),
+                    () -> "a wheel event for no window reached the sink: " + names(events));
+        });
+    }
+
+    /// **The contract's hardest case, and the reason it is a contract rather
+    /// than a convention.**
+    /// [dev.goldberry.render.event.EventSink]
+    /// promises that a sink which throws leaves the rest of the batch for the
+    /// next pump, and by the time this backend is delivering, those events are
+    /// out of SDL's queue and translated — the platform has forgotten them, so
+    /// either the backend is holding them or nothing is. Here the release is the
+    /// one behind the throw, which is exactly the event a router needs to stop
+    /// treating a button as held.
+    @Test
+    @DisplayName("what a throwing sink never saw comes back on the next pump, not out of SDL")
+    void aThrowingSinkKeepsTheRest() {
+        withBackend((backend, window) -> {
+            push(buffer -> buffer.writeMouseMotion(id(window), 10f, 10f));
+            push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_UP, id(window), 12f, 12f, 1, 1));
+
+            var seen = new ArrayList<BackendEvent>();
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> backend.pumpEvents(
+                            event -> {
+                                seen.add(event);
+                                throw new IllegalStateException("handler failed");
+                            },
+                            Duration.ofMillis(50)));
+
+            assertEquals(1, seen.size(), "the pump carried on past a sink that threw");
+            assertInstanceOf(BackendEvent.PointerMoved.class, seen.getFirst());
+
+            // Nothing is pushed before this one: the release is not on SDL's
+            // queue any more, so anything that arrives was kept by the backend.
+            var next = new ArrayList<BackendEvent>();
+            backend.pumpEvents(next::add, Duration.ofMillis(50));
+
+            assertEquals(
+                    1,
+                    count(next, BackendEvent.PointerReleased.class),
+                    () -> "the release did not survive the throw: " + names(next));
+            // And it is not offered a third time, nor is the motion that threw.
+            var after = new ArrayList<BackendEvent>();
+            backend.pumpEvents(after::add, Duration.ofMillis(20));
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerReleased.class),
+                    () -> names(after).toString());
+            assertEquals(
+                    0,
+                    count(after, BackendEvent.PointerMoved.class),
+                    () -> names(after).toString());
+        });
+    }
+
+    /// **The one call the SPI lets another thread make, against the one field
+    /// that says whether there is anything left to call into.**
+    ///
+    /// `wakeup()` reads `closed` and `close()` writes it, on different threads,
+    /// and the field was plain: nothing in the memory model obliged the reader
+    /// ever to see the write, so a background thread could keep pushing wakeups
+    /// into an SDL that had quit. A race is not something a test can lose on
+    /// demand, so this asserts both halves of what the fix is — the behaviour
+    /// another thread sees after close, and the declaration that makes it
+    /// visible at all, which is the half a tidy-up would silently drop.
+    @Test
+    @DisplayName("a wakeup from another thread after close pushes nothing, and the flag saying so is volatile")
+    void wakeupAfterCloseTouchesNothing() throws Exception {
+        var backend = openBackend();
+        backend.createWindow(WindowSpec.of("wakeup", SIZE));
+        backend.close();
+
+        var failure = new AtomicReference<Throwable>();
+        var other = new Thread(
+                () -> {
+                    try {
+                        backend.wakeup();
+                    } catch (Throwable t) {
+                        failure.set(t);
+                    }
+                },
+                "not-the-ui-thread");
+        other.start();
+        other.join();
+
+        assertNull(failure.get(), () -> "wakeup after close reached SDL: " + failure.get());
+        assertTrue(
+                Modifier.isVolatile(Sdl3Backend.class.getDeclaredField("closed").getModifiers()),
+                "closed is read off the UI thread by wakeup(), so a plain field leaves the"
+                        + " write in close() free never to be seen there");
+    }
+
+    /// SDL's two fullscreen events become one SPI event with the boolean
+    /// ([ADR-0473]), whoever caused them: this is the route the user's own
+    /// green button takes, which no call of ours precedes.
+    @Test
+    @DisplayName("entering and leaving fullscreen reach the sink as one event with the state")
+    void fullscreenEventsReachTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_ENTER_FULLSCREEN, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_LEAVE_FULLSCREEN, id(window), 0, 0));
+            });
+
+            var changes = events.stream()
+                    .filter(BackendEvent.FullscreenChanged.class::isInstance)
+                    .map(BackendEvent.FullscreenChanged.class::cast)
+                    .toList();
+            assertEquals(2, changes.size(), () -> "expected two changes, got " + names(events));
+            assertSame(window, changes.getFirst().window());
+            assertTrue(changes.getFirst().fullscreen());
+            assertFalse(changes.getLast().fullscreen());
+        });
+    }
+
+    /// `SDL_SetWindowFullscreen` through the export list and the binding, and
+    /// back out of the pump. The dummy driver has no window manager to refuse,
+    /// so SDL's own bookkeeping answers, and the answer is the event.
+    ///
+    /// The window is shown first, by presenting a frame as the frame loop does.
+    /// A window is created hidden until its first frame, and SDL keeps a
+    /// hidden window's fullscreen request as a pending flag, applied and
+    /// reported when it is shown.
+    @Test
+    @DisplayName("asking for fullscreen through SDL comes back as the event, and leaving does too")
+    void fullscreenRoundTrip() {
+        withBackend((backend, window) -> {
+            var frame = window.acquireFrame().orElseThrow();
+            window.present(frame, List.of(DamageRect.all(frame.size())));
+            pump(backend, sink -> {});
+
+            var entered = pump(backend, sink -> window.setFullscreen(true));
+            assertTrue(
+                    only(entered, BackendEvent.FullscreenChanged.class).fullscreen(),
+                    () -> "entering: " + names(entered));
+
+            var left = pump(backend, sink -> window.setFullscreen(false));
+            assertFalse(only(left, BackendEvent.FullscreenChanged.class).fullscreen(), () -> "leaving: " + names(left));
+        });
+    }
+
+    // --- the machinery ------------------------------------------------------
+
+    /// Runs `body` against a backend with a window, under the dummy video driver.
+    private static void withBackend(java.util.function.BiConsumer<Sdl3Backend, Sdl3Window> body) {
+        try (var backend = openBackend()) {
+            var window = (Sdl3Window) backend.createWindow(WindowSpec.of("events", SIZE));
+            body.accept(backend, window);
+        }
+    }
+
+    /// Opens an unpaced backend on the dummy video driver, for a test that
+    /// closes it itself.
+    ///
+    /// The driver and the frame rate are set as system properties because that is
+    /// where the backend reads them, and restored as soon as it has because the
+    /// test JVM is shared. Pacing is turned off explicitly: a paced loop holds
+    /// frames back until the display could want them, which is correct and would
+    /// make "was a frame emitted?" a question about timing.
+    private static Sdl3Backend openBackend() {
+        var driver = System.getProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
+        var rate = System.getProperty("goldberry.frame.rate");
+        System.setProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY, "dummy");
+        System.setProperty("goldberry.frame.rate", "0");
+        try {
+            return new Sdl3Backend();
+        } finally {
+            restore(Sdl3Backend.VIDEO_DRIVER_PROPERTY, driver);
+            restore("goldberry.frame.rate", rate);
+        }
+    }
+
+    private static void restore(String name, String value) {
+        if (value == null) {
+            System.clearProperty(name);
+        } else {
+            System.setProperty(name, value);
+        }
+    }
+
+    /// Pushes what `setup` queues, then pumps once and collects what came out.
+    private static List<BackendEvent> pump(Sdl3Backend backend, Consumer<EventSink> setup) {
+        var events = new ArrayList<BackendEvent>();
+        EventSink sink = events::add;
+        setup.accept(sink);
+        backend.pumpEvents(sink, Duration.ofMillis(50));
+        return events;
+    }
+
+    /// Fabricates one event and pushes it onto SDL's queue.
+    private static void push(Consumer<SdlEventBuffer> fill) {
+        try (var buffer = new SdlEventBuffer()) {
+            fill.accept(buffer);
+            assertTrue(SdlVideo.get().push(buffer), "SDL refused the event");
+        }
+    }
+
+    private static int id(BackendWindow window) {
+        return ((Sdl3Window) window).handleId();
+    }
+
+    private static <T extends BackendEvent> T only(List<BackendEvent> events, Class<T> type) {
+        var matching = events.stream().filter(type::isInstance).map(type::cast).toList();
+        assertEquals(1, matching.size(), () -> "expected one " + type.getSimpleName() + ", got " + names(events));
+        return matching.getFirst();
+    }
+
+    private static long count(List<BackendEvent> events, Class<? extends BackendEvent> type) {
+        return events.stream().filter(type::isInstance).count();
+    }
+
+    private static List<String> names(List<BackendEvent> events) {
+        return events.stream().map(event -> event.getClass().getSimpleName()).toList();
+    }
+}

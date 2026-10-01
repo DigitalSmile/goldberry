@@ -16,7 +16,7 @@ splitting them makes every consumer's build file longer for no benefit anyone
 could name.
 
 **One package** was the same argument applied one level down, and it does not
-survive contact with the size of the catalog. `io.github.digitalsmile.goldberry.widgets`
+survive contact with the size of the catalog. `dev.goldberry.widgets`
 holds thirty types today — ten controls and twenty of their parts — with `form`,
 `panel`, `nav`, `overlay` and `collection` still to come, and
 `docs/core-widgets.md` has specified packages for all of them since v0.1:
@@ -96,7 +96,7 @@ widened to `public` during the restructure, and is package-private again.
 `[SomePart]` links became code spans, because a package-private type in another
 package cannot be linked and a link that does not resolve is worse than a name.
 Links to public widgets are fully qualified instead — the form the codebase
-already used for `[io.github.digitalsmile.goldberry.icon.Icon]`. Verbose, and the
+already used for `[dev.goldberry.icon.Icon]`. Verbose, and the
 verbosity is load-bearing: it is visible in the source that the reference crosses
 a boundary.
 

@@ -80,7 +80,7 @@ document to find the caret's. Both are third-order, and both are gone anyway.
 shaped one hard line at a time, and the glyphs are one paragraph of the rows on
 screen.**
 
-- **`io.github.digitalsmile.goldberry.text.document.TextDocument`** shapes a text
+- **`dev.goldberry.text.document.TextDocument`** shapes a text
   one *hard line* at a time. Wrapping was already per hard line —
   `Paragraph.layout` splits on `\n` first and breaks each piece on its own — so
   nothing is lost by shaping the pieces apart. Given the document the last frame

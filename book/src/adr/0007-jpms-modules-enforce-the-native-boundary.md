@@ -28,13 +28,13 @@ build sets `modularity.inferModulePath = true`. The module graph is:
 
 ```
 natives   (exports nothing yet — wrapper packages only, once M0 lands)
-core      → exports io.github.digitalsmile.goldberry
+core      → exports dev.goldberry
 charts    → requires transitive core
 gpu       → requires transitive core
 gallery   → requires core, charts, gpu
 ```
 
-`io.github.digitalsmile.goldberry.natives` is the module named in
+`dev.goldberry.natives` is the module named in
 `--enable-native-access`. The jextract-generated binding packages stay
 unexported permanently; only the hand-written wrapper packages are exported.
 
@@ -55,7 +55,7 @@ unexported permanently; only the hand-written wrapper packages are exported.
 
 - The §3.1 invariant is enforced by javac. Code outside `:natives` cannot name a
   generated binding type, whatever its author intended.
-- `--enable-native-access=io.github.digitalsmile.goldberry.natives` is expressible
+- `--enable-native-access=dev.goldberry.natives` is expressible
   today, so the JEP 472 deprecation is a non-event.
 - Consumers of Goldberry get a clean module graph, which matters for anyone
   building with `jlink` or native-image.

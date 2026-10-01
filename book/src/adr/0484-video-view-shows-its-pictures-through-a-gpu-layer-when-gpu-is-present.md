@@ -32,7 +32,7 @@ phase 6 left five things open:
 
 ### The layer is `:gpu`'s, exported to `:media` alone
 
-`io.github.digitalsmile.goldberry.gpu.video` contains:
+`dev.goldberry.gpu.video` contains:
 
 - `VideoLayer`, a `GpuLayer`;
 - `VideoImage`, sealed over `Planes` and `Bgra`;
@@ -40,7 +40,7 @@ phase 6 left five things open:
 - `ColorMatrix`.
 
 The package's vocabulary is its own, because `:gpu` does not know `:media`.
-`:gpu` exports it with `exports … to io.github.digitalsmile.goldberry.media`
+`:gpu` exports it with `exports … to dev.goldberry.media`
 under `@SuppressWarnings("module")`, as `:natives` exports to its readers.
 `:media` `requires static` `:gpu` and has it `compileOnly`.
 

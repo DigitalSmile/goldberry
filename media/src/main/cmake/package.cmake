@@ -100,7 +100,7 @@ The complete corresponding source of these libraries is published beside them,
 in the same repository and under the same coordinates, as the `ffmpeg-sources`
 classifier of the same goldberry-media version:
 
-  io.github.digitalsmile:goldberry-media:<version>:ffmpeg-sources
+  dev.goldberry:goldberry-media:<version>:ffmpeg-sources
   goldberry-media-<version>-ffmpeg-sources.jar
 
 It holds FFmpeg and dav1d at exactly the tags and commits above, the build

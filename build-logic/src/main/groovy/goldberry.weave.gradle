@@ -89,7 +89,7 @@ def weaveTask = { String taskName, String setName, String compileTask, String fl
         // JVM started and not some other copy on a module's compile classpath.
         classpath = files(configurations.goldberryWeaver, classesDir,
                 sourceSets.named(setName).map { it.compileClasspath })
-        mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
+        mainClass = 'dev.goldberry.weaver.WeaverMain'
         argumentProviders.add({
             [flag, classesDir.get().asFile.absolutePath]
         } as CommandLineArgumentProvider)

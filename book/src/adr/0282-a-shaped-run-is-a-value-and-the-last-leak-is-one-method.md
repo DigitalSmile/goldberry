@@ -21,10 +21,10 @@ outside `:core`.
 `text.TextDirection`, and HarfBuzz's two packages are sealed:
 
 ```java
-exports io.github.digitalsmile.goldberry.natives.harfbuzz to
-        io.github.digitalsmile.goldberry.core;
-exports io.github.digitalsmile.goldberry.natives.harfbuzz.enums to
-        io.github.digitalsmile.goldberry.core;
+exports dev.goldberry.natives.harfbuzz to
+        dev.goldberry.core;
+exports dev.goldberry.natives.harfbuzz.enums to
+        dev.goldberry.core;
 ```
 
 Checked by compiling a module that imports `GlyphRun` and watching javac refuse

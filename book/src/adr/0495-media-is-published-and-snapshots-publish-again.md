@@ -50,7 +50,7 @@ the library and `-Pgoldberry.gpu.videoDriver=x11`, `:natives:gpuTest` runs all
 it and the umbrella lists it `<optional>` without anybody editing either.
 
 **FFmpeg ships as `goldberry-media`'s classifiers, `ffmpeg-<target>`.** That is
-`io.github.digitalsmile:goldberry-media:<v>:ffmpeg-linux-x64` and its three
+`dev.goldberry:goldberry-media:<v>:ffmpeg-linux-x64` and its three
 siblings, the same shape as `goldberry-natives:<v>:linux-x64`. What the spec
 wanted from a separate artifact still holds. The libraries are in jars of their
 own, replaceable, carrying the LGPL text and the configure line. They are never
@@ -78,7 +78,7 @@ the POM, the module file, and `goldberry-media-2026.1-SNAPSHOT-ffmpeg-linux-x64.
 ## Consequences
 
 - An application adds media with
-  `implementation 'io.github.digitalsmile:goldberry-media'` and one
+  `implementation 'dev.goldberry:goldberry-media'` and one
   `runtimeOnly '…:goldberry-media::ffmpeg-<target>'` per target it ships to. The
   loader's message when FFmpeg is missing names that coordinate.
 - A snapshot run now also compiles FFmpeg, on two more runners. The FFmpeg and

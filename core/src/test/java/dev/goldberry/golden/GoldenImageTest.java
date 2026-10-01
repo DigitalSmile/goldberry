@@ -1,0 +1,387 @@
+package dev.goldberry.golden;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.assets.BundledFont;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.StyleElement;
+import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.Theme;
+import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.select.Selector;
+import dev.goldberry.css.value.CssLength;
+import dev.goldberry.paint.Box;
+import dev.goldberry.paint.BoxPainter;
+import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.font.Font;
+
+/// The rendered output, pinned.
+///
+/// Every other test in the suite asserts about one stage — a token, a cascade, a
+/// glyph advance. These assert about the pixels, which is the only place the
+/// stages are all wrong together or all right together. §14 asks for exactly
+/// this, on all three platforms.
+///
+/// The scenes are driven through CSS rather than by building `Box`es directly,
+/// deliberately: a golden that goes stylesheet → cascade → `ComputedStyle` →
+/// `Box` → Blend2D is one image that fails if any of those five break.
+class GoldenImageTest {
+
+    /// A node in a hand-built tree, standing in for the element tree of
+    /// ADR-0004. The same shape `TestElement` uses in the css tests, kept
+    /// separate because this one also carries the box content.
+    private static final class Node implements StyleElement {
+        private final String type;
+        private final Set<String> classes = new LinkedHashSet<>();
+        private final List<Node> children = new ArrayList<>();
+        private Node parent;
+        private String text;
+
+        Node(String type, String... classNames) {
+            this.type = type;
+            classes.addAll(List.of(classNames));
+        }
+
+        Node with(Node... kids) {
+            for (var kid : kids) {
+                kid.parent = this;
+                children.add(kid);
+            }
+            return this;
+        }
+
+        Node text(String value) {
+            this.text = value;
+            return this;
+        }
+
+        @Override
+        public String type() {
+            return type;
+        }
+
+        @Override
+        public String id() {
+            return null;
+        }
+
+        @Override
+        public Set<String> classes() {
+            return classes;
+        }
+
+        @Override
+        public StyleElement parent() {
+            return parent;
+        }
+
+        @Override
+        public boolean hasState(Selector.PseudoClass state) {
+            return false;
+        }
+    }
+
+    private Font font;
+
+    @BeforeEach
+    void openFont() {
+        // Embedded Inter, pinned by checksum at build time (ADR-0033). That is
+        // what makes a golden reproducible: nothing here reads a system font.
+        RendererRequirement.enforce();
+        font = Font.bundled(BundledFont.UI, 14);
+    }
+
+    @AfterEach
+    void closeFont() {
+        if (font != null) {
+            font.close();
+        }
+    }
+
+    /// Styles a node tree and turns it into the box tree that gets painted.
+    private Box build(Node node, List<Stylesheet> sheets) {
+        var resolver = new StyleResolver(sheets);
+        return toBox(node, resolver);
+    }
+
+    private Box toBox(Node node, StyleResolver resolver) {
+        var style = ComputedStyle.of(resolver.resolve(node), CssLength.Context.DEFAULT);
+        if (node.text != null) {
+            return Box.text(Paragraph.of(font, node.text), 0xFF000000).style(style);
+        }
+        var kids = node.children.stream().map(child -> toBox(child, resolver)).toArray(Box[]::new);
+        return Box.of().children(kids).style(style);
+    }
+
+    @Test
+    @DisplayName("a styled flexbox row")
+    void flexRow() {
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root {
+                  background: #eceff4;
+                  flex-direction: row;
+                  padding: 12px;
+                  gap: 8px;
+                }
+                panel { background: #5e81ac; flex-grow: 1 }
+                panel.wide { background: #bf616a; flex-grow: 2 }
+                """);
+        var tree = new Node("root").with(new Node("panel"), new Node("panel", "wide"), new Node("panel"));
+
+        GoldenImage.assertMatches(
+                "flex-row", 240, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("a nested column, so the cascade and the layout both have depth")
+    void nestedColumn() {
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #2e3440; flex-direction: column; padding: 8px; gap: 6px }
+                row { flex-direction: row; gap: 6px; height: 24px }
+                cell { background: #88c0d0; flex-grow: 1 }
+                row > cell.accent { background: #ebcb8b }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("row").with(new Node("cell"), new Node("cell", "accent")),
+                        new Node("row").with(new Node("cell", "accent"), new Node("cell")));
+
+        GoldenImage.assertMatches(
+                "nested-column", 200, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    /// A card on a page, elevated by the theme's own token — the picture the two
+    /// ADRs that turned `box-shadow` down were arguing about (ADR-0310).
+    ///
+    /// One golden per theme, because the alpha is the half of an elevation token
+    /// that belongs to the theme: the geometry is identical in the two files and
+    /// the weight is not, and a single image could not say that.
+    private Box elevatedTree(Theme theme) {
+        var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
+                root { background: var(--gb-bg); padding: 16px; gap: 12px }
+                card {
+                  background: var(--gb-surface-raised);
+                  border-radius: 8px;
+                  flex-grow: 1;
+                  box-shadow: var(--gb-elevation-1);
+                }
+                card.overlay { box-shadow: var(--gb-elevation-2) }
+                """);
+        var tree = new Node("root").with(new Node("card"), new Node("card", "overlay"));
+        return build(tree, List.of(base, theme.load()));
+    }
+
+    @Test
+    @DisplayName("two elevations on nord-light, cast by the theme's own tokens")
+    void elevationLight() {
+        GoldenImage.assertMatches(
+                "elevation-light", 220, 90, 1.0f, frame -> BoxPainter.paint(frame, elevatedTree(Theme.NORD_LIGHT)));
+    }
+
+    @Test
+    @DisplayName("the same two on nord-dark, which needs a much heavier shadow to read at all")
+    void elevationDark() {
+        GoldenImage.assertMatches(
+                "elevation-dark", 220, 90, 1.0f, frame -> BoxPainter.paint(frame, elevatedTree(Theme.NORD_DARK)));
+    }
+
+    @Test
+    @DisplayName("margin moves boxes, and `auto` centres one")
+    void margins() {
+        // Three rows over one page, each saying one thing a picture can check.
+        // The top row's cells are pushed apart by their own margins; the middle
+        // one holds a single cell with `margin: 0 auto`, which is the case
+        // nothing in the subset could express before; the bottom one pushes one
+        // cell to the far edge with `margin-left: auto` and no spacer box
+        // (ADR-0311).
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; flex-direction: column; padding: 8px; gap: 8px }
+                row { flex-direction: row; height: 24px; background: #d8dee9 }
+                cell { background: #5e81ac; width: 40px }
+                row.spaced cell { margin: 4px 6px }
+                row.centred cell { margin: 0 auto }
+                row.pushed cell.end { margin-left: auto }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("row", "spaced").with(new Node("cell"), new Node("cell")),
+                        new Node("row", "centred").with(new Node("cell")),
+                        new Node("row", "pushed").with(new Node("cell"), new Node("cell", "end")));
+
+        GoldenImage.assertMatches(
+                "margins", 220, 104, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("a border per side: uniform as ever, one side, two widths, four colours, and rounded")
+    void borders() {
+        // Five boxes, each saying one thing a picture can check (ADR-0505). The
+        // first is the uniform stroke every golden before this one is made of;
+        // the second is the rule under a header that was asked for five times;
+        // the third is two widths in one colour, which must have no seam down
+        // its mitres; the fourth is four colours and four widths, mitred from
+        // each outer corner to its inner one; the fifth is the same with a
+        // radius, which is where the drawing is an approximation.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; flex-direction: row; padding: 12px; gap: 10px }
+                cell { background: #d8dee9; width: 44px; height: 60px }
+                cell.uniform { border: 2px solid #5e81ac; border-radius: 6px }
+                cell.rule { border-bottom: 3px solid #bf616a }
+                cell.widths { border: 2px solid #4c566a; border-left: 8px solid #4c566a }
+                cell.colours {
+                  border-width: 2px 4px 6px 8px;
+                  border-color: #bf616a #a3be8c #5e81ac #ebcb8b;
+                }
+                cell.rounded {
+                  border-width: 2px 4px 6px 8px;
+                  border-color: #bf616a #a3be8c #5e81ac #ebcb8b;
+                  border-radius: 14px;
+                }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("cell", "uniform"),
+                        new Node("cell", "rule"),
+                        new Node("cell", "widths"),
+                        new Node("cell", "colours"),
+                        new Node("cell", "rounded"));
+
+        GoldenImage.assertMatches(
+                "borders", 284, 84, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("the same tree under nord-light and nord-dark")
+    void nordLight() {
+        GoldenImage.assertMatches(
+                "nord-light", 200, 60, 1.0f, frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_LIGHT)));
+    }
+
+    @Test
+    @DisplayName("nord-dark differs from nord-light by nothing but the theme sheet")
+    void nordDark() {
+        GoldenImage.assertMatches(
+                "nord-dark", 200, 60, 1.0f, frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_DARK)));
+    }
+
+    /// One widget stylesheet, two themes. Neither of these goldens can be right
+    /// unless custom properties inherit and the theme layer wins (§10).
+    private Box themedTree(Theme theme) {
+        var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
+                root { background: var(--gb-bg); padding: 10px; gap: 8px }
+                panel { background: var(--gb-surface); flex-grow: 1 }
+                panel.accent { background: var(--gb-accent) }
+                """);
+        var tree = new Node("root").with(new Node("panel"), new Node("panel", "accent"));
+        return build(tree, List.of(base, theme.load()));
+    }
+
+    @Test
+    @DisplayName("text, at a fractional display scale")
+    void textAtFractionalScale() {
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; padding: 6px }
+                label { color: #2e3440 }
+                """);
+        var tree = new Node("root").with(new Node("label").text("Goldberry"));
+
+        // 1.5, not 1.0: every HiDPI bug hides at 100%, and text is where a
+        // scale that is applied twice -- or not at all -- shows first.
+        GoldenImage.assertMatches(
+                "text-fractional-scale", 180, 48, 1.5f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("a translucent fill composites against what is under it")
+    void translucentFill() {
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #eceff4; padding: 10px }
+                panel { background: #88c0d04d; flex-grow: 1 }
+                """);
+        var tree = new Node("root").with(new Node("panel"));
+
+        // The selection colour's shape (§10): alpha in a hex literal has to
+        // survive parsing, packing, premultiplication and the blend.
+        GoldenImage.assertMatches(
+                "translucent-fill", 120, 60, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("transforms, applied through the cascade")
+    void transforms() {
+        // Four panels in a row, laid out identically, each moved by a different
+        // `transform`. The value of this as an image rather than as pixel
+        // assertions is that the three shapes are visibly different kinds of
+        // wrong when they are wrong: a rotation about the corner rather than the
+        // centre, a scale that grew the wrong way, a skew on the wrong axis.
+        //
+        // It is also the first golden to rest on BL_TRANSFORM_OP_ASSIGN, whose
+        // operand crosses as `void*` -- so this is what would catch a target
+        // where BLMatrix2D is not six consecutive doubles in that order.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root {
+                  background: #2e3440;
+                  flex-direction: row;
+                  padding: 20px;
+                  gap: 16px;
+                }
+                panel { background: #88c0d0; width: 40px; height: 40px }
+                panel.turned { transform: rotate(20deg) }
+                panel.grown { transform: scale(1.4) }
+                panel.leaned { transform: skewX(-20deg); background: #ebcb8b }
+                /* The origin is what makes the difference between growing from
+                   the middle and swinging out of the corner, so one panel says
+                   so explicitly. */
+                panel.cornered { transform: scale(1.4); transform-origin: left top }
+                """);
+        var tree = new Node("root")
+                .with(
+                        new Node("panel", "turned"),
+                        new Node("panel", "grown"),
+                        new Node("panel", "leaned"),
+                        new Node("panel", "cornered"));
+
+        GoldenImage.assertMatches(
+                "transforms", 280, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("group opacity composites the subtree once, not each child")
+    void groupOpacity() {
+        // ADR-0064 said the difference between CSS group opacity and multiplying
+        // alpha per box "differs exactly where two children overlap", and
+        // predicted `stack` would be what made it visible. This is that scene
+        // built by hand: two opaque squares that overlap, under a parent at 50%.
+        //
+        // Through a layer -- what ships now -- the overlap is the *top* square at
+        // 50% over the backdrop, and the lower square is invisible there.
+        // Multiplying alpha per box, the lower one would show through the upper,
+        // and the overlap would be a third colour that is in neither end state.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #2e3440; padding: 16px }
+                panel.faded { opacity: 0.5 }
+                panel.lower { background: #bf616a; width: 70px; height: 70px }
+                panel.upper {
+                  background: #a3be8c;
+                  width: 70px;
+                  height: 70px;
+                  transform: translate(-40px, 24px);
+                }
+                """);
+        var tree = new Node("root")
+                .with(new Node("panel", "faded").with(new Node("panel", "lower"), new Node("panel", "upper")));
+
+        GoldenImage.assertMatches(
+                "group-opacity", 200, 130, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+}

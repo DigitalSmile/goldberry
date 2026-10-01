@@ -1,0 +1,112 @@
+package dev.goldberry.widgets.controls;
+
+import org.junit.jupiter.api.Assumptions;
+
+import dev.goldberry.assets.BundledFont;
+import dev.goldberry.text.font.Font;
+import dev.goldberry.text.font.Fonts;
+
+/// A real font book for the tests that render, and a skip for the machines with
+/// no libgoldberry to shape with.
+///
+/// `:core` has [dev.goldberry.RendererRequirement] for the
+/// same job and it cannot be reused: it lives in that module's test sources.
+/// Rather than depend on those, this asks the only question `:widgets` actually
+/// needs answered — can a font be loaded — by trying.
+public final class TestFont {
+
+    private static Fonts fonts;
+
+    private TestFont() {}
+
+    /// The bundled faces, opened lazily and kept for the run.
+    ///
+    /// Held rather than built per test: a `FontFace` owns native memory from two
+    /// libraries and parsing one costs about 700 microseconds (ADR-0044). Never
+    /// closed, which is right for a value that lives as long as the JVM.
+    ///
+    /// A book rather than one `Font`, because the cascade now resolves
+    /// `font-family`, `font-size` and `font-weight` per node — a golden image
+    /// drawn through a single font would not show that a button's label is
+    /// SemiBold and the prose beside it is not.
+    public static synchronized Fonts get() {
+        if (fonts == null) {
+            try {
+                var book = Fonts.bundled();
+                // Force the first parse here, so a machine with no native
+                // library skips rather than failing inside a paint pass.
+                book.of(BundledFont.UI, 13);
+                // Kept only once that parse worked. Assigned before it, the first
+                // caller skipped and every later one was handed a book that could
+                // not open a face -- ~280 failures instead of skips in CI's Java
+                // job, which builds no library (ADR-0338).
+                fonts = book;
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
+                Assumptions.abort(
+                        "libgoldberry is not loadable from :widgets' tests, so nothing can shape" + " text: " + e);
+            }
+        }
+        return fonts;
+    }
+
+    /// One font, for the tests that render a widget directly rather than through
+    /// a cascade and therefore have no style to resolve one from.
+    public static Font one() {
+        return get().of(BundledFont.UI, 13);
+    }
+
+    /// A paint context over [#one()], for a test that calls `render` by hand.
+    ///
+    /// It carries a real [dev.goldberry.text.ParagraphCache]
+    /// rather than shaping directly, because the cache is what makes a paragraph
+    /// the *same instance* across calls — and a test that skipped it would not
+    /// exercise the identity the retained render tree reads to keep a measure
+    /// callback (ADR-0069).
+    public static dev.goldberry.widget.style.Paints.Context context() {
+        var cache = dev.goldberry.text.ParagraphCache.create();
+        return new dev.goldberry.widget.style.Paints.Context() {
+
+            @Override
+            public Font font(dev.goldberry.css.ComputedStyle style) {
+                return one();
+            }
+
+            @Override
+            public dev.goldberry.text.Paragraph paragraph(dev.goldberry.css.ComputedStyle style, String text) {
+                return cache.paragraph(one(), text);
+            }
+
+            /// Always the fallback, because this context has no element and no
+            /// cascade behind it -- a test calling `render` by hand is not
+            /// styling a tree. A test that wants the theme's `--gb-chart-*`
+            /// drives a [WidgetRenderer], which resolves them against the node.
+            @Override
+            public int color(String name, int fallback) {
+                return fallback;
+            }
+
+            /// No cascade here, so every token is unset and answers its default —
+            /// which is what a widget rendered by hand should see.
+            @Override
+            public double length(String name, double fallback) {
+                return fallback;
+            }
+
+            /// A stopped clock, which is what a test calling `render` by hand
+            /// wants: the frame it gets is the frame at zero, every time. A test
+            /// that needs a moving one drives a [WidgetRenderer] with
+            /// [dev.goldberry.motion.Clock#virtual()] instead
+            /// — which is also the only way to see a widget's own loop, since
+            /// the renderer is what reads the clock once per frame (ADR-0081).
+            @Override
+            public double nowMillis() {
+                return 0;
+            }
+
+            @Override
+            public boolean reducedMotion() {
+                return false;
+            }
+        };
+    }
+}

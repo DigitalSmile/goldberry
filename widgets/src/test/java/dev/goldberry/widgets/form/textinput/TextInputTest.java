@@ -1,0 +1,1500 @@
+package dev.goldberry.widgets.form.textinput;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.bind.Property;
+import dev.goldberry.css.Theme;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.event.TextEvent;
+import dev.goldberry.input.hit.Extent;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Mod;
+import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.layout.Position;
+import dev.goldberry.paint.Box;
+import dev.goldberry.paint.tree.ContainingBlock;
+import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.WidgetRenderer;
+import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.TestHost;
+import dev.goldberry.widgets.Widgets;
+import dev.goldberry.widgets.controls.TestFont;
+import dev.goldberry.widgets.controls.selectlist.SelectList;
+
+/// §4's first field, driven the way a user drives it.
+///
+/// The editing rules are [TextEditTest]'s and the undo rules are
+/// [EditHistoryTest]'s — both testable with no widget at all, which is why they
+/// are. What is here is everything that needs the widget: which key means what,
+/// what a click does, when the model is told, what a `password` refuses, and the
+/// two facilities that had to be built underneath this control before it could
+/// exist at all — the clipboard and the platform's text input.
+class TextInputTest {
+
+    private final TestHost host = new TestHost();
+
+    /// Mounts `input` and renders it once, so the field has a shaped paragraph
+    /// and a measurement — which is what a click needs to land anywhere.
+    private ElementTree mounted(TextInput input) {
+        var tree = new ElementTree(input, host);
+        render(tree);
+        field(tree).measured(new Extent(200, 32), new Extent(200, 32));
+        return tree;
+    }
+
+    /// Settles whatever `setState` deferred and then describes a frame — which is
+    /// the order the real loop uses, and the reason a test that only rendered
+    /// would keep reading the node built before the keystroke.
+    private void render(ElementTree tree) {
+        render(tree, null);
+    }
+
+    /// The same, with one application rule on top — how a test says `text-align`
+    /// without inventing a stylesheet of its own ([ADR-0324]).
+    private void render(ElementTree tree, String css) {
+        tree.flush();
+        var sheets = css == null
+                ? List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load())
+                : List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
+                        dev.goldberry.css.Stylesheet.parse(dev.goldberry.css.cascade.CascadeLayer.APPLICATION, css));
+        new WidgetRenderer(sheets, TestFont.get()).render(tree);
+    }
+
+    /// The `text-input` node the widget describes — what a stylesheet and the
+    /// router both see, and what takes the keys.
+    private TextField field(ElementTree tree) {
+        return (TextField) tree.root().children().getFirst().widget();
+    }
+
+    private void type(ElementTree tree, String text) {
+        field(tree).onText(new TextEvent(text, null));
+        render(tree);
+    }
+
+    private void key(ElementTree tree, Key key, Modifiers modifiers) {
+        field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, key, modifiers, false, null));
+        render(tree);
+    }
+
+    private void key(ElementTree tree, Key key) {
+        key(tree, key, Modifiers.NONE);
+    }
+
+    private void press(ElementTree tree, float x, int clickCount, Modifiers modifiers) {
+        var event = new PointerEvent(
+                PointerEvent.Kind.PRESSED,
+                x,
+                0,
+                PointerEvent.Button.PRIMARY,
+                clickCount,
+                Float.NaN,
+                Float.NaN,
+                modifiers,
+                null);
+        // The router does this from the painted frame; a test driving the node
+        // directly has to say where in the field the press landed.
+        event.localTo(new PointerEvent.Local(x, 0, 200, 32));
+        field(tree).onPointer(event);
+        render(tree);
+    }
+
+    private void focus(ElementTree tree, boolean gained, boolean fromKeyboard) {
+        field(tree).onFocusChanged(gained, fromKeyboard);
+        render(tree);
+    }
+
+    /// What the field is holding — the **real** text, which for a masked field is
+    /// not what [TextField#edit()] carries: that one is in display offsets over
+    /// bullets, because it is what the caret and the highlight are drawn against.
+    private String text(ElementTree tree) {
+        return ((TextInputState) tree.root().state().orElseThrow()).heldText();
+    }
+
+    /// The **real** resolved style, so the padding these assert against is the
+    /// one `controls.css` actually gives a field rather than a number
+    /// repeated here.
+    private dev.goldberry.css.ComputedStyle style(ElementTree tree) {
+        return style(tree, null);
+    }
+
+    /// The same, with one application rule on top — how a test says `text-align`
+    /// without inventing a stylesheet of its own ([ADR-0324]).
+    private dev.goldberry.css.ComputedStyle style(ElementTree tree, String css) {
+        var element = tree.root().children().getFirst();
+        var sheets = new java.util.ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
+        if (css != null) {
+            sheets.add(dev.goldberry.css.Stylesheet.parse(dev.goldberry.css.cascade.CascadeLayer.APPLICATION, css));
+        }
+        return dev.goldberry.css.ComputedStyle.of(
+                new dev.goldberry.css.cascade.StyleResolver(sheets).resolve(element),
+                dev.goldberry.css.value.CssLength.Context.DEFAULT);
+    }
+
+    /// The boxes the field describes, rendered by hand — the only way to see where
+    /// a caret actually goes, since its position is a measurement rather than
+    /// anything a stylesheet or a layout decides.
+    private List<Box> parts(ElementTree tree) {
+        return parts(tree, null);
+    }
+
+    private List<Box> parts(ElementTree tree, String css) {
+        var context = TestFont.context();
+        var style = style(tree, css);
+        var field = field(tree);
+        var children = field.children().stream()
+                .map(child -> ((dev.goldberry.widget.style.Paints) child).render(style, List.of(), context))
+                .toList();
+        return field.render(style, children, context).children();
+    }
+
+    private static float points(dev.goldberry.layout.Length length) {
+        return length instanceof dev.goldberry.layout.Length.Points p ? p.value() : Float.NaN;
+    }
+
+    @Nested
+    @DisplayName("typing")
+    class Typing {
+
+        @Test
+        @DisplayName("committed text goes in at the caret")
+        void types() {
+            var tree = mounted(new TextInput());
+
+            type(tree, "Gold");
+            type(tree, "berry");
+
+            assertEquals("Goldberry", text(tree));
+            assertEquals(9, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("a field starts from the value it was given, caret at the end")
+        void startsFromItsValue() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            assertEquals("Goldberry", text(tree));
+            assertEquals(9, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("every change is reported to the application")
+        void reports() {
+            var reported = new ArrayList<String>();
+            var tree = mounted(new TextInput("", reported::add));
+
+            type(tree, "a");
+            type(tree, "b");
+            key(tree, Key.BACKSPACE);
+
+            assertEquals(List.of("a", "ab", "a"), reported);
+        }
+
+        @Test
+        @DisplayName("a caret move reports nothing — the text did not change")
+        void movingReportsNothing() {
+            var reported = new ArrayList<String>();
+            var tree = mounted(new TextInput("abc", reported::add));
+
+            key(tree, Key.LEFT);
+            key(tree, Key.HOME);
+
+            assertTrue(reported.isEmpty());
+        }
+
+        @Test
+        @DisplayName("a disabled field takes nothing")
+        void disabledTakesNothing() {
+            var tree = mounted(new TextInput().disabled(true));
+
+            type(tree, "x");
+            key(tree, Key.BACKSPACE);
+
+            assertEquals("", text(tree));
+            assertFalse(field(tree).isFocusable(), "and it is out of the tab order");
+        }
+
+        @Test
+        @DisplayName("a read-only field takes a caret but no edits")
+        void readOnlyMovesButDoesNotEdit() {
+            var tree = mounted(new TextInput("Goldberry", null).readOnly(true));
+
+            type(tree, "x");
+            key(tree, Key.BACKSPACE);
+            assertEquals("Goldberry", text(tree));
+
+            key(tree, Key.HOME);
+            assertEquals(0, field(tree).edit().caret(), "but it still has a caret");
+            assertTrue(field(tree).isFocusable(), "and it is still reachable");
+        }
+    }
+
+    @Nested
+    @DisplayName("the keyboard")
+    class Keys {
+
+        @Test
+        @DisplayName("arrows move, and Shift extends")
+        void arrows() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            key(tree, Key.LEFT);
+            assertEquals(8, field(tree).edit().caret());
+
+            key(tree, Key.LEFT, Modifiers.of(Mod.SHIFT));
+            assertEquals(
+                    "r", field(tree).edit().selectedText(), "one Shift+Left from between 'r' and 'y' selects the 'r'");
+            assertEquals(8, field(tree).edit().anchor(), "and the anchor stayed put");
+        }
+
+        @Test
+        @DisplayName("Ctrl+arrow moves by word")
+        void wordArrows() {
+            var tree = mounted(new TextInput("Yoga laid this out", null));
+
+            key(tree, Key.LEFT, Modifiers.of(Mod.CTRL));
+
+            assertEquals(15, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("Home and End reach the ends, and so do Up and Down")
+        void homeAndEnd() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            key(tree, Key.HOME);
+            assertEquals(0, field(tree).edit().caret());
+
+            key(tree, Key.END);
+            assertEquals(9, field(tree).edit().caret());
+
+            // A single-line field has one line, so Up is Home -- and it has to be
+            // taken, or it would walk out of a vertical focus scope from a field
+            // somebody is editing.
+            key(tree, Key.UP);
+            assertEquals(0, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("Ctrl+A selects everything")
+        void selectAll() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Goldberry", field(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("a field consumes the keys it acts on, and leaves Tab alone")
+        void consumes() {
+            var tree = mounted(new TextInput("abc", null));
+
+            var left = new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT, Modifiers.NONE, false, null);
+            field(tree).onKey(left);
+            assertTrue(left.isConsumed(), "or Left would walk the focus scope this sits in");
+
+            var tab = new KeyEvent(KeyEvent.Kind.PRESSED, Key.TAB, Modifiers.NONE, false, null);
+            field(tree).onKey(tab);
+            assertFalse(tab.isConsumed(), "Tab is focus traversal and belongs to the router");
+
+            var enter = new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, null);
+            field(tree).onKey(enter);
+            assertFalse(enter.isConsumed(), "Enter belongs to the form around this");
+        }
+
+        @Test
+        @DisplayName("undo takes back a typed run, and redo puts it forward")
+        void undoAndRedo() {
+            var tree = mounted(new TextInput());
+
+            type(tree, "G");
+            type(tree, "o");
+            type(tree, "l");
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL));
+            assertEquals("", text(tree), "three keystrokes are one Ctrl+Z");
+
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL, Mod.SHIFT));
+            assertEquals("Gol", text(tree));
+        }
+    }
+
+    @Nested
+    @DisplayName("the pointer")
+    class Pointer {
+
+        @Test
+        @DisplayName("a press puts the caret where it landed")
+        void pressPlacesTheCaret() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            press(tree, 0, 1, Modifiers.NONE);
+            assertEquals(0, field(tree).edit().caret(), "a press at the left edge is the start");
+
+            press(tree, 400, 1, Modifiers.NONE);
+            assertEquals(9, field(tree).edit().caret(), "and one past the end is the end");
+        }
+
+        @Test
+        @DisplayName("a double-click selects a word")
+        void doubleClickSelectsAWord() {
+            var tree = mounted(new TextInput("Yoga laid", null));
+
+            press(tree, 0, 2, Modifiers.NONE);
+
+            assertEquals("Yoga", field(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("a triple-click selects the lot")
+        void tripleClickSelectsEverything() {
+            var tree = mounted(new TextInput("Yoga laid", null));
+
+            press(tree, 0, 3, Modifiers.NONE);
+
+            assertEquals("Yoga laid", field(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("a shift-press extends from where the caret was")
+        void shiftPressExtends() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.HOME);
+
+            press(tree, 400, 1, Modifiers.of(Mod.SHIFT));
+
+            assertEquals("Goldberry", field(tree).edit().selectedText());
+        }
+    }
+
+    /// X11's middle-click buffer, which the field fills and pastes from without
+    /// knowing it is X11's (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        private PointerEvent pointer(
+                ElementTree tree, PointerEvent.Kind kind, float x, PointerEvent.@Nullable Button button) {
+            // A press position, which is what makes a MOVED a drag; a release and a
+            // press carry theirs too.
+            var event = new PointerEvent(kind, x, 0, button, 1, 8, 0, Modifiers.NONE, null);
+            event.localTo(new PointerEvent.Local(x, 0, 200, 32));
+            field(tree).onPointer(event);
+            render(tree);
+            return event;
+        }
+
+        private PointerEvent middle(ElementTree tree, float x) {
+            return pointer(tree, PointerEvent.Kind.PRESSED, x, PointerEvent.Button.MIDDLE);
+        }
+
+        @Test
+        @DisplayName("a drag publishes its selection when the button comes up, and not before")
+        void aDragPublishesOnRelease() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            assertEquals(0, host.primaryWrites(), "a drag in progress is not an ownership change yet");
+
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.PRIMARY);
+
+            assertEquals("Goldberry", host.primaryText());
+            assertEquals(1, host.primaryWrites());
+        }
+
+        @Test
+        @DisplayName("a click that selects nothing publishes nothing")
+        void aClickPublishesNothing() {
+            host.primaryText("from another application");
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.RELEASED, 8, PointerEvent.Button.PRIMARY);
+
+            assertEquals("from another application", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a keyboard selection publishes when the key lands")
+        void theKeyboardPublishes() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.HOME);
+
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+
+            assertEquals("Go", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("Tab's select-all publishes nothing, and Ctrl+A after it does")
+        void tabDoesNotPublish() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            focus(tree, true, true);
+            assertTrue(field(tree).edit().hasSelection());
+            assertEquals(0, host.primaryWrites(), "arriving by Tab is not selecting anything");
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            assertEquals("Goldberry", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a password never publishes its selection")
+        void aPasswordNeverPublishes() {
+            var tree = mounted(new TextInput("secret", null).password(true));
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            key(tree, Key.HOME);
+            key(tree, Key.RIGHT, Modifiers.of(Mod.SHIFT));
+            pointer(tree, PointerEvent.Kind.PRESSED, 8, PointerEvent.Button.PRIMARY);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.PRIMARY);
+
+            assertTrue(field(tree).edit().hasSelection(), "the selection is real, it just cannot leave");
+            assertEquals(0, host.primaryWrites(), "every X11 toolkit refuses this for a masked field");
+            assertEquals("", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("a middle click puts the caret where it landed and pastes there")
+        void aMiddleClickPastesAtThePoint() {
+            host.primaryText("hot ");
+            // The caret starts at the end, so a paste that went in at the caret
+            // rather than at the click would read "doghot ".
+            var tree = mounted(new TextInput("dog", null));
+
+            var press = middle(tree, 8);
+
+            assertTrue(press.isConsumed());
+            assertEquals("hot dog", text(tree));
+            assertEquals(4, field(tree).edit().caret(), "after what was pasted");
+        }
+
+        @Test
+        @DisplayName("one undo takes the paste back")
+        void undoRevertsThePaste() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextInput("dog", null));
+            middle(tree, 8);
+
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL));
+
+            assertEquals("dog", text(tree));
+        }
+
+        @Test
+        @DisplayName("a pasted newline becomes a space, as a Ctrl+V's does")
+        void aNewlineIsFlattened() {
+            host.primaryText("two\nlines");
+            var tree = mounted(new TextInput());
+
+            middle(tree, 8);
+
+            assertEquals("two lines", text(tree));
+        }
+
+        @Test
+        @DisplayName("a drag after a middle click selects nothing")
+        void aMiddleDragIsNotASelection() {
+            host.primaryText("hot ");
+            var tree = mounted(new TextInput("dog", null));
+
+            middle(tree, 8);
+            pointer(tree, PointerEvent.Kind.MOVED, 400, null);
+            pointer(tree, PointerEvent.Kind.RELEASED, 400, PointerEvent.Button.MIDDLE);
+
+            assertFalse(field(tree).edit().hasSelection());
+            assertEquals("hot ", host.primaryText(), "and nothing was republished");
+        }
+
+        @Test
+        @DisplayName("a read-only or disabled field takes no paste")
+        void readOnlyAndDisabledRefuse() {
+            host.primaryText("pasted");
+
+            var readOnly = mounted(new TextInput("value", null).readOnly(true));
+            assertFalse(middle(readOnly, 8).isConsumed());
+            assertEquals("value", text(readOnly));
+
+            var disabled = mounted(new TextInput("value", null).disabled(true));
+            assertFalse(middle(disabled, 8).isConsumed());
+            assertEquals("value", text(disabled));
+        }
+
+        @Test
+        @DisplayName("without one, a middle click does nothing and a selection goes nowhere")
+        void absentIsANoOp() {
+            host.primarySelection(false).primaryText("somebody else's");
+            var tree = mounted(new TextInput("dog", null));
+
+            var press = middle(tree, 8);
+            assertFalse(press.isConsumed(), "the middle button is free to mean something else here");
+            assertEquals("dog", text(tree));
+            assertEquals(3, field(tree).edit().caret(), "not even the caret moved");
+
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+            assertEquals(0, host.primaryWrites());
+            assertEquals("somebody else's", host.primaryText());
+        }
+
+        @Test
+        @DisplayName("an empty primary selection is not a paste")
+        void emptyIsNotAPaste() {
+            var tree = mounted(new TextInput("dog", null));
+
+            assertFalse(middle(tree, 8).isConsumed());
+            assertEquals(3, field(tree).edit().caret());
+        }
+    }
+
+    @Nested
+    @DisplayName("the clipboard, which had to be built for this")
+    class Clipboard {
+
+        @Test
+        @DisplayName("copy puts the selection on the session's clipboard")
+        void copies() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            key(tree, Key.C, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Goldberry", host.clipboard().text());
+            assertEquals("Goldberry", text(tree), "and copying changes nothing");
+        }
+
+        @Test
+        @DisplayName("cut copies and then deletes")
+        void cuts() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            key(tree, Key.X, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Goldberry", host.clipboard().text());
+            assertEquals("", text(tree));
+        }
+
+        @Test
+        @DisplayName("paste replaces the selection")
+        void pastes() {
+            host.clipboardText("berry");
+            var tree = mounted(new TextInput("Gold!", null));
+            key(tree, Key.END);
+            key(tree, Key.BACKSPACE);
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Goldberry", text(tree));
+        }
+
+        @Test
+        @DisplayName("a pasted newline becomes a space rather than being refused")
+        void flattensAPaste() {
+            host.clipboardText("Yoga\nlaid");
+            var tree = mounted(new TextInput());
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("Yoga laid", text(tree));
+        }
+
+        /// The crash this replaced: `Paragraph.of` refused right-to-left text,
+        /// nothing between the clipboard and the paint caught it, and a user who
+        /// pasted Arabic into a field took the window down with them. The
+        /// paragraph approximates it now — the glyphs are shaped and their order
+        /// is mirrored — and what this asserts is the half that is not an
+        /// opinion: the paste lands, the field keeps it, and the frame is
+        /// described ([ADR-0218]).
+        @Test
+        @DisplayName("pasting right-to-left text keeps it, and does not take the window down")
+        void pastesRightToLeftText() {
+            host.clipboardText("مرحبا");
+            var tree = mounted(new TextInput());
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("مرحبا", text(tree));
+            // Again, because the crash was on the *next* frame rather than in the
+            // handler: the field held the text and died describing it.
+            render(tree);
+            assertEquals("مرحبا", text(tree));
+        }
+
+        @Test
+        @DisplayName("one paste is one undo step")
+        void pasteIsOneStep() {
+            host.clipboardText("pasted");
+            var tree = mounted(new TextInput());
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+            key(tree, Key.Z, Modifiers.of(Mod.CTRL));
+
+            assertEquals("", text(tree));
+        }
+    }
+
+    @Nested
+    @DisplayName("limits")
+    class Limits {
+
+        @Test
+        @DisplayName("a maximum length refuses the keystroke past it")
+        void maxLength() {
+            var tree = mounted(new TextInput().maxLength(4));
+
+            type(tree, "Gold");
+            type(tree, "b");
+
+            assertEquals("Gold", text(tree));
+        }
+
+        @Test
+        @DisplayName("a paste is clipped to what fits rather than refused whole")
+        void clipsAPaste() {
+            host.clipboardText("Goldberry");
+            var tree = mounted(new TextInput().maxLength(4));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            // The alternative -- refuse a paste that is too long -- means a
+            // field with a limit silently ignores the paste somebody just made.
+            assertEquals("Gold", text(tree));
+        }
+
+        /// The clip used to count code points from the front and then take
+        /// `Math.min` of the offset it found and the room it had, which puts the
+        /// answer back inside the pair it has just stepped over. The field then
+        /// held a lone high surrogate: not a character, `.notdef` on screen, and
+        /// a broken string in the application's own `change` handler.
+        @Test
+        @DisplayName("a limit falling inside a character keeps whole characters, not half of one")
+        void clipsOnACharacterBoundary() {
+            host.clipboardText("a🎨b");
+            var tree = mounted(new TextInput().maxLength(2));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("a", text(tree), "the palette needs two chars and there is one, so it is not taken at all");
+        }
+
+        @Test
+        @DisplayName("typing over a full field's selection works")
+        void selectionMakesRoom() {
+            var tree = mounted(new TextInput("Gold", null).maxLength(4));
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            type(tree, "Yoga");
+
+            assertEquals("Yoga", text(tree));
+        }
+
+        @Test
+        @DisplayName("a filter judges the result, not the keystroke")
+        void filters() {
+            var tree = mounted(new TextInput().filter(TextFilter.INTEGER));
+
+            type(tree, "-");
+            assertEquals("-", text(tree), "a lone minus is what a negative number starts as");
+            type(tree, "5");
+            assertEquals("-5", text(tree));
+            type(tree, "-");
+            assertEquals("-5", text(tree), "but a second minus is not an integer");
+            type(tree, "x");
+            assertEquals("-5", text(tree));
+        }
+
+        @Test
+        @DisplayName("a rejected keystroke leaves the caret alone")
+        void rejectionMovesNothing() {
+            var tree = mounted(new TextInput("42", null).filter(TextFilter.DIGITS));
+            key(tree, Key.HOME);
+
+            type(tree, "x");
+
+            assertEquals("42", text(tree));
+            assertEquals(0, field(tree).edit().caret());
+        }
+    }
+
+    @Nested
+    @DisplayName("a password")
+    class Password {
+
+        @Test
+        @DisplayName("draws bullets and holds the real text")
+        void masks() {
+            var tree = mounted(new TextInput("secret", null).password(true));
+
+            assertEquals("••••••", field(tree).display());
+            assertEquals("secret", text(tree));
+        }
+
+        @Test
+        @DisplayName("refuses to copy itself out")
+        void refusesToCopy() {
+            var tree = mounted(new TextInput("secret", null).password(true));
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            key(tree, Key.C, Modifiers.of(Mod.CTRL));
+            key(tree, Key.X, Modifiers.of(Mod.CTRL));
+
+            assertEquals("", host.clipboard().text(), "§4: no clipboard-out from a password");
+            assertEquals("secret", text(tree), "and the cut did not happen either");
+        }
+
+        @Test
+        @DisplayName("still takes a paste — the ban is one-way")
+        void acceptsAPaste() {
+            host.clipboardText("hunter2");
+            var tree = mounted(new TextInput().password(true));
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("hunter2", text(tree));
+        }
+
+        @Test
+        @DisplayName("draws one bullet per character the user can see")
+        void masksByCodePoint() {
+            var tree = mounted(new TextInput("a🎨b", null).password(true));
+
+            assertEquals(
+                    "•••", field(tree).display(), "four chars, three characters — a pair must not draw two bullets");
+        }
+
+        @Test
+        @DisplayName("deletes a whole character through the mask")
+        void deletesThroughTheMask() {
+            var tree = mounted(new TextInput("a🎨", null).password(true));
+
+            key(tree, Key.BACKSPACE);
+
+            assertEquals("a", text(tree), "half a surrogate pair would be a broken string");
+        }
+    }
+
+    @Nested
+    @DisplayName("focus, and the platform's text input")
+    class Focus {
+
+        @Test
+        @DisplayName("asks the platform to start delivering text, and to stop")
+        void followsFocus() {
+            var tree = mounted(new TextInput());
+
+            assertFalse(host.isTextInputActive(), "off until something asks");
+
+            focus(tree, true, true);
+            assertTrue(host.isTextInputActive());
+
+            focus(tree, false, false);
+            assertFalse(host.isTextInputActive());
+        }
+
+        @Test
+        @DisplayName("a read-only field does not ask — there is nothing to type into it")
+        void readOnlyDoesNotAsk() {
+            var tree = mounted(new TextInput("abc", null).readOnly(true));
+
+            focus(tree, true, true);
+
+            assertFalse(host.isTextInputActive(), "or a tablet would raise a keyboard over a field that refuses it");
+        }
+
+        @Test
+        @DisplayName("focus from the keyboard selects everything, and from a click does not")
+        void tabSelectsAll() {
+            var byKeyboard = mounted(new TextInput("Goldberry", null));
+            focus(byKeyboard, true, true);
+            assertEquals("Goldberry", field(byKeyboard).edit().selectedText());
+
+            var byPointer = mounted(new TextInput("Goldberry", null));
+            focus(byPointer, true, false);
+            assertFalse(field(byPointer).edit().hasSelection(), "the click has already said where the caret goes");
+        }
+
+        @Test
+        @DisplayName("the caret is drawn only while the field has focus")
+        void caretFollowsFocus() {
+            var tree = mounted(new TextInput("abc", null));
+
+            assertFalse(field(tree).focused());
+
+            focus(tree, true, false);
+            assertTrue(field(tree).focused());
+            assertTrue(field(tree).caretShown(), "and it starts solid rather than dark");
+        }
+    }
+
+    @Nested
+    @DisplayName("a value arriving from the model")
+    class Binding {
+
+        @Test
+        @DisplayName("a bound field starts from the property")
+        void startsFromTheBinding() {
+            var name = Property.of("Jane");
+            var tree = mounted(TextInput.of(name, null));
+
+            assertEquals("Jane", text(tree));
+        }
+
+        @Test
+        @DisplayName("a different value from outside takes the field")
+        void outsideValueWins() {
+            var name = Property.of("Jane");
+            var tree = mounted(TextInput.of(name, null));
+
+            name.set("Tom");
+            render(tree);
+
+            assertEquals("Tom", text(tree));
+        }
+
+        @Test
+        @DisplayName("the echo of the user's own keystroke does not reset the caret")
+        void echoIsIgnored() {
+            // The handler writes back to the model, which is what every real form
+            // does -- and without the "is this different from what I hold" test
+            // the field would take its own text back and put the caret at the end
+            // on every letter.
+            var name = Property.of("");
+            var tree = mounted(TextInput.of(name, name::set));
+
+            type(tree, "Gold");
+            key(tree, Key.HOME);
+            type(tree, "!");
+
+            assertEquals("!Gold", text(tree));
+            assertEquals(1, field(tree).edit().caret());
+        }
+    }
+
+    @Nested
+    @DisplayName("markup")
+    class Markup {
+
+        private TextInput inflate(String markup) {
+            return (TextInput)
+                    Widgets.inflater().inflateAll(KdlParser.parse(markup)).getFirst();
+        }
+
+        @Test
+        @DisplayName("a document writes what §4 spells")
+        void inflates() {
+            var it = inflate("""
+                    text-input value="Jane" placeholder="Jane Doe" max-length=64
+                    """);
+
+            assertEquals("Jane", it.value());
+            assertEquals("Jane Doe", it.placeholder());
+            assertEquals(64, it.maxLength());
+        }
+
+        @Test
+        @DisplayName("password, read-only and disabled are flags")
+        void flags() {
+            var it = inflate("""
+                    text-input password=#true read-only=#true disabled=#true
+                    """);
+
+            assertTrue(it.password());
+            assertTrue(it.readOnly());
+            assertTrue(it.disabled());
+        }
+
+        @Test
+        @DisplayName("a named filter is looked up, and an unknown one accepts everything")
+        void filters() {
+            assertSame(
+                    TextFilter.DIGITS, inflate("text-input filter=\"digits\"").filter());
+
+            // Logged rather than thrown: a typo already visible in the markup,
+            // and a field that refused every keystroke is a worse way to learn
+            // about it.
+            assertSame(
+                    TextFilter.NONE, inflate("text-input filter=\"nonsense\"").filter());
+        }
+
+        @Test
+        @DisplayName("no maximum length written is no limit")
+        void unlimitedByDefault() {
+            assertEquals(TextInput.UNLIMITED, inflate("text-input").maxLength());
+            assertEquals(
+                    TextInput.UNLIMITED,
+                    inflate("text-input max-length=0").maxLength(),
+                    "a field that can hold nothing is not what anybody wrote on purpose");
+        }
+    }
+
+    @Nested
+    @DisplayName("the placeholder")
+    class Placeholder {
+
+        @Test
+        @DisplayName("stands in for an empty field, and says that it is standing in")
+        void showsWhenEmpty() {
+            var tree = mounted(new TextInput().placeholder("Jane Doe"));
+
+            assertEquals("Jane Doe", field(tree).display());
+            assertTrue(field(tree).placeholder());
+            // The class is how the stylesheet tells the two apart: §3 wants
+            // `--gb-text-muted` here and `--gb-text` for a real value, and §8's
+            // subset has no pseudo-class that means "standing in for content".
+            assertTrue(((dev.goldberry.widgets.form.parts.Value)
+                            field(tree).children().get(1))
+                    .classes()
+                    .contains("placeholder"));
+        }
+
+        @Test
+        @DisplayName("goes as soon as there is anything to show")
+        void goesWhenTyped() {
+            var tree = mounted(new TextInput().placeholder("Jane Doe"));
+
+            type(tree, "J");
+
+            assertEquals("J", field(tree).display());
+            assertFalse(field(tree).placeholder());
+        }
+
+        @Test
+        @DisplayName("is not drawn instead of an empty *masked* field's bullets")
+        void maskedEmptyStillShowsIt() {
+            // An empty password field has no bullets to draw, so the placeholder
+            // is right -- and this is the case where "empty" has to be asked of
+            // the text rather than of the display.
+            var tree = mounted(new TextInput().password(true).placeholder("Password"));
+
+            assertEquals("Password", field(tree).display());
+            assertTrue(field(tree).placeholder());
+        }
+    }
+
+    @Nested
+    @DisplayName("scrolling, for text wider than the box")
+    class Scrolling {
+
+        /// A field 60 points wide, which is narrower than the text below.
+        private ElementTree narrow(String text) {
+            var tree = new ElementTree(new TextInput(text, null), host);
+            render(tree);
+            field(tree).measured(new Extent(60, 32), new Extent(60, 32));
+            render(tree);
+            return tree;
+        }
+
+        @Test
+        @DisplayName("a caret at the end brings the end into view, once the field is in use")
+        void scrollsToTheCaret() {
+            var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
+
+            // Untouched, the field shows the **head** of its value and a press at
+            // its right edge lands a few characters in ([ADR-0412],
+            // [FieldOpeningTest]). The focus is what makes the caret — which has
+            // been at the end all along — worth chasing.
+            press(tree, 55, 1, Modifiers.NONE);
+            assertTrue(field(tree).edit().caret() < 20, "the head was what was under the press");
+
+            field(tree).onFocusChanged(true, false);
+            key(tree, Key.END);
+            render(tree);
+
+            // A press at the field's right edge must now land near the *end* of the
+            // text rather than a few characters in, which is what it would if
+            // the content had not moved under the caret.
+            press(tree, 55, 1, Modifiers.NONE);
+
+            assertTrue(
+                    field(tree).edit().caret() > 20,
+                    "the field did not scroll: a press at its right edge landed at "
+                            + field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("Home brings the start back")
+        void scrollsBack() {
+            var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
+
+            key(tree, Key.HOME);
+            press(tree, 2, 1, Modifiers.NONE);
+
+            assertEquals(0, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("a press is measured past the padding, not from the border")
+        void allowsForPadding() {
+            // The bug the Forms screen's first golden showed, from the other
+            // side: the children are placed against the border box while the clip
+            // is the padding box, so everything the field draws and everything it
+            // measures has to carry the padding. Without it a press at the left
+            // edge of the *text* lands one character in.
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            // 8 points is this field's left padding, so this is the very start of
+            // the text rather than the very start of the border.
+            press(tree, 8, 1, Modifiers.NONE);
+
+            assertEquals(0, field(tree).edit().caret());
+        }
+    }
+
+    @Nested
+    @DisplayName("dragging")
+    class Dragging {
+
+        /// A press, then a move with the button still down — which is what the
+        /// router sends: `PointerRouter.pointerMoved` builds a `MOVED` event
+        /// carrying the press origin, and **no button at all**, because a motion
+        /// is not a button event.
+        private void dragTo(ElementTree tree, float from, float to) {
+            press(tree, from, 1, Modifiers.NONE);
+            var moved = new PointerEvent(PointerEvent.Kind.MOVED, to, 0, null, 0, from, 0, Modifiers.NONE, null);
+            moved.localTo(new PointerEvent.Local(to, 0, 200, 32));
+            field(tree).onPointer(moved);
+            render(tree);
+        }
+
+        @Test
+        @DisplayName("press, hold and move selects what the pointer crossed")
+        void dragSelects() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            dragTo(tree, 8, 400);
+
+            assertTrue(field(tree).edit().hasSelection(), "a drag selected nothing: the field never saw the motion");
+            assertEquals("Goldberry", field(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("a drag keeps its anchor where the press was")
+        void dragKeepsTheAnchor() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            dragTo(tree, 400, 8);
+
+            // Dragged right to left, so the anchor is at the end and the caret at
+            // the start -- which is what lets Shift+Right shrink it afterwards.
+            assertEquals(9, field(tree).edit().anchor());
+            assertEquals(0, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("a hover with no button down selects nothing")
+        void hoverDoesNotSelect() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.HOME);
+
+            // `dragX()` is NaN when no button is down, which is the router
+            // reporting "no gesture" through the arithmetic (ADR-0075). A field
+            // that read the position anyway would move the caret on hover.
+            var hover = new PointerEvent(
+                    PointerEvent.Kind.MOVED, 400, 0, null, 0, Float.NaN, Float.NaN, Modifiers.NONE, null);
+            hover.localTo(new PointerEvent.Local(400, 0, 200, 32));
+            field(tree).onPointer(hover);
+            render(tree);
+
+            assertEquals(0, field(tree).edit().caret());
+            assertFalse(field(tree).edit().hasSelection());
+        }
+    }
+
+    @Nested
+    @DisplayName("where the parts are drawn")
+    class Geometry {
+
+        /// The boxes the field describes, rendered by hand — the only way to see
+        /// where a caret actually goes, since its position is a measurement
+        /// rather than anything a stylesheet or a layout decides.
+
+        @Test
+        @DisplayName("the caret is a line tall, not a control tall")
+        void caretIsALineTall() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.END);
+
+            var caret = parts(tree).get(2);
+
+            // A 32-point control holds an 18-point line. A caret filling the
+            // control would be nearly twice the height of the text it sits in,
+            // which reads as a terminal cursor rather than an insertion point.
+            assertEquals(TestFont.one().lineHeight(), points(caret.height()), 0.01);
+            assertTrue(points(caret.height()) < 24, "the caret is as tall as the whole field");
+        }
+
+        @Test
+        @DisplayName("the highlight is a line tall too, so it sits behind the glyphs")
+        void selectionIsALineTall() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            var selection = parts(tree).getFirst();
+
+            assertEquals(TestFont.one().lineHeight(), points(selection.height()), 0.01);
+        }
+
+        /// The field used to add its own padding to every part's `left`, because
+        /// an absolutely positioned child was placed against the **border** box
+        /// while the clip was the padding box — a `left` of zero drew the first
+        /// character under the padding and lost it, which is what the Forms
+        /// screen's first golden showed.
+        ///
+        /// `ContainingBlock` shifts every absolute child by its containing
+        /// block's padding now (ADR-0272), so the compensation is gone and this
+        /// asserts both halves: the field writes zero, and zero still lands at
+        /// the padding.
+        @Test
+        @DisplayName("no part's left carries the field's padding, and the text still starts at it")
+        void partsAreInPaddingBoxCoordinates() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.HOME);
+
+            var parts = parts(tree);
+            var padding = style(tree).padding();
+
+            assertEquals(0, points(parts.get(1).inset().left()), 0.01, "the text");
+            assertEquals(0, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
+            assertEquals(
+                    8,
+                    points(ContainingBlock.insetFor(
+                                    Position.ABSOLUTE, parts.get(1).inset(), padding)
+                            .left()),
+                    0.01,
+                    "the text does not start at the field's padding after all");
+        }
+    }
+
+    @Nested
+    @DisplayName("the node a stylesheet sees")
+    class Styling {
+
+        @Test
+        @DisplayName("is `text-input`, once")
+        void oneNode() {
+            var tree = mounted(new TextInput());
+            var root = tree.root();
+
+            // The stateful widget styles nothing, or every rule would apply
+            // twice -- `scroll`'s and `tabs`' arrangement.
+            assertEquals("text-input", field(tree).cssType());
+            assertNotEquals(
+                    "text-input",
+                    root.widget() instanceof dev.goldberry.widget.style.Styled styled ? styled.cssType() : "");
+        }
+
+        @Test
+        @DisplayName("carries the document's id and classes")
+        void carriesAttributes() {
+            var input = new TextInput()
+                    .withAttributes(dev.goldberry.widget.attr.Attributes.of(
+                            KdlParser.parse("text-input id=\"name\" class=\"wide\"")
+                                    .getFirst()));
+            var tree = mounted(input);
+
+            assertEquals("name", field(tree).id());
+            assertTrue(field(tree).classes().contains("wide"));
+        }
+
+        @Test
+        @DisplayName("has the three parts, in paint order")
+        void hasItsParts() {
+            var tree = mounted(new TextInput("abc", null));
+            var parts = field(tree).children();
+
+            // The highlight first, so it is behind the glyphs: §1.2 wants
+            // selected text readable, and a wash over a glyph dims it.
+            assertTrue(parts.get(0) instanceof dev.goldberry.widgets.form.parts.Highlight);
+            assertTrue(parts.get(1) instanceof dev.goldberry.widgets.form.parts.Value);
+            assertTrue(parts.get(2) instanceof dev.goldberry.widgets.form.parts.Caret);
+        }
+    }
+
+    /// §4's autocomplete: "`text-input autocomplete=#true` attaches a `popover` of
+    /// suggestions to the field: the widget raises the query, the application
+    /// supplies the list, and the field's text is never rewritten without the
+    /// user choosing" ([ADR-0182]).
+    @Nested
+    @DisplayName("suggesting")
+    class Suggesting {
+
+        private final List<String> reported = new java.util.ArrayList<>();
+
+        /// Mounts, focuses and **locates** the field, which is what a window
+        /// does after it paints: a popover is anchored to a rectangle only the
+        /// painted frame knows ([ADR-0119]), and a widget test has no router to
+        /// report one.
+        private ElementTree offering(TextInput input) {
+            var tree = mounted(input);
+            focus(tree, true, false);
+            TextInputTest.this
+                    .field(tree)
+                    .located(
+                            dev.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                            dev.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            render(tree);
+            return tree;
+        }
+
+        private SelectList offered() {
+            return (SelectList) host.opened.getFirst().content();
+        }
+
+        private TextInput field(String value, String... options) {
+            var offered = java.util.Arrays.stream(options)
+                    .map(o -> new dev.goldberry.widgets.controls.option.Option(o))
+                    .toList();
+            return new TextInput(value, reported::add).suggesting(offered);
+        }
+
+        /// The whole channel: what was typed goes up through `change`, and the
+        /// application answers by handing back a list. Nothing in the widget
+        /// decides what "matches" means, which is what makes a remote-backed
+        /// autocomplete the same widget with a slower model.
+        @Test
+        @DisplayName("typing reports the query, and the suggestions come back as a rebuild")
+        void theQueryGoesUp() {
+            var tree = mounted(new TextInput("", reported::add));
+
+            focus(tree, true, false);
+            type(tree, "L");
+            type(tree, "o");
+
+            assertEquals(
+                    List.of("L", "Lo"), reported, "the field did not raise what was typed, keystroke by keystroke");
+        }
+
+        /// A list under a field nobody is typing in is a panel floating over the
+        /// application for no reason, and it would take the next click.
+        @Test
+        @DisplayName("nothing is offered until the field has the keyboard")
+        void onlyWhileFocused() {
+            var unfocused = mounted(field("", "London", "Lisbon"));
+            TextInputTest.this
+                    .field(unfocused)
+                    .located(
+                            dev.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                            dev.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            render(unfocused);
+
+            assertTrue(host.opened.isEmpty(), "a panel opened over an unfocused field");
+
+            offering(field("", "London", "Lisbon"));
+
+            assertEquals(1, host.opened.size(), "nothing was offered to a focused field");
+        }
+
+        @Test
+        @DisplayName("the panel is the same list a select opens, one row per suggestion")
+        void theRowsAreTheSuggestions() {
+            offering(field("", "London", "Lisbon"));
+
+            var list = offered();
+            assertEquals(2, list.children().size());
+            assertEquals(
+                    List.of("London", "Lisbon"),
+                    list.children().stream()
+                            .map(dev.goldberry.widgets.controls.option.Option.class::cast)
+                            .map(dev.goldberry.widgets.controls.option.Option::value)
+                            .toList());
+        }
+
+        /// §4's own sentence, and it falls out of the shape rather than being
+        /// enforced: choosing reports, and what happens next is the
+        /// application's. A handler that ignores it leaves the field as typed.
+        @Test
+        @DisplayName("choosing a suggestion reports it and rewrites nothing itself")
+        void choosingReports() {
+            var tree = offering(field("Lo", "London"));
+
+            var row = (dev.goldberry.widgets.controls.option.Option)
+                    offered().children().getFirst();
+            row.onSelect().run();
+
+            assertEquals(List.of("London"), reported);
+            assertEquals("Lo", text(tree), "the field rewrote itself, which is the one thing §4 forbids");
+        }
+
+        /// Arrows move the focus and `Enter` commits — `Option.inAList()` — so a
+        /// user arrowing through suggestions never has the field rewritten under
+        /// them. The alternative, follow-the-focus, is a `select`'s and is wrong
+        /// here for exactly that reason.
+        @Test
+        @DisplayName("the rows commit on Enter rather than on arrival")
+        void arrowsDoNotChoose() {
+            offering(field("", "London", "Lisbon"));
+
+            var row = (dev.goldberry.widgets.controls.option.Option)
+                    offered().children().getFirst();
+
+            assertFalse(row.roving(), "the suggestions would rewrite the field as the keyboard passed over them");
+        }
+
+        @Test
+        @DisplayName("an ordinary field offers nothing and opens nothing")
+        void anOrdinaryFieldIsUnchanged() {
+            var tree = offering(new TextInput("hello", reported::add));
+
+            assertEquals(List.of(), widget(tree).suggestions());
+            assertTrue(host.opened.isEmpty());
+        }
+
+        private TextInput widget(ElementTree tree) {
+            return (TextInput) tree.root().widget();
+        }
+    }
+
+    /// `text-align` in a single-line field — `docs/gaps.md` G30, ADR-0324.
+    ///
+    /// The field ignored the property in the paint *and* in the caret, which was
+    /// consistent and useless: a numeric column could not line up on its units.
+    /// Wiring only the paint would have been worse than either, because the caret
+    /// and the highlight are placed by this control while the glyphs are drawn by
+    /// `Paragraph.paint` — and the two would then disagree by half the line's slack.
+    ///
+    /// **The box hugs its text here**, unlike a `text-area`'s: the value is an
+    /// absolutely positioned child sized by its content, so a paragraph with no
+    /// slack indents by nothing and what moves is the box. Which makes the
+    /// structural assertion an exact one: the caret's `left` is the value's `left`
+    /// plus the width of the text before it.
+    @Nested
+    @DisplayName("text-align")
+    class Aligned {
+
+        private static final int VALUE = 1;
+        private static final int CARET = 2;
+        private static final int SELECTION = 0;
+
+        private String rule(String alignment) {
+            return "text-input { text-align: " + alignment + " }";
+        }
+
+        private ElementTree focused(String text) {
+            var tree = mounted(new TextInput(text, null));
+            focus(tree, true, false);
+            return tree;
+        }
+
+        private double valueLeft(ElementTree tree, String alignment) {
+            return points(parts(tree, rule(alignment)).get(VALUE).inset().left());
+        }
+
+        private double caretLeft(ElementTree tree, String alignment) {
+            return points(parts(tree, rule(alignment)).get(CARET).inset().left());
+        }
+
+        @Test
+        @DisplayName("a value narrower than the field is moved by the alignment")
+        void theValueMoves() {
+            var tree = focused("9.5");
+            key(tree, Key.END);
+
+            assertEquals(0, valueLeft(tree, "start"), 0.01, "nothing is indented at the leading edge");
+            var centre = valueLeft(tree, "center");
+            var end = valueLeft(tree, "end");
+
+            assertTrue(centre > 10, () -> "a centred value starts at " + centre);
+            assertTrue(end > centre + 10, () -> "the trailing edge is at " + end + " and the centre at " + centre);
+        }
+
+        /// The invariant that was broken and is the whole point of the change: the
+        /// caret is placed from the same indent the glyphs were.
+        @Test
+        @DisplayName("the caret moves with the glyphs, exactly")
+        void theCaretFollowsTheText() {
+            var tree = focused("9.5");
+            key(tree, Key.END);
+            key(tree, Key.LEFT);
+
+            var paragraph = TestFont.context().paragraph(style(tree), "9.5");
+            var before = paragraph.widthBetween(0, field(tree).edit().caret());
+
+            for (var alignment : List.of("start", "center", "end")) {
+                assertEquals(
+                        valueLeft(tree, alignment) + before,
+                        caretLeft(tree, alignment),
+                        0.01,
+                        alignment + ": the caret and the text it is in disagree about where the line starts");
+            }
+        }
+
+        @Test
+        @DisplayName("the highlight moves with them too")
+        void theHighlightFollowsTheText() {
+            var tree = focused("9.5");
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            for (var alignment : List.of("start", "center", "end")) {
+                assertEquals(
+                        valueLeft(tree, alignment),
+                        points(parts(tree, rule(alignment))
+                                .get(SELECTION)
+                                .inset()
+                                .left()),
+                        0.01,
+                        alignment + ": a selection of everything starts where the text does");
+            }
+        }
+
+        /// The round trip through the *other* direction: a press is measured past
+        /// the padding and back by the same shift, so pressing where the caret is
+        /// drawn does not move it.
+        @Test
+        @DisplayName("pressing on the caret does not move it, whatever the alignment")
+        void pressRoundTrips() {
+            for (var alignment : List.of("start", "center", "end")) {
+                var tree = focused("9.5");
+                // Focus from the pointer leaves the caret where it was; `End` then
+                // `Left` puts it inside the value, where a wrong indent shows.
+                key(tree, Key.END);
+                key(tree, Key.LEFT);
+                var before = field(tree).edit().caret();
+                assertEquals(2, before, alignment + ": the fixture wanted the caret inside the value");
+
+                var padding = points(style(tree, rule(alignment)).padding().left());
+                press(tree, (float) (padding + caretLeft(tree, alignment)), 1, Modifiers.NONE);
+
+                assertEquals(before, field(tree).edit().caret(), alignment + ": the press landed somewhere else");
+            }
+        }
+
+        /// The invariant the implementation rests on: a line too long to fit has no
+        /// slack to be aligned in, so it scrolls and is never indented — which is
+        /// why one number carries the scroll and the indent together.
+        @Test
+        @DisplayName("a value too long for the field scrolls rather than aligning")
+        void overflowScrollsInstead() {
+            var tree = focused("a value far too long to fit inside two hundred points of field");
+            key(tree, Key.END);
+
+            var scrolled = valueLeft(tree, "start");
+            assertTrue(scrolled < 0, () -> "a value that overflows is scrolled, and this is at " + scrolled);
+            assertEquals(
+                    scrolled,
+                    valueLeft(tree, "center"),
+                    0.01,
+                    "there is no slack in an overflowing line, so the alignment has nothing to do");
+        }
+    }
+}

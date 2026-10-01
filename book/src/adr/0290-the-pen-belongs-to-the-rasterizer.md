@@ -16,7 +16,7 @@ difficulty is ownership rather than transcription."*
 
 The entry's own instruction for enumerating the remainder was to delete one word
 from a module descriptor and read the compiler's answer. Doing that — dropping
-`transitive` from `:core`'s `requires io.github.digitalsmile.goldberry.natives` —
+`transitive` from `:core`'s `requires dev.goldberry.natives` —
 produced exactly two warnings, both on that one line. `Font.shape` and
 `Paragraph.measureFunction` had already been fixed by ADR-0282 and ADR-0279; the
 descriptor's comment claiming eleven sites was stale.
@@ -32,7 +32,7 @@ readable by every application that requires `:widgets`.
 
 ### The pen moves to `paint`, as the entry proposed
 
-Two new types, both in `io.github.digitalsmile.goldberry.paint`:
+Two new types, both in `dev.goldberry.paint`:
 
 ```java
 public final class GlyphFace implements AutoCloseable {   // a typeface, to the rasterizer
@@ -68,9 +68,9 @@ the buffer. It belongs beside the thing it fills.
 ### `:core` drops `transitive`, and Blend2D is sealed
 
 ```java
-requires io.github.digitalsmile.goldberry.natives;                      // :core
-exports io.github.digitalsmile.goldberry.natives.blend2d to
-        io.github.digitalsmile.goldberry.core;                          // :natives
+requires dev.goldberry.natives;                      // :core
+exports dev.goldberry.natives.blend2d to
+        dev.goldberry.core;                          // :natives
 ```
 
 Yoga and HarfBuzz were qualified by ADR-0280 and Blend2D was not, for exactly the

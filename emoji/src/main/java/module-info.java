@@ -10,20 +10,20 @@
 /// Nothing in `:core` or `:widgets` knows this module exists. The face arrives
 /// through a service, which is how the module system says "somebody may have
 /// brought this".
-module io.github.digitalsmile.goldberry.emoji {
+module dev.goldberry.emoji {
 
     /// The service this implements, and the font stack that asks for it.
-    requires transitive io.github.digitalsmile.goldberry.core;
+    requires transitive dev.goldberry.core;
 
     /// JSpecify's nullness annotations, for the packages under NullAway.
     requires transitive static org.jspecify;
 
     /// The provider, and an optional credit as a constant.
-    exports io.github.digitalsmile.goldberry.emoji;
+    exports dev.goldberry.emoji;
 
     /// What makes `Font.bundled(BundledFont.EMOJI, …)` work in a build that has
     /// this module on its path — and, by its absence, what makes the failure a
     /// sentence naming this artifact rather than a missing resource.
-    provides io.github.digitalsmile.goldberry.assets.EmojiFont
-            with io.github.digitalsmile.goldberry.emoji.NotoColorEmojiFont;
+    provides dev.goldberry.assets.EmojiFont
+            with dev.goldberry.emoji.NotoColorEmojiFont;
 }

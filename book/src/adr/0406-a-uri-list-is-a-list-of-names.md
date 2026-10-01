@@ -48,7 +48,7 @@ happens to those is the decision this ADR exists to record.
 conversion.**
 
 ```java
-// io.github.digitalsmile.goldberry.render
+// dev.goldberry.render
 public record UriList(List<URI> uris) {
     public static final String MIME = "text/uri-list";
 

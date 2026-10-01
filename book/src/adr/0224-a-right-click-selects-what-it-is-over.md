@@ -38,7 +38,7 @@ exactly what the user was about to act on.
 
 **A widget says what selecting it means; the launcher says when.**
 
-`io.github.digitalsmile.goldberry.input.handler.Selects` is one method,
+`dev.goldberry.input.handler.Selects` is one method,
 `selectForContextMenu()`, beside `Handles`, `Located` and `Measured` in the
 package of things a widget implements to hear about input.
 

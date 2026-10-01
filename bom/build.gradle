@@ -1,4 +1,4 @@
-import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+import dev.goldberry.build.publish.PublishedModules
 
 plugins {
     // A platform, not a library -- which is why the version comes from

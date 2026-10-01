@@ -30,7 +30,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/kdl/KdlParser.java",
+         "uri": "core/src/main/java/dev/goldberry/kdl/KdlParser.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -88,7 +88,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/parse/CssTokenizer.java",
+         "uri": "core/src/main/java/dev/goldberry/css/parse/CssTokenizer.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -146,7 +146,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/areachart/AreaChart.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/areachart/AreaChart.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -203,7 +203,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/overlay/toast/Toasts.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/overlay/toast/Toasts.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -260,7 +260,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/TextEdit.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/TextEdit.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -317,7 +317,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/tree/RenderObject.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/tree/RenderObject.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -374,7 +374,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/TextEdit.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/TextEdit.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -431,7 +431,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/linux/GstLibrary.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/linux/GstLibrary.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -488,7 +488,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/chip/Chip.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/chip/Chip.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -545,7 +545,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/GpuBuffer.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/GpuBuffer.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -602,7 +602,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/key/Modifiers.java",
+         "uri": "core/src/main/java/dev/goldberry/input/key/Modifiers.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -659,7 +659,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/menu/Accelerators.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/menu/Accelerators.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -716,7 +716,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/BoxPainter.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/BoxPainter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -773,7 +773,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/tray/BackendTray.java",
+         "uri": "core/src/main/java/dev/goldberry/render/tray/BackendTray.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -830,7 +830,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/FrameTrace.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/FrameTrace.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -887,7 +887,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -944,7 +944,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/codec/SampleFormat.java",
+         "uri": "media/src/main/java/dev/goldberry/media/codec/SampleFormat.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1001,7 +1001,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/Shader.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/Shader.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1058,7 +1058,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1115,7 +1115,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/MediaFoundationAudioDecoder.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/MediaFoundationAudioDecoder.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1172,7 +1172,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/overlay/dialog/Dialog.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/overlay/dialog/Dialog.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1229,7 +1229,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1286,7 +1286,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/TimeRange.java",
+         "uri": "media/src/main/java/dev/goldberry/media/TimeRange.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1343,7 +1343,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1400,7 +1400,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/timepicker/TimePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/timepicker/TimePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1457,7 +1457,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/core/image/ImageSource.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/core/image/ImageSource.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1514,7 +1514,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/ui/sheet/IconTile.java",
+         "uri": "example/src/main/java/dev/goldberry/example/ui/sheet/IconTile.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1571,7 +1571,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/DamageRect.java",
+         "uri": "core/src/main/java/dev/goldberry/render/DamageRect.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1628,7 +1628,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/ui/sheet/EmojiScreen.java",
+         "uri": "example/src/main/java/dev/goldberry/example/ui/sheet/EmojiScreen.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1685,7 +1685,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/DateSelection.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/DateSelection.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1742,7 +1742,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/form/Form.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/form/Form.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1799,7 +1799,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/MfBuffer.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/MfBuffer.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1856,7 +1856,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/TextEdit.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/TextEdit.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1913,7 +1913,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/list/ListView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/list/ListView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -1970,7 +1970,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/event/PreeditEvent.java",
+         "uri": "core/src/main/java/dev/goldberry/input/event/PreeditEvent.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2027,7 +2027,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/RenderPass.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/RenderPass.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2084,7 +2084,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/nav/breadcrumbs/Crumb.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/nav/breadcrumbs/Crumb.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2198,7 +2198,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/select/WordGeometry.java",
+         "uri": "html/src/main/java/dev/goldberry/content/select/WordGeometry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2255,7 +2255,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/TimeAxis.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/TimeAxis.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2312,7 +2312,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/stats/FrameStats.java",
+         "uri": "core/src/main/java/dev/goldberry/stats/FrameStats.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2369,7 +2369,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/Icons.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/Icons.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2426,7 +2426,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/form/Form.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/form/Form.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2483,7 +2483,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/cascade/KeyframeAnimations.java",
+         "uri": "core/src/main/java/dev/goldberry/css/cascade/KeyframeAnimations.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2540,7 +2540,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/view/Canvas3dTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/view/Canvas3dTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2597,7 +2597,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/Stylesheet.java",
+         "uri": "core/src/main/java/dev/goldberry/css/Stylesheet.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2654,7 +2654,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/shell/tray/TrayIcon.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/shell/tray/TrayIcon.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2711,7 +2711,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/markup/Inflatable.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/markup/Inflatable.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2768,7 +2768,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/codeinput/CodeInput.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/codeinput/CodeInput.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2825,7 +2825,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "build-logic/src/main/java/io/github/digitalsmile/goldberry/build/ci/BuildFailureAnnotation.java",
+         "uri": "build-logic/src/main/java/dev/goldberry/build/ci/BuildFailureAnnotation.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2882,7 +2882,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/bind/runtime/FieldListeners.java",
+         "uri": "core/src/main/java/dev/goldberry/bind/runtime/FieldListeners.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2939,7 +2939,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "common/src/main/java/io/github/digitalsmile/goldberry/log/bridge/NativeLogLevel.java",
+         "uri": "common/src/main/java/dev/goldberry/log/bridge/NativeLogLevel.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -2996,7 +2996,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/codec/SampleFormat.java",
+         "uri": "media/src/main/java/dev/goldberry/media/codec/SampleFormat.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3053,7 +3053,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Window.java",
+         "uri": "core/src/main/java/dev/goldberry/Window.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3110,7 +3110,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Window.java",
+         "uri": "core/src/main/java/dev/goldberry/Window.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3167,7 +3167,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/GpuDevice.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/GpuDevice.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3224,7 +3224,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/motion/TileFloor.java",
+         "uri": "example/src/main/java/dev/goldberry/example/motion/TileFloor.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3281,7 +3281,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/ChartSpec.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/ChartSpec.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3338,7 +3338,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/BoxPainter.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/BoxPainter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3395,7 +3395,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/Threshold.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/Threshold.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3452,7 +3452,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/ChartStatus.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/ChartStatus.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3509,7 +3509,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/select/WordGeometry.java",
+         "uri": "html/src/main/java/dev/goldberry/content/select/WordGeometry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3566,7 +3566,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/barchart/BarChart.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/barchart/BarChart.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3623,7 +3623,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/timepicker/TimePrecision.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/timepicker/TimePrecision.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3680,7 +3680,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessPopup.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessPopup.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3737,7 +3737,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/slider/Slider.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/slider/Slider.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3794,7 +3794,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/motion/TileFloor.java",
+         "uri": "example/src/main/java/dev/goldberry/example/motion/TileFloor.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3851,7 +3851,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/font/Font.java",
+         "uri": "core/src/main/java/dev/goldberry/text/font/Font.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3908,7 +3908,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/font/Fonts.java",
+         "uri": "core/src/main/java/dev/goldberry/text/font/Fonts.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -3965,7 +3965,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/markup/Named.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/markup/Named.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4022,7 +4022,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/TextLayout.java",
+         "uri": "core/src/main/java/dev/goldberry/text/TextLayout.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4079,7 +4079,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/FrameTrace.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/FrameTrace.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4136,7 +4136,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/textarea/TextArea.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/textarea/TextArea.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4193,7 +4193,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/spinner/Spinner.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/spinner/Spinner.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4250,7 +4250,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/view/MediaPlayerView.java",
+         "uri": "media/src/main/java/dev/goldberry/media/view/MediaPlayerView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4307,7 +4307,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/table/Table.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/table/Table.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4364,7 +4364,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/semantics/Semantics.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/semantics/Semantics.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4421,7 +4421,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/RenderTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/RenderTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4478,7 +4478,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/DepthTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/DepthTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4535,7 +4535,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4592,7 +4592,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/Gradient.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/Gradient.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4649,7 +4649,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/macos/AudioToolboxDecoder.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/macos/AudioToolboxDecoder.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4706,7 +4706,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/tree/TreeState.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/tree/TreeState.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4763,7 +4763,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4820,7 +4820,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Popup.java",
+         "uri": "core/src/main/java/dev/goldberry/Popup.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4877,7 +4877,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/PipelineSpec.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/PipelineSpec.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4934,7 +4934,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/linechart/PlotGeometry.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/linechart/PlotGeometry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -4991,7 +4991,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/tray/BackendTray.java",
+         "uri": "core/src/main/java/dev/goldberry/render/tray/BackendTray.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5048,7 +5048,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5105,7 +5105,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Goldberry.java",
+         "uri": "core/src/main/java/dev/goldberry/Goldberry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5162,7 +5162,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/sdl3/Sdl3Backend.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/sdl3/Sdl3Backend.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5219,7 +5219,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/field/Field.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/field/Field.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5276,7 +5276,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/attr/Attributed.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/attr/Attributed.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5333,7 +5333,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/textarea/TextArea.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/textarea/TextArea.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5390,7 +5390,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/attr/Attributed.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/attr/Attributed.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5447,7 +5447,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/markup/Inflatable.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/markup/Inflatable.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5504,7 +5504,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/engine/PacketQueue.java",
+         "uri": "media/src/main/java/dev/goldberry/media/engine/PacketQueue.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5561,7 +5561,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/Box.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/Box.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5618,7 +5618,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/parts/Composing.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/parts/Composing.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5675,7 +5675,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5732,7 +5732,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/split/SplitPane.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/split/SplitPane.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5789,7 +5789,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5846,7 +5846,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5903,7 +5903,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/event/PointerEvent.java",
+         "uri": "core/src/main/java/dev/goldberry/input/event/PointerEvent.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -5960,7 +5960,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/menu/Accelerators.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/menu/Accelerators.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6017,7 +6017,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/timepicker/TimePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/timepicker/TimePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6074,7 +6074,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/engine/PacketQueue.java",
+         "uri": "media/src/main/java/dev/goldberry/media/engine/PacketQueue.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6131,7 +6131,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Popup.java",
+         "uri": "core/src/main/java/dev/goldberry/Popup.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6188,7 +6188,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/timeline/EntryMarker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/timeline/EntryMarker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6245,7 +6245,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/overlay/popover/Popover.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/overlay/popover/Popover.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6302,7 +6302,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/attr/Attributed.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/attr/Attributed.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6359,7 +6359,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/textarea/TextArea.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/textarea/TextArea.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6416,7 +6416,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/MfGuids.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/MfGuids.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6473,7 +6473,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/PointerRouter.java",
+         "uri": "core/src/main/java/dev/goldberry/input/PointerRouter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6530,7 +6530,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/field/Field.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/field/Field.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6587,7 +6587,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/RenderTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/RenderTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6644,7 +6644,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6701,7 +6701,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/select/Word.java",
+         "uri": "html/src/main/java/dev/goldberry/content/select/Word.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6758,7 +6758,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/itemize/TextRun.java",
+         "uri": "core/src/main/java/dev/goldberry/text/itemize/TextRun.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6815,7 +6815,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/core/presence/Phase.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/core/presence/Phase.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6872,7 +6872,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/timepicker/TimePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/timepicker/TimePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6929,7 +6929,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePickerState.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePickerState.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -6986,7 +6986,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/Typography.java",
+         "uri": "core/src/main/java/dev/goldberry/css/Typography.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7043,7 +7043,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/PipelineSpec.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/PipelineSpec.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7100,7 +7100,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/image/ImageScaleException.java",
+         "uri": "core/src/main/java/dev/goldberry/image/ImageScaleException.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7157,7 +7157,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/text/Text.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/text/Text.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7214,7 +7214,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/select/WordGeometry.java",
+         "uri": "html/src/main/java/dev/goldberry/content/select/WordGeometry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7271,7 +7271,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/Icons.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/Icons.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7328,7 +7328,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/kdl/KdlSyntaxException.java",
+         "uri": "core/src/main/java/dev/goldberry/kdl/KdlSyntaxException.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7385,7 +7385,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/image/ImageEncodeException.java",
+         "uri": "core/src/main/java/dev/goldberry/image/ImageEncodeException.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7442,7 +7442,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/tap/ModifierTaps.java",
+         "uri": "core/src/main/java/dev/goldberry/input/tap/ModifierTaps.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7499,7 +7499,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/kdl/KdlValue.java",
+         "uri": "core/src/main/java/dev/goldberry/kdl/KdlValue.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7556,7 +7556,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/PointerRouter.java",
+         "uri": "core/src/main/java/dev/goldberry/input/PointerRouter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7613,7 +7613,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/BoxPainter.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/BoxPainter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7670,7 +7670,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/key/Modifiers.java",
+         "uri": "core/src/main/java/dev/goldberry/input/key/Modifiers.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7727,7 +7727,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/composite/SdlCompositedWindow.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/composite/SdlCompositedWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7784,7 +7784,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/PointerRouter.java",
+         "uri": "core/src/main/java/dev/goldberry/input/PointerRouter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7841,7 +7841,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/tray/BackendTray.java",
+         "uri": "core/src/main/java/dev/goldberry/render/tray/BackendTray.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7898,7 +7898,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/Shader.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/Shader.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -7955,7 +7955,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/field/Field.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/field/Field.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8012,7 +8012,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/view/Canvas3dTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/view/Canvas3dTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8069,7 +8069,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/Backend.java",
+         "uri": "core/src/main/java/dev/goldberry/render/Backend.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8126,7 +8126,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/timepicker/TimePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/timepicker/TimePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8183,7 +8183,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8240,7 +8240,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/GpuTexture.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/GpuTexture.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8297,7 +8297,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8354,7 +8354,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/markdown/view/MarkdownView.java",
+         "uri": "html/src/main/java/dev/goldberry/markdown/view/MarkdownView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8411,7 +8411,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/macos/AudioToolboxDecoder.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/macos/AudioToolboxDecoder.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8468,7 +8468,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/split/SplitPane.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/split/SplitPane.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8525,7 +8525,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/core/image/ImageView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/core/image/ImageView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8582,7 +8582,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/attr/Bindable.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/attr/Bindable.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8639,7 +8639,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/colorpicker/ColorPicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/colorpicker/ColorPicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8696,7 +8696,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/ImageSource.java",
+         "uri": "html/src/main/java/dev/goldberry/content/ImageSource.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8753,7 +8753,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/markup/Named.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/markup/Named.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8810,7 +8810,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8867,7 +8867,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/tree/Tree.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/tree/Tree.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8924,7 +8924,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/nav/breadcrumbs/BreadcrumbsState.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/nav/breadcrumbs/BreadcrumbsState.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -8981,7 +8981,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/MediaFoundationAudioDecoder.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/MediaFoundationAudioDecoder.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9038,7 +9038,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/offscreen/Offscreen.java",
+         "uri": "core/src/main/java/dev/goldberry/offscreen/Offscreen.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9152,7 +9152,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/linechart/LineChart.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/linechart/LineChart.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9266,7 +9266,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/model/LogicalRect.java",
+         "uri": "core/src/main/java/dev/goldberry/render/model/LogicalRect.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9323,7 +9323,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/ui/CanvasScreen.java",
+         "uri": "example/src/main/java/dev/goldberry/example/ui/CanvasScreen.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9380,7 +9380,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "weaver/src/main/java/io/github/digitalsmile/goldberry/weaver/WeaverMain.java",
+         "uri": "weaver/src/main/java/dev/goldberry/weaver/WeaverMain.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9437,7 +9437,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/knob/Knob.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/knob/Knob.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9494,7 +9494,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/GraphicsPipeline.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/GraphicsPipeline.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9551,7 +9551,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/markdown/model/Inline.java",
+         "uri": "html/src/main/java/dev/goldberry/markdown/model/Inline.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9608,7 +9608,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/form/Form.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/form/Form.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9665,7 +9665,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/model/LogicalRect.java",
+         "uri": "core/src/main/java/dev/goldberry/render/model/LogicalRect.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9722,7 +9722,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/TimeRange.java",
+         "uri": "media/src/main/java/dev/goldberry/media/TimeRange.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9779,7 +9779,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/motion/KeyframeTrack.java",
+         "uri": "core/src/main/java/dev/goldberry/motion/KeyframeTrack.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9836,7 +9836,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9893,7 +9893,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/Frame.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/Frame.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -9950,7 +9950,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10007,7 +10007,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/progressbar/Progress.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/progressbar/Progress.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10064,7 +10064,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10121,7 +10121,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10178,7 +10178,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/key/Shortcut.java",
+         "uri": "core/src/main/java/dev/goldberry/input/key/Shortcut.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10235,7 +10235,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/macos/OsStatus.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/macos/OsStatus.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10292,7 +10292,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/tree/Tree.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/tree/Tree.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10349,7 +10349,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/GpuSampler.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/GpuSampler.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10406,7 +10406,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/donutchart/DonutChart.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/donutchart/DonutChart.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10425,7 +10425,7 @@
          "charOffset": 4783,
          "charLength": 230,
          "snippet": {
-          "text": "\n    /// This donut, in the application's own words about why there is nothing.\n    public DonutChart failed(String message) {\n        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.failed(message));\n    }"
+          "text": "\n    /// This donut, in the application's own words about why there is nothing.\n    public DonutChart failed(String message) {\n        return status(dev.goldberry.widgets.data.ChartStatus.failed(message));\n    }"
          },
          "sourceLanguage": "JAVA"
         }
@@ -10463,7 +10463,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/WindowsLibrary.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/WindowsLibrary.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10520,7 +10520,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/knob/Knob.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/knob/Knob.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10577,7 +10577,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/sdl3/Sdl3Window.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/sdl3/Sdl3Window.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10634,7 +10634,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/engine/Playback.java",
+         "uri": "media/src/main/java/dev/goldberry/media/engine/Playback.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10691,7 +10691,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10748,7 +10748,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/BuildContext.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/BuildContext.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10805,7 +10805,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10862,7 +10862,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/FrameTrace.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/FrameTrace.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10919,7 +10919,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/RenderPass.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/RenderPass.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -10976,7 +10976,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/stats/FrameStats.java",
+         "uri": "core/src/main/java/dev/goldberry/stats/FrameStats.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11033,7 +11033,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "weaver/src/main/java/io/github/digitalsmile/goldberry/weaver/CatalogWeaver.java",
+         "uri": "weaver/src/main/java/dev/goldberry/weaver/CatalogWeaver.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11090,7 +11090,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11147,7 +11147,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Popup.java",
+         "uri": "core/src/main/java/dev/goldberry/Popup.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11204,7 +11204,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/event/PointerEvent.java",
+         "uri": "core/src/main/java/dev/goldberry/input/event/PointerEvent.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11261,7 +11261,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/Shader.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/Shader.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11318,7 +11318,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/MediaProbe.java",
+         "uri": "media/src/main/java/dev/goldberry/media/MediaProbe.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11375,7 +11375,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/select/Select.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/select/Select.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11432,7 +11432,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "html/src/main/java/io/github/digitalsmile/goldberry/content/select/WordGeometry.java",
+         "uri": "html/src/main/java/dev/goldberry/content/select/WordGeometry.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11489,7 +11489,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/Editor.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/Editor.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11603,7 +11603,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/PointerRouter.java",
+         "uri": "core/src/main/java/dev/goldberry/input/PointerRouter.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11660,7 +11660,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/controls/select/SelectState.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/controls/select/SelectState.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11717,7 +11717,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/Editor.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/Editor.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11774,7 +11774,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/sparkline/Sparkline.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/sparkline/Sparkline.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11831,7 +11831,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/widget/semantics/Live.java",
+         "uri": "core/src/main/java/dev/goldberry/widget/semantics/Live.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11888,7 +11888,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/tabs/TabIndicator.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/tabs/TabIndicator.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -11945,7 +11945,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/text/Text.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/text/Text.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12002,7 +12002,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/event/TextEvent.java",
+         "uri": "core/src/main/java/dev/goldberry/input/event/TextEvent.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12059,7 +12059,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "media/src/main/java/io/github/digitalsmile/goldberry/media/platform/windows/MfBuffer.java",
+         "uri": "media/src/main/java/dev/goldberry/media/platform/windows/MfBuffer.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12116,7 +12116,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/drive/FrameBudgetException.java",
+         "uri": "core/src/main/java/dev/goldberry/drive/FrameBudgetException.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12173,7 +12173,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/core/affix/Affix.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/core/affix/Affix.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12230,7 +12230,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/kdl/KdlValue.java",
+         "uri": "core/src/main/java/dev/goldberry/kdl/KdlValue.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12287,7 +12287,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessWindow.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessWindow.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12344,7 +12344,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Launcher.java",
+         "uri": "core/src/main/java/dev/goldberry/Launcher.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12401,7 +12401,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/GlyphFace.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/GlyphFace.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12458,7 +12458,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/jmh/java/io/github/digitalsmile/goldberry/bench/CascadeBenchmark.java",
+         "uri": "core/src/jmh/java/dev/goldberry/bench/CascadeBenchmark.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12515,7 +12515,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/RenderTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/RenderTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12572,7 +12572,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/Decoration.java",
+         "uri": "core/src/main/java/dev/goldberry/css/Decoration.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12629,7 +12629,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "example/src/main/java/io/github/digitalsmile/goldberry/example/ui/MotionScreen.java",
+         "uri": "example/src/main/java/dev/goldberry/example/ui/MotionScreen.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12686,7 +12686,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarView.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarView.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12743,7 +12743,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12800,7 +12800,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/sparkline/Sparkline.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/sparkline/Sparkline.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12857,7 +12857,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/css/contrast/Contrast.java",
+         "uri": "core/src/main/java/dev/goldberry/css/contrast/Contrast.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12914,7 +12914,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/Readback.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/Readback.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -12971,7 +12971,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13028,7 +13028,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/datepicker/DatePicker.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/form/datepicker/DatePicker.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13085,7 +13085,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/text/edit/TextEdit.java",
+         "uri": "core/src/main/java/dev/goldberry/text/edit/TextEdit.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13142,7 +13142,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "build-logic/src/main/java/io/github/digitalsmile/goldberry/build/ci/BuildFailureAnnotation.java",
+         "uri": "build-logic/src/main/java/dev/goldberry/build/ci/BuildFailureAnnotation.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13199,7 +13199,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/split/SplitPaneState.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/split/SplitPaneState.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13256,7 +13256,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/core/canvas/Canvas.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/core/canvas/Canvas.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13313,7 +13313,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/panel/calendar/CalendarBox.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/panel/calendar/CalendarBox.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13370,7 +13370,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "gpu/src/main/java/io/github/digitalsmile/goldberry/gpu/DepthTarget.java",
+         "uri": "gpu/src/main/java/dev/goldberry/gpu/DepthTarget.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13427,7 +13427,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/icon/Icon.java",
+         "uri": "core/src/main/java/dev/goldberry/icon/Icon.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13484,7 +13484,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/key/Mod.java",
+         "uri": "core/src/main/java/dev/goldberry/input/key/Mod.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13541,7 +13541,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/data/linechart/ChartPlot.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/data/linechart/ChartPlot.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13598,7 +13598,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/drive/FrameBudgetException.java",
+         "uri": "core/src/main/java/dev/goldberry/drive/FrameBudgetException.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13655,7 +13655,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/render/backend/headless/HeadlessTray.java",
+         "uri": "core/src/main/java/dev/goldberry/render/backend/headless/HeadlessTray.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13712,7 +13712,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Window.java",
+         "uri": "core/src/main/java/dev/goldberry/Window.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13769,7 +13769,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/input/event/KeyEvent.java",
+         "uri": "core/src/main/java/dev/goldberry/input/event/KeyEvent.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13826,7 +13826,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/nav/steps/Steps.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/nav/steps/Steps.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13883,7 +13883,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/image/qr/Version.java",
+         "uri": "core/src/main/java/dev/goldberry/image/qr/Version.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13940,7 +13940,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/kdl/KdlValue.java",
+         "uri": "core/src/main/java/dev/goldberry/kdl/KdlValue.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -13997,7 +13997,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/Host.java",
+         "uri": "core/src/main/java/dev/goldberry/Host.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -14054,7 +14054,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "build-logic/src/main/java/io/github/digitalsmile/goldberry/build/ci/BuildFailureAnnotation.java",
+         "uri": "build-logic/src/main/java/dev/goldberry/build/ci/BuildFailureAnnotation.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -14111,7 +14111,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/Widgets.java",
+         "uri": "widgets/src/main/java/dev/goldberry/widgets/Widgets.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {
@@ -14168,7 +14168,7 @@
       {
        "physicalLocation": {
         "artifactLocation": {
-         "uri": "core/src/main/java/io/github/digitalsmile/goldberry/paint/CanvasStyle.java",
+         "uri": "core/src/main/java/dev/goldberry/paint/CanvasStyle.java",
          "uriBaseId": "SRCROOT"
         },
         "region": {

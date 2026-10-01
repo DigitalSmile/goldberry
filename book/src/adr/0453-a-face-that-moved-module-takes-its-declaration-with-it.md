@@ -12,7 +12,7 @@ The Linux showcase's native image started, opened its window, painted, and
 died on the first paragraph with an emoji in it:
 
 ```
-java.io.IOException: /io/github/digitalsmile/goldberry/emoji/fonts/OpenMoji-color.ttf
+java.io.IOException: /dev/goldberry/emoji/fonts/OpenMoji-color.ttf
 is missing from goldberry-emoji, which means this jar was assembled without the asset step
   at ...emoji.OpenMojiFont.read(OpenMojiFont.java:62)
   at ...text.font.Fonts.emojiAt(Fonts.java:230)
@@ -39,7 +39,7 @@ comment explaining why globs beat traces:
 > control the user can reach and an image that dies when they do.
 
 At the time that was true and OpenMoji was covered, because it lived in `:core`
-under `io/github/digitalsmile/goldberry/assets/fonts/` and the glob
+under `dev/goldberry/assets/fonts/` and the glob
 `assets/fonts/*.ttf` over module `io.…goldberry.core` caught it. [ADR-0384]
 then moved the face into `:emoji` — an artifact an application opts into,
 because CC BY-SA wants credit where the work is seen — and [ADR-0387] moved the
@@ -60,8 +60,8 @@ resource it has, over its own module, under the path the asset step actually
 writes to:
 
 ```json
-{ "module": "io.github.digitalsmile.goldberry.emoji",
-  "glob": "io/github/digitalsmile/goldberry/emoji/fonts/*.ttf" }
+{ "module": "dev.goldberry.emoji",
+  "glob": "dev/goldberry/emoji/fonts/*.ttf" }
 ```
 
 A glob rather than the one file name, to match what `:core` and `:widgets`

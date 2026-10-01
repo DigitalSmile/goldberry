@@ -35,7 +35,7 @@ why it was only on menus.
 handler.**
 
 ```java
-// io.github.digitalsmile.goldberry.widget.attr.Attributes
+// dev.goldberry.widget.attr.Attributes
 public Attributes onPointerEnter(Runnable action);
 public Attributes onPointerExit(Runnable action);
 ```

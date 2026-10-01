@@ -1,0 +1,805 @@
+package dev.goldberry.widget;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Subscription;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.StyleElement;
+import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.select.Selector;
+import dev.goldberry.motion.Animations;
+import dev.goldberry.stats.FrameStats;
+import dev.goldberry.widget.style.Styled;
+
+/// The persistent instantiation of a [Widget] — the second of ADR-0004's three
+/// trees.
+///
+/// A widget is thrown away and rebuilt constantly. An element is not: it is
+/// created when a widget first appears at a position, updated when a compatible
+/// widget appears there next time, and unmounted only when one does not. That
+/// persistence is what gives a node identity for state, focus, semantics and
+/// animation to hang off.
+///
+/// It is also what makes CSS work. `Element` implements [StyleElement]: the
+/// cascade asks it for its type, classes and ancestors, and gets answers that
+/// survive a rebuild — so `:hover` on a node does not evaporate because its
+/// parent re-described it.
+public final class Element implements BuildContext, StyleElement {
+
+    private final ElementTree tree;
+    private @Nullable Element parent;
+
+    private Widget widget;
+    private @Nullable State<?> state;
+    private List<Element> children = List.of();
+
+    private boolean needsBuild = true;
+    private boolean mounted = true;
+    private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
+
+    /// Live for as long as this element describes a widget with a [Widget#binding].
+    private @Nullable Subscription binding;
+
+    /// This node's running transitions, created the first time it is styled.
+    ///
+    /// On the **element** for the same reason state and the pseudo-classes are:
+    /// a widget is rebuilt constantly and could remember nothing, so a transition
+    /// held by one would restart on every `setState` and never finish. Held here,
+    /// it survives every rebuild that keeps this element and dies with the
+    /// element itself — which is exactly the lifetime an animation should have,
+    /// because one that outlived its node would be animating something nobody can
+    /// see (ADR-0067).
+    ///
+    /// Lazily created: most nodes never animate, and an `Animations` per element
+    /// per frame for a static tree is an allocation for nothing.
+    private @Nullable Animations animations;
+
+    // --- the style cache ---------------------------------------------------
+    //
+    // `docs/ARCHITECTURE.md` §5's frame loop says "style resolution (invalidated
+    // nodes)", and until this existed it resolved *every* node every frame:
+    // selector matching, right-to-left with backtracking, against every rule in
+    // every stylesheet, plus a walk to the root per node to collect custom
+    // properties. Once layout was retained (ADR-0069) that was 135 us of a 148 us
+    // frame -- the largest single term by a wide margin (ADR-0070).
+
+    /// What the cascade last resolved for this node, or null if it must be asked
+    /// again.
+    private @Nullable ComputedStyle style;
+
+    /// The resolver that produced [#style].
+    ///
+    /// Compared by identity, which is what makes a theme swap or a hot reload
+    /// invalidate everything for free: an application builds a new renderer over
+    /// the new stylesheets, and every cached style was resolved by the old one.
+    private @Nullable StyleResolver styleResolver;
+
+    /// The inherited style [#style] was resolved against.
+    ///
+    /// Also identity. Because a parent's style is cached too, an unchanged parent
+    /// hands down the *same instance* every frame — so a parent that did change
+    /// hands down a different one and its children re-resolve without anything
+    /// having to tell them to. That is inheritance invalidating itself.
+    private @Nullable ComputedStyle styleInherited;
+
+    /// The style the cascade resolved for this node last frame, if it is still
+    /// good for `resolver` and `inherited`. Null means ask again.
+    @Nullable
+    ComputedStyle cachedStyle(StyleResolver resolver, @Nullable ComputedStyle inherited) {
+        return styleResolver == resolver && styleInherited == inherited ? style : null;
+    }
+
+    // --- the custom-property cache -----------------------------------------
+    //
+    // The same scheme as the style cache above, one level down: a node's custom
+    // properties are its parent's plus its own, so they are keyed on the parent's
+    // map by identity and an unchanged parent keeps every entry below it valid.
+    // Without it, resolving one node ran a full cascade at every level between it
+    // and the root -- eleven of them at the showcase's depth, and the largest
+    // term left in a frame (ADR-0152).
+
+    private java.util.@Nullable Map<String, java.util.List<dev.goldberry.css.parse.Token>> customProperties;
+
+    private @Nullable StyleResolver customPropertiesResolver;
+
+    private java.util.@Nullable Map<String, java.util.List<dev.goldberry.css.parse.Token>> customPropertiesInherited;
+
+    @Override
+    public java.util.@Nullable Map<String, java.util.List<dev.goldberry.css.parse.Token>> cachedCustomProperties(
+            StyleResolver resolver, java.util.Map<String, java.util.List<dev.goldberry.css.parse.Token>> inherited) {
+        return customPropertiesResolver == resolver && customPropertiesInherited == inherited ? customProperties : null;
+    }
+
+    @Override
+    public void cacheCustomProperties(
+            StyleResolver resolver,
+            java.util.Map<String, java.util.List<dev.goldberry.css.parse.Token>> inherited,
+            java.util.Map<String, java.util.List<dev.goldberry.css.parse.Token>> resolved) {
+        this.customPropertiesResolver = resolver;
+        this.customPropertiesInherited = inherited;
+        this.customProperties = resolved;
+    }
+
+    void cacheStyle(StyleResolver resolver, @Nullable ComputedStyle inherited, ComputedStyle resolved) {
+        this.styleResolver = resolver;
+        this.styleInherited = inherited;
+        this.style = resolved;
+    }
+
+    /// What this node last handed its children, kept so that an equal style can
+    /// be handed down as the **same instance**. See [#stableStyle].
+    private @Nullable ComputedStyle handedDown;
+
+    /// `candidate`, or the identical style this node handed down last frame.
+    ///
+    /// The other half of "inheritance invalidates itself", and without it that
+    /// scheme has a hole big enough to disable the whole cache. A child's entry
+    /// is keyed on its parent's style **by identity**, and the style a parent
+    /// hands down is not the one it cached: [Styled#restyle] runs afterwards, and
+    /// a widget that writes an inline value returns a fresh `ComputedStyle` on
+    /// every frame whether or not anything in it moved. `ScrollContent` does
+    /// exactly that — `resolved.flexShrink(0)`, unconditionally — so every node
+    /// inside a `scroll` re-resolved on every frame, and in the showcase that is
+    /// every node on the screen: 56 of 72 elements missing, and 10ms of cascade
+    /// in a frame that should have cost nothing
+    /// (ADR-0142).
+    ///
+    /// A value comparison against one instance, which is a flat record `equals`
+    /// — against a re-resolve that costs two orders of magnitude more.
+    /// **Compared on the inherited half only**, which is the narrowing ADR-0142
+    /// left ([ADR-0248]). What this returns is a *cache key for children* and
+    /// nothing else — the node paints with the style it actually resolved — so
+    /// two candidates that agree on `color` and `typography` are
+    /// indistinguishable to everything that reads it. `equals` compared the whole
+    /// record including the **transform**, which nothing inherits and which a
+    /// `scroll` moves on every frame of a gesture: every node inside a scrolling
+    /// viewport re-resolved for a change no child could see.
+    ComputedStyle stableStyle(ComputedStyle candidate) {
+        if (handedDown != null && handedDown.inheritsSameAs(candidate)) {
+            return handedDown;
+        }
+        handedDown = candidate;
+        return candidate;
+    }
+
+    /// Throws away this node's cached style **and its whole subtree's**.
+    ///
+    /// The subtree, not just this node, and that is the load-bearing part. A
+    /// descendant combinator means a node's own match depends on an ancestor's
+    /// state: `checkbox:hover check-indicator { border-color: … }` restyles the
+    /// *indicator* when the checkbox is hovered, and the checkbox's own resolved
+    /// style may not change at all — so the inherited-identity check above would
+    /// not catch it and the indicator would keep a stale style forever.
+    ///
+    /// Conservative on purpose. Working out which descendants a rule could reach
+    /// is real machinery, and this walk is pointer-chasing against a cascade pass
+    /// that costs hundreds of times more.
+    /// The tree this element belongs to — for the frame trace, which counts on
+    /// the tree because a count is about the frame and not about a node.
+    ElementTree tree() {
+        return tree;
+    }
+
+    /// How many elements are under this one, this one included — for the trace,
+    /// which reports a subtree walk by what it cost.
+    private int subtreeSize() {
+        var total = 1;
+        for (var child : children) {
+            total += child.subtreeSize();
+        }
+        return total;
+    }
+
+    /// Throws away **this node's** cached style and nothing else.
+    ///
+    /// The narrow half of [#invalidateStyle], for the caller that has asked
+    /// whether the subtree can be affected and been told no (ADR-0149).
+    /// The classes this node's widget computed from the frame — see
+    /// [Styled#classes(FrameStats)].
+    private Set<String> frameClasses = Set.of();
+
+    /// Told by the renderer, before the cascade is asked.
+    ///
+    /// Invalidates this node's own style when it changes, and **only** this
+    /// node's: a class the widget computed from the frame is on this element, and
+    /// a rule reading it through a descendant combinator would be a stylesheet
+    /// colouring one node by another's frame timings, which is not a thing
+    /// anybody should be able to write (ADR-0150).
+    void frameClasses(Set<String> classes) {
+        if (!frameClasses.equals(classes)) {
+            frameClasses = Set.copyOf(classes);
+            invalidateOwnStyle();
+        }
+    }
+
+    private void invalidateOwnStyle() {
+        if (FrameTrace.ENABLED && style != null) {
+            tree.trace().countInvalidation();
+        }
+        style = null;
+        styleResolver = null;
+        styleInherited = null;
+        // The custom properties go with it: what invalidates a style is a change
+        // in what matches this node, and a `--gb-*` declaration is matched by the
+        // same rules as everything else (ADR-0152).
+        customProperties = null;
+        customPropertiesResolver = null;
+        customPropertiesInherited = null;
+    }
+
+    void invalidateStyle() {
+        if (FrameTrace.ENABLED && style != null) {
+            tree.trace().countInvalidation();
+        }
+        // Not short-circuited on `style == null`: a composition node never caches
+        // one -- the renderer passes its ancestor's straight through -- so a null
+        // here says nothing about the subtree below it.
+        style = null;
+        styleResolver = null;
+        styleInherited = null;
+        customProperties = null;
+        customPropertiesResolver = null;
+        customPropertiesInherited = null;
+        // Deliberately **not** cleared. `handedDown` is not a cache of this
+        // node's answer -- it is the identity its children are keyed on, and
+        // dropping it would make every descendant re-resolve after any
+        // invalidation that changed nothing they can see. It is compared by
+        // value, so a stale one that no longer matches is simply replaced.
+        for (var child : children) {
+            child.invalidateStyle();
+        }
+    }
+
+    Element(ElementTree tree, @Nullable Element parent, Widget widget) {
+        this.tree = tree;
+        this.parent = parent;
+        this.widget = widget;
+        if (widget instanceof Widget.Stateful stateful) {
+            this.state = stateful.createState();
+            this.state.mount(this, widget);
+        }
+        subscribeToBinding(null);
+    }
+
+    /// The widget currently describing this element.
+    public Widget widget() {
+        return widget;
+    }
+
+    /// This element's state, if its widget is stateful.
+    public Optional<State<?>> state() {
+        return Optional.ofNullable(state);
+    }
+
+    public List<Element> children() {
+        return children;
+    }
+
+    public boolean isMounted() {
+        return mounted;
+    }
+
+    /// Whether this element is waiting to be rebuilt.
+    public boolean needsBuild() {
+        return needsBuild;
+    }
+
+    /// Marks this element as needing a rebuild.
+    ///
+    /// Does **not** rebuild. The tree collects dirty elements and rebuilds them
+    /// once per frame, so ten `setState` calls in one handler cost one build
+    /// ([ADR-0052]).
+    public void markNeedsBuild() {
+        if (!mounted || needsBuild) {
+            return;
+        }
+        needsBuild = true;
+        tree.markDirty(this);
+    }
+
+    // --- reconciliation ----------------------------------------------------
+
+    /// Whether `next` can update this element in place, or whether the element
+    /// has to be replaced.
+    ///
+    /// Type and key, which is the whole of ADR-0004's "diffed by type and key".
+    /// A different type means a different kind of node; a different key means the
+    /// author said these are different things even though they look alike.
+    boolean canUpdateTo(Widget next) {
+        return widget.getClass() == next.getClass() && Objects.equals(widget.key(), next.key());
+    }
+
+    /// Replaces this element's widget, if it can, and rebuilds.
+    ///
+    /// ## The three guards, and why a scrolling viewport needed them
+    ///
+    /// This is the path every rebuild cascades down, so what it does *per node*
+    /// is multiplied by the size of the subtree. A `scroll` moving by one notch
+    /// re-describes exactly two nodes — the viewport and the content box, whose
+    /// offset changed — and on the showcase's icon sheet that cost **66 ms of
+    /// cascade**, because the guards below were missing and 4709 elements were
+    /// invalidated and re-resolved for a transform none of them can see
+    /// ([ADR-0315]).
+    void update(Widget next) {
+        var previous = widget;
+        if (next == previous) {
+            // **The same description, not merely an equal one.** A parent that
+            // rebuilt for its own reason hands its children back the very objects
+            // it was holding, and a widget is a value: the same instance
+            // describes the same node with the same children, so there is nothing
+            // to invalidate, nothing to re-describe, and nothing below this to
+            // walk. That is what makes a viewport cost the nodes that moved
+            // rather than the nodes it contains.
+            //
+            // A rebuild this element's own state asked for is still owed —
+            // `markNeedsBuild` put it in the tree's dirty set and this is not the
+            // reason it is there.
+            if (needsBuild) {
+                rebuild();
+            }
+            return;
+        }
+        widget = next;
+        // A new widget can carry different classes or a different id, so what
+        // selectors match this node -- and, through descendant combinators, what
+        // matches anything under it -- may have changed.
+        //
+        // **Which is a question about three fields, and only three.** A selector
+        // reaches a descendant through `type`, `id` and `classes` and through
+        // nothing else -- `hasState` lives on the element and survives a rebuild,
+        // and `parent` cannot change here. So a re-description that leaves all
+        // three alone cannot change what matches anything below, and the subtree
+        // keeps its styles; what it *can* change is this node's own resolved
+        // style, because `Styled.restyle` reads the widget. This is exactly the
+        // seam ADR-0149 opened for "the caller that has asked whether the subtree
+        // can be affected and been told no", arriving at the caller that needed
+        // it most ([ADR-0315]).
+        //
+        // The inherited half needs nothing here: a child's cache is keyed on what
+        // its parent handed down, so a node whose own style really did change
+        // hands down a different instance and its children re-resolve because of
+        // it -- see [#stableStyle].
+        if (matchesDiffer(previous, next)) {
+            invalidateStyle();
+        } else if (RESTYLES.get(next.getClass())) {
+            // Selectors match the same, so the *cascade* produced the same thing;
+            // what is left is `Styled.restyle`, which reads the widget and is the
+            // one way a re-description can change a style it still matches the
+            // same rules for.
+            invalidateOwnStyle();
+        }
+        // ...and otherwise nothing about this node's style can have changed, so
+        // it keeps it. **The common case, and the one that costs.** A virtualized
+        // list re-describes its whole window every time that window moves by a
+        // row, and two of the three widgets in a row are a plain `Styled` that
+        // computes nothing: a cascade at ~35 µs a node, over 295 nodes, is 10 ms
+        // of frame spent re-deriving styles that could not have moved
+        // ([ADR-0316]).
+
+        subscribeToBinding(previous);
+        if (state != null) {
+            state.update(next);
+        }
+        rebuild();
+    }
+
+    /// Whether a widget of this class computes a style of its own — that is,
+    /// whether it overrides [Styled#restyle].
+    ///
+    /// A [ClassValue] because the answer is a fact about the *class* and the
+    /// question is asked once per re-described node per frame: reflection once
+    /// per class, then a field read. Two widgets in the whole catalog override
+    /// it, both to write a number no selector can express (ADR-0099) — so for
+    /// almost every node the answer is `false` and the style survives the
+    /// rebuild.
+    ///
+    /// A widget that is not [Styled] has no style of its own at all; the renderer
+    /// passes its ancestor's straight through.
+    private static final ClassValue<Boolean> RESTYLES = new ClassValue<>() {
+
+        @Override
+        protected Boolean computeValue(Class<?> type) {
+            if (!Styled.class.isAssignableFrom(type)) {
+                return Boolean.FALSE;
+            }
+            try {
+                // The *declaring* class of the method this type would dispatch
+                // to. `Styled` itself means nobody overrode it.
+                return Styled.class
+                        != type.getMethod("restyle", dev.goldberry.css.ComputedStyle.class)
+                                .getDeclaringClass();
+            } catch (NoSuchMethodException e) {
+                // Cannot happen -- `restyle` is a public method on an interface
+                // this type implements. Answered conservatively rather than
+                // thrown, because the cost of being wrong this way is a style
+                // re-resolved and the cost of the other way is a stale one.
+                return Boolean.TRUE;
+            }
+        }
+    };
+
+    /// Whether re-describing a node as `next` instead of `previous` could change
+    /// what a selector matches — here or anywhere under it.
+    ///
+    /// The three questions [StyleElement] lets a selector ask about a node, taken
+    /// from the widget. [Element#classes()] merges [#frameClasses] on top of
+    /// these, and those are the element's rather than the widget's: they change
+    /// through [#frameClasses(Set)], which invalidates on its own and
+    /// deliberately does not recurse (ADR-0150).
+    ///
+    /// Conservative in the safe direction — a widget whose `cssType` varied by
+    /// instance, or whose `classes` returned an equal-but-unordered set, is
+    /// reported as different and pays the walk it used to pay unconditionally.
+    private static boolean matchesDiffer(Widget previous, Widget next) {
+        var before = previous instanceof Styled styled ? styled : null;
+        var after = next instanceof Styled styled ? styled : null;
+        if (before == null || after == null) {
+            // A widget that is not `Styled` has no type, no id and no classes,
+            // and `canUpdateTo` has already established that these two are the
+            // same class -- so this is both of them or neither.
+            return before != after;
+        }
+        return !Objects.equals(before.cssType(), after.cssType())
+                || !Objects.equals(before.id(), after.id())
+                || !before.classes().equals(after.classes());
+    }
+
+    /// Follows the widget's [Widget#binding] — §9's `bind`.
+    ///
+    /// The subscription belongs to the element rather than to the widget, because
+    /// the widget is a value that is thrown away and rebuilt while the element is
+    /// what persists ([ADR-0004]). An element that re-subscribed on every rebuild
+    /// would accumulate one listener per frame; one that never re-subscribed would
+    /// keep listening to the property a *previous* widget named.
+    ///
+    /// Identity, not equality: two properties holding the same value are two
+    /// places a value can change.
+    ///
+    /// @param previous the widget being replaced, or null when mounting
+    private void subscribeToBinding(@Nullable Widget previous) {
+        var property = widget.binding();
+        if (previous != null && previous.binding() == property) {
+            return;
+        }
+        if (binding != null) {
+            binding.close();
+            binding = null;
+        }
+        if (property != null) {
+            // markNeedsBuild rather than an immediate rebuild, for the reason
+            // setState defers: a property that several widgets watch would
+            // otherwise rebuild each of them separately, mid-change.
+            binding = property.subscribe(_ -> markNeedsBuild());
+        }
+    }
+
+    /// Rebuilds this element's subtree from its widget.
+    void rebuild() {
+        if (FrameTrace.ENABLED) {
+            tree.trace().countBuild();
+        }
+        needsBuild = false;
+        var described = describe();
+        children = reconcile(children, described);
+    }
+
+    /// What this element's widget says its children should be.
+    ///
+    /// The one place the three widget shapes differ, and the reason [Widget] is
+    /// three interfaces rather than one with a nullable method.
+    private List<Widget> describe() {
+        return switch (widget) {
+            case Widget.Stateful _ ->
+                List.of(Objects.requireNonNull(state, "a stateful widget's element creates its state when it is made")
+                        .build(this));
+            case Widget.Stateless stateless -> List.of(stateless.build(this));
+            case Widget.Leaf leaf -> leaf.children();
+            default ->
+                throw new IllegalStateException(
+                        widget.getClass().getName() + " implements Widget but none of its three shapes");
+        };
+    }
+
+    /// Matches existing children against new descriptions.
+    ///
+    /// Keyed children are matched by key wherever they moved to; unkeyed ones by
+    /// position. That split is what makes a reordered list keep its state while
+    /// an ordinary list stays cheap — and why the documentation on [Widget#key()]
+    /// tells authors to key list items.
+    private List<Element> reconcile(List<Element> existing, List<Widget> descriptions) {
+        var byKey = new java.util.HashMap<Object, Element>();
+        for (var child : existing) {
+            var key = child.widget.key();
+            if (key != null) {
+                byKey.put(key, child);
+            }
+        }
+
+        var reused = new java.util.IdentityHashMap<Element, Boolean>();
+        var next = new ArrayList<Element>(descriptions.size());
+
+        for (var i = 0; i < descriptions.size(); i++) {
+            var description = descriptions.get(i);
+            Element match = null;
+
+            if (description.key() != null) {
+                var candidate = byKey.get(description.key());
+                if (candidate != null && candidate.canUpdateTo(description) && !reused.containsKey(candidate)) {
+                    match = candidate;
+                }
+            } else if (i < existing.size()) {
+                var candidate = existing.get(i);
+                // An unkeyed description must not steal an element that a key
+                // claimed, or a reorder would silently swap two nodes' state.
+                if (candidate.widget.key() == null
+                        && candidate.canUpdateTo(description)
+                        && !reused.containsKey(candidate)) {
+                    match = candidate;
+                }
+            }
+
+            if (match != null) {
+                reused.put(match, Boolean.TRUE);
+                match.parent = this;
+                match.update(description);
+                next.add(match);
+            } else {
+                var created = new Element(tree, this, description);
+                created.rebuild();
+                next.add(created);
+            }
+        }
+
+        for (var child : existing) {
+            if (!reused.containsKey(child)) {
+                child.unmount();
+            }
+        }
+        return List.copyOf(next);
+    }
+
+    void unmount() {
+        if (!mounted) {
+            return;
+        }
+        mounted = false;
+        // Depth first, so a child's dispose() still sees a live parent chain.
+        children.forEach(Element::unmount);
+        children = List.of();
+        if (binding != null) {
+            // Before the state's dispose(), and unconditionally: a property
+            // outlives the tree it was bound into -- it is the application's --
+            // and a listener left on it would keep this whole subtree alive and
+            // rebuild something nobody can see.
+            binding.close();
+            binding = null;
+        }
+        if (state != null) {
+            state.unmount();
+        }
+        tree.forget(this);
+    }
+
+    // --- BuildContext ------------------------------------------------------
+
+    @Override
+    public <T extends Widget> Optional<T> findAncestor(Class<T> type) {
+        Objects.requireNonNull(type, "type");
+        for (var current = parent; current != null; current = current.parent) {
+            if (type.isInstance(current.widget)) {
+                return Optional.of(type.cast(current.widget));
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public <S extends State<?>> Optional<S> findAncestorState(Class<S> type) {
+        Objects.requireNonNull(type, "type");
+        for (var current = parent; current != null; current = current.parent) {
+            if (type.isInstance(current.state)) {
+                return Optional.of(type.cast(current.state));
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<dev.goldberry.Host> host() {
+        return tree.host();
+    }
+
+    /// [BuildContext#token]'s implementation.
+    ///
+    /// `Element` is already a [StyleElement], so the resolver can answer about
+    /// *this* node with nothing constructed — which is the whole reason this is
+    /// three lines rather than a mechanism.
+    @Override
+    public double token(String name, double fallback) {
+        java.util.Objects.requireNonNull(name, "name");
+        var resolver = tree.styleResolver();
+        if (resolver == null) {
+            return fallback;
+        }
+        var resolved = resolver.customProperty(this, name);
+        if (resolved == null) {
+            return fallback;
+        }
+        // A percentage is of something, and a build has no containing block in
+        // hand to be a percentage of -- `Paints.Context.length`'s rule exactly.
+        return dev.goldberry.css.value.CssLength.parse(resolved, dev.goldberry.css.value.CssLength.Context.DEFAULT)
+                        instanceof dev.goldberry.layout.Length.Points points
+                ? points.value()
+                : fallback;
+    }
+
+    /// [BuildContext#duration]'s implementation — [#token]'s, with the cascade's
+    /// own duration parser where its length parser is.
+    @Override
+    public double duration(String name, double fallbackMillis) {
+        java.util.Objects.requireNonNull(name, "name");
+        var resolver = tree.styleResolver();
+        if (resolver == null) {
+            return fallbackMillis;
+        }
+        var resolved = resolver.customProperty(this, name);
+        if (resolved == null) {
+            return fallbackMillis;
+        }
+        return dev.goldberry.css.ComputedStyle.durationMillis(resolved).orElse(fallbackMillis);
+    }
+
+    @Override
+    public int depth() {
+        var depth = 0;
+        for (var current = parent; current != null; current = current.parent) {
+            depth++;
+        }
+        return depth;
+    }
+
+    // --- StyleElement ------------------------------------------------------
+
+    /// The CSS type name for this element's widget, or **null** for a widget
+    /// that is not [Styled].
+    ///
+    /// Taken from the widget rather than stored, so `row` in a stylesheet and
+    /// `row` in KDL and `Row` in Java are one name in one place.
+    ///
+    /// Null rather than a derived name is the important half. Deriving one for
+    /// every widget would put every private composition class into the cascade
+    /// as a selectable type — so an application refactoring `Wrapper` into
+    /// `Shell` would break a stylesheet that never named either, and a toolkit
+    /// internal would be styleable by accident.
+    @Override
+    public @Nullable String type() {
+        return widget instanceof Styled css ? css.cssType() : null;
+    }
+
+    @Override
+    public @Nullable String id() {
+        return widget instanceof Styled css ? css.id() : null;
+    }
+
+    @Override
+    public Set<String> classes() {
+        var own = widget instanceof Styled css ? css.classes() : Set.<String>of();
+        if (frameClasses.isEmpty()) {
+            return own;
+        }
+        var all = new LinkedHashSet<>(own);
+        all.addAll(frameClasses);
+        return all;
+    }
+
+    /// The nearest ancestor that the cascade should see.
+    ///
+    /// Every element is a style element here, including the ones a
+    /// [Widget.Stateless] introduces purely to compose. That is deliberate and
+    /// documented rather than filtered: a composition wrapper with no CSS type
+    /// matches no type selector and carries no classes, so it is invisible to
+    /// every selector except a descendant combinator — which is exactly the
+    /// behaviour HTML has for a `<div>` nobody styled.
+    @Override
+    public @Nullable StyleElement parent() {
+        return parent;
+    }
+
+    /// This node's running transitions, created on first use.
+    ///
+    /// Package-private: `WidgetRenderer` is the only caller, because starting a
+    /// transition means diffing a style the cascade just produced against the one
+    /// it produced last frame, and the renderer is the only thing that has both.
+    Animations animations() {
+        if (animations == null) {
+            animations = new Animations();
+        }
+        return animations;
+    }
+
+    /// Whether this element has been styled by a render yet — the question
+    /// `@starting-style` asks, since its rules apply to an element's **first**
+    /// style and to no later one (ADR-0352).
+    private boolean styled;
+
+    /// Notes that this element has been styled, and says whether this was the
+    /// first time.
+    ///
+    /// Held on the element for the reason every animation state is: a widget is
+    /// rebuilt constantly, and an element that survives a rebuild has not
+    /// entered again.
+    boolean firstStyled() {
+        if (styled) {
+            return false;
+        }
+        styled = true;
+        return true;
+    }
+
+    /// Whether this node is animating — read without creating the state, so
+    /// asking does not allocate.
+    boolean isAnimating() {
+        return animations != null && animations.isAnimating();
+    }
+
+    @Override
+    public boolean hasState(Selector.PseudoClass state) {
+        return states.contains(state);
+    }
+
+    /// Sets or clears a pseudo-class on this element.
+    ///
+    /// What input will call when the pointer enters a node or focus moves. Kept
+    /// on the element rather than on the widget because it must survive a
+    /// rebuild: a button does not stop being hovered because its parent
+    /// re-described it.
+    ///
+    /// @return whether this changed anything, so a caller can skip an
+    ///         invalidation it does not need
+    public boolean setPseudoClass(Selector.PseudoClass pseudoClass, boolean active) {
+        Objects.requireNonNull(pseudoClass, "pseudoClass");
+        var changed = active ? states.add(pseudoClass) : states.remove(pseudoClass);
+        if (changed) {
+            // The one hook the style cache needs from input. Every route that can
+            // change what a selector matches goes through here -- `:hover` and
+            // `:active` from the router, `:focus` from focus traversal,
+            // `:disabled`, `:checked` and `:indeterminate` mirrored from the
+            // widget by the renderer -- so this is the single place that has to
+            // remember to invalidate, rather than six.
+            //
+            // **The subtree only when a rule can reach it.** A descendant
+            // combinator means a node's match can depend on an ancestor's state
+            // -- `checkbox:hover check-indicator` -- and until ADR-0149 that
+            // possibility was assumed for every state on every node. It is asked
+            // now: nothing in any sheet says `column:hover …`, so a click on
+            // empty space re-resolves one node instead of the screen, which was
+            // 12ms a click.
+            var resolver = tree.styleResolver();
+            invalidateOwnStyle();
+            if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {
+                if (FrameTrace.ENABLED) {
+                    tree.trace()
+                            .walked(
+                                    type() + ":" + pseudoClass + (resolver == null ? " (no resolver yet)" : ""),
+                                    subtreeSize());
+                }
+                for (var child : children) {
+                    child.invalidateStyle();
+                }
+            }
+        }
+        return changed;
+    }
+
+    @Override
+    public String toString() {
+        return "<" + type() + (needsBuild ? " dirty" : "") + ">";
+    }
+}

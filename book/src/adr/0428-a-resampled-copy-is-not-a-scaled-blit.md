@@ -116,7 +116,7 @@ way out, as it already did for the rounding premultiplied storage costs.
 
 - `Image.scaled(int, int)` and `Image.scaled(int, int, Resampling)` exist, with
   `Resampling` and `ImageScaleException` beside them in
-  `io.github.digitalsmile.goldberry.image`. The exception is separate from
+  `dev.goldberry.image`. The exception is separate from
   `ImageEncodeException` because the two say different things to an application:
   an encode that refuses WebP's size limit will refuse again, and a resample that
   could not allocate may not.

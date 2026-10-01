@@ -18,12 +18,12 @@ an application that deliberately configured no logging (ADR-0023). `Startup`
 records what the toolkit did before the first pixel, at trace (ADR-0028).
 Neither has an opinion about foreign memory.
 
-They lived in `io.github.digitalsmile.goldberry.natives.log` anyway, and the
+They lived in `dev.goldberry.natives.log` anyway, and the
 reason was the module graph and nothing else. `:core` requires `:natives`, so
 `:natives` is the lower of the two; shared code had to sit in the lower one or
 in neither. The descriptor said so out loud:
 
-> `exports ... to io.github.digitalsmile.goldberry.core` would say that precisely
+> `exports ... to dev.goldberry.core` would say that precisely
 > and does not compile: :core depends on :natives, so :core is not on the module
 > path when this compiles […] So it is a plain export with a docstring that says
 > what it is for.
@@ -44,7 +44,7 @@ visible to the native layer whatever else is true of it.
 
 **`:common` is a new module, below everything.** It requires nothing of
 Goldberry's; `:natives` and `:core` both require it. `Logs` and `Startup` move
-into it as `io.github.digitalsmile.goldberry.log`, and `:natives` stops exporting
+into it as `dev.goldberry.log`, and `:natives` stops exporting
 a package it never owned.
 
 ```
@@ -74,7 +74,7 @@ single ordering guarantee that is the entire point of `Logs` becomes two
 guarantees that have to agree.
 
 **Rename the package but leave the classes in `:natives`.** JPMS does not require
-a package to match its module, so `io.github.digitalsmile.goldberry.log` could be
+a package to match its module, so `dev.goldberry.log` could be
 exported from `:natives` today, one line per file and no new artifact. Rejected
 because it makes the descriptor lie more quietly rather than less: the classes
 still ship in `goldberry-natives`, and an application that wants Goldberry's

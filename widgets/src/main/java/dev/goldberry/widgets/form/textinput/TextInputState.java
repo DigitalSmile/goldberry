@@ -1,0 +1,868 @@
+package dev.goldberry.widgets.form.textinput;
+
+import java.time.Duration;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.Host;
+import dev.goldberry.input.hit.Extent;
+import dev.goldberry.render.event.EventLoop;
+import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.edit.EditHistory;
+import dev.goldberry.text.edit.TextEdit;
+import dev.goldberry.text.flow.TextAlign;
+import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.State;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widgets.controls.selectlist.SelectList;
+import dev.goldberry.widgets.form.parts.Composing;
+import dev.goldberry.widgets.form.parts.MaxLength;
+import dev.goldberry.widgets.form.parts.Preedit;
+
+/// What a [TextInput] holds: the text, the history, the blink and how far it has
+/// scrolled.
+///
+/// ## The caret blinks on a timer, not on the frame clock
+///
+/// A spinner draws itself from
+/// [dev.goldberry.widget.style.Paints.Context#nowMillis]
+/// and says [dev.goldberry.widget.style.Paints#isAnimating], which
+/// asks for a frame every frame — right for something that moves continuously,
+/// and badly wrong for a caret. A caret changes **twice a second**, so animating
+/// it would run the frame loop at the display's rate for the whole time a field
+/// has focus, which is most of the time a form is open. §1.7's "the frame loop is
+/// fully idle when no animation is active" would then be false for every window
+/// with a focused field in it.
+///
+/// So the blink is a one-shot timer, rescheduled — the arrangement `carousel`
+/// uses ([ADR-0165]) — and it produces two frames a second instead of a hundred
+/// and twenty.
+///
+/// **It restarts on every edit and every caret move.** A caret that blinked out
+/// while somebody was typing would be a caret they cannot find, so any change
+/// makes it solid again and the next dark half is [#BLINK] later.
+///
+/// ## Text input follows this field's focus
+///
+/// SDL delivers no committed text until a window asks, and asking is what raises
+/// an on-screen keyboard, so it is turned on when focus arrives here and off when
+/// it leaves. A window whose fields are all unfocused has it off.
+final class TextInputState extends State<TextInput> implements TextEditor {
+
+    /// How long each half of the blink lasts.
+    ///
+    /// 530 ms, which is the Windows default and within a few tens of a
+    /// millisecond of every other platform's. Not a token: §8's subset has no
+    /// property for it, and §1.7's motion durations are about things moving from
+    /// one place to another, which a caret does not do.
+    private static final Duration BLINK = Duration.ofMillis(530);
+
+    private TextEdit edit = TextEdit.EMPTY;
+    private final EditHistory history = new EditHistory();
+
+    /// The window, captured in `build` and used only from a handler — which is
+    /// what [BuildContext#host()] allows.
+    private @Nullable Host host;
+
+    /// §4's autocomplete: the popover of suggestions under the field, or null.
+    ///
+    /// The same panel a `select` opens and the same keyboard — `Option.inAList()`
+    /// makes the arrows move the focus and `Enter` commit, which is exactly what
+    /// "the field's text is never rewritten without the user choosing" needs
+    /// ([ADR-0182]).
+    private dev.goldberry.@Nullable Popup suggestions;
+
+    /// Where the last frame painted this field, for anchoring the popover.
+    private dev.goldberry.render.model.@Nullable LogicalRect fieldBounds;
+
+    /// A list taller than the screen scrolls rather than losing its bottom, which
+    /// is `menu`'s and `select`'s answer from the same helper (ADR-0179).
+    private static final dev.goldberry.widgets.core.scroll.Fitted VIEWPORT =
+            new dev.goldberry.widgets.core.scroll.Fitted("select-viewport");
+
+    private boolean focused;
+    private boolean caretShown = true;
+    private EventLoop.@Nullable Timer blink;
+
+    /// How far the content has been scrolled left, in logical pixels.
+    ///
+    /// Not `setState`: it is computed during `render` from the caret's position
+    /// and applied in the same frame, so marking the element dirty for it would
+    /// be asking for a frame in order to draw the frame being drawn (ADR-0119).
+    private double scrollOffset;
+
+    /// Whether the caret is worth chasing yet.
+    ///
+    /// **False until somebody touches this field**, and what it fixes is a field
+    /// handed a value longer than it is wide. [TextEdit#of] puts the caret at the
+    /// end — right, and unchanged, because the end is where typing goes — and
+    /// [#laidOut] scrolls to keep the caret in view, so a field holding a long
+    /// value opened showing its **last** characters. What a reader wants first is
+    /// the beginning of the value, which is what every text box on the web shows
+    /// and what a `text-area` has shown since [ADR-0297] ([ADR-0412]).
+    ///
+    /// A press, a key, an edit, a composition or the focus arriving sets it — the
+    /// moment the caret stops being an implementation detail of "where typing
+    /// would go" and becomes something the user is looking for. From then on the
+    /// field follows the caret exactly as it always did, so nothing about typing,
+    /// selecting or arrowing changes.
+    ///
+    /// A read-only field never needs it: [#opening] puts that caret at the head
+    /// instead, because there is no typing to come back to ([ADR-0326]).
+    private boolean caretMatters;
+
+    /// The last frame's size, from [dev.goldberry.input.handler.Measured].
+    private Extent bounds = Extent.NONE;
+
+    /// The last frame's shaped text and the mask it was shaped from, kept so the
+    /// pointer — which arrives outside a render pass — can turn an x into an
+    /// offset.
+    private @Nullable Paragraph paragraph;
+    private Mask mask = Mask.of("", false);
+    private double leftPadding;
+    private double rightPadding;
+
+    /// What an input method is composing, or `""` when it is not —
+    /// `docs/gaps.md` G16.
+    ///
+    /// **Beside [#edit], never in it.** A composition is a proposal: `にほんご`
+    /// becomes `日本語` and every character of what was typed is replaced when the
+    /// user picks a candidate. A field that inserted this would fire
+    /// [TextInput#report] for keystrokes the user never chose, fill the undo
+    /// history with them, and take them out again (ADR-0292).
+    ///
+    /// It is *displayed* inside the text — spliced at the caret in [#build], so
+    /// the characters after it move along as they do in every native field — and
+    /// that splice is the only place it appears.
+    ///
+    /// A [Preedit] rather than the four fields it holds: `text-area` needs the
+    /// same four and kept its own, and the pair drifted.
+    private final Preedit preedit = new Preedit();
+
+    @Override
+    protected void initState() {
+        super.initState();
+        lastOffered = widget().resolved();
+        edit = opening(lastOffered);
+    }
+
+    /// Where the caret starts in a value the field has just been handed.
+    ///
+    /// [TextEdit#of] for a field somebody is going to type into, and
+    /// [TextEdit#atStart] for a **read-only** one. A field scrolls to keep its
+    /// caret in view, so a value wider than the box shows whichever end the caret
+    /// is at — and for a read-only field that is backwards. There is no "where I
+    /// left off" to preserve in a field that refuses every edit, and the first
+    /// thing a reader wants is the beginning of the value (`docs/gaps.md` G34,
+    /// [ADR-0326]).
+    ///
+    /// Read-only rather than a `caret(int)` a caller has to remember: the
+    /// proposal offered both, and a call site that has to say where the caret
+    /// goes is a call site that can forget to.
+    private TextEdit opening(String value) {
+        return widget().readOnly() ? TextEdit.atStart(value) : TextEdit.of(value);
+    }
+
+    /// The value the widget last offered, so a *change* to it can be told from a
+    /// value that has simply always been there.
+    ///
+    /// Set in [#initState] and compared on every build. Without it an unbound
+    /// field — whose `value` is a constant the widget was built with — would be
+    /// reset to that constant by every rebuild, which is every keystroke.
+    @SuppressWarnings("NullAway.Init") // set in initState(), before anything reads it
+    private String lastOffered;
+
+    /// Takes a value the **application** changed, and ignores the echo of the
+    /// user's own keystroke.
+    ///
+    /// In `build` rather than in `didUpdateWidget`, because a `bind=` value
+    /// changing does not replace the widget: the property fires, the element is
+    /// marked for build, and the widget is the same object it was
+    /// ([ADR-0062]). `didUpdateWidget` would therefore miss the case this exists
+    /// for entirely.
+    ///
+    /// Two tests, and both are needed. The value must have *changed* since the
+    /// last build — or a constant `value=` would overwrite the field forever —
+    /// and it must differ from what the field holds, or the round trip through
+    /// an application's own `change` handler would reset the caret to the end on
+    /// every letter.
+    private void follow() {
+        var offered = widget().resolved();
+        if (offered.equals(lastOffered)) {
+            return;
+        }
+        lastOffered = offered;
+        if (offered.equals(edit.text())) {
+            return;
+        }
+        // A read-only field is re-pointed at the start of the new value rather
+        // than keeping an offset from the old one: it is a value that arrived to
+        // be read, exactly as the first one was ([#opening]).
+        edit = widget().readOnly() ? TextEdit.atStart(offered) : edit.withText(offered);
+        // Not an undo step: undoing your way back into a value the application
+        // set is not an undo.
+        history.clear();
+    }
+
+    @Override
+    public Widget build(BuildContext context) {
+        host = context.host().orElse(null);
+        follow();
+        var input = widget();
+        mask = Mask.of(edit.text(), input.password());
+
+        // Opened, narrowed or closed to match what the application just handed
+        // back. Done in `build` rather than in the key handler because the
+        // suggestions arrive by *rebuild*: the field reports what was typed, the
+        // application answers with a list, and this is the first place that
+        // answer is visible.
+        syncSuggestions(input);
+
+        // A composition ends when the field stops being typed into, and nothing
+        // else would clear it: the empty TEXT_EDITING goes to whatever has focus,
+        // which by then is something else.
+        if (!focused || input.disabled() || input.readOnly() || input.password()) {
+            preedit.clear();
+        }
+
+        var displayed = mask.displayed(edit);
+        var shown = mask.display();
+        var composing = Composing.NONE;
+        if (!preedit.isEmpty()) {
+            // Spliced at the caret, and the caret moves *into* it -- which is
+            // where every native field puts it, because an input method walks a
+            // caret through the string it is assembling.
+            var at = displayed.caret();
+            shown = new StringBuilder(shown).insert(at, preedit.text()).toString();
+            displayed = new TextEdit(shown, at + preedit.caret(), at + preedit.caret());
+            composing = preedit.composingAt(at);
+        }
+
+        // The placeholder is what an *empty* field shows, and a field being
+        // composed into is not empty however little of it is committed.
+        var showPlaceholder =
+                edit.isEmpty() && preedit.isEmpty() && !input.placeholder().isEmpty();
+        return new TextField(
+                showPlaceholder ? input.placeholder() : shown,
+                showPlaceholder,
+                displayed,
+                composing,
+                focused && !input.disabled(),
+                caretShown,
+                input.disabled(),
+                input.readOnly(),
+                input.attributes(),
+                this);
+    }
+
+    /// Opens, re-describes or closes the popover so that it says what the widget
+    /// currently offers.
+    ///
+    /// **Only while the field has the keyboard.** A list of suggestions under a
+    /// field nobody is typing in is a panel floating over the application for no
+    /// reason, and it would take the next click.
+    private void syncSuggestions(TextInput input) {
+        var wanted = input.disabled() || input.readOnly() || !focused
+                ? java.util.List.<dev.goldberry.widgets.controls.option.Option>of()
+                : input.suggestions();
+        if (wanted.isEmpty() || host == null || fieldBounds == null) {
+            closeSuggestions();
+            return;
+        }
+        var list = new SelectList(rows(wanted));
+        if (suggestions != null && suggestions.isOpen()) {
+            // Narrowed rather than reopened: §4 says the popup "stays open and
+            // narrows", and closing and opening a platform window per keystroke
+            // flickers and loses the keyboard's place (ADR-0182).
+            suggestions.content(list);
+            return;
+        }
+        // At least as wide as the field, for `select`'s reason: a panel narrower
+        // than the control it hangs off reads as a mistake (ADR-0145).
+        dev.goldberry.log.Logs.of(TextInputState.class).debug("suggestions anchored to {}", fieldBounds);
+        host.attachedPopup(
+                        list,
+                        fieldBounds,
+                        dev.goldberry.Placement.BELOW,
+                        fieldBounds.size().width(),
+                        VIEWPORT)
+                .ifPresent(popup -> suggestions = popup.lightDismiss(true).takesFocus(false));
+    }
+
+    /// One row per suggestion, each reporting its value when it is chosen.
+    private java.util.List<Widget> rows(java.util.List<dev.goldberry.widgets.controls.option.Option> offered) {
+        var rows = new java.util.ArrayList<Widget>(offered.size());
+        var index = 0;
+        for (var option : offered) {
+            rows.add(option.within(false, () -> chooseSuggestion(option.value()), false)
+                    .inAList()
+                    .id("suggestion-" + index++));
+        }
+        return java.util.List.copyOf(rows);
+    }
+
+    /// A suggestion was chosen: report it and put the list away.
+    ///
+    /// Reported rather than applied. §4: "the field's text is never rewritten
+    /// without the user choosing" — and this *is* the user choosing, so what
+    /// happens next is still the application's to decide, exactly as it is for a
+    /// keystroke (ADR-0063). A handler that ignores it leaves the field as typed.
+    private void chooseSuggestion(String value) {
+        closeSuggestions();
+        var onChange = widget().onChange();
+        if (onChange != null) {
+            onChange.accept(value);
+        }
+    }
+
+    private void closeSuggestions() {
+        var open = suggestions;
+        suggestions = null;
+        if (open != null && open.isOpen()) {
+            open.close();
+        }
+    }
+
+    @Override
+    protected void dispose() {
+        // A field that goes away with its suggestions showing would leave a
+        // platform window parented to nothing -- the one leak a widget can cause,
+        // because a popup is not a value and is not collected with the tree.
+        closeSuggestions();
+        stopBlinking();
+        // The platform's text input is **not** turned off here any more. It is
+        // the router's now (ADR-0285), and the router is the one that knows what
+        // has the focus *after* this field has gone: a field that turned it off
+        // on the way out left the router believing it was still on, so the next
+        // field focused agreed with the stale answer and was never told. The
+        // router notices the unmount on the same frame, through `refocus`.
+        super.dispose();
+    }
+
+    /// What the field holds, unmasked.
+    ///
+    /// For a test, and package-private because that is the only honest caller:
+    /// what a `password` field holds is exactly what nothing outside it should be
+    /// able to ask for, which is why [#copy()] refuses too.
+    String heldText() {
+        return edit.text();
+    }
+
+    // --- TextEditor -----------------------------------------------------------
+
+    @Override
+    public boolean move(Motion motion, boolean byWord, boolean extend) {
+        // A row of bullets has no words in it, so `Ctrl+Left` in a masked field
+        // goes to the end it was heading for. Stepping by real words would move
+        // the caret by an amount that says how long they are.
+        var masked = widget().password();
+        var next =
+                switch (motion) {
+                    case LEFT -> !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
+                    case RIGHT -> !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
+                    case START -> edit.toStart(extend);
+                    case END -> edit.toEnd(extend);
+                };
+        var moved = apply(next, EditHistory.Kind.OTHER, false);
+        if (moved && extend) {
+            // A selection made from the keyboard is finished when the key lands.
+            publishSelection();
+        }
+        return moved;
+    }
+
+    /// `Ctrl+A`, which publishes even when everything was already selected: a
+    /// field reached by `Tab` selects all **without** publishing, and `Ctrl+A`
+    /// is the user saying they meant it.
+    @Override
+    public boolean selectAll() {
+        var changed = apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+        publishSelection();
+        return changed;
+    }
+
+    @Override
+    public boolean deleteBefore(boolean byWord) {
+        var words = byWord && !widget().password();
+        return apply(words ? edit.deleteWordBefore() : edit.backspace(), EditHistory.Kind.DELETING, true);
+    }
+
+    @Override
+    public boolean deleteAfter(boolean byWord) {
+        var words = byWord && !widget().password();
+        return apply(words ? edit.deleteWordAfter() : edit.delete(), EditHistory.Kind.DELETING, true);
+    }
+
+    /// Replaces the edit, recording it in the history and telling the model.
+    ///
+    /// @param filtered whether the new text has to pass the field's filter and
+    ///                 its maximum length — true for anything that changes it,
+    ///                 false for a caret move, which no filter has an opinion
+    ///                 about
+    private boolean apply(TextEdit next, EditHistory.Kind kind, boolean filtered) {
+        // **Before the refusals below**, and that is the point of it being here:
+        // `End` on a field whose caret is already at the end changes nothing and
+        // still has to bring the end into view, because pressing `End` is a reader
+        // asking to see it ([#caretMatters]). The same goes for a keystroke a
+        // filter turns down — the field was worked in either way.
+        touched();
+        if (next.equals(edit)) {
+            return false;
+        }
+        if (filtered && !accepts(next.text())) {
+            return false;
+        }
+        var before = edit;
+        setState(() -> edit = next);
+        if (!before.text().equals(next.text())) {
+            history.record(before, next, kind);
+            widget().report(next.text());
+        }
+        solid();
+        return true;
+    }
+
+    @Override
+    public boolean type(String typed) {
+        // The composition is over the moment its result arrives, and the empty
+        // TEXT_EDITING that says so is not ordered against this one on every
+        // platform -- so clearing it here is what keeps an accepted candidate
+        // from drawing twice, once underlined and once committed (ADR-0289).
+        var wasComposing = clearPreedit();
+        var room = room();
+        var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
+        if (insertion.isEmpty()) {
+            return wasComposing;
+        }
+        return apply(edit.insert(insertion), EditHistory.Kind.TYPING, true) || wasComposing;
+    }
+
+    @Override
+    public boolean compose(String text, int caret, int clauseStart, int clauseLength) {
+        var input = widget();
+        if (input.disabled() || input.readOnly() || input.password()) {
+            // A `password` refuses -- see [TextEditor#compose]. The candidate
+            // window is an unmasked window showing what is being typed, and a
+            // masked field that composed would put the password beside itself.
+            return false;
+        }
+        // Every part of the composition, the clause's extent included: an input
+        // method that resizes the clause it is converting without moving its
+        // start is drawing something different, and the comparison that left the
+        // extent out answered that nothing had happened ([Preedit]).
+        if (!preedit.wouldChange(text, caret, clauseStart, clauseLength)) {
+            return !text.isEmpty();
+        }
+        touched();
+        setState(() -> preedit.set(text, caret, clauseStart, clauseLength));
+        // A composition moving is the caret moving, and a caret that blinked out
+        // mid-composition is one the user cannot find.
+        solid();
+        return true;
+    }
+
+    /// Drops any composition. @return whether there was one
+    private boolean clearPreedit() {
+        if (preedit.isEmpty()) {
+            return false;
+        }
+        setState(preedit::clear);
+        return true;
+    }
+
+    /// The field's content box, which for a single-line field **is** the line
+    /// being typed on — [TextEditor#caretArea].
+    ///
+    /// The whole box rather than the caret's own sliver, because that is what an
+    /// input method uses the rectangle for: keeping its candidate list clear of
+    /// the text it would otherwise cover.
+    @Override
+    public java.util.Optional<dev.goldberry.render.model.LogicalRect> caretArea() {
+        if (!focused || widget().disabled() || widget().readOnly() || bounds.width() <= 0) {
+            return java.util.Optional.empty();
+        }
+        var width = bounds.width() - leftPadding - rightPadding;
+        return java.util.Optional.of(dev.goldberry.render.model.LogicalRect.of(
+                0, 0, (float) Math.max(1, width), Math.max(1, bounds.height())));
+    }
+
+    @Override
+    public double caretOffset() {
+        var shaped = paragraph;
+        if (shaped == null) {
+            return 0;
+        }
+        return shaped.widthBetween(
+                        0, Math.clamp(displayCaret(), 0, shaped.text().length()))
+                - shift();
+    }
+
+    /// The caret's offset into what is **drawn** — inside the composition while
+    /// there is one.
+    private int displayCaret() {
+        var at = mask.display(edit.caret());
+        return preedit.isEmpty() ? at : at + preedit.caret();
+    }
+
+    /// Whether the pointer gesture in progress began with the primary button —
+    /// which is what makes a drag a selection and a release worth publishing.
+    ///
+    /// Not `setState`: nothing drawn reads it.
+    private boolean selecting;
+
+    @Override
+    public void pointerAt(double x, boolean extend, int clickCount) {
+        selecting = true;
+        place(x, extend, clickCount);
+    }
+
+    @Override
+    public void dragTo(double x) {
+        if (selecting) {
+            place(x, true, 1);
+        }
+    }
+
+    @Override
+    public void released() {
+        if (selecting) {
+            selecting = false;
+            publishSelection();
+        }
+    }
+
+    @Override
+    public boolean pastePrimaryAt(double x) {
+        // A middle press ends any selecting gesture: what the drag after it does
+        // is nothing.
+        selecting = false;
+        var input = widget();
+        if (host == null || input.disabled() || input.readOnly()) {
+            return false;
+        }
+        var primary = host.primarySelection().orElse(null);
+        if (primary == null || !primary.hasText()) {
+            return false;
+        }
+        var pasted = primary.text();
+        if (pasted.isEmpty()) {
+            return false;
+        }
+        // The caret first, then the text at it: two changes to the edit and
+        // **one** to the history, because the move alters no text and only the
+        // insertion is recorded -- so one `Ctrl+Z` takes the paste back and
+        // leaves the caret where the press put it.
+        place(x, false, 1);
+        return insertPasted(pasted);
+    }
+
+    /// Puts a finished, non-empty selection on the primary selection, where the
+    /// platform has one ([ADR-0504]).
+    ///
+    /// **Never from a `password`**, for [#copy()]'s reason and more strongly: a
+    /// primary selection is readable by every application on the desktop with no
+    /// action from the user at all, and every X11 toolkit refuses it for a
+    /// masked field.
+    private void publishSelection() {
+        if (!edit.hasSelection() || widget().password() || host == null) {
+            return;
+        }
+        host.primarySelection().ifPresent(primary -> primary.text(edit.selectedText()));
+    }
+
+    /// Where a press or a drag lands: the caret, a word or the lot.
+    private void place(double x, boolean extend, int clickCount) {
+        if (paragraph == null) {
+            return;
+        }
+        // Into the content's own coordinates: past the padding, and back by
+        // however far the field has been shifted — the scroll, less the indent an
+        // alignment gave a line that fits ([ADR-0324]).
+        var contentX = x - leftPadding + shift();
+        var displayOffset = paragraph.offsetAt(0, mask.display().length(), contentX);
+        var offset = mask.real(displayOffset);
+
+        var next =
+                switch (Math.min(clickCount, 3)) {
+                    // A triple-click is "select the line", and a single-line field has
+                    // one line -- so it is select-all, which is also what it looks like.
+                    case 3 -> edit.selectAll();
+                    // A masked field has no words to select: every word() call over
+                    // bullets would select the whole run, which is what select-all
+                    // already does and is not what a double-click means.
+                    case 2 -> widget().password() ? edit.selectAll() : edit.wordAt(offset);
+                    default -> edit.caretTo(offset, extend);
+                };
+        apply(next, EditHistory.Kind.OTHER, false);
+    }
+
+    @Override
+    public void focusChanged(boolean gained, boolean fromKeyboard) {
+        // `setState` and not a bare assignment: the cascade's `:focus` is the
+        // router's and repaints on its own, but the caret and the highlight are
+        // *described* by this widget, so the tree has to be rebuilt for either to
+        // appear. A focused field that never rebuilt would have no caret in it.
+        setState(() -> focused = gained);
+        if (gained) {
+            // Focus is the field being aimed at, which is the point the caret
+            // stops being where typing *would* go and becomes where it *will*
+            // ([#caretMatters]). Set before the select-all below, which scrolls.
+            touched();
+        }
+        if (host != null) {
+            host.textInput(gained && !widget().disabled() && !widget().readOnly());
+        }
+        if (gained) {
+            // A field reached by Tab selects everything, which is what lets a
+            // keyboard user replace a value without reaching for Ctrl+A -- and a
+            // field reached by a click does not, because the click has already
+            // said where the caret goes.
+            if (fromKeyboard) {
+                apply(edit.selectAll(), EditHistory.Kind.OTHER, false);
+            }
+            solid();
+        } else {
+            stopBlinking();
+            // Losing focus is a boundary a user believes in, although nothing
+            // about the text changed.
+            history.endRun();
+            setState(() -> caretShown = true);
+        }
+    }
+
+    @Override
+    public void located(dev.goldberry.render.model.LogicalRect self, dev.goldberry.render.model.LogicalRect clip) {
+        if (self.equals(fieldBounds)) {
+            return;
+        }
+        fieldBounds = self;
+        // A rebuild, but **only** when something is waiting to be shown and only
+        // on a change. Without it a field focused with suggestions already in
+        // hand would offer nothing until some unrelated frame rebuilt it: the
+        // rectangle arrives after the paint, and nothing else was going to ask
+        // for another one (§1.7's idle loop).
+        //
+        // It settles in one frame rather than driving the loop, which is what
+        // [Located]'s "must not move itself" rule is really asking for: the
+        // rebuild describes the same field at the same size, so the next
+        // rectangle is equal and this returns above.
+        if (suggestions == null && !widget().suggestions().isEmpty()) {
+            setState(() -> {});
+        }
+    }
+
+    @Override
+    public void measured(Extent extent) {
+        bounds = extent;
+    }
+
+    /// How far in a line narrower than the field starts — `text-align`, resolved
+    /// for the frame that is being described.
+    ///
+    /// Zero whenever the text overflows, because [TextAlign#indentOf] clamps the
+    /// slack at zero, and that is the invariant this control rests on: the indent
+    /// and the scroll can never both be non-zero, so one number carries both
+    /// ([ADR-0324]).
+    private double indent;
+
+    /// Where the content is drawn relative to the content box's leading edge —
+    /// negative of it is what every absolutely placed child is inset by.
+    private double shift() {
+        return scrollOffset - indent;
+    }
+
+    /// How far the content has been scrolled along, in logical pixels.
+    ///
+    /// For the tests, as [dev.goldberry.widgets.form.textarea.TextAreaState]'s
+    /// `scrolledBy` is: "a read-only field opens showing the head of its value" is
+    /// a number rather than a picture (`docs/gaps.md` G34). Package-private — how
+    /// far a control has scrolled is nobody else's business.
+    double scrolledBy() {
+        return scrollOffset;
+    }
+
+    /// Somebody is working in this field — see [#caretMatters].
+    ///
+    /// Not `setState`: nothing drawn reads this flag. What reads it is [#laidOut],
+    /// during the render of a frame that is already being built for the press, the
+    /// key or the focus that got us here.
+    private void touched() {
+        caretMatters = true;
+    }
+
+    @Override
+    public double laidOut(Paragraph shaped, double left, double right, double caretWidth, TextAlign align) {
+        paragraph = shaped;
+        leftPadding = left;
+        rightPadding = right;
+
+        var display = mask.display();
+        var caretAt = paragraph.widthBetween(0, Math.clamp(mask.display(edit.caret()), 0, display.length()));
+        var textWidth = paragraph.widthBetween(0, display.length());
+        // The last frame's width, less each side's own padding. Zero before
+        // anything has been measured, which reads as "no room" and leaves the
+        // offset alone rather than snapping it to the caret.
+        var room = bounds.width() - left - right;
+        if (room <= 0) {
+            return shift();
+        }
+        // **The box hugs its text**, so the alignment cannot come from the paint
+        // here as it does in a `text-area`: the value box is absolutely positioned
+        // and sized by its content, and a paragraph with no slack indents by
+        // nothing. What moves is the box, and the caret and the highlight with it.
+        indent = align.indentOf(textWidth, room);
+
+        var offset = scrollOffset;
+        // The caret is only chased once this field has been touched -- see
+        // [#caretMatters]. An untouched field shows the head of its value, which
+        // is the part that says what the value *is*.
+        if (caretMatters) {
+            // Move as little as possible: only when the caret has left the window.
+            // A caret at the very end needs **its own width** of room, or the
+            // field scrolls short of showing it -- which was hard-coded to one
+            // pixel and is now whatever `--gb-caret-width` resolved to
+            // (ADR-0253).
+            offset = Math.max(offset, caretAt - room + caretWidth);
+            offset = Math.min(offset, caretAt);
+        }
+        // And never leave a gap at the end: a field that has been scrolled and
+        // then had its text deleted should come back rather than show a blank.
+        offset = Math.clamp(offset, 0, Math.max(0, textWidth - room));
+        scrollOffset = offset;
+        return shift();
+    }
+
+    @Override
+    public boolean copy() {
+        if (!edit.hasSelection() || widget().password() || host == null) {
+            // §4: a password field has no clipboard-out. The selection is still
+            // real -- it can be replaced or deleted -- it just cannot leave.
+            return false;
+        }
+        return host.clipboard().text(edit.selectedText());
+    }
+
+    @Override
+    public boolean cut() {
+        if (!copy()) {
+            return false;
+        }
+        return apply(edit.insert(""), EditHistory.Kind.OTHER, true);
+    }
+
+    @Override
+    public boolean paste() {
+        if (host == null) {
+            return false;
+        }
+        return insertPasted(host.clipboard().text());
+    }
+
+    /// Inserts pasted text at the caret, whichever buffer it came from — the
+    /// clipboard's `Ctrl+V` and the primary selection's middle click are the same
+    /// edit.
+    private boolean insertPasted(String pasted) {
+        if (pasted.isEmpty()) {
+            return false;
+        }
+        // Newlines and tabs become spaces rather than being refused: a single
+        // line cannot hold them, and a paste that silently did nothing because
+        // the copied cell had a trailing newline is the worse outcome.
+        var flattened = pasted.replaceAll("\\s*\\R\\s*", " ").replace('\t', ' ');
+        var room = room();
+        var insertion = room < 0 ? flattened : MaxLength.clip(flattened, room);
+        if (insertion.isEmpty()) {
+            return false;
+        }
+        return apply(edit.insert(insertion), EditHistory.Kind.OTHER, true);
+    }
+
+    @Override
+    public boolean undo() {
+        if (!history.canUndo()) {
+            return false;
+        }
+        var restored = history.undo(edit);
+        return adopt(restored);
+    }
+
+    @Override
+    public boolean redo() {
+        if (!history.canRedo()) {
+            return false;
+        }
+        return adopt(history.redo(edit));
+    }
+
+    /// Takes a state back off the history, without recording it again.
+    private boolean adopt(TextEdit restored) {
+        if (restored.equals(edit)) {
+            return false;
+        }
+        var changed = !restored.text().equals(edit.text());
+        touched();
+        setState(() -> edit = restored);
+        if (changed) {
+            widget().report(restored.text());
+        }
+        solid();
+        return true;
+    }
+
+    // --- limits ---------------------------------------------------------------
+
+    /// Whether the field's filter will have `candidate`.
+    private boolean accepts(String candidate) {
+        var maximum = widget().maxLength();
+        if (maximum >= 0 && candidate.length() > maximum) {
+            return false;
+        }
+        return widget().filter().accepts(candidate);
+    }
+
+    /// How many more characters will fit, or -1 for no limit.
+    ///
+    /// [MaxLength]'s, along with the clipping: `text-area` asks exactly the same
+    /// two questions and had its own copy of both answers.
+    private int room() {
+        return MaxLength.room(widget().maxLength(), edit);
+    }
+
+    // --- the blink ------------------------------------------------------------
+
+    /// Makes the caret solid and starts the next dark half a full interval away.
+    ///
+    /// Called from every edit and every caret move, which is what keeps a caret
+    /// visible while somebody types.
+    private void solid() {
+        if (!focused) {
+            return;
+        }
+        if (!caretShown) {
+            setState(() -> caretShown = true);
+        }
+        schedule();
+    }
+
+    private void schedule() {
+        stopBlinking();
+        if (host == null || !focused) {
+            return;
+        }
+        blink = host.after(BLINK, () -> {
+            blink = null;
+            if (!focused) {
+                return;
+            }
+            setState(() -> caretShown = !caretShown);
+            schedule();
+        });
+    }
+
+    private void stopBlinking() {
+        if (blink != null) {
+            blink.cancel();
+            blink = null;
+        }
+    }
+}

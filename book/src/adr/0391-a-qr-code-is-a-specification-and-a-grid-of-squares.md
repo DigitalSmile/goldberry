@@ -30,7 +30,7 @@ produces a code which *looks* right and does not scan.
 **The encoder is `:core`'s and the widget is `:widgets`', and they share
 nothing but a value.**
 
-- `io.github.digitalsmile.goldberry.qr` is the encoder — `QrEncoder.encode`,
+- `dev.goldberry.qr` is the encoder — `QrEncoder.encode`,
   and a `QrMatrix` out the other end. It is in `:core` beside
   `image.gif` and `image.png` and for their reason: a specification small enough
   that owning it costs less than linking it, and nothing in it names a widget.

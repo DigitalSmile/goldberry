@@ -26,29 +26,29 @@
 /// module costs an application nothing, and each supports nothing on a system
 /// that is not its own.
 ///
-/// Consumers pass `--enable-native-access=io.github.digitalsmile.goldberry.media`
+/// Consumers pass `--enable-native-access=dev.goldberry.media`
 /// (JEP 472).
-module io.github.digitalsmile.goldberry.media {
+module dev.goldberry.media {
 
     /// Logging and the start-up timeline (ADR-0174). Not `transitive`: no type of
     /// it appears in a signature here.
-    requires io.github.digitalsmile.goldberry.common;
+    requires dev.goldberry.common;
 
     /// SDL's audio stream, which `:natives` exports to this module alone: the
     /// desktop's audio sink (ADR-0461). Not `transitive`, since no type of it
     /// appears in a signature here.
-    requires io.github.digitalsmile.goldberry.natives;
+    requires dev.goldberry.natives;
 
     /// Video on the GPU (`docs/gpu-plan.md`, phase 6; ADR-0484): `video-view`
     /// shows its pictures through `:gpu`'s video layer when `:gpu` is in the
     /// application's module graph, and draws them on the CPU when it is not.
     /// `static`, so an application that ships no GPU module plays video all the
     /// same; `:gpu` exports its video package to this module alone.
-    requires static io.github.digitalsmile.goldberry.gpu;
+    requires static dev.goldberry.gpu;
 
     /// The controls `audio-player` is built from. `transitive` because an
-    /// [io.github.digitalsmile.goldberry.media.view.AudioPlayer] is a widget.
-    requires transitive io.github.digitalsmile.goldberry.widgets;
+    /// [dev.goldberry.media.view.AudioPlayer] is a widget.
+    requires transitive dev.goldberry.widgets;
 
     /// The JDK's HTTP client, which `HttpIO` fetches `http:` and `https:` sources
     /// with (`docs/goldberry-media.md` §4). `transitive` because `HttpIO.open`
@@ -58,76 +58,76 @@ module io.github.digitalsmile.goldberry.media {
     /// JSpecify's nullness annotations, for the packages under NullAway.
     requires transitive static org.jspecify;
 
-    /// The furniture: [io.github.digitalsmile.goldberry.media.MediaPlayer], which
-    /// plays, [io.github.digitalsmile.goldberry.media.MediaProbe], which says what
+    /// The furniture: [dev.goldberry.media.MediaPlayer], which
+    /// plays, [dev.goldberry.media.MediaProbe], which says what
     /// a source holds, the status and pictures a player reports, the Clock SPI,
     /// and the errors.
-    exports io.github.digitalsmile.goldberry.media;
+    exports dev.goldberry.media;
 
     /// A decoded picture, in either of the two forms a player hands a view:
     /// converted to BGRA, or its planes as decoded (ADR-0483, ADR-0496).
-    exports io.github.digitalsmile.goldberry.media.picture;
+    exports dev.goldberry.media.picture;
 
     /// What a track *is*, in Goldberry's words rather than FFmpeg's: the codec, the
     /// kind of stream and its parameters. It is also the vocabulary the Decoder SPI
     /// is written in (phase 2).
-    exports io.github.digitalsmile.goldberry.media.codec;
+    exports dev.goldberry.media.codec;
 
     /// Where the bytes come from. FFmpeg performs no I/O of its own. Every byte it
-    /// reads comes through a [io.github.digitalsmile.goldberry.media.io.MediaIO],
+    /// reads comes through a [dev.goldberry.media.io.MediaIO],
     /// and an application adds a protocol by providing one.
-    exports io.github.digitalsmile.goldberry.media.io;
+    exports dev.goldberry.media.io;
 
     /// Text subtitles: cues read from SubRip and WebVTT files and from a
     /// container's subtitle track, as plain lines.
-    exports io.github.digitalsmile.goldberry.media.subtitle;
+    exports dev.goldberry.media.subtitle;
 
     /// Where audio goes: the sink the Engine writes to, and the one format it
     /// writes. The desktop sink is SDL's. A test's sink plays in no time.
-    exports io.github.digitalsmile.goldberry.media.audio;
+    exports dev.goldberry.media.audio;
 
     /// The widgets: `audio-player`, `video-view`, `media-controls` and
     /// `media-player`.
-    exports io.github.digitalsmile.goldberry.media.view;
+    exports dev.goldberry.media.view;
 
     /// The system decoders, listed for an application that builds its player's
-    /// providers itself: [io.github.digitalsmile.goldberry.media.platform.PlatformDecoders].
+    /// providers itself: [dev.goldberry.media.platform.PlatformDecoders].
     /// The implementations, `…platform.macos`, `…platform.linux` and
     /// `…platform.windows`, are not exported.
-    exports io.github.digitalsmile.goldberry.media.platform;
+    exports dev.goldberry.media.platform;
 
     /// Opened to `:core`, which reads `media.css` out of this package.
-    opens io.github.digitalsmile.goldberry.media.view to
-            io.github.digitalsmile.goldberry.core;
+    opens dev.goldberry.media.view to
+            dev.goldberry.core;
 
     /// The catalog the weaver generates. The `provides` line is patched into the
     /// compiled descriptor by the build (ADR-0131).
-    uses io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
+    uses dev.goldberry.widgets.markup.WidgetCatalog;
 
     /// A protocol an application brings, found by URI scheme.
-    uses io.github.digitalsmile.goldberry.media.io.MediaIOProvider;
+    uses dev.goldberry.media.io.MediaIOProvider;
 
     /// A decoder an application brings, consulted before the built-in ones.
-    uses io.github.digitalsmile.goldberry.media.codec.DecoderProvider;
+    uses dev.goldberry.media.codec.DecoderProvider;
 
     /// What the operating system says its playback device's latency is, taken
     /// off the audio clock (ADR-0474). CoreAudio's is below; an application may
     /// bring another.
-    uses io.github.digitalsmile.goldberry.media.audio.OutputLatency;
+    uses dev.goldberry.media.audio.OutputLatency;
 
     /// The system decoders, each of which supports nothing off its own system.
     /// Found by `ServiceLoader` like an application's own, so a `MediaPlayer`
     /// built with the default providers plays H.264, HEVC, AAC, AC-3 and E-AC-3
     /// wherever the system can.
-    provides io.github.digitalsmile.goldberry.media.codec.DecoderProvider with
-            io.github.digitalsmile.goldberry.media.platform.macos.VideoToolboxProvider,
-            io.github.digitalsmile.goldberry.media.platform.macos.AudioToolboxProvider,
-            io.github.digitalsmile.goldberry.media.platform.linux.GStreamerVideoProvider,
-            io.github.digitalsmile.goldberry.media.platform.linux.GStreamerAudioProvider,
-            io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationVideoProvider,
-            io.github.digitalsmile.goldberry.media.platform.windows.MediaFoundationAudioProvider;
+    provides dev.goldberry.media.codec.DecoderProvider with
+            dev.goldberry.media.platform.macos.VideoToolboxProvider,
+            dev.goldberry.media.platform.macos.AudioToolboxProvider,
+            dev.goldberry.media.platform.linux.GStreamerVideoProvider,
+            dev.goldberry.media.platform.linux.GStreamerAudioProvider,
+            dev.goldberry.media.platform.windows.MediaFoundationVideoProvider,
+            dev.goldberry.media.platform.windows.MediaFoundationAudioProvider;
 
     /// The default output device's latency, taken off the audio clock (ADR-0474).
-    provides io.github.digitalsmile.goldberry.media.audio.OutputLatency with
-            io.github.digitalsmile.goldberry.media.platform.macos.CoreAudioLatency;
+    provides dev.goldberry.media.audio.OutputLatency with
+            dev.goldberry.media.platform.macos.CoreAudioLatency;
 }

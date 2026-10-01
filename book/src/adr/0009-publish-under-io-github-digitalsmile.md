@@ -1,6 +1,6 @@
 # ADR-0009: Publish under `io.github.digitalsmile`
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0510](0510-publish-under-dev-goldberry.md) — the group, the base package and the module names are `dev.goldberry` now that the project has its own domain
 - **Date:** 2026-08-15
 - **Relates to:** `docs/ARCHITECTURE.md` §3.1, §15
 

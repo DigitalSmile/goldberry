@@ -63,7 +63,7 @@ task the way `./gradlew test` finds every module's tests.
 
 What ADR-0021 wanted is kept where it can be kept without a separate build: the
 example is still a **module**, still runs on the **module path**, and still
-declares `--enable-native-access=io.github.digitalsmile.goldberry.natives`. Those
+declares `--enable-native-access=dev.goldberry.natives`. Those
 are what caught real problems — an unexported package and a wrong module name
 both fail here and nowhere else.
 
@@ -103,7 +103,7 @@ asserting the string — but it is a global side effect of loading a class, and
 that is worth knowing about.
 
 `Logs` is exported unqualified from `:natives`. A qualified `exports ... to
-io.github.digitalsmile.goldberry.core` would say what is meant and does not
+dev.goldberry.core` would say what is meant and does not
 compile: `:core` is not on `:natives`' compile module path (it depends the other
 way), so javac warns the target module is unknown and `-Werror` makes it fatal.
 The docstring carries the intent the module system cannot.

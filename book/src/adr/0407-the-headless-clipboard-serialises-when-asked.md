@@ -51,7 +51,7 @@ application is supposed to tell the user that nothing was copied.
 bytes, and can be told to decline.**
 
 ```java
-// io.github.digitalsmile.goldberry.render.backend.headless
+// dev.goldberry.render.backend.headless
 public final class HeadlessClipboard implements Clipboard {
     public boolean offer(Map<String, Supplier<byte[]>> byMime);
     public HeadlessClipboard refuseWrites(boolean value);

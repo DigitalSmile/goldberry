@@ -66,12 +66,12 @@ more than the thing it isolates.
 
 What is **not** relaxed is the dependency direction. `:core` and `:widgets` do
 not know Markdown exists; `:natives` exports md4c's wrapper to
-`io.github.digitalsmile.goldberry.html` and to nobody else, which is ADR-0280's
+`dev.goldberry.html` and to nobody else, which is ADR-0280's
 seal with a second name on it:
 
 ```java
-exports io.github.digitalsmile.goldberry.natives.md4c to
-        io.github.digitalsmile.goldberry.html;
+exports dev.goldberry.natives.md4c to
+        dev.goldberry.html;
 ```
 
 litehtml, when it comes, still gets a library of its own. It is C++, it needs a

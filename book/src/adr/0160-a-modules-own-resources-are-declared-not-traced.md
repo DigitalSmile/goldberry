@@ -52,12 +52,12 @@ nothing about the fifth. A trace can be made longer; it cannot be made complete.
 itself.**
 
 `:core`, `:widgets` and `:example` each carry a
-`META-INF/native-image/io.github.digitalsmile/<artifact>/reachability-metadata.json`
+`META-INF/native-image/dev.goldberry/<artifact>/reachability-metadata.json`
 listing what they ship as globs:
 
 ```json
-{ "module": "io.github.digitalsmile.goldberry.core",
-  "glob": "io/github/digitalsmile/goldberry/css/*.css" }
+{ "module": "dev.goldberry.core",
+  "glob": "dev/goldberry/css/*.css" }
 ```
 
 Globs, because **this set is finite and known at build time** — unlike a trace,
@@ -88,7 +88,7 @@ the build file instead of the module. It works for the showcase and does nothing
 for anyone else's application: the flag is not shipped with the jar, so every
 consumer would have to write it out again from knowledge they do not have.
 
-**One `io/github/digitalsmile/goldberry/**` glob per module.** Shorter, and it
+**One `dev/goldberry/**` glob per module.** Shorter, and it
 matches every `.class` file in the module as a resource — carrying the whole
 module a second time in the image heap. The paths are spelled out instead.
 
@@ -104,7 +104,7 @@ hand-written goes in the traced directory, because the next trace overwrites it.
 
 **A resource added to a module needs no thought, and a resource *directory* does.**
 Dropping `nord-dim.css` beside the other two is covered by the existing glob.
-Adding `io/github/digitalsmile/goldberry/sounds/` is not, and nothing will say so
+Adding `dev/goldberry/sounds/` is not, and nothing will say so
 until an image is built and someone reaches the control that needs it.
 
 **This does not fix the general case, and should not be read as doing so.** The

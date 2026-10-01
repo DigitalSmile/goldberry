@@ -1,0 +1,257 @@
+package dev.goldberry.widgets.panel.tabs;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.widget.State;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+
+/// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
+///
+/// ```kdl
+/// tabs bind="view.tab" change="app.pick-tab" close="app.close-tab" new="app.new-tab" {
+///     tab value="editor" icon="file" "Editor" { text "…" }
+///     tab value="log" colour="#bf616a" closable=#true "Log" { text "…" }
+/// }
+/// ```
+///
+/// ## Controlled, like every other value in this toolkit
+///
+/// The strip **reads** which tab is selected through `bind` and reports what the
+/// user asked for through `change`. It selects nothing itself
+/// (ADR-0063),
+/// which is the same shape `radio-group` and `segmented` have — and it is what
+/// makes adding and removing tabs work without a single API for either: the list
+/// of tabs is the application's, `close` asks for one to go, `new` asks for one to
+/// arrive, and the strip draws whatever comes back
+/// (ADR-0107).
+///
+/// A strip whose `close` handler does nothing keeps its tab, which is the visible
+/// form of "the model did not change" and is where the bug is when a tab will not
+/// close.
+///
+/// ## This node styles nothing
+///
+/// `tabs` as a **CSS type** is [TabStrip], the node this one builds. A stateful
+/// widget that was also styled would put two `tabs` nodes in the cascade, one
+/// inside the other, and every rule in `controls.css` would apply to both — which
+/// is a doubled padding and a doubled border waiting to happen. So this is a
+/// composition node: it holds the model, and what it builds holds the appearance
+/// (ADR-0109).
+///
+/// ## Three parts, and only one of them is built twice
+///
+/// `tab-list` holds the headers; `tab-panel` holds the selected tab's content.
+/// **Only the selected tab's content is built into an element at all** — §5's
+/// "lazy content instantiation" — so nine unselected tabs cost nine headers and
+/// nothing behind them.
+///
+/// ## Keyboard
+///
+/// One Tab stop with the arrows roving inside it, per §7.2 — `HORIZONTAL`,
+/// because a top-placed strip is a row and `Up`/`Down` belong to whatever is
+/// above it (ADR-0078).
+/// `Delete` on a closable tab asks for it to close, which is the keyboard's answer
+/// to an affordance that is otherwise a small target for a pointer.
+///
+/// @param value      the selected tab's value when nothing is bound
+/// @param children   the tabs, as written. Anything that is not a [Tab] is drawn
+///                   in the strip and left alone, which is how a spacer or a
+///                   button gets into a tab bar
+/// @param source     §9's `bind` — read-only
+/// @param onChange   what the user asked to select
+/// @param onClose    what the user asked to close, or null for a strip nobody can
+///                   shorten
+/// @param onNew      what the user asked to add, or null for no add affordance
+/// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("tabs")
+public record Tabs(
+        @Nullable String value,
+        List<Widget> children,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<String> onChange,
+        @Nullable Consumer<String> onClose,
+        @Nullable Runnable onNew,
+        boolean keepAlive,
+        @Nullable BiConsumer<String, Integer> onReorder,
+        Attributes attributes)
+        implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
+
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Tabs(
+            @Nullable String value,
+            @Nullable List<Widget> children,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<String> onClose,
+            @Nullable Runnable onNew,
+            boolean keepAlive,
+            @Nullable BiConsumer<String, Integer> onReorder,
+            @Nullable Attributes attributes) {
+        children = List.copyOf(children == null ? List.of() : children);
+        attributes = attributes == null ? Attributes.NONE : attributes;
+        Objects.requireNonNull(children, "children");
+        this.value = value;
+        this.children = children;
+        this.source = source;
+        this.onChange = onChange;
+        this.onClose = onClose;
+        this.onNew = onNew;
+        this.keepAlive = keepAlive;
+        this.onReorder = onReorder;
+        this.attributes = attributes;
+    }
+
+    public Tabs(@Nullable String value, Widget... children) {
+        this(value, List.of(children), null, null, null, null, false, null, Attributes.NONE);
+    }
+
+    /// The shape a strip had before it could keep its tabs alive.
+    public Tabs(
+            @Nullable String value,
+            List<Widget> children,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<String> onChange,
+            @Nullable Consumer<String> onClose,
+            @Nullable Runnable onNew,
+            Attributes attributes) {
+        this(value, children, source, onChange, onClose, onNew, false, null, attributes);
+    }
+
+    /// This strip letting a tab be dragged along the row to a new place, and
+    /// asking `handler` to move it — the tab's value and the index it was dropped
+    /// at among the others (ADR-0372).
+    ///
+    /// It asks and does not reorder, for `change`'s reason: the list is the
+    /// application's, and the strip draws the order it is given.
+    public Tabs onReorder(BiConsumer<String, Integer> handler) {
+        return new Tabs(value, children, source, onChange, onClose, onNew, keepAlive, handler, attributes);
+    }
+
+    /// Asks for a tab to move. Same rule as [#select].
+    void reorder(String picked, int index) {
+        if (onReorder != null) {
+            onReorder.accept(picked, index);
+        }
+    }
+
+    /// This strip keeping every tab it has shown mounted, hidden while another is
+    /// selected — so a background tab's scroll position, caret and half-typed form
+    /// are still there when it comes back (ADR-0366).
+    ///
+    /// Off by default: §5 asks for "lazy content instantiation", and a strip of
+    /// twenty heavy documents that kept every one alive would hold all twenty.
+    /// A tab that has never been selected is still not built, and a closed one is
+    /// let go.
+    public Tabs keepAlive(boolean value) {
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, value, onReorder, attributes);
+    }
+
+    /// This strip reporting what the user picked.
+    public Tabs onChange(Consumer<String> handler) {
+        return new Tabs(value, children, source, handler, onClose, onNew, keepAlive, onReorder, attributes);
+    }
+
+    /// This strip with closable tabs' × wired up. A tab is closable when *it*
+    /// says so; this is who hears about it.
+    public Tabs onClose(Consumer<String> handler) {
+        return new Tabs(value, children, source, onChange, handler, onNew, keepAlive, onReorder, attributes);
+    }
+
+    /// This strip with an add affordance at the end of the row.
+    ///
+    /// §5 does not ask for one — it asks for "closable tabs optional" and says
+    /// nothing about adding — but a strip that can lose tabs and never gain them
+    /// is half a control, and the alternative is every application drawing its own
+    /// `+` and lining it up with the row by hand.
+    public Tabs onNew(Runnable handler) {
+        return new Tabs(value, children, source, onChange, onClose, handler, keepAlive, onReorder, attributes);
+    }
+
+    @Override
+    public Tabs bound(Observable<?> value) {
+        return new Tabs(this.value, children, value, onChange, onClose, onNew, keepAlive, onReorder, attributes);
+    }
+
+    @Override
+    public @Nullable Observable<?> binding() {
+        return source;
+    }
+
+    @Override
+    public Tabs withAttributes(Attributes value) {
+        return new Tabs(this.value, children, source, onChange, onClose, onNew, keepAlive, onReorder, value);
+    }
+
+    /// The tabs as written, before the strip rebuilt them with what only it knows
+    /// — for a test, and for an application that wants to count them.
+    public List<Widget> rawTabs() {
+        return children;
+    }
+
+    /// Which tab is selected: the bound value if there is one, the written one
+    /// otherwise.
+    public @Nullable String selected() {
+        if (source != null) {
+            var bound = source.get();
+            return bound == null ? null : bound.toString();
+        }
+        return value;
+    }
+
+    /// **Stateful**, and the state is one thing: which tabs are arriving or
+    /// leaving.
+    ///
+    /// A tab that has just been added has to fade up from nothing, and one that
+    /// has just been closed has to fade down — after the application has already
+    /// dropped it from its list, so something has to hold on to it for the length
+    /// of the animation. That is the whole of what [TabsState] does
+    /// (ADR-0109).
+    @Override
+    public State<?> createState() {
+        return new TabsState();
+    }
+
+    /// Asks for a tab. It does **not** select it — see the class note.
+    void select(String picked) {
+        if (onChange != null) {
+            onChange.accept(picked);
+        }
+    }
+
+    /// Asks for a tab to close. Same rule: the list is the application's.
+    void close(String picked) {
+        if (onClose != null) {
+            onClose.accept(picked);
+        }
+    }
+
+    /// Builds a `tabs` strip from markup.
+    ///
+    /// `close` and `new` are the two halves of "a tab strip's list is the
+    /// application's": the strip asks and the application answers, exactly as
+    /// `change` does for the selection (ADR-0063, ADR-0107).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Tabs(
+                node.stringProperty("value"),
+                children,
+                wiring.bound(node),
+                wiring.valued(node, "change"),
+                wiring.valued(node, "close"),
+                wiring.action(node, "new"),
+                node.booleanProperty("keep-alive"),
+                null,
+                Attributes.of(node));
+    }
+}

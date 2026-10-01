@@ -42,7 +42,7 @@ two is a property of a pair. So it had to be built.
 
 ### `Anchored`, the fourth geometry facility
 
-`io.github.digitalsmile.goldberry.input.handler.Anchored` is told, once a frame,
+`dev.goldberry.input.handler.Anchored` is told, once a frame,
 **how far the content slid under a widget** — the one thing `Measured` and
 `Located` cannot say because it is a difference between two frames.
 

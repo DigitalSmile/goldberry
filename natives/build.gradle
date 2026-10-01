@@ -1,6 +1,6 @@
-import io.github.digitalsmile.goldberry.build.LinuxDependencies
-import io.github.digitalsmile.goldberry.build.ToolResolver
-import io.github.digitalsmile.goldberry.build.toolchain.WindowsToolchain
+import dev.goldberry.build.LinuxDependencies
+import dev.goldberry.build.ToolResolver
+import dev.goldberry.build.toolchain.WindowsToolchain
 
 plugins {
     id 'goldberry.java-conventions'
@@ -395,19 +395,19 @@ def checkToolchain = tasks.register('checkToolchain') {
 // reached, which was not the Markdown parser.
 def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
 def foreignMetadataFile = foreignMetadataDir.map {
-    it.file('META-INF/native-image/io.github.digitalsmile/goldberry-natives/reachability-metadata.json')
+    it.file('META-INF/native-image/dev.goldberry/goldberry-natives/reachability-metadata.json')
 }
 
 def foreignMetadata = tasks.register('foreignMetadata', JavaExec) {
     group = 'build'
     description = 'Writes the foreign-call registrations an image of this module needs, from the bindings.'
     classpath = sourceSets.main.runtimeClasspath
-    mainModule = 'io.github.digitalsmile.goldberry.natives'
-    mainClass = 'io.github.digitalsmile.goldberry.natives.metadata.ForeignMetadata'
+    mainModule = 'dev.goldberry.natives'
+    mainClass = 'dev.goldberry.natives.metadata.ForeignMetadata'
     modularity.inferModulePath = true
     // Linking a descriptor is a restricted operation, and the generator links
     // every one of them.
-    jvmArgs '--enable-native-access=io.github.digitalsmile.goldberry.natives'
+    jvmArgs '--enable-native-access=dev.goldberry.natives'
     inputs.files(sourceSets.main.output.classesDirs).withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.dir(foreignMetadataDir)
     argumentProviders.add({ [foreignMetadataFile.get().asFile.absolutePath] } as CommandLineArgumentProvider)
@@ -639,7 +639,7 @@ nativeTargets.each { target ->
             // produced (ADR-0441).
             include target.library
             include target.webview
-            into "io/github/digitalsmile/goldberry/natives/${target.id}"
+            into "dev/goldberry/natives/${target.id}"
         }
 
         // An empty natives jar is worse than a missing one: it fails at load time
@@ -731,7 +731,7 @@ def nativeRequired = providers.systemProperty('goldberry.native.required')
 // ALL-UNNAMED rather than the module name, because Gradle runs whitebox tests on
 // the classpath -- the test classes need package-private access to the code under
 // test, so they are not loaded as the named module. Consumers of the published
-// artifact use --enable-native-access=io.github.digitalsmile.goldberry.natives,
+// artifact use --enable-native-access=dev.goldberry.natives,
 // which is why the module descriptor exists (ADR-0007).
 // The benchmarks are downcalls too, so they need the library and the JEP 472
 // permission exactly as the tests do. Without this `:natives:benchmark` reports
@@ -804,7 +804,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     group = 'verification'
     description = 'Runs the SDL_GPU tests on the JVM\'s first thread, as macOS needs.'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTarget.id.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'
@@ -828,7 +828,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     }).withPropertyName('nativeLibrary').optional()
     outputs.file(summary)
     argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.natives']
+        [summary.get().asFile.absolutePath, 'dev.goldberry.natives']
     } as CommandLineArgumentProvider)
 }
 
@@ -844,7 +844,7 @@ tasks.register('gpuPresentProbe', JavaExec) {
     group = 'verification'
     description = 'Measures window-surface and composited present on a real window (docs/gpu-plan.md, phase 0).'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuPresentProbe'
+    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuPresentProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTarget.id.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'

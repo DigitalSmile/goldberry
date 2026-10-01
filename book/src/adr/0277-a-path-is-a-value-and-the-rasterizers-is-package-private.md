@@ -37,7 +37,7 @@ here because it is why this ADR is the first of four rather than the whole answe
 
 ## Decision
 
-A `Path` is an immutable value in `io.github.digitalsmile.goldberry.paint`, built
+A `Path` is an immutable value in `dev.goldberry.paint`, built
 from two parallel arrays — a verb per segment, and the coordinates those verbs
 consume. Beside it: `Stroke` (width, `Cap`, `Join`, miter limit, `Dash`) and a
 sealed `Gradient`. None of them mentions a `:natives` type in public.

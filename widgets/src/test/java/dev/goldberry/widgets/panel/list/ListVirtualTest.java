@@ -1,0 +1,594 @@
+package dev.goldberry.widgets.panel.list;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.Theme;
+import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.paint.TestFrames;
+import dev.goldberry.paint.tree.RenderTree;
+import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.widget.Element;
+import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.WidgetRenderer;
+import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.TestHost;
+import dev.goldberry.widgets.controls.TestFont;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
+
+/// §10's virtualization — a `list` that builds only the rows its viewport can
+/// see ([ADR-0213]).
+///
+/// Like `affix`'s tests, every one of these needs a **painted frame**: the window
+/// is computed from where the list was painted against what clips it, and neither
+/// rectangle exists until Yoga has run and the router has captured the result.
+class ListVirtualTest {
+
+    /// Tall enough for eight rows of 32, so a window is smaller than the model
+    /// and larger than one row.
+    private static final int VIEWPORT_HEIGHT = 256;
+    private static final double ROW_HEIGHT = 32;
+
+    /// Ten thousand, which is the number §10 says v1 cannot do and this can.
+    private static final int COUNT = 10_000;
+
+    private TestFrames.Target target;
+    private RenderTree render;
+
+    @BeforeEach
+    void setUp() {
+        RendererRequirement.enforce();
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (render != null) {
+            render.close();
+            render = null;
+        }
+        if (target != null) {
+            target.end();
+            target = null;
+        }
+    }
+
+    private static List<String> names(int count) {
+        var out = new ArrayList<String>(count);
+        for (var i = 0; i < count; i++) {
+            out.add("Row " + i);
+        }
+        return List.copyOf(out);
+    }
+
+    /// The scene: a virtual list of `count` rows inside a scroll view the size of
+    /// the window.
+    private static final String SCENE = """
+            list { width: 200px }
+            """;
+
+    private final class Harness {
+
+        private final ElementTree tree;
+        private final WidgetRenderer renderer;
+        private final PointerRouter router = new PointerRouter();
+        private final TestHost host;
+
+        Harness(Widget root) {
+            this(root, new TestHost());
+        }
+
+        Harness(Widget root, TestHost withHost) {
+            this(root, withHost, "");
+        }
+
+        Harness(Widget root, TestHost withHost, String extraCss) {
+            host = withHost;
+            target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
+            renderer = new WidgetRenderer(
+                    List.of(
+                            Controls.baseStylesheet(),
+                            Theme.NORD_DARK.load(),
+                            Stylesheet.parse(CascadeLayer.APPLICATION, SCENE + "\n" + extraCss)),
+                    TestFont.get());
+            tree = new ElementTree(root, host);
+            render = RenderTree.create();
+            router.focusRoot(tree.root());
+            router.windowBounds(LogicalRect.of(0, 0, 200, VIEWPORT_HEIGHT));
+            frame();
+            // A second frame, because the first is what *produces* the geometry
+            // the window is computed from -- exactly as a real window's second
+            // frame is.
+            frame();
+        }
+
+        void frame() {
+            // Before the flush, as `Launcher` does: a build may ask the cascade
+            // about `--gb-list-row-height` (ADR-0254), and a build runs before
+            // the frame it produces.
+            renderer.prepare(tree);
+            tree.flush();
+            render.update(target.frame(), renderer.render(tree));
+            router.updateRegions(HitTest.capture(render));
+        }
+
+        void wheel(float lines) {
+            router.pointerWheel(100, VIEWPORT_HEIGHT / 2f, 0, lines, Modifiers.NONE);
+            frame();
+            // The move, then the frame that measures where it landed, then the
+            // frame that draws the window the second one asked for.
+            frame();
+            frame();
+        }
+
+        /// The rows actually built, by their focus names.
+        List<String> rows() {
+            var out = new ArrayList<String>();
+            collect(tree.root(), "list-row", element -> out.add(element.id()));
+            return out;
+        }
+
+        int spacers() {
+            var out = new ArrayList<Element>();
+            collect(tree.root(), "list-spacer", out::add);
+            return out.size();
+        }
+
+        TestHost host() {
+            return host;
+        }
+
+        void tick() {
+            host.tick();
+            frame();
+        }
+    }
+
+    private static void collect(Element from, String type, java.util.function.Consumer<Element> to) {
+        if (type.equals(from.type())) {
+            to.accept(from);
+        }
+        for (var child : from.children()) {
+            collect(child, type, to);
+        }
+    }
+
+    private static Widget scrolled(ListView<String> list) {
+        return new Scroll(List.of(list), ScrollAxis.VERTICAL, dev.goldberry.widget.attr.Attributes.NONE);
+    }
+
+    private static ListView<String> virtualList(int count) {
+        return ListView.of(names(count)).virtualized(ROW_HEIGHT).id("rows");
+    }
+
+    @Nested
+    @DisplayName("the window")
+    class Window {
+
+        @Test
+        @DisplayName("ten thousand rows build a screenful, not ten thousand")
+        void onlyAScreenful() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+
+            var built = harness.rows().size();
+            // Eight rows fit; the overscan adds four each way and the arithmetic
+            // rounds up. What matters is the order of magnitude: a list that
+            // built its model would be here with 10,000.
+            assertTrue(built > 0 && built < 40, () -> "expected a screenful of rows, built " + built);
+        }
+
+        @Test
+        @DisplayName("it starts at the top, so the first row is built and the last is not")
+        void startsAtTheTop() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+
+            assertTrue(harness.rows().contains("rows-Row 0"), "the first row was not built");
+            assertTrue(
+                    !harness.rows().contains("rows-Row 9999"),
+                    "the last row of ten thousand was built at the top of the list");
+        }
+
+        @Test
+        @DisplayName("scrolling moves it, so rows that were not built become built")
+        void scrollingMovesTheWindow() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            var atTop = harness.rows();
+
+            harness.wheel(40);
+            var afterScroll = harness.rows();
+
+            assertTrue(!afterScroll.equals(atTop), "the window did not move: still " + afterScroll.getFirst());
+            assertTrue(!afterScroll.contains("rows-Row 0"), "row 0 is still built after scrolling well past it");
+        }
+
+        @Test
+        @DisplayName("both spacers are there in the middle, and stand the rest off")
+        void twoSpacers() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            harness.wheel(40);
+
+            assertEquals(2, harness.spacers(), "a window in the middle of a model needs a spacer on each side");
+        }
+
+        @Test
+        @DisplayName("the top of the model has no spacer above it")
+        void oneSpacerAtTheTop() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+
+            assertEquals(1, harness.spacers(), "a window at the top of a model needs only the spacer below it");
+        }
+
+        @Test
+        @DisplayName("it settles — a frame that changes nothing asks for no new window")
+        void itTerminates() {
+            // The rule that makes ADR-0119's facility safe to use this way: the
+            // spacers absorb every row the window leaves out, so the total height
+            // is a function of the model and the node that was measured does not
+            // move. A list that shortened itself would be told a new position,
+            // rebuild, and oscillate at the frame rate.
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            harness.wheel(40);
+            var settled = harness.rows();
+
+            harness.frame();
+            harness.frame();
+            assertEquals(settled, harness.rows(), "the window kept moving with nothing to move it");
+        }
+    }
+
+    @Nested
+    @DisplayName("a model smaller than the viewport")
+    class ShorterThanTheWindow {
+
+        @Test
+        @DisplayName("builds every row, and needs no spacer at all")
+        void everythingFits() {
+            var harness = new Harness(scrolled(virtualList(3)));
+
+            assertEquals(3, harness.rows().size());
+            assertEquals(0, harness.spacers());
+        }
+
+        @Test
+        @DisplayName("an empty model is an empty list rather than a division by nothing")
+        void empty() {
+            var harness = new Harness(scrolled(
+                    ListView.of(List.<String>of()).virtualized(ROW_HEIGHT).id("rows")));
+
+            assertEquals(List.of(), harness.rows());
+        }
+    }
+
+    @Nested
+    @DisplayName("the keyboard still reaches rows that are not built")
+    class Reaching {
+
+        @Test
+        @DisplayName("End builds the last row and then focuses it")
+        void endReachesTheLastRow() {
+            // The one thing virtualization breaks and has to put back: `End`
+            // moves the focus by *name*, and a name resolves against the element
+            // tree -- so the row has to exist before it can be focused.
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            var first = harness.rows().getFirst();
+
+            press(harness, first, dev.goldberry.input.key.Key.END);
+            harness.frame();
+
+            assertTrue(harness.rows().contains("rows-Row 9999"), "End did not build the row it was reaching for");
+
+            // And then focuses it, on the frame loop's own timer -- the rebuild
+            // has to have run first.
+            harness.tick();
+            assertEquals(List.of("rows-Row 9999"), harness.host().focusRequests());
+        }
+
+        @Test
+        @DisplayName("Home comes back to the first row the same way")
+        void homeReachesTheFirstRow() {
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            harness.wheel(120);
+            harness.host().forgetFocusRequests();
+
+            var somewhere = harness.rows().getFirst();
+            press(harness, somewhere, dev.goldberry.input.key.Key.HOME);
+            harness.frame();
+            harness.tick();
+
+            assertEquals(List.of("rows-Row 0"), harness.host().focusRequests());
+        }
+
+        @Test
+        @DisplayName("a focus that lands before the rebuild is tried again")
+        void aRefusedReachIsRetried() {
+            // The frame loop fires its timers *after* the platform pump, and
+            // whether the repaint a setState asked for was drawn inside that pump
+            // depends on the pacer -- so the first attempt may reach a tree that
+            // has not been rebuilt yet. `Host.focus` says whether it found
+            // anything, which is what makes that recoverable rather than a lost
+            // keystroke.
+            var refusing = new RefuseOnce();
+            var harness = new Harness(scrolled(virtualList(COUNT)), refusing);
+            var first = harness.rows().getFirst();
+
+            press(harness, first, dev.goldberry.input.key.Key.END);
+            harness.frame();
+
+            harness.tick();
+            assertEquals(List.of("rows-Row 9999"), refusing.focusRequests(), "the first attempt was not made");
+
+            harness.tick();
+            assertEquals(
+                    List.of("rows-Row 9999", "rows-Row 9999"),
+                    refusing.focusRequests(),
+                    "a refused reach was not tried again");
+        }
+
+        @Test
+        @DisplayName("and it gives up rather than re-arming a timer for ever")
+        void aReachThatNeverLandsStops() {
+            var refusing = new RefuseAlways();
+            var harness = new Harness(scrolled(virtualList(COUNT)), refusing);
+            var first = harness.rows().getFirst();
+
+            press(harness, first, dev.goldberry.input.key.Key.END);
+            harness.frame();
+
+            harness.tick();
+            harness.tick();
+            harness.tick();
+            assertEquals(2, refusing.focusRequests().size(), "a reach that never lands kept scheduling timers");
+        }
+
+        @Test
+        @DisplayName("a row inside the window is focused without waiting for a frame")
+        void aBuiltRowIsFocusedAtOnce() {
+            // The cheap path, and the one an arrow key takes: no rebuild, no
+            // timer, because the row is already there.
+            var harness = new Harness(scrolled(virtualList(COUNT)));
+            var first = harness.rows().getFirst();
+
+            press(harness, first, dev.goldberry.input.key.Key.HOME);
+
+            assertEquals(List.of("rows-Row 0"), harness.host().focusRequests());
+        }
+    }
+
+    /// §3's "metrics ship as component-token defaults an application may
+    /// override", reaching the one number a virtualized list cannot do without
+    /// ([ADR-0254]).
+    ///
+    /// `virtualized(32)` states a height that has to be kept in step with a
+    /// stylesheet by hand — and `density-compact.css` sets
+    /// `--gb-list-row-height: 26px`, so a list written against the regular
+    /// density virtualizes on the wrong pitch the moment an application switches.
+    @Nested
+    @DisplayName("the row height is a token")
+    class RowHeightToken {
+
+        /// A list with `#rows` styled to a row height, virtualized without a
+        /// number.
+        private Harness harness(String rowHeightCss) {
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized().id("rows")), new TestHost(), rowHeightCss);
+            // Two frames beyond the harness's own two, and the reason is stated
+            // in `BuildContext.token`: a `Stateful` widget builds once inside the
+            // `ElementTree` constructor, before any renderer has taken the tree
+            // on, so that build sees no cascade and answers the default. The
+            // window is recomputed from the geometry every frame, so the list
+            // settles on the token's pitch — these frames are that settling,
+            // which a real window does before anybody sees it.
+            harness.frame();
+            harness.frame();
+            return harness;
+        }
+
+        @Test
+        @DisplayName("it builds a screenful at the token's pitch, not at a number in Java")
+        void readsTheToken() {
+            // Half the default height is about twice as many rows in the same
+            // viewport, which is the arithmetic the token feeds.
+            var tall = harness("scroll { --gb-list-row-height: 64px }").rows().size();
+            var short0 = harness("scroll { --gb-list-row-height: 16px }").rows().size();
+
+            assertTrue(short0 > tall, () -> "16px rows built " + short0 + " and 64px rows built " + tall);
+        }
+
+        @Test
+        @DisplayName("and virtualizes at all, rather than building the model")
+        void stillVirtualizes() {
+            var built = harness("scroll { --gb-list-row-height: 32px }").rows().size();
+
+            assertTrue(built > 0 && built < 40, () -> "expected a screenful of rows, built " + built);
+        }
+
+        /// The compact density is the case this exists for: the same list, the
+        /// same Java, a different stylesheet.
+        @Test
+        @DisplayName("a compact density changes the pitch with no Java change at all")
+        void compactDensity() {
+            var regular =
+                    harness("scroll { --gb-list-row-height: 32px }").rows().size();
+            var compact =
+                    harness("scroll { --gb-list-row-height: 26px }").rows().size();
+
+            assertTrue(compact > regular, () -> "compact built " + compact + " and regular built " + regular);
+        }
+
+        /// And the explicit form is untouched: a caller who states a number gets
+        /// that number, whatever the stylesheet says.
+        @Test
+        @DisplayName("an explicit height still wins over the token")
+        void explicitWins() {
+            var stated = new Harness(
+                            scrolled(ListView.of(names(COUNT)).virtualized(64).id("rows")),
+                            new TestHost(),
+                            "scroll { --gb-list-row-height: 16px }")
+                    .rows()
+                    .size();
+            var token = harness("scroll { --gb-list-row-height: 64px }").rows().size();
+
+            assertEquals(token, stated, "a stated 64 should build what a token of 64 builds");
+        }
+    }
+
+    /// A pitch that disagrees with the stylesheet is a **silent** layout error,
+    /// and now it is not ([ADR-0257]).
+    ///
+    /// The spacers are `index × pitch` tall and the rows between them are
+    /// whatever `list-row` resolved to, so a one-pixel disagreement is twenty
+    /// pixels at row twenty and two hundred at row two hundred. The symptom is
+    /// rows drifting out of step with the scrollbar, getting worse the further
+    /// down the model you are — which reads as a scrolling bug rather than as
+    /// two numbers that were never checked against each other.
+    ///
+    /// **A mismatch has to be seen twice before it is believed**, and the token
+    /// form is why: the first build of a tree has no cascade, so a list reading
+    /// `--gb-list-row-height` answers the default on that build and the
+    /// stylesheet's value on the next ([ADR-0254]). That is one frame of a real
+    /// disagreement that settles by itself, and reporting it would make the form
+    /// that *cannot* be wrong the noisiest one.
+    ///
+    /// Asserted through the report set rather than the log, for
+    /// `ScrollTest.Nesting`'s reason: there is no appender on this classpath.
+    @Nested
+    @DisplayName("a pitch that disagrees with the stylesheet")
+    class PitchAgreement {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ListRow.forgetReportedPitch();
+        }
+
+        @Test
+        @DisplayName("is reported, once, however many rows are built")
+        void mismatchIsReported() {
+            // 64 in Java against 32 in the stylesheet, which is the shape of the
+            // mistake: the number was written once and the sheet moved.
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized(64).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(1, ListRow.reportedPitchCount(), "a pitch that disagrees with the rows was not reported");
+            assertTrue(harness.rows().size() > 1, "and it was built from more than one row");
+
+            // `render` runs per row per paint, so an unguarded warning would be
+            // one line per visible row per frame.
+            harness.frame();
+            harness.frame();
+            assertEquals(1, ListRow.reportedPitchCount(), "the warning repeated on a later frame");
+        }
+
+        @Test
+        @DisplayName("and a list whose two numbers agree is quiet")
+        void agreementIsQuiet() {
+            new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized(32).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+
+        /// The form that cannot disagree, which is the one to prefer: it reads
+        /// the same token the stylesheet writes the height from (ADR-0254).
+        @Test
+        @DisplayName("and the token form is quiet by construction")
+        void theTokenFormIsQuiet() {
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized().id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 26px }");
+            harness.frame();
+            harness.frame();
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+
+        /// A list that builds every row does not care whether they are one
+        /// height, because there are no spacers for them to be out of step with.
+        @Test
+        @DisplayName("and a list that is not virtualizing says nothing")
+        void unvirtualizedIsQuiet() {
+            new Harness(
+                    scrolled(ListView.of(names(20)).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("what it refuses")
+    class Refusals {
+
+        @Test
+        @DisplayName("a negative row height is refused where it is written")
+        void negativeHeight() {
+            assertThrows(
+                    IllegalArgumentException.class, () -> ListView.of(names(3)).virtualized(-1));
+        }
+
+        @Test
+        @DisplayName("zero is not a refusal — it is how a list says it builds every row")
+        void zeroIsOff() {
+            assertEquals(0, ListView.of(names(3)).virtualized(0).rowHeight());
+        }
+    }
+
+    /// A host whose first `focus` finds nothing, as a real one does when the
+    /// timer beats the rebuild.
+    private static final class RefuseOnce extends TestHost {
+
+        private int calls;
+
+        @Override
+        public boolean focus(String id, boolean fromKeyboard) {
+            super.focus(id, fromKeyboard);
+            return ++calls > 1;
+        }
+    }
+
+    /// One that never finds it — an id naming no row at all.
+    private static final class RefuseAlways extends TestHost {
+
+        @Override
+        public boolean focus(String id, boolean fromKeyboard) {
+            super.focus(id, fromKeyboard);
+            return false;
+        }
+    }
+
+    private static void press(Harness harness, String rowId, dev.goldberry.input.key.Key key) {
+
+        var found = new ArrayList<Element>();
+        collect(harness.tree.root(), "list-row", element -> {
+            if (rowId.equals(element.id())) {
+                found.add(element);
+            }
+        });
+        assertEquals(1, found.size(), () -> "no row " + rowId + " among " + harness.rows());
+        ((ListRow) found.getFirst().widget())
+                .onKey(new dev.goldberry.input.event.KeyEvent(
+                        dev.goldberry.input.event.KeyEvent.Kind.PRESSED, key, Modifiers.NONE, false, null));
+        harness.frame();
+    }
+}

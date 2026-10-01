@@ -1,0 +1,1732 @@
+package dev.goldberry.render.backend.sdl3;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.ServiceLoader;
+
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+
+import dev.goldberry.log.Logs;
+import dev.goldberry.log.Startup;
+import dev.goldberry.natives.desktop.DesktopMotion;
+import dev.goldberry.natives.glib.GlibLog;
+import dev.goldberry.natives.sdl.Sdl;
+import dev.goldberry.natives.sdl.SdlEventBuffer;
+import dev.goldberry.natives.sdl.SdlEventWatch;
+import dev.goldberry.natives.sdl.SdlException;
+import dev.goldberry.natives.sdl.SdlLog;
+import dev.goldberry.natives.sdl.SdlSubsystem;
+import dev.goldberry.natives.sdl.SdlVideo;
+import dev.goldberry.natives.sdl.desktop.SdlCursors;
+import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import dev.goldberry.natives.sdl.event.SdlEventType;
+import dev.goldberry.natives.sdl.window.SdlWindowFlag;
+import dev.goldberry.platform.Capability;
+import dev.goldberry.platform.PlatformCapabilities;
+import dev.goldberry.render.Backend;
+import dev.goldberry.render.BackendException;
+import dev.goldberry.render.clipboard.Clipboard;
+import dev.goldberry.render.clipboard.PrimarySelection;
+import dev.goldberry.render.composite.Compositor;
+import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.dialog.FileDialogs;
+import dev.goldberry.render.event.BackendEvent;
+import dev.goldberry.render.event.EventSink;
+import dev.goldberry.render.model.LogicalPoint;
+import dev.goldberry.render.popup.BackendPopup;
+import dev.goldberry.render.popup.PopupSpec;
+import dev.goldberry.render.tray.BackendTray;
+import dev.goldberry.render.tray.TraySpec;
+import dev.goldberry.render.web.BackendWebView;
+import dev.goldberry.render.web.WebViewEngine;
+import dev.goldberry.render.web.WebViewSpec;
+import dev.goldberry.render.window.BackendWindow;
+import dev.goldberry.render.window.WindowSpec;
+
+/// The desktop backend (ADR-0003).
+///
+/// SDL3 owns the window, the event queue and the presentation surface on all
+/// three desktop platforms. This class is the translation layer: SDL's event
+/// numbers become [BackendEvent]s, SDL's failures become [BackendException]s, and
+/// SDL's window handles never leave.
+///
+/// Confined to the UI thread, with [#wakeup()] the sole exception — SDL's event
+/// queue is internally locked, so pushing to it is the one thing another thread
+/// may do.
+public final class Sdl3Backend implements Backend {
+
+    private static final Logger LOG = Logs.of(Sdl3Backend.class);
+
+    /// Overrides the video driver choice. See [#selectVideoDriver()].
+    public static final String VIDEO_DRIVER_PROPERTY = "goldberry.backend.videoDriver";
+
+    /// What Goldberry asks for on a Linux Wayland session.
+    ///
+    /// **X11 first, deliberately and for now** (ADR-0086). On Wayland the window
+    /// manager draws nothing, so decorations come from libdecor, and libdecor's
+    /// default plugin cannot run in a stock-launched JVM
+    /// (ADR-0084).
+    /// Under XWayland the window manager decorates the window itself, which is
+    /// the only way to get a titlebar that matches the desktop today.
+    ///
+    /// Wayland stays on the list behind X11 rather than being dropped: a session
+    /// without XWayland must still get a window, and an undecorated one beats
+    /// `SDL_Init` failing outright.
+    ///
+    /// This gives up what ADR-0027 measured and bought — an XWayland window
+    /// resizes visibly worse, and fractional scaling is blurrier. The trade is
+    /// revisited when Goldberry draws its own decorations, or when libdecor's
+    /// out-of-process GTK plugin ships.
+    private static final String PREFERRED_LINUX_DRIVERS = "x11,wayland";
+
+    /// Turns the frame loop's pacing off. See [#pacePresentToTheDisplay()].
+    public static final String VSYNC_PROPERTY = "goldberry.backend.vsync";
+
+    /// The macOS `java` launcher sets `JAVA_STARTED_ON_FIRST_THREAD_<pid>=1` in
+    /// the environment when it is given `-XstartOnFirstThread`. It is the only
+    /// way to ask, from Java, whether `main` is running on the process's first
+    /// thread — and the answer decides whether AppKit can start at all.
+    private static final String FIRST_THREAD_ENV = "JAVA_STARTED_ON_FIRST_THREAD_";
+
+    /// The flag whose absence is, on macOS, by far the most likely reason
+    /// `SDL_Init` reports no video device.
+    private static final String FIRST_THREAD_FLAG = "-XstartOnFirstThread";
+
+    private final SdlVideo video = SdlVideo.get();
+    private final Thread uiThread = Thread.currentThread();
+    private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
+    private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
+    private final Clipboard clipboard = new Sdl3Clipboard();
+
+    /// The primary selection, where the video driver has one, and null where it
+    /// does not — decided once, from the driver SDL chose ([#hasPrimarySelection]).
+    private final @Nullable PrimarySelection primarySelection;
+    private final Sdl3FileDialogs fileDialogs = new Sdl3FileDialogs(this::wakeup);
+
+    /// The trays this application has up. Held so that closing the backend
+    /// takes them down: a tray icon left in the notification area after the
+    /// process it belongs to has gone is the desktop equivalent of a leaked
+    /// window, and the shell does not clean it up.
+    private final List<Sdl3Tray> trays = new ArrayList<>();
+
+    /// The pages embedded in each window, so they can be closed **before** it is.
+    ///
+    /// The popup problem exactly, and for the same reason: an embedded page is a
+    /// child X window of the application's, and the X server destroys a window's
+    /// children with it. Destroy the parent first and GTK is later handed a
+    /// window the server has already reclaimed — `GdkWindow ... unexpectedly
+    /// destroyed`, then a run of GObject criticals as it unwinds a frame clock
+    /// and signal handlers that are no longer there (ADR-0442).
+    ///
+    /// Declared as an `IdentityHashMap` rather than a `Map`, which is
+    /// `GoldberryRuntime`'s reason for the same choice: a `BackendWindow` is
+    /// looked up by *which window it is*, and an implementation that grew a
+    /// value-based `equals` would silently make two windows one entry. Reading
+    /// the declaration is what says that cannot happen.
+    private final java.util.IdentityHashMap<BackendWindow, List<BackendWebView>> embeddedPages =
+            new java.util.IdentityHashMap<>();
+    private final FramePacer pacer = FramePacer.fromProperties();
+
+    /// When windows present through the GPU (ADR-0479). Read once: a window's
+    /// mode is decided at its first frame, and a policy that changed under a
+    /// running loop would decide two windows two ways.
+    private final Composition composition = Composition.fromProperties();
+
+    /// `:gpu`'s compositor, found the first time a window is to be composited,
+    /// and null until then -- which, by default, is forever (D2: no device until
+    /// something needs one).
+    private @Nullable Compositor compositor;
+
+    /// Whether looking for a compositor found none: `:gpu` is not on the module
+    /// path. Remembered, so the service catalogue is read once.
+    private boolean compositorAbsent;
+
+    /// The system cursors, created on first use.
+    ///
+    /// Lazy and optional, for the reason `SdlVideo.optionalDowncall` is: a
+    /// `libgoldberry` built before the cursor symbols were exported would
+    /// otherwise stop opening windows at all, to enable a nicety. An application
+    /// that never sets a cursor never creates one either.
+    private @Nullable SdlCursors cursors;
+    private boolean cursorsUnavailable;
+
+    /// Draws while the platform is holding the thread. See [#drawDuringModalLoop]
+    /// and ADR-0060. Null when `libgoldberry` does not export the watch calls.
+    private @Nullable SdlEventWatch resizeWatch;
+
+    /// Where a watched event goes — non-null only for the duration of a
+    /// [#pumpEvents] call, which is the only time there is anywhere to send one.
+    private @Nullable EventSink activeSink;
+
+    /// Guards against the watch re-entering itself. Painting pushes events —
+    /// [Sdl3Window#requestFrame] wakes the loop — and every push runs the watch
+    /// again, on this thread, from inside the paint it would restart.
+    private boolean inWatch;
+
+    /// What a sink that threw never saw, waiting for the next pump.
+    ///
+    /// Empty except between a failed delivery and the pump after it, which is
+    /// the whole of its life: see [#deliver].
+    private final List<BackendEvent> undelivered = new ArrayList<>();
+
+    /// Why a Wayland window here will have no decorations, when it will not.
+    ///
+    /// Worked out once at start-up, because it is a property of the machine rather
+    /// than of a window, and reported at the first window that actually asked to
+    /// be decorated — a borderless one is not affected and should not be warned
+    /// about. See [WaylandDecorations] and ADR-0084.
+    private final Optional<String> undecoratedWarning;
+    private boolean undecoratedWarningLogged;
+
+    /// Whether [#close()] has run. **Volatile because it is the one field here
+    /// with a reader off the UI thread**: [#wakeup()] is the SPI's single
+    /// thread-safe call, and [#drawDuringModalLoop] runs on whichever thread
+    /// pushed the event that triggered the watch.
+    ///
+    /// Plain, there was no happens-before between the write in `close()` and
+    /// either read, so a background thread could go on seeing `false` for
+    /// arbitrarily long after SDL had quit and push onto a queue that no longer
+    /// existed. Volatile gives the write a release and each read an acquire, so
+    /// a `wakeup()` that starts after `close()` set the flag sees it set — and
+    /// sees, in the bargain, everything `close()` did before setting it.
+    ///
+    /// What is left is a `wakeup()` already past its own read when the flag is
+    /// written, and no flag can order that: it is two threads calling the
+    /// backend at the same instant. It is harmless here because of where the
+    /// write sits — `close()` sets the flag *first* and reaches `Sdl.quit()`
+    /// only after taking down the watch, every window, every tray and the
+    /// cursors, so a push that slipped through lands on a queue that is still
+    /// there.
+    private volatile boolean closed;
+
+    /// Initializes SDL's video subsystem.
+    ///
+    /// Video implies events, so this is the only initialization the backend needs.
+    ///
+    /// @throws BackendException if SDL cannot start — no display, no driver
+    public Sdl3Backend() {
+        try {
+            // First, and before SDL_Init below: "no video driver could be
+            // initialized" is written *during* initialization, and a bridge
+            // installed afterwards would miss the one SDL message worth having
+            // most (ADR-0443).
+            SdlLog.install();
+            selectVideoDriver();
+            pacePresentToTheDisplay();
+            Startup.time("SDL video subsystem up", () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
+            LOG.info(
+                    "sdl3 backend started on SDL {}, video driver {}",
+                    Sdl.get().version(),
+                    Sdl.get().videoDriver());
+            if (pacer.isPacing()) {
+                LOG.info("frame loop paced to one frame per {}", pacer.interval());
+            }
+            // Named, so the line that says what windows will do is found by what
+            // it is about; each window then says what it actually did, tagged
+            // [GPU] or [CPU] (ADR-0492).
+            LOG.info("presentation policy: {}", composition.describe());
+            // Asked once the driver is known, since it is only a question on
+            // Wayland, and answered here rather than at window creation so the
+            // filesystem is read once per process rather than once per window.
+            undecoratedWarning = WaylandDecorations.diagnose(Sdl.get().videoDriver());
+            reportAbsentIntegrations(Sdl.get().videoDriver());
+            agreeWithGtkAboutTheWindowSystem(Sdl.get().videoDriver());
+            keepWindowsAcrossTheGpu(Sdl.get().videoDriver(), composition);
+            primarySelection = hasPrimarySelection(Sdl.get().videoDriver()) ? new Sdl3PrimarySelection() : null;
+            LOG.debug(
+                    "primary selection: {}",
+                    primarySelection != null ? "the window system's" : "none on this video driver");
+            installResizeWatch();
+        } catch (SdlException e) {
+            eventBuffer.close();
+            throw new BackendException(videoFailureMessage(), e);
+        } catch (UnsatisfiedLinkError e) {
+            eventBuffer.close();
+            throw new BackendException(
+                    "libgoldberry is not available, so the sdl3 backend cannot start."
+                            + " Add the goldberry-natives artifact for this platform,"
+                            + " or set -Dgoldberry.native.library=<path>.",
+                    e);
+        }
+    }
+
+    /// Chooses the video driver.
+    ///
+    /// SDL picks for itself and its choice is informed: on Linux it prefers
+    /// Wayland only when the compositor advertises `wp_fifo_manager_v1`, and falls
+    /// back to X11 otherwise, because without that protocol it judges its own
+    /// Wayland presentation to have no reliable frame pacing. GNOME's Mutter does
+    /// not advertise it, so on the most common Linux desktop SDL chooses XWayland.
+    ///
+    /// Goldberry used to ask for Wayland first, because what SDL is protecting
+    /// against is less bad than what it falls back to: an XWayland window resizes
+    /// visibly worse than a native one. Measured on GNOME, the Wayland path
+    /// reports *higher* per-frame numbers and looks better, because the extra time
+    /// is the compositor pacing the client rather than work (ADR-0027).
+    ///
+    /// **It now asks for X11 first, for now** (ADR-0086). Decorations outrank
+    /// resize quality: on Wayland the window manager draws none, libdecor is the
+    /// only source of them, and its default plugin cannot run in a stock-launched
+    /// JVM (ADR-0084).
+    /// Under XWayland the window manager decorates the window itself.
+    ///
+    /// The hint takes a comma-separated list and SDL tries each in turn, so
+    /// `x11,wayland` is a preference and not a demand — a session with no XWayland
+    /// still gets a window, inside SDL, with no fallback logic here.
+    ///
+    /// Three things override it, in order: `-Dgoldberry.backend.videoDriver`, an
+    /// `SDL_VIDEO_DRIVER` already in the environment, and not being on Linux. The
+    /// first is how to ask for Wayland anyway.
+    /// Tells GTK to use the window system SDL just chose.
+    ///
+    /// **Here, and this early, because of what comes after it.** On Linux SDL is
+    /// asked for X11 first (ADR-0086) while GDK, asked nothing, prefers Wayland
+    /// whenever `WAYLAND_DISPLAY` is set — so on an XWayland desktop the
+    /// application's window is an X11 window and its GTK surfaces are Wayland
+    /// surfaces. Nothing notices until something needs the two related, and
+    /// `web-view` does: a Wayland surface cannot be reparented into an X11 window,
+    /// so an embedded page silently refuses on a machine where all of it works
+    /// (ADR-0442).
+    ///
+    /// It has to happen before **anything** initialises GTK, and the first thing
+    /// that does on Linux is `tray-icon` — SDL's tray is libayatana-appindicator,
+    /// which calls `gtk_init`. A tray shown before this line is a page that cannot
+    /// embed, which is exactly the bug this was found as.
+    ///
+    /// Never overwrites a `GDK_BACKEND` somebody exported on purpose, and does
+    /// nothing off Linux.
+    private static void agreeWithGtkAboutTheWindowSystem(String videoDriver) {
+        if ("x11".equals(videoDriver) || "wayland".equals(videoDriver)) {
+            SdlVideo.get().preferGtkBackend(videoDriver);
+        }
+    }
+
+    /// Makes a window's surface the X server's own framebuffer, under X11 and
+    /// a policy that gives windows back from the GPU (ADR-0491).
+    ///
+    /// **SDL's default recreates the window.** On X11 a window surface is SDL's
+    /// OpenGL renderer, and a window a Vulkan swapchain was released from has
+    /// lost its OpenGL flag. X11 cannot change that in place, so building the
+    /// renderer destroys the X window and makes another. X destroys a window's
+    /// children with it, and an embedded page is one: GTK's next request about
+    /// it failed with `BadDrawable`, and GDK's handler ended the process.
+    ///
+    /// The X server's framebuffer, shared memory where it is local, touches no
+    /// graphics flag, so the window keeps its id. What SDL's renderer did on top
+    /// of it was wait for vertical blank ([#pacePresentToTheDisplay()]), and the
+    /// frame loop's own pacer does that here.
+    ///
+    /// After `SDL_Init`, because the driver is only known then, and before any
+    /// window has a surface, which is when SDL reads it. An
+    /// `SDL_FRAMEBUFFER_ACCELERATION` already in the environment wins: SDL
+    /// refuses to override it, and the log says so.
+    private static void keepWindowsAcrossTheGpu(String videoDriver, Composition composition) {
+        if (!surfaceWouldRecreateWindows(videoDriver, composition)) {
+            return;
+        }
+        if (Sdl.get().setHint(Sdl.FRAMEBUFFER_ACCELERATION_HINT, "0")) {
+            LOG.debug("window surfaces are the X server's framebuffer, so a window keeps its id across the GPU");
+        } else {
+            LOG.warn(
+                    "SDL refused {}=0, so a window given back from the GPU may be recreated,"
+                            + " and a page embedded in it closed with it",
+                    Sdl.FRAMEBUFFER_ACCELERATION_HINT);
+        }
+    }
+
+    /// Whether `videoDriver` has a primary selection that belongs to the desktop
+    /// rather than to this process (ADR-0504).
+    ///
+    /// **X11 and Wayland**, which are the two SDL drivers that implement
+    /// `SDL_SetPrimarySelectionText` against a window system. Every other driver —
+    /// Windows, Cocoa, `offscreen`, `dummy` — has SDL keep the text in a buffer of
+    /// its own, which the calls read back faithfully and which no other
+    /// application can paste from. Offering that would make a middle click paste
+    /// something nobody on that platform selected, so it is not offered.
+    ///
+    /// A Wayland compositor without `zwp_primary_selection_device_manager_v1` is
+    /// not told apart here: SDL refuses the write there and reads empty, which a
+    /// caller already has to handle.
+    static boolean hasPrimarySelection(String videoDriver) {
+        return "x11".equals(videoDriver) || "wayland".equals(videoDriver);
+    }
+
+    /// Whether SDL's default window surface would recreate a window given back
+    /// from the GPU: under X11, and a policy that gives windows back.
+    static boolean surfaceWouldRecreateWindows(String videoDriver, Composition composition) {
+        return "x11".equals(videoDriver) && composition.claimsWindows();
+    }
+
+    /// Points GLib's logging at SLF4J, before the first thing that loads GLib.
+    ///
+    /// Called from the three places that load it and from nowhere else: creating
+    /// a tray, which is libayatana-appindicator and the GTK 3 under it, and the
+    /// two ways of opening a page, which are WebKitGTK. Idempotent, so calling
+    /// it three times costs a synchronized read of a boolean.
+    ///
+    /// **Not in the constructor**, and that is the whole of why it is a method.
+    /// Finding GLib means `dlopen`ing it, and a Goldberry application with no
+    /// tray and no page should not map a library it will never call
+    /// ([ADR-0443]).
+    private static void bridgeGlibLogs() {
+        GlibLog.install();
+    }
+
+    private static void selectVideoDriver() {
+        var requested = System.getProperty(VIDEO_DRIVER_PROPERTY);
+        if (requested != null && !requested.isBlank()) {
+            applyVideoDriver(requested, "asked for by " + VIDEO_DRIVER_PROPERTY);
+            return;
+        }
+
+        // SDL reads this hint from the environment too. Setting it here would
+        // silently beat what the user put in their shell.
+        if (System.getenv(Sdl.VIDEO_DRIVER_HINT) != null || System.getenv("SDL_VIDEODRIVER") != null) {
+            LOG.debug("leaving the video driver to the environment");
+            return;
+        }
+
+        var linux = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux");
+        var waylandSession = System.getenv("WAYLAND_DISPLAY");
+        if (!linux || waylandSession == null || waylandSession.isBlank()) {
+            return;
+        }
+
+        applyVideoDriver(PREFERRED_LINUX_DRIVERS, "a Wayland session is running, and only X11 gets decorations here");
+        LOG.info(
+                "preferring X11 on this Wayland session: a Wayland window would be decorated"
+                        + " by libdecor, whose default plugin cannot run in a stock-launched JVM."
+                        + " Pin the driver with -D{}=wayland to use Wayland anyway.",
+                VIDEO_DRIVER_PROPERTY);
+    }
+
+    /// Asks SDL to hold each `present` until the display is ready for it.
+    ///
+    /// Goldberry creates no renderer, so at first glance this hint belongs to
+    /// somebody else. It does not. Where the video driver implements no window
+    /// surface — Wayland — `SDL_GetWindowSurface` falls back to a hidden
+    /// `SDL_Renderer` and every present ends in its `SDL_RenderPresent`
+    /// (ADR-0046). Left alone, that renderer does not wait for the display, and
+    /// the frame loop runs as fast as the swapchain will take frames: measured
+    /// at ~105 fps into a 59.96 Hz panel, so two frames in five were rasterized,
+    /// uploaded, and thrown away.
+    ///
+    /// Painting a frame nobody will see costs its paint *and* its present, which
+    /// is the largest single saving available in the loop — larger than anything
+    /// left inside either half.
+    ///
+    /// Set before `SDL_Init`, and well before the first [Sdl3Window#acquireFrame],
+    /// which is when SDL actually builds the renderer.
+    ///
+    /// `-Dgoldberry.backend.vsync=false` turns it off, for measuring the
+    /// unthrottled loop or for a benchmark that wants every frame it can get.
+    private static void pacePresentToTheDisplay() {
+        if (!Boolean.parseBoolean(System.getProperty(VSYNC_PROPERTY, "true"))) {
+            LOG.debug("leaving present unpaced ({}=false)", VSYNC_PROPERTY);
+            return;
+        }
+        if (Sdl.get().setHint(Sdl.RENDER_VSYNC_HINT, "1")) {
+            LOG.debug("pacing present to the display ({}=1)", Sdl.RENDER_VSYNC_HINT);
+        } else {
+            // Not fatal: an unpaced loop draws the same pixels, just more of them
+            // than anyone will look at.
+            LOG.warn("SDL refused {}; the frame loop will not be paced to the display", Sdl.RENDER_VSYNC_HINT);
+        }
+    }
+
+    /// Says, once, when this build of the native library cannot ask the desktop
+    /// something the toolkit ships an API for.
+    ///
+    /// The absences this reports are invisible from above: `Host.systemTheme()`
+    /// answers empty and an input method simply never opens, which is exactly what
+    /// a desktop with no such setting and a user who is not composing look like.
+    /// An application cannot tell those apart and neither can its user, so the one
+    /// thing that can is the layer that knows how it was built (`docs/gaps.md`
+    /// G32, ADR-0325).
+    ///
+    /// A warning rather than a failure: a build without these paints, lays out and
+    /// takes input perfectly well, and refusing to start would be a far larger
+    /// harm than the one being reported.
+    ///
+    /// @param videoDriver what SDL chose, which decides whether the input method
+    ///                    is a question at all
+    private static void reportAbsentIntegrations(String videoDriver) {
+        if (!PlatformCapabilities.has(Capability.SYSTEM_THEME)) {
+            LOG.warn("this libgoldberry was built without the desktop's theme setting:"
+                    + " Host.systemTheme() will answer empty on every desktop, including one set to dark."
+                    + " Its native build needs the D-Bus headers (libdbus-1-dev / dbus-devel)."
+                    + " See docs/gaps.md G32.");
+        }
+        // Only under X11. SDL drives zwp_text_input_v3 from the compositor on
+        // Wayland and needs neither IBus nor Fcitx there, so warning about it on a
+        // Wayland session would be a warning about nothing -- and a warning that
+        // fires when nothing is wrong is how the ones that matter get ignored.
+        if ("x11".equals(videoDriver) && !PlatformCapabilities.has(Capability.INPUT_METHOD)) {
+            LOG.warn("this libgoldberry was built without an input method for X11,"
+                    + " so composing text with IBus or Fcitx will not work in this session."
+                    + " Its native build needs the IBus headers (libibus-1.0-dev / ibus-devel).");
+        }
+    }
+
+    private static void applyVideoDriver(String drivers, String because) {
+        if (Sdl.get().setHint(Sdl.VIDEO_DRIVER_HINT, drivers)) {
+            LOG.debug("asking SDL for video driver {} ({})", drivers, because);
+        } else {
+            LOG.warn("SDL refused the video driver hint {}={}", Sdl.VIDEO_DRIVER_HINT, drivers);
+        }
+    }
+
+    /// Whether this JVM is one where AppKit cannot start.
+    ///
+    /// macOS requires AppKit to be driven from the process's first thread, and the
+    /// `java` launcher runs `main` on a secondary thread unless it is given
+    /// `-XstartOnFirstThread`. SDL's Cocoa driver therefore refuses to create a
+    /// device, `SDL_Init` finds no other driver, and the error it reports is the
+    /// thoroughly unhelpful "No available video device" — which names neither the
+    /// thread nor the flag (ADR-0039).
+    ///
+    /// Taken as a hint rather than a precondition. The environment variable is set
+    /// by the launcher, so a JVM embedded through `JNI_CreateJavaVM` on the real
+    /// main thread would not have it and would still work; failing up front on the
+    /// strength of that would be wrong. Everything here is therefore phrased as
+    /// "this is probably why", and only ever after SDL has actually said no.
+    ///
+    /// @param osName the value of `os.name`, or null if it has none
+    /// @param firstThreadEnv the value of `JAVA_STARTED_ON_FIRST_THREAD_<pid>`, or null
+    /// @return true if the missing flag is worth mentioning
+    static boolean firstThreadFlagLikelyMissing(@Nullable String osName, @Nullable String firstThreadEnv) {
+        var macOs = osName != null
+                && (osName.toLowerCase(Locale.ROOT).contains("mac")
+                        || osName.toLowerCase(Locale.ROOT).contains("darwin"));
+        return macOs && !"1".equals(firstThreadEnv);
+    }
+
+    private static boolean firstThreadFlagLikelyMissing() {
+        return firstThreadFlagLikelyMissing(
+                System.getProperty("os.name", ""),
+                System.getenv(FIRST_THREAD_ENV + ProcessHandle.current().pid()));
+    }
+
+    /// The message for a video subsystem that would not start, with the macOS
+    /// first-thread explanation attached when it applies.
+    ///
+    /// @param flagMissing whether to append the `-XstartOnFirstThread` guidance
+    /// @return the exception message
+    static String videoFailureMessage(boolean flagMissing) {
+        var base = "SDL could not initialize its video subsystem";
+        if (!flagMissing) {
+            return base;
+        }
+        return base + """
+                .
+                On macOS the UI toolkit has to run on the process's first thread, and \
+                the java launcher does not put main there by default — so SDL finds no \
+                usable video driver and reports "No available video device".
+                Add the JVM flag: %s
+                For the showcase, ./gradlew run already passes it.""".formatted(FIRST_THREAD_FLAG);
+    }
+
+    private static String videoFailureMessage() {
+        return videoFailureMessage(firstThreadFlagLikelyMissing());
+    }
+
+    @Override
+    public String name() {
+        return "sdl3";
+    }
+
+    /// The version of SDL linked into `libgoldberry`, for diagnostics.
+    public String sdlVersion() {
+        return Sdl.get().version().toString();
+    }
+
+    @Override
+    public BackendWindow createWindow(WindowSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+
+        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN);
+        if (spec.resizable()) {
+            flags.add(SdlWindowFlag.RESIZABLE);
+        }
+        if (!spec.decorated()) {
+            flags.add(SdlWindowFlag.BORDERLESS);
+        }
+        // The size below is still asked for and still matters: it is what the
+        // window restores to when the user un-maximizes it. SDL keeps the two
+        // apart, which is why this is a flag beside the size rather than an
+        // enormous size instead of one (ADR-0221).
+        if (spec.maximized()) {
+            flags.add(SdlWindowFlag.MAXIMIZED);
+        }
+
+        // SDL takes window sizes in logical pixels, which is what WindowSpec
+        // carries -- no conversion, and deliberately none: converting here would
+        // ask for a physical size and get a window that is scale times too big.
+        var handle = video.createWindow(
+                spec.title(),
+                Math.round(spec.size().width()),
+                Math.round(spec.size().height()),
+                flags);
+
+        // Only for a window that asked to be decorated, and only once: a
+        // borderless window is unaffected, and an application that opens twenty
+        // windows has one problem, not twenty.
+        if (spec.decorated() && !undecoratedWarningLogged && undecoratedWarning.isPresent()) {
+            undecoratedWarningLogged = true;
+            LOG.warn("{}", undecoratedWarning.get());
+        }
+
+        var window = new Sdl3Window(this, handle, spec.title());
+        // After creation rather than as a flag, because SDL has no creation-time
+        // minimum: the window exists for the span of this method at a size the
+        // user could not have dragged it to, and nothing can resize it in
+        // between -- it is not shown yet (ADR-0304).
+        if (spec.hasMinimumSize()) {
+            window.setMinimumSize(spec.minimumSize());
+        }
+        windowsById.put(handle.id(), window);
+        Startup.mark("SDL window " + handle.id() + " created");
+        LOG.debug("created SDL window {} \"{}\" {} flags={}", handle.id(), spec.title(), spec.size(), flags);
+        return window;
+    }
+
+    @Override
+    public Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(spec, "spec");
+        if (!(owner instanceof Sdl3Window parent)) {
+            throw new IllegalArgumentException(
+                    "a popup's owner must be a window from this backend, and " + owner + " is not");
+        }
+        if (!parent.isOpen()) {
+            throw new IllegalStateException("cannot open a popup on a window that has closed");
+        }
+
+        // Exactly one kind flag: SDL refuses a popup that claims to be both, and
+        // TOOLTIP alone does *not* stop a popup taking focus -- NOT_FOCUSABLE is
+        // a separate flag and is what keeps the caret in the field the tooltip is
+        // describing.
+        // **No popup of any kind takes the platform keyboard.**
+        //
+        // `NOT_FOCUSABLE` on all three, which reads like a restriction and is the
+        // opposite. A popup was never allowed to *rely* on having focus: SDL
+        // gives a `POPUP_MENU` window focus on some drivers and not others, so
+        // the owner has forwarded keys to whatever popup is open since ADR-0104
+        // and a menu is operable by arrows either way. What varied by driver was
+        // therefore never the behaviour — only whether the application still
+        // looked focused to itself.
+        //
+        // And that is what `anyWindowFocused` reads to decide a popup has been
+        // left behind (ADR-0144). A focusable popup could hold the answer true
+        // after the user had switched to another application entirely, so the
+        // menu stayed on screen over somebody else's window. Taking focus off all
+        // of them makes that check mean what it says: the application is focused
+        // exactly when one of its *own* windows is
+        // (ADR-0189).
+        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN, SdlWindowFlag.NOT_FOCUSABLE);
+        switch (spec.kind()) {
+            case MENU -> {
+                flags.add(SdlWindowFlag.POPUP_MENU);
+                flags.add(SdlWindowFlag.TRANSPARENT);
+            }
+            case ATTACHED -> {
+                // A menu window in everything the window manager cares about --
+                // it takes the pointer, which is what tells it apart from a
+                // tooltip (ADR-0187). The keyboard is refused above, with
+                // everything else's.
+                flags.add(SdlWindowFlag.POPUP_MENU);
+                flags.add(SdlWindowFlag.TRANSPARENT);
+            }
+            case TOOLTIP -> {
+                flags.add(SdlWindowFlag.TOOLTIP);
+                flags.add(SdlWindowFlag.TRANSPARENT);
+            }
+        }
+
+        var handle = video.createPopupWindow(
+                parent.handle(),
+                Math.round(spec.position().x()),
+                Math.round(spec.position().y()),
+                Math.round(spec.size().width()),
+                Math.round(spec.size().height()),
+                flags);
+        if (handle.isEmpty()) {
+            // The driver has no popups -- SDL's `dummy` is the one Goldberry's own
+            // tests run against. The caller falls back to the in-window overlay
+            // layer and is clipped to the window, which is a worse menu and not a
+            // failure (ADR-0102).
+            LOG.trace("the {} video driver has no popup windows", Sdl.get().videoDriver());
+            return Optional.empty();
+        }
+
+        var popup = new Sdl3Popup(this, handle.get(), parent, spec.kind(), spec.position());
+        windowsById.put(handle.get().id(), popup);
+        LOG.trace(
+                "created SDL popup {} {} at {} on window {} flags={}",
+                handle.get().id(),
+                spec.size(),
+                spec.position(),
+                parent.handleId(),
+                flags);
+        return Optional.of(popup);
+    }
+
+    @Override
+    public List<BackendWindow> windows() {
+        requireUiThread();
+        return List.copyOf(windowsById.values());
+    }
+
+    @Override
+    public int pumpEvents(EventSink sink, Duration timeout) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(sink, "sink");
+        Objects.requireNonNull(timeout, "timeout");
+        if (timeout.isNegative()) {
+            throw new IllegalArgumentException("timeout must not be negative: " + timeout);
+        }
+
+        var translated = new ArrayList<BackendEvent>();
+
+        // Before the wait, not after: a dialog answers on the platform's own
+        // thread and wakes this loop, and delivering its answer first is what
+        // makes the repaint it asks for part of this pump rather than the next.
+        var dialogAnswers = fileDialogs.deliverPending();
+
+        adoptDisplayRate();
+
+        // Shortened when a frame is being held back, so the wait ends when that
+        // frame comes due rather than at the loop's one-second heartbeat. Zeroed
+        // when a dialog answered while this was being set up, so its consumer is
+        // not made to wait out a second of quiet.
+        var wait =
+                fileDialogs.hasPending() ? Duration.ZERO : pacer.capWait(timeout, anyFramePending(), System.nanoTime());
+
+        // One blocking wait, then drain whatever else is queued. Waiting per
+        // event would sleep between two events that arrived together.
+        var millis = waitMillis(wait);
+
+        // Published for the event watch, which runs *inside* the calls below --
+        // including the ones the platform makes for itself during a resize drag,
+        // when they do not return for as long as the drag lasts (ADR-0060).
+        activeSink = sink;
+        try {
+            var hasEvent = millis == 0 ? video.pollEvent(eventBuffer) : video.waitEvent(eventBuffer, millis);
+            while (hasEvent) {
+                translate(eventBuffer.type(), eventBuffer.windowId(), translated);
+                hasEvent = video.pollEvent(eventBuffer);
+            }
+
+            // Ahead of what just arrived, because they arrived before it: a sink
+            // that threw during an earlier pump is the only way there is
+            // anything here. See [#undelivered].
+            if (!undelivered.isEmpty()) {
+                translated.addAll(0, undelivered);
+                undelivered.clear();
+            }
+
+            var delivered = deliver(sink, translated);
+
+            // Frames AFTER the events that caused them.
+            //
+            // Collecting requests before dispatching would miss every repaint
+            // asked for by a handler -- which is most of them: a resize, an
+            // expose and a scale change all end in repaint(). Those frames would
+            // then wait for the next pump, and during an interactive resize that
+            // reads as the window lagging a step behind the pointer with black
+            // where it has not caught up.
+            //
+            // Requests made while handling a FrameDue are deliberately left for
+            // the next pump: draining until empty here would let a
+            // self-scheduling animation hold the loop and starve input.
+            return dialogAnswers + delivered + emitDueFrames(sink);
+        } finally {
+            activeSink = null;
+        }
+    }
+
+    /// Hands `events` to the sink one at a time, keeping what a throw left over.
+    ///
+    /// [EventSink] promises that the events already delivered stay delivered and
+    /// **the rest wait for the next pump**, and this is the only place they
+    /// could wait. They were taken off SDL's queue and translated during this
+    /// pump, so the platform has already forgotten them: either the backend
+    /// holds them or nobody does, and what is lost that way is a pointer release
+    /// that leaves a button held down or a `FileDropCompleted` that leaves a
+    /// drag open — the events whose whole job is to end something.
+    ///
+    /// The one that threw is not kept. The sink saw it and did not cope, and
+    /// offering it again would hand the same event to the same handler on every
+    /// pump for as long as the caller kept pumping.
+    ///
+    /// @param sink   where the events go
+    /// @param events what to deliver, oldest first
+    /// @return how many were delivered, which is all of them unless this throws
+    private int deliver(EventSink sink, List<BackendEvent> events) {
+        for (var index = 0; index < events.size(); index++) {
+            try {
+                sink.accept(events.get(index));
+            } catch (RuntimeException | Error e) {
+                undelivered.addAll(events.subList(index + 1, events.size()));
+                throw e;
+            }
+        }
+        return events.size();
+    }
+
+    /// The timeout to hand `SDL_WaitEventTimeout`, or zero to poll instead.
+    ///
+    /// SDL counts in whole milliseconds and the pump decides in nanoseconds, so
+    /// a wait shorter than a millisecond has nowhere to truncate to but zero —
+    /// and zero is `SDL_PollEvent`, which returns at once. **The pacer produces
+    /// exactly that wait on the way out of every frame it holds back:** the
+    /// remainder of a 16.6 ms interval spends its last millisecond there, the
+    /// pump returns having delivered nothing, the loop in
+    /// [dev.goldberry.render.event.EventLoop]
+    /// comes straight back round, and it spins at whatever an empty pump
+    /// costs until the frame comes due. A backstop meant to save two frames in
+    /// five was burning a core for the privilege, and only once the display's
+    /// own rate was adopted — which is to say, on every machine.
+    ///
+    /// So a wait that is not zero waits, and the rounding goes **up**: a frame
+    /// handed over up to a millisecond late is one frame slightly late, which is
+    /// what the pacer is for, while a frame handed over after a millisecond of
+    /// spinning costs the same lateness and a busy core with it.
+    ///
+    /// Only a genuinely zero wait polls, which is what [#pumpEvents]' contract
+    /// promises for a zero timeout and what a pending dialog answer asks for.
+    ///
+    /// @param wait what this pump decided to wait for
+    /// @return whole milliseconds for `SDL_WaitEventTimeout`, or 0 to poll
+    static int waitMillis(Duration wait) {
+        if (wait.isZero() || wait.isNegative()) {
+            return 0;
+        }
+        var seconds = wait.getSeconds();
+        if (seconds >= Integer.MAX_VALUE / 1000) {
+            // Longer than SDL can be asked to wait. Waiting less is harmless --
+            // the pump returns with nothing and the caller comes back.
+            return Integer.MAX_VALUE;
+        }
+        // Ceiling rather than truncation, so a wait that is not a whole number
+        // of milliseconds still covers the interval it was asked for instead of
+        // returning early and being asked again for the remainder.
+        var millis = seconds * 1000 + (wait.getNano() + 999_999) / 1_000_000;
+        return (int) Math.min(millis, Integer.MAX_VALUE);
+    }
+
+    /// Hands over a frame for every window that asked for one and may have it now.
+    ///
+    /// Held back when the display cannot have wanted a frame yet. The request
+    /// stays pending rather than being dropped, so the next pump — woken by the
+    /// shortened wait in [#pumpEvents] — emits it.
+    ///
+    /// Called from the pump, and from the event watch during a resize drag, where
+    /// it is the only thing that draws. The pacer applies in both: a drag that
+    /// outran the display would be spending frames nobody sees (ADR-0047), and a
+    /// frame held back during a drag is emitted by the next resize event, of which
+    /// there are many.
+    ///
+    /// @return how many frames were emitted
+    private int emitDueFrames(EventSink sink) {
+        var now = System.nanoTime();
+        // Composited windows too. Their present waits for the swapchain, so
+        // after a frame that presented, the interval is already spent and this
+        // holds nothing back; after one that presented nothing -- no damage, so
+        // no swapchain texture was waited for -- this is all that stops the loop
+        // painting unseen frames at a thousand a second (ADR-0479).
+        if (!pacer.isDue(now)) {
+            return 0;
+        }
+        var frames = new ArrayList<BackendEvent>();
+        for (var window : windowsById.values()) {
+            // Read before the request is consumed and before the pacer is
+            // stamped, because both of those are what lateness is measured
+            // against ([ADR-0271]).
+            var pendingSince = window.framePendingSince();
+            if (window.takeFrameRequest()) {
+                frames.add(new BackendEvent.FrameDue(window));
+                window.frameWasLate(pacer.missedRefreshes(pendingSince, now));
+            }
+        }
+        if (frames.isEmpty()) {
+            return 0;
+        }
+        pacer.frameEmitted(now);
+        return deliver(sink, frames);
+    }
+
+    /// Installs the watch that keeps frames coming during a resize drag.
+    ///
+    /// Optional, for the same reason the cursors are: a `libgoldberry` built
+    /// before these symbols were exported should lose live resize, not the
+    /// ability to open a window.
+    private void installResizeWatch() {
+        try {
+            resizeWatch = SdlEventWatch.install(this::drawDuringModalLoop);
+        } catch (UnsatisfiedLinkError | SdlException e) {
+            LOG.trace("no event watch, so a resize drag on Windows or macOS will not" + " redraw until it ends", e);
+        }
+    }
+
+    /// Draws while the platform is holding the thread.
+    ///
+    /// Windows and macOS run a modal loop for the duration of a resize gesture:
+    /// SDL keeps pumping events inside it, but does not return from the pump, so
+    /// the frame loop does not iterate and the window shows stale content until
+    /// the drag ends (ADR-0024). SDL calls an event watch from inside that pump —
+    /// so this is the one place a frame can be produced while it runs.
+    ///
+    /// Everything here is a guard except the last four lines:
+    ///
+    /// - **off the UI thread** — [#wakeup()] pushes from background threads, and
+    ///   every push runs the watch on the pushing thread;
+    /// - **no active sink** — an event pushed between pumps has nowhere to go, and
+    ///   the queue will deliver it in the ordinary way anyway;
+    /// - **already inside the watch** — painting asks for the next frame, which
+    ///   pushes a wakeup, which runs the watch again;
+    /// - **not a window event** — input is handled by the pump, which is not
+    ///   starved: what a modal loop withholds is frames.
+    ///
+    /// The duplicate this creates is expected. The queue still gets the event, and
+    /// the pump still translates it when the drag ends; [Sdl3Window#resizedTo] is
+    /// what keeps that from being a second layout pass.
+    private void drawDuringModalLoop(SdlEventBuffer event) {
+        if (closed || inWatch || activeSink == null || Thread.currentThread() != uiThread) {
+            return;
+        }
+        var type = event.type();
+        if (type != SdlEventType.WINDOW_RESIZED.value() && type != SdlEventType.WINDOW_EXPOSED.value()) {
+            return;
+        }
+
+        inWatch = true;
+        try {
+            var translated = new ArrayList<BackendEvent>(1);
+            translate(type, event.windowId(), translated);
+            // Through the same delivery as the pump's, so a handler that throws
+            // in here loses no more than it would out there -- the exception is
+            // swallowed below, and what it did not reach keeps its place in the
+            // queue rather than going down with it.
+            deliver(activeSink, translated);
+            emitDueFrames(activeSink);
+        } catch (RuntimeException e) {
+            // The alternative is an exception unwinding into the platform's own
+            // resize loop, which loses the window rather than a frame.
+            LOG.warn("drawing during a resize failed", e);
+        } finally {
+            inWatch = false;
+        }
+    }
+
+    /// Paces the loop to the fastest display any open window is on.
+    ///
+    /// The fastest rather than the first: two windows on a 60 Hz and a 144 Hz
+    /// monitor share one loop, and pacing that loop to 60 would starve the window
+    /// on the faster one. Overshooting costs the slower window a discarded frame;
+    /// undershooting costs the faster one a missed refresh, and the second is
+    /// what the user sees.
+    ///
+    /// Each window caches its own rate, so this is a field read per pump rather
+    /// than a native call. Does nothing when `goldberry.frame.rate` was set.
+    private void adoptDisplayRate() {
+        if (pacer.isExplicit()) {
+            return;
+        }
+        var fastest = 0f;
+        for (var window : windowsById.values()) {
+            fastest = Math.max(fastest, window.refreshRate());
+        }
+        if (pacer.useDisplayRate(fastest)) {
+            LOG.info("pacing the frame loop to {} Hz, one frame per {}", fastest, pacer.interval());
+        }
+    }
+
+    /// Whether any window is waiting for a frame. Only asked when pacing, and
+    /// only to decide how long the next wait may be.
+    private boolean anyFramePending() {
+        for (var window : windowsById.values()) {
+            if (window.isFramePending()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Where the drag currently in progress last was, in the window's own
+    /// logical coordinates.
+    ///
+    /// SDL reports a drop as a run of events and only some of them carry a
+    /// position — `DROP_BEGIN` carries none at all, and which of the others do is
+    /// a platform's business. So the last answer is kept here and handed to
+    /// whatever lands, which is what makes "these files, **there**" answerable
+    /// (`docs/gaps.md` G35b, [ADR-0330]).
+    private float dropX;
+
+    private float dropY;
+
+    private void translate(int type, int windowId, List<BackendEvent> out) {
+        if (type == SdlEventType.SYSTEM_THEME_CHANGED.value()) {
+            // No window of its own either: the desktop changed, so every window
+            // this application has open is being told -- a `Host` is per window,
+            // and that is where an application listens (`docs/gaps.md` G26,
+            // [ADR-0322]).
+            //
+            // The theme is read back from SDL rather than taken out of the event,
+            // which carries none: one place asks the platform, and it is the same
+            // call `systemTheme()` answers with.
+            var theme = systemTheme();
+            if (theme.isPresent()) {
+                for (var window : windowsById.values()) {
+                    out.add(new BackendEvent.SystemThemeChanged(window, theme.get()));
+                }
+            }
+            return;
+        }
+        if (type == SdlEventType.QUIT.value()) {
+            // No window of its own: the session is ending, so every window is
+            // being asked to close.
+            //
+            // Deduplicated against this batch. SDL posts QUIT once the last
+            // window has been asked to close, so a plain window close arrives as
+            // CLOSE_REQUESTED *and* QUIT -- and an application that prompts
+            // "discard unsaved changes?" would ask twice for one click.
+            for (var window : windowsById.values()) {
+                if (!alreadyAskedToClose(out, window)) {
+                    out.add(new BackendEvent.CloseRequested(window));
+                }
+            }
+            return;
+        }
+
+        var window = windowsById.get(windowId);
+        if (window == null) {
+            // An event for a window we have already destroyed, or one of the many
+            // SDL events Goldberry does not handle yet. Both are skipped by
+            // number, which is why those numbers are verified against C.
+            return;
+        }
+
+        if (type == SdlEventType.WINDOW_CLOSE_REQUESTED.value()) {
+            out.add(new BackendEvent.CloseRequested(window));
+        } else if (type == SdlEventType.WINDOW_EXPOSED.value()) {
+            // Told before the event goes up, since the event's repaint may find
+            // nothing damaged, and a composited window presents nothing for that
+            // unless it knows the window system lost its pixels. A page moving off
+            // a region of its parent is one way to lose them (ADR-0491).
+            window.exposed();
+            out.add(new BackendEvent.Exposed(window));
+        } else if (type == SdlEventType.WINDOW_FOCUS_GAINED.value()) {
+            out.add(new BackendEvent.FocusChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_FOCUS_LOST.value()) {
+            out.add(new BackendEvent.FocusChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_MAXIMIZED.value()) {
+            out.add(new BackendEvent.MaximizedChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_RESTORED.value()) {
+            // SDL reports `RESTORED` for un-maximizing *and* un-minimizing, and
+            // both mean the same thing to a window that only tracks the one
+            // state: it is no longer maximized.
+            out.add(new BackendEvent.MaximizedChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_ENTER_FULLSCREEN.value()) {
+            out.add(new BackendEvent.FullscreenChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_LEAVE_FULLSCREEN.value()) {
+            out.add(new BackendEvent.FullscreenChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_MOVED.value()) {
+            // The position is read off the window rather than out of the event,
+            // for the reason the sizes below are: one place asks the platform,
+            // and `position()` is what every other caller already uses.
+            //
+            // Reported only when it is news. SDL sends `WINDOW_MOVED` for every
+            // pixel of a title-bar drag, and a re-placement per pixel of a drag
+            // nobody had a menu open during is work for nothing ([ADR-0270]).
+            var position = window.position();
+            if (position.isPresent() && window.movedTo(position.get())) {
+                out.add(new BackendEvent.Moved(window, position.get()));
+            }
+        } else if (type == SdlEventType.WINDOW_RESIZED.value()) {
+            // The sizes are read off the window rather than out of the event, and
+            // reported only when they are news: since ADR-0060 the same resize
+            // arrives twice by design -- once in the event watch while the drag is
+            // still running, once from the queue when it ends.
+            var logical = window.size();
+            var physical = window.physicalSize();
+            if (window.resizedTo(logical, physical)) {
+                out.add(new BackendEvent.Resized(window, logical, physical));
+            }
+        } else if (type == SdlEventType.WINDOW_PIXEL_SIZE_CHANGED.value()) {
+            // The backing store moved without the logical size necessarily
+            // moving. No event of its own: the resize or scale change that
+            // caused it carries the news.
+        } else if (isTyping(type) && typedIntoAPage(embeddedPages.get(window))) {
+            // Typed into an embedded page, which has already received it. On
+            // macOS SDL handles every key event before the window delivers it
+            // to the focused view, so the same keystroke arrives here too -- and
+            // passing it on would type into the page and fire the application's
+            // shortcuts at once ([ADR-0459]).
+        } else if (type == SdlEventType.KEY_DOWN.value()) {
+            out.add(new BackendEvent.KeyPressed(
+                    window, eventBuffer.keycode(), eventBuffer.keyModifiers(), eventBuffer.isRepeat()));
+        } else if (type == SdlEventType.KEY_UP.value()) {
+            out.add(new BackendEvent.KeyReleased(window, eventBuffer.keycode(), eventBuffer.keyModifiers()));
+        } else if (type == SdlEventType.TEXT_INPUT.value()) {
+            // Copied out of SDL's memory here, while the event is still the
+            // current one -- the pointer dies at the next pump.
+            out.add(new BackendEvent.TextInput(window, eventBuffer.committedText()));
+        } else if (type == SdlEventType.TEXT_EDITING.value()) {
+            // Copied out here for TEXT_INPUT's reason, and translated here for
+            // one of its own: SDL reports the selection inside a composition in
+            // **UTF-8 bytes**, and everything above this line counts in Java
+            // chars. Doing it once, where the bytes and the string are both in
+            // hand, is the difference between one conversion and every consumer
+            // writing its own (ADR-0289).
+            var composing = eventBuffer.editingText();
+            out.add(new BackendEvent.TextEditing(
+                    window,
+                    composing,
+                    charOffset(composing, eventBuffer.editingStart()),
+                    charSpan(composing, eventBuffer.editingStart(), eventBuffer.editingLength())));
+        } else if (type == SdlEventType.MOUSE_MOTION.value()) {
+            // The modifiers are **polled**, not read off the event: SDL's mouse
+            // events carry no `mod` field where its keyboard events do. Read here,
+            // inside the pump that produced the event, which is the closest to
+            // "when it happened" this layer can get (ADR-0089).
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerMoved(
+                    window, at[0], at[1], Sdl.get().modifierState()));
+        } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
+            // A press SDL saw is a press OUTSIDE every embedded page -- one on a
+            // page is the page's and never reaches SDL -- so it is the user
+            // clicking back into the application, and the keyboard comes back
+            // with it ([ADR-0459]).
+            blurPagesOf(window);
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerPressed(
+                    window,
+                    at[0],
+                    at[1],
+                    eventBuffer.mouseButton(),
+                    eventBuffer.clickCount(),
+                    Sdl.get().modifierState()));
+        } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerReleased(
+                    window,
+                    at[0],
+                    at[1],
+                    eventBuffer.mouseButton(),
+                    eventBuffer.clickCount(),
+                    Sdl.get().modifierState()));
+        } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
+            // Through the same reconciliation as the motion, the buttons and the
+            // drops: a wheel carries a pointer position, and a position is only
+            // meaningful once its space is settled. It is the wheel arm's own
+            // fields that go in -- SDL puts the wheel's position somewhere else
+            // in the event than the motion's.
+            var at = inTheWindowsOwnSpace(window, eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY());
+            // The buffer has already undone SDL's "natural scrolling" inversion.
+            // What is left is the sign convention: SDL's y is positive *away from
+            // the user*, and the SPI's is positive *down the document*, which is
+            // CSS's and every scroll view's. One negation, at the boundary, once.
+            out.add(new BackendEvent.PointerWheel(
+                    window,
+                    at[0],
+                    at[1],
+                    eventBuffer.wheelX(),
+                    -eventBuffer.wheelY(),
+                    // Negated on the same axis and for the same reason as the
+                    // float beside it. SDL accumulates these itself, so they are
+                    // passed on rather than derived (ADR-0115).
+                    eventBuffer.wheelTicksX(),
+                    -eventBuffer.wheelTicksY(),
+                    Sdl.get().modifierState()));
+        } else if (type == SdlEventType.DROP_BEGIN.value()) {
+            // No position on this one, per SDL's header, and nothing to report:
+            // it is read only so a gesture starts from a known place
+            // (`docs/gaps.md` G35b, [ADR-0330]).
+            dropX = 0;
+            dropY = 0;
+        } else if (type == SdlEventType.DROP_POSITION.value()) {
+            // Kept rather than forwarded. What it carries is *where*, which the
+            // drop that follows may or may not repeat depending on the platform —
+            // so the last answer is held and handed to whatever lands.
+            var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+            dropX = at[0];
+            dropY = at[1];
+        } else if (type == SdlEventType.DROP_FILE.value()) {
+            // Copied out of SDL's memory here for TEXT_INPUT's reason: the
+            // pointer dies at the next pump.
+            var path = eventBuffer.droppedPath();
+            if (!path.isEmpty()) {
+                var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+                if (at[0] != 0 || at[1] != 0) {
+                    dropX = at[0];
+                    dropY = at[1];
+                }
+                out.add(new BackendEvent.FileDropped(window, path, dropX, dropY));
+            }
+        } else if (type == SdlEventType.DROP_TEXT.value()) {
+            // The same arm as DROP_FILE, reading the same `data` field, because
+            // SDL reports the two gestures identically -- one event per line of
+            // text, tokenised on \r\n by SDL itself ([ADR-0408]).
+            var text = eventBuffer.droppedText();
+            if (!text.isEmpty()) {
+                var at = inTheWindowsOwnSpace(window, eventBuffer.dropX(), eventBuffer.dropY());
+                if (at[0] != 0 || at[1] != 0) {
+                    dropX = at[0];
+                    dropY = at[1];
+                }
+                out.add(new BackendEvent.TextDropped(window, text, dropX, dropY));
+            }
+        } else if (type == SdlEventType.DROP_COMPLETE.value()) {
+            out.add(new BackendEvent.FileDropCompleted(window, dropX, dropY));
+        } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
+            // Usually the window moving to another monitor, which is also the one
+            // case where the cached refresh rate can be wrong -- and wrong for the
+            // life of the window if it is not dropped here.
+            window.forgetRefreshRate();
+            out.add(new BackendEvent.ScaleChanged(window, window.scale(), window.physicalSize()));
+        }
+
+        // Nothing here destroys the window surface. SDL invalidates it itself on
+        // resize and SDL_GetWindowSurface -- which every present calls -- hands
+        // back one of the right size. Destroying it eagerly meant a full surface
+        // reallocation for every resize event a compositor sends, which during a
+        // drag is per pointer motion, and left the window with no buffer to show
+        // in between (ADR-0024).
+    }
+
+    /// A pointer event's coordinates, in the coordinate space of the window the
+    /// event was attributed to.
+    ///
+    /// **Which is what SDL already promises, and does not deliver for a popup on
+    /// macOS.** SDL rewrites a mouse event's coordinates into the target window's
+    /// space only when the event's `NSWindow` is *not* the key window
+    /// (`Cocoa_SendMouseButtonClicks`), and a mouse-**up** is delivered to the
+    /// key window — which a `NOT_FOCUSABLE` popup can never be (ADR-0189). So the
+    /// press arrives in the popup's space and the release arrives in the
+    /// **owner's**, both attributed to the popup, because the window id comes
+    /// from `mouse->focus` and the coordinates come from `mouse->x/y`. Worse, the
+    /// owner-space value is stale: nothing updates it while the pointer is over
+    /// the popup, so every release reports where the pointer was before the popup
+    /// opened. The router looks for the release outside the popup's bounds, finds
+    /// nothing, and synthesizes no click — which is a dropdown whose rows cannot
+    /// be chosen
+    /// (ADR-0211).
+    ///
+    /// **The bounds check is the detector and the desktop is the answer.** A
+    /// coordinate inside the window it was delivered to is taken as given, which
+    /// is every event on every other platform and most of them here. One that
+    /// falls outside is a coordinate whose space is in doubt, and the pointer's
+    /// desktop position minus the window's own desktop position settles it
+    /// without asking the platform what it thinks the event belongs to.
+    ///
+    /// Reconciled for **every** window rather than only for popups: a top-level
+    /// window's coordinates are already right, so the branch never fires for one,
+    /// and a rule that named popups would be a rule that stops being checked the
+    /// day something else needs it.
+    ///
+    /// A release genuinely outside its window — a drag off a control, which is
+    /// how a click is cancelled — is unaffected: the desktop reading agrees that
+    /// it is outside, and the numbers change only in magnitude.
+    ///
+    /// @return the coordinates to report, as `{x, y}`
+    private float[] inTheWindowsOwnSpace(Sdl3Window window, float x, float y) {
+        var size = window.size();
+        if (x >= 0 && y >= 0 && x <= size.width() && y <= size.height()) {
+            return new float[] {x, y};
+        }
+        var origin = desktopOrigin(window);
+        if (origin.isEmpty()) {
+            // Nothing better to offer. A window that will not say where it is
+            // cannot have its coordinates second-guessed.
+            return new float[] {x, y};
+        }
+        var pointer = Sdl.get().globalPointer();
+        var corrected = new float[] {
+            pointer[0] - origin.get().x(), pointer[1] - origin.get().y()
+        };
+        if (LOG.isTraceEnabled() && (corrected[0] != x || corrected[1] != y)) {
+            LOG.trace(
+                    "pointer at ({}, {}) is outside {} — the desktop says ({}, {})",
+                    x,
+                    y,
+                    size,
+                    corrected[0],
+                    corrected[1]);
+        }
+        return corrected;
+    }
+
+    /// Where `window`'s top-left corner is on the desktop.
+    ///
+    /// **A popup is not asked**, and [Sdl3Popup] says why: `SDL_GetWindowPosition`
+    /// on one reports the display's coordinates on some drivers and the parent's
+    /// on others. Its owner is an ordinary window and answers reliably, and the
+    /// offset the popup was *asked for* is the one number that means the same
+    /// thing everywhere — so a popup's desktop origin is its owner's plus its
+    /// own offset, built out of two readings that are not in doubt.
+    private static Optional<LogicalPoint> desktopOrigin(Sdl3Window window) {
+        if (window instanceof Sdl3Popup popup && popup.owner() instanceof Sdl3Window owner) {
+            return owner.position()
+                    .map(at -> new LogicalPoint(
+                            at.x() + popup.offset().x(), at.y() + popup.offset().y()));
+        }
+        return window.position();
+    }
+
+    private static boolean alreadyAskedToClose(List<BackendEvent> out, Sdl3Window window) {
+        for (var event : out) {
+            if (event instanceof BackendEvent.CloseRequested request && request.window() == window) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// A UTF-8 **byte** offset into `text`, as a char offset into the same string.
+    ///
+    /// `-1` passes through: it is SDL's "this platform does not report a
+    /// selection", and inventing a zero would put a caret where the input method
+    /// never claimed one was.
+    ///
+    /// Clamped rather than checked. A byte offset that lands inside a character
+    /// is not something this layer can act on, and reporting it upward would give
+    /// every caller an error case for something no input method is supposed to
+    /// produce; the nearest boundary is the only useful answer.
+    static int charOffset(String text, int byteOffset) {
+        if (byteOffset < 0) {
+            return -1;
+        }
+        if (byteOffset == 0 || text.isEmpty()) {
+            return 0;
+        }
+        var bytes = 0;
+        var i = 0;
+        while (i < text.length()) {
+            if (bytes >= byteOffset) {
+                return i;
+            }
+            var codePoint = text.codePointAt(i);
+            bytes += utf8Length(codePoint);
+            i += Character.charCount(codePoint);
+        }
+        return text.length();
+    }
+
+    /// The same translation for a length, which is a difference of two offsets
+    /// rather than one offset — a UTF-8 span of six bytes is two chars or six
+    /// depending entirely on where it starts.
+    static int charSpan(String text, int byteStart, int byteLength) {
+        if (byteStart < 0 || byteLength < 0) {
+            return -1;
+        }
+        return charOffset(text, byteStart + byteLength) - charOffset(text, byteStart);
+    }
+
+    private static int utf8Length(int codePoint) {
+        if (codePoint < 0x80) {
+            return 1;
+        }
+        if (codePoint < 0x800) {
+            return 2;
+        }
+        return codePoint < 0x10000 ? 3 : 4;
+    }
+
+    @Override
+    public boolean openUrl(String url) {
+        Objects.requireNonNull(url, "url");
+        return Sdl.get().openUrl(url);
+    }
+
+    @Override
+    public Optional<Boolean> reducedMotion() {
+        // Not SDL's: there is no `SDL_GetReducedMotion`, so this is the settings
+        // portal on Linux, `user32` on Windows and `NSWorkspace` on macOS — each
+        // a read-only query against a library the process already has
+        // ([ADR-0383]). Asked once per process and cached there.
+        return switch (DesktopMotion.preference()) {
+            case REDUCED -> Optional.of(true);
+            case FULL -> Optional.of(false);
+            case UNKNOWN -> Optional.empty();
+        };
+    }
+
+    @Override
+    public Optional<SystemTheme> systemTheme() {
+        // Not cached. SDL keeps the answer itself and updates it from the same
+        // platform notification that produces the event, so a copy here would be a
+        // second thing to keep right ([ADR-0322]).
+        return switch (video.systemTheme()) {
+            case LIGHT -> Optional.of(SystemTheme.LIGHT);
+            case DARK -> Optional.of(SystemTheme.DARK);
+            // A desktop with no such setting, a driver that cannot ask, or a
+            // library built before the export — one answer for the three, because
+            // what a caller does about them is the same.
+            case UNKNOWN -> Optional.empty();
+        };
+    }
+
+    @Override
+    public void wakeup() {
+        // No requireUiThread: SDL's event queue takes its own lock, and this is
+        // the one call the SPI promises is safe from anywhere. Which makes this
+        // the only off-thread read of `closed`, and the reason it is volatile --
+        // see the field.
+        if (!closed) {
+            video.pushWakeup();
+        }
+    }
+
+    @Override
+    public void close() {
+        if (closed) {
+            return;
+        }
+        requireUiThread();
+        closed = true;
+        LOG.debug("closing the sdl3 backend and its {} window(s)", windowsById.size());
+        // Before the windows: the watch is a native callback into this object, and
+        // SDL must stop calling it while there is still something to call.
+        if (resizeWatch != null) {
+            resizeWatch.close();
+            resizeWatch = null;
+        }
+        for (var window : List.copyOf(windowsById.values())) {
+            window.close();
+        }
+        windowsById.clear();
+        undelivered.clear();
+        // Before SDL_Quit, and for the same reason the watch is: a tray holds
+        // upcall stubs the shell can still call, and the arena holding them is
+        // released by closing the tray.
+        // Before the windows, for `closeEmbeddedPagesOf`'s reason.
+        for (var window : List.copyOf(embeddedPages.keySet())) {
+            closeEmbeddedPagesOf(window);
+        }
+        for (var tray : List.copyOf(trays)) {
+            tray.close();
+        }
+        trays.clear();
+        if (cursors != null) {
+            cursors.close();
+            cursors = null;
+        }
+        // After the windows, which gave their claims back as they closed, and
+        // before SDL_Quit, which the device has to be destroyed ahead of.
+        if (compositor != null) {
+            compositor.close();
+            compositor = null;
+        }
+        eventBuffer.close();
+        Sdl.get().quit();
+    }
+
+    /// Whether `window` should present through the GPU from its next frame: the
+    /// policy says so, and it is not a popup.
+    ///
+    /// A popup is a transparent window, so its menu's rounded corners and
+    /// shadow can show the desktop through, and SDL refuses to claim a
+    /// transparent window for the GPU. Asking would cost a surface torn down and
+    /// rebuilt for every menu opened, to be told no.
+    ///
+    /// A page embedded in the window is not asked about here: where it needs
+    /// the CPU, [#createEmbeddedWebView] put the window there for good, and
+    /// where it does not, it is no reason to leave the GPU (ADR-0491).
+    boolean wantsComposited(Sdl3Window window) {
+        var policy =
+                switch (composition) {
+                    case ALWAYS -> true;
+                    // For its GPU layers, and for a while after (ADR-0481).
+                    case AUTO -> window.showsGpuLayers();
+                    case NEVER, OFF -> false;
+                };
+        return policy && !(window instanceof Sdl3Popup);
+    }
+
+    /// Why `window` presents on the CPU when nothing it did put it there: it is
+    /// a popup, or the policy does not composite it (ADR-0492).
+    String whyOnTheCpu(Sdl3Window window) {
+        if (window instanceof Sdl3Popup) {
+            return "a popup is a transparent window, which SDL will not claim";
+        }
+        return composition.whyOnTheCpu();
+    }
+
+    /// Whether GPU layers are shown at all: false with `goldberry.gpu=off`.
+    boolean usesGpu() {
+        return composition.usesGpu();
+    }
+
+    /// `:gpu`'s compositor, found the first time it is asked for; empty when
+    /// `:gpu` is not on the module path.
+    Optional<Compositor> compositor() {
+        requireUiThread();
+        if (compositor == null && !compositorAbsent) {
+            compositor = ServiceLoader.load(Compositor.class).findFirst().orElse(null);
+            compositorAbsent = compositor == null;
+            if (compositorAbsent) {
+                LOG.info("[CPU] no GPU compositor on the module path (add goldberry-gpu to use the GPU):"
+                        + " windows present on the CPU");
+            }
+        }
+        return Optional.ofNullable(compositor);
+    }
+
+    /// Closes every popup belonging to `owner`, before the platform does it for
+    /// us and leaves this side holding dangling handles.
+    void closePopupsOf(Sdl3Window owner) {
+        // Copied: closing a popup removes it from this map.
+        for (var window : List.copyOf(windowsById.values())) {
+            if (window instanceof Sdl3Popup popup && popup.owner() == owner) {
+                popup.close();
+            }
+        }
+    }
+
+    @Override
+    public Optional<BackendTray> createTray(TraySpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+
+        // Asked before SDL is, because this is the one absence SDL reports by
+        // aborting the process rather than by returning NULL (TrayAvailability).
+        var absent = TrayAvailability.absenceReason(
+                System.getProperty("os.name", ""), Sdl.get().videoDriver());
+        if (absent.isPresent()) {
+            LOG.debug("this desktop has no system tray: {}", absent.get());
+            return Optional.empty();
+        }
+
+        // Before the tray exists, because creating one is what loads
+        // libayatana-appindicator and the GTK 3 under it, and the deprecation
+        // notice it raises is written during that load (ADR-0443).
+        bridgeGlibLogs();
+
+        var tray = Sdl3Tray.open(this, spec);
+        if (tray.isEmpty()) {
+            // No AppIndicator, no notification area, no shell. Absence rather
+            // than failure -- see the SPI note; the application carries on
+            // without a tray icon, which is what every platform's own guidance
+            // says a tray-using application must be able to do anyway.
+            LOG.debug("this desktop has no system tray");
+            return Optional.empty();
+        }
+        trays.add((Sdl3Tray) tray.get());
+        LOG.debug("created SDL tray with {} rows, tooltip {}", spec.items().size(), spec.tooltip());
+        return tray;
+    }
+
+    /// Opens a page — §9's `web-view`, [ADR-0441].
+    ///
+    /// **Nothing here is SDL's**, which is why this method is three lines while
+    /// `createTray` above is thirty. A page is a window of WebKitGTK's, WebView2's
+    /// or WKWebView's making: SDL neither creates it, sizes it, pumps it nor hears
+    /// its events, and there is no driver to ask about and no absence to tell from
+    /// a failure. It is on this backend rather than on the SPI's default only
+    /// because the headless one must not open a real window.
+    @Override
+    public Optional<BackendWebView> createWebView(WebViewSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+        bridgeGlibLogs();
+        return WebViewEngine.open(spec);
+    }
+
+    /// Opens a page inside `window` — §9's `web-view` as a widget ([ADR-0442]).
+    ///
+    /// The whole of the platform test is `nativeHandle()`: a window that can name
+    /// itself to the window system can have a child, and one that cannot is on
+    /// Wayland. Nothing here reaches for a driver name, because the handle is the
+    /// honest question and the driver is a proxy for it.
+    @Override
+    public Optional<BackendWebView> createEmbeddedWebView(
+            WebViewSpec spec, dev.goldberry.render.window.BackendWindow window, int x, int y, int width, int height) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+        Objects.requireNonNull(window, "window");
+        var parent = window.nativeHandle();
+        if (parent.isEmpty()) {
+            LOG.debug("this window has no native handle, so no page can be embedded in it (Wayland)");
+            return Optional.empty();
+        }
+        bridgeGlibLogs();
+        var page = WebViewEngine.openEmbedded(spec, parent.get(), x, y, width, height);
+        page.ifPresent(opened -> {
+            // A page is a native view over the window's content, and a swapchain
+            // presents into the same window: which of the two shows on top is the
+            // platform's to decide. Where it is the page, the window keeps the
+            // GPU; where nobody has looked, it presents on the CPU, where the
+            // answer is known (ADR-0479, ADR-0491).
+            if (window instanceof Sdl3Window sdl
+                    && PageStacking.of(parent.get().kind()) instanceof PageStacking.NeedsTheCpu(var reason)) {
+                sdl.stayOnTheCpu(reason);
+            }
+            var pages = embeddedPages.computeIfAbsent(window, w -> new ArrayList<>());
+            // A widget that goes away closes its own page — switching tabs does
+            // exactly that — and this list would otherwise keep the corpse until
+            // the window closed. Pruned on the way in, so it is bounded by the
+            // pages actually open rather than by how often somebody changed tab.
+            pages.removeIf(BackendWebView::isClosed);
+            pages.add(opened);
+        });
+        return page;
+    }
+
+    /// Whether an SDL event of this type is one a page can have been typed.
+    ///
+    /// All four, not only the key presses: a key-up that reached the
+    /// application for a key-down it never saw is a stuck key to anything that
+    /// tracks them, and committed and composing text are the same keystrokes a
+    /// second time.
+    static boolean isTyping(int type) {
+        return type == SdlEventType.KEY_DOWN.value()
+                || type == SdlEventType.KEY_UP.value()
+                || type == SdlEventType.TEXT_INPUT.value()
+                || type == SdlEventType.TEXT_EDITING.value();
+    }
+
+    /// Whether one of `pages` holds the keyboard, and so whether a key event of
+    /// their window was typed into it rather than into the application.
+    ///
+    /// Static and handed the list, so the decision is testable without SDL or a
+    /// page. Null for a window with no page at all, which is nearly every window
+    /// and costs a map lookup.
+    static boolean typedIntoAPage(@Nullable List<BackendWebView> pages) {
+        if (pages == null) {
+            return false;
+        }
+        for (var page : pages) {
+            if (!page.isClosed() && page.hasKeyboardFocus()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Takes the keyboard back from every page embedded in `window`. A page
+    /// without it is left alone by [BackendWebView#blur], so this is safe to
+    /// call on every press.
+    private void blurPagesOf(BackendWindow window) {
+        var pages = embeddedPages.get(window);
+        if (pages == null) {
+            return;
+        }
+        for (var page : pages) {
+            if (!page.isClosed()) {
+                page.blur();
+            }
+        }
+    }
+
+    /// Closes every page embedded in `window`.
+    ///
+    /// Called from [Sdl3Window#close] **before** the window is destroyed, beside
+    /// `closePopupsOf` and for its reason: the X server destroys a window's
+    /// children with it, and a page torn down afterwards is GTK unwinding a
+    /// window that no longer exists.
+    void closeEmbeddedPagesOf(BackendWindow window) {
+        var pages = embeddedPages.remove(window);
+        if (pages == null) {
+            return;
+        }
+        for (var page : pages) {
+            if (!page.isClosed()) {
+                page.close();
+            }
+        }
+    }
+
+    void forget(Sdl3Tray tray) {
+        trays.remove(tray);
+    }
+
+    /// The session's clipboard, through SDL.
+    ///
+    /// One instance, held rather than made per call: what it holds is four
+    /// symbol addresses, and looking them up again per copy would be four hash
+    /// lookups to do the same thing (ADR-0161).
+    @Override
+    public Clipboard clipboard() {
+        return clipboard;
+    }
+
+    /// X11's and Wayland's primary selection, and empty on every other driver —
+    /// see [#hasPrimarySelection(String)].
+    @Override
+    public Optional<PrimarySelection> primarySelection() {
+        return Optional.ofNullable(primarySelection);
+    }
+
+    /// The platform's file dialogs, held for [#clipboard()]'s reason: what the
+    /// wrapper holds is three symbol addresses and one upcall stub, and remaking
+    /// it per export would remake the stub.
+    @Override
+    public FileDialogs fileDialogs() {
+        return fileDialogs;
+    }
+
+    SdlVideo video() {
+        return video;
+    }
+
+    /// Shows a system cursor.
+    ///
+    /// SDL's cursor is process-global — one pointer, one shape — so this lives on
+    /// the backend rather than on a window, and the window that asks is by
+    /// definition the one the pointer is in.
+    void setCursor(SdlSystemCursor shape) {
+        if (cursorsUnavailable) {
+            return;
+        }
+        if (cursors == null) {
+            try {
+                cursors = new SdlCursors();
+            } catch (UnsatisfiedLinkError e) {
+                cursorsUnavailable = true;
+                LOG.debug("libgoldberry exports no cursor calls; the pointer keeps its" + " default shape", e);
+                return;
+            }
+        }
+        cursors.set(shape);
+    }
+
+    void forget(Sdl3Window window) {
+        windowsById.remove(window.handleId());
+        // A window that has gone is not owed the events it never received. The
+        // ordinary pump has no such list to clean, because it translates and
+        // delivers inside one call; this one can outlive the window in it.
+        undelivered.removeIf(event -> event.window() == window);
+    }
+
+    void requireUiThread() {
+        if (Thread.currentThread() != uiThread) {
+            throw new BackendException(
+                    "the sdl3 backend was called from " + Thread.currentThread().getName()
+                            + " but belongs to " + uiThread.getName()
+                            + ". Every call except wakeup() must be on the UI thread.");
+        }
+    }
+
+    private void requireOpen() {
+        if (closed) {
+            throw new BackendException("the sdl3 backend is closed");
+        }
+    }
+}

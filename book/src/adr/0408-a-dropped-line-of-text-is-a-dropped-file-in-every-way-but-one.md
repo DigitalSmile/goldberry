@@ -87,17 +87,17 @@ Two consequences fall out of that and neither is a matter of taste:
 gesture's end.**
 
 ```java
-// io.github.digitalsmile.goldberry.input.drop
+// dev.goldberry.input.drop
 public record TextDrop(List<String> lines, LogicalPoint at) {
     public String text();   // lines joined with \n
     public String first();
     public int count();
 }
 
-// io.github.digitalsmile.goldberry.Window
+// dev.goldberry.Window
 public Subscription onTextDrop(Consumer<TextDrop> listener);
 
-// io.github.digitalsmile.goldberry.render.event.BackendEvent
+// dev.goldberry.render.event.BackendEvent
 record TextDropped(BackendWindow window, String text, float x, float y) { … }
 ```
 

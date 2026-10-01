@@ -43,7 +43,7 @@ It was optional in name only.
 
 **The system decoders are part of `:media`, in the packages they already had.**
 
-- `io.github.digitalsmile.goldberry.media.platform` and its `bitstream`,
+- `dev.goldberry.media.platform` and its `bitstream`,
   `macos`, `linux` and `windows` packages move into `:media` unchanged. The
   descriptor exports `…media.platform` (for [PlatformDecoders]) and nothing
   under it. The `provides` lines for the six `DecoderProvider`s and CoreAudio's
@@ -92,4 +92,4 @@ macOS: the installed provider answers nothing.
   Renaming would churn seventy files and every ADR that cites them, and buy
   nothing.
 
-[PlatformDecoders]: ../../../media/src/main/java/io/github/digitalsmile/goldberry/media/platform/PlatformDecoders.java
+[PlatformDecoders]: ../../../media/src/main/java/dev/goldberry/media/platform/PlatformDecoders.java

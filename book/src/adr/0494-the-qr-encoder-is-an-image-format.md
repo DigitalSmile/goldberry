@@ -13,7 +13,7 @@ and changes nothing else it decided.
 ADR-0391 put the QR encoder in `:core` "beside `image.gif` and `image.png` and
 for their reason". Each is a specification small enough that owning it costs
 less than linking it, with nothing in it that names a widget. The package it
-was given was not beside them, though. It was `io.github.digitalsmile.goldberry.qr`,
+was given was not beside them, though. It was `dev.goldberry.qr`,
 a top-level package among `css`, `layout`, `paint` and `render`, which are the
 toolkit's subsystems. The encoder is not a subsystem. It takes a payload and
 returns a `QrMatrix`, the same shape of thing as the GIF decoder and the PNG
@@ -37,7 +37,7 @@ would have rewritten another agent's copy. It now skips `.claude`.
 ## Consequences
 
 - A source-incompatible change for an application that imported
-  `io.github.digitalsmile.goldberry.qr`. Nothing has been released, so there is
+  `dev.goldberry.qr`. Nothing has been released, so there is
   no deprecation shim. The snapshot is the only place the old name ever
   shipped.
 - `image` now holds every format the toolkit owns: `gif`, `png`, `anim`, `qr`.

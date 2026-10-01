@@ -86,7 +86,7 @@ compressed away.
 **Two bugs surfaced that were not about images at all.**
 
 *A named module cannot see a class-path resource.* `NativeLibrary` lives in
-`io.github.digitalsmile.goldberry.natives`, and `Class.getResourceAsStream` on a
+`dev.goldberry.natives`, and `Class.getResourceAsStream` on a
 class in a named module searches *that module* and never the class path. So the
 classifier jar — the mechanism a released application is supposed to use — could
 never have worked for a **module-path** deployment. It went unnoticed because

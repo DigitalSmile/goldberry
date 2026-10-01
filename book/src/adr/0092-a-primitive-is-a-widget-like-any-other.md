@@ -8,7 +8,7 @@
 
 `:core` shipped five widgets: `text`, `row`, `column`, `panel` and `spacer`, as
 nested records inside a `Widgets` class in
-`io.github.digitalsmile.goldberry.widget`.
+`dev.goldberry.widget`.
 
 They were there for a good reason that stopped applying. The widget tree, the
 element tree, the cascade and the painter all had to be provable before there was

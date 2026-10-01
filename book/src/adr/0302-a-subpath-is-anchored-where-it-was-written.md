@@ -83,7 +83,7 @@ moveto" a property of the table rather than a property of its first line.
 That cannot happen for the seven elements it converts, which is the point: the
 check is for the eighth, whenever somebody adds one.
 
-The two classes live in a new `io.github.digitalsmile.goldberry.assets.svg`
+The two classes live in a new `dev.goldberry.assets.svg`
 package with `SvgShapes`, because reading SVG's grammar and converting SVG's
 basic shapes are the same subject and `PrepareAssets` is not.
 

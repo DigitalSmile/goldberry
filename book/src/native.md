@@ -73,7 +73,7 @@ records what it saw — the foreign descriptors, the resources, the reflection
 Logback does — into
 
 ```
-example/src/main/resources/META-INF/native-image/io.github.digitalsmile/goldberry-example/
+example/src/main/resources/META-INF/native-image/dev.goldberry/goldberry-example/
 ```
 
 That path is under `src`, not `build`: the metadata is source. It is reviewed in a
@@ -127,7 +127,7 @@ building the modules by hand; `nativeImage` arranges it for you.
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
 
 Nothing about **class initialization** is passed here. `:natives` ships its own
-`META-INF/native-image/io.github.digitalsmile/goldberry-natives/native-image.properties`
+`META-INF/native-image/dev.goldberry/goldberry-natives/native-image.properties`
 naming the two classes that have an opinion, and they are opposite opinions:
 
 | Class | When | Why |
@@ -201,13 +201,13 @@ the run-time half by hand:
 
 ```
 ./gradlew :example:nativeImage -Pgraalvm.home=… \
-    -Pgraalvm.args="--initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary"
+    -Pgraalvm.args="--initialize-at-run-time=dev.goldberry.natives.NativeLibrary"
 ```
 
 ## Two metadata directories: traced, and written
 
 The agent's output goes to
-`META-INF/native-image/io.github.digitalsmile/goldberry-example`, and **nothing
+`META-INF/native-image/dev.goldberry/goldberry-example`, and **nothing
 hand-written goes in there** — the next trace overwrites it. Anything a human has
 to add lives in the sibling `…/goldberry-example-manual`. `native-image` reads
 every `META-INF/native-image/**` it finds, so the two are merged for the tool and
@@ -216,7 +216,7 @@ kept apart for the diff.
 There is exactly one entry in it so far, and it is instructive:
 
 ```json
-{ "module": "io.github.digitalsmile.goldberry.example", "glob": "logback.xml" }
+{ "module": "dev.goldberry.example", "glob": "logback.xml" }
 ```
 
 Logback asks a `ClassLoader` for `logback.xml`, so the agent records it as a

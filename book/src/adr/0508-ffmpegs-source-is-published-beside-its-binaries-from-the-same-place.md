@@ -56,7 +56,7 @@ had not been.
 
 **A classifier jar, `ffmpeg-sources`, goes beside the binaries under the same
 coordinates.** That makes it §4's "equivalent access … from the same place":
-`io.github.digitalsmile:goldberry-media:<version>:ffmpeg-sources`, in the same
+`dev.goldberry:goldberry-media:<version>:ffmpeg-sources`, in the same
 repository and with the same version, published by the same Gradle invocation.
 There is one jar per version, not one per target, because the source is the
 same for every target. It is about 24 MB compressed: 10,664 entries and

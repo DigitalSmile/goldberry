@@ -62,7 +62,7 @@ Two tasks on `:example`:
 - `nativeImageMetadata` runs the showcase under
   `-agentlib:native-image-agent`, headless, for 120 frames, and writes what it
   observed into
-  `src/main/resources/META-INF/native-image/io.github.digitalsmile/goldberry-example`.
+  `src/main/resources/META-INF/native-image/dev.goldberry/goldberry-example`.
 - `nativeImage` runs `native-image` over the woven jar and that metadata.
 
 The metadata lives in `src/main/resources` and not in `build/`, because it is

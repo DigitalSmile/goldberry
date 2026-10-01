@@ -2,12 +2,12 @@
 <project version="4">
   <component name="EntryPointsManager">
     <list size="2">
-      <item index="0" class="java.lang.String" itemvalue="io.github.digitalsmile.goldberry.bind.Action" />
-      <item index="1" class="java.lang.String" itemvalue="io.github.digitalsmile.goldberry.bind.Bind" />
+      <item index="0" class="java.lang.String" itemvalue="dev.goldberry.bind.Action" />
+      <item index="1" class="java.lang.String" itemvalue="dev.goldberry.bind.Bind" />
     </list>
-    <pattern value="io.github.digitalsmile.goldberry.*" method="inflate" />
+    <pattern value="dev.goldberry.*" method="inflate" />
     <writeAnnotations>
-      <writeAnnotation name="io.github.digitalsmile.goldberry.bind.Bind" />
+      <writeAnnotation name="dev.goldberry.bind.Bind" />
     </writeAnnotations>
   </component>
   <component name="ExternalStorageConfigurationManager" enabled="true" />

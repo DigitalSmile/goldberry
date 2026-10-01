@@ -95,7 +95,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     description = 'Fetches the pinned Noto Color Emoji release and prepares it as a resource.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
+    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
     // Under this module's **own** package, which is not a tidiness choice: a
     // resource directory is a package to the module system, so a font written to
     // `…goldberry.assets.fonts` in two modules is one package in two modules and
@@ -103,7 +103,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             '--only=noto-emoji',
-            '--root=io/github/digitalsmile/goldberry/emoji'
+            '--root=dev/goldberry/emoji'
 
     inputs.files configurations.assetTool
     outputs.dir assetResources
@@ -127,12 +127,12 @@ tasks.register('vendorLicences', JavaExec) {
     description = 'Copies Noto Color Emoji\'s licence into licenses/ from the pinned release.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
+    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
             '--only=noto-emoji',
-            '--root=io/github/digitalsmile/goldberry/emoji'
+            '--root=dev/goldberry/emoji'
 }
 
 // ============================================================================

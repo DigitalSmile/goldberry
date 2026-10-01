@@ -33,9 +33,9 @@ point the other way: `:html` depends on `:widgets`, so `goldberry-widgets` namin
   - `goldberry-html`, `-gpu` as `<optional>true</optional>`.
 
 ```groovy
-implementation platform('io.github.digitalsmile:goldberry-bom:2026.1')
-implementation 'io.github.digitalsmile:goldberry'
-implementation 'io.github.digitalsmile:goldberry-html'     // opting in; no version
+implementation platform('dev.goldberry:goldberry-bom:2026.1')
+implementation 'dev.goldberry:goldberry'
+implementation 'dev.goldberry:goldberry-html'     // opting in; no version
 ```
 
 `PublishedModule` is a sealed interface — `Library(project, Inclusion)`, `Bom`,
@@ -80,7 +80,7 @@ BOM's.
   for jar packaging.
 - The umbrella's jar is on an application's module path. It has no module
   descriptor and exports nothing; its manifest names it
-  `io.github.digitalsmile.goldberry.toolkit` so the automatic module name derived
+  `dev.goldberry.toolkit` so the automatic module name derived
   from `goldberry-2026.1.jar` cannot collide with anything.
 - **The natives' platform jars are still the application's to add**
   (`goldberry-natives:<v>:linux-x64`). A POM cannot choose a classifier by the

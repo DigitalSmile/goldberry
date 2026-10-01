@@ -61,7 +61,7 @@ would have made a second annotation a tax rather than a clarification.
 
 ### The registries were renamed to make room
 
-`io.github.digitalsmile.goldberry.bind.Actions` was already taken — by the
+`dev.goldberry.bind.Actions` was already taken — by the
 *registry* of name-to-handler that `Wiring` holds. So `Bindings` and `Actions`
 became `BindingRegistry` and `ActionRegistry`.
 
@@ -82,7 +82,7 @@ that declares a nested `Actions`, `@Actions` resolves to that record rather than
 to the annotation, and the fully-qualified name is required:
 
 ```java
-@io.github.digitalsmile.goldberry.bind.Actions
+@dev.goldberry.bind.Actions
 public record Actions(ShowcaseModel values) { … }
 ```
 

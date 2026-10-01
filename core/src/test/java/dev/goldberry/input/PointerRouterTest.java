@@ -1,0 +1,543 @@
+package dev.goldberry.input;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.css.select.Selector.PseudoClass;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.widget.Element;
+import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.style.Styled;
+
+/// Dispatch, pseudo-classes and focus, without a window.
+///
+/// The hit-test snapshot is supplied directly rather than captured from a paint,
+/// so these are about the routing rules and not about Yoga.
+/// [dev.goldberry.input.hit.HitTestTest]
+/// covers
+/// the other half.
+class PointerRouterTest {
+
+    private final List<String> log = new ArrayList<>();
+
+    /// A node that records what it is told and can be asked to consume.
+    private class Node implements Widget.Leaf, Styled, Handles {
+        private final String name;
+        private final List<Widget> children;
+        private final boolean focusable;
+        private PointerEvent.Kind consumeOn;
+        private PointerEvent.Kind consumeOnCapture;
+        private boolean disabled;
+
+        Node(String name, boolean focusable, Widget... children) {
+            this.name = name;
+            this.focusable = focusable;
+            this.children = List.of(children);
+        }
+
+        @Override
+        public List<Widget> children() {
+            return children;
+        }
+
+        @Override
+        public String cssType() {
+            return name;
+        }
+
+        @Override
+        public boolean isFocusable() {
+            return focusable;
+        }
+
+        @Override
+        public boolean isDisabled() {
+            return disabled;
+        }
+
+        @Override
+        public void onPointerCapture(PointerEvent event) {
+            log.add("capture:" + name + ":" + event.kind());
+            if (event.kind() == consumeOnCapture) {
+                event.consume();
+            }
+        }
+
+        @Override
+        public void onPointer(PointerEvent event) {
+            log.add("bubble:" + name + ":" + event.kind());
+            if (event.kind() == consumeOn) {
+                event.consume();
+            }
+        }
+    }
+
+    private PointerRouter router;
+    private ElementTree tree;
+    private Element outer;
+    private Element inner;
+    private Node outerWidget;
+    private Node innerWidget;
+
+    @BeforeEach
+    void buildTree() {
+        router = new PointerRouter();
+        innerWidget = new Node("inner", true);
+        outerWidget = new Node("outer", false, innerWidget);
+        tree = new ElementTree(outerWidget);
+        outer = tree.root();
+        inner = outer.children().getFirst();
+
+        // outer covers 0,0 100x100; inner sits inside it at 20,20 40x40.
+        // Parent first, as a paint would record them.
+        router.updateRegions(
+                List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
+    }
+
+    @Nested
+    @DisplayName("hover")
+    class Hover {
+
+        @Test
+        @DisplayName(":hover applies to the whole ancestor chain")
+        void hoverChain() {
+            router.pointerMoved(30, 30);
+
+            // ".card:hover .title" has to work, so hover is not just the
+            // deepest node.
+            assertTrue(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER));
+        }
+
+        @Test
+        @DisplayName("moving out of a child keeps the parent hovered")
+        void partialChainChange() {
+            router.pointerMoved(30, 30);
+            log.clear();
+            router.pointerMoved(80, 80);
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER), "the parent was never left");
+            // Only the part of the chain that changed gets an enter/exit. The
+            // parent still gets the MOVED -- the pointer is over it -- which is
+            // why this filters rather than comparing the whole log.
+            assertEquals(
+                    List.of("bubble:inner:EXITED"),
+                    log.stream()
+                            .filter(e -> e.endsWith("ENTERED") || e.endsWith("EXITED"))
+                            .toList());
+        }
+
+        @Test
+        @DisplayName("a disabled node never lights up, and its ancestors still do")
+        void disabledNeverHovers() {
+            // docs/design-system.md §2.1 gives :disabled one appearance. A
+            // control that still lightened under the pointer would be saying it
+            // can be used. Enforced in the router rather than per variant per
+            // state in a stylesheet -- CSS would write `:not(:disabled):hover`,
+            // and `:not()` is not in §8's subset.
+            innerWidget.disabled = true;
+            router.pointerMoved(30, 30);
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER), "the chain above it is not disabled and still hovers");
+
+            // The *events* still arrive: a disabled node hit-tests, so a click
+            // cannot fall through to whatever is behind it, and a tooltip saying
+            // why something is disabled needs the enter.
+            assertTrue(log.contains("bubble:inner:ENTERED"));
+        }
+
+        @Test
+        @DisplayName("a node disabled while hovered loses the state, without the pointer moving")
+        void disabledWhileHovered() {
+            // The real sequence, and the pointer stands still through all of it:
+            // a button disables itself in its own press handler while the user
+            // is still over it. `updateHover` returns early when the element
+            // under the pointer has not changed, so the frame is what re-asks
+            // ([ADR-0237]) -- and this test used to take the pointer out of the
+            // window and bring it back, which is the one case that was never in
+            // doubt.
+            router.pointerMoved(30, 30);
+            assertTrue(inner.hasState(PseudoClass.HOVER));
+            log.clear();
+
+            innerWidget.disabled = true;
+            router.updateRegions(
+                    List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER), "the chain above it is not disabled and still hovers");
+            // And nothing was told anything: nothing entered or exited, because
+            // the pointer has not moved and the element under it is the one that
+            // was there.
+            assertEquals(List.of(), log);
+        }
+
+        @Test
+        @DisplayName("a disabled node never looks pressed either")
+        void disabledNeverActive() {
+            innerWidget.disabled = true;
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertFalse(inner.hasState(PseudoClass.ACTIVE));
+        }
+
+        @Test
+        @DisplayName("leaving the window clears the whole chain")
+        void pointerExited() {
+            router.pointerMoved(30, 30);
+            router.pointerExited();
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertFalse(outer.hasState(PseudoClass.HOVER));
+            assertNull(router.hovered());
+        }
+
+        @Test
+        @DisplayName("moving within one node changes nothing")
+        void noChangeWithinANode() {
+            router.pointerMoved(30, 30);
+            router.takeStylesDirty();
+            log.clear();
+
+            router.pointerMoved(31, 31);
+
+            assertFalse(router.takeStylesDirty(), "a move inside one node must not restyle");
+            assertFalse(log.contains("bubble:inner:ENTERED"));
+        }
+    }
+
+    @Nested
+    @DisplayName("dispatch")
+    class Dispatch {
+
+        @Test
+        @DisplayName("capture runs root-first, then bubble deepest-first")
+        void phases() {
+            log.clear();
+            router.pointerMoved(30, 30);
+
+            assertEquals(
+                    List.of(
+                            "bubble:inner:ENTERED",
+                            "bubble:outer:ENTERED",
+                            "capture:outer:MOVED",
+                            "capture:inner:MOVED",
+                            "bubble:inner:MOVED",
+                            "bubble:outer:MOVED"),
+                    log);
+        }
+
+        @Test
+        @DisplayName("consuming during capture stops the target seeing it")
+        void consumeInCapture() {
+            outerWidget.consumeOnCapture = PointerEvent.Kind.MOVED;
+            log.clear();
+            router.pointerMoved(30, 30);
+
+            // The whole point of a capture phase: a modal layer or a scroll view
+            // intercepts before the target.
+            assertTrue(log.contains("capture:outer:MOVED"));
+            assertFalse(log.contains("capture:inner:MOVED"));
+            assertFalse(log.contains("bubble:inner:MOVED"));
+        }
+
+        @Test
+        @DisplayName("consuming while bubbling stops the ancestors")
+        void consumeInBubble() {
+            innerWidget.consumeOn = PointerEvent.Kind.MOVED;
+            log.clear();
+            router.pointerMoved(30, 30);
+
+            assertTrue(log.contains("bubble:inner:MOVED"));
+            assertFalse(log.contains("bubble:outer:MOVED"));
+        }
+
+        @Test
+        @DisplayName("the target is the deepest node, in both phases")
+        void targetIsStable() {
+            var targets = new ArrayList<Element>();
+            var recorder = new Node("outer2", false, innerWidget) {
+                @Override
+                public void onPointerCapture(PointerEvent event) {
+                    targets.add(event.target());
+                }
+
+                @Override
+                public void onPointer(PointerEvent event) {
+                    if (event.kind() == PointerEvent.Kind.MOVED) {
+                        targets.add(event.target());
+                    }
+                }
+            };
+            var localTree = new ElementTree(recorder);
+            var localOuter = localTree.root();
+            var localInner = localOuter.children().getFirst();
+            router.updateRegions(List.of(
+                    HitTest.Region.of(localOuter, 0, 0, 100, 100), HitTest.Region.of(localInner, 20, 20, 40, 40)));
+
+            router.pointerMoved(30, 30);
+
+            // An ancestor sees the event during capture AND bubble, and in both
+            // it can tell "below me" from "me" because the target never moves.
+            assertFalse(targets.isEmpty());
+            assertTrue(
+                    targets.stream().allMatch(t -> t == localInner),
+                    "the target must stay the deepest node through both phases");
+        }
+
+        @Test
+        @DisplayName("a pointer over nothing dispatches nothing")
+        void missEverything() {
+            router.updateRegions(List.of());
+            log.clear();
+
+            router.pointerMoved(30, 30);
+
+            assertTrue(log.isEmpty());
+            assertNull(router.hovered());
+        }
+    }
+
+    @Nested
+    @DisplayName("press and release")
+    class Pressing {
+
+        @Test
+        @DisplayName(":active reaches the whole ancestor chain, exactly as :hover does")
+        void activeIsTheChain() {
+            // It did not, and that made `checkbox:active` and `radio:active`
+            // very nearly dead rules: the press landed on whichever part was
+            // under the pointer -- the 16px glyph, or the label -- so the
+            // control itself matched only in the sliver of padding between them.
+            // §2.1 requires every control to render a pressed state, and one
+            // that depends on which of its own parts you hit does not have one.
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertTrue(inner.hasState(PseudoClass.ACTIVE));
+            assertTrue(outer.hasState(PseudoClass.ACTIVE), "pressing a part presses the control that contains it");
+
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+            assertFalse(outer.hasState(PseudoClass.ACTIVE));
+        }
+
+        @Test
+        @DisplayName("the button and click count reach the handler")
+        void buttonAndCount() {
+            var seen = new ArrayList<PointerEvent>();
+            var recorder = new Node("rec", false) {
+                @Override
+                public void onPointer(PointerEvent event) {
+                    seen.add(event);
+                }
+            };
+            var localTree = new ElementTree(recorder);
+            router.updateRegions(List.of(HitTest.Region.of(localTree.root(), 0, 0, 50, 50)));
+
+            router.pointerPressed(10, 10, PointerEvent.Button.SECONDARY, 2);
+
+            var press = seen.stream()
+                    .filter(e -> e.kind() == PointerEvent.Kind.PRESSED)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(PointerEvent.Button.SECONDARY, press.button());
+            assertEquals(2, press.clickCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("focus")
+    class Focus {
+
+        @Test
+        @DisplayName("a press focuses the nearest focusable ancestor")
+        void pressFocuses() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            // inner is focusable, outer is not.
+            assertSame(inner, router.focused());
+            assertTrue(inner.hasState(PseudoClass.FOCUS));
+        }
+
+        @Test
+        @DisplayName("a press on a non-focusable node walks up to one that is")
+        void focusWalksUp() {
+            var label = new Node("label", false);
+            var button = new Node("button", true, label);
+            var localTree = new ElementTree(button);
+            var buttonElement = localTree.root();
+            var labelElement = buttonElement.children().getFirst();
+            router.updateRegions(List.of(
+                    HitTest.Region.of(buttonElement, 0, 0, 80, 30), HitTest.Region.of(labelElement, 5, 5, 70, 20)));
+
+            router.pointerPressed(10, 10, PointerEvent.Button.PRIMARY, 1);
+
+            // Clicking the text inside a button focuses the button.
+            assertSame(buttonElement, router.focused());
+        }
+
+        @Test
+        @DisplayName("pointer focus is not :focus-visible; keyboard focus is")
+        void focusVisible() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            // §7.2: the focus ring renders only for keyboard focus.
+            assertTrue(inner.hasState(PseudoClass.FOCUS));
+            assertFalse(inner.hasState(PseudoClass.FOCUS_VISIBLE));
+
+            router.focus(inner, true);
+            assertTrue(inner.hasState(PseudoClass.FOCUS_VISIBLE));
+        }
+
+        @Test
+        @DisplayName("pressing the background clears focus")
+        void pressingNothingClearsFocus() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            router.updateRegions(List.of());
+
+            router.pointerPressed(90, 90, PointerEvent.Button.PRIMARY, 1);
+
+            assertNull(router.focused());
+            assertFalse(inner.hasState(PseudoClass.FOCUS));
+        }
+
+        @Test
+        @DisplayName("focusing an unfocusable node is refused rather than silently losing focus")
+        void refusesUnfocusable() {
+            router.focus(inner, true);
+            router.focus(outer, true);
+
+            assertSame(inner, router.focused());
+        }
+    }
+
+    @Nested
+    @DisplayName("who is told the pointing moved")
+    class Pointing {
+
+        /// The bug the list fixes, and it is the one a slot always has: the
+        /// second registration silently replaced the first, so a second consumer
+        /// of "the hover moved" would have turned the tooltip off and nothing
+        /// would have said so ([ADR-0230]).
+        @Test
+        @DisplayName("two listeners are both told")
+        void bothAreTold() {
+            var told = new ArrayList<String>();
+            router.onPointingChanged(() -> told.add("first"));
+            router.onPointingChanged(() -> told.add("second"));
+
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of("first", "second"), told);
+        }
+
+        /// It is a **notification**, not an event: there is nothing to consume,
+        /// so a listener that throws is the only way one can affect another — and
+        /// that is a bug in the listener rather than a policy this has to have.
+        @Test
+        @DisplayName("each listener reads the router for itself rather than being handed a target")
+        void listenersReadTheRouter() {
+            var seen = new ArrayList<Element>();
+            router.onPointingChanged(() -> seen.add(router.hovered()));
+
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of(inner), seen);
+        }
+
+        @Test
+        @DisplayName("a closed registration stops being told, and the others carry on")
+        void closingStops() {
+            var told = new ArrayList<String>();
+            var first = router.onPointingChanged(() -> told.add("first"));
+            router.onPointingChanged(() -> told.add("second"));
+
+            router.pointerMoved(30, 30);
+            first.close();
+            router.pointerMoved(70, 70);
+
+            assertEquals(List.of("first", "second", "second"), told);
+        }
+
+        /// Closing twice is a no-op, which [dev.goldberry.bind.Subscription]
+        /// requires: a state that unsubscribes in `dispose()` and a caller that
+        /// unsubscribes itself must not fight.
+        @Test
+        @DisplayName("closing twice is harmless")
+        void closingTwice() {
+            var told = new ArrayList<String>();
+            var only = router.onPointingChanged(() -> told.add("x"));
+
+            only.close();
+            only.close();
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of(), told);
+        }
+
+        /// The reason the list is copy-on-write, and it is not threads: a
+        /// tooltip's listener that cancels itself the moment it fires would
+        /// otherwise mutate the list being walked.
+        @Test
+        @DisplayName("a listener may cancel itself from inside the notification")
+        void selfCancelling() {
+            var told = new ArrayList<String>();
+            var handle = new dev.goldberry.bind.Subscription[1];
+            handle[0] = router.onPointingChanged(() -> {
+                told.add("once");
+                handle[0].close();
+            });
+            router.onPointingChanged(() -> told.add("after"));
+
+            router.pointerMoved(30, 30);
+            router.pointerMoved(70, 70);
+
+            assertEquals(List.of("once", "after", "after"), told);
+        }
+
+        /// Focus counts as pointing moving — §7 shows a tooltip "on hover *and on
+        /// keyboard focus*", so both have to reach the same listeners.
+        @Test
+        @DisplayName("focus moving tells them too, not only the pointer")
+        void focusCounts() {
+            var told = new ArrayList<String>();
+            router.onPointingChanged(() -> told.add("moved"));
+
+            router.focus(inner, true);
+
+            assertEquals(List.of("moved"), told);
+        }
+    }
+
+    @Nested
+    @DisplayName("restyle bookkeeping")
+    class Restyling {
+
+        @Test
+        @DisplayName("a pseudo-class change marks styles dirty exactly once")
+        void dirtyOnce() {
+            router.pointerMoved(30, 30);
+
+            assertTrue(router.takeStylesDirty());
+            // Cleared on read, so "did anything change since the last frame" is
+            // the question it answers.
+            assertFalse(router.takeStylesDirty());
+        }
+    }
+}

@@ -1,0 +1,130 @@
+package dev.goldberry.widgets.overlay.popover;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.paint.tree.RenderTree;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+
+/// The floating panel a popup draws — `docs/core-widgets.md` §7's `popover`, and
+/// what §7 calls "the primitive under menus, dropdowns, `date-picker`,
+/// `color-picker` and autocomplete".
+///
+/// ```kdl
+/// popover {
+///     button "Rename…"
+///     button "Duplicate"
+///     separator
+///     button class="danger" "Delete"
+/// }
+/// ```
+///
+/// ```java
+/// host.popup(new Popover(items), "menu-button", Placement.BELOW)
+///     .ifPresent(open -> this.menu = open);
+/// ```
+///
+/// ## It is the panel, not the opening
+///
+/// A popover is two things everywhere else: a surface, and the machinery that
+/// decides where that surface goes and when it goes away. Here the second half is
+/// **not a widget** — it is `Host.popup`, which measures the content, applies
+/// `Placement`'s flip and shift against the display's work area, opens a platform
+/// window and light-dismisses it. That machinery serves a `tooltip`, a `select`
+/// and a `menu` equally, none of which is a popover, so it does not belong inside
+/// one ([ADR-0104]).
+///
+/// What is left is worth a widget on its own: the surface, the edge, the radius,
+/// the elevation and the padding that make a floating panel read as floating.
+/// Being a widget is also what makes it themeable, densities included, and what
+/// lets a document write one.
+///
+/// ## It is the root of its own tree
+///
+/// A popup's contents are a root and not a descendant, so **nothing inherits into
+/// this node** — not `color`, not `font-size`, and no descendant selector from
+/// the window that opened it. That is why `popover` carries its own surface and
+/// its own foreground rather than relying on an ancestor for either
+/// ([ADR-0103]).
+///
+/// The `class="menu"` variant is the one this ships with: column direction, no
+/// padding of its own beyond a hairline, and items that fill the width.
+///
+/// @param children   what is in the panel
+/// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("popover")
+public record Popover(List<Widget> children, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Attributed<Popover> {
+
+    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    public Popover(@Nullable List<Widget> children, @Nullable Attributes attributes) {
+        children = List.copyOf(children == null ? List.of() : children);
+        attributes = attributes == null ? Attributes.NONE : attributes;
+        Objects.requireNonNull(children, "children");
+        this.children = children;
+        this.attributes = attributes;
+    }
+
+    public Popover(Widget... children) {
+        this(List.of(children), Attributes.NONE);
+    }
+
+    @Override
+    public String cssType() {
+        return "popover";
+    }
+
+    @Override
+    public @Nullable String id() {
+        return attributes.id();
+    }
+
+    @Override
+    public Set<String> classes() {
+        return attributes.classes();
+    }
+
+    @Override
+    public Popover withAttributes(Attributes value) {
+        return new Popover(children, value);
+    }
+
+    @Override
+    public List<Widget> children() {
+        return children;
+    }
+
+    /// Sized by its content, and **deliberately not growing**.
+    ///
+    /// A popup window is created at exactly this panel's measured size, so being
+    /// content-sized and filling the window are the same thing here. Growing is
+    /// not: `flex-grow` on a root with a definite available size grows *into* it,
+    /// so a growing panel measures as whatever it was measured against — which is
+    /// how the first version of this opened a menu the size of the whole window
+    /// (see [RenderTree#measure]).
+    @Override
+    public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+        return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `popover` from markup.
+    ///
+    /// It is the panel and not the opening: where a popover goes and when it goes
+    /// away is `Host.popup`'s, which serves a tooltip and a select equally and is
+    /// not a widget (ADR-0104).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Popover(children, Attributes.of(node));
+    }
+}

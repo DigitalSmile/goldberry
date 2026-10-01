@@ -2,9 +2,9 @@ import com.vanniktech.maven.publish.JavaLibrary
 import com.vanniktech.maven.publish.JavaPlatform
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SourcesJar
-import io.github.digitalsmile.goldberry.build.publish.CorrespondingSource
-import io.github.digitalsmile.goldberry.build.publish.PublishedModule
-import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+import dev.goldberry.build.publish.CorrespondingSource
+import dev.goldberry.build.publish.PublishedModule
+import dev.goldberry.build.publish.PublishedModules
 
 // ============================================================================
 // Publishing to Maven Central (docs/ARCHITECTURE.md §15, ADR-0334)
@@ -72,7 +72,7 @@ mavenPublishing {
         name = PublishedModules.displayName(module)
         description = project.description
         inceptionYear = '2026'
-        url = 'https://github.com/DigitalSmile/goldberry'
+        url = 'https://goldberry.dev'
         licenses {
             license {
                 name = 'The Apache License, Version 2.0'

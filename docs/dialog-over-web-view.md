@@ -54,7 +54,7 @@ SDL window's surface through `SDL_GetWindowSurface` and
 toast goes into that surface. The page's window is above it by construction.
 
 So the statement in
-[`WebScreen`](../example/src/main/java/io/github/digitalsmile/goldberry/example/ui/WebScreen.java)
+[`WebScreen`](../example/src/main/java/dev/goldberry/example/ui/WebScreen.java)
 is accurate, and it is the current, deliberate position:
 
 > "Open a dialog over the page" is here to show the **one thing an embedded page
@@ -93,7 +93,7 @@ own note says the Wayland case *"is its own half of the demonstration"*.
 Worth stating before the options, because three of them turn on it:
 
 - `Dialogs.show(host, dialog)` is one line —
-  [`host.fill(dialog)`](../widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/overlay/dialog/Dialogs.java).
+  [`host.fill(dialog)`](../widgets/src/main/java/dev/goldberry/widgets/overlay/dialog/Dialogs.java).
   A dialog is an ordinary filling `Overlay` in the window's own tree. It has no
   window and never has had one.
 - Modality is one flag on the tree, `Handles#isModal`

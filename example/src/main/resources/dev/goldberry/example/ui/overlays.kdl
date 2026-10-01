@@ -1,0 +1,72 @@
+// The **Overlays** screen's markup half: the three places something opens *over*
+// this window, and the bar that opens them.
+//
+// The rest of the screen — the four resident banners, the error summary and the
+// stack that grows and shrinks — is
+// [dev.goldberry.example.ui.Notifications], because a banner
+// that arrives and goes is a *list the application edits* and §8's markup is
+// data (ADR-0175, ADR-0222).
+//
+// The root is a `masonry` of cards for the reason every screen's is: these three
+// are three lines, six lines and a paragraph tall.
+masonry id="overlays-wall" columns=2 {
+
+  card id="layer-card" class="wall-card" {
+    text class="card-title" "The overlay layer"
+    row id="overlays" {
+      button id="menu-button" press="app.open-menu" \
+             tooltip="A platform popup window, free of this window's bounds" "Menu"
+      button id="hud-button" class="ghost" press="app.toggle-hud" \
+             tooltip="A frame-rate readout in the window's own overlay layer" "HUD"
+      button id="dialog-button" press="app.open-dialog" \
+             tooltip="A modal: a veil over the window and a focus trap in it" "Dialog"
+      button id="toast-button" class="ghost" press="app.raise-toast" \
+             tooltip="A notification: it stacks, it waits its turn, and it pauses \
+while the pointer is on it" "Toast"
+    }
+    text class="caption" id="overlay-note" \
+         "The menu is a second platform window: it is placed against the button, \
+flips above it near the bottom of the screen, and takes the keyboard while it is \
+open. The HUD floats in this window's own layer and is clipped to it. The dialog \
+covers the window: try Tab with it open, and the keyboard never leaves it."
+  }
+
+  card id="menubar-card" class="wall-card" {
+    text class="card-title" "A menu bar of its own"
+    // A second `menubar`, below the window's own -- the same widget, driven by
+    // this screen's actions rather than by the application's. Two of them on one
+    // screen is the demonstration that a menu bar is a *widget* and not a
+    // property of the window (ADR-0192).
+    menubar id="demo-menubar" {
+      item "Errand" {
+        item press="app.click" accelerator="Ctrl+K" "March a league"
+        item press="app.undo" accelerator="Ctrl+Z" "Turn back"
+        separator
+        item press="app.reset" accelerator="Ctrl+R" "Begin again at Bag End"
+      }
+      item "Light" {
+        item press="app.toggle-theme" accelerator="Ctrl+T" "Moria or Lórien"
+        item press="app.toggle-hud" accelerator="Ctrl+F" "Frame rate"
+      }
+      item "Counsel" {
+        item "Not wired to anything"
+        item "And disabled too" disabled=#true
+      }
+    }
+    text class="caption" id="menubar-note" \
+         "Click a heading, or press F10. With a menu down, running along the bar \
+swaps menus without a click. The accelerators work with the bar shut — try \
+Ctrl+K with no menu open."
+  }
+
+  card id="context-card" class="wall-card" {
+    text class="card-title" "Context menus"
+    panel id="context-target" context-menu="content" tooltip="Right-click me" {
+      text "Right-click anywhere in here — or press the menu key, which puts the \
+same menu at the focused widget rather than at the pointer."
+    }
+    text class="caption" "The whole window answers this one too: `context-menu=` \
+is on the root, so a right-click anywhere opens what the application registered \
+under that name."
+  }
+}

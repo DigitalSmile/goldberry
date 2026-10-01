@@ -36,7 +36,7 @@ arithmetic mistakes of our own.
 Dashing happens in `:core`, over `paint.Path`, before the path reaches the
 rasterizer. **A dashed stroke is a solid stroke of a different path.**
 
-Two public classes in a new `io.github.digitalsmile.goldberry.paint.geom`:
+Two public classes in a new `dev.goldberry.paint.geom`:
 
 ```java
 public static Path Flattener.flatten(Path path, double tolerance);

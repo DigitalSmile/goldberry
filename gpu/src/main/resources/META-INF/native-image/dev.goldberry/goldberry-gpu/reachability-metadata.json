@@ -1,0 +1,14 @@
+{
+  "comment": [
+    "What :gpu ships that is read as a resource, declared by glob rather than",
+    "traced (ADR-0160, ADR-0453).",
+    "",
+    "The toolkit's shaders, compiled by :gpu:compileShaders into SPIR-V, DXIL and",
+    "MSL, and the manifest of their sources' hashes. ShaderLibrary reads them",
+    "with getResourceAsStream in whichever format the device takes, so an image",
+    "needs all three families: the machine it runs on decides which is read."
+  ],
+  "resources": [
+    { "module": "dev.goldberry.gpu", "glob": "dev/goldberry/gpu/shaders/*" }
+  ]
+}

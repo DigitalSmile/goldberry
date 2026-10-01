@@ -57,7 +57,7 @@ calls to be registered, because the registration comes from the holder existing.
   `reachability-metadata.json`, in the agent's own spelling: `jint`, `void*`,
   `struct(jfloat,jfloat)`, `padding(n)`, `sequence(n, …)`, `union(…)`.
 - `:natives:foreignMetadata` is a `JavaExec` on the module path that runs it, and
-  `jar` copies the result under `META-INF/native-image/io.github.digitalsmile/goldberry-natives/`.
+  `jar` copies the result under `META-INF/native-image/dev.goldberry/goldberry-natives/`.
   `native-image` reads that path from every jar on its module path, so an
   application building its own image gets the registrations without knowing
   they exist — ADR-0160's arrangement, again.

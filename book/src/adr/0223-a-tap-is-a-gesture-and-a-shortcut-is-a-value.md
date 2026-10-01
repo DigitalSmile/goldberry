@@ -43,7 +43,7 @@ distinction survives**, and the last component that holds one is `Window`.
 ## Decision
 
 **A tap is its own concept, in its own package** —
-`io.github.digitalsmile.goldberry.input.tap`, beside `input.key` rather than
+`dev.goldberry.input.tap`, beside `input.key` rather than
 inside it. `input.key` is a vocabulary of values; this is a gesture recogniser.
 Two types:
 
@@ -113,7 +113,7 @@ under a compositor that swallows `Alt` for its own window switcher.
 
 ## Consequences
 
-- **A new exported package**, `io.github.digitalsmile.goldberry.input.tap`, with
+- **A new exported package**, `dev.goldberry.input.tap`, with
   two public types. It is the first package in `input` that holds a *recogniser*
   rather than a value or a dispatcher, which is why it is not in `input.key`.
 - **`Window` grows five call sites** — two feeds and three interruptions — and

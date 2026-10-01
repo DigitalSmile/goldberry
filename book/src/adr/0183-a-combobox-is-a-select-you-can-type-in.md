@@ -25,7 +25,7 @@ a question the free-text form does not: **where does the editing state live?**
 
 §3 says "makes the closed control an editable `text-input`", and it is meant
 literally: `SelectField` holds a
-[TextInput](../../../widgets/src/main/java/io/github/digitalsmile/goldberry/widgets/form/textinput/TextInput.java)
+[TextInput](../../../widgets/src/main/java/dev/goldberry/widgets/form/textinput/TextInput.java)
 as a child. Everything an editable field needs — the edit model, the undo
 history, the clipboard, the caret's blink, IME — already lives there and has
 rules in it ([ADR-0167](0167-a-field-owns-its-caret-and-the-model-is-told.md)). A

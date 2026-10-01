@@ -15,7 +15,7 @@
 /// `@SuppressWarnings("module")` for the qualified exports below, and for nothing
 /// else.
 ///
-/// `exports … to io.github.digitalsmile.goldberry.core` names a module that is
+/// `exports … to dev.goldberry.core` names a module that is
 /// **not on this module's compile path and cannot be** — `:core` requires
 /// `:natives`, so the dependency runs the other way and javac compiles this one
 /// first. It warns that the target module is not found, which under `-Werror` is
@@ -26,7 +26,7 @@
 /// lint off for every directive in this descriptor rather than for the twelve
 /// that need it.
 @SuppressWarnings("module")
-module io.github.digitalsmile.goldberry.natives {
+module dev.goldberry.natives {
 
     // A facade, not an implementation: applications choose the backend, and one
     // that chooses none sees nothing at all (ADR-0023).
@@ -35,7 +35,7 @@ module io.github.digitalsmile.goldberry.natives {
     // Logging and the start-up timeline. Not `transitive`: nothing here puts a
     // type of :common in a signature, so a consumer of :natives is not made to
     // read it (ADR-0174).
-    requires io.github.digitalsmile.goldberry.common;
+    requires dev.goldberry.common;
 
     // JSpecify's nullness annotations, which appear on exported signatures --
     // `@Nullable` where a parameter takes null, since ADR-0497 -- so a consumer
@@ -81,21 +81,21 @@ module io.github.digitalsmile.goldberry.natives {
     // `transitive`ly. What is left unqualified is SDL's wrappers, which an
     // application legitimately names -- a `BackendWindow` handed to a popup, a
     // tray, a cursor.
-    exports io.github.digitalsmile.goldberry.natives.blend2d to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.blend2d.enums to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.blend2d.error to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.harfbuzz to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.harfbuzz.enums to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.sdl;
-    exports io.github.digitalsmile.goldberry.natives.sdl.dialog;
-    exports io.github.digitalsmile.goldberry.natives.sdl.event;
-    exports io.github.digitalsmile.goldberry.natives.sdl.window;
-    exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
+    exports dev.goldberry.natives.blend2d to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.blend2d.enums to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.blend2d.error to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.harfbuzz to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.harfbuzz.enums to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.sdl;
+    exports dev.goldberry.natives.sdl.dialog;
+    exports dev.goldberry.natives.sdl.event;
+    exports dev.goldberry.natives.sdl.window;
+    exports dev.goldberry.natives.sdl.desktop;
 
     /// GLib's logging hooks, exported to `:core` alone (ADR-0443).
     ///
@@ -105,8 +105,8 @@ module io.github.digitalsmile.goldberry.natives {
     /// caller is the SDL backend, which installs the bridge immediately before
     /// it does either of the two things that load GLib — creating a tray, and
     /// opening a page.
-    exports io.github.digitalsmile.goldberry.natives.glib to
-            io.github.digitalsmile.goldberry.core;
+    exports dev.goldberry.natives.glib to
+            dev.goldberry.core;
 
     // What the desktop says that SDL does not ask it — reduce-motion, through
     // the settings portal, `user32` and `NSWorkspace` (ADR-0383). Its own
@@ -114,7 +114,7 @@ module io.github.digitalsmile.goldberry.natives {
     // is SDL's: these are read-only queries against libraries the process
     // already has, and each one answers "the desktop does not say" when it
     // cannot ask.
-    exports io.github.digitalsmile.goldberry.natives.desktop;
+    exports dev.goldberry.natives.desktop;
 
     /// What this build of the platform layer can actually do (ADR-0325).
     ///
@@ -123,8 +123,8 @@ module io.github.digitalsmile.goldberry.natives {
     /// toolkit's own `Capability`, so no type of this module appears in a
     /// signature it can name. What crosses here is an enum of five constants and
     /// an `int` behind it.
-    exports io.github.digitalsmile.goldberry.natives.platform to
-            io.github.digitalsmile.goldberry.core;
+    exports dev.goldberry.natives.platform to
+            dev.goldberry.core;
     /// md4c, exported to `:html` and to nobody else (ADR-0294).
     ///
     /// The second name on this seal, and the first that is not `:core`. Markdown is
@@ -138,31 +138,31 @@ module io.github.digitalsmile.goldberry.natives {
     /// memory and no struct layout. The event stream is encoded in C and read once,
     /// so the seven detail structs md4c hands its callbacks are never modelled in
     /// Java at all.
-    exports io.github.digitalsmile.goldberry.natives.md4c to
-            io.github.digitalsmile.goldberry.html;
-    exports io.github.digitalsmile.goldberry.natives.md4c.enums to
-            io.github.digitalsmile.goldberry.html;
+    exports dev.goldberry.natives.md4c to
+            dev.goldberry.html;
+    exports dev.goldberry.natives.md4c.enums to
+            dev.goldberry.html;
     /// SDL's audio streams, exported to `:media` and to nobody else (ADR-0461).
     ///
     /// md4c's seal, for the media engine's audio sink: the toolkit plays no
     /// audio itself, and SDL, already linked in, is a second audio library that
     /// does not have to be shipped. What crosses is a direct `ByteBuffer` in and
     /// frame counts out.
-    exports io.github.digitalsmile.goldberry.natives.sdl.audio to
-            io.github.digitalsmile.goldberry.media;
+    exports dev.goldberry.natives.sdl.audio to
+            dev.goldberry.media;
     // SDL_GPU, for M4 (docs/gpu-plan.md, D6): to :core, which will claim a
     // window and present through it, and to :gpu, whose public API is built on
     // it. The wrappers carry no MemorySegment, as ADR-0280 asks; the two readers
     // are the amendment ADR-0461 made for :media, made again.
-    exports io.github.digitalsmile.goldberry.natives.sdl.gpu to
-            io.github.digitalsmile.goldberry.core,
-            io.github.digitalsmile.goldberry.gpu;
+    exports dev.goldberry.natives.sdl.gpu to
+            dev.goldberry.core,
+            dev.goldberry.gpu;
     // SDL_GPU's enumerations: tables of C constants that touch no foreign
     // memory, split from the wrappers that hold a handle as `blend2d.enums` is
     // (ADR-0172, ADR-0496). The same two readers.
-    exports io.github.digitalsmile.goldberry.natives.sdl.gpu.enums to
-            io.github.digitalsmile.goldberry.core,
-            io.github.digitalsmile.goldberry.gpu;
+    exports dev.goldberry.natives.sdl.gpu.enums to
+            dev.goldberry.core,
+            dev.goldberry.gpu;
     /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,
     /// ADR-0329).
     ///
@@ -171,8 +171,8 @@ module io.github.digitalsmile.goldberry.natives {
     /// What crosses here is a `ByteBuffer` in and an `int[]` out — the decoded
     /// buffer is libwebp's for the length of one call and is freed before it
     /// returns, so there is no lifetime to hand over.
-    exports io.github.digitalsmile.goldberry.natives.webp to
-            io.github.digitalsmile.goldberry.core;
+    exports dev.goldberry.natives.webp to
+            dev.goldberry.core;
     /// `webview/webview`, behind §9's `web-view` (ADR-0441).
     ///
     /// Qualified to `:core` like Blend2D's and Yoga's, and for their reason: an
@@ -185,12 +185,12 @@ module io.github.digitalsmile.goldberry.natives {
     /// `libgoldberry-webview` is built beside it, linked into nothing, and opened
     /// on demand — which is why this is also the only wrapper whose absence is an
     /// ordinary state rather than a broken installation.
-    exports io.github.digitalsmile.goldberry.natives.webview to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.yoga to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.yoga.style to
-            io.github.digitalsmile.goldberry.core;
-    exports io.github.digitalsmile.goldberry.natives.yoga.measure to
-            io.github.digitalsmile.goldberry.core;
+    exports dev.goldberry.natives.webview to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.yoga to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.yoga.style to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.yoga.measure to
+            dev.goldberry.core;
 }

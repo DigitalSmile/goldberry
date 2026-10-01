@@ -18,7 +18,7 @@ The reasoning was available, it was written down already, and it was wrong:
 
 - On Linux the engine runs on GLib's main context, and **nothing drives that
   context except Goldberry's event loop**.
-  [`WebViewEngine#pump()`](../../../core/src/main/java/io/github/digitalsmile/goldberry/render/web/WebViewEngine.java)
+  [`WebViewEngine#pump()`](../../../core/src/main/java/dev/goldberry/render/web/WebViewEngine.java)
   is called once per turn of `EventLoop#run`.
 - That loop parks in SDL for up to `WEB_VIEW_TIMEOUT`, **8 ms**, and GLib's file
   descriptors are not in that wait. `EventLoop` says so itself: *"Nothing wakes

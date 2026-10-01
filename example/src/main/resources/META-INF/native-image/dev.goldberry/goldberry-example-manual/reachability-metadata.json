@@ -1,0 +1,83 @@
+{
+  "comment": [
+    "Hand-written, and in a directory of its own so that re-running the agent",
+    "cannot overwrite it -- `nativeImageMetadata` writes only to the sibling",
+    "`goldberry-example` directory (ADR-0156). native-image reads every",
+    "META-INF/native-image/** it finds, so the two are merged for it and kept",
+    "apart for us.",
+    "",
+    "logback.xml is here because the agent records it as a CLASSPATH resource:",
+    "logback asks a ClassLoader for it, and that is what the agent sees. In the",
+    "image the showcase runs on the module path, so the file lives at the root of",
+    "a named module and has to be registered against that module or it is simply",
+    "not there. The symptom is a silent image: with no configuration found,",
+    "logback ends up with no appenders and prints nothing at all -- not even its",
+    "own status.",
+    "",
+    "libgoldberry is here because the agent cannot have seen it: the trace runs",
+    "with -Dgoldberry.native.library pointing at the build tree, which is the",
+    "branch of NativeLibrary that does NOT read a resource. The image takes the",
+    "other branch -- unpack from the classpath -- so the library has to be",
+    "registered by hand or the one file the image is meant to be turns back into",
+    "two (ADR-0159).",
+    "",
+    "A ** glob rather than this machine's classifier, so the same metadata is",
+    "right on all four targets.",
+    "",
+    "The showcase's own stylesheet and documents are globbed for the same reason",
+    "the toolkit's are (ADR-0160): a screen the trace never opened contributes",
+    "nothing, and the symptom is an image that dies when somebody clicks the tab.",
+    "That happened once more with the canvas screen's five sample images, which",
+    "were neither globbed here nor reached by the trace; DeclaredResourcesTest now",
+    "holds this list to every file under src/main/resources, so a resource added",
+    "without a glob fails the build rather than the image.",
+    "",
+    "catalog/*.txt is generated rather than committed -- the category tables",
+    "`prepareCatalogs` compiles for the Icons and Emoji sheets -- so no test over",
+    "src/main/resources can see it, and it is declared here by hand.",
+    "",
+    "media/* is the Media screen's sample clips, which ShowcaseMedia reads with",
+    "getResourceAsStream when a source is picked -- never during the trace."
+  ],
+  "resources": [
+    {
+      "module": "dev.goldberry.example",
+      "glob": "logback.xml"
+    },
+    {
+      "glob": "dev/goldberry/natives/**"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/*.css"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/catalog/*.txt"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/ui/*.kdl"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/gpu/*"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/ui/*.md"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/ui/*.html"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/ui/canvas-sample.*"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/media/*"
+    }
+  ]
+}

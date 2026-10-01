@@ -1,6 +1,6 @@
-import io.github.digitalsmile.goldberry.build.publish.PublishedModules
-import io.github.digitalsmile.goldberry.build.version.BuildVersion
-import io.github.digitalsmile.goldberry.build.version.VersionBump
+import dev.goldberry.build.publish.PublishedModules
+import dev.goldberry.build.version.BuildVersion
+import dev.goldberry.build.version.VersionBump
 
 import java.time.Year
 

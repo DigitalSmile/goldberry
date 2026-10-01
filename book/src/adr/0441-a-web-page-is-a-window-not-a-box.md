@@ -70,7 +70,7 @@ the compositor is concerned. There is no protocol for it and no plan for one.
 The second is missing because a Wayland client is not told where it is and may
 not say where it goes. That is not a gap in this toolkit — it is written into
 the SPI already:
-[`BackendWindow#position()`](../../../core/src/main/java/io/github/digitalsmile/goldberry/render/window/BackendWindow.java)
+[`BackendWindow#position()`](../../../core/src/main/java/dev/goldberry/render/window/BackendWindow.java)
 returns an `Optional` and documents it as *"empty when the platform will not
 say"*, and `SDL_SetWindowPosition` is a no-op for toplevels there. A companion
 window cannot follow a box it cannot locate.

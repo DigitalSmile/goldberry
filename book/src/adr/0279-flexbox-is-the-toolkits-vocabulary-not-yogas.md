@@ -33,7 +33,7 @@ file". That was true of brd and false of the toolkit.
 
 ## Decision
 
-A `io.github.digitalsmile.goldberry.layout` package in `:core`, holding the
+A `dev.goldberry.layout` package in `:core`, holding the
 flexbox vocabulary as plain values: `Length` (sealed — `Points`, `Percent`,
 `Keyword.AUTO`, `Keyword.UNDEFINED`), `Insets`, `Limits`, `FlexDirection`,
 `Justify`, `Align`, `Wrap`, `Position`, `Overflow`, plus `Measure`,
@@ -79,7 +79,7 @@ tried; the test fails on it.
 ## Consequences
 
 - **`:natives`' Yoga packages are sealed**, which is the point: `exports … to
-  io.github.digitalsmile.goldberry.core`, and a scratch module that tries to
+  dev.goldberry.core`, and a scratch module that tries to
   import `StyleLength` is refused by javac with "does not export it".
 - **`yoga.measure` had to go with `yoga.style`.** Its `MeasureMode` implements
   `YogaEnum`, which lives in `yoga.style`, so qualifying one broke the other's

@@ -43,7 +43,7 @@ var png = Offscreen.of(1200, 900)
         .encodePng();
 ```
 
-`io.github.digitalsmile.goldberry.offscreen.Offscreen`, a builder with two
+`dev.goldberry.offscreen.Offscreen`, a builder with two
 terminals: `paint(Painter)` runs a painter over the whole buffer, and
 `render(Widget)` runs the window's own sequence. Both return an
 `image.Image`, so a PNG is one more call and a crop or a composite is

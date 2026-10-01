@@ -1,5 +1,5 @@
-import io.github.digitalsmile.goldberry.build.nativeimage.GraalVmRelease
-import io.github.digitalsmile.goldberry.build.nativeimage.TraceVideoDriver
+import dev.goldberry.build.nativeimage.GraalVmRelease
+import dev.goldberry.build.nativeimage.TraceVideoDriver
 
 plugins {
     id 'goldberry.java-conventions'
@@ -98,9 +98,9 @@ def prepareCatalogs = tasks.register('prepareCatalogs', JavaExec) {
     description = 'Compiles the icon categories and emoji groups the showcase sheets are grouped by.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareCatalogs'
+    mainClass = 'dev.goldberry.assets.prepare.PrepareCatalogs'
     args assetCache.asFile.absolutePath,
-            catalogResources.get().dir('io/github/digitalsmile/goldberry/example/catalog').asFile.absolutePath
+            catalogResources.get().dir('dev/goldberry/example/catalog').asFile.absolutePath
 
     inputs.files configurations.assetTool
     outputs.dir catalogResources
@@ -119,12 +119,12 @@ tasks.register('vendorLicences', JavaExec) {
     description = 'Copies the Unicode licence into licenses/.'
 
     classpath = configurations.assetTool
-    mainClass = 'io.github.digitalsmile.goldberry.assets.prepare.PrepareAssets'
+    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
     args assetCache.asFile.absolutePath,
             layout.buildDirectory.dir('generated/unused').get().asFile.absolutePath,
             rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
             '--only=unicode-emoji',
-            '--root=io/github/digitalsmile/goldberry/example'
+            '--root=dev/goldberry/example'
 }
 
 // Where a locally built libgoldberry lives, for a run straight from the source
@@ -142,18 +142,18 @@ def hostTarget = project(':natives').ext.hostNativeTargetId
 def hostLibrary = project(':natives').ext.hostNativeLibrary.get().asFile
 
 application {
-    mainClass = 'io.github.digitalsmile.goldberry.example.Showcase'
-    mainModule = 'io.github.digitalsmile.goldberry.example'
+    mainClass = 'dev.goldberry.example.Showcase'
+    mainModule = 'dev.goldberry.example'
 
     // JEP 472: the natives module is the one that touches native code, so it is
     // the one named here. Naming a module rather than ALL-UNNAMED is what the
     // module descriptors in the toolkit exist for (ADR-0007), and running the
     // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
-            '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+            '--enable-native-access=dev.goldberry.natives',
             // goldberry-media binds FFmpeg itself (ADR-0461), and the system's
             // decoders (ADR-0472, ADR-0493).
-            '--enable-native-access=io.github.digitalsmile.goldberry.media',
+            '--enable-native-access=dev.goldberry.media',
     ]
 
     // macOS drives AppKit from the process's first thread, and the java launcher
@@ -175,7 +175,7 @@ application {
 
 // The application module, which is what `--module` names for the image and
 // what JEP 472's `--enable-native-access` is granted to.
-def appModule = 'io.github.digitalsmile.goldberry.example'
+def appModule = 'dev.goldberry.example'
 
 // ============================================================================
 // The GPU lane (docs/gpu-plan.md, phase 5)
@@ -194,7 +194,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     group = 'verification'
     description = 'Runs the showcase\'s GPU tests on the JVM\'s first thread, as macOS needs.'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (project(':natives').ext.hostNativeTargetId.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'
@@ -214,7 +214,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
     outputs.file(summary)
     argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.example']
+        [summary.get().asFile.absolutePath, 'dev.goldberry.example']
     } as CommandLineArgumentProvider)
 }
 
@@ -448,7 +448,7 @@ def graalTool = { String tool ->
 // the diff, and it is packaged into the jar like any other resource so that a
 // downstream image build finds it without being told (ADR-0156).
 def metadataDir = layout.projectDirectory
-        .dir('src/main/resources/META-INF/native-image/io.github.digitalsmile/goldberry-example')
+        .dir('src/main/resources/META-INF/native-image/dev.goldberry/goldberry-example')
 
 // An `Exec` and not a `JavaExec`: JavaExec takes its launcher from the project's
 // toolchain convention, and setting `executable` to a different JDK is a conflict
@@ -493,7 +493,7 @@ tasks.register('nativeImageMetadata', Exec) {
                 .join(File.pathSeparator)
 
         def command = [graalTool('java'),
-                       '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+                       '--enable-native-access=dev.goldberry.natives',
                        "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
                        "-Dgoldberry.backend.videoDriver=${videoDriver}",
                        "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
@@ -506,7 +506,7 @@ tasks.register('nativeImageMetadata', Exec) {
         // why ADR-0156 says the trace is checked in and reviewed rather than
         // trusted.
         command += ['--module-path', modulePath,
-                    '--module', "${appModule}/io.github.digitalsmile.goldberry.example.Showcase",
+                    '--module', "${appModule}/dev.goldberry.example.Showcase",
                     '--frames=120']
         commandLine command
     }
@@ -587,10 +587,10 @@ tasks.register('nativeImage', Exec) {
                 // on the class path it is exactly what a released application
                 // sees, which is the arrangement NativeLibrary was written for.
                 '-cp', nativesJar.get().asFile.absolutePath,
-                '--module', "${appModule}/io.github.digitalsmile.goldberry.example.Showcase",
+                '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
                 // JEP 472, the same module the jar names (ADR-0007).
-                '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+                '--enable-native-access=dev.goldberry.natives',
                 // No `--no-fallback`. It was here because a fallback image is a
                 // JVM in a trench coat, and GraalVM 25.3 -- the line CI pins --
                 // has no fallback images left to refuse: the flag reports
@@ -634,10 +634,10 @@ tasks.register('webPumpProbe', JavaExec) {
     group = 'verification'
     description = "Measures an embedded page's own animation rate."
 
-    mainClass = 'io.github.digitalsmile.goldberry.example.webpump.PumpProbe'
+    mainClass = 'dev.goldberry.example.webpump.PumpProbe'
     mainModule = appModule
     classpath = sourceSets.main.runtimeClasspath
-    jvmArgs '--enable-native-access=io.github.digitalsmile.goldberry.natives'
+    jvmArgs '--enable-native-access=dev.goldberry.natives'
 
     if (hostLibrary.isFile()) {
         systemProperty 'goldberry.native.library', hostLibrary.absolutePath

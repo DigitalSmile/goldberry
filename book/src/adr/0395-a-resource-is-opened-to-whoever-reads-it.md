@@ -25,7 +25,7 @@ WARN ImageState - image resource:…example.ui.CanvasScreen:canvas-sample.jpg di
   java.io.IOException: no image resource "canvas-sample.jpg" at resource:…:canvas-sample.jpg
 ```
 
-The file is there. `example/src/main/resources/io/github/digitalsmile/goldberry/example/ui/canvas-sample.jpg`
+The file is there. `example/src/main/resources/dev/goldberry/example/ui/canvas-sample.jpg`
 has been there all along, and `DeclaredResourcesTest` asserts it is.
 
 **JPMS encapsulates resources, and only on the module path.** A file in a package
@@ -35,7 +35,7 @@ showcase knew that and said so in its `module-info`, and then got the target
 wrong:
 
 ```java
-opens io.github.digitalsmile.goldberry.example.ui to io.github.digitalsmile.goldberry.core;
+opens dev.goldberry.example.ui to dev.goldberry.core;
 ```
 
 Its own comment explained the choice: the package is opened "to whoever loads
@@ -69,10 +69,10 @@ does the same:
 
 ```
 the image resource "canvas-sample.jpg" at resource:…CanvasScreen:canvas-sample.jpg
-is encapsulated: module io.github.digitalsmile.goldberry.example does not open
-io.github.digitalsmile.goldberry.example.ui to io.github.digitalsmile.goldberry.widgets,
+is encapsulated: module dev.goldberry.example does not open
+dev.goldberry.example.ui to dev.goldberry.widgets,
 and JPMS encapsulates resources as well as classes. Add `opens
-io.github.digitalsmile.goldberry.example.ui to io.github.digitalsmile.goldberry.widgets;`
+dev.goldberry.example.ui to dev.goldberry.widgets;`
 to its module-info — the file itself may well be there.
 ```
 

@@ -10,7 +10,7 @@
        resized against a verified extent. The same module Error Prone is off for,
        and for the same reason - its contract is the layout probe. -->
   <Match>
-    <Package name="~io\.github\.digitalsmile\.goldberry\.natives.*"/>
+    <Package name="~dev\.goldberry\.natives.*"/>
   </Match>
 
   <!-- A widget is a value that holds the arrays it was given and never mutates

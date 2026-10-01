@@ -1,0 +1,462 @@
+package dev.goldberry.render.backend.sdl3;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import dev.goldberry.render.backend.sdl3.WaylandDecorations.Verdict;
+
+/// Tests for [WaylandDecorations].
+///
+/// The behaviour worth pinning down is not "does it warn" but *when it stays
+/// quiet*. This message is only useful if it is true every time it appears, so
+/// the cases that must produce nothing — X11, a machine whose plugin directory
+/// could not be located, a directory with a working plugin in it — carry as much
+/// weight here as the one that produces the warning.
+@DisplayName("WaylandDecorations")
+class WaylandDecorationsTest {
+
+    private static final String GTK = WaylandDecorations.GTK_PLUGIN;
+    private static final String CAIRO = "libdecor-cairo.so";
+
+    /// What the stock `java` launcher gives you: main on a thread it created.
+    private static final Optional<Boolean> CREATED_THREAD = Optional.of(false);
+
+    /// What an embedded `JNI_CreateJavaVM` launcher gives you.
+    private static final Optional<Boolean> INITIAL_THREAD = Optional.of(true);
+
+    /// A machine whose /proc could not answer.
+    private static final Optional<Boolean> UNKNOWN_THREAD = Optional.empty();
+
+    private static Optional<List<String>> plugins(String... names) {
+        return Optional.of(List.of(names));
+    }
+
+    private static Optional<List<String>> noDirectory() {
+        return Optional.empty();
+    }
+
+    @Nested
+    @DisplayName("verdict")
+    class VerdictOf {
+
+        /// The whole truth table: driver, what is in the plugin directory, which
+        /// thread Java is on, and the verdict. Every reason the table encodes,
+        /// in the order the rows run:
+        ///
+        /// The GTK plugin alone is `UNDECORATED` under the stock `java` launcher
+        /// and `DECORATED` on the initial thread — measured, not assumed: an
+        /// embedded `JNI_CreateJavaVM` launcher runs Java on the primordial
+        /// thread, and there libdecor loads the GTK plugin and draws decorations
+        /// that match the desktop, so warning would be plainly wrong about a
+        /// titlebar the user is looking at. With no answer about the thread it is
+        /// `UNKNOWN`, and that is the *only* case whose answer depends on the
+        /// thread: nothing to load is nothing to load, so an empty directory
+        /// stays `UNDECORATED` however the question is asked.
+        ///
+        /// Cairo alongside GTK is enough, verified against the real libdecor:
+        /// with both present and the caller off the initial thread, libdecor
+        /// reports the GTK failure and then decorates anyway, and its "falling
+        /// back on no decorations" line is not printed. Any non-GTK plugin
+        /// counts, including one that does not exist yet — this is not an
+        /// allow-list of known names, because a distribution shipping its own
+        /// plugin should not trip a warning and this code cannot be updated on
+        /// their release schedule.
+        ///
+        /// Off Wayland the answer is `UNKNOWN`: X11 windows are decorated by the
+        /// window manager and never reach libdecor, which is exactly why forcing
+        /// x11 is the workaround the message suggests. And "there are no plugins"
+        /// against "I do not know where the plugins live" is the whole reason the
+        /// verdict is not a boolean.
+        static Stream<Arguments> table() {
+            return Stream.of(
+                    arguments(
+                            "GTK alone under the stock java launcher",
+                            "wayland",
+                            plugins(GTK),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "GTK alone on the initial thread",
+                            "wayland",
+                            plugins(GTK),
+                            INITIAL_THREAD,
+                            Verdict.DECORATED),
+                    arguments(
+                            "GTK alone with no answer about the thread",
+                            "wayland",
+                            plugins(GTK),
+                            UNKNOWN_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments(
+                            "an empty directory on the initial thread",
+                            "wayland",
+                            plugins(),
+                            INITIAL_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "an empty directory with no thread answer",
+                            "wayland",
+                            plugins(),
+                            UNKNOWN_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments(
+                            "an empty directory under the stock launcher",
+                            "wayland",
+                            plugins(),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED),
+                    arguments("Cairo alongside GTK", "wayland", plugins(GTK, CAIRO), CREATED_THREAD, Verdict.DECORATED),
+                    arguments(
+                            "a plugin that does not exist yet",
+                            "wayland",
+                            plugins(GTK, "libdecor-something-new.so"),
+                            CREATED_THREAD,
+                            Verdict.DECORATED),
+                    arguments(
+                            "the x11 driver is not libdecor's business",
+                            "x11",
+                            plugins(GTK),
+                            CREATED_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments("nor is cocoa", "cocoa", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor windows", "windows", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor offscreen", "offscreen", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments("nor dummy", "dummy", plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments(
+                            "the plugin directory could not be located",
+                            "wayland",
+                            noDirectory(),
+                            CREATED_THREAD,
+                            Verdict.UNKNOWN),
+                    arguments("the driver is unknown", null, plugins(GTK), CREATED_THREAD, Verdict.UNKNOWN),
+                    arguments(
+                            "files in the directory that are not plugins are ignored",
+                            "wayland",
+                            plugins(GTK, "README", "libdecor-cairo.so.disabled"),
+                            CREATED_THREAD,
+                            Verdict.UNDECORATED));
+        }
+
+        @ParameterizedTest(name = "{0} is {4}")
+        @MethodSource("table")
+        @DisplayName("the verdict is UNDECORATED only when it is certain, and UNKNOWN wherever it cannot tell")
+        void verdict(
+                String what, String driver, Optional<List<String>> files, Optional<Boolean> thread, Verdict expected) {
+            assertEquals(expected, WaylandDecorations.verdict(driver, files, thread), what);
+        }
+    }
+
+    @Nested
+    @DisplayName("the message")
+    class Message {
+
+        @Test
+        @DisplayName("names the symptom, the cause, and the package that fixes it")
+        void namesSymptomCauseAndFix() {
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
+
+            assertAll(
+                    () -> assertTrue(message.contains("no titlebar"), message),
+                    () -> assertTrue(message.contains("no way to resize"), message),
+                    () -> assertTrue(message.contains("initial thread"), message),
+                    () -> assertTrue(message.contains("gettid() != getpid()"), message),
+                    () -> assertTrue(message.contains("sudo apt install libdecor-0-plugin-1-cairo"), message),
+                    () -> assertTrue(message.contains("nothing needs rebuilding"), message));
+        }
+
+        @Test
+        @DisplayName("heads off the downgrade, which is the obvious wrong idea")
+        void headsOffTheDowngrade() {
+            // libdecor <= 0.2.2 has no such check and decorates a JVM window
+            // perfectly, so anyone who saw it work will reach for an older
+            // libdecor first. That reintroduces the GTK state corruption the
+            // check was added for (libdecor issue #72).
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
+
+            assertAll(
+                    () -> assertTrue(message.contains("0.2.3"), message),
+                    () -> assertTrue(message.contains("Downgrading"), message),
+                    () -> assertTrue(message.contains("crash"), message));
+        }
+
+        @Test
+        @DisplayName("offers the X11 escape hatch under the property that actually works")
+        void offersTheX11Escape() {
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
+            // Spelled from the constant, so renaming the property cannot leave the
+            // message advising a flag that no longer exists.
+            assertTrue(message.contains("-D" + Sdl3Backend.VIDEO_DRIVER_PROPERTY + "=x11"), message);
+        }
+
+        @Test
+        @DisplayName("does not blame the GTK plugin when no plugin is installed at all")
+        void doesNotBlameGtkWhenItIsAbsent() {
+            var message = WaylandDecorations.diagnose("wayland", plugins(), CREATED_THREAD)
+                    .orElseThrow();
+
+            assertAll(
+                    () -> assertTrue(message.contains("No libdecor plugin is installed"), message),
+                    // The GTK-specific accusation, not the words "initial thread"
+                    // -- those now appear in the third remedy, which is offered
+                    // whatever the cause was.
+                    () -> assertFalse(message.contains("refuses to start"), message),
+                    () -> assertFalse(message.contains("Downgrading"), message),
+                    () -> assertTrue(message.contains("libdecor-0-plugin-1-cairo"), message));
+        }
+
+        @Test
+        @DisplayName("is absent whenever the verdict is not UNDECORATED")
+        void isAbsentOtherwise() {
+            assertAll(
+                    () -> assertTrue(WaylandDecorations.diagnose("wayland", plugins(GTK, CAIRO), CREATED_THREAD)
+                            .isEmpty()),
+                    () -> assertTrue(WaylandDecorations.diagnose("x11", plugins(GTK), CREATED_THREAD)
+                            .isEmpty()),
+                    () -> assertTrue(WaylandDecorations.diagnose("wayland", noDirectory(), CREATED_THREAD)
+                            .isEmpty()));
+        }
+    }
+
+    @Nested
+    @DisplayName("verdictForWayland — the driver-independent core")
+    class DriverIndependent {
+
+        @Test
+        @DisplayName("gives the same answer as verdict, without needing a driver name")
+        void agreesWithTheDriverForm() {
+            // These two must not drift: `verdict` is the whole public answer and
+            // this is its core with the driver test peeled off.
+            for (var files : List.of(plugins(GTK), plugins(), plugins(GTK, CAIRO))) {
+                for (var thread : List.of(CREATED_THREAD, INITIAL_THREAD, UNKNOWN_THREAD)) {
+                    assertEquals(
+                            WaylandDecorations.verdict("wayland", files, thread),
+                            WaylandDecorations.verdictForWayland(files, thread),
+                            "disagreed for " + files + " / " + thread);
+                }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("reading the thread from /proc")
+    class ReadingTheThread {
+
+        /// The one test here that reads the real filesystem, and therefore the
+        /// one whose right answer depends on which machine is running it.
+        ///
+        /// **Both halves are assertions, not a skip.** On Linux this is a live
+        /// check that the `/proc` parsing works against a real symlink — JUnit
+        /// runs tests on a thread the framework made, and even a plain `java`
+        /// main is not the primordial thread, so the answer must be `false`
+        /// either way. Everywhere else it is a live check of the other half of
+        /// the documented contract: a machine that cannot say produces
+        /// **silence rather than a guess**, which means empty rather than a
+        /// default, an exception, or `false` by accident.
+        ///
+        /// Gating it with `@EnabledOnOs(LINUX)` would have been the smaller edit
+        /// and would have left macOS and Windows asserting nothing at all about
+        /// the call that actually runs there — and the absence path is the one
+        /// they take.
+        @Test
+        @DisplayName("says false on a machine with /proc, and nothing at all on one without")
+        void theAnswerDependsOnWhetherProcCanGiveOne() {
+            var procCanAnswer = Files.isSymbolicLink(Path.of("/proc/thread-self"));
+
+            if (procCanAnswer) {
+                assertEquals(
+                        Optional.of(false),
+                        WaylandDecorations.onInitialThread(),
+                        "a JVM's threads are never the process's initial one, and /proc says so");
+            } else {
+                assertEquals(
+                        Optional.empty(),
+                        WaylandDecorations.onInitialThread(),
+                        "without /proc the answer is silence, not a guess -- the verdict reads "
+                                + "this as UNKNOWN and stays quiet");
+            }
+        }
+
+        @Test
+        @DisplayName("reads pid and tid out of the one symlink")
+        void readsBothNumbersFromOneLink(@TempDir Path temp) throws IOException {
+            var initial = temp.resolve("initial");
+            var created = temp.resolve("created");
+            Files.createSymbolicLink(initial, Path.of("55887/task/55887"));
+            Files.createSymbolicLink(created, Path.of("55889/task/55890"));
+
+            assertAll(
+                    () -> assertEquals(Optional.of(true), WaylandDecorations.onInitialThread(initial)),
+                    () -> assertEquals(Optional.of(false), WaylandDecorations.onInitialThread(created)));
+        }
+
+        @Test
+        @DisplayName("gives no answer where /proc is not there to give one")
+        void noAnswerWithoutProc(@TempDir Path temp) throws IOException {
+            var missing = temp.resolve("nothing-here");
+            var notALink = Files.writeString(temp.resolve("regular"), "");
+            var wrongShape = temp.resolve("odd");
+            Files.createSymbolicLink(wrongShape, Path.of("55887/threads/55887"));
+
+            assertAll(
+                    () -> assertTrue(WaylandDecorations.onInitialThread(missing).isEmpty()),
+                    () -> assertTrue(
+                            WaylandDecorations.onInitialThread(notALink).isEmpty()),
+                    () -> assertTrue(
+                            WaylandDecorations.onInitialThread(wrongShape).isEmpty()));
+        }
+    }
+
+    @Nested
+    @DisplayName("finding the plugin directory")
+    class FindingTheDirectory {
+
+        @Test
+        @DisplayName("takes LIBDECOR_PLUGIN_DIR at its word, with no fallback")
+        void honoursTheEnvironmentOverride() {
+            var candidates = WaylandDecorations.candidateDirectories("/opt/plugins", "amd64");
+            // Exactly one: libdecor does not fall back either, so a warning derived
+            // from a conventional directory it will never read would be fiction.
+            assertEquals(List.of(Path.of("/opt/plugins")), candidates);
+        }
+
+        @Test
+        @DisplayName("ignores a blank override")
+        void ignoresABlankOverride() {
+            assertTrue(WaylandDecorations.candidateDirectories("   ", "amd64").size() > 1);
+        }
+
+        @Test
+        @DisplayName("puts the multiarch directory first on Debian architectures")
+        void multiarchComesFirst() {
+            assertEquals(
+                    Path.of("/usr/lib/x86_64-linux-gnu/libdecor/plugins-1"),
+                    WaylandDecorations.candidateDirectories(null, "amd64").getFirst());
+            assertEquals(
+                    Path.of("/usr/lib/aarch64-linux-gnu/libdecor/plugins-1"),
+                    WaylandDecorations.candidateDirectories(null, "aarch64").getFirst());
+        }
+
+        @Test
+        @DisplayName("still offers lib64 and lib for an architecture it has no triplet for")
+        void unknownArchitectureStillHasCandidates() {
+            var candidates = WaylandDecorations.candidateDirectories(null, "riscv64");
+            assertAll(
+                    () -> assertTrue(
+                            WaylandDecorations.multiarchTriplet("riscv64").isEmpty()),
+                    () -> assertTrue(candidates.contains(Path.of("/usr/lib64/libdecor/plugins-1"))),
+                    () -> assertTrue(candidates.contains(Path.of("/usr/lib/libdecor/plugins-1"))));
+        }
+
+        @Test
+        @DisplayName("takes the first directory that exists, and skips the ones that do not")
+        void takesTheFirstThatExists(@TempDir Path temp) throws IOException {
+            var real = Files.createDirectories(temp.resolve("plugins-1"));
+            Files.writeString(real.resolve(CAIRO), "");
+
+            var asked = new java.util.ArrayList<Path>();
+            var listing = WaylandDecorations.pluginFiles(null, "amd64", directory -> {
+                asked.add(directory);
+                return directory.equals(Path.of("/usr/lib/libdecor/plugins-1"))
+                        ? Optional.of(List.of(CAIRO))
+                        : Optional.empty();
+            });
+
+            assertAll(
+                    () -> assertEquals(Optional.of(List.of(CAIRO)), listing),
+                    // Stopped at the one that answered rather than listing them all.
+                    () -> assertEquals(Path.of("/usr/lib/libdecor/plugins-1"), asked.getLast()));
+        }
+
+        @Test
+        @DisplayName("reports no directory when none of the candidates exist")
+        void reportsNoDirectoryWhenNoneExist() {
+            assertTrue(WaylandDecorations.pluginFiles(null, "amd64", directory -> Optional.empty())
+                    .isEmpty());
+        }
+    }
+
+    /// The lister that reads the real filesystem — the one place in this class
+    /// that can fail rather than merely not know.
+    @Nested
+    @DisplayName("reading a candidate directory")
+    class ReadingTheDirectory {
+
+        @Test
+        @DisplayName("a directory answers with its file names, in a fixed order")
+        void listsWhatIsThere(@TempDir Path temp) throws IOException {
+            Files.writeString(temp.resolve(GTK), "");
+            Files.writeString(temp.resolve(CAIRO), "");
+
+            // Sorted rather than in readdir order: the verdict does not care,
+            // but a message quoting the listing would read differently on two
+            // machines with the same plugins installed.
+            assertEquals(Optional.of(List.of(CAIRO, GTK)), WaylandDecorations.listDirectory(temp));
+        }
+
+        @Test
+        @DisplayName("something that is not a directory is not an answer")
+        void aFileIsNoAnswer(@TempDir Path temp) throws IOException {
+            var file = Files.writeString(temp.resolve("plugins-1"), "");
+
+            assertAll(
+                    () -> assertTrue(WaylandDecorations.listDirectory(file).isEmpty()),
+                    () -> assertTrue(WaylandDecorations.listDirectory(temp.resolve("absent"))
+                            .isEmpty()));
+        }
+
+        /// **The crash.** A plugin directory that exists and will not open threw
+        /// an `UncheckedIOException` out of a lister that the [Sdl3Backend]
+        /// constructor calls for a *diagnostic*. That constructor catches
+        /// `SdlException` and `UnsatisfiedLinkError` and neither of those, so an
+        /// unreadable `/usr/lib/.../libdecor/plugins-1` took the application
+        /// down with SDL still initialized and the event buffer still open —
+        /// over a question about whether the titlebar would be drawn.
+        @Test
+        @DisplayName("a directory that cannot be read is not an answer either, and not a crash")
+        void anUnreadableDirectoryIsNoAnswer(@TempDir Path temp) throws IOException {
+            // Windows has no mode bits to take away, and root ignores the ones
+            // it has. Neither can be made to reproduce the bug, and a directory
+            // that turned out to be readable would assert the opposite of the
+            // point rather than nothing at all.
+            assumeTrue(
+                    FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+                    "no POSIX permissions here, so no unreadable directory to make");
+
+            var unreadable = Files.createDirectory(temp.resolve("plugins-1"));
+            Files.writeString(unreadable.resolve(CAIRO), "");
+            Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("-wx------"));
+            try {
+                assumeTrue(!Files.isReadable(unreadable), "this user reads a directory with no read bit");
+
+                assertEquals(Optional.empty(), WaylandDecorations.listDirectory(unreadable));
+            } finally {
+                // Put it back, or the temp directory cannot be cleaned up.
+                Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("rwx------"));
+            }
+        }
+    }
+}

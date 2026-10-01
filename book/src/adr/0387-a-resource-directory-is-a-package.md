@@ -12,18 +12,18 @@ would have caught it.
 `goldberry-emoji` put its face where the asset step had always put faces:
 
 ```
-io/github/digitalsmile/goldberry/assets/fonts/OpenMoji-black.ttf
+dev/goldberry/assets/fonts/OpenMoji-black.ttf
 ```
 
 `goldberry-core` still ships four faces and an icon table in that same
 directory. **A resource directory is a package to the module system**, exactly
 as a directory of classes is — so two modules contained
-`io.github.digitalsmile.goldberry.assets.fonts`, and the showcase died before
+`dev.goldberry.assets.fonts`, and the showcase died before
 its first frame:
 
 ```
-java.lang.LayerInstantiationException: Package io.github.digitalsmile.goldberry.assets.fonts
-    in both module io.github.digitalsmile.goldberry.emoji and module …core
+java.lang.LayerInstantiationException: Package dev.goldberry.assets.fonts
+    in both module dev.goldberry.emoji and module …core
 ```
 
 Every test passed, and that is the part worth writing down. Tests run on a
@@ -39,8 +39,8 @@ shape of failure this repository has tests for — and the module graph, which
 the artifacts to say so.**
 
 - `PrepareAssets` takes `--root=`, so a build script says where inside the jar
-  its assets land. `:core` keeps `io/github/digitalsmile/goldberry/assets`;
-  `:emoji` writes `io/github/digitalsmile/goldberry/emoji`, and its face is
+  its assets land. `:core` keeps `dev/goldberry/assets`;
+  `:emoji` writes `dev/goldberry/emoji`, and its face is
   `…/emoji/fonts/OpenMoji-black.ttf`.
 - `SplitPackageTest` is `:example`'s, because `:example` is the one module that
   depends on every other. It walks each Goldberry artifact on the class path —

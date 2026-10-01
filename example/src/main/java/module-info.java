@@ -4,8 +4,8 @@
 /// the module path is the case `--enable-native-access=<module>` is designed for
 /// (ADR-0007), and it only works if the toolkit's own descriptors are right.
 /// Building this on the classpath instead would leave that untested.
-module io.github.digitalsmile.goldberry.example {
-    requires io.github.digitalsmile.goldberry.core;
+module dev.goldberry.example {
+    requires dev.goldberry.core;
 
     /// JSpecify's nullness annotations, for the packages under NullAway.
     ///
@@ -13,7 +13,7 @@ module io.github.digitalsmile.goldberry.example {
     /// `@Nullable` appears on exported signatures and a consumer compiling
     /// against one has to read it (`docs/testing.md` §2).
     requires transitive static org.jspecify;
-    requires io.github.digitalsmile.goldberry.widgets;
+    requires dev.goldberry.widgets;
 
     /// The first content module an application opts into (ADR-0190), and **both** of
     /// its widgets. The Panels and Markdown screens name `markdown-view` in KDL and
@@ -25,7 +25,7 @@ module io.github.digitalsmile.goldberry.example {
     /// `MarkdownEvent` or an `MD_BLOCKTYPE`, because `:natives` exports md4c to
     /// `:html` and to nobody else (ADR-0294). An application gets a document and a
     /// widget, and the parser is somebody else's business.
-    requires io.github.digitalsmile.goldberry.html;
+    requires dev.goldberry.html;
 
     /// The emoji face, which is an artifact an application opts into rather than
     /// something `:core` carries: Noto Color Emoji is five megabytes an
@@ -36,16 +36,16 @@ module io.github.digitalsmile.goldberry.example {
     /// Nothing in this module names a type of it. The face arrives through a
     /// service `:core` looks up, so what this line buys is a provider on the
     /// module path.
-    requires io.github.digitalsmile.goldberry.emoji;
+    requires dev.goldberry.emoji;
 
     /// `goldberry-media`, for the Media screen: `audio-player` is found through
     /// the module's widget catalog, and the screen drives a `MediaPlayer`.
-    requires io.github.digitalsmile.goldberry.media;
+    requires dev.goldberry.media;
 
     /// `goldberry-gpu`: the GPU screen's `canvas3d` and the cube it draws with
     /// (`docs/gpu-plan.md`, phase 5). It is also what composites the showcase's
     /// windows (ADR-0480), which being on the module path was enough for.
-    requires io.github.digitalsmile.goldberry.gpu;
+    requires dev.goldberry.gpu;
 
     // The local server the network samples are played from, so they play offline.
     requires jdk.httpserver;
@@ -76,7 +76,7 @@ module io.github.digitalsmile.goldberry.example {
     /// module needs neither -- the weaver works from inside the class -- so this
     /// line is the cost of not having to run a build step
     /// (ADR-0155).
-    opens io.github.digitalsmile.goldberry.example to io.github.digitalsmile.goldberry.core;
+    opens dev.goldberry.example to dev.goldberry.core;
 
     /// And the same for the panes' documents and the Canvas screen's sample
     /// image — one `opens` per package that keeps a resource, which is the
@@ -85,7 +85,7 @@ module io.github.digitalsmile.goldberry.example {
     /// Two modules here rather than one: `canvas-sample.jpg` sits beside these
     /// classes and is read by an `image` widget, which is `:widgets`' code
     /// ([ADR-0395]).
-    opens io.github.digitalsmile.goldberry.example.ui to
-            io.github.digitalsmile.goldberry.core,
-            io.github.digitalsmile.goldberry.widgets;
+    opens dev.goldberry.example.ui to
+            dev.goldberry.core,
+            dev.goldberry.widgets;
 }

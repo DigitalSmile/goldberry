@@ -28,7 +28,7 @@ Two things follow when that is built as written:
 ## Decision
 
 **An `AudioSink` interface between the Engine and the output**, public in
-`io.github.digitalsmile.goldberry.media.audio`:
+`dev.goldberry.media.audio`:
 `open(AudioFormat) → AudioFormat`, `write`, `queuedSamples`, `clear`, `pause`,
 `resume`, `setGain`, `close`. The Engine writes one format, interleaved f32 at
 one rate and channel count (`AudioFormat`), and **the sink's queue is the audio

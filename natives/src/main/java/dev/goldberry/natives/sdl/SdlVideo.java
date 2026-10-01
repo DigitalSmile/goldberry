@@ -1,0 +1,891 @@
+package dev.goldberry.natives.sdl;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+import org.slf4j.Logger;
+
+import dev.goldberry.log.Logs;
+import dev.goldberry.natives.NativeLibrary;
+import dev.goldberry.natives.layout.Layouts;
+import dev.goldberry.natives.sdl.calls.SdlDisplayCalls;
+import dev.goldberry.natives.sdl.calls.SdlEventCalls;
+import dev.goldberry.natives.sdl.calls.SdlSurfaceCalls;
+import dev.goldberry.natives.sdl.calls.SdlThemeCalls;
+import dev.goldberry.natives.sdl.calls.SdlWindowCalls;
+import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
+import dev.goldberry.natives.sdl.event.SdlEventType;
+import dev.goldberry.natives.sdl.window.NativeWindowHandle;
+import dev.goldberry.natives.sdl.window.SdlIconImage;
+import dev.goldberry.natives.sdl.window.SdlPixelFormat;
+import dev.goldberry.natives.sdl.window.SdlWindowFlag;
+
+/// SDL3's windowing, event and CPU presentation calls.
+///
+/// Every method here must be called on the UI thread, with one exception:
+/// [#pushWakeup()] is safe from anywhere, because SDL's event queue is
+/// internally locked and pushing to it is the sanctioned way to reach the event
+/// loop from another thread.
+///
+/// The present path lives here rather than above the boundary. Copying rows into
+/// an `SDL_Surface` means touching the surface's `pixels` pointer, and §3.1 keeps
+/// that inside this module — so `:core` hands over a [ByteBuffer] and this class
+/// does the blit.
+public final class SdlVideo {
+
+    private static final Logger LOG = Logs.of(SdlVideo.class);
+
+    private static final long SURFACE_FORMAT = Layouts.SDL_SURFACE.offsetOf("format");
+    private static final long SURFACE_WIDTH = Layouts.SDL_SURFACE.offsetOf("w");
+    private static final long SURFACE_HEIGHT = Layouts.SDL_SURFACE.offsetOf("h");
+    private static final long SURFACE_PITCH = Layouts.SDL_SURFACE.offsetOf("pitch");
+    private static final long SURFACE_PIXELS = Layouts.SDL_SURFACE.offsetOf("pixels");
+    private static final long DISPLAY_MODE_REFRESH_RATE = Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
+
+    private static final long RECT_SIZE = Layouts.SDL_RECT.byteSize();
+    private static final long RECT_X = Layouts.SDL_RECT.offsetOf("x");
+    private static final long RECT_Y = Layouts.SDL_RECT.offsetOf("y");
+    private static final long RECT_W = Layouts.SDL_RECT.offsetOf("w");
+    private static final long RECT_H = Layouts.SDL_RECT.offsetOf("h");
+
+    private static final class Holder {
+        private static final SdlVideo INSTANCE =
+                new SdlVideo(NativeLibrary.get().lookup());
+    }
+
+    private final SdlWindowCalls sdlWindowCalls;
+    private final SdlSurfaceCalls sdlSurfaceCalls;
+    private final SdlDisplayCalls sdlDisplayCalls;
+    private final SdlEventCalls sdlEventCalls;
+    private final SdlThemeCalls sdlThemeCalls;
+
+    private SdlVideo(SymbolLookup lookup) {
+        this.sdlWindowCalls = SdlWindowCalls.bind(lookup);
+        this.sdlSurfaceCalls = SdlSurfaceCalls.bind(lookup);
+        this.sdlDisplayCalls = SdlDisplayCalls.bind(lookup);
+        this.sdlEventCalls = SdlEventCalls.bind(lookup);
+        this.sdlThemeCalls = SdlThemeCalls.bind(lookup);
+        // Everything else is bound with `Downcalls.symbol`, which fails loudly,
+        // because a missing symbol there means a window cannot open and the export
+        // list is simply wrong. The display-mode pair is different: it feeds the
+        // frame pacer, which already has a defined answer for "the platform will
+        // not say" -- do not pace (ADR-0047). Making them mandatory would mean a
+        // `libgoldberry` built before they were added stops opening windows at
+        // all, to enable an optimization.
+        if (!sdlDisplayCalls.getDisplayForWindow().isAvailable()
+                || !sdlDisplayCalls.getCurrentDisplayMode().isAvailable()) {
+            LOG.debug("libgoldberry does not export SDL_GetDisplayForWindow and"
+                    + " SDL_GetCurrentDisplayMode; the frame loop will not be paced"
+                    + " to the display");
+        }
+    }
+
+    public static SdlVideo get() {
+        return Holder.INSTANCE;
+    }
+
+    /// What the desktop is set to, light or dark.
+    ///
+    /// [SdlSystemTheme#UNKNOWN] where the platform has no such setting, where the
+    /// driver cannot ask, **and** where this build of `libgoldberry` predates the
+    /// export — all three are the same answer to everyone above this line, and the
+    /// distinction an application needs is between "unknown" and a theme rather
+    /// than between the reasons for the first (`docs/gaps.md` G26, [ADR-0322]).
+    public SdlSystemTheme systemTheme() {
+        if (!sdlThemeCalls.getSystemTheme().isAvailable()) {
+            return SdlSystemTheme.UNKNOWN;
+        }
+        return SdlSystemTheme.of(sdlThemeCalls.getSystemTheme().call());
+    }
+
+    /// Creates a window.
+    ///
+    /// `width` and `height` are in SDL's window coordinates, which are logical
+    /// pixels on every platform Goldberry targets.
+    public SdlWindowHandle createWindow(String title, int width, int height, Collection<SdlWindowFlag> flags) {
+
+        MemorySegment pointer;
+        try (var arena = Arena.ofConfined()) {
+            var titleSegment = arena.allocateFrom(title);
+            pointer = sdlWindowCalls.createWindow().call(titleSegment, width, height, SdlWindowFlag.mask(flags));
+        }
+        if (MemorySegment.NULL.equals(pointer)) {
+            throw new SdlException("SDL_CreateWindow", Sdl.get().lastError());
+        }
+        var id = sdlWindowCalls.getWindowId().call(pointer);
+        return new SdlWindowHandle(pointer, id);
+    }
+
+    /// Creates a popup window parented to `parent`.
+    ///
+    /// A popup is a real platform window that is **positioned in its parent's
+    /// coordinates** and stays above it — which is what lets a menu or a
+    /// dropdown escape the bounds of the window that opened it, the one thing an
+    /// in-window overlay cannot do.
+    ///
+    /// `flags` must contain exactly one of [SdlWindowFlag#POPUP_MENU] and
+    /// [SdlWindowFlag#TOOLTIP]; SDL refuses the rest, because every window
+    /// manager treats the two differently. Add [SdlWindowFlag#NOT_FOCUSABLE] for
+    /// a tooltip: the tooltip flag alone does *not* stop a popup taking focus.
+    ///
+    /// **Empty when the video driver has no popups.** SDL's `dummy` driver has
+    /// none, which is the configuration most headless tests run in; the three
+    /// desktop drivers Goldberry ships against — x11, wayland, cocoa and the
+    /// Windows one — all do. A caller gets a refusal to handle rather than an
+    /// exception, because "this platform has no popup windows" is a fact about
+    /// the platform and not a failure ([ADR-0019]).
+    ///
+    /// @param parent  the window this popup belongs to
+    /// @param offsetX x, in the parent's logical coordinates
+    /// @param offsetY y, in the parent's logical coordinates
+    /// @param width   logical width
+    /// @param height  logical height
+    /// @param flags   the creation flags, including exactly one popup kind
+    /// @return the popup, or empty if the driver does not support popups
+    public java.util.Optional<SdlWindowHandle> createPopupWindow(
+            SdlWindowHandle parent, int offsetX, int offsetY, int width, int height, Collection<SdlWindowFlag> flags) {
+
+        Objects.requireNonNull(parent, "parent");
+        var pointer = sdlWindowCalls
+                .createPopupWindow()
+                .call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        if (MemorySegment.NULL.equals(pointer)) {
+            var error = Sdl.get().lastError();
+            // SDL's own word for "the driver cannot do this", set by
+            // SDL_Unsupported(). Anything else — a null parent, conflicting type
+            // flags — is a caller's mistake and is thrown.
+            if (error != null && error.toLowerCase(java.util.Locale.ROOT).contains("not supported")) {
+                LOG.debug("this video driver has no popup windows: {}", error);
+                return java.util.Optional.empty();
+            }
+            throw new SdlException("SDL_CreatePopupWindow", error);
+        }
+        var id = sdlWindowCalls.getWindowId().call(pointer);
+        return java.util.Optional.of(new SdlWindowHandle(pointer, id));
+    }
+
+    /// Where the window's top-left is, in the desktop's coordinates.
+    ///
+    /// For a popup this is **not** the offset it was created at: SDL reports a
+    /// popup's position differently per driver, which is why [SdlWindowHandle]'s
+    /// caller remembers what it asked for. For a top-level window it is what
+    /// turns a popup's owner-relative placement into the same coordinate space
+    /// [#displayUsableBounds] answers in.
+    public SdlPoint windowPosition(SdlWindowHandle window) {
+        try (var arena = Arena.ofConfined()) {
+            var x = arena.allocate(ValueLayout.JAVA_INT);
+            var y = arena.allocate(ValueLayout.JAVA_INT);
+            if (!sdlWindowCalls.getWindowPosition().call(window.pointer(), x, y)) {
+                throw new SdlException("SDL_GetWindowPosition", Sdl.get().lastError());
+            }
+            return new SdlPoint(x.get(ValueLayout.JAVA_INT, 0), y.get(ValueLayout.JAVA_INT, 0));
+        }
+    }
+
+    /// The part of a display a window may usefully occupy — the full bounds less
+    /// whatever the desktop has reserved for a taskbar, a dock or a panel.
+    ///
+    /// **Not the display's size**, and that is the point: a menu placed against
+    /// the screen's bottom edge opens underneath the taskbar. Some drivers cannot
+    /// tell the difference and return the full bounds, which is a worse answer
+    /// and not a wrong one.
+    ///
+    /// @param displayId the display the window is on
+    private SdlRect displayUsableBounds(int displayId) {
+        try (var arena = Arena.ofConfined()) {
+            var rect = arena.allocate(RECT_SIZE);
+            if (!sdlDisplayCalls.getDisplayUsableBounds().call(displayId, rect)) {
+                throw new SdlException("SDL_GetDisplayUsableBounds", Sdl.get().lastError());
+            }
+            return new SdlRect(
+                    rect.get(ValueLayout.JAVA_INT, RECT_X),
+                    rect.get(ValueLayout.JAVA_INT, RECT_Y),
+                    rect.get(ValueLayout.JAVA_INT, RECT_W),
+                    rect.get(ValueLayout.JAVA_INT, RECT_H));
+        }
+    }
+
+    /// [#displayUsableBounds] for the display `window` is currently on.
+    ///
+    /// Empty when SDL will not say which display that is — the same "no number
+    /// to answer with" state [#refreshRate] treats as unknowable rather than as a
+    /// failure, and for the same reason: a menu still has to open.
+    public java.util.Optional<SdlRect> windowUsableBounds(SdlWindowHandle window) {
+        var display = sdlDisplayCalls.getDisplayForWindow().call(window.pointer());
+        if (display == 0) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(displayUsableBounds(display));
+    }
+
+    /// Moves a window. For a popup the coordinates are its parent's; for a
+    /// top-level one they are the display's.
+    public void setWindowPosition(SdlWindowHandle window, int x, int y) {
+        if (!sdlWindowCalls.setWindowPosition().call(window.pointer(), x, y)) {
+            throw new SdlException("SDL_SetWindowPosition", Sdl.get().lastError());
+        }
+    }
+
+    /// Resizes a window, in logical pixels.
+    public void setWindowSize(SdlWindowHandle window, int width, int height) {
+        if (!sdlWindowCalls.setWindowSize().call(window.pointer(), width, height)) {
+            throw new SdlException("SDL_SetWindowSize", Sdl.get().lastError());
+        }
+    }
+
+    /// Sets the smallest size the user may drag a window down to, in logical
+    /// pixels.
+    ///
+    /// Zero on an axis is "no minimum", which is both SDL's reading and the one
+    /// a caller with nothing to declare wants: passing a size of `0x0` restores
+    /// the window manager's own behaviour rather than pinning the window at
+    /// nothing.
+    public void setWindowMinimumSize(SdlWindowHandle window, int width, int height) {
+        if (!sdlWindowCalls.setWindowMinimumSize().call(window.pointer(), width, height)) {
+            throw new SdlException("SDL_SetWindowMinimumSize", Sdl.get().lastError());
+        }
+    }
+
+    public void destroyWindow(SdlWindowHandle window) {
+        if (window.isDestroyed()) {
+            return;
+        }
+        var pointer = window.pointer();
+        window.markDestroyed();
+        sdlWindowCalls.destroyWindow().call(pointer);
+    }
+
+    public void showWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.showWindow().call(window.pointer())) {
+            throw new SdlException("SDL_ShowWindow", Sdl.get().lastError());
+        }
+    }
+
+    public void setWindowTitle(SdlWindowHandle window, String title) {
+        try (var arena = Arena.ofConfined()) {
+            if (!sdlWindowCalls.setWindowTitle().call(window.pointer(), arena.allocateFrom(title))) {
+                throw new SdlException("SDL_SetWindowTitle", Sdl.get().lastError());
+            }
+        }
+    }
+
+    /// Sets `window`'s icon from one or more sizes of the same picture.
+    ///
+    /// SDL's model is **one surface for 100% display scale, with the other sizes
+    /// hung off it as alternates**. On a 2x display it uses the 64px version of a
+    /// 32px icon when there is one, and it scales the nearest one when there is
+    /// not. X11's path reads the base surface alone. So the choice of base is the
+    /// caller's and matters: the first image here is the base, and the rest are
+    /// its alternates, in any order (ADR-0351).
+    ///
+    /// Every surface is a view over the caller's buffer and is destroyed before
+    /// this returns: `SDL_SetWindowIcon` converts the base and its alternates into
+    /// its own copy first.
+    ///
+    /// @param images the base size first, then any others; at least one
+    /// @return false when the library predates the export, or the platform would
+    ///         not take an icon, which is a Wayland compositor without
+    ///         `xdg-toplevel-icon`
+    public boolean setWindowIcon(SdlWindowHandle window, List<SdlIconImage> images) {
+        Objects.requireNonNull(window, "window");
+        Objects.requireNonNull(images, "images");
+        if (images.isEmpty()) {
+            throw new IllegalArgumentException("an icon needs at least one image");
+        }
+        if (!canSetWindowIcon()) {
+            return false;
+        }
+        var base = surfaceOf(images.getFirst());
+        try {
+            for (var alternate : images.subList(1, images.size())) {
+                var surface = surfaceOf(alternate);
+                try {
+                    if (!sdlSurfaceCalls.addSurfaceAlternateImage().call(base, surface)) {
+                        LOG.debug(
+                                "SDL kept no {}x{} alternate for the window icon: {}",
+                                alternate.width(),
+                                alternate.height(),
+                                Sdl.get().lastError());
+                    }
+                } finally {
+                    // SDL took its own reference to it, or refused it.
+                    sdlSurfaceCalls.destroySurface().call(surface);
+                }
+            }
+            if (!sdlWindowCalls.setWindowIcon().call(window.pointer(), base)) {
+                LOG.debug("SDL_SetWindowIcon refused: {}", Sdl.get().lastError());
+                return false;
+            }
+            return true;
+        } finally {
+            sdlSurfaceCalls.destroySurface().call(base);
+        }
+    }
+
+    /// Whether this build exports both calls a window icon needs.
+    public boolean canSetWindowIcon() {
+        return sdlWindowCalls.setWindowIcon().isAvailable()
+                && sdlSurfaceCalls.addSurfaceAlternateImage().isAvailable();
+    }
+
+    private MemorySegment surfaceOf(SdlIconImage image) {
+        var surface = sdlSurfaceCalls
+                .createSurfaceFrom()
+                .call(
+                        image.width(),
+                        image.height(),
+                        SdlPixelFormat.ARGB8888.value(),
+                        MemorySegment.ofBuffer(image.pixels()),
+                        image.stride());
+        if (MemorySegment.NULL.equals(surface)) {
+            throw new SdlException("SDL_CreateSurfaceFrom", Sdl.get().lastError());
+        }
+        return surface;
+    }
+
+    /// Asks the window manager to maximize `window`.
+    ///
+    /// **A request, not a setter** (ADR-0252). Whether it happened arrives as
+    /// `SDL_EVENT_WINDOW_MAXIMIZED`, and a window manager that declines sends
+    /// nothing — so nothing here reports the state.
+    public void maximizeWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.maximizeWindow().call(window.pointer())) {
+            throw new SdlException("SDL_MaximizeWindow", Sdl.get().lastError());
+        }
+    }
+
+    /// Asks for `window`'s ordinary size back — [#maximizeWindow]'s undo, on the
+    /// same terms.
+    public void restoreWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.restoreWindow().call(window.pointer())) {
+            throw new SdlException("SDL_RestoreWindow", Sdl.get().lastError());
+        }
+    }
+
+    /// Asks for `window` to fill its display, or to be a window again.
+    ///
+    /// A request on [#maximizeWindow]'s terms: whether it happened arrives as
+    /// `SDL_EVENT_WINDOW_ENTER_FULLSCREEN` or `…_LEAVE_FULLSCREEN`, and a window
+    /// manager that declines sends nothing.
+    public void setWindowFullscreen(SdlWindowHandle window, boolean fullscreen) {
+        if (!sdlWindowCalls.setWindowFullscreen().call(window.pointer(), fullscreen)) {
+            throw new SdlException("SDL_SetWindowFullscreen", Sdl.get().lastError());
+        }
+    }
+
+    /// Asks `window` to start delivering `SDL_EVENT_TEXT_INPUT`.
+    ///
+    /// **SDL3 does not deliver committed text until something asks.** Text input
+    /// is off when a window is created, and per window rather than per process,
+    /// because turning it on is what raises an on-screen keyboard on a tablet and
+    /// what tells an IME where to put its candidate list. Nothing in this toolkit
+    /// called it until `text-input` existed to want it, so the `TEXT_INPUT` event
+    /// [SdlEventBuffer#committedText()] has always known how to read never arrived
+    /// on a real SDL window.
+    ///
+    /// Idempotent as far as callers are concerned — SDL tracks the state itself
+    /// and [#textInputActive] reports it — but not free: on some platforms this
+    /// raises a keyboard, so it belongs on focus entering an editable field
+    /// rather than on window creation.
+    ///
+    /// A refusal is **logged rather than thrown**. A platform that will not start
+    /// text input is a platform whose keys still arrive; refusing to open the
+    /// window over it would be worse than a field that only takes what the key
+    /// events carry.
+    public void startTextInput(SdlWindowHandle window) {
+        if (!sdlWindowCalls.startTextInput().call(window.pointer())) {
+            LOG.debug("SDL_StartTextInput() refused: {}", Sdl.get().lastError());
+        }
+    }
+
+    /// Stops delivering committed text to `window` — what focus leaving the last
+    /// editable field does, and what lowers an on-screen keyboard.
+    public void stopTextInput(SdlWindowHandle window) {
+        if (!sdlWindowCalls.stopTextInput().call(window.pointer())) {
+            LOG.debug("SDL_StopTextInput() refused: {}", Sdl.get().lastError());
+        }
+    }
+
+    /// Tells the platform where the text being typed is — `docs/gaps.md` G15.
+    ///
+    /// Without it, the candidate window an input method opens goes wherever the
+    /// compositor guesses, which on a large window is routinely over the very
+    /// text being composed. With it, the list sits under the caret like a native
+    /// application's.
+    ///
+    /// All four numbers and the cursor offset are in the window's own **logical**
+    /// coordinates, which is what SDL's own units for this call are.
+    ///
+    /// A refusal is logged rather than thrown, on [#startTextInput]'s reasoning:
+    /// a platform that will not place a candidate window is one that still
+    /// delivers the text.
+    ///
+    /// @param cursor the caret's x offset from the rectangle's left edge
+    public void setTextInputArea(SdlWindowHandle window, int x, int y, int width, int height, int cursor) {
+        try (var arena = Arena.ofConfined()) {
+            var rect = arena.allocate(Layouts.SDL_RECT.layout());
+            rect.set(ValueLayout.JAVA_INT, RECT_X, x);
+            rect.set(ValueLayout.JAVA_INT, RECT_Y, y);
+            rect.set(ValueLayout.JAVA_INT, RECT_W, width);
+            rect.set(ValueLayout.JAVA_INT, RECT_H, height);
+            if (!sdlWindowCalls.setTextInputArea().call(window.pointer(), rect, cursor)) {
+                LOG.debug("SDL_SetTextInputArea() refused: {}", Sdl.get().lastError());
+            }
+        }
+    }
+
+    /// Clears the area set by [#setTextInputArea], which is what focus leaving an
+    /// editable field does.
+    public void clearTextInputArea(SdlWindowHandle window) {
+        if (!sdlWindowCalls.setTextInputArea().call(window.pointer(), MemorySegment.NULL, 0)) {
+            LOG.debug("SDL_SetTextInputArea(NULL) refused: {}", Sdl.get().lastError());
+        }
+    }
+
+    /// Whether `window` is currently receiving committed text.
+    ///
+    /// SDL's own answer rather than a flag kept here, so it stays right across
+    /// anything else in the process that touches the same window.
+    public boolean textInputActive(SdlWindowHandle window) {
+        return sdlWindowCalls.textInputActive().call(window.pointer());
+    }
+
+    /// Asks GTK to use `backend` as its window system, unless something already
+    /// said otherwise.
+    ///
+    /// Here rather than on the shim because the shim's own package is not
+    /// exported, and because this is a statement *about the video driver* — the
+    /// caller is the backend, a moment after SDL told it which driver it got.
+    ///
+    /// Two halves of one process can otherwise disagree: SDL is asked for X11
+    /// first on Linux and GDK prefers Wayland when asked nothing, so on an
+    /// XWayland desktop the window is X11 and the GTK surfaces are Wayland — and
+    /// `web-view` cannot reparent one into the other ([ADR-0442]).
+    ///
+    /// Must be called before anything initialises GTK, which on Linux means
+    /// before the first tray icon.
+    ///
+    /// @param backend the GDK backend name — `"x11"` or `"wayland"`
+    public void preferGtkBackend(String backend) {
+        dev.goldberry.natives.GoldberryShim.get().preferGtkBackend(backend);
+    }
+
+    /// The platform's own handle for `window`, or empty where there is none that
+    /// can be used.
+    ///
+    /// §12's escape hatch, and the first thing that needed it is `web-view`
+    /// ([ADR-0442]): embedding a page means reparenting its window into this one,
+    /// which needs this one named in the window system's terms.
+    ///
+    /// **Wayland answers empty on purpose.** There is a `wl_surface` and it is not
+    /// reported, because Wayland has no cross-client surface embedding to use it
+    /// for — see [NativeWindowHandle].
+    ///
+    /// The property names are string constants in SDL's headers rather than
+    /// exported symbols, so they are written out here.
+    public java.util.Optional<NativeWindowHandle> nativeHandle(SdlWindowHandle window) {
+        var properties = sdlWindowCalls.getWindowProperties().call(window.pointer());
+        if (properties == 0) {
+            return java.util.Optional.empty();
+        }
+        try (var arena = java.lang.foreign.Arena.ofConfined()) {
+            // X11 first: it is the one reported as a number, and the one that can
+            // be embedded into.
+            var x11 = sdlWindowCalls
+                    .getNumberProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.x11.window"), 0L);
+            if (x11 != 0L) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.X11, x11));
+            }
+            var win32 = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(
+                            properties,
+                            arena.allocateFrom("SDL.window.win32.hwnd"),
+                            java.lang.foreign.MemorySegment.NULL);
+            if (!java.lang.foreign.MemorySegment.NULL.equals(win32)) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.WIN32, win32.address()));
+            }
+            var cocoa = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(
+                            properties,
+                            arena.allocateFrom("SDL.window.cocoa.window"),
+                            java.lang.foreign.MemorySegment.NULL);
+            if (!java.lang.foreign.MemorySegment.NULL.equals(cocoa)) {
+                return java.util.Optional.of(new NativeWindowHandle(NativeWindowHandle.Kind.COCOA, cocoa.address()));
+            }
+            // Wayland, or a driver with no handle worth having.
+            return java.util.Optional.empty();
+        }
+    }
+
+    /// The window's size in logical pixels.
+    public SdlSize windowSize(SdlWindowHandle window) {
+        return readSize(sdlWindowCalls.getWindowSize()::call, "SDL_GetWindowSize", window);
+    }
+
+    /// The window's size in physical pixels — the size of its backing store.
+    ///
+    /// Not the logical size times the scale: SDL knows what the compositor
+    /// actually gave it, and on a fractional scale that can differ by a pixel from
+    /// anything computed. This is the number the frame must be rasterized at.
+    public SdlSize windowSizeInPixels(SdlWindowHandle window) {
+        return readSize(sdlWindowCalls.getWindowSizeInPixels()::call, "SDL_GetWindowSizeInPixels", window);
+    }
+
+    /// The display scale of the monitor this window is on. Fractional in the
+    /// ordinary case.
+    public float displayScale(SdlWindowHandle window) {
+        var scale = sdlDisplayCalls.getWindowDisplayScale().call(window.pointer());
+        if (scale <= 0f) {
+            throw new SdlException("SDL_GetWindowDisplayScale", Sdl.get().lastError());
+        }
+        return scale;
+    }
+
+    /// How many times a second the display this window is on refreshes.
+    ///
+    /// What the frame loop needs to stop painting frames that are never scanned
+    /// out (ADR-0047). Read from the *current* mode rather than the desktop one,
+    /// so a window on a second monitor is paced to that monitor.
+    ///
+    /// Zero is a legitimate answer, not a failure: SDL documents `refresh_rate`
+    /// as `0.0f` when unspecified, and some drivers never fill it in. So is a
+    /// null mode, which is what SDL returns for a display that has gone away
+    /// mid-call. Both mean "no number to pace against", and the caller treats
+    /// them the same — throwing here would turn an unknowable refresh rate into
+    /// a window that will not open.
+    ///
+    /// @return the refresh rate in Hz, or 0 if the platform will not say
+    public float refreshRate(SdlWindowHandle window) {
+        if (!sdlDisplayCalls.getDisplayForWindow().isAvailable()
+                || !sdlDisplayCalls.getCurrentDisplayMode().isAvailable()) {
+            // A libgoldberry built before these were exported. See
+            // optionalSymbol(): an unpaced loop, not a dead window.
+            return 0f;
+        }
+        var displayId = sdlDisplayCalls.getDisplayForWindow().call(window.pointer());
+        if (displayId == 0) {
+            return 0f;
+        }
+        var mode = sdlDisplayCalls.getCurrentDisplayMode().call(displayId);
+        if (MemorySegment.NULL.equals(mode)) {
+            return 0f;
+        }
+        var rate = resizeDisplayMode(mode).get(ValueLayout.JAVA_FLOAT, DISPLAY_MODE_REFRESH_RATE);
+        return rate > 0f ? rate : 0f;
+    }
+
+    /// Copies a frame into the window's surface and presents the damaged parts.
+    ///
+    /// `source` is read from its current position; its rows are `sourceStride`
+    /// bytes apart and hold `size.width()` 32-bit pixels each. `damage` is a flat
+    /// array of `x, y, w, h` quadruples in physical pixels.
+    ///
+    /// @throws SdlException if the surface is unavailable or in a format that
+    ///         cannot be blitted into
+    public void present(SdlWindowHandle window, ByteBuffer source, int sourceStride, SdlSize size, int[] damage) {
+
+        var traced = LOG.isTraceEnabled();
+        var started = traced ? System.nanoTime() : 0L;
+
+        var surface = sdlSurfaceCalls.getWindowSurface().call(window.pointer());
+        if (MemorySegment.NULL.equals(surface)) {
+            throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
+        }
+        var view = reinterpretSurface(surface);
+
+        var format = view.get(ValueLayout.JAVA_INT, SURFACE_FORMAT);
+        if (!SdlPixelFormat.isBlittable(format)) {
+            throw new SdlException(
+                    "SDL_GetWindowSurface",
+                    "the window surface is format 0x" + Integer.toHexString(format)
+                            + ", which is not a 32-bit BGRA-order format Goldberry can blit into");
+        }
+
+        var surfaceWidth = view.get(ValueLayout.JAVA_INT, SURFACE_WIDTH);
+        var surfaceHeight = view.get(ValueLayout.JAVA_INT, SURFACE_HEIGHT);
+        if (surfaceWidth != size.width() || surfaceHeight != size.height()) {
+            // SDL reallocates the surface on resize; a frame rasterized before
+            // that must not be blitted into it.
+            throw new SdlException(
+                    "SDL_GetWindowSurface",
+                    "the surface is " + surfaceWidth + "x" + surfaceHeight + " but the frame is " + size.width() + "x"
+                            + size.height());
+        }
+
+        var pitch = view.get(ValueLayout.JAVA_INT, SURFACE_PITCH);
+        var pixels = view.get(ValueLayout.ADDRESS, SURFACE_PIXELS);
+        if (MemorySegment.NULL.equals(pixels)) {
+            throw new SdlException("SDL_GetWindowSurface", "the surface has no pixels to write to");
+        }
+
+        var gotSurface = traced ? System.nanoTime() : 0L;
+
+        copyRows(source, sourceStride, resizePixels(pixels, (long) pitch * surfaceHeight), pitch, size, format);
+        var copied = traced ? System.nanoTime() : 0L;
+
+        updateRects(window, damage, size);
+
+        if (traced) {
+            var done = System.nanoTime();
+            LOG.trace(
+                    "present {}x{}: getSurface {}us, copy {}us (stride {} -> {}), update {}us",
+                    size.width(),
+                    size.height(),
+                    (gotSurface - started) / 1_000,
+                    (copied - gotSurface) / 1_000,
+                    sourceStride,
+                    pitch,
+                    (done - copied) / 1_000);
+        }
+    }
+
+    /// The window's own drawing surface, as a buffer that can be painted into
+    /// directly.
+    ///
+    /// This is the CPU path without the middle copy: instead of rasterizing into
+    /// a buffer of our own and copying it here, the caller paints straight into
+    /// the memory SDL is going to upload. The buffer is SDL's, valid until the
+    /// window is resized or presented, and must not be kept.
+    ///
+    /// @throws SdlException if the surface is unavailable or in a format
+    ///         Goldberry cannot paint into
+    public SurfaceBuffer acquireSurface(SdlWindowHandle window) {
+        var surface = sdlSurfaceCalls.getWindowSurface().call(window.pointer());
+        if (MemorySegment.NULL.equals(surface)) {
+            throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
+        }
+        var view = reinterpretSurface(surface);
+
+        var format = view.get(ValueLayout.JAVA_INT, SURFACE_FORMAT);
+        if (!SdlPixelFormat.isBlittable(format)) {
+            throw new SdlException(
+                    "SDL_GetWindowSurface",
+                    "the window surface is format 0x" + Integer.toHexString(format)
+                            + ", which is not a 32-bit BGRA-order format Goldberry can paint into");
+        }
+
+        var width = view.get(ValueLayout.JAVA_INT, SURFACE_WIDTH);
+        var height = view.get(ValueLayout.JAVA_INT, SURFACE_HEIGHT);
+        var pitch = view.get(ValueLayout.JAVA_INT, SURFACE_PITCH);
+        var pixels = view.get(ValueLayout.ADDRESS, SURFACE_PIXELS);
+        if (MemorySegment.NULL.equals(pixels)) {
+            throw new SdlException("SDL_GetWindowSurface", "the surface has no pixels to paint into");
+        }
+
+        // A ByteBuffer over SDL's memory, not a copy of it -- and a ByteBuffer
+        // rather than the segment itself, because a MemorySegment must not leave
+        // this module (sec. 3.1).
+        return new SurfaceBuffer(resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch);
+    }
+
+    /// Presents a surface that was painted into directly, with no copy.
+    public void presentAcquired(SdlWindowHandle window, SdlSize size, int[] damage) {
+        updateRects(window, damage, size);
+    }
+
+    /// Releases a window's surface, so the next [#present] gets a fresh one.
+    ///
+    /// Called after a resize: SDL keeps the old surface alive until asked.
+    public void invalidateSurface(SdlWindowHandle window) {
+        var _ = sdlSurfaceCalls.destroyWindowSurface().call(window.pointer());
+    }
+
+    /// Takes the next queued event without waiting.
+    ///
+    /// @return whether an event was written into `buffer`
+    public boolean pollEvent(SdlEventBuffer buffer) {
+        return sdlEventCalls.pollEvent().call(buffer.segment());
+    }
+
+    /// Waits up to `timeoutMillis` for an event.
+    ///
+    /// This is where the UI thread spends its idle time. It is a block, but not a
+    /// stall: it is woken by any event, including the one [#pushWakeup()] posts.
+    ///
+    /// @return whether an event was written into `buffer`
+    public boolean waitEvent(SdlEventBuffer buffer, int timeoutMillis) {
+        return sdlEventCalls.waitEventTimeout().call(buffer.segment(), timeoutMillis);
+    }
+
+    /// Posts a no-op user event, waking a [#waitEvent] in progress.
+    ///
+    /// **Safe from any thread.** SDL's event queue takes its own lock, which makes
+    /// this the one sanctioned way for background work to reach the UI thread —
+    /// and the reason the SPI's `wakeup()` can promise what it promises.
+    public void pushWakeup() {
+        try (var arena = Arena.ofConfined()) {
+            var event = arena.allocate(Layouts.SDL_EVENT.layout());
+            event.fill((byte) 0);
+            event.set(ValueLayout.JAVA_INT, 0, SdlEventType.USER.value());
+            var _ = sdlEventCalls.pushEvent().call(event);
+        }
+    }
+
+    /// Pushes a fabricated event onto SDL's queue.
+    ///
+    /// The event comes back out of [#pollEvent] and [#waitEvent] like any other,
+    /// and reaches every event watch on the way in — so what it drives is the
+    /// shipping event path rather than a test's imitation of it. Fill the buffer
+    /// with [SdlEventBuffer#writeWheel] or
+    /// [SdlEventBuffer#writeWindowEvent] first.
+    ///
+    /// @return whether SDL accepted it; an event watch may refuse one
+    public boolean push(SdlEventBuffer buffer) {
+        return sdlEventCalls
+                .pushEvent()
+                .call(Objects.requireNonNull(buffer, "buffer").segment());
+    }
+
+    /// `SDL_GetWindowSize` and `SDL_GetWindowSizeInPixels` are the same C shape
+    /// and the same three lines of arena work, so they share this. The holder is
+    /// passed as its own `call` rather than as itself: the two are separate types,
+    /// which is what keeps each one's handle a constant (ADR-0173), and a method
+    /// reference is how one function takes either.
+    @FunctionalInterface
+    private interface SizeQuery {
+        boolean call(MemorySegment window, MemorySegment width, MemorySegment height);
+    }
+
+    private SdlSize readSize(SizeQuery function, String name, SdlWindowHandle window) {
+        try (var arena = Arena.ofConfined()) {
+            var width = arena.allocate(ValueLayout.JAVA_INT);
+            var height = arena.allocate(ValueLayout.JAVA_INT);
+            if (!function.call(window.pointer(), width, height)) {
+                throw new SdlException(name, Sdl.get().lastError());
+            }
+            return new SdlSize(width.get(ValueLayout.JAVA_INT, 0), height.get(ValueLayout.JAVA_INT, 0));
+        }
+    }
+
+    private void updateRects(SdlWindowHandle window, int[] damage, SdlSize size) {
+        if (damage.length % 4 != 0) {
+            throw new IllegalArgumentException("damage must be x,y,w,h quadruples, got " + damage.length + " values");
+        }
+        var count = damage.length / 4;
+        try (var arena = Arena.ofConfined()) {
+            MemorySegment rects;
+            if (count == 0) {
+                // No damage still has to present something the first time, or the
+                // window never appears. One whole-window rect is the honest
+                // reading of "present this frame".
+                rects = arena.allocate(Layouts.SDL_RECT.layout());
+                writeRect(rects, 0, 0, 0, size.width(), size.height());
+                count = 1;
+            } else {
+                rects = arena.allocate(RECT_SIZE * count, Layouts.SDL_RECT.byteAlignment());
+                for (var i = 0; i < count; i++) {
+                    writeRect(rects, i, damage[i * 4], damage[i * 4 + 1], damage[i * 4 + 2], damage[i * 4 + 3]);
+                }
+            }
+            if (!sdlSurfaceCalls.updateWindowSurfaceRects().call(window.pointer(), rects, count)) {
+                throw new SdlException("SDL_UpdateWindowSurfaceRects", Sdl.get().lastError());
+            }
+        }
+    }
+
+    private static void writeRect(MemorySegment rects, int index, int x, int y, int w, int h) {
+        var base = index * RECT_SIZE;
+        rects.set(ValueLayout.JAVA_INT, base, x);
+        rects.set(ValueLayout.JAVA_INT, base + 4, y);
+        rects.set(ValueLayout.JAVA_INT, base + 8, w);
+        rects.set(ValueLayout.JAVA_INT, base + 12, h);
+    }
+
+    /// Copies the frame into the surface.
+    ///
+    /// One copy when the strides agree, row by row when they do not. They usually
+    /// do — both sides are `width * 4` for a tightly packed 32-bit image — and the
+    /// difference is one memcpy against a thousand of them, which at 1080p is
+    /// worth several milliseconds of every frame. SDL is entitled to pad its rows
+    /// and Blend2D is entitled to pad its own, so the slow path stays.
+    private static void copyRows(
+            ByteBuffer source, int sourceStride, MemorySegment target, int targetStride, SdlSize size, int format) {
+
+        var rowBytes = Math.multiplyExact(size.width(), 4);
+        var sourceSegment = MemorySegment.ofBuffer(source);
+
+        if (sourceStride == targetStride && sourceStride == rowBytes) {
+            MemorySegment.copy(sourceSegment, 0, target, 0, (long) rowBytes * size.height());
+        } else {
+            for (var row = 0; row < size.height(); row++) {
+                MemorySegment.copy(
+                        sourceSegment, (long) row * sourceStride, target, (long) row * targetStride, rowBytes);
+            }
+        }
+        // XRGB8888 ignores the fourth byte; ARGB8888 reads it as alpha. Blend2D
+        // produces premultiplied alpha, which is what a compositor expects, so
+        // neither needs a fix-up -- the byte order is identical.
+        assert SdlPixelFormat.isBlittable(format);
+    }
+
+    // Restricted: the surface pointer arrives zero-length and has to be resized
+    // before its fields can be read. Its extent is the struct the layout table
+    // verified, so this is a resize to a size the C compiler agreed with.
+    @SuppressWarnings("restricted")
+    private static MemorySegment reinterpretSurface(MemorySegment surface) {
+        return surface.reinterpret(Layouts.SDL_SURFACE.byteSize());
+    }
+
+    // Restricted: same obligation as the surface above. SDL owns the mode and
+    // keeps it alive for the display's lifetime; the extent is the struct's own
+    // size, verified against C by the layout probe.
+    @SuppressWarnings("restricted")
+    private static MemorySegment resizeDisplayMode(MemorySegment mode) {
+        return mode.reinterpret(Layouts.SDL_DISPLAY_MODE.byteSize());
+    }
+
+    // Restricted: same, for the pixel store. The extent comes from the surface's
+    // own pitch and height, which is exactly the region SDL owns.
+    @SuppressWarnings("restricted")
+    private static MemorySegment resizePixels(MemorySegment pixels, long bytes) {
+        return pixels.reinterpret(bytes);
+    }
+
+    // --- invocation helpers -------------------------------------------------
+    //
+    // One per signature, named for what SDL returns. These used to be a single
+    // `invokeWithArguments` taking `Object...`, which boxed every argument on
+    // every call and — worse — meant the shape was decided at run time from the
+    // arguments rather than at compile time from the constant (ADR-0161).
+
+    /// SDL's own drawing surface, borrowed.
+    ///
+    /// `pixels` is SDL's memory, not a copy. It stops being valid when the window
+    /// is resized or presented.
+    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {}
+
+    /// A point in SDL's window coordinates.
+    public record SdlPoint(int x, int y) {}
+
+    /// A rectangle in SDL's window coordinates — an `SDL_Rect`, read back.
+    ///
+    /// Deliberately not `:core`'s `DamageRect`, for the reason [SdlSize] gives.
+    public record SdlRect(int x, int y, int width, int height) {}
+
+    /// A size in SDL's terms.
+    ///
+    /// Deliberately **not** `:core`'s `PhysicalSize`, though the two hold the same
+    /// two integers. This module does not depend on that one and must not: a
+    /// backend SPI type is `:core`'s vocabulary, and moving it below the FFM
+    /// boundary would put it in a module the SPI cannot see. The backend converts,
+    /// which is also where "SDL's idea of a size" becomes "the toolkit's" and
+    /// where a future disagreement between them would have somewhere to live
+    /// (ADR-0174).
+    public record SdlSize(int width, int height) {
+
+        public SdlSize {
+            if (width < 0 || height < 0) {
+                throw new IllegalArgumentException("negative size " + width + "x" + height);
+            }
+        }
+    }
+}

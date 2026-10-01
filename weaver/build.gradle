@@ -16,7 +16,7 @@ description = 'Goldberry weaver: the widget catalog, and the models a native ima
 // @Action call sites, and only a GraalVM native image needs it -- an ordinary jar
 // binds the same annotations reflectively, so this is a dependency of the image
 // build rather than of the toolkit.
-group = 'io.github.digitalsmile'
+group = 'dev.goldberry'
 version = providers.gradleProperty('goldberryVersion').get()
 
 def catalog = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')
@@ -68,7 +68,7 @@ tasks.named('compileTestJava') {
 tasks.named('jar') {
     manifest {
         attributes(
-                'Main-Class': 'io.github.digitalsmile.goldberry.weaver.WeaverMain',
+                'Main-Class': 'dev.goldberry.weaver.WeaverMain',
                 'Implementation-Title': 'Goldberry model weaver',
                 'Implementation-Version': project.version,
         )

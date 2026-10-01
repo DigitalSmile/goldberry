@@ -33,7 +33,7 @@ void onSystemThemeChanged(Consumer<SystemTheme> listener);
 ```
 
 `SystemTheme` is `:core`'s own word for it, in a new
-`io.github.digitalsmile.goldberry.render.desktop` package — the SDL enum stays
+`dev.goldberry.render.desktop` package — the SDL enum stays
 inside `:natives`, like every other platform vocabulary.
 
 ### The `Optional` is the design, not a nicety

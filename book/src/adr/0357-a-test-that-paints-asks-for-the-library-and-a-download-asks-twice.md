@@ -39,7 +39,7 @@ that can pass on its own, and only that.**
 - `WindowResizeTest.arrivesThroughTheHandler` calls
   `RendererRequirement.enforce()`. The other four tests there only move a
   headless window and keep running without the library.
-- `io.github.digitalsmile.goldberry.assets.download.Downloader` makes the
+- `dev.goldberry.assets.download.Downloader` makes the
   request through `java.net.http` with redirects followed. It tries **four
   times**, waiting 2, 4 and 8 seconds, on HTTP 408, 429, any 5xx or an
   `IOException` from the connection. Any other status fails on the first

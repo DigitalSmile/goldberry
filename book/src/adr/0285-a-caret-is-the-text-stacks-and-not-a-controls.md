@@ -21,7 +21,7 @@ things were already built and in the wrong place, and two were not built at all.
 **Already built, in `:widgets`:** `TextEdit` — a string, a caret and an anchor,
 with every movement and deletion as a pure function — and `EditHistory`, an undo
 stack that folds a typing run into one step. Neither has ever named a widget, a
-box or an element. Both sat in `io.github.digitalsmile.goldberry.widgets.form.textinput`,
+box or an element. Both sat in `dev.goldberry.widgets.form.textinput`,
 which is to say: the rules of text editing lived in the module that draws text
 *fields*, so anything editing text anywhere else had to reach into a control's
 package or grow its own.
@@ -42,7 +42,7 @@ line; a canvas had no way to ask.
 
 ### The editing model moves to the text stack
 
-`io.github.digitalsmile.goldberry.text.edit`, beside the shaping and the layout it
+`dev.goldberry.text.edit`, beside the shaping and the layout it
 is arithmetic over. `TextEdit` and `EditHistory` move there **unchanged** —
 `:widgets` imports them from their new home, and `text-input`, `text-area` and
 `code-input` are otherwise untouched.

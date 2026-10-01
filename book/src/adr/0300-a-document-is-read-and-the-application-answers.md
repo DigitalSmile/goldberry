@@ -85,7 +85,7 @@ markdown-view bind="note.source" images="app.assets"
 ```
 
 - **`ImageSource` is exported** and is the only type in
-  `io.github.digitalsmile.goldberry.content`: a `src` is a **string** whose meaning
+  `dev.goldberry.content`: a `src` is a **string** whose meaning
   is the application's — a path relative to something only it knows, a key in a
   store, a URL nothing here may fetch (ADR-0190).
 - **`Picture` is a part**, in a package that is not exported: a CSS type a

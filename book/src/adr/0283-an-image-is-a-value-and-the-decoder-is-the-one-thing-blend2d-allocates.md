@@ -34,7 +34,7 @@ An image could have been either.
 ### An image is a value
 
 ```java
-package io.github.digitalsmile.goldberry.image;
+package dev.goldberry.image;
 
 public final class Image {
     public static Image decode(byte[] bytes);       // PNG, JPEG, QOI
@@ -66,7 +66,7 @@ G4 proposed `paint.Image`. Three parts of the toolkit want this value and only
 one of them draws: a frame draws one, an offscreen render produces one (G5), a
 clipboard carries one (G7). `paint` already depends on `render`, so `paint.Image`
 would have made `render.Clipboard` depend on the paint package in order to name
-the thing it holds. `io.github.digitalsmile.goldberry.image` is the neutral home,
+the thing it holds. `dev.goldberry.image` is the neutral home,
 and `image.png` beside it holds the encoder for the reason `paint.geom` is its own
 package: it is an algorithm over a value, testable without an image in front of
 it.

@@ -27,14 +27,14 @@ whether exported or not, and find the native library by relative path.
 ## Decision
 
 `example/` is its own Gradle build with its own settings file and wrapper, and it
-depends on `io.github.digitalsmile:goldberry-core:<version>` — coordinates, not a
+depends on `dev.goldberry:goldberry-core:<version>` — coordinates, not a
 project path. `includeBuild('..')` makes it a composite, so those coordinates
 resolve to the local source tree during development and would resolve from Maven
 Central without it. The dependency is written the same way either way, which is
 the point: the example's build file is a file an application could copy.
 
 The substitution is spelled out rather than left to Gradle. A composite exposes
-an included project as `group:projectName` — `io.github.digitalsmile:core` — while
+an included project as `group:projectName` — `dev.goldberry:core` — while
 the published artifact is `goldberry-core`. `base.archivesName` renames the jar,
 not the module coordinates. Without an explicit `substitute module(...) using
 project(...)`, the example asks for a module the composite does not think it has

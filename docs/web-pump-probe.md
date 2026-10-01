@@ -2,7 +2,7 @@
 
 A page in a `web-view` draws into its own platform window. There are no pixels
 for the toolkit to count, and
-[`FrameStats`](../core/src/main/java/io/github/digitalsmile/goldberry/stats/FrameStats.java)
+[`FrameStats`](../core/src/main/java/dev/goldberry/stats/FrameStats.java)
 describes Goldberry's frames rather than the engine's — so when somebody reports
 that "the page animates badly", nothing in the toolkit can see it.
 

@@ -1,7 +1,7 @@
-import io.github.digitalsmile.goldberry.build.ci.BuildFailureAnnotation
-import io.github.digitalsmile.goldberry.build.ci.TestFailureAnnotations
-import io.github.digitalsmile.goldberry.build.ci.WorkflowCommand
-import io.github.digitalsmile.goldberry.build.format.KeepDocReferencedImports
+import dev.goldberry.build.ci.BuildFailureAnnotation
+import dev.goldberry.build.ci.TestFailureAnnotations
+import dev.goldberry.build.ci.WorkflowCommand
+import dev.goldberry.build.format.KeepDocReferencedImports
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
@@ -307,7 +307,7 @@ spotless {
         // Static imports first, which is where this codebase already puts them.
         // The formatter's own default puts them last, so adopting it would have
         // been a reformat that quietly reversed a convention.
-        importOrder('\\#', 'java', 'javax', '', 'io.github.digitalsmile')
+        importOrder('\\#', 'java', 'javax', '', 'dev.goldberry')
 
         // After the formatter rather than instead of it: palantir settles
         // indentation and wrapping, and these settle what it does not speak to --
@@ -542,11 +542,11 @@ tasks.register('pitest', JavaExec) {
             '--reportDir', out.get().asFile.absolutePath,
             '--sourceDirs', sourceSets.main.java.srcDirs.join(','),
             '--targetClasses', [
-                'io.github.digitalsmile.goldberry.css.*',
-                'io.github.digitalsmile.goldberry.kdl.*',
-                'io.github.digitalsmile.goldberry.bind.*',
-                'io.github.digitalsmile.goldberry.text.*',
-                'io.github.digitalsmile.goldberry.widgets.data.*',
+                'dev.goldberry.css.*',
+                'dev.goldberry.kdl.*',
+                'dev.goldberry.bind.*',
+                'dev.goldberry.text.*',
+                'dev.goldberry.widgets.data.*',
                 // No `weaver.*`: :weaver is a build-time tool on plain `java`
                 // rather than these conventions (ADR-0125), so it has no pitest
                 // task for the entry to reach. testing.md §3 wants it covered and
@@ -554,7 +554,7 @@ tasks.register('pitest', JavaExec) {
                 // is mutation testing, which would need this plugin applied to a
                 // module that deliberately avoids it.
             ].join(','),
-            '--targetTests', 'io.github.digitalsmile.goldberry.*',
+            '--targetTests', 'dev.goldberry.*',
             // **Only `src/main` is mutable.** Tests live in the same packages as
             // the code they test, so `--targetClasses` matches them too and PIT
             // will happily mutate the assertions -- a mutated test survives by

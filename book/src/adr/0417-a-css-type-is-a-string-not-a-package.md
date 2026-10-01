@@ -58,7 +58,7 @@ caret: public to the module, in a package nothing outside it can see.
 
 ## Decision
 
-**`SelectList` moves to `io.github.digitalsmile.goldberry.widgets.controls.selectlist`,
+**`SelectList` moves to `dev.goldberry.widgets.controls.selectlist`,
 which is not exported.**
 
 A package of its own rather than a share of somebody's, because that is what every

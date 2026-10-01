@@ -215,7 +215,7 @@
         "- Version: " + v + " (calendar versions, YEAR.RELEASE)", "- Licence: Apache License 2.0", "- Source: " + (S.links || {}).github,
         "- Documentation: " + seo.url + "docs/", "- Status (what works today): " + seo.url + "docs/status.html", "- Decision log (ADRs): " + seo.url + "docs/adr/",
         "- Java: 25 or newer; optional GraalVM native image", "- Platforms: Linux (Wayland, X11), Windows, macOS; headless backend for tests",
-        "- Maven coordinates: io.github.digitalsmile:goldberry-bom:" + v + " (BOM), io.github.digitalsmile:goldberry, io.github.digitalsmile:goldberry-natives (classifiers linux-x64, linux-aarch64, macos-aarch64, windows-x64)", "",
+        "- Maven coordinates: dev.goldberry:goldberry-bom:" + v + " (BOM), dev.goldberry:goldberry, dev.goldberry:goldberry-natives (classifiers linux-x64, linux-aarch64, macos-aarch64, windows-x64)", "",
         "## Facts", ""];
       (S.highlights || []).forEach(function (h) { lines.push("- " + h.title + " " + h.text); });
       (S.features || []).forEach(function (f) { lines.push("- " + f.title + ": " + f.text + " " + (f.points || []).join("; ") + "."); });

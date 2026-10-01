@@ -39,7 +39,7 @@ the same runner:
    where it is one file with no bit to lose.
 
 On a push, **a second publish job** uploads the three as
-`io.github.digitalsmile:goldberry-showcase-native:<version>` to GitHub Packages.
+`dev.goldberry:goldberry-showcase-native:<version>` to GitHub Packages.
 The runtime and native images are **separate artifacts published by separate
 jobs**, and both jobs run unless the workflow was cancelled, so a native build
 that fails on one platform does not stop the runtime images publishing. A partial

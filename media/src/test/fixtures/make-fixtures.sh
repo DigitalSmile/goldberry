@@ -1,6 +1,6 @@
 #!/bin/sh
 # Regenerates the encoded test clips in
-# src/test/resources/io/github/digitalsmile/goldberry/media/fixtures/.
+# src/test/resources/dev/goldberry/media/fixtures/.
 #
 # Every clip is made from synthetic signals, so the clips are our own content
 # and carry no third-party licence:
@@ -16,7 +16,7 @@
 #
 # Run from this directory: ./make-fixtures.sh
 set -eu
-out=../resources/io/github/digitalsmile/goldberry/media/fixtures
+out=../resources/dev/goldberry/media/fixtures
 work=$(mktemp -d)
 ff="ffmpeg -hide_banner -loglevel error -y -bitexact"
 # SVT-AV1 logs through its own channel; 1 is errors only.

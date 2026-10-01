@@ -5,7 +5,7 @@ This jar is the complete corresponding source of the FFmpeg libraries that
 goldberry-media @VERSION@ publishes as its `ffmpeg-<target>` classifier jars,
 from the same repository and under the same coordinates:
 
-  io.github.digitalsmile:goldberry-media:@VERSION@:ffmpeg-sources
+  dev.goldberry:goldberry-media:@VERSION@:ffmpeg-sources
 
 Binaries it corresponds to: @TARGETS@.
 
@@ -67,7 +67,7 @@ FFmpeg's configure is a script that runs others. Then, for linux-x64:
   cmake --build build --target install
 
 Nothing is downloaded. out/lib then holds what the `ffmpeg-linux-x64` jar
-carries under io/github/digitalsmile/goldberry/media/natives/linux-x64/: the
+carries under dev/goldberry/media/natives/linux-x64/: the
 five libraries, ffmpeg-layout.properties (the struct layout Goldberry reads
 them by), and ffmpeg-NOTICE.txt. Another target takes its own
 GOLDBERRY_TARGET_ID on a machine of that platform: windows-x64, macos-aarch64

@@ -12,7 +12,7 @@
 /// toolkit above the SPI needs belongs in `:core`. `NativePlatform` looks like a
 /// candidate and is not one: `classifier()` and `libraryFileName()` exist to pick
 /// a native artifact.
-module io.github.digitalsmile.goldberry.common {
+module dev.goldberry.common {
 
     /// `transitive`, because a consumer that reads Goldberry's logs configures
     /// SLF4J itself -- the toolkit binds no implementation, by design (ADR-0023).
@@ -32,7 +32,7 @@ module io.github.digitalsmile.goldberry.common {
     /// moment `libgoldberry` was mapped, and a widget marks nothing but logs
     /// through the same factory, and the ordering between them is what
     /// `Logs` exists to guarantee.
-    exports io.github.digitalsmile.goldberry.log;
+    exports dev.goldberry.log;
 
     /// Where a message raised by a native library becomes an SLF4J event.
     ///
@@ -41,5 +41,5 @@ module io.github.digitalsmile.goldberry.common {
     /// `logback.xml`, and a constant nobody can read is a string that gets
     /// copied. The bridges that call it are in `:natives`; what is here is the
     /// destination and the naming convention alone.
-    exports io.github.digitalsmile.goldberry.log.bridge;
+    exports dev.goldberry.log.bridge;
 }

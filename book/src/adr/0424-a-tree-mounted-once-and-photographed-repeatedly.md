@@ -32,7 +32,7 @@ never think about.
 
 ## Decision
 
-**`io.github.digitalsmile.goldberry.offscreen.Filmstrip`**, a closeable object
+**`dev.goldberry.offscreen.Filmstrip`**, a closeable object
 that mounts a tree once and hands out one picture per call while the caller drives
 its clock.
 

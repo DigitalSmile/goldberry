@@ -42,7 +42,7 @@ those with it.
 
 ## Decision
 
-**`io.github.digitalsmile.goldberry.frame.FrameSequence` owns the order, and the
+**`dev.goldberry.frame.FrameSequence` owns the order, and the
 two callers own everything that differs.** Both `Launcher.paint` and
 `Offscreen.render` now go through it.
 

@@ -18,9 +18,9 @@ a signature an application can read.** It was broken in three families, and the
 reason it could be broken at all is four words in a module descriptor:
 
 ```
-:core     requires transitive io.github.digitalsmile.goldberry.natives
+:core     requires transitive dev.goldberry.natives
 :natives  exports …blend2d, …yoga, …harfbuzz   (unqualified)
-:widgets  requires transitive io.github.digitalsmile.goldberry.core
+:widgets  requires transitive dev.goldberry.core
 ```
 
 An application requiring `:widgets` therefore read `:natives`, and did.
@@ -33,16 +33,16 @@ merely achieved.
 ## Decision
 
 ```java
-exports io.github.digitalsmile.goldberry.natives.yoga to
-        io.github.digitalsmile.goldberry.core;
-exports io.github.digitalsmile.goldberry.natives.yoga.style to
-        io.github.digitalsmile.goldberry.core;
-exports io.github.digitalsmile.goldberry.natives.yoga.measure to
-        io.github.digitalsmile.goldberry.core;
+exports dev.goldberry.natives.yoga to
+        dev.goldberry.core;
+exports dev.goldberry.natives.yoga.style to
+        dev.goldberry.core;
+exports dev.goldberry.natives.yoga.measure to
+        dev.goldberry.core;
 ```
 
 A module outside `:core` that names `StyleLength` is now refused by javac —
-*"package … is declared in module io.github.digitalsmile.goldberry.natives, which
+*"package … is declared in module dev.goldberry.natives, which
 does not export it"* — which was checked against a scratch compilation rather
 than assumed.
 
@@ -70,7 +70,7 @@ rather than being improvised at the end of this one.
 
 The plan for this ADR included a `PublicSurfaceTest` in `:core`: read the module's
 own descriptor, walk every exported package's public members, fail if any
-signature names `io.github.digitalsmile.goldberry.natives` — the shape
+signature names `dev.goldberry.natives` — the shape
 `ExportedSurfaceTest` uses for the `MemorySegment` rule.
 
 It was not written, because the compiler already does it and does it better. With
@@ -113,7 +113,7 @@ says exactly why and what to do about it.
   it from compiling.
 - **`-Xlint:-module` in `goldberry.java-conventions.gradle`.** Switches the lint
   off for every module in the project to quiet twelve directives in one.
-- **An `io.github.digitalsmile.goldberry.internal` package exported to nothing.**
+- **An `dev.goldberry.internal` package exported to nothing.**
   Java exports by package and reads by module; a public method of an exported type
   may not name a type from an unexported one without the same warning. It moves
   the problem rather than solving it.

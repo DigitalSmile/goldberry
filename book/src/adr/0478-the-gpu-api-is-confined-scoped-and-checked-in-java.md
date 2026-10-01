@@ -33,7 +33,7 @@ a quad pipeline.
 
 ## Decision
 
-**A public package, `io.github.digitalsmile.goldberry.gpu`, whose types wrap
+**A public package, `dev.goldberry.gpu`, whose types wrap
 the natives wrappers. No SDL type, handle or `MemorySegment` appears in it.**
 
 - **Resources.** `GpuTexture`, `GpuBuffer`, `GpuSampler`, `Shader` and

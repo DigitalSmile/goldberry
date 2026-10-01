@@ -52,9 +52,9 @@ is **"is the engine what G17 wants, or is a document what G17 wants"**.
 `html-view` ships now, with no litehtml under it and no new native symbol:
 
 ```
-io.github.digitalsmile.goldberry.html          Html.parse
-io.github.digitalsmile.goldberry.html.model    the page, as records
-io.github.digitalsmile.goldberry.html.view     html-view, HtmlStyles
+dev.goldberry.html          Html.parse
+dev.goldberry.html.model    the page, as records
+dev.goldberry.html.view     html-view, HtmlStyles
 ```
 
 ```java
@@ -183,7 +183,7 @@ renderer rather than the only one.
 **The `:html` module has two widget trees, and that broke the weaver.** The
 catalog is written into "the longest package prefix every widget shares", which
 for `markdown.view.MarkdownView` and `html.view.HtmlView` is
-`io.github.digitalsmile.goldberry` — a package **`:core`** owns. Two named
+`dev.goldberry` — a package **`:core`** owns. Two named
 modules containing one package is a `LayerInstantiationException` on the module
 path, so the first application to put both content widgets on its path would not
 have started, and no class-path test could have seen it. `CatalogWeaver` now

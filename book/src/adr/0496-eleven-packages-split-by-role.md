@@ -63,7 +63,7 @@ The reasons, one line each:
 - **`widgets.core.presence`.** An enter/exit lifecycle that nine packages
   share. It is not a structural primitive like `column` or `row`.
 - **`assets.prepare`.** The build tool shared its package name,
-  `io.github.digitalsmile.goldberry.assets`, with `:core`'s exported runtime
+  `dev.goldberry.assets`, with `:core`'s exported runtime
   package, which is also a resource directory (ADR-0387). It was harmless only
   because the two never met on a module path.
 

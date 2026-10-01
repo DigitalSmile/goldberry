@@ -23,10 +23,10 @@ why it is a gap and not a defect.
 **One event per gesture, carrying the files and the point they landed on.**
 
 ```java
-// io.github.digitalsmile.goldberry.Window
+// dev.goldberry.Window
 public Subscription onFileDrop(Consumer<FileDrop> listener);
 
-// io.github.digitalsmile.goldberry.input.drop
+// dev.goldberry.input.drop
 public record FileDrop(List<Path> paths, LogicalPoint at) { … }
 ```
 

@@ -4,7 +4,7 @@
 /// will own an SDL_GPU texture instead of pixels. See `docs/ARCHITECTURE.md` §12.
 ///
 /// **Being built** (`docs/gpu-plan.md`, M4). Exported: the GPU API in
-/// `io.github.digitalsmile.goldberry.gpu` -- a device, its textures, buffers,
+/// `dev.goldberry.gpu` -- a device, its textures, buffers,
 /// samplers, shaders and pipelines, frames of scoped copy and render passes,
 /// and readback (phase 2) -- and `GpuLayer`, what a painter places in a frame
 /// for the GPU to draw (phase 4). A layer renders with the device of the window
@@ -25,46 +25,46 @@
 /// this module (statically), so javac compiles this one first and warns that
 /// the target is not found. `:natives` does the same for its readers.
 @SuppressWarnings("module")
-module io.github.digitalsmile.goldberry.gpu {
-    requires transitive io.github.digitalsmile.goldberry.core;
+module dev.goldberry.gpu {
+    requires transitive dev.goldberry.core;
 
     /// `canvas3d` is a widget, built with `:widgets`' markup and `message`;
-    /// `transitive` because [io.github.digitalsmile.goldberry.gpu.view.Canvas3d]
+    /// `transitive` because [dev.goldberry.gpu.view.Canvas3d]
     /// is a widget and its markup signature names `Wiring`.
-    requires transitive io.github.digitalsmile.goldberry.widgets;
+    requires transitive dev.goldberry.widgets;
 
     /// The GPU API (`docs/gpu-plan.md`, phase 2). Its signatures name `:core`'s
     /// `PixelBuffer` and `PhysicalRect`, hence `requires transitive` above, and
     /// nothing of `:natives`.
-    exports io.github.digitalsmile.goldberry.gpu;
+    exports dev.goldberry.gpu;
 
     /// `canvas3d` and the renderer an application draws it with (phase 5,
     /// ADR-0482).
-    exports io.github.digitalsmile.goldberry.gpu.view;
+    exports dev.goldberry.gpu.view;
 
     /// Video on the GPU: the layer `:media`'s `video-view` shows its pictures
     /// through when this module is present (phase 6, ADR-0484). To `:media`
     /// alone, which `requires static` this module: it is the one caller, and an
     /// application shows video with `video-view`.
-    exports io.github.digitalsmile.goldberry.gpu.video to
-            io.github.digitalsmile.goldberry.media;
+    exports dev.goldberry.gpu.video to
+            dev.goldberry.media;
 
     /// The catalog the weaver generates for `canvas3d`. The `provides` line is
     /// patched into the compiled descriptor by the build (ADR-0131).
-    uses io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
+    uses dev.goldberry.widgets.markup.WidgetCatalog;
 
     /// The composited window (`docs/gpu-plan.md`, phase 3; ADR-0479): the sdl3
     /// backend finds this with `ServiceLoader`, and by default every window
     /// presents through it, falling back to the CPU where it cannot (ADR-0480).
     /// Being on the module path is enough; an application need not require
     /// this module for its windows to be composited.
-    provides io.github.digitalsmile.goldberry.render.composite.Compositor with
-            io.github.digitalsmile.goldberry.gpu.composite.SdlCompositor;
+    provides dev.goldberry.render.composite.Compositor with
+            dev.goldberry.gpu.composite.SdlCompositor;
 
     /// SDL_GPU's wrappers, which `:natives` exports to this module and to
     /// `:core` alone (ADR-0475). Not `transitive`: no type of `:natives` is in
     /// this module's public surface.
-    requires io.github.digitalsmile.goldberry.natives;
+    requires dev.goldberry.natives;
 
     /// JSpecify's nullness annotations, for the packages under NullAway.
     ///

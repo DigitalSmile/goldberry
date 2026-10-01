@@ -1,5 +1,5 @@
-import io.github.digitalsmile.goldberry.build.publish.PublishedModule.Inclusion
-import io.github.digitalsmile.goldberry.build.publish.PublishedModules
+import dev.goldberry.build.publish.PublishedModule.Inclusion
+import dev.goldberry.build.publish.PublishedModules
 
 plugins {
     id 'goldberry.java-conventions'
@@ -62,6 +62,6 @@ tasks.withType(GenerateModuleMetadata).configureEach {
 // exports nothing either way; this only gives it a name that cannot collide.
 tasks.named('jar', Jar) {
     manifest {
-        attributes('Automatic-Module-Name': 'io.github.digitalsmile.goldberry.toolkit')
+        attributes('Automatic-Module-Name': 'dev.goldberry.toolkit')
     }
 }

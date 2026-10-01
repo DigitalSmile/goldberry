@@ -1,0 +1,128 @@
+package dev.goldberry;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import dev.goldberry.render.backend.headless.HeadlessBackend;
+import dev.goldberry.render.backend.headless.HeadlessWindow;
+import dev.goldberry.render.model.DisplayScale;
+import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.render.window.WindowSpec;
+
+/// [Window#resize] — a window resized from outside, which is what a frame loop
+/// is measured under ([ADR-0342]).
+///
+/// The headless backend plays the window manager: it clamps the request to the
+/// floor and delivers a `Resized`, exactly as it does for a test that drags.
+class WindowResizeTest {
+
+    private static final LogicalSize OPENING = LogicalSize.of(400, 300);
+
+    private HeadlessBackend backend;
+
+    @BeforeEach
+    void install() {
+        backend = new HeadlessBackend(new DisplayScale(1f));
+        GoldberryTestAccess.install(backend);
+    }
+
+    @AfterEach
+    void shutdown() {
+        Goldberry.shutdown();
+    }
+
+    private HeadlessWindow platformWindow() {
+        return (HeadlessWindow) backend.windows().getFirst();
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a request reaches the platform window, and lands when the event does")
+    void reachesThePlatform() {
+        var window = Window.open(WindowSpec.of("resize", OPENING));
+
+        window.resize(LogicalSize.of(500, 350));
+
+        assertEquals(OPENING, window.size(), "not yet: the window manager has not answered");
+        backend.pumpEvents(event -> {}, Duration.ZERO);
+        assertEquals(LogicalSize.of(500, 350), platformWindow().size());
+        assertEquals(LogicalSize.of(500, 350), window.size());
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("the window manager clamps it to the floor, like a drag")
+    void clampedToTheFloor() {
+        var window = Window.open(WindowSpec.of("resize", OPENING).withMinimumSize(LogicalSize.of(300, 200)));
+
+        window.resize(LogicalSize.of(100, 100));
+        backend.pumpEvents(event -> {}, Duration.ZERO);
+
+        assertEquals(LogicalSize.of(300, 200), window.size());
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("what the manager decided arrives through onResize, and a frame follows")
+    void arrivesThroughTheHandler() {
+        // The only test here that runs the frame loop, and a frame rasterizes:
+        // without libgoldberry it skips rather than failing a Java-only build.
+        RendererRequirement.enforce();
+        var window = Window.open(WindowSpec.of("resize", OPENING));
+        List<LogicalSize> resizes = new ArrayList<>();
+        var painted = new int[1];
+        window.onResize(resizes::add);
+        window.onPaint(frame -> {
+            painted[0]++;
+            if (painted[0] == 1) {
+                window.resize(LogicalSize.of(401, 301));
+            } else {
+                Goldberry.stop();
+            }
+        });
+
+        Goldberry.run();
+
+        assertEquals(List.of(LogicalSize.of(401, 301)), resizes);
+        assertTrue(painted[0] >= 2, "the resize did not ask for a frame");
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a size with nothing in it is refused")
+    void refusesNothing() {
+        var window = Window.open(WindowSpec.of("resize", OPENING));
+
+        assertThrows(IllegalArgumentException.class, () -> window.resize(LogicalSize.of(0, 300)));
+        assertThrows(IllegalArgumentException.class, () -> window.resize(LogicalSize.of(400, -1)));
+        assertEquals(OPENING, window.size());
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a closed window ignores the request rather than refusing it")
+    void closedIsIgnored() {
+        var window = Window.open(WindowSpec.of("resize", OPENING));
+        window.close();
+
+        // Deliberately *not* the refusal `refusesNothing` asserts: a window is
+        // closed by the user, so a layout that resizes on a timer would throw
+        // through no fault of the caller's. Ignoring is the contract, and the
+        // window stays closed after being asked.
+        assertDoesNotThrow(() -> window.resize(LogicalSize.of(500, 350)));
+        assertFalse(window.isOpen());
+    }
+}

@@ -7,8 +7,8 @@ and is kept because the next package move will want it too.
 
 ```sh
 python3 tools/refactor/move_package.py \
-    --from io.github.digitalsmile.goldberry.css \
-    --to   io.github.digitalsmile.goldberry.css.parse \
+    --from dev.goldberry.css \
+    --to   dev.goldberry.css.parse \
     --classes CssTokenizer,Token,TokenType,CssParser,CssSyntaxException
 ```
 

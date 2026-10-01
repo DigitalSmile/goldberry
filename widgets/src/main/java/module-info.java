@@ -8,8 +8,8 @@
 /// It also holds the widget showcase, which is not merely a demo: per §14 it is
 /// the visual regression corpus, so a widget with no screen here is a widget
 /// with no pixel coverage. Populated from M2.
-module io.github.digitalsmile.goldberry.widgets {
-    requires transitive io.github.digitalsmile.goldberry.core;
+module dev.goldberry.widgets {
+    requires transitive dev.goldberry.core;
 
     /// JSpecify's nullness annotations, for the packages under NullAway.
     ///
@@ -20,7 +20,7 @@ module io.github.digitalsmile.goldberry.widgets {
 
     /// The module-level furniture: the KDL registry, the stylesheets, and the
     /// three lookups a document resolves names against ([Controls],
-    /// [io.github.digitalsmile.goldberry.bind.registry.ActionRegistry],
+    /// [dev.goldberry.bind.registry.ActionRegistry],
     /// [Icons], [Density]). Not widgets — an application reaches for exactly one
     /// of these to wire a window up, and then never again.
     /// Every widget module announces its node names this way, and this one
@@ -29,9 +29,9 @@ module io.github.digitalsmile.goldberry.widgets {
     ///
     /// `uses` and not a hard-coded list: a second widget module is found by an
     /// application that never names it, which is the whole point.
-    uses io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
+    uses dev.goldberry.widgets.markup.WidgetCatalog;
 
-    exports io.github.digitalsmile.goldberry.widgets;
+    exports dev.goldberry.widgets;
 
     /// The markup contract, in a package of its own since ADR-0172: the
     /// `@Markup` annotation a widget carries, the `Inflatable` it satisfies, the
@@ -39,7 +39,7 @@ module io.github.digitalsmile.goldberry.widgets {
     /// document is inflated against. An application names these only when it
     /// declares a widget of its own; the furniture above is what it uses to run
     /// one.
-    exports io.github.digitalsmile.goldberry.widgets.markup;
+    exports dev.goldberry.widgets.markup;
 
     /// `docs/core-widgets.md` §3's `controls` group, **one package per control**.
     ///
@@ -65,12 +65,12 @@ module io.github.digitalsmile.goldberry.widgets {
     /// engines needed something to prove the widget tree against before there was
     /// a catalog, and once there was one, `:core` was shipping five widgets it
     /// had no other use for.
-    exports io.github.digitalsmile.goldberry.widgets.core;
-    /// How an overlay or a panel arrives and leaves: [io.github.digitalsmile.goldberry.widgets.core.presence.Phase]
+    exports dev.goldberry.widgets.core;
+    /// How an overlay or a panel arrives and leaves: [dev.goldberry.widgets.core.presence.Phase]
     /// and its `Departure`, which nine packages share (ADR-0496).
-    exports io.github.digitalsmile.goldberry.widgets.core.presence;
-    exports io.github.digitalsmile.goldberry.widgets.core.affix;
-    exports io.github.digitalsmile.goldberry.widgets.core.canvas;
+    exports dev.goldberry.widgets.core.presence;
+    exports dev.goldberry.widgets.core.affix;
+    exports dev.goldberry.widgets.core.canvas;
 
     /// §9's `web-view` as a **widget** — a page inside the window (ADR-0442).
     ///
@@ -79,83 +79,83 @@ module io.github.digitalsmile.goldberry.widgets {
     /// sizes it. What stays next door is the *window* form, for the platforms and
     /// sessions where a page cannot be a child — which on Linux means Wayland,
     /// permanently.
-    exports io.github.digitalsmile.goldberry.widgets.core.web;
-    exports io.github.digitalsmile.goldberry.widgets.core.image;
+    exports dev.goldberry.widgets.core.web;
+    exports dev.goldberry.widgets.core.image;
 
     /// §1's `qr-code` (`docs/gaps.md` G47, ADR-0391). A package of its own
     /// beside `image` for the same reason every widget has one: the cache that
     /// makes a rebuild free and the device-pixel arithmetic that keeps a module
     /// whole are parts, and a part is not constructible from outside
     /// (ADR-0065). The **encoder** is not here at all — it is
-    /// [io.github.digitalsmile.goldberry.image.qr.QrEncoder] in `:core`, beside the
+    /// [dev.goldberry.image.qr.QrEncoder] in `:core`, beside the
     /// image codecs, because a specification is not a widget.
-    exports io.github.digitalsmile.goldberry.widgets.core.qrcode;
+    exports dev.goldberry.widgets.core.qrcode;
 
     /// `docs/core-widgets.md` §11's data widgets, built on `canvas` and the
     /// theme palette rather than on a chart engine (`content-widgets.md` §3).
     /// `sparkline` is the first and the smallest — no axes, no legend.
-    exports io.github.digitalsmile.goldberry.widgets.data;
+    exports dev.goldberry.widgets.data;
     /// The arithmetic between a series and a plot -- scales, ticks,
     /// downsampling, gaps, curves -- which every chart shares and none owns
     /// (ADR-0496).
-    exports io.github.digitalsmile.goldberry.widgets.data.plot;
-    exports io.github.digitalsmile.goldberry.widgets.data.sparkline;
-    exports io.github.digitalsmile.goldberry.widgets.data.linechart;
-    exports io.github.digitalsmile.goldberry.widgets.data.areachart;
-    exports io.github.digitalsmile.goldberry.widgets.data.barchart;
-    exports io.github.digitalsmile.goldberry.widgets.data.donutchart;
-    exports io.github.digitalsmile.goldberry.widgets.core.scroll;
-    exports io.github.digitalsmile.goldberry.widgets.text;
-    exports io.github.digitalsmile.goldberry.widgets.panel;
+    exports dev.goldberry.widgets.data.plot;
+    exports dev.goldberry.widgets.data.sparkline;
+    exports dev.goldberry.widgets.data.linechart;
+    exports dev.goldberry.widgets.data.areachart;
+    exports dev.goldberry.widgets.data.barchart;
+    exports dev.goldberry.widgets.data.donutchart;
+    exports dev.goldberry.widgets.core.scroll;
+    exports dev.goldberry.widgets.text;
+    exports dev.goldberry.widgets.panel;
 
     /// `docs/core-widgets.md` §5's `tabs` and its `tab`; the list, the panel, the
     /// close affordance and the add one are parts and stay in here (ADR-0107).
-    exports io.github.digitalsmile.goldberry.widgets.panel.tabs;
+    exports dev.goldberry.widgets.panel.tabs;
 
     /// The rest of §5's containers. Each exports the widget an application names
     /// and keeps its parts to itself, which is the rule ADR-0065 set: a part is
     /// styleable and not constructible.
-    exports io.github.digitalsmile.goldberry.widgets.panel.accordion;
-    exports io.github.digitalsmile.goldberry.widgets.panel.card;
-    exports io.github.digitalsmile.goldberry.widgets.panel.carousel;
-    exports io.github.digitalsmile.goldberry.widgets.panel.collapse;
-    exports io.github.digitalsmile.goldberry.widgets.panel.groupbox;
-    exports io.github.digitalsmile.goldberry.widgets.panel.list;
-    exports io.github.digitalsmile.goldberry.widgets.panel.masonry;
-    exports io.github.digitalsmile.goldberry.widgets.panel.skeleton;
-    exports io.github.digitalsmile.goldberry.widgets.panel.split;
-    exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
-    exports io.github.digitalsmile.goldberry.widgets.panel.table;
-    exports io.github.digitalsmile.goldberry.widgets.panel.calendar;
-    exports io.github.digitalsmile.goldberry.widgets.panel.timeline;
-    exports io.github.digitalsmile.goldberry.widgets.panel.tree;
+    exports dev.goldberry.widgets.panel.accordion;
+    exports dev.goldberry.widgets.panel.card;
+    exports dev.goldberry.widgets.panel.carousel;
+    exports dev.goldberry.widgets.panel.collapse;
+    exports dev.goldberry.widgets.panel.groupbox;
+    exports dev.goldberry.widgets.panel.list;
+    exports dev.goldberry.widgets.panel.masonry;
+    exports dev.goldberry.widgets.panel.skeleton;
+    exports dev.goldberry.widgets.panel.split;
+    exports dev.goldberry.widgets.panel.statistic;
+    exports dev.goldberry.widgets.panel.table;
+    exports dev.goldberry.widgets.panel.calendar;
+    exports dev.goldberry.widgets.panel.timeline;
+    exports dev.goldberry.widgets.panel.tree;
 
     /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
     /// it; what it is built on is **not here any more**. The editing model —
-    /// [io.github.digitalsmile.goldberry.text.edit.TextEdit] and its undo stack —
+    /// [dev.goldberry.text.edit.TextEdit] and its undo stack —
     /// moved to `:core`'s text stack, because nothing in it ever named a widget
     /// and an application editing text on a `canvas` could not reach a control's
     /// package to borrow it (ADR-0285). `text-area`, `code-input` and every
     /// picker that owns a typed field read it from there now, and so can an
     /// application.
-    exports io.github.digitalsmile.goldberry.widgets.form.textinput;
+    exports dev.goldberry.widgets.form.textinput;
 
     /// §4's layout contract and its validation model.
-    /// [io.github.digitalsmile.goldberry.widgets.form.Validator]
+    /// [dev.goldberry.widgets.form.Validator]
     /// is the rule an application writes; `field` is the label, the control slot
     /// and the message under it; `form` is what gates a submission on all of
-    /// them. `field` exports [io.github.digitalsmile.goldberry.widgets.form.field.Validated]
+    /// them. `field` exports [dev.goldberry.widgets.form.field.Validated]
     /// as well, which is the four questions a form asks of a field and is what
     /// lets the two live in different packages while keeping their parts to
     /// themselves (ADR-0065).
-    exports io.github.digitalsmile.goldberry.widgets.form;
-    exports io.github.digitalsmile.goldberry.widgets.form.field;
-    exports io.github.digitalsmile.goldberry.widgets.form.form;
-    exports io.github.digitalsmile.goldberry.widgets.form.codeinput;
-    exports io.github.digitalsmile.goldberry.widgets.form.colorpicker;
-    exports io.github.digitalsmile.goldberry.widgets.form.datepicker;
-    exports io.github.digitalsmile.goldberry.widgets.form.timepicker;
-    exports io.github.digitalsmile.goldberry.widgets.form.textarea;
+    exports dev.goldberry.widgets.form;
+    exports dev.goldberry.widgets.form.field;
+    exports dev.goldberry.widgets.form.form;
+    exports dev.goldberry.widgets.form.codeinput;
+    exports dev.goldberry.widgets.form.colorpicker;
+    exports dev.goldberry.widgets.form.datepicker;
+    exports dev.goldberry.widgets.form.timepicker;
+    exports dev.goldberry.widgets.form.textarea;
 
     /// `…form.parts` is deliberately **not** exported. `text-input` and
     /// `text-area` draw the same `text-caret`, `text-selection` and `text-value`,
@@ -165,28 +165,28 @@ module io.github.digitalsmile.goldberry.widgets {
     /// application cannot build one, both widgets can, and there is one caret
     /// rather than two kept alike by hand.
 
-    exports io.github.digitalsmile.goldberry.widgets.controls;
-    exports io.github.digitalsmile.goldberry.widgets.controls.badge;
-    exports io.github.digitalsmile.goldberry.widgets.controls.button;
-    exports io.github.digitalsmile.goldberry.widgets.controls.checkbox;
+    exports dev.goldberry.widgets.controls;
+    exports dev.goldberry.widgets.controls.badge;
+    exports dev.goldberry.widgets.controls.button;
+    exports dev.goldberry.widgets.controls.checkbox;
 
     /// `chip` — §3's small rounded label you can choose and take away. A package
     /// of its own for the reason every control has one: its dot, its label and
     /// its × are parts, and a part is styleable and not constructible
     /// (ADR-0065, ADR-0305).
-    exports io.github.digitalsmile.goldberry.widgets.controls.chip;
-    exports io.github.digitalsmile.goldberry.widgets.controls.knob;
+    exports dev.goldberry.widgets.controls.chip;
+    exports dev.goldberry.widgets.controls.knob;
 
     /// `option`, which is `segmented`'s child node **and** `select`'s — one
     /// widget by §3's specification, and in a package of its own from the moment
     /// it had two callers rather than one (ADR-0141).
-    exports io.github.digitalsmile.goldberry.widgets.controls.option;
-    exports io.github.digitalsmile.goldberry.widgets.controls.progressbar;
-    exports io.github.digitalsmile.goldberry.widgets.controls.radio;
-    exports io.github.digitalsmile.goldberry.widgets.controls.segmented;
+    exports dev.goldberry.widgets.controls.option;
+    exports dev.goldberry.widgets.controls.progressbar;
+    exports dev.goldberry.widgets.controls.radio;
+    exports dev.goldberry.widgets.controls.segmented;
 
     /// `select` — the closed control. The rows are
-    /// [io.github.digitalsmile.goldberry.widgets.controls.option.Option]s, so
+    /// [dev.goldberry.widgets.controls.option.Option]s, so
     /// this package exports one type and hides the parts that draw the value and
     /// the chevron (ADR-0141).
     ///
@@ -198,57 +198,57 @@ module io.github.digitalsmile.goldberry.widgets {
     /// and for the same reason. The move cost a `package` line and some imports,
     /// because a CSS type is the string a widget returns and never its package —
     /// the opposite of what it had been filed as costing (ADR-0417, ADR-0182).
-    exports io.github.digitalsmile.goldberry.widgets.controls.select;
-    exports io.github.digitalsmile.goldberry.widgets.controls.slider;
-    exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
-    exports io.github.digitalsmile.goldberry.widgets.controls.toggle;
+    exports dev.goldberry.widgets.controls.select;
+    exports dev.goldberry.widgets.controls.slider;
+    exports dev.goldberry.widgets.controls.spinner;
+    exports dev.goldberry.widgets.controls.toggle;
 
     /// `docs/core-widgets.md` §6's `nav` group — the package §11's table has
     /// named since v0.2 and which had nothing in it until `breadcrumbs`
     /// (ADR-0306). `steps` and `wizard` join it here; the separator, the `…` and
     /// the row itself are parts and stay inside.
-    exports io.github.digitalsmile.goldberry.widgets.nav.breadcrumbs;
-    exports io.github.digitalsmile.goldberry.widgets.nav.steps;
-    exports io.github.digitalsmile.goldberry.widgets.nav.wizard;
+    exports dev.goldberry.widgets.nav.breadcrumbs;
+    exports dev.goldberry.widgets.nav.steps;
+    exports dev.goldberry.widgets.nav.wizard;
 
     /// `docs/core-widgets.md` §7's `overlay` group. `hud` is the first of it and
     /// the only one that needs no popup: it floats in the window's own overlay
-    /// layer ([io.github.digitalsmile.goldberry.Overlay]), where `toast` and a
+    /// layer ([dev.goldberry.Overlay]), where `toast` and a
     /// `dialog`'s scrim will join it, while `menu`, `tooltip` and `popover` wait
     /// for the backend popup windows §4 reserves.
     /// `dialog` — §7's modal, and
-    /// [io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs],
+    /// [dev.goldberry.widgets.overlay.dialog.Dialogs],
     /// which is the half that shows one. A modal needs a window to cover and a
     /// widget has none, so the split is `menu`'s exactly (ADR-0106, ADR-0176).
-    exports io.github.digitalsmile.goldberry.widgets.overlay.dialog;
-    exports io.github.digitalsmile.goldberry.widgets.overlay.hud;
+    exports dev.goldberry.widgets.overlay.dialog;
+    exports dev.goldberry.widgets.overlay.hud;
 
     /// `message` — §7's inline banner, and the one member of the overlay group
     /// that never floats: it is a child in somebody's column and persists until
     /// the condition it describes does. It is here because §7 is where the
     /// catalog put it, next to the `toast` it is deliberately not.
-    exports io.github.digitalsmile.goldberry.widgets.overlay.message;
-    exports io.github.digitalsmile.goldberry.widgets.overlay.popover;
+    exports dev.goldberry.widgets.overlay.message;
+    exports dev.goldberry.widgets.overlay.popover;
 
     /// `toast` — §7's last widget, and the only one in the group whose *widget*
     /// an application never builds: it holds a
-    /// [io.github.digitalsmile.goldberry.widgets.overlay.toast.ToastController]
+    /// [dev.goldberry.widgets.overlay.toast.ToastController]
     /// and raises values through it, because whatever raises a notification is by
     /// definition somewhere else (ADR-0177).
-    exports io.github.digitalsmile.goldberry.widgets.overlay.toast;
-    exports io.github.digitalsmile.goldberry.widgets.overlay.tour;
+    exports dev.goldberry.widgets.overlay.toast;
+    exports dev.goldberry.widgets.overlay.tour;
 
     /// `docs/core-widgets.md` §8's `menu` group: the panel, its items and its
-    /// separators as widgets, plus [io.github.digitalsmile.goldberry.widgets.menu.Menus],
+    /// separators as widgets, plus [dev.goldberry.widgets.menu.Menus],
     /// which is the half that opens one — a widget cannot, because opening needs
     /// a `Host` (ADR-0106).
-    exports io.github.digitalsmile.goldberry.widgets.menu;
+    exports dev.goldberry.widgets.menu;
 
     /// `docs/core-widgets.md` §9's `widget.shell`, opening with `tray-icon`.
     /// The one group whose first member is **not a widget**: the desktop's shell
     /// draws a tray menu, so there is no box, no cascade and no event to route,
     /// and what is exported is a value plus the call that shows it (ADR-0191).
-    exports io.github.digitalsmile.goldberry.widgets.shell.tray;
+    exports dev.goldberry.widgets.shell.tray;
 
     /// §9's `web-view`, and the **second** member of this group that is not a
     /// widget (ADR-0441).
@@ -260,5 +260,5 @@ module io.github.digitalsmile.goldberry.widgets {
     /// widget is, so there is no shape a page could take that would be a box on
     /// every platform this ships to. What is exported is a value and the call
     /// that opens it, exactly as next door.
-    exports io.github.digitalsmile.goldberry.widgets.shell.web;
+    exports dev.goldberry.widgets.shell.web;
 }

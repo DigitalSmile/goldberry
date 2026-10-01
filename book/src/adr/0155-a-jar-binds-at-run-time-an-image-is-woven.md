@@ -206,7 +206,7 @@ and frame requests. Without it this decision would be two behaviours with one
 name, which is worse than either.
 
 **A model in a named module has to open its package.** `opens com.example.app to
-io.github.digitalsmile.goldberry.core;`, and the refusal says so in those words.
+dev.goldberry.core;`, and the refusal says so in those words.
 This is the cost the woven form does not have, and it is a real one: it is a line
 in a file most application authors do not otherwise edit. The toolkit adds its
 own *read* edge (`Module::addReads`), because that half is not the application's

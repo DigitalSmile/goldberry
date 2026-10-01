@@ -1,0 +1,125 @@
+package dev.goldberry.widgets.controls.badge;
+
+import static dev.goldberry.widgets.TestAttributes.id;
+
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.Theme;
+import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.golden.GoldenImage;
+import dev.goldberry.paint.BoxPainter;
+import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.WidgetRenderer;
+import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.controls.TestFont;
+import dev.goldberry.widgets.core.Row;
+import dev.goldberry.widgets.panel.Panel;
+
+/// What a badge looks like (§14, [ADR-0050]).
+///
+/// Two things here can only be seen in an image. **The pill is a pill** —
+/// `border-radius: 10px` on a 20px box is §1.5's `full`, and a chip whose height
+/// drifted off 20 would draw a rounded rectangle that is not obviously wrong at
+/// any single value assertion. And **the text is centred in a height it did not
+/// choose**: the chip pins 20px with no vertical padding, so the label sits where
+/// `align-items: center` puts it, and the failure mode — text hard against the
+/// top with 6px of fill below — is a layout that reports no error at all
+/// ([ADR-0087]).
+///
+/// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
+class BadgeGoldenTest {
+
+    @BeforeEach
+    void setUp() {
+        RendererRequirement.enforce();
+    }
+
+    private void paint(String name, Theme theme, int width, int height, Widget content) {
+        var renderer = new WidgetRenderer(
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
+                                #row   { gap: 8px; padding: 12px; align-items: center;
+                                         background: var(--gb-bg) }
+                                #panel { gap: 8px; padding: 12px; align-items: center;
+                                         background: var(--gb-surface) }
+                                """)),
+                TestFont.get());
+
+        GoldenImage.assertMatches(
+                name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
+    }
+
+    private static Widget everyVariant(String rowId) {
+        return new Row(
+                List.of(
+                        new Badge("3"),
+                        new Badge("12").styled("accent"),
+                        new Badge("offline").styled("danger"),
+                        new Badge("beta").styled("warning"),
+                        new Badge("live").styled("success"),
+                        new Badge("new").styled("info")),
+                id(rowId));
+    }
+
+    /// The row this change exists for: six chips, six fills, six foregrounds —
+    /// and three of those foregrounds are `--nord0` on a theme whose text is
+    /// `--nord6`, which is exactly the thing [ContrastTest] proves and this shows.
+    @Test
+    @DisplayName("every variant, on dark")
+    void variantsDark() {
+        paint("badge-variants-dark", Theme.NORD_DARK, 340, 44, everyVariant("row"));
+    }
+
+    /// The same six on light, and the pairings are **identical** for the four
+    /// aurora hues: those palette entries do not change between themes, so neither
+    /// does the foreground they can carry. Only the neutral and the accent differ,
+    /// and this is the image that says so.
+    @Test
+    @DisplayName("every variant, on light")
+    void variantsLight() {
+        paint("badge-variants-light", Theme.NORD_LIGHT, 340, 44, everyVariant("row"));
+    }
+
+    /// On `--gb-surface` rather than `--gb-bg`, which is the gap
+    /// `controls-on-surface-*` exists to close ([ADR-0073]). A badge paints its
+    /// own opaque fill in every variant, so it cannot disappear against a panel —
+    /// but the *default* chip is filled with `--gb-surface-2`, which is one step
+    /// from the panel it sits on, and one step is exactly the distance worth
+    /// having an image of.
+    @Test
+    @DisplayName("a default chip is still a chip on a panel")
+    void onSurface() {
+        paint(
+                "badge-on-surface",
+                Theme.NORD_DARK,
+                200,
+                44,
+                new Panel(List.of(new Badge("3"), new Badge("128"), new Badge("1024")), id("panel")));
+    }
+
+    /// One, two, three and four digits. The chip grows with its content and its
+    /// height does not move, which is the whole of what a padded, pinned height
+    /// means.
+    ///
+    /// **`3` is a circle now.** This image used to be the record of it not being
+    /// one — "§8's subset has no `min-width` at all" — and both halves of that
+    /// expired: ADR-0181 shipped the four bounds, and ADR-0259 spent the last one
+    /// here. `min-width` is the *height*, so one digit is round and two are a
+    /// stadium, which is the difference this picture exists to show.
+    @Test
+    @DisplayName("it grows sideways and never taller")
+    void digits() {
+        paint(
+                "badge-digits",
+                Theme.NORD_DARK,
+                240,
+                44,
+                new Row(List.of(new Badge("3"), new Badge("12"), new Badge("128"), new Badge("1024")), id("row")));
+    }
+}

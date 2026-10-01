@@ -1,4 +1,4 @@
-import io.github.digitalsmile.goldberry.build.ToolResolver
+import dev.goldberry.build.ToolResolver
 
 import java.security.MessageDigest
 
@@ -61,12 +61,12 @@ dependencies {
 // resources with its own manifest, and each module checks its own is fresh.
 def shaderSets = [
         [sources: layout.projectDirectory.dir('src/main/shaders'),
-         output : layout.projectDirectory.dir('src/main/resources/io/github/digitalsmile/goldberry/gpu/shaders')],
+         output : layout.projectDirectory.dir('src/main/resources/dev/goldberry/gpu/shaders')],
         [sources: layout.projectDirectory.dir('src/test/shaders'),
-         output : layout.projectDirectory.dir('src/test/resources/io/github/digitalsmile/goldberry/gpu/testshaders')],
+         output : layout.projectDirectory.dir('src/test/resources/dev/goldberry/gpu/testshaders')],
         [sources: rootProject.layout.projectDirectory.dir('example/src/main/shaders'),
          output : rootProject.layout.projectDirectory.dir(
-                 'example/src/main/resources/io/github/digitalsmile/goldberry/example/gpu')],
+                 'example/src/main/resources/dev/goldberry/example/gpu')],
 ]
 
 def toolPath = providers.environmentVariable('PATH')
@@ -183,7 +183,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     group = 'verification'
     description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.natives.sdl.gpu.GpuTestLauncher'
+    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTargetId.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'
@@ -203,7 +203,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
     inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
     outputs.file(summary)
     argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'io.github.digitalsmile.goldberry.gpu']
+        [summary.get().asFile.absolutePath, 'dev.goldberry.gpu']
     } as CommandLineArgumentProvider)
 }
 
@@ -218,7 +218,7 @@ tasks.register('gpuVideoProbe', JavaExec) {
     group = 'verification'
     description = 'Measures a composited frame with a 4K video layer on a real window (docs/gpu-plan.md, phase 0).'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.gpu.render.GpuVideoProbe'
+    mainClass = 'dev.goldberry.gpu.render.GpuVideoProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTargetId.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'
@@ -237,7 +237,7 @@ tasks.register('videoLayerProbe', JavaExec) {
     group = 'verification'
     description = 'Measures the video layer\'s upload of a 4K picture each frame (docs/gpu-plan.md, phase 6).'
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'io.github.digitalsmile.goldberry.gpu.video.VideoLayerProbe'
+    mainClass = 'dev.goldberry.gpu.video.VideoLayerProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     if (hostTargetId.startsWith('macos-')) {
         jvmArgs '-XstartOnFirstThread'

@@ -88,7 +88,7 @@ is ~99 importing file/type pairs and roughly a thousand references across
 `:widgets` and the test source sets.
 
 The root cause was neither file. It was the module graph: `:core` declared
-`requires transitive io.github.digitalsmile.goldberry.natives` and `:natives`
+`requires transitive dev.goldberry.natives` and `:natives`
 exported its wrapper packages unqualified, so every application that required
 `:widgets` could see both families.
 
@@ -160,7 +160,7 @@ a rule.
   [G15](#g15), the IME's composition string with its converting clause and a candidate window that
   lands under the caret. None of it a `text-input`, and nothing left out.
 - **Images on a canvas.** `Image.decode(bytes | file)`, `Frame.drawImage(...)` with a crop and an alpha,
-  and `Image.encodePng()` — all of it in `io.github.digitalsmile.goldberry.image`, none of it touching
+  and `Image.encodePng()` — all of it in `dev.goldberry.image`, none of it touching
   `natives`, and nothing to close. There is no `img` *widget* yet; a `canvas` is how an image is drawn
   today, which is what brd's board is anyway.
 - **Widget catalogue**: menus, dialogs, toasts, tree, tabs, table, cards, masonry, scroll, text inputs,
@@ -316,7 +316,7 @@ a `Role.FIGURE` and its name comes from `Input.accessibleName()`.
 Landed as [ADR-0283](../book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md).
 
 ```java
-package io.github.digitalsmile.goldberry.image;
+package dev.goldberry.image;
 
 public final class Image {                              // not AutoCloseable
     public static Image decode(byte[] bytes);           // PNG, JPEG, QOI
@@ -379,7 +379,7 @@ var png = Offscreen.of(1200, 900)                       // physical pixels
         .encodePng();
 ```
 
-`io.github.digitalsmile.goldberry.offscreen`, not `render` — the backend SPI is
+`dev.goldberry.offscreen`, not `render` — the backend SPI is
 underneath the toolkit and this composes what is above it.
 
 **What this entry was really asking for is the sequence, not the buffer.**
@@ -406,7 +406,7 @@ the running application does not draw.
 Landed as [ADR-0285](../book/src/adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md).
 
 ```java
-var editor = new Editor(font)                   // io.github.digitalsmile.goldberry.text.edit
+var editor = new Editor(font)                   // dev.goldberry.text.edit
         .multiline(true)
         .wrapWidth(240)
         .clipboard(window.clipboard())
@@ -750,7 +750,7 @@ ADR-0291, not quietly adding a method.
 Landed as [ADR-0279](../book/src/adr/0279-flexbox-is-the-toolkits-vocabulary-not-yogas.md) and
 [ADR-0280](../book/src/adr/0280-natives-exports-to-core-and-to-nobody-else.md).
 
-`io.github.digitalsmile.goldberry.layout` holds the vocabulary now — `Length`,
+`dev.goldberry.layout` holds the vocabulary now — `Length`,
 `Insets`, `Limits`, `FlexDirection`, `Justify`, `Align`, `Wrap`, `Position`,
 `Overflow`, `Measure`, `MeasureMode`, `MeasuredSize` — and `paint.Box`,
 `css.ComputedStyle` and `css.value.CssLength.parse` are written in it.
@@ -761,7 +761,7 @@ The translation is one package-private file, `paint/tree/Yoga.java`, beside the
 only class that ever touches a `YogaNode`.
 
 **And it is enforced.** `:natives` exports its three Yoga packages `to
-io.github.digitalsmile.goldberry.core` and to nobody else; a module outside
+dev.goldberry.core` and to nobody else; a module outside
 `:core` that imports `StyleLength` is refused by javac. That was checked by
 compiling one.
 
@@ -773,7 +773,7 @@ compiling one.
 Landed as [ADR-0290](../book/src/adr/0290-the-pen-belongs-to-the-rasterizer.md).
 
 ```java
-package io.github.digitalsmile.goldberry.paint;
+package dev.goldberry.paint;
 
 public final class GlyphFace implements AutoCloseable {   // a typeface, to the rasterizer
     public static GlyphFace of(String name, byte[] data);
@@ -1578,7 +1578,7 @@ that a search result has no use for.
 **Proposed.**
 
 ```java
-// io.github.digitalsmile.goldberry.widget.attr.Attributes
+// dev.goldberry.widget.attr.Attributes
 public Attributes onPointerEnter(Runnable action);
 public Attributes onPointerExit(Runnable action);
 ```
@@ -1637,7 +1637,7 @@ nobody is going to type and everybody is going to read from the left.
 **Proposed.**
 
 ```java
-// io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput
+// dev.goldberry.widgets.form.textinput.TextInput
 public TextInput caret(int offset);   // where the caret starts; the view follows it
 ```
 
@@ -1674,7 +1674,7 @@ bytes rather than from a name, premultiplied BGRA out, and the decoder's handle 
 returns so an `Image` is a value that can go in a cache. All of that is exactly what the board needed.
 
 **What is missing.** Blend2D is built with those three codecs and no others
-([Blend2dImage](../../goldberry/natives/src/main/java/io/github/digitalsmile/goldberry/natives/blend2d/Blend2dImage.java)
+([Blend2dImage](../../goldberry/natives/src/main/java/dev/goldberry/natives/blend2d/Blend2dImage.java)
 says so in as many words), so a WebP screenshot — which is what most screenshot tools now write — and
 a GIF both throw `ImageDecodeException`.
 
@@ -1726,7 +1726,7 @@ nothing at all.
 **Proposed.**
 
 ```java
-// io.github.digitalsmile.goldberry.Window
+// dev.goldberry.Window
 public Subscription onFileDrop(Consumer<FileDrop> listener);
 
 /// Paths dropped on this window, and where.
@@ -1785,7 +1785,7 @@ the menu's rows are distinguished by name, and the hue is a column with no pixel
 **Proposed.** One optional colour beside the flag that is already there.
 
 ```java
-// io.github.digitalsmile.goldberry.widgets.controls.chip.Chip
+// dev.goldberry.widgets.controls.chip.Chip
 public Chip withDot(boolean value);              // as today
 public Chip withDot(int argb);                   // a dot in this colour, and shown
 ```
@@ -1840,7 +1840,7 @@ like it works.
 **Proposed.** One flag, on the widget that has the layout.
 
 ```java
-// io.github.digitalsmile.goldberry.widgets.form.textarea.TextArea
+// dev.goldberry.widgets.form.textarea.TextArea
 public TextArea gutter(boolean on);          // numbers hard lines, at the y each was laid out at
 ```
 
@@ -1885,13 +1885,13 @@ continuing a list, `Tab` indenting one — every Markdown shortcut in E1 needs t
 is* and *what is selected*, and an application can see neither.
 
 The value that holds exactly that already exists and is already what the widget uses internally:
-`io.github.digitalsmile.goldberry.text.edit.TextEdit`, a record of `(text, anchor, caret)` with every
+`dev.goldberry.text.edit.TextEdit`, a record of `(text, anchor, caret)` with every
 motion and every deletion as a pure function. This is a request to let it out, not to invent it.
 
 **Proposed.** The change event, in the richer currency, and a way to apply one back.
 
 ```java
-// io.github.digitalsmile.goldberry.widgets.form.textarea.TextArea
+// dev.goldberry.widgets.form.textarea.TextArea
 public TextArea onEdit(Consumer<TextEdit> listener);   // text, anchor and caret, after every change
 public TextArea edit(TextEdit next);                   // an edit the application computed, caret and all
 ```
@@ -2370,7 +2370,7 @@ The proposed API, near enough as written: a `qr-code` leaf in `widgets.core.qrco
 a scanner then refuses, a `FIGURE` named by `name=` and never by the payload, and a cache so a rebuild
 with an unchanged payload returns the same matrix rather than re-encoding it.
 
-The encoder is `io.github.digitalsmile.goldberry.qr` in `:core` (`…goldberry.image.qr` since ADR-0494), beside the image codecs and depending on
+The encoder is `dev.goldberry.qr` in `:core` (`…goldberry.image.qr` since ADR-0494), beside the image codecs and depending on
 nothing: numeric, alphanumeric and byte modes, all forty versions, Reed–Solomon over GF(256), the eight
 masks scored by §7.8.3's four rules, and the format and version BCH bits.
 

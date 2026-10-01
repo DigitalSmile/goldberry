@@ -1,0 +1,560 @@
+package dev.goldberry.text.edit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.assets.BundledFont;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.render.clipboard.Clipboard;
+import dev.goldberry.render.clipboard.PrimarySelection;
+import dev.goldberry.text.flow.TextAlign;
+import dev.goldberry.text.font.Font;
+
+/// A text editor with no widget around it — ADR-0285.
+///
+/// [TextEditTest] covers what an edit *is* and [TextGeometryTest] covers where a
+/// caret lands. What is left, and what this is about, is the **wiring**: which key
+/// does what, when an undo step begins and ends, and that a shaped paragraph is
+/// not measured against one wrap width and drawn against another.
+class EditorTest {
+
+    private Font font;
+
+    @BeforeEach
+    void setUp() {
+        RendererRequirement.enforce();
+        font = Font.bundled(BundledFont.UI, 13);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (font != null) {
+            font.close();
+        }
+    }
+
+    private Editor editor(String text) {
+        return new Editor(font).text(text);
+    }
+
+    private static KeyEvent key(Key which) {
+        return new KeyEvent(KeyEvent.Kind.PRESSED, which, Modifiers.NONE, false, null);
+    }
+
+    private static KeyEvent key(Key which, Modifiers modifiers) {
+        return new KeyEvent(KeyEvent.Kind.PRESSED, which, modifiers, false, null);
+    }
+
+    /// A clipboard with nothing under it, so a test can paste without a platform.
+    private static final class Board implements Clipboard {
+
+        private String held = "";
+
+        @Override
+        public boolean hasText() {
+            return !held.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return held;
+        }
+
+        @Override
+        public boolean text(String text) {
+            held = text;
+            return true;
+        }
+    }
+
+    @Nested
+    @DisplayName("typing and deleting")
+    class Editing {
+
+        @Test
+        @DisplayName("committed text is inserted at the caret")
+        void insertsText() {
+            var editor = editor("ac");
+            editor.caretTo(1, false);
+
+            assertTrue(editor.onText("b"));
+            assertEquals("abc", editor.text());
+            assertEquals(2, editor.edit().caret());
+        }
+
+        @Test
+        @DisplayName("a key this does not handle is left alone")
+        void leavesOtherKeysAlone() {
+            var editor = editor("hi");
+
+            // The contract a canvas depends on: an unhandled key is not consumed,
+            // so Tab still moves focus and Escape still closes what it closes.
+            assertFalse(editor.onKey(key(Key.TAB)));
+            assertFalse(editor.onKey(key(Key.ESCAPE)));
+            assertFalse(editor.onKey(key(Key.F1)));
+        }
+
+        @Test
+        @DisplayName("Enter is a newline only when the editor is multiline")
+        void enterDependsOnTheMode() {
+            var single = editor("hi");
+            assertFalse(single.onKey(key(Key.ENTER)), "a single-line editor lets Enter through, so a form can submit");
+            assertEquals("hi", single.text());
+
+            var multi = editor("hi").multiline(true);
+            multi.caretTo(2, false);
+            assertTrue(multi.onKey(key(Key.ENTER)));
+            assertEquals("hi\n", multi.text());
+        }
+
+        @Test
+        @DisplayName("Backspace and Delete go by character, or by word with Ctrl")
+        void deletes() {
+            var editor = editor("one two");
+            editor.caretTo(7, false);
+
+            assertTrue(editor.onKey(key(Key.BACKSPACE)));
+            assertEquals("one tw", editor.text());
+
+            assertTrue(editor.onKey(key(Key.BACKSPACE, new Modifiers(false, true, false, false))));
+            assertEquals("one ", editor.text());
+        }
+
+        @Test
+        @DisplayName("a read-only editor moves and selects but does not change")
+        void readOnlyRefusesEdits() {
+            var editor = editor("hello").readOnly(true);
+            // `text(...)` leaves the caret at the end, which is where a document
+            // that was just loaded should open.
+            editor.caretTo(0, false);
+
+            assertFalse(editor.onText("x"));
+            assertFalse(editor.onKey(key(Key.BACKSPACE)));
+            assertEquals("hello", editor.text());
+
+            assertTrue(editor.onKey(key(Key.RIGHT)), "movement still works, which is what read-only means");
+            assertEquals(1, editor.edit().caret());
+        }
+    }
+
+    @Nested
+    @DisplayName("undo")
+    class Undo {
+
+        @Test
+        @DisplayName("a run of typing undoes as one step")
+        void foldsATypingRun() {
+            var editor = editor("");
+            editor.onText("h");
+            editor.onText("i");
+            editor.onText("!");
+
+            assertTrue(editor.undo());
+            assertEquals("", editor.text(), "three keystrokes, one step");
+            assertTrue(editor.redo());
+            assertEquals("hi!", editor.text());
+        }
+
+        @Test
+        @DisplayName("moving the caret ends the run")
+        void movementBreaksTheRun() {
+            var editor = editor("");
+            editor.onText("one");
+            editor.onKey(key(Key.LEFT));
+            editor.onText("X");
+
+            assertTrue(editor.undo());
+            assertEquals("one", editor.text(), "the X went back and the word did not");
+        }
+
+        @Test
+        @DisplayName("Ctrl+Z and Ctrl+Shift+Z are undo and redo")
+        void theAccelerators() {
+            var control = new Modifiers(false, true, false, false);
+            var controlShift = new Modifiers(true, true, false, false);
+
+            var editor = editor("");
+            editor.onText("typed");
+
+            assertTrue(editor.onKey(key(Key.Z, control)));
+            assertEquals("", editor.text());
+            assertTrue(editor.onKey(key(Key.Z, controlShift)));
+            assertEquals("typed", editor.text());
+            assertTrue(editor.onKey(key(Key.Z, control)));
+            assertTrue(editor.onKey(key(Key.Y, control)), "and Ctrl+Y is redo as well");
+            assertEquals("typed", editor.text());
+        }
+
+        @Test
+        @DisplayName("replacing the text clears the history")
+        void loadingClearsTheHistory() {
+            var editor = editor("");
+            editor.onText("typed");
+
+            editor.text("a different document");
+
+            assertFalse(editor.canUndo(), "an undo that reached past a load would restore another document's text");
+            assertFalse(editor.undo());
+        }
+
+        @Test
+        @DisplayName("nothing to undo is false rather than a no-op that consumed a key")
+        void reportsNothingToUndo() {
+            var editor = editor("hello");
+            assertFalse(editor.canUndo());
+            assertFalse(editor.undo());
+            assertFalse(editor.redo());
+        }
+    }
+
+    @Nested
+    @DisplayName("selection, movement and the clipboard")
+    class Selecting {
+
+        @Test
+        @DisplayName("Shift extends the selection and a plain arrow collapses it")
+        void extendsWithShift() {
+            var shift = new Modifiers(true, false, false, false);
+            var editor = editor("hello");
+            editor.caretTo(0, false);
+
+            editor.onKey(key(Key.RIGHT, shift));
+            editor.onKey(key(Key.RIGHT, shift));
+            assertEquals("he", editor.edit().selectedText());
+
+            editor.onKey(key(Key.RIGHT));
+            assertFalse(editor.edit().hasSelection());
+        }
+
+        @Test
+        @DisplayName("Home and End go to the ends of the visual line, not of the text")
+        void homeAndEndAreVisual() {
+            var editor = editor("one\ntwo").multiline(true);
+            editor.caretTo(5, false);
+
+            assertTrue(editor.onKey(key(Key.HOME)));
+            assertEquals(4, editor.edit().caret(), "the start of the second line");
+
+            assertTrue(editor.onKey(key(Key.END)));
+            assertEquals(7, editor.edit().caret());
+
+            var control = new Modifiers(false, true, false, false);
+            assertTrue(editor.onKey(key(Key.HOME, control)));
+            assertEquals(0, editor.edit().caret(), "Ctrl+Home is the start of everything");
+        }
+
+        @Test
+        @DisplayName("a double click selects a word and a triple click selects the lot")
+        void clickCounts() {
+            var editor = editor("one two three");
+
+            // Click where the caret would be at offset 5, which is inside "two".
+            editor.caretTo(5, false);
+            var caret = editor.caret();
+            var x = caret.x();
+            editor.pointerAt(x, caret.top(), false, 2);
+            assertEquals("two", editor.edit().selectedText());
+
+            editor.pointerAt(x, caret.top(), false, 3);
+            assertEquals("one two three", editor.edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("copy, cut and paste go through the clipboard it was given")
+        void clipboardRoundTrip() {
+            var board = new Board();
+            var editor = editor("hello world").clipboard(board);
+            var control = new Modifiers(false, true, false, false);
+
+            editor.caretTo(0, false);
+            editor.caretTo(5, true);
+            assertTrue(editor.onKey(key(Key.C, control)));
+            assertEquals("hello", board.text());
+
+            assertTrue(editor.onKey(key(Key.X, control)));
+            assertEquals(" world", editor.text());
+
+            editor.caretTo(6, false);
+            assertTrue(editor.onKey(key(Key.V, control)));
+            assertEquals(" worldhello", editor.text());
+        }
+
+        @Test
+        @DisplayName("without a clipboard the keys are not consumed")
+        void noClipboardIsNotAConsumedKey() {
+            var editor = editor("hello");
+            editor.caretTo(0, false);
+            editor.caretTo(5, true);
+
+            // A feature that is not there must not swallow the key: an application
+            // may have its own Ctrl+C.
+            assertFalse(editor.copy());
+            assertFalse(editor.onKey(key(Key.C, new Modifiers(false, true, false, false))));
+        }
+
+        @Test
+        @DisplayName("a pasted newline is flattened in a single-line editor")
+        void pasteRespectsTheMode() {
+            var board = new Board();
+            board.text("two\nlines");
+
+            var single = editor("").clipboard(board);
+            assertTrue(single.paste());
+            assertEquals("two lines", single.text(), "flattened rather than half-dropped");
+
+            var multi = editor("").clipboard(board).multiline(true);
+            assertTrue(multi.paste());
+            assertEquals("two\nlines", multi.text());
+        }
+
+        @Test
+        @DisplayName("Ctrl+A selects everything")
+        void selectAll() {
+            var editor = editor("everything");
+            assertTrue(editor.onKey(key(Key.A, new Modifiers(false, true, false, false))));
+            assertEquals("everything", editor.edit().selectedText());
+        }
+    }
+
+    /// A primary selection with nothing under it, counting what was written.
+    private static final class Primary implements PrimarySelection {
+
+        private String held = "";
+
+        private int writes;
+
+        @Override
+        public boolean hasText() {
+            return !held.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return held;
+        }
+
+        @Override
+        public boolean text(String text) {
+            held = text;
+            writes++;
+            return true;
+        }
+    }
+
+    /// X11's primary selection, which the editor fills and pastes from without
+    /// knowing it is X11's (ADR-0504).
+    @Nested
+    @DisplayName("the primary selection")
+    class ThePrimarySelection {
+
+        @Test
+        @DisplayName("a drag's selection is published when the pointer comes up, not before")
+        void publishedOnRelease() {
+            var primary = new Primary();
+            var editor = editor("one two three").primarySelection(primary);
+            editor.caretTo(4, false);
+            var from = editor.caret();
+            editor.caretTo(7, false);
+            var to = editor.caret();
+
+            editor.pointerAt(from.x(), from.top(), false, 1);
+            editor.pointerAt(to.x(), to.top(), true, 1);
+            assertEquals(0, primary.writes, "a drag in progress is not an ownership change yet");
+
+            assertTrue(editor.pointerReleased());
+            assertEquals("two", primary.text());
+            assertEquals(1, primary.writes);
+        }
+
+        @Test
+        @DisplayName("a click that selects nothing publishes nothing")
+        void aClickPublishesNothing() {
+            var primary = new Primary();
+            primary.text("from another application");
+            var editor = editor("hello").primarySelection(primary);
+
+            editor.pointerAt(0, 0, false, 1);
+
+            assertFalse(editor.pointerReleased());
+            assertEquals("from another application", primary.text(), "a click is not a selection");
+        }
+
+        @Test
+        @DisplayName("Shift+arrow and Ctrl+A publish at once, and a plain arrow does not")
+        void keyboardSelectionsPublish() {
+            var primary = new Primary();
+            var editor = editor("hello").primarySelection(primary);
+            editor.caretTo(0, false);
+
+            editor.onKey(key(Key.RIGHT, new Modifiers(true, false, false, false)));
+            assertEquals("h", primary.text());
+
+            editor.onKey(key(Key.A, new Modifiers(false, true, false, false)));
+            assertEquals("hello", primary.text());
+
+            var writes = primary.writes;
+            editor.onKey(key(Key.RIGHT));
+            assertEquals(writes, primary.writes, "collapsing a selection publishes nothing");
+        }
+
+        @Test
+        @DisplayName("a middle click moves the caret there and pastes, as one undo step")
+        void middleClickPastes() {
+            var primary = new Primary();
+            primary.text("big ");
+            var editor = editor("a dog").primarySelection(primary);
+            editor.caretTo(2, false);
+            var at = editor.caret();
+            editor.caretTo(5, false);
+
+            assertTrue(editor.pastePrimaryAt(at.x(), at.top()));
+
+            assertEquals("a big dog", editor.text());
+            assertEquals(6, editor.edit().caret(), "the caret ends after what was pasted");
+
+            assertTrue(editor.undo());
+            assertEquals("a dog", editor.text());
+        }
+
+        @Test
+        @DisplayName("is a no-op without one, in a read-only editor, and with nothing to paste")
+        void noOps() {
+            var none = editor("text");
+            assertFalse(none.pastePrimaryAt(0, 0));
+            assertFalse(none.pointerReleased());
+
+            var primary = new Primary();
+            primary.text("pasted");
+            var readOnly = editor("text").primarySelection(primary).readOnly(true);
+            assertFalse(readOnly.pastePrimaryAt(0, 0));
+            assertEquals("text", readOnly.text());
+
+            var empty = editor("text").primarySelection(new Primary());
+            assertFalse(empty.pastePrimaryAt(0, 0));
+        }
+
+        @Test
+        @DisplayName("a pasted newline is flattened in a single-line editor, as a Ctrl+V's is")
+        void flattened() {
+            var primary = new Primary();
+            primary.text("two\nlines");
+            var editor = editor("").primarySelection(primary);
+
+            assertTrue(editor.pastePrimaryAt(0, 0));
+
+            assertEquals("two lines", editor.text());
+        }
+    }
+
+    @Nested
+    @DisplayName("shaping and geometry")
+    class Shaping {
+
+        @Test
+        @DisplayName("the shaping the caret is measured against is the one handed out")
+        void oneShapingPerText() {
+            var editor = editor("hello");
+
+            var first = editor.document();
+            assertSame(first, editor.document(), "asking twice does not reshape");
+
+            editor.onText("!");
+            assertEquals("hello!", editor.document().text(), "and typing does");
+        }
+
+        @Test
+        @DisplayName("changing the wrap width re-lays out the same shaping")
+        void wrapWidthRelaysOut() {
+            var editor = editor("the quick brown fox jumps over the lazy dog");
+
+            var wide = editor.lines().size();
+            editor.wrapWidth(80);
+            var narrow = editor.lines().size();
+
+            assertTrue(narrow > wide, "the same text wraps into more lines in a narrower box");
+            assertEquals(1, wide, "and was one line when unconstrained");
+        }
+
+        @Test
+        @DisplayName("an empty editor still has a caret to draw")
+        void emptyTextHasACaret() {
+            var editor = editor("");
+
+            var caret = editor.caret();
+            assertEquals(0, caret.x(), 0.001);
+            assertEquals(0, caret.top(), 0.001);
+            assertTrue(caret.height() > 0, "a caret in an empty box is a line tall, or there is nothing to see");
+            assertTrue(editor.selectionRects().isEmpty());
+        }
+
+        /// `text-align`, end to end through one editor: the paint, the caret and
+        /// the hit test are the three that have to agree, and an editor is where
+        /// they meet (`docs/gaps.md` G30, ADR-0318).
+        @Test
+        @DisplayName("a centred editor puts its caret where it draws the glyphs")
+        void alignmentMovesTheCaretWithTheText() {
+            var editor = editor("hello").wrapWidth(200);
+            var left = editor.caret().x();
+
+            editor.textAlign(TextAlign.CENTER);
+
+            assertEquals(TextAlign.CENTER, editor.textAlign());
+            assertTrue(editor.caret().x() > left, "a centred line starts further in, and so does its caret");
+            assertEquals(
+                    TextAlign.CENTER.indentOf(editor.lines().getFirst().width(), 200) + left,
+                    editor.caret().x(),
+                    0.001,
+                    "and it is the painter's own indent rather than a second guess at it");
+        }
+
+        @Test
+        @DisplayName("pressing on a centred caret does not move it")
+        void alignmentRoundTripsThroughAPress() {
+            var editor = editor("hello there").wrapWidth(200).textAlign(TextAlign.CENTER);
+            editor.caretTo(7, false);
+            var caret = editor.caret();
+
+            editor.pointerAt(caret.x(), caret.top() + 1, false, 1);
+
+            assertEquals(7, editor.edit().caret(), "the press landed half the line's slack away from the caret");
+        }
+
+        @Test
+        @DisplayName("the alignment is a late decision and re-wraps nothing")
+        void alignmentKeepsTheLayout() {
+            var editor = editor("the quick brown fox jumps over the lazy dog").wrapWidth(80);
+            var rows = editor.lines();
+
+            editor.textAlign(TextAlign.END);
+
+            assertSame(rows, editor.lines(), "alignment does not decide where lines break");
+        }
+
+        @Test
+        @DisplayName("Down keeps its column across a run of keys")
+        void verticalRunsKeepTheColumn() {
+            var editor = editor("aaaaaaaaaa\nbb\ncccccccccc").multiline(true);
+            editor.caretTo(8, false);
+            var column = editor.caret().x();
+
+            editor.onKey(key(Key.DOWN));
+            assertEquals(13, editor.edit().caret(), "the short line has no such column");
+
+            editor.onKey(key(Key.DOWN));
+            assertTrue(
+                    Math.abs(editor.caret().x() - column) < font.size(),
+                    "and the column comes back on the line that is long enough");
+        }
+    }
+}

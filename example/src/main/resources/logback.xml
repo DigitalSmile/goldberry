@@ -22,7 +22,7 @@
          start-up. Frame-by-frame timing is at trace, so
          `-Dgoldberry.log.level=TRACE` is how to find out where a slow frame
          went. -->
-    <logger name="io.github.digitalsmile.goldberry" level="${goldberry.log.level:-DEBUG}"/>
+    <logger name="dev.goldberry" level="${goldberry.log.level:-DEBUG}"/>
 
     <!-- What the platform's own libraries say about themselves (ADR-0443).
          GLib's messages arrive on `native.glib.<domain>` and SDL's on
