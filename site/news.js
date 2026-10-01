@@ -12,6 +12,13 @@ window.NEWS = {
   limit: 4,
   items: [
     {
+      date: "2026-10-01",
+      title: "The documentation: a guide in six parts",
+      pill: "The documentation is a guide",
+      text: "goldberry.dev/docs/ is a guide now: an overview, getting started on the JVM and as a native binary, every layout and every widget with an example, performance, and a developer guide. The decision log is its last part, and every markup sample in it is a test.",
+      href: "docs/"
+    },
+    {
       date: "2026-09-27",
       title: "The GPU lane: composition, canvas3d and 4K60 video",
       pill: "The GPU lane, canvas3d and 4K60 video",

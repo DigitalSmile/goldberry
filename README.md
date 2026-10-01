@@ -38,7 +38,8 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalogue is
-> **72 widgets** behind 74 markup names — every §3 control including `knob`,
+> **72 widgets** in `goldberry-widgets` and seven more in the optional modules,
+> 79 markup names in all — every §3 control including `knob`,
 > `select` and `badge`, §4's fields, §5's containers, the whole `scroll` family,
 > §6's navigation, §7's overlays and the chart family — all drawn to the design
 > system's metrics with rounded corners, a real focus ring, the §1.4 type scale
@@ -1791,7 +1792,7 @@ might be hiding it.
 | Where | What |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The design: what the system is, layer by layer — §2.1 is the package map |
-| [`book/`](book/src/introduction.md) | Why each significant choice was made, one decision at a time |
+| [goldberry.dev/docs](https://goldberry.dev/docs/), from [`book/`](book/src/introduction.md) | The guide: overview, getting started, layout, components, performance, developer guide. Its last part is the decision log, why each significant choice was made, one decision at a time. `docs/book.md` is its runbook and style guide |
 | [`book/src/status.md`](book/src/status.md) | What is built, milestone by milestone, plus the module and package layout |
 | [`book/src/TODO.md`](book/src/TODO.md) | What is not: deferred items, known gaps, and the answered ones kept for their reasoning |
 

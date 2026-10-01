@@ -77,6 +77,16 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
 ## The catalog: specified and unbuilt
 
+- **The inflater accepts a property nothing reads.** `KdlInflater` refuses an
+  unknown node name, and `Attributes.of` reads `id`, `class`, `tooltip`,
+  `context-menu` and `name`; a property a widget's `inflate` never asks for is
+  dropped in silence. `row gap=8` draws a row with no gap, and both `Row`'s own
+  sample and `docs/core-widgets.md` §1 write exactly that. The guide's
+  `BookMarkupTest` inflates every `kdl` sample and therefore cannot catch a
+  misspelt attribute either. What it would take is a node that records which
+  properties were read and an inflater that warns, or refuses, on the rest. —
+  [ADR-0511](adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
+
 ### `text-input`, and what §4 still owes
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a

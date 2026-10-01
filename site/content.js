@@ -59,7 +59,7 @@ window.SITE = {
     hero: [
       { label: "Get started", href: "#quickstart", primary: true },
       { label: "Star on GitHub", href: "https://github.com/DigitalSmile/goldberry", github: true },
-      { label: "Read the docs", href: "docs/" }
+      { label: "Read the docs", href: "docs/getting-started/requirements.html" }
     ]
   },
 
@@ -84,14 +84,14 @@ window.SITE = {
       title: "Describe the screen. The toolkit keeps it true.",
       text: "A widget is an immutable Java record with a pure build(), or the same tree as a KDL node. The element tree behind it persists, so state and :hover survive a parent re-describing its child.",
       points: ["Every widget is a record, a node and a CSS type", "Markup names an action and a value to bind to; it never contains code", "A typo fails at inflation, not silently at a click"],
-      shot: "basic.webp", shotAlt: "The Goldberry showcase: buttons, toggles, radios, sliders, badges and chips", href: "docs/", hrefLabel: "Read about widgets"
+      shot: "basic.webp", shotAlt: "The Goldberry showcase: buttons, toggles, radios, sliders, badges and chips", href: "docs/components/index.html", hrefLabel: "Read about widgets"
     },
     {
       eyebrow: "Real CSS, real flexbox",
       title: "Style it like the web. Reload it while it runs.",
       text: "A genuine CSS subset with variables, cascade and transitions, laid out by Yoga. Every colour is a --gb-* token, so a theme switch restyles controls whose rules never mention one. Stylesheets and markup hot-reload.",
       points: ["Nord light and dark out of the box", "Regular and compact density that no widget mentions", "Transitions on a frame clock, deterministic in tests"],
-      shot: "forms-light.webp", shotAlt: "The showcase's forms screen in the light theme", href: "docs/", hrefLabel: "Read about styling"
+      shot: "forms-light.webp", shotAlt: "The showcase's forms screen in the light theme", href: "docs/guide/styling.html", hrefLabel: "Read about styling"
     },
     {
       eyebrow: "Light to ship",
@@ -173,7 +173,7 @@ window.SITE = {
       ["Icons", "1544 Lucide icons and Noto Color Emoji, both as widgets"],
       ["Scrollbars", "one spec for the whole scroll family, overlay and classic"]
     ],
-    href: "docs/", hrefLabel: "The design system"
+    href: "docs/guide/design-system.html", hrefLabel: "The design system"
   },
 
   // The CSS card: a stylesheet as the showcase writes one.
@@ -263,7 +263,7 @@ window.SITE = {
     licenseHref: "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE",
     note: "Open source.",
     columns: [
-      { title: "Docs", links: [["Introduction", "docs/"], ["Status", "docs/status.html"], ["Decision log", "docs/adr/"], ["Native image", "docs/native.html"]] },
+      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "docs/adr/"], ["Native image", "docs/native.html"]] },
       { title: "Project", links: [["GitHub", "https://github.com/DigitalSmile/goldberry"], ["Issues", "https://github.com/DigitalSmile/goldberry/issues"], ["Releases", "https://github.com/DigitalSmile/goldberry/releases"], ["Licence", "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE"]] },
       { title: "Page", links: [["Features", "#features"], ["Quick start", "#quickstart"], ["Performance", "#performance"], ["Compare", "#compare"], ["FAQ", "#faq"], ["llms.txt", "llms.txt"]] }
     ]

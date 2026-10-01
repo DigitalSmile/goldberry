@@ -42,6 +42,14 @@ tasks.named('test') {
     // rather than derived from the working directory, which differs between
     // Gradle and an IDE run (ADR-0082).
     systemProperty 'goldberry.repoRoot', rootDir.parentFile.absolutePath
+    // `BookTest` and `SiteTest` read the book, the landing page and the
+    // workflows, none of which is on a classpath; declared so an edit to a
+    // chapter re-runs the guards rather than leaving them up to date (ADR-0511).
+    ['book/src', 'book/book.toml', 'site', '.github/workflows'].each { path ->
+        inputs.files(fileTree(rootDir.parentFile) { include "${path}/**", path })
+                .withPropertyName(path.replaceAll('[^A-Za-z]', '_'))
+                .withPathSensitivity(PathSensitivity.RELATIVE)
+    }
     testLogging {
         events 'failed', 'skipped'
         exceptionFormat = 'full'

@@ -1,0 +1,503 @@
+/*
+ * The book, dressed like the landing page (docs/book.md).
+ *
+ * mdBook's `light` and `navy` themes are recoloured with the tokens from
+ * site/assets/style.css: Nord on a near-white page, gold for the small marks,
+ * and Nord dark. The three themes the page has no colours for are hidden from
+ * the menu rather than restyled. Everything here is additive: `additional-css`
+ * loads after the theme, so a selector that mdBook later renames falls back to
+ * the stock look rather than breaking the page.
+ */
+
+:root {
+    --content-max-width: 860px;
+    --sidebar-target-width: 320px;
+    --mono-font: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, "DejaVu Sans Mono", monospace;
+    --sans-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --code-font-size: 0.86em;
+    --gb-radius: 12px;
+}
+
+/* ---------- the two themes ---------- */
+
+.light {
+    --bg: #F4F5F8;
+    --fg: #1F2530;
+    --gb-muted: #5B6577;
+    --gb-card: #FFFFFF;
+    --gb-line: #DDE2EA;
+    --gb-gold: #EBCB8B;
+    --gb-gold-ink: #2E3440;
+    --gb-leaf: #C79A3B;
+    --gb-water: #5E81AC;
+
+    --sidebar-bg: #EAEDF2;
+    --sidebar-fg: #3A4252;
+    --sidebar-non-existant: #AAB2C0;
+    --sidebar-active: #1F2530;
+    --sidebar-spacer: #DDE2EA;
+    --sidebar-header-border-color: #C79A3B;
+
+    --scrollbar: #C3CBD9;
+    --icons: #5B6577;
+    --icons-hover: #1F2530;
+    --links: #3B5F8F;
+    --inline-code-color: #2E3440;
+
+    --theme-popup-bg: #FFFFFF;
+    --theme-popup-border: #DDE2EA;
+    --theme-hover: #EAEDF2;
+
+    --quote-bg: #FFFFFF;
+    --quote-border: #DDE2EA;
+    --table-border-color: #DDE2EA;
+    --table-header-bg: #EAEDF2;
+    --table-alternate-bg: #F9FAFC;
+
+    --searchbar-border-color: #DDE2EA;
+    --searchbar-bg: #FFFFFF;
+    --searchbar-fg: #1F2530;
+    --searchbar-shadow-color: #DDE2EA;
+    --searchresults-header-fg: #5B6577;
+    --searchresults-border-color: #DDE2EA;
+    --searchresults-li-bg: #FFFFFF;
+    --search-mark-bg: #EBCB8B;
+
+    --blockquote-note-color: #5E81AC;
+    --blockquote-tip-color: #7F9A68;
+    --blockquote-important-color: #B48EAD;
+    --blockquote-warning-color: #D08770;
+    --blockquote-caution-color: #BF616A;
+}
+
+.navy {
+    --bg: #2E3440;
+    --fg: #ECEFF4;
+    --gb-muted: #C3CBD9;
+    --gb-card: #3B4252;
+    --gb-line: #4A5468;
+    --gb-gold: #EBCB8B;
+    --gb-gold-ink: #2E3440;
+    --gb-leaf: #EBCB8B;
+    --gb-water: #88C0D0;
+
+    --sidebar-bg: #272C36;
+    --sidebar-fg: #C3CBD9;
+    --sidebar-non-existant: #5B6577;
+    --sidebar-active: #ECEFF4;
+    --sidebar-spacer: #3B4252;
+    --sidebar-header-border-color: #EBCB8B;
+
+    --scrollbar: #4A5468;
+    --icons: #C3CBD9;
+    --icons-hover: #ECEFF4;
+    --links: #88C0D0;
+    --inline-code-color: #EBCB8B;
+
+    --theme-popup-bg: #3B4252;
+    --theme-popup-border: #4A5468;
+    --theme-hover: #434C5E;
+
+    --quote-bg: #3B4252;
+    --quote-border: #4A5468;
+    --table-border-color: #4A5468;
+    --table-header-bg: #3B4252;
+    --table-alternate-bg: #333A48;
+
+    --searchbar-border-color: #4A5468;
+    --searchbar-bg: #3B4252;
+    --searchbar-fg: #ECEFF4;
+    --searchbar-shadow-color: #272C36;
+    --searchresults-header-fg: #C3CBD9;
+    --searchresults-border-color: #4A5468;
+    --searchresults-li-bg: #3B4252;
+    --search-mark-bg: #5E81AC;
+
+    --blockquote-note-color: #88C0D0;
+    --blockquote-tip-color: #A3BE8C;
+    --blockquote-important-color: #B48EAD;
+    --blockquote-warning-color: #EBCB8B;
+    --blockquote-caution-color: #BF616A;
+}
+
+/* Only the two themes the page has colours for. */
+#mdbook-theme-list li:has(#mdbook-theme-rust),
+#mdbook-theme-list li:has(#mdbook-theme-coal),
+#mdbook-theme-list li:has(#mdbook-theme-ayu) {
+    display: none;
+}
+
+/* ---------- type ---------- */
+
+html, body, .menu-title, .sidebar {
+    font-family: var(--sans-font);
+}
+body {
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.0rem;
+}
+.content main {
+    line-height: 1.6;
+}
+.content h1 {
+    font-size: 2.3rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    margin-block-end: 0.7em;
+}
+.content h1::after {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 4px;
+    margin-top: 14px;
+    border-radius: 999px;
+    background: var(--gb-gold);
+}
+.content h2 {
+    font-size: 1.55rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    margin-block-start: 2.2em;
+    padding-block-end: 0.3em;
+    border-bottom: 1px solid var(--gb-line);
+}
+.content h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-block-start: 1.8em;
+}
+.content h4 {
+    font-size: 1rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gb-muted);
+}
+/* A widget's heading is its node name, set as a chip. */
+.content h2 > code,
+.content h3 > code {
+    font-size: 0.8em;
+    padding: 0.15em 0.5em;
+    border-radius: 999px;
+    border: 1px solid var(--gb-line);
+    background: var(--gb-card);
+    color: var(--fg);
+    vertical-align: 0.1em;
+}
+.content p > code,
+.content li > code,
+.content td > code,
+.content th > code {
+    padding: 0.1em 0.35em;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--gb-line) 55%, transparent);
+    color: var(--inline-code-color);
+    font-size: 0.86em;
+}
+.content a {
+    color: var(--links);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color 0.15s ease;
+}
+.content a:hover {
+    text-decoration-color: var(--gb-gold);
+    text-decoration-thickness: 2px;
+}
+.content hr {
+    border: 0;
+    border-top: 1px solid var(--gb-line);
+    margin-block: 2.5em;
+}
+
+/* ---------- code ---------- */
+
+.content pre {
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--gb-line);
+    line-height: 1.5;
+}
+.content pre > code {
+    padding: 1.1rem 1.2rem;
+}
+.content pre > .buttons {
+    top: 6px;
+    right: 6px;
+}
+.content pre > .buttons button {
+    border-radius: 8px;
+}
+
+/* ---------- tables ---------- */
+
+.content table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--gb-line);
+    border-radius: var(--gb-radius);
+    overflow: hidden;
+    margin-block: 1.4em;
+    width: 100%;
+}
+.content table td,
+.content table th {
+    border: 0;
+    border-top: 1px solid var(--gb-line);
+    padding: 9px 14px;
+    vertical-align: top;
+    line-height: 1.5;
+}
+.content table thead th {
+    border-top: 0;
+    background: var(--table-header-bg);
+    font-weight: 650;
+    text-align: left;
+}
+.content table tbody tr:nth-child(2n) {
+    background: var(--table-alternate-bg);
+}
+
+/* ---------- callouts ---------- */
+
+.content blockquote {
+    margin-block: 1.4em;
+    padding: 0.9em 1.2em;
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--quote-border);
+    border-inline-start: 4px solid var(--gb-gold);
+    background: var(--quote-bg);
+}
+.content blockquote p {
+    margin-block: 0.4em;
+}
+.content blockquote.note      { border-inline-start-color: var(--blockquote-note-color); }
+.content blockquote.tip       { border-inline-start-color: var(--blockquote-tip-color); }
+.content blockquote.important { border-inline-start-color: var(--blockquote-important-color); }
+.content blockquote.warning   { border-inline-start-color: var(--blockquote-warning-color); }
+.content blockquote.caution   { border-inline-start-color: var(--blockquote-caution-color); }
+
+/* ---------- pictures ---------- */
+
+.content img {
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--gb-line);
+}
+.content figure {
+    margin: 1.6em 0;
+}
+.content figcaption {
+    margin-top: 0.5em;
+    font-size: 0.9rem;
+    color: var(--gb-muted);
+}
+
+/* ---------- the sidebar ---------- */
+
+.sidebar .chapter li.part-title {
+    margin-top: 1.4em;
+    font-size: 0.74rem;
+    font-weight: 650;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gb-muted);
+}
+.sidebar .chapter li a {
+    border-radius: 8px;
+    transition: background-color 0.12s ease;
+}
+.sidebar .chapter li a:hover {
+    background: color-mix(in srgb, var(--gb-line) 50%, transparent);
+    text-decoration: none;
+}
+.sidebar .chapter li a.active {
+    font-weight: 650;
+    color: var(--sidebar-active);
+    background: color-mix(in srgb, var(--gb-gold) 35%, transparent);
+}
+.sidebar .chapter .section {
+    margin-inline-start: 0.4em;
+}
+.menu-title {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+.menu-bar.sticky,
+.menu-bar.sticky.bordered {
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
+}
+
+/* ---------- blocks the guide writes in HTML ---------- */
+
+/* <p class="gb-lede">A one-sentence summary under the title.</p> */
+.gb-lede {
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--gb-muted);
+    max-width: 44em;
+}
+
+/* <div class="gb-cards"><a class="gb-card" href="..."><strong>Title</strong><span>Text</span></a>...</div> */
+.gb-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-block: 1.6em;
+}
+.gb-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px;
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--gb-line);
+    background: var(--gb-card);
+    color: var(--fg) !important;
+    text-decoration: none !important;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.gb-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--gb-leaf);
+    box-shadow: 0 18px 40px -28px rgba(31, 37, 48, 0.5);
+}
+.gb-card strong {
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+.gb-card span {
+    font-size: 0.92rem;
+    color: var(--gb-muted);
+    line-height: 1.45;
+}
+.gb-card code {
+    font-size: 0.82em;
+}
+
+/* <div class="gb-shot"><img ...><p>caption</p></div> */
+.gb-shot {
+    margin-block: 1.6em;
+    border-radius: var(--gb-radius);
+    overflow: hidden;
+    border: 1px solid var(--gb-line);
+    background: #2E3440;
+    box-shadow: 0 30px 80px -40px rgba(31, 37, 48, 0.45);
+}
+.gb-shot img {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+}
+.gb-shot p {
+    margin: 0;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: var(--gb-muted);
+    background: var(--gb-card);
+    border-top: 1px solid var(--gb-line);
+}
+
+/* <span class="gb-pill">status</span> */
+.gb-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    background: color-mix(in srgb, var(--gb-gold) 35%, transparent);
+    color: var(--fg);
+    vertical-align: middle;
+}
+.gb-pill.built   { background: color-mix(in srgb, #A3BE8C 40%, transparent); }
+.gb-pill.partial { background: color-mix(in srgb, #EBCB8B 45%, transparent); }
+.gb-pill.absent  { background: color-mix(in srgb, #BF616A 35%, transparent); }
+
+/* <div class="gb-stats"><div><b>1.0</b><i>ms</i><span>a frame</span></div>...</div> */
+.gb-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-block: 1.6em;
+}
+.gb-stats > div {
+    padding: 16px 18px;
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--gb-line);
+    background: var(--gb-card);
+}
+.gb-stats b {
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+.gb-stats i {
+    font-style: normal;
+    font-size: 1rem;
+    margin-inline-start: 4px;
+    color: var(--gb-muted);
+}
+.gb-stats span {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: var(--gb-muted);
+    line-height: 1.4;
+}
+
+/* <div class="gb-steps"><div><b>1</b><p>...</p></div></div> */
+.gb-steps {
+    counter-reset: gb-step;
+    margin-block: 1.4em;
+}
+.gb-steps > div {
+    position: relative;
+    padding: 4px 0 18px 48px;
+    border-inline-start: 2px solid var(--gb-line);
+    margin-inline-start: 16px;
+}
+.gb-steps > div::before {
+    counter-increment: gb-step;
+    content: counter(gb-step);
+    position: absolute;
+    left: -17px;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: var(--gb-gold);
+    color: var(--gb-gold-ink);
+}
+.gb-steps > div > p:first-child {
+    margin-top: 4px;
+}
+
+/* A two-column pair of samples: markup beside the Java that builds the same tree. */
+.gb-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+.gb-pair pre {
+    margin: 0;
+}
+
+@media (max-width: 720px) {
+    .content h1 { font-size: 1.9rem; }
+}
+
+@media print {
+    .gb-card, .gb-shot, .gb-stats > div { box-shadow: none; }
+}

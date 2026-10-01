@@ -20,11 +20,11 @@ is the runbook and the status.
 | `pages.yml` checks `news.js` links as well as `content.js` | done 2026-10-01 |
 | `SiteTest` / `BookLinkTest` drift guards | done 2026-10-01 |
 | Full build reproduced locally (mdBook 0.5.4, Node 22): 518 pages, all links resolve | done 2026-10-01 |
-| Settings ▸ Pages ▸ Source = **GitHub Actions** | **manual, pending** |
-| DNS at GoDaddy (records below) | **manual, pending** |
-| Custom domain `goldberry.dev` in Settings ▸ Pages, then **Enforce HTTPS** | **manual, pending** |
-| Domain verified on the account (Settings ▸ Pages ▸ Verified domains) | **manual, recommended** |
-| The book as documentation | next ([below](#next-the-book)) |
+| Settings ▸ Pages ▸ Source = **GitHub Actions** | done 2026-10-01: deployed |
+| DNS at GoDaddy (records below) | done 2026-10-01: GoDaddy, 1.1.1.1 and 8.8.8.8 answer 185.199.x.153 |
+| Custom domain `goldberry.dev` in Settings ▸ Pages, then **Enforce HTTPS** | domain set, Let's Encrypt certificate issued 2026-10-01; **Enforce HTTPS pending** |
+| Domain verified on the account (Settings ▸ Pages ▸ Verified domains) | TXT record published 2026-10-01; confirm **Verify** was clicked |
+| The book as documentation | done 2026-10-01: a guide in six parts, [`book.md`](book.md) and ADR-0511 |
 
 ## Going live, once
 
@@ -65,7 +65,13 @@ for the domain, browsers will not open the page at all.
    gives a `_github-pages-challenge-DigitalSmile` TXT record to add at GoDaddy.
    Without it, anyone can claim `goldberry.dev` on their own repository during a
    window when this one is not serving it.
-6. **Check.** `https://goldberry.dev/`, `https://www.goldberry.dev/`
+6. **Still the parking page?** A resolver that cached the old records keeps
+   answering with `13.248.243.5` / `76.223.105.230` until their TTL runs out,
+   up to an hour. `dig @1.1.1.1 goldberry.dev` shows what the world sees;
+   `dig goldberry.dev` shows what this machine sees. Flush with
+   `resolvectl flush-caches` and the browser's DNS cache, and if the router is
+   the resolver, wait it out or restart it.
+7. **Check.** `https://goldberry.dev/`, `https://www.goldberry.dev/`
    (redirects), `https://goldberry.dev/docs/`, `/sitemap.xml`, `/robots.txt`,
    `/llms.txt`. Then submit the sitemap in Google Search Console.
 
@@ -84,34 +90,14 @@ node site/build.mjs /tmp/_site "$(sed -n 's/^goldberryVersion=//p' gradle.proper
 python3 -m http.server -d /tmp/_site 8000
 ```
 
-## Next: the book
+## The book
 
-The workflow already publishes `book/` at `/docs/`, so a documentation book is
-built and deployed by writing chapters. Nothing in `pages.yml` changes. What is
-ready, and what that step has to decide:
-
-- **Ready.** mdBook pinned at 0.5.4, which rejects unknown `book.toml` keys, so
-  a misspelt option fails the build. `site-url` is set to `/docs/` by the
-  workflow, so 404 pages and relative links work under the subpath while a
-  local `mdbook serve` still works at the root. Every page has an *edit this
-  page* link. Every landing-page link into the book is checked twice: by
-  `SiteTest` against `book/src`, and by `pages.yml` against the built book.
-- **To decide: structure.** Today the book is six chapters and 509 decision
-  records. A guide wants its own parts (Getting started, Markup, Styling,
-  Widgets, Native image, ...) ahead of the log, with the log moved into a
-  final *Reference ▸ Decisions* part. `content.js` links `docs/status.html`,
-  `docs/native.html` and `docs/adr/`. If those move, the links move with them,
-  and `SiteTest` fails until they do.
-- **To decide: search.** The index is 19.5 MB, almost all of it the log
-  (mdBook warns). Options: `[output.html.search] heading-split-level = 0`
-  and `boost-*` tuning, a separate book for the log at `/docs/adr/`, or
-  excluding the log from search via a second mdBook build.
-- **To decide: theme.** The book uses mdBook's `navy`. Matching the landing
-  page's colours and leaf mark means a `book/theme/` override (`css/variables.css`,
-  `favicon.svg`) plus `additional-css`.
-- **To decide: code samples.** Samples that compile are worth having. Either
-  `{{#include}}` from `example/` source with anchors, or a test that extracts
-  the samples and compiles them.
-- **Nice to have.** A check of the links inside the book, for example `lychee`
-  over `_site/docs` in `pages.yml`. Today only the landing page's links into
-  the book are checked.
+Done on 2026-10-01: the guide, its theme, the search settings and the two
+drift guards are in [`book.md`](book.md), and the decision is
+[ADR-0511](../book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md).
+Of the questions this section used to list: the structure is six parts ahead
+of the log; search excludes `adr/` through `[output.html.search.chapter]`, which
+took the index from 19.5 MB to under 5 MB; the theme is `book/theme/goldberry.css`
+over mdBook's `light` and `navy`; `kdl` samples are tested by `BookMarkupTest`
+and Java samples are not compiled. A link check of the built site is still a
+nice to have; `BookTest` checks the same links in the sources.

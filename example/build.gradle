@@ -188,6 +188,12 @@ def appModule = 'dev.goldberry.example'
 // ============================================================================
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'gpu' }
+    // `BookMarkupTest` inflates every kdl sample under book/src. The guide is
+    // not on any classpath, so without this line a chapter edited after a green
+    // run leaves the task up to date and the sample unchecked (ADR-0511).
+    inputs.dir(rootProject.layout.projectDirectory.dir('book/src'))
+            .withPropertyName('bookSources')
+            .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 def gpuTest = tasks.register('gpuTest', JavaExec) {
