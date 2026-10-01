@@ -308,7 +308,10 @@ body {
     color: var(--gb-muted);
 }
 .sidebar .chapter li a {
-    border-radius: 8px;
+    display: block;
+    padding: 4px 8px;
+    margin-inline: -8px;
+    border-radius: 4px;
     transition: background-color 0.12s ease;
 }
 .sidebar .chapter li a:hover {
@@ -417,6 +420,15 @@ body {
 .gb-github:hover {
     transform: translateY(-1px);
     border-color: var(--gb-muted);
+}
+
+/* ---------- no page arrows ---------- */
+
+/* The arrows at both sides of the page, and the pair at the foot on a narrow
+   screen. The sidebar and the keyboard still turn pages. */
+.nav-wide-wrapper,
+.nav-wrapper {
+    display: none !important;
 }
 
 /* ---------- blocks the guide writes in HTML ---------- */
