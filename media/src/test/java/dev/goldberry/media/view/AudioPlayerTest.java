@@ -16,8 +16,10 @@ import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import dev.goldberry.icon.Icon;
+import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.MediaPlayer;
@@ -44,8 +46,11 @@ import dev.goldberry.widgets.text.Text;
 /// what its controls do to the player.
 ///
 /// The widget reads the player's status on every build, so each check mounts a
-/// fresh tree after the player has reached the state being checked.
+/// fresh tree after the player has reached the state being checked. Under
+/// [HeadlessRuntime], because the widget posts every status change to the UI
+/// thread, and that needs a runtime to post to (ADR-0517).
 @DisplayName("audio-player")
+@ExtendWith(HeadlessRuntime.class)
 class AudioPlayerTest {
 
     private MediaPlayer player;

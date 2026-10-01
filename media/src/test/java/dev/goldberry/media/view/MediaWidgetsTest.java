@@ -22,12 +22,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
@@ -57,7 +59,10 @@ import dev.goldberry.widgets.text.Text;
 /// `media-controls`, `video-view` and `media-player`, mounted without a window:
 /// what each builds, what its keys and its seek bar do to the player, and when
 /// the player's controls hide.
+/// Under [HeadlessRuntime]: every one of these widgets posts the player's status
+/// changes to the UI thread, which needs a runtime to post to (ADR-0517).
 @DisplayName("media-controls, video-view and media-player")
+@ExtendWith(HeadlessRuntime.class)
 class MediaWidgetsTest {
 
     private static final int RATE = AudioFormat.DEFAULT.sampleRate();

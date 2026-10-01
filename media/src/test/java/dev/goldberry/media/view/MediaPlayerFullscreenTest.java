@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import dev.goldberry.GoldberryTestAccess;
 import dev.goldberry.Host;
@@ -27,6 +28,7 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaPlayer;
@@ -47,7 +49,10 @@ import dev.goldberry.widgets.controls.button.Button;
 /// `media-player`'s fullscreen (ADR-0473): the button and keys, the copy laid
 /// over the window, and the window asked and given back, against a host that
 /// records what it was asked and reports what a platform would.
+/// Under [HeadlessRuntime]: the player posts its status changes to the UI thread,
+/// which needs a runtime to post to (ADR-0517).
 @DisplayName("media-player fullscreen")
+@ExtendWith(HeadlessRuntime.class)
 class MediaPlayerFullscreenTest {
 
     private static final int RATE = AudioFormat.DEFAULT.sampleRate();

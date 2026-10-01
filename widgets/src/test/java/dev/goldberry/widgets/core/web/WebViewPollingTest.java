@@ -62,7 +62,11 @@ class WebViewPollingTest {
 
     @AfterEach
     void unmount() {
-        tree.unmount();
+        // Null when `mount` aborted for want of the library: JUnit runs the
+        // `@AfterEach` methods of an aborted test all the same.
+        if (tree != null) {
+            tree.unmount();
+        }
     }
 
     /// The painter the canvas holds now.

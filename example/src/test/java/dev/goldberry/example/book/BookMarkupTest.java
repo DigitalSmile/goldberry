@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
+import dev.goldberry.kdl.KdlInflater;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Widgets;
@@ -32,6 +34,10 @@ import dev.goldberry.widgets.Widgets;
 /// an application's values without an application behind it. What still fails
 /// is what a reader would hit first: an unknown node, an attribute whose value
 /// has the wrong type, a `format=` that does not match its value.
+///
+/// A `markdown-view` parses its text through md4c as it inflates, so that one
+/// sample needs `libgoldberry`. Where a build has none it skips, the way a test
+/// that paints does (ADR-0357), and inflates in every lane that has the library.
 class BookMarkupTest {
 
     @Test
@@ -49,7 +55,7 @@ class BookMarkupTest {
         var inflater = Widgets.inflater();
         return BookSamples.kdl().stream()
                 .map(sample -> DynamicTest.dynamicTest(sample.chapter() + ":" + sample.line(), () -> {
-                    List<Widget> widgets = inflater.inflateAll(KdlParser.parse(sample.text()));
+                    List<Widget> widgets = inflate(inflater, sample);
                     assertAll(
                             () -> assertFalse(
                                     widgets.isEmpty(),
@@ -57,5 +63,18 @@ class BookMarkupTest {
                                             + " is a kdl block that builds no widget; fence it as kdl,ignore if it is a fragment"),
                             () -> assertTrue(widgets.stream().allMatch(widget -> widget != null), "a null widget"));
                 }));
+    }
+
+    /// Inflates `sample`, or aborts the sample's test where that needs the native
+    /// library and this build has none. The same three errors
+    /// `RendererRequirement` treats as "no library": the first touch of a
+    /// binding, or the poisoned class after one.
+    private static List<Widget> inflate(KdlInflater<Widget> inflater, BookSamples.Sample sample) {
+        try {
+            return inflater.inflateAll(KdlParser.parse(sample.text()));
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
+            return Assumptions.abort(sample.chapter() + ":" + sample.line()
+                    + " inflates through libgoldberry, which this build does not have: " + e);
+        }
     }
 }

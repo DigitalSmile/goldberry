@@ -15,9 +15,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import dev.goldberry.example.media.JavaPcmDecoder;
 import dev.goldberry.example.media.ShowcaseMedia;
+import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
@@ -36,7 +38,10 @@ import dev.goldberry.widgets.text.Text;
 /// module's test task pins `goldberry.media.libdir` to a directory that cannot
 /// exist, so every machine sees the same screens. What that state must still do
 /// is say why, and keep everything that needs no decoding working.
+/// Under [HeadlessRuntime]: the screen and the players on it post every status
+/// change to the UI thread, which needs a runtime to post to (ADR-0517).
 @DisplayName("Audio and Video screens")
+@ExtendWith(HeadlessRuntime.class)
 class MediaScreenTest {
 
     private JavaPcmDecoder decoder;

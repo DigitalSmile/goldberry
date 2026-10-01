@@ -551,3 +551,5 @@ proposing to undo them.
 - [ADR-0513 The guide's pictures are taken from its own samples, in both themes](0513-the-guides-pictures-are-taken-from-its-own-samples-in-both-themes.md)
 - [ADR-0514 A sample pair is a tab group](0514-a-sample-pair-is-a-tab-group.md)
 - [ADR-0515 A scheme in the guide is a drawn picture](0515-a-scheme-in-the-guide-is-a-drawn-picture.md)
+- [ADR-0516 The README is a front door, and the guide is the rest](0516-the-readme-is-a-front-door-and-the-guide-is-the-rest.md)
+- [ADR-0517 A lane without libgoldberry is green](0517-a-lane-without-libgoldberry-is-green.md)

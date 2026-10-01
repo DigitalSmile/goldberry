@@ -70,6 +70,24 @@ class UpstreamSourceTest {
     }
 
     @Test
+    @DisplayName("archives the committed bytes, whatever line-ending conversion the archiving git is set to")
+    void keepsTheCommittedLineEndings() throws IOException {
+        // Git for Windows' default, which turned version.h's LF into CRLF on the
+        // Windows runner: `git archive` converts text the way a checkout would,
+        // unless the attributes say not to (ADR-0517).
+        var clone = temp.resolve("clone");
+        git(temp, "init", "--bare", "--quiet", clone.toString());
+        git(temp, "--git-dir=" + clone, "config", "core.autocrlf", "true");
+
+        new UpstreamSource("demo", upstream.toUri().toString(), "v1", tagged)
+                .archive("git", clone, temp.resolve("demo.tar"));
+
+        var extracted = extract(temp.resolve("demo.tar"));
+        assertEquals("$Format:%H$\n", Files.readString(extracted.resolve("demo-v1/version.h")),
+                "the archive carries the archiving machine's line endings, not the commit's");
+    }
+
+    @Test
     @DisplayName("refuses a tag that no longer names the pinned commit")
     void refusesAMovedTag() throws IOException {
         Files.writeString(upstream.resolve("src/codec.c"), "int codec = 1;\n");

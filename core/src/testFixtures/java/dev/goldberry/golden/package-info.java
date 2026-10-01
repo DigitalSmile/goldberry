@@ -1,5 +1,5 @@
 /// Test fixtures, not shipped API: golden-image comparison shared by the tests of
-/// `:core`, `:widgets` and `:gpu`.
+/// `:core`, `:widgets` and `:gpu`, and its PNG reader by `:media`'s picture goldens.
 ///
 /// A scene is rendered into memory and compared against a committed PNG, within a
 /// tolerance because Blend2D's JIT-compiled pipelines may differ in the last bit

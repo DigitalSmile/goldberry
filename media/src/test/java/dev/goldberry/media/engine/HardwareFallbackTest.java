@@ -183,20 +183,26 @@ class HardwareFallbackTest {
         }
     }
 
-    /// Skips unless VP9 plays on this machine's device.
+    /// Skips unless VP9 plays on this machine's device, and plays there all the
+    /// way. A device that opens and then gives the stream up on its own — a
+    /// virtualised macOS runner's VideoToolbox does, and the ladder falls to
+    /// software as it should — leaves nothing for an injected failure to test:
+    /// the fall would happen without it (ADR-0517).
     private void assumeVp9OnTheDevice() {
         Assumptions.assumeTrue(Hardware.of(HardwareDecoding.AUTO).enabled(), "no device type on this platform");
         play(platform(Hardware.Calls.FFMPEG), true);
         await(() -> playback.state() == PlaybackState.ENDED, "the end");
         Assumptions.assumeTrue(
                 decoders.getFirst().startsWith("ffmpeg ("), "VP9 did not play on the device here: " + decoders);
+        Assumptions.assumeTrue(
+                decoders.size() == 1, "the device gave VP9 up partway here, with nothing injected: " + decoders);
     }
 
     @Test
     @DisplayName("plays on the device, named for it, and its pictures are the software goldens")
     void playsOnTheDevice() {
+        // The probe has already seen one decoder, the device's, all the way.
         assumeVp9OnTheDevice();
-        assertEquals(1, decoders.size(), "one decoder all the way: " + decoders);
         assertEquals(
                 List.of(PlaybackState.BUFFERING, PlaybackState.PLAYING, PlaybackState.ENDED),
                 states.stream().filter(state -> state != PlaybackState.OPENING).toList());

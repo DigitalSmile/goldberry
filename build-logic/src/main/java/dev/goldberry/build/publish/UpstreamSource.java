@@ -28,7 +28,11 @@ import java.util.regex.Pattern;
  * tree, because it writes exactly the committed files: no build products, no
  * {@code .git}, nothing a local checkout picked up. The repository's own
  * attributes are overridden so that no {@code export-ignore} upstream may add
- * later can leave a file out, and no {@code export-subst} can rewrite one.
+ * later can leave a file out, no {@code export-subst} can rewrite one, and no
+ * line ending is converted for the archiving machine: {@code git archive} converts
+ * text the way a checkout would, and Git for Windows checks out CRLF by default,
+ * so without {@code -text} the same tag archived on two runners is two different
+ * tarballs (ADR-0517).
  *
  * @param name       the upstream's name, the archive's top directory's first half
  * @param repository where it is cloned from
@@ -41,9 +45,10 @@ public record UpstreamSource(String name, String repository, String tag, String 
 
     /**
      * The clone's {@code info/attributes}, which outrank the tree's own: no path
-     * is left out of an archive, and none is rewritten.
+     * is left out of an archive, none is rewritten, and none has its line endings
+     * converted.
      */
-    static final String ATTRIBUTES = "* -export-ignore -export-subst\n";
+    static final String ATTRIBUTES = "* -export-ignore -export-subst -text\n";
 
     public UpstreamSource {
         Objects.requireNonNull(name, "name");

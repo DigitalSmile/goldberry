@@ -22,21 +22,27 @@ import java.util.zip.Inflater;
 /// Deliberately the narrowest PNG that is still a real PNG: 8-bit RGBA, no
 /// interlacing, one `IDAT`. That is what is written, and — because a golden file
 /// is only ever one this class wrote — it is all that has to be read.
-final class Png {
+///
+/// Public, because `:media`'s picture goldens read and write their PNGs through
+/// it too: a decoded picture is compared where FFmpeg is and `libgoldberry` is
+/// not, so the rasterizer cannot be what decodes the golden (ADR-0517). The
+/// toolkit's own `PngEncoder` writes the same shape, so a golden it wrote reads
+/// here.
+public final class Png {
 
     private static final byte[] SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
 
     private Png() {}
 
     /// An image as `0xAARRGGBB` pixels, row-major.
-    record Image(int width, int height, int[] argb) {
+    public record Image(int width, int height, int[] argb) {
 
-        int pixel(int x, int y) {
+        public int pixel(int x, int y) {
             return argb[y * width + x];
         }
     }
 
-    static void write(Path file, Image image) {
+    public static void write(Path file, Image image) {
         try {
             Files.createDirectories(file.getParent());
             var png = new ByteArrayOutputStream();
@@ -61,7 +67,7 @@ final class Png {
         }
     }
 
-    static Image read(Path file) {
+    public static Image read(Path file) {
         try {
             var bytes = Files.readAllBytes(file);
             var in = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
