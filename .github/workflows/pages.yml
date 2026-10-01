@@ -1,0 +1,108 @@
+# Pages — the landing page at / and the book at /docs/.
+#
+#   site/          the landing page; site/build.mjs prerenders it for crawlers
+#   book/          mdBook, built into /docs/
+#
+# The version on the landing page is `goldberryVersion` from gradle.properties,
+# so it is never typed twice. sitemap.xml and robots.txt are generated too.
+#
+# One-time setup: Settings ▸ Pages ▸ Source = "GitHub Actions", and the custom
+# domain goldberry.dev (site/CNAME carries it too).
+name: Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - "book/**"
+      - "gradle.properties"
+      - ".github/workflows/pages.yml"
+  schedule:
+    - cron: "17 4 * * 1"   # weekly, so the star count on the page does not go stale
+  pull_request:
+    paths:
+      - "site/**"
+      - "book/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  MDBOOK_VERSION: "0.5.4"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mdBook ${{ env.MDBOOK_VERSION }}
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSfL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Assemble the site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # The book lives under /docs/, which is what its 404 page needs to know.
+          MDBOOK_OUTPUT__HTML__SITE_URL: /docs/
+        run: |
+          mkdir -p _site
+          cp -R site/. _site/
+          rm -f _site/README.md
+
+          mdbook build book -d "$PWD/_site/docs"
+
+          # Prerender the landing page from content.js, stamp the version, and
+          # write sitemap.xml and robots.txt. Node is already on the runner.
+          version="$(sed -n 's/^goldberryVersion=//p' gradle.properties)"
+          test -n "$version"
+          # The star count is stamped into the page so it is there before any script runs;
+          # the browser refreshes it from the API once an hour. Missing token: the badge
+          # stays hidden until the browser fills it.
+          stars="$(curl -sf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+                   "https://api.github.com/repos/${GITHUB_REPOSITORY}" | sed -n 's/.*"stargazers_count": *\([0-9]*\).*/\1/p' | head -1)"
+          node site/build.mjs _site "$version" "${stars:-0}" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f _site/build.mjs
+
+      - name: Check the landing page's own links
+        run: |
+          # content.js and news.js point into the book; a renamed chapter should
+          # fail here, not as a 404 on the live site. SiteTest checks the same
+          # links against book/src without building anything (ADR-0509).
+          for file in site/content.js site/news.js; do
+            for target in $(grep -o '"docs/[^"#]*' "$file" | tr -d '"' | sort -u); do
+              [ -e "_site/$target" ] || [ -e "_site/${target}index.html" ] \
+                || { echo "::error file=$file::$target does not exist in the built site"; exit 1; }
+            done
+          done
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    # A pull request builds, and stops there.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

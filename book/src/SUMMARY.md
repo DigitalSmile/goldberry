@@ -451,10 +451,6 @@
 - [ADR-0438 A JVM consumer carries no platform, so a variant has nothing to match](adr/0438-a-jvm-consumer-carries-no-platform-so-a-variant-has-nothing-to-match.md)
 - [ADR-0439 A viewport is found by walking up from the target](adr/0439-a-viewport-is-found-by-walking-up-from-the-target.md)
 - [ADR-0440 The accessibility bridge is on hold, and the semantics tree stays](adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)
-
----
-
-[Template](adr/0000-template.md)
 - [ADR-0441 A web page is a window, not a box](adr/0441-a-web-page-is-a-window-not-a-box.md)
 - [ADR-0442 A page is a child window, where the window system allows one](adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)
 - [ADR-0443 Somebody else's log line is still a log line](adr/0443-somebody-elses-log-line-is-still-a-log-line.md)
@@ -523,3 +519,8 @@
 - [ADR-0506 Start-up is timed from the kernel's clock, and a native window is up in a tenth of a second](adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
 - [ADR-0507 A page is taken down on WebKit's thread, and its context outlives exit()](adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)
 - [ADR-0508 FFmpeg's source is published beside its binaries, from the same place](adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md)
+- [ADR-0509 goldberry.dev is the landing page, and the book is its /docs/](adr/0509-goldberry-dev-is-the-landing-page-and-the-book-is-its-docs.md)
+
+---
+
+[Template](adr/0000-template.md)

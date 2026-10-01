@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- CI rewrites everything between seo:start and seo:end from `seo` in content.js. -->
+  <!-- seo:start -->
+  <title>Goldberry: open-source Java UI toolkit for fast, lightweight desktop apps</title>
+  <meta name="description" content="Goldberry is an open-source declarative desktop UI toolkit for Java 25. Pure Java over native C libraries via the FFM API, real CSS and flexbox, KDL markup with hot reload, GraalVM native image. Linux, Windows, macOS.">
+  <link rel="canonical" href="https://goldberry.dev/">
+  <!-- seo:end -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="author" content="Goldberry contributors">
+  <link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt">
+  <link rel="license" href="https://www.apache.org/licenses/LICENSE-2.0">
+  <meta name="theme-color" content="#D8DEE9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#2E3440" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preload" as="image" href="assets/goldberry-hero.webp" type="image/webp" fetchpriority="high">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>
+    // Theme before first paint, so a dark-mode visitor never sees a light flash.
+    try {
+      var t = localStorage.getItem("gb-theme");
+      if (t) document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="bar" id="top">
+    <div class="wrap bar-in">
+      <a class="brand" href="#top">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" fill="currentColor"/><path d="M3.2 20.8C7.5 15.8 13.4 9.7 20.6 3.4" stroke="var(--bg)" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".6"/></svg>
+        <span>Goldberry</span>
+      </a>
+      <nav aria-label="Main">
+        <a href="#features" data-nav="features">Features</a>
+        <a href="#quickstart" data-nav="quickstart">Quick start</a>
+        <a href="#performance" data-nav="performance">Performance</a>
+        <a href="#compare" data-nav="compare">Compare</a>
+        <a href="#faq" data-nav="faq">FAQ</a>
+        <a href="docs/" data-link="docs">Docs</a>
+      </nav>
+      <div class="bar-right">
+        <button class="theme" type="button" id="theme" aria-label="Switch between light and dark">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path class="moon" d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+            <g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></g>
+          </svg>
+        </button>
+        <a class="btn ghost gh" href="https://github.com/DigitalSmile/goldberry" data-link="github" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="github"></svg><span>GitHub</span><em class="stars" data-stars hidden></em></a>
+        <a class="btn primary" href="#quickstart">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" id="hero-bg" aria-hidden="true"><img src="assets/goldberry-hero.webp" width="930" height="500" fetchpriority="high" decoding="async" alt=""></div>
+      <div class="wrap hero-copy">
+        <div data-slot="announce"></div>
+        <h1 id="hero-title">
+          <span class="tagline" data-text="tagline">Build fast, lightweight desktop apps in no time.</span>
+        </h1>
+        <p class="lede" data-text="lede">Goldberry is an open-source, declarative UI toolkit for Java 25+. A window is three lines, a screen is a KDL file that reloads while it runs, and the same code runs as a plain jar on any JDK or compiles with GraalVM into one native binary. No JNI, no bundled web engine. Apache 2.0.</p>
+        <div class="actions" data-slot="heroActions"></div>
+        <p class="version"><span class="version-num">v<span data-text="version"></span></span> <span class="version-note" data-text="versionNote"></span> <span class="sep">·</span> <a class="license-pill" href="https://github.com/DigitalSmile/goldberry/blob/master/LICENSE" data-link="license" rel="noopener">Open source · Apache 2.0</a></p>
+      </div>
+      <div class="wrap hero-visual">
+<svg class="engine" id="engine" viewBox="0 0 1200 560" role="img" aria-label="KDL, CSS and Java flow into Goldberry, which lays out with Yoga, shapes text with HarfBuzz, rasterizes with Blend2D and presents through SDL3, out to windows on Linux, Windows and macOS">
+<defs><clipPath id="eng-clip"><rect x="520" y="199" width="160" height="160" rx="36"/></clipPath></defs>
+<path id="in0" class="wire" d="M300 99 C 410 99, 410 279, 520 279"/><path id="in1" class="wire" d="M300 279 C 410 279, 410 279, 520 279"/><path id="in2" class="wire" d="M300 459 C 410 459, 410 279, 520 279"/><path id="out0" class="wire" d="M680 279 C 790 279, 790 99, 900 99"/><path id="out1" class="wire" d="M680 279 C 790 279, 790 279, 900 279"/><path id="out2" class="wire" d="M680 279 C 790 279, 790 459, 900 459"/>
+<line class="spoke" x1="470" y1="150" x2="600" y2="279"/><line class="spoke" x1="730" y1="150" x2="600" y2="279"/><line class="spoke" x1="470" y1="410" x2="600" y2="279"/><line class="spoke" x1="730" y1="410" x2="600" y2="279"/>
+<g class="chip" transform="translate(414 130)"><rect width="112" height="40" rx="20"/><text class="chipname" x="56" y="17" text-anchor="middle">HarfBuzz</text><text class="chiprole" x="56" y="31" text-anchor="middle">shaping</text></g>
+<g class="chip" transform="translate(674 130)"><rect width="112" height="40" rx="20"/><text class="chipname" x="56" y="17" text-anchor="middle">Yoga</text><text class="chiprole" x="56" y="31" text-anchor="middle">layout</text></g>
+<g class="chip" transform="translate(414 390)"><rect width="112" height="40" rx="20"/><text class="chipname" x="56" y="17" text-anchor="middle">Blend2D</text><text class="chiprole" x="56" y="31" text-anchor="middle">raster</text></g>
+<g class="chip" transform="translate(674 390)"><rect width="112" height="40" rx="20"/><text class="chipname" x="56" y="17" text-anchor="middle">SDL3</text><text class="chiprole" x="56" y="31" text-anchor="middle">present</text></g>
+<g class="src kdl" transform="translate(40 40)">
+<rect class="box" width="260" height="118" rx="14"/>
+<text class="lbl mono" x="18" y="28">screen.kdl</text>
+<circle class="dot-k" cx="236" cy="24" r="4"/>
+<rect class="line k" data-line="0" x="18" y="50" width="120" height="8" rx="4"/>
+<rect class="line s" data-line="1" x="18" y="68" width="90" height="8" rx="4"/>
+<rect class="line t" data-line="2" x="18" y="86" width="150" height="8" rx="4"/>
+<rect class="line s" data-line="3" x="18" y="104" width="70" height="8" rx="4"/>
+</g><g class="src css" transform="translate(40 220)">
+<rect class="box" width="260" height="118" rx="14"/>
+<text class="lbl mono" x="18" y="28">theme.css</text>
+<circle class="dot-k" cx="236" cy="24" r="4"/>
+<rect class="line t" data-line="0" x="18" y="50" width="100" height="8" rx="4"/>
+<rect class="line p" data-line="1" x="18" y="68" width="140" height="8" rx="4"/>
+<rect class="line s" data-line="2" x="18" y="86" width="80" height="8" rx="4"/>
+<rect class="line p" data-line="3" x="18" y="104" width="120" height="8" rx="4"/>
+</g><g class="src java" transform="translate(40 400)">
+<rect class="box" width="260" height="118" rx="14"/>
+<text class="lbl mono" x="18" y="28">App.java</text>
+<circle class="dot-k" cx="236" cy="24" r="4"/>
+<rect class="line k" data-line="0" x="18" y="50" width="130" height="8" rx="4"/>
+<rect class="line t" data-line="1" x="18" y="68" width="160" height="8" rx="4"/>
+<rect class="line s" data-line="2" x="18" y="86" width="90" height="8" rx="4"/>
+<rect class="line k" data-line="3" x="18" y="104" width="110" height="8" rx="4"/>
+</g>
+<g class="out linux" transform="translate(900 40)">
+<rect class="box" width="260" height="118" rx="14"/>
+<rect class="titlebar" x="1" y="1" width="258" height="26" rx="13"/>
+<circle cx="18" cy="14" r="4" fill="#BF616A"/><circle cx="31" cy="14" r="4" fill="#EBCB8B"/><circle cx="44" cy="14" r="4" fill="#A3BE8C"/>
+<text class="lbl" x="130" y="18" text-anchor="middle">Linux</text>
+<rect class="line k" x="18" y="44" width="110" height="8" rx="4"/>
+<rect class="line k" x="18" y="60" width="150" height="8" rx="4"/>
+<rect class="widget wbtn" x="18" y="82" width="64" height="22" rx="11"/>
+<rect class="widget toggle" x="92" y="86" width="30" height="14" rx="7"/><circle class="knob" cx="99" cy="93" r="5"/>
+<rect class="widget bar" x="134" y="90" width="108" height="6" rx="3"/><rect class="widget fill" x="134" y="90" width="60" height="6" rx="3"/>
+</g><g class="out win" transform="translate(900 220)">
+<rect class="box" width="260" height="118" rx="14"/>
+<rect class="titlebar" x="1" y="1" width="258" height="26" rx="13"/>
+<circle cx="18" cy="14" r="4" fill="#BF616A"/><circle cx="31" cy="14" r="4" fill="#EBCB8B"/><circle cx="44" cy="14" r="4" fill="#A3BE8C"/>
+<text class="lbl" x="130" y="18" text-anchor="middle">Windows</text>
+<rect class="line k" x="18" y="44" width="110" height="8" rx="4"/>
+<rect class="line k" x="18" y="60" width="150" height="8" rx="4"/>
+<rect class="widget wbtn" x="18" y="82" width="64" height="22" rx="11"/>
+<rect class="widget toggle" x="92" y="86" width="30" height="14" rx="7"/><circle class="knob" cx="99" cy="93" r="5"/>
+<rect class="widget bar" x="134" y="90" width="108" height="6" rx="3"/><rect class="widget fill" x="134" y="90" width="60" height="6" rx="3"/>
+</g><g class="out mac" transform="translate(900 400)">
+<rect class="box" width="260" height="118" rx="14"/>
+<rect class="titlebar" x="1" y="1" width="258" height="26" rx="13"/>
+<circle cx="18" cy="14" r="4" fill="#BF616A"/><circle cx="31" cy="14" r="4" fill="#EBCB8B"/><circle cx="44" cy="14" r="4" fill="#A3BE8C"/>
+<text class="lbl" x="130" y="18" text-anchor="middle">macOS</text>
+<rect class="line k" x="18" y="44" width="110" height="8" rx="4"/>
+<rect class="line k" x="18" y="60" width="150" height="8" rx="4"/>
+<rect class="widget wbtn" x="18" y="82" width="64" height="22" rx="11"/>
+<rect class="widget toggle" x="92" y="86" width="30" height="14" rx="7"/><circle class="knob" cx="99" cy="93" r="5"/>
+<rect class="widget bar" x="134" y="90" width="108" height="6" rx="3"/><rect class="widget fill" x="134" y="90" width="60" height="6" rx="3"/>
+</g>
+<g class="core">
+<circle class="ring r1" cx="600" cy="279" r="96"/><circle class="ring r2" cx="600" cy="279" r="96"/>
+<rect class="corebox" x="520" y="199" width="160" height="160" rx="36"/>
+<g transform="translate(556 235) scale(3.7)"><path class="coreleaf" d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z"/><path class="coremid" d="M3.2 20.8C7.5 15.8 13.4 9.7 20.6 3.4"/></g>
+<text class="corelbl" x="600" y="392" text-anchor="middle">Goldberry</text>
+</g>
+<g class="flyers"><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="0.0s" repeatCount="indefinite" rotate="auto"><mpath href="#in0"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="1.3s" repeatCount="indefinite" rotate="auto"><mpath href="#in0"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="0.5s" repeatCount="indefinite" rotate="auto"><mpath href="#in1"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="1.8s" repeatCount="indefinite" rotate="auto"><mpath href="#in1"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="1.0s" repeatCount="indefinite" rotate="auto"><mpath href="#in2"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="2.3s" repeatCount="indefinite" rotate="auto"><mpath href="#in2"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="1.3s" repeatCount="indefinite" rotate="auto"><mpath href="#out0"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="2.6s" repeatCount="indefinite" rotate="auto"><mpath href="#out0"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="1.8s" repeatCount="indefinite" rotate="auto"><mpath href="#out1"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="3.1s" repeatCount="indefinite" rotate="auto"><mpath href="#out1"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="2.3s" repeatCount="indefinite" rotate="auto"><mpath href="#out2"/></animateMotion></g><g class="flyer"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" transform="translate(-6 -6) scale(.5)"/><animateMotion dur="2.6s" begin="3.6s" repeatCount="indefinite" rotate="auto"><mpath href="#out2"/></animateMotion></g></g>
+</svg>
+      </div>
+    </section>
+
+    <section class="built" aria-labelledby="built-on">
+      <p class="eyebrow center" id="built-on">Built on</p>
+      <div class="built-band" data-slot="builtOn" aria-labelledby="built-on"></div>
+    </section>
+
+    <section class="showcase" id="showcase" aria-labelledby="showcase-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="showcase-title">See it running</h2>
+          <p class="section-lede">The showcase is one widget tree in a single window. These are the toolkit's own golden images, the frames its tests compare against.</p>
+        </div>
+        <div class="show-tabs" role="tablist" aria-label="Showcase screens" data-slot="shotTabs"></div>
+        <div class="frame show-frame">
+          <div class="frame-bar"><i></i><i></i><i></i><span>goldberry-showcase</span><em>1200 × 900, the toolkit's own golden images · hover to magnify</em></div>
+          <div class="show-stage" id="show-stage" data-slot="shotStage"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stack-section" id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="features-title">Fast to start, fast to build, light to ship</h2>
+          <p class="section-lede">A desktop UI toolkit for Java that owns its whole pipeline, from the stylesheet to the pixel, so nothing sits between your code and the window.</p>
+          <a class="btn ghost" href="docs/">Read the book</a>
+        </div>
+        <div class="stack">
+          <div class="stack-items" data-slot="highlightItems"></div>
+          <div class="stack-stage"><div class="frame"><div class="frame-bar"><i></i><i></i><i></i></div><div class="stage-imgs" data-slot="highlightStage"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick" id="quickstart" aria-labelledby="quick-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="quick-title">Easy setup, instant window</h2>
+          <p class="section-lede">Any JDK 25+, one BOM, and a window on screen before the coffee is poured. GraalVM is a third step, and an optional one.</p>
+        </div>
+        <div class="steps-list">
+          <article class="card-lg step"><div class="step-copy"><p class="eyebrow">1 · Build file</p>
+            <h3>Add the dependency</h3>
+            <p>The BOM pins the version; the goldberry artifact brings common, natives, core and widgets. The native library arrives as classifier jars, one per platform you run on.</p></div><div data-slot="quickDeps"></div></article>
+          <article class="card-lg step"><div class="step-copy"><p class="eyebrow">2 · Plain Java</p>
+            <h3>Open a window on any JDK 25+</h3>
+            <p>Three lines. No backend to name, no event loop to write. Runs as an ordinary jar; nothing to install beyond the jars themselves.</p></div><div data-slot="quickJvm"></div></article>
+          <article class="card-lg step"><div class="step-copy"><p class="eyebrow">3 · Optional: GraalVM</p>
+            <h3>Compile to one native binary</h3>
+            <p>The same application, compiled ahead of time with GraalVM native image. One executable, the native library inside it, no JDK on the user's machine.</p></div><div data-slot="quickNative"></div></article>
+        </div>
+      </div>
+      <div class="names">
+        <p class="eyebrow center"><span data-slot="markupCount"></span> names a KDL file can use today</p>
+        <div data-slot="markupNames"></div>
+      </div>
+    </section>
+
+    <section class="grid-section" aria-labelledby="more-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="more-title">And everything else in the box</h2>
+        </div>
+        <div class="cards" data-slot="features"></div>
+      </div>
+    </section>
+
+    <section class="perf" id="performance" aria-labelledby="perf-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="perf-title">Starts fast. Runs fast.</h2>
+          <p class="section-lede">Numbers from the repository's own traces and benchmarks, in milliseconds and microseconds.</p>
+        </div>
+        <div class="two perf-two">
+          <article class="card-lg">
+            <h3>Starts fast</h3>
+            <p data-text="perfStartText"></p>
+            <ul class="timeline" data-slot="perfStart"></ul>
+            <p class="perf-note" data-text="perfStartNote"></p>
+          </article>
+          <article class="card-lg">
+            <h3>Runs fast</h3>
+            <p>Per frame, once the window is up.</p>
+            <ul class="runlist" data-slot="perfRun"></ul>
+          </article>
+        </div>
+        <p class="perf-caveat center" data-slot="perfCaveat"></p>
+      </div>
+    </section>
+
+    <section class="heart" aria-labelledby="heart-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="heart-title">Widgets are the heart of the toolkit</h2>
+        </div>
+        <div class="two">
+          <article class="card-lg">
+            <h3 data-text="dsTitle"></h3>
+            <p data-text="dsText"></p>
+            <div class="ds" data-slot="designSystem"></div>
+          </article>
+          <article class="card-lg">
+            <h3>Styled in CSS, the real one</h3>
+            <p>Variables, cascade, pseudo-classes and transitions, laid out by Yoga flexbox. A stylesheet names tokens, never colours, and reloads while the application runs. The class on a KDL node is the whole contract with it.</p>
+            <div data-slot="cssSamples"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="compare" id="compare" aria-labelledby="compare-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="compare-title">How it compares</h2>
+          <p class="section-lede">Where Goldberry sits next to the other ways of putting a window on screen from the JVM.</p>
+        </div>
+        <div class="compare-scroll" data-slot="compare"></div>
+        <p class="compare-note center" data-slot="compareNote"></p>
+      </div>
+    </section>
+
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <div class="wrap narrow">
+        <div class="head">
+          <h2 id="faq-title">Questions, answered</h2>
+        </div>
+        <div class="faq-list" data-slot="faq"></div>
+      </div>
+    </section>
+
+    <section class="news" id="news" aria-labelledby="news-title">
+      <div class="wrap">
+        <div class="head">
+          <h2 id="news-title">What landed lately</h2>
+        </div>
+        <ol class="news-list" data-slot="news"></ol>
+      </div>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="wrap">
+        <div class="cta-card">
+          <div class="cta-copy" data-slot="cta"></div>
+          <div class="actions" data-slot="heroActions"></div>
+          <div class="get">
+            <h3>Download the showcase</h3>
+            <div data-slot="downloads"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M2.5 21.5C3.6 12.6 10.4 4.9 21.5 2.5C19.9 13 12.9 20.1 2.5 21.5Z" fill="currentColor"/></svg><span>Goldberry</span></a>
+        <p data-text="tagline"></p>
+        <p class="foot-license" data-slot="footer"></p>
+      </div>
+      <div class="foot-cols" data-slot="footerColumns"></div>
+    </div>
+  </footer>
+
+  <script src="content.js"></script>
+  <script src="news.js"></script>
+  <script src="assets/version.js"></script>
+  <script src="assets/icons.js"></script>
+  <script src="assets/render.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>

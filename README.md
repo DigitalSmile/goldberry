@@ -10,6 +10,8 @@
 
 **A fast and modern UI toolkit for Java.**
 
+Website: **[goldberry.dev](https://goldberry.dev)** · Documentation: **[goldberry.dev/docs](https://goldberry.dev/docs/)**
+
 Goldberry is a declarative desktop UI toolkit written in pure Java
 over a small set of native C libraries bound via the Foreign Function & Memory
 API. No JNI, no bundled web engine, no platform widget wrapping.

@@ -8,4 +8,6 @@ src = "src"
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/digitalsmile/goldberry"
+git-repository-url = "https://github.com/DigitalSmile/goldberry"
+# Each page links to its own source on GitHub (ADR-0509).
+edit-url-template = "https://github.com/DigitalSmile/goldberry/edit/master/book/{path}"
