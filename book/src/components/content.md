@@ -21,7 +21,7 @@ node names, and the inflater finds them when the module is on the module path
 ([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
 
 <div class="gb-shot">
-<img src="../images/markdown.webp" alt="The showcase's Markdown screen: a text area on the left holding Markdown source and the rendered document on the right, with headings, emphasis, a list, a task list and a table">
+<img class="gb-light" src="../images/screen-markdown-light.webp" alt="The showcase's Markdown screen: a text area on the left holding Markdown source and the rendered document on the right, with headings, emphasis, a list, a task list and a table"><img class="gb-dark" src="../images/screen-markdown-dark.webp" alt="The showcase's Markdown screen: a text area on the left holding Markdown source and the rendered document on the right, with headings, emphasis, a list, a task list and a table">
 <p>The showcase's Markdown screen. The editor writes one property and the view reads it.</p>
 </div>
 
@@ -29,6 +29,10 @@ node names, and the inflater finds them when the module is on the module path
 
 A rendered Markdown document: GitHub's dialect by default, parsed by md4c and
 folded into `column`, `row` and `text`.
+
+<div class="gb-shot"><img class="gb-light" src="../images/markdown-view-light.webp" width="566" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><img class="gb-dark" src="../images/markdown-view-dark.webp" width="566" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><p>The source and the document it renders, side by side.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 split-pane position=0.5 first-min=240 second-min=240 {
@@ -49,6 +53,8 @@ var view = MarkdownView.following(model.source())
         .images(assets)
         .onTask(index -> model.setSource(Markdown.toggleTask(model.source(), index)));
 ```
+
+</div>
 
 A live preview is a binding. The editor writes `note.source` through its action
 and the view reads the same property with `bind=`. Nothing watches the editor
@@ -147,10 +153,16 @@ exists and the choice of where the scrollbar goes is the application's.
 - [ADR-0301: A selection is geometry the frame already had](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)
 - [ADR-0389: A block nobody typed in keeps its widget](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)
 
+<div class="gb-shot"><img class="gb-light" src="../images/screen-html-light.webp" alt="The showcase's HTML screen: HTML source in a text area on the left and the rendered page on the right, with headings, emphasis, a highlighted phrase and a link"><img class="gb-dark" src="../images/screen-html-dark.webp" alt="The showcase's HTML screen: HTML source in a text area on the left and the rendered page on the right, with headings, emphasis, a highlighted phrase and a link"><p>The HTML screen of the showcase: the source and the page it renders.</p></div>
+
 ## `html-view`
 
 A rendered HTML document: parsed in Java into a model of records and folded
 into the same widgets the Markdown view uses.
+
+<div class="gb-shot"><img class="gb-light" src="../images/html-view-light.webp" width="439" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><img class="gb-dark" src="../images/html-view-dark.webp" width="439" alt="A rendered HTML document: a heading, The Red Book, and a paragraph with an italic word and a link"><p>A heading, emphasis and a link.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 scroll {
@@ -166,6 +178,8 @@ var document = Html.parse(help.body());
 var view = HtmlView.of(document).onLink(app::navigate).images(assets);
 var links = document.find("a");
 ```
+
+</div>
 
 `HtmlView.following(model.source())` is the Java spelling of `bind=`, and
 `HtmlView.of(text)` parses for a caller who wants a page and nothing else. The

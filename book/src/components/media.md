@@ -121,6 +121,8 @@ and applied from the next source opened
 A `video-view` with `media-controls` laid over its foot: the picture, the
 transport, the error, the stream's title and the subtitles in one box.
 
+<div class="gb-tabs">
+
 ```kdl,ignore
 media-player id="video-player" player="video.player" fit="contain"
 ```
@@ -131,6 +133,8 @@ import dev.goldberry.media.view.MediaPlayerView;
 new MediaPlayerView(player);
 new MediaPlayerView(player, Fit.COVER, Attributes.NONE.id("video-player"));
 ```
+
+</div>
 
 The controls hide while the player plays and the pointer rests, 2.5 seconds
 after it last moved, and come back when it moves. A click on the picture plays
@@ -183,6 +187,8 @@ fullscreen.
 A player's pictures and nothing else: the surface for an application that draws
 its own controls or none.
 
+<div class="gb-tabs">
+
 ```kdl,ignore
 video-view player="trailer" fit="cover"
 ```
@@ -193,6 +199,8 @@ import dev.goldberry.media.view.VideoView;
 new VideoView(player);
 new VideoView(player, Fit.COVER);
 ```
+
+</div>
 
 The view follows the player's status. A picture a paused seek lands on is shown
 when it is ready, and while the player plays it draws a new picture every frame.
@@ -234,6 +242,8 @@ None of its own. Put a `media-controls` beside it.
 Compact controls over a player: play and pause, the times, a seek bar, mute and
 volume, with the stream's title above and an error below.
 
+<div class="gb-tabs">
+
 ```kdl,ignore
 audio-player id="audio-player" player="audio.player"
 ```
@@ -243,6 +253,8 @@ import dev.goldberry.media.view.AudioPlayer;
 
 new AudioPlayer(player);
 ```
+
+</div>
 
 The seek bar is left out for a source that cannot seek, and a `LIVE` label
 stands in its place for a stream. While playing, the widget reads the position
@@ -280,6 +292,8 @@ As `media-controls`, without the picture keys.
 The transport bar on its own, for an application that lays it out itself under a
 `video-view` or drives a player it shows elsewhere.
 
+<div class="gb-tabs">
+
 ```kdl,ignore
 column {
     video-view player="trailer"
@@ -292,6 +306,8 @@ import dev.goldberry.media.view.MediaControls;
 
 new Column(List.of(new VideoView(player), new MediaControls(player)), Attributes.NONE);
 ```
+
+</div>
 
 Play and pause, the elapsed and remaining times, a seek bar that scrubs to
 keyframes while dragged and lands exactly on release, mute, volume, the rate

@@ -53,6 +53,8 @@ the same picture both ways
 A 3D view: a leaf sized by its stylesheet, whose picture an application's
 `Canvas3dRenderer` draws on the window's device.
 
+<div class="gb-tabs">
+
 ```kdl,ignore
 canvas3d renderer="cube" continuous=#true depth="d16"
 ```
@@ -63,6 +65,8 @@ import dev.goldberry.gpu.view.Canvas3d;
 new Canvas3d(Cube.spinning()).continuous(true).depth(Canvas3d.Depth.D16);
 new Canvas3d(viewer).revision(revision).withAttributes(Attributes.NONE.id("model"));
 ```
+
+</div>
 
 In markup the renderer is a named object the application registered, resolved
 by `renderer=`. A node with no renderer to resolve against does not inflate, so

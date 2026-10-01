@@ -6,6 +6,8 @@ By the end of this chapter you can read a widget tree and say where each box lan
 
 ## A row, a stylesheet, and the same tree in Java
 
+<div class="gb-tabs">
+
 ```kdl
 row id="toolbar" {
     text "Goldberry"
@@ -29,6 +31,8 @@ var toolbar = new Row(
         new Button("Theme", this::theme)
 ).withAttributes(Attributes.NONE.id("toolbar"));
 ```
+
+</div>
 
 The `row` says which way its children go. The stylesheet says everything else: the gap between them, the padding at the ends, and how they line up across the row. The `spacer` takes the space nobody else asked for, so the button sits at the far end.
 

@@ -16,6 +16,8 @@ with one of four fit modes, and put a scannable code in a dialog.
 An immediate-mode drawing surface: a box whose painter is handed the frame,
 translated to the box's content corner and clipped to it.
 
+<div class="gb-tabs">
+
 ```kdl
 canvas id="plot" class="chart"
 ```
@@ -27,6 +29,8 @@ new Canvas((frame, size) -> {
     frame.fillRect(0, 0, size.width(), size.height() / 2, 0xFF88C0D0);
 }, Attributes.NONE.id("plot").classes("chart"));
 ```
+
+</div>
 
 Markup names no painter. A `canvas` node inflates to a styled, sized surface
 that draws nothing, because a painter is code and a document names things
@@ -149,6 +153,10 @@ true. Keys reach `onKey`. A canvas with no input is not a Tab stop.
 A picture, loaded off the frame on a virtual thread and drawn at its natural
 size until a stylesheet says otherwise.
 
+<div class="gb-shot"><img class="gb-light" src="../images/image-light.webp" width="640" alt="Three images in a column, each drawn as its alt text because nothing supplies the pixels"><img class="gb-dark" src="../images/image-dark.webp" width="640" alt="Three images in a column, each drawn as its alt text because nothing supplies the pixels"><p>With no image source bound, each image is its alt text.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
     image src="photos/harbour.jpg" alt="The harbour at dusk" fit="cover"
@@ -166,6 +174,8 @@ new ImageView(ImageSource.file(path), "The harbour at dusk").fit(Fit.COVER);
 new ImageView(ImageSource.resource(App.class, "logo.png"), "Goldberry").variant(2, ImageSource.resource(App.class, "logo@2x.png"));
 ImageView.decorative(ImageSource.resource(App.class, "divider.png"));
 ```
+
+</div>
 
 An `ImageSource` is a `file(path)`, a `resource(anchor, name)`, `bytes(data)`,
 an `Image` already decoded with `of(image)`, or `supplied(key, supplier)` for a
@@ -240,6 +250,10 @@ not exist, and shows the error state.
 A QR code for a payload, drawn in modules of whole device pixels so a phone
 camera reads it at any scale.
 
+<div class="gb-shot"><img class="gb-light" src="../images/qr-code-light.webp" width="164" alt="A QR code for goldberry.dev with a quiet zone around it"><img class="gb-dark" src="../images/qr-code-dark.webp" width="164" alt="A QR code for goldberry.dev with a quiet zone around it"><p>A code at error-correction level M.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 qr-code value="https://goldberry.dev" level="M" quiet-zone=4 name="Scan to open goldberry.dev"
 ```
@@ -251,6 +265,8 @@ import dev.goldberry.image.qr.Level;
 new QrCode("https://goldberry.dev").level(Level.H).withAttributes(Attributes.NONE.name("Scan to open goldberry.dev"));
 new QrCode(link, Level.L, 4, Attributes.NONE.id("qr-low"));
 ```
+
+</div>
 
 The encoder is the toolkit's own, in `dev.goldberry.image.qr` beside the image
 codecs, and `QrEncoder.encode(payload, level)` returns the same `QrMatrix` with

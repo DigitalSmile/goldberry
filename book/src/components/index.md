@@ -14,6 +14,8 @@ type in CSS. A test builds the same widget both ways and asserts the two values
 are equal, so the forms cannot drift
 ([ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)).
 
+<div class="gb-tabs">
+
 ```kdl
 column {
     text "Delete this file?"
@@ -35,6 +37,8 @@ new Column(
         )
 );
 ```
+
+</div>
 
 Variants are classes. `danger` is `class="danger"` in markup,
 `.styled("danger")` in Java and `button.danger` in a stylesheet, because a

@@ -2,7 +2,7 @@
 
 <p class="gb-lede">What opens over the window: a modal dialog, a floating panel, a banner in the layout, a frame-rate readout, toasts, a guided tour, and tooltips on any widget.</p>
 
-<div class="gb-shot"><img src="../images/overlays.webp" alt="The showcase's Overlays screen: a row of buttons that open a menu, a HUD, a dialog and a toast, a second menu bar, and a panel with a context menu"><p>The Overlays screen of the showcase, Nord dark.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/screen-overlays-light.webp" alt="The showcase's Overlays screen: a row of buttons that open a menu, a HUD, a dialog and a toast, a second menu bar, and a panel with a context menu"><img class="gb-dark" src="../images/screen-overlays-dark.webp" alt="The showcase's Overlays screen: a row of buttons that open a menu, a HUD, a dialog and a toast, a second menu bar, and a panel with a context menu"><p>The Overlays screen of the showcase.</p></div>
 
 There are two places something can go over a window, and every overlay uses
 one of them.
@@ -41,7 +41,9 @@ or `Escape` closes it, and `popup.close()` does from Java.
 A modal: a veil over the window, a panel with a title and buttons, and a focus
 trap that keeps the keyboard inside until it is answered.
 
-<div class="gb-shot"><img src="../images/dialog-dark.png" alt="A dialog titled Unsaved changes over a dimmed window, with Don't save, Keep editing and a highlighted Discard button"><p>Three roles: a neutral action, the dismissive one and the affirmative one on the right.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/dialog-light.webp" width="640" alt="A dialog titled Unsaved changes over a dimmed page, with Don't save, Keep editing and a highlighted Discard"><img class="gb-dark" src="../images/dialog-dark.webp" width="640" alt="A dialog titled Unsaved changes over a dimmed page, with Don't save, Keep editing and a highlighted Discard"><p>Three roles: neutral, dismissive and affirmative.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 dialog id="unsaved" title="Unsaved changes" {
@@ -68,6 +70,8 @@ private void discard() {
     open.remove();
 }
 ```
+
+</div>
 
 A dialog is a widget, and showing one is not: `Dialogs.show(host, dialog)`
 fills the window with it and hands back the `Overlay`
@@ -125,6 +129,8 @@ A dialog with no dismissive action cannot be dismissed by `Escape` or the veil.
 
 One button in a dialog's bar, with the role that decides which key presses it.
 
+<div class="gb-tabs">
+
 ```kdl
 action role="affirmative" press="app.discard" "Discard"
 ```
@@ -132,6 +138,8 @@ action role="affirmative" press="app.discard" "Discard"
 ```java
 new DialogAction("Discard", DialogAction.Role.AFFIRMATIVE, this::discard);
 ```
+
+</div>
 
 **Attributes**
 
@@ -146,6 +154,10 @@ new DialogAction("Discard", DialogAction.Role.AFFIRMATIVE, this::discard);
 
 An anchored floating panel: the surface a popup shows, with the opening left
 to `Host.popup`.
+
+<div class="gb-shot"><img class="gb-light" src="../images/popover-light.webp" width="640" alt="A small card reading Saved a moment ago with an Undo button"><img class="gb-dark" src="../images/popover-dark.webp" width="640" alt="A small card reading Saved a moment ago with an Undo button"><p>A card with text and a ghost button.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 popover {
@@ -162,6 +174,8 @@ var popover = new Popover(
 host.popup(popover, "save-button", Placement.BELOW)
     .ifPresent(open -> this.hint = open);
 ```
+
+</div>
 
 The two halves are deliberately not one widget. `popover` is the panel and
 nothing else; where it goes, when it flips and when it goes away belong to the
@@ -189,6 +203,10 @@ dismiss is on.
 An inline banner about the region it sits in: a kind, an icon, text, optional
 action links and an optional dismiss.
 
+<div class="gb-shot"><img class="gb-light" src="../images/message-light.webp" width="640" alt="Three banners: a warning about a session ending with a Stay signed in button, a red one that could not save with a dismiss cross, and a green Saved"><img class="gb-dark" src="../images/message-dark.webp" width="640" alt="Three banners: a warning about a session ending with a Stay signed in button, a red one that could not save with a dismiss cross, and a green Saved"><p>Warning, danger with a dismiss, and success.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   message kind="warning" "Your session ends in five minutes." {
@@ -208,6 +226,8 @@ new Column(
         new Message(Message.Kind.SUCCESS, "Saved.")
 );
 ```
+
+</div>
 
 A message is not a toast. A toast is transient and floats over the window; a
 message is part of the layout and stays until the condition does. Its text can
@@ -248,6 +268,10 @@ The × is a Tab stop. `Enter` or `Space` on it dismisses.
 The frame loop, on top of the window it is running: frames per second and
 paint time by default, the whole breakdown on request.
 
+<div class="gb-shot"><img class="gb-light" src="../images/hud-light.webp" width="640" alt="A small dark readout showing dashes for frames per second and paint time"><img class="gb-dark" src="../images/hud-dark.webp" width="640" alt="A small dark readout showing dashes for frames per second and paint time"><p>At rest, before a frame has been measured.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 hud readings="fps paint"
 ```
@@ -264,6 +288,8 @@ private void toggleHud() {
     }
 }
 ```
+
+</div>
 
 A HUD never asks for a frame. A readout that requested one so it could show a
 fresh number would be measuring itself
@@ -397,6 +423,8 @@ A tooltip is an attribute, not a widget. Any node takes `tooltip="…"`,
 including one from an application's own module, and the text rides on its
 `Attributes` ([ADR-0105](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
 
+<div class="gb-tabs">
+
 ```kdl
 button press="app.open-menu" tooltip="A platform popup, free of this window's bounds" "Menu"
 ```
@@ -404,6 +432,8 @@ button press="app.open-menu" tooltip="A platform popup, free of this window's bo
 ```java
 new Button("Menu", window::openMenu).tooltip("A platform popup, free of this window's bounds");
 ```
+
+</div>
 
 It shows after 500 ms of hover, or when keyboard focus arrives, placed above
 the node and centred, and moves between neighbours after 100 ms

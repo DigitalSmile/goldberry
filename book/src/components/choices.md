@@ -12,11 +12,13 @@ bound value does. A control that will not move means the state did not change,
 which is where the bug is
 ([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)).
 
-<div class="gb-shot"><img src="../images/checkbox-states-dark.png" alt="Three checkboxes on the dark theme labelled Off, On and Some: an empty box, a ticked box, and a box with a dash"><p>A <code>checkbox</code> in its three states. Mixed matches <code>:indeterminate</code>, not <code>:checked</code>.</p></div>
-
 ## `checkbox`
 
 A `checkbox` is a tick with a label, in two states or three.
+
+<div class="gb-shot"><img class="gb-light" src="../images/checkbox-light.webp" width="202" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><img class="gb-dark" src="../images/checkbox-dark.webp" width="202" alt="Three checkboxes: Frosted sidebar ticked, Sworn to the Fellowship ticked and greyed out, and Some of them with a dash"><p>Checked, checked and disabled, and indeterminate.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 column {
@@ -35,6 +37,8 @@ new Column(
         new Checkbox("Some of them", Checkbox.Value.MIXED)
 );
 ```
+
+</div>
 
 `MIXED` is a real state. A select-all over a partial selection is neither on
 nor off, so it matches `:indeterminate` rather than `:checked`. Toggling never
@@ -97,6 +101,10 @@ submit.
 A `toggle` is a switch: a pill with a disc that slides, and the one control
 that acts on a release.
 
+<div class="gb-shot"><img class="gb-light" src="../images/toggle-light.webp" width="171" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><img class="gb-dark" src="../images/toggle-dark.webp" width="171" alt="Two switches: Frosted sidebar on in the accent, and Bound by oath on and greyed out"><p>Bound, and on but disabled.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   toggle bind="prefs.frost" change="prefs.set-frost" "Frosted sidebar"
@@ -112,6 +120,8 @@ new Column(
         new Toggle("Bound by oath", true).disabled(true)
 );
 ```
+
+</div>
 
 `change` carries the state asked for, as a boolean, not "the other one". A drag
 of 8 px or more asks for the direction dragged, so dragging right on a switch
@@ -163,6 +173,10 @@ Where the thumb travels to is the stylesheet's decision. The track's padding is
 A `radio` is one option in a group. It carries a value and a label, and the
 group decides whether it is on.
 
+<div class="gb-shot"><img class="gb-light" src="../images/radio-light.webp" width="165" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><img class="gb-dark" src="../images/radio-dark.webp" width="165" alt="Three radios: Moria filled, Lothlórien empty, and Follow the system greyed out"><p>A group with one selected and one disabled.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 radio-group value="dark" {
   radio value="dark" "Moria"
@@ -180,6 +194,8 @@ new RadioGroup("dark",
         new Radio("light", "Lothlórien"),
         new Radio("system", "Follow the system").disabled(true));
 ```
+
+</div>
 
 `selected` is deliberately not an attribute. A document that could mark one
 option selected could mark two, so the group rewrites each option with whether
@@ -220,6 +236,10 @@ The arrows are the group's. See below.
 
 A `radio-group` holds the fact that exactly one of its options is on.
 
+<div class="gb-shot"><img class="gb-light" src="../images/radio-group-light.webp" width="251" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><img class="gb-dark" src="../images/radio-group-dark.webp" width="251" alt="Two radios, Moria selected and Lothlórien not, with a caption under them"><p>A group bound to a value, with a caption as a third child.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 radio-group bind="prefs.theme" change="prefs.pick-theme" {
   radio value="dark" "Moria"
@@ -233,6 +253,8 @@ RadioGroup.of(Models.observable(prefs, "prefs.theme"), actions::pickTheme,
         new Radio("dark", "Moria"),
         new Radio("light", "Lothlórien"));
 ```
+
+</div>
 
 A value no option carries selects nothing, which is right for a model that has
 not loaded. A child that is not a `radio`, a caption or a separator, is left
@@ -290,7 +312,9 @@ focus the controlled way: an arrow raises `change` and does not move the dot.
 A `segmented` control is a radio group drawn as one bar, with the arrows on its
 own axis.
 
-<div class="gb-shot"><img src="../images/segmented-dark.png" alt="A segmented bar on the dark theme with three equal segments labelled List, Grid and Map, Grid filled with the accent"><p>A <code>segmented</code> bar. Each segment is exactly a third of it.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/segmented-light.webp" width="640" alt="A segmented bar with List, Grid filled in the accent, and Map with a map icon"><img class="gb-dark" src="../images/segmented-dark.webp" width="640" alt="A segmented bar with List, Grid filled in the accent, and Map with a map icon"><p>Three options, the bound one filled.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 segmented bind="view.mode" change="view.set-mode" {
@@ -309,6 +333,8 @@ Segmented.of(Models.observable(view, "view.mode"), actions::setMode,
         new Option("grid", "Grid"),
         new Option("map", "Map").withIcon(map));
 ```
+
+</div>
 
 An icon-only segment is `option value="map" icon="map" name="Map"`. In a
 document that is only as real as its icon registry: with no icon bound to
@@ -367,6 +393,10 @@ axis of its own ([ADR-0078](https://github.com/DigitalSmile/goldberry/blob/maste
 A `select` is a closed control and a list that opens in a window of its own,
 so it is never clipped by the card it sits in.
 
+<div class="gb-shot"><img class="gb-light" src="../images/select-light.webp" width="640" alt="Three selects stacked: Moria chosen in the first, Sindarin and Westron as chips in the second, and a third reading Anywhere in the West"><img class="gb-dark" src="../images/select-dark.webp" width="640" alt="Three selects stacked: Moria chosen in the first, Sindarin and Westron as chips in the second, and a third reading Anywhere in the West"><p>Single, multiple as chips, and an autocomplete with a placeholder.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   select bind="prefs.theme" change="prefs.pick-theme" placeholder="Choose a light" {
@@ -398,6 +428,8 @@ new Select(place, actions::choose, matches.toArray(Option[]::new))
     .autocomplete(actions::search)
     .free(true);
 ```
+
+</div>
 
 The closed control shows the selected option's label, or the placeholder. It is
 as wide as its widest option, so it does not change width as the value does
@@ -484,6 +516,10 @@ Typing on the closed control is typeahead over the labels.
 An `option` is one choice, in a `segmented` bar or a `select` list. It carries
 a value and a label, an icon, or both.
 
+<div class="gb-shot"><img class="gb-light" src="../images/option-light.webp" width="640" alt="A select showing Grid with a grid icon"><img class="gb-dark" src="../images/option-dark.webp" width="640" alt="A select showing Grid with a grid icon"><p>The chosen option, drawn with its icon.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 select value="grid" {
   option value="list" "List"
@@ -498,6 +534,8 @@ new Select("grid", actions::setMode,
         new Option("grid", "Grid").withIcon(grid),
         new Option("map", "Map").disabled(true));
 ```
+
+</div>
 
 Whether it is selected and what selecting it does are its container's, set on
 every build. `new Option("list")` uses the value as the label.

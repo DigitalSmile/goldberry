@@ -10,26 +10,7 @@ inline and [Status](../status.md) records what shipped.
 
 ## The layers
 
-```
-┌────────────────────────────────────────────────────────┐
-│  Application        Java records, KDL documents, CSS   │
-├────────────────────────────────────────────────────────┤
-│  Widget layer       widgets → elements → render objects│
-├──────────────┬──────────────┬──────────────────────────┤
-│  Style        │  Layout      │  Text                   │
-│  CSS engine   │  Yoga        │  HarfBuzz + JDK Bidi    │
-│  (pure Java)  │  (flexbox)   │  and BreakIterator      │
-├──────────────┴──────────────┴──────────────────────────┤
-│  Paint and raster   box painter, layers, damage,       │
-│                     Blend2D on the CPU, banded threads │
-├────────────────────────────────────────────────────────┤
-│  Backend SPI        window, present, input, clipboard, │
-│                     cursor, tray, popup, GPU surface   │
-├────────────────────────────┬───────────────────────────┤
-│  SDL3                      │  Headless                 │
-│  Linux, Windows, macOS     │  tests and servers        │
-└────────────────────────────┴───────────────────────────┘
-```
+<div class="gb-shot"><img class="gb-light" src="../images/diagram-layers-light.webp" width="640" alt="Six lanes stacked: Application with Java records, KDL documents and CSS; Widget layer with widgets, elements and render objects joined by arrows; Style, Layout and Text side by side; Paint and raster; Backend SPI; and SDL3 beside Headless at the bottom"><img class="gb-dark" src="../images/diagram-layers-dark.webp" width="640" alt="Six lanes stacked: Application with Java records, KDL documents and CSS; Widget layer with widgets, elements and render objects joined by arrows; Style, Layout and Text side by side; Paint and raster; Backend SPI; and SDL3 beside Headless at the bottom"><p>The layers. The application writes the top lane and only the bottom lane touches the platform.</p></div>
 
 The application writes the top row. Everything below it is the toolkit, and
 only the bottom row touches the platform.
@@ -56,12 +37,7 @@ nothing changed costs a few microseconds
 
 One UI thread runs the loop. Blend2D's workers rasterize in bands beside it.
 
-```
-input events → dispatch (hit-test on the painted frame)
-→ rebuild dirty widgets → diff → update elements and render objects
-→ style resolution (invalidated nodes only) → Yoga layout (incremental)
-→ paint recording → Blend2D raster (banded) → present(buffer, damage)
-```
+<div class="gb-shot"><img class="gb-light" src="../images/diagram-frame-loop-light.webp" width="640" alt="Nine steps joined by arrows: input events, dispatch, rebuild, diff, update, style, layout, paint and present, with a dashed line from present back to input events labelled idle until something changes"><img class="gb-dark" src="../images/diagram-frame-loop-dark.webp" width="640" alt="Nine steps joined by arrows: input events, dispatch, rebuild, diff, update, style, layout, paint and present, with a dashed line from present back to input events labelled idle until something changes"><p>One frame, in order. Each stage touches only what changed.</p></div>
 
 Three properties of the loop shape what an application sees:
 

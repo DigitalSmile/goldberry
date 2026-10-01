@@ -8,6 +8,10 @@ By the end of this chapter you can put a long column in a viewport, choose which
 
 A `scroll` clips its content, moves it by an offset, and keeps that offset on its element so a rebuild does not lose it.
 
+<div class="gb-shot"><img class="gb-light" src="../images/scroll-light.webp" width="86" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><img class="gb-dark" src="../images/scroll-dark.webp" width="86" alt="A scroll box listing Hobbiton, Bree, Rivendell and Moria"><p>A vertical viewport over a column.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 scroll id="chapters" axis="vertical" {
     column {
@@ -30,15 +34,13 @@ var chapters = new Scroll(
 ).withAttributes(Attributes.NONE.id("chapters"));
 ```
 
+</div>
+
 `new Scroll(Widget...)` is vertical. `new Scroll(List<Widget>, ScrollAxis, Attributes)` chooses the axis. Several children are wrapped in one moving box, so they stack as they would in a `column`.
 
 The viewport is three nodes, and each is one idea.
 
-```text
-scroll               the viewport: clips, takes the wheel and the keys
-└── scroll-content   the moving box, translated by the offset
-    └── …            whatever was written inside
-```
+<div class="gb-shot"><img class="gb-light" src="../images/diagram-scroll-nodes-light.webp" width="640" alt="Three nested notes: scroll, the viewport, holding scroll-content, the moving box, holding whatever was written inside"><img class="gb-dark" src="../images/diagram-scroll-nodes-dark.webp" width="640" alt="Three nested notes: scroll, the viewport, holding scroll-content, the moving box, holding whatever was written inside"><p>The three nodes of a viewport, each one idea.</p></div>
 
 A `scroll` has `flex-grow: 1` from `controls.css`, so in a column it fills what is left. In a box that sizes to its content it needs a height from the stylesheet, which is why the showcase's `.scroll-demo` is `height: 260px`.
 

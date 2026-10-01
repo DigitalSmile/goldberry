@@ -12,6 +12,10 @@ because opening needs a `Host` and a widget must not have one
 
 A horizontal bar of headings, each an `item` whose children are its menu.
 
+<div class="gb-shot"><img class="gb-light" src="../images/menubar-light.webp" width="640" alt="A menu bar with File, View and Help"><img class="gb-dark" src="../images/menubar-dark.webp" width="640" alt="A menu bar with File, View and Help"><p>The bar at rest. A menu opens on press.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 menubar id="app-menu" {
   item "File" {
@@ -53,6 +57,8 @@ new MenuBar(
         )
 ).id("app-menu");
 ```
+
+</div>
 
 The bar owns its menus. It opens a heading's menu as a popup against the
 heading, swaps to the neighbour when the pointer runs along the bar with a menu
@@ -99,7 +105,9 @@ There are no mnemonics.
 
 A column of rows: the value a context menu, a tray and a heading all hold.
 
-<div class="gb-shot"><img src="../images/menu-mixed.png" alt="A menu of four rows: one with an icon and the accelerator Ctrl+T, two more with accelerators, a separator, and a row ending in a chevron for its submenu"><p>Icons, accelerators, a separator and a submenu in one menu.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/menu-light.webp" width="640" alt="A menu card with Rename, Duplicate, a separator, and Delete"><img class="gb-dark" src="../images/menu-dark.webp" width="640" alt="A menu card with Rename, Duplicate, a separator, and Delete"><p>Three items and a separator.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 menu id="row-menu" {
@@ -120,6 +128,8 @@ var rowMenu = new Menu(
 
 Menus.open(host, "more-button", rowMenu).ifPresent(open -> this.menu = open);
 ```
+
+</div>
 
 A document declares a menu. `Menus.open(host, anchorId, menu)` measures it,
 places it under the node with that id, flips it above when it would run off the
@@ -171,6 +181,10 @@ crossing three rows on the way somewhere does not drop one out
 One row: a label, an optional icon, an accelerator to show, a tick, and either
 a command or a submenu.
 
+<div class="gb-shot"><img class="gb-light" src="../images/item-light.webp" width="622" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><img class="gb-dark" src="../images/item-dark.webp" width="622" alt="One menu item: a palette icon, Switch the light, a tick, and the accelerator Ctrl+T"><p>An icon, a label, a check and an accelerator.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 item icon="palette" press="app.toggle-theme" accelerator="Ctrl+T" checked=#true "Switch the light"
 ```
@@ -181,6 +195,8 @@ new Item("Switch the light", actions::toggleTheme)
         .accelerator("Ctrl+T")
         .checked(true);
 ```
+
+</div>
 
 **Attributes**
 
@@ -211,6 +227,10 @@ The CSS type is `item`. It matches `:hover`, `:focus-visible`, `:active` and
 
 A rule between groups of rows.
 
+<div class="gb-shot"><img class="gb-light" src="../images/separator-light.webp" width="640" alt="A thin horizontal rule"><img class="gb-dark" src="../images/separator-dark.webp" width="640" alt="A thin horizontal rule"><p>A rule between items.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 separator
 ```
@@ -218,6 +238,8 @@ separator
 ```java
 new Separator();
 ```
+
+</div>
 
 It takes only `id` and `class`. The CSS type is `separator`, a 1px line in
 `--gb-border`.
@@ -248,6 +270,8 @@ spellings.
 Any widget names its context menu, and the application says what the name
 means ([ADR-0108](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
 
+<div class="gb-tabs">
+
 ```kdl
 panel context-menu="content" {
   text "Right-click anywhere in here."
@@ -259,6 +283,8 @@ panel context-menu="content" {
     Menus.contextMenus(host, Map.of("content", contentMenu()));
 }
 ```
+
+</div>
 
 A right-click walks up from the widget under the pointer to the first
 ancestor with a `context-menu` and opens that menu at the pointer. The `Menu`

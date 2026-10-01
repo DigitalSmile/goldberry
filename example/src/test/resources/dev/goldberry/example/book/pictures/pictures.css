@@ -1,0 +1,29 @@
+/* The page a widget is photographed on for the guide (PictureCamera).
+ *
+ * A sample is laid out inside `#gb-picture`, a column the width of the
+ * guide's text, and the picture is cropped to what it drew. The rules here
+ * are the ones an application's stylesheet would carry and a sample does
+ * not: room around the widget, and a height for the things that have no
+ * intrinsic one and would otherwise fill the viewport or vanish. */
+
+#gb-picture {
+  padding: 16px;
+}
+
+/* A chart takes the room it is given (showcase.css), and here it is given this. */
+#gb-picture line-chart,
+#gb-picture bar-chart,
+#gb-picture area-chart,
+#gb-picture donut-chart {
+  height: 200px;
+}
+
+/* A trend on its own, rather than under a statistic's number. */
+#gb-picture > sparkline {
+  height: 40px;
+}
+
+/* A fader is `height: 100%` (controls.css), which is the column it is in. */
+#gb-picture slider.vertical {
+  height: 160px;
+}

@@ -548,3 +548,6 @@ proposing to undo them.
 - [ADR-0510 Publish under dev.goldberry](0510-publish-under-dev-goldberry.md)
 - [ADR-0511 The book is a guide first, and the log is its last part](0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
 - [ADR-0512 The log is read on GitHub, and the book is the guide](0512-the-log-is-read-on-github-and-the-book-is-the-guide.md)
+- [ADR-0513 The guide's pictures are taken from its own samples, in both themes](0513-the-guides-pictures-are-taken-from-its-own-samples-in-both-themes.md)
+- [ADR-0514 A sample pair is a tab group](0514-a-sample-pair-is-a-tab-group.md)
+- [ADR-0515 A scheme in the guide is a drawn picture](0515-a-scheme-in-the-guide-is-a-drawn-picture.md)

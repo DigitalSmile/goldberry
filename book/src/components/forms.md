@@ -6,8 +6,6 @@ By the end of this chapter you can put a text field on screen, bind it, filter
 what it accepts, wrap it in a labelled `field` with a validator, submit a
 `form` from a button, and take a date, a time, a colour or a one-time code.
 
-<div class="gb-shot"><img src="../images/field-horizontal.png" alt="A horizontal form on the dark theme: Name and Port labels in a column beside two fields, the Port field outlined in red with the message Ports run from 1024 to 65535 under it, and a Save button aligned with the fields"><p>A <code>form.horizontal</code> with one invalid <code>field</code>. The message is in the field's own column, under the control.</p></div>
-
 ## How a field talks to the model
 
 A field holds its own text, caret, selection and undo stack. None of those are
@@ -27,9 +25,15 @@ Right-to-left editing is not built. A paragraph approximates bidirectional
 text rather than refusing it
 ([ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
 
+<div class="gb-shot"><img class="gb-light" src="../images/screen-forms-light.webp" alt="The showcase's Forms screen: a wall of cards with text fields, a text area with a line gutter, a horizontal form with a refused port, pickers for a date, a time and a colour, and a code input"><img class="gb-dark" src="../images/screen-forms-dark.webp" alt="The showcase's Forms screen: a wall of cards with text fields, a text area with a line gutter, a horizontal form with a refused port, pickers for a date, a time and a colour, and a code input"><p>The Forms screen of the showcase.</p></div>
+
 ## `text-input`
 
 A `text-input` is a single line of text in a well.
+
+<div class="gb-shot"><img class="gb-light" src="../images/text-input-light.webp" width="640" alt="Five fields: Peregrin Took, 8080, a password field with a placeholder, a read-only field, and a disabled one"><img class="gb-dark" src="../images/text-input-dark.webp" width="640" alt="Five fields: Peregrin Took, 8080, a password field with a placeholder, a read-only field, and a disabled one"><p>Bound, filtered, password, read-only and disabled.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 column {
@@ -57,6 +61,8 @@ new Column(
         new TextInput("Speak, friend", null).disabled(true)
 );
 ```
+
+</div>
 
 A filter rejects and never corrects: a keystroke or a paste the filter refuses
 leaves the field as it was. A paste past `max-length` is clipped, not refused.
@@ -140,6 +146,10 @@ it at the pointer ([ADR-0504](https://github.com/DigitalSmile/goldberry/blob/mas
 A `text-area` is `text-input` with a second dimension: soft wrap, a height that
 grows between two row counts, and a scrollbar past the second.
 
+<div class="gb-shot"><img class="gb-light" src="../images/text-area-light.webp" width="640" alt="Three text areas: a short bio, a monospace one with a line gutter holding Markdown, and a tall one holding HTML"><img class="gb-dark" src="../images/text-area-dark.webp" width="640" alt="Three text areas: a short bio, a monospace one with a line gutter holding Markdown, and a tall one holding HTML"><p>Three rows, a gutter, and one that fills.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   text-area bind="app.bio" change="app.set-bio" rows=3 max-rows=6 placeholder="A few lines"
@@ -165,6 +175,8 @@ new Column(
             .edit(pending)
 );
 ```
+
+</div>
 
 **`gutter=#true`** numbers the lines you typed, at the positions the wrap put
 them. A paragraph that soft-wraps into three lines takes one number and three
@@ -238,6 +250,10 @@ of how many lines the text wrapped into.
 A `field` is a label, a control, and a message slot under it, with a validator
 over the control's value.
 
+<div class="gb-shot"><img class="gb-light" src="../images/field-light.webp" width="639" alt="A horizontal form: Name and Port labels beside their fields, and an Enlist button aligned with the fields"><img class="gb-dark" src="../images/field-dark.webp" width="639" alt="A horizontal form: Name and Port labels beside their fields, and an Enlist button aligned with the fields"><p>Two labelled fields and an actions row.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 form class="horizontal" {
   field label="Name" required=#true {
@@ -270,6 +286,8 @@ new Form(
             .styled("actions")
 ).styled("horizontal");
 ```
+
+</div>
 
 ### The validation model
 
@@ -335,6 +353,10 @@ None of its own. The controls inside it have theirs.
 A `form` finds the fields in its subtree and gates a submission on their
 validity.
 
+<div class="gb-shot"><img class="gb-light" src="../images/form-light.webp" width="640" alt="A form with a Name field and a Port field, each showing its placeholder"><img class="gb-dark" src="../images/form-dark.webp" width="640" alt="A form with a Name field and a Port field, each showing its placeholder"><p>Two fields under a controller.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 form controller="signup.form" submit="signup.enlist" {
   field label="Name" required=#true { text-input placeholder="Peregrin Took" }
@@ -358,6 +380,8 @@ controller.isValid();
 controller.errors();      // every field's message, in order
 controller.reset();       // clears every message
 ```
+
+</div>
 
 A `FormController` is what submits, because a Save button is usually outside
 the form. `submit()` makes every field check, returns whether all passed, and
@@ -399,7 +423,9 @@ None. `Enter` in a field does not submit. A button's action calls
 A `code-input` is the one-time-code field: a row of single-character boxes
 over one string.
 
-<div class="gb-shot"><img src="../images/code-input-dark.png" alt="Six square boxes on the dark theme in two groups of three, the first three filled with 1, 2 and 3 and the rest empty"><p>A <code>code-input</code> of six. The wider gap at the midpoint exists only when the length is even.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/code-input-light.webp" width="320" alt="Three code inputs: six boxes with 1, 2 and 3 typed, six masked boxes, and five boxes for letters and digits"><img class="gb-dark" src="../images/code-input-dark.webp" width="320" alt="Three code inputs: six boxes with 1, 2 and 3 typed, six masked boxes, and five boxes for letters and digits"><p>Digits, masked, and alphanumeric.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 column {
@@ -421,6 +447,8 @@ new Column(
         new CodeInput(5, null).type(CodeType.ALNUM)
 );
 ```
+
+</div>
 
 The value is a string and the boxes are a drawing. There is no caret and no
 per-box array: the active box is the first empty one, derived on every frame.
@@ -474,6 +502,10 @@ not built, because a masked code must not have a way out.
 A `date-picker` is a `text-input` that parses, with a calendar in a popover.
 The typed field is the source of truth.
 
+<div class="gb-shot"><img class="gb-light" src="../images/date-picker-light.webp" width="640" alt="A date picker field reading 9/14/26 with a chevron"><img class="gb-dark" src="../images/date-picker-dark.webp" width="640" alt="A date picker field reading 9/14/26 with a chevron"><p>Closed, showing its bound date.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 date-picker bind="trip.date" change="trip.set-date" month="2026-09" \
             min="2026-09-01" max="2026-12-31" today="2026-09-18" \
@@ -490,6 +522,8 @@ DatePicker.of(Models.observable(trip, "trip.date"), actions::setDate, YearMonth.
     .today(LocalDate.of(2026, 9, 18))
     .placeholder("When are you leaving?");
 ```
+
+</div>
 
 The grid writes text into the field exactly as a user would, so a value takes
 one path and is parsed in one place. A date outside `min` and `max`, or one the
@@ -555,6 +589,10 @@ selected day.
 A `time-picker` is the same control as the date picker with wheels in the
 popover instead of a grid.
 
+<div class="gb-shot"><img class="gb-light" src="../images/time-picker-light.webp" width="640" alt="A time picker field reading 9:30 with a chevron"><img class="gb-dark" src="../images/time-picker-dark.webp" width="640" alt="A time picker field reading 9:30 with a chevron"><p>Closed, showing its bound time.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 time-picker bind="trip.time" change="trip.set-time" min="06:00" max="22:00" \
             precision="minutes" placeholder="Boarding time"
@@ -570,6 +608,8 @@ TimePicker.of(Models.observable(trip, "trip.time"), actions::setTime)
     .precision(TimePrecision.MINUTES)
     .placeholder("Boarding time");
 ```
+
+</div>
 
 Each column is a wheel: five rows centred on the value, wrapping at both ends,
 so `58 59 00 01 02` says what comes next. The wheels report on every turn,
@@ -632,6 +672,10 @@ A `color-picker` is a swatch that opens a board: a saturation and value plane,
 a hue ramp, an optional alpha ramp, a hex field and preset swatches. The hex
 field is the source of truth.
 
+<div class="gb-shot"><img class="gb-light" src="../images/color-picker-light.webp" width="124" alt="Two colour swatches, one frost blue and one translucent red, each with a chevron"><img class="gb-dark" src="../images/color-picker-dark.webp" width="124" alt="Two colour swatches, one frost blue and one translucent red, each with a chevron"><p>A bound colour and one with alpha.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row {
   color-picker bind="paint.colour" change="paint.set-colour"
@@ -648,6 +692,8 @@ new Row(
         new ColorPicker("#bf616a80", null).alpha(true)
 );
 ```
+
+</div>
 
 The plane, the ramps and the presets all write hex into the field, so a value
 takes one path and is parsed in one place. The plane is HSV, because a

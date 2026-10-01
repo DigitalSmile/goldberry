@@ -9,7 +9,7 @@ behind them, so a chart takes the theme, the text stack and hit testing like
 any other widget.
 
 <div class="gb-shot">
-<img src="../images/charts.webp" alt="The showcase's Charts screen: a wall of cards holding a two-series line chart with a legend, a statistic with a sparkline, a donut, a stacked area chart, grouped bars, a time-axis line chart with a shaded threshold band, and two line charts of the same data under different null policies">
+<img class="gb-light" src="../images/screen-charts-light.webp" alt="The showcase's Charts screen: a wall of cards holding a two-series line chart with a legend, a statistic with a sparkline, a donut, a stacked area chart, grouped bars, a time-axis line chart with a shaded threshold band, and two line charts of the same data under different null policies"><img class="gb-dark" src="../images/screen-charts-dark.webp" alt="The showcase's Charts screen: a wall of cards holding a two-series line chart with a legend, a statistic with a sparkline, a donut, a stacked area chart, grouped bars, a time-axis line chart with a shaded threshold band, and two line charts of the same data under different null policies">
 <p>The showcase's Charts screen. Every card is one of the five widgets below.</p>
 </div>
 
@@ -58,6 +58,10 @@ wall of loading cards does not reflow when the data lands
 
 A trend with axes: one line per series, a legend, a crosshair and a readout.
 
+<div class="gb-shot"><img class="gb-light" src="../images/line-chart-light.webp" width="640" alt="A line chart of Downloads and Installs over three points, with a y axis from 1000 to 3500 and a legend under it"><img class="gb-dark" src="../images/line-chart-dark.webp" width="640" alt="A line chart of Downloads and Installs over three points, with a y axis from 1000 to 3500 and a legend under it"><p>Two series, an axis the chart chose, and a legend.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 line-chart id="downloads" {
     series name="Downloads" {
@@ -83,6 +87,8 @@ new LineChart(
         Attributes.NONE.id("downloads")
 );
 ```
+
+</div>
 
 The knobs are withers, and each returns a `LineChart`:
 
@@ -146,6 +152,10 @@ jump to the ends, and `Escape` lets go
 
 One line of data, written inline: a name and its `point` children.
 
+<div class="gb-shot"><img class="gb-light" src="../images/series-light.webp" width="639" alt="A line chart with one series, Uptime, over Mon and Tue"><img class="gb-dark" src="../images/series-dark.webp" width="639" alt="A line chart with one series, Uptime, over Mon and Tue"><p>One series, two points.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 line-chart {
     series name="Uptime" {
@@ -158,6 +168,8 @@ line-chart {
 ```java
 new ChartSeries("Uptime", List.of(99.95, 99.91), List.of("Mon", "Tue")).toSeries(0);
 ```
+
+</div>
 
 A `series` node is a widget that draws nothing, so that the inflater can hand it
 to its chart. Its parent reads it and never lays it out.
@@ -172,6 +184,8 @@ The CSS type is `series`, sized to zero.
 ### `point`
 
 One reading of a `series`: a label, then a number.
+
+<div class="gb-shot"><img class="gb-light" src="../images/point-light.webp" width="639" alt="A bar chart with two bars for Riders, one labelled Mon and one with no label"><img class="gb-dark" src="../images/point-dark.webp" width="639" alt="A bar chart with two bars for Riders, one labelled Mon and one with no label"><p>A point with a label and one without.</p></div>
 
 ```kdl
 bar-chart {
@@ -193,6 +207,10 @@ optional. A series whose labels are all blank gives the chart no x labels.
 ## `bar-chart`
 
 Magnitude by category: one group of bars per point, grouped and never stacked.
+
+<div class="gb-shot"><img class="gb-light" src="../images/bar-chart-light.webp" width="640" alt="Grouped bars for Crebain and Riders over Mon, Tue and Wed, Crebain in green and Riders in pink"><img class="gb-dark" src="../images/bar-chart-dark.webp" width="640" alt="Grouped bars for Crebain and Riders over Mon, Tue and Wed, Crebain in green and Riders in pink"><p>Two series side by side at each label.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 bar-chart id="sightings" {
@@ -216,6 +234,8 @@ new BarChart(
         Attributes.NONE.id("sightings")
 );
 ```
+
+</div>
 
 The y axis includes zero and cannot be told otherwise, because a bar encodes its
 value as a length. A negative value hangs below the zero line. `markers`,
@@ -250,6 +270,10 @@ As `line-chart`: `Left`, `Right`, `Home`, `End` and `Escape` on the focused plot
 
 A total and what it is made of: the series stacked into bands that add up.
 
+<div class="gb-shot"><img class="gb-light" src="../images/area-chart-light.webp" width="640" alt="A stacked area chart of Lembas over Dried meat across three days"><img class="gb-dark" src="../images/area-chart-dark.webp" width="640" alt="A stacked area chart of Lembas over Dried meat across three days"><p>Two series stacked, the second on top of the first.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 area-chart id="provisions" {
     series name="Lembas" {
@@ -273,6 +297,8 @@ new AreaChart(
 ).curve(Curve.SMOOTH)
     .fill(Fill.GRADIENT);
 ```
+
+</div>
 
 Use a `line-chart` when the series are separate quantities and an `area-chart`
 when they are parts of one. The y axis includes zero. A `curve` is applied to
@@ -308,6 +334,10 @@ As `line-chart`.
 Part to whole: three to eight slices of one ring, with a legend that is always
 shown.
 
+<div class="gb-shot"><img class="gb-light" src="../images/donut-chart-light.webp" width="425" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><img class="gb-dark" src="../images/donut-chart-dark.webp" width="425" alt="A donut in three segments, Lembas in green, Dried meat in pink and Nothing in gold, with a legend"><p>One point per series, each a segment.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 donut-chart id="packs" {
     series name="Lembas" {
@@ -328,6 +358,8 @@ new DonutChart(
         Attributes.NONE.id("packs")
 );
 ```
+
+</div>
 
 One number per slice: the first value of each series. A donut of two slices is
 refused when it is built, because two parts are a ratio and `progress` reads
@@ -365,6 +397,10 @@ to the first and last slice, and `Escape` lets go.
 A trend with no axes, no legend and no readout: the shape of a change beside a
 number.
 
+<div class="gb-shot"><img class="gb-light" src="../images/sparkline-light.webp" width="640" alt="A rising line filled underneath, with a marker on its last point"><img class="gb-dark" src="../images/sparkline-dark.webp" width="640" alt="A rising line filled underneath, with a marker on its last point"><p>Filled, with a marker at the end.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 sparkline id="safe" fill=#true marker=#true 61 68 74 79 83 86 89 91 93
 ```
@@ -375,6 +411,8 @@ new Sparkline(List.of(61.0, 68.0, 74.0, 79.0, 83.0, 86.0, 89.0, 91.0, 93.0)).fil
 new Statistic("Days without loss", "93", "d", "+7", Statistic.Direction.UP,
         new Sparkline(SAFE, true, true, Attributes.NONE), Attributes.NONE);
 ```
+
+</div>
 
 The values are the node's arguments, which is the one chart shape small enough
 to write inline. The line is scaled to the data's own minimum and maximum, not

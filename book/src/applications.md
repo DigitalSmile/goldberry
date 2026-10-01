@@ -9,10 +9,7 @@ sentence turned into files.
 
 ## The four kinds of class
 
-```
-Values ────────► Views ────────► Actions ────────► Values
-   (read)          (report)         (assign)         (notify)
-```
+<div class="gb-shot"><img class="gb-light" src="images/diagram-flow-light.webp" width="640" alt="Three notes in a row, Values, Views and Actions, with arrows labelled read and report between them and an arrow from Actions back to Values labelled assign, then notify"><img class="gb-dark" src="images/diagram-flow-dark.webp" width="640" alt="Three notes in a row, Values, Views and Actions, with arrows labelled read and report between them and an arrow from Actions back to Values labelled assign, then notify"><p>Views read values and report events. Actions assign values, and a changed value notifies the views.</p></div>
 
 | | What it is | What it may know |
 |---|---|---|

@@ -8,6 +8,10 @@ By the end of this chapter you can give a long list sticky section headers that 
 
 An `affix` keeps its child where the layout put it until that place leaves the viewport, then holds the child at the viewport's edge.
 
+<div class="gb-shot"><img class="gb-light" src="../images/affix-light.webp" width="640" alt="A scrolling list with a Hobbiton header pinned at its top and rows under it"><img class="gb-dark" src="../images/affix-dark.webp" width="640" alt="A scrolling list with a Hobbiton header pinned at its top and rows under it"><p>The section header is held at the top of its scroll.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 scroll id="chapters" {
     column {
@@ -31,6 +35,8 @@ var hobbiton = new Affix(
         Attributes.NONE.id("section-hobbiton").classes("section")
 );
 ```
+
+</div>
 
 `new Affix(Widget...)` pins to the top with no offset. `new Affix(children, edge, offset, attributes)` is the usual form, and `alsoPinnedTo(Edge)` adds an edge on the other axis. `Edge` is `dev.goldberry.widgets.core.affix.Edge`.
 

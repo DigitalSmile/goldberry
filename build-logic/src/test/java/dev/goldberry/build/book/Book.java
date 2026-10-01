@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import dev.goldberry.build.repository.Repository;
@@ -272,6 +273,130 @@ final class Book {
             line++;
         }
         return line;
+    }
+
+    /** An {@code <img>} in a shot: its source, its class if any, its width if any, and its alt text. */
+    record Picture(String src, Optional<String> cls, Optional<String> width, String alt) {
+
+        /** The file under {@code book/src/images} the source names, if it is one. */
+        Optional<String> file() {
+            var at = src.lastIndexOf("images/");
+            return at < 0 ? Optional.empty() : Optional.of(src.substring(at + "images/".length()));
+        }
+    }
+
+    /** A {@code gb-shot} block: where it is and the pictures in it. */
+    record Shot(String chapter, int line, List<Picture> pictures) {}
+
+    /** A {@code gb-tabs} block: where it is and the samples it holds. */
+    record TabGroup(String chapter, int line, List<Sample> samples, List<String> otherLines) {}
+
+    private static final Pattern IMG = Pattern.compile("<img\\s([^>]*)>");
+    private static final Pattern ATTRIBUTE = Pattern.compile("(\\w+)=\"([^\"]*)\"");
+
+    /** Every {@code gb-shot} block in a chapter, single-line or spread over lines. */
+    static List<Shot> shots(String page) {
+        var shots = new ArrayList<Shot>();
+        var lines = text(page).lines().toList();
+        for (var number = 0; number < lines.size(); number++) {
+            if (!lines.get(number).contains("class=\"gb-shot\"")) {
+                continue;
+            }
+            var block = new StringBuilder();
+            var end = number;
+            while (end < lines.size()) {
+                block.append(lines.get(end)).append('\n');
+                if (lines.get(end).contains("</div>")) {
+                    break;
+                }
+                end++;
+            }
+            var pictures = IMG.matcher(block).results()
+                    .map(match -> attributes(match.group(1)))
+                    .map(attributes -> new Picture(
+                            attributes.getOrDefault("src", ""),
+                            Optional.ofNullable(attributes.get("class")),
+                            Optional.ofNullable(attributes.get("width")),
+                            attributes.getOrDefault("alt", "")))
+                    .toList();
+            shots.add(new Shot(page, number + 1, pictures));
+            number = end;
+        }
+        return shots;
+    }
+
+    private static java.util.Map<String, String> attributes(String tag) {
+        return ATTRIBUTE.matcher(tag).results()
+                .collect(Collectors.toMap(match -> match.group(1), match -> match.group(2), (first, _) -> first));
+    }
+
+    /** Every {@code gb-tabs} block in a chapter, with what it holds. */
+    static List<TabGroup> tabGroups(String page) {
+        var groups = new ArrayList<TabGroup>();
+        var lines = text(page).lines().toList();
+        var samples = samples(page);
+        for (var number = 0; number < lines.size(); number++) {
+            if (!lines.get(number).strip().equals("<div class=\"gb-tabs\">")) {
+                continue;
+            }
+            var end = number + 1;
+            while (end < lines.size() && !lines.get(end).strip().equals("</div>")) {
+                end++;
+            }
+            var opened = number + 1;
+            var closed = end + 1;
+            var inside = samples.stream()
+                    .filter(sample -> sample.line() > opened && sample.line() < closed)
+                    .toList();
+            var other = new ArrayList<String>();
+            var inFence = false;
+            for (var k = number + 1; k < end; k++) {
+                var line = lines.get(k);
+                if (FENCE.matcher(line).matches() && !inFence) {
+                    inFence = true;
+                } else if (inFence && line.strip().equals("```")) {
+                    inFence = false;
+                } else if (!inFence && !line.isBlank()) {
+                    other.add(line);
+                }
+            }
+            groups.add(new TabGroup(page, opened, inside, other));
+            number = end;
+        }
+        return groups;
+    }
+
+    /** Every file under {@code book/src/images}, by name. */
+    static List<String> imageFiles() {
+        var directory = Repository.root().resolve(SOURCE).resolve("images");
+        try (Stream<Path> files = Files.list(directory)) {
+            return files.filter(Files::isRegularFile)
+                    .map(file -> file.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot list " + directory, e);
+        }
+    }
+
+    /**
+     * The pixel width of a WebP under {@code book/src/images}, from its header:
+     * the 14 bits after the signature byte of a lossless {@code VP8L} chunk, or
+     * the 24-bit canvas width of an extended {@code VP8X} one, each one less than
+     * the width.
+     */
+    static int webpWidth(String file) {
+        try {
+            var bytes = Files.readAllBytes(Repository.root().resolve(SOURCE).resolve("images").resolve(file));
+            var chunk = new String(bytes, 12, 4, java.nio.charset.StandardCharsets.US_ASCII);
+            return switch (chunk) {
+                case "VP8L" -> ((bytes[21] & 0xFF) | (bytes[22] & 0x3F) << 8) + 1;
+                case "VP8X" -> ((bytes[24] & 0xFF) | (bytes[25] & 0xFF) << 8 | (bytes[26] & 0xFF) << 16) + 1;
+                default -> throw new IllegalStateException(file + " is a " + chunk + " WebP, which this does not read");
+            };
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + file, e);
+        }
     }
 
     /** Every fenced sample in a chapter, with the line its fence opens on. */

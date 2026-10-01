@@ -5,12 +5,14 @@
 By the end of this chapter you can put a label on screen at any rank of the type
 scale, bind it to a value, and make a word open a screen or a web page.
 
-<div class="gb-shot"><img src="../images/link-dark.png" alt="Three links on the dark theme: one in the link ink, one visited in muted ink, and one external with a small arrow icon after it"><p>Three <code>link</code> widgets: plain, visited, and external.</p></div>
-
 ## `text`
 
 A `text` is one run of text. It wraps at the width layout gives it and nothing
 else about it is decided in Java.
+
+<div class="gb-shot"><img class="gb-light" src="../images/text-light.webp" width="226" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><img class="gb-dark" src="../images/text-dark.webp" width="226" alt="Three lines: The Red Book as a title, a caption in muted ink, and a bound status line"><p>A title, a caption and a bound value.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 column {
@@ -30,6 +32,8 @@ new Column(
         Text.of("checking…", Models.observable(app, "app.status"))
 );
 ```
+
+</div>
 
 The argument is what the text says. With `bind=`, the argument is the fallback
 shown until the bound value answers, and a `null` value draws as nothing rather
@@ -130,6 +134,10 @@ None. A `text` is not a Tab stop.
 A `link` is a word that does something: it runs an action, opens a URL through
 the desktop, or both.
 
+<div class="gb-shot"><img class="gb-light" src="../images/link-light.webp" width="180" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><img class="gb-dark" src="../images/link-dark.webp" width="180" alt="Three links: Read the docs, Goldberry on the web with an external arrow, and Write to us in the visited ink"><p>An action link, an external link and a visited one.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   link action="app.show-docs" "Read the docs"
@@ -147,6 +155,8 @@ new Column(
         Link.external("Write to us", "mailto:hello@example.org").visited(true)
 );
 ```
+
+</div>
 
 `action=` is in-app navigation. `href=` is handed to the desktop's own handler
 for its scheme through `Host.openExternal`, and the link logs a warning when

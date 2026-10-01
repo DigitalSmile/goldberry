@@ -6,11 +6,13 @@ By the end of this chapter you can wire a button to an action, pick its variant
 with a class, float it in a window corner, show a count that follows a value,
 and build a row of filter chips.
 
-<div class="gb-shot"><img src="../images/button-variants-dark.png" alt="Five buttons in a row on the dark theme: Default, Primary in the accent, Danger in red, Ghost with no fill, and Link as plain text"><p>The five <code>button</code> variants. Each is a class, not a constructor argument.</p></div>
-
 ## `button`
 
 A `button` is a label, an icon, or both, with one action behind it.
+
+<div class="gb-shot"><img class="gb-light" src="../images/button-light.webp" width="363" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><img class="gb-dark" src="../images/button-dark.webp" width="363" alt="Five buttons in a row: Save, New with a plus icon in the accent, Delete in red, Later greyed out, and What is this? as a link"><p>The five variants. Each is a class, not a constructor argument.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 row {
@@ -33,6 +35,8 @@ new Row(
         new Button("What is this?", actions::help).styled("link")
 );
 ```
+
+</div>
 
 The icon is borrowed. A widget is a value rebuilt every frame, so it must not
 own something with a `close()`. The application builds its icons once in
@@ -106,6 +110,10 @@ consumed.
 A `badge` is a count or a status: text in a stadium that reports and takes
 nothing back.
 
+<div class="gb-shot"><img class="gb-light" src="../images/badge-light.webp" width="141" alt="Three badges: a count of 3, offline in red, and passing in green"><img class="gb-dark" src="../images/badge-dark.webp" width="141" alt="Three badges: a count of 3, offline in red, and passing in green"><p>A count, a danger badge and a success badge bound to a value.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row {
   badge "3"
@@ -123,6 +131,8 @@ new Row(
         Badge.of("passing", Models.observable(build, "build.state")).styled("success")
 );
 ```
+
+</div>
 
 A count is the archetypal bound value. The argument stays as the fallback until
 the binding answers, as a `text`'s does.
@@ -162,7 +172,9 @@ None.
 A `chip` is a badge you can press: a filter that is on or off, a tag you can
 take off, a token in a recipient row.
 
-<div class="gb-shot"><img src="../images/chip-variants-light.png" alt="Six chips on the light theme: default, outlined, and the danger, warning, success and info hues"><p>The <code>chip</code> variants. A chip shares the badge's fill tokens and is four points taller.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/chip-light.webp" width="267" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><img class="gb-dark" src="../images/chip-dark.webp" width="267" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><p>A selected chip, an outlined one with a dot, one with an icon and a dismiss, and a disabled one.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 row {
@@ -183,6 +195,8 @@ new Row(
         new Chip("Sealed").styled("outlined").disabled(true)
 );
 ```
+
+</div>
 
 A chip selects nothing itself. Pressing raises `press` and the application
 decides. The bound value, or the written `selected`, is what draws the

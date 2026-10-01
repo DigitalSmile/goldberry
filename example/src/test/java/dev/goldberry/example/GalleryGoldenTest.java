@@ -1,7 +1,5 @@
 package dev.goldberry.example;
 
-import java.util.ArrayList;
-
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,18 +8,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
-import dev.goldberry.assets.BundledFont;
-import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
-import dev.goldberry.css.cascade.CascadeLayer;
-import dev.goldberry.example.ui.AppMenu;
-import dev.goldberry.example.ui.Screen;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.golden.ScaleInvariance;
-import dev.goldberry.html.view.HtmlStyles;
-import dev.goldberry.icon.Icon;
-import dev.goldberry.markdown.view.MarkdownStyles;
-import dev.goldberry.media.view.MediaStyles;
 import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
@@ -30,11 +19,7 @@ import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.WindowSpec;
-import dev.goldberry.text.font.Font;
 import dev.goldberry.text.font.Fonts;
-import dev.goldberry.widgets.Controls;
-import dev.goldberry.widgets.Icons;
-import dev.goldberry.widgets.Widgets;
 
 /// The gallery, one image per screen (§14: "golden-image CI runs the gallery
 /// matrix").
@@ -48,24 +33,15 @@ import dev.goldberry.widgets.Widgets;
 /// `./gradlew :example:test -Dgoldberry.golden.update=true` rewrites them.
 class GalleryGoldenTest {
 
-    private Showcase showcase;
-    private ShowcaseModel model;
-    private ShowcaseModel.Actions actions;
-    private Icon palette;
-    private Icon plus;
-    private Font font;
+    private ShowcaseScene scene;
 
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
         // The application's own objects, so the gallery is painted against the
-        // wiring the window uses rather than a copy of it.
-        showcase = new Showcase();
-        model = modelOf(ShowcaseModel.class);
-        actions = modelOf(ShowcaseModel.Actions.class);
-        palette = Icon.bundled("palette", 16);
-        plus = Icon.bundled("plus", 16);
-        font = Font.bundled(BundledFont.UI, 13);
+        // wiring the window uses rather than a copy of it -- shared with the
+        // guide's screen pictures, which must be of the same screens.
+        scene = new ShowcaseScene();
     }
 
     @AfterEach
@@ -73,23 +49,9 @@ class GalleryGoldenTest {
         // Null-safe: `setUp` can stop at the renderer requirement on a machine
         // with no native library, and a teardown that assumed otherwise would
         // report its own NPE instead of the skip.
-        if (palette != null) {
-            palette.close();
+        if (scene != null) {
+            scene.close();
         }
-        if (plus != null) {
-            plus.close();
-        }
-        if (font != null) {
-            font.close();
-        }
-    }
-
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
     }
 
     /// The whole window, on `screen`.
@@ -138,25 +100,8 @@ class GalleryGoldenTest {
             boolean book,
             Sweep sweep,
             @Nullable GpuSurface gpu) {
-        actions.pickScreen(screen);
-
-        var inflater = Widgets.inflater(
-                // The objects the Forms document names, so this image is the
-                // screen the application draws rather than one whose `form` lost
-                // its controller to a lenient registry.
-                model.named(),
-                Icons.strict().bind("palette", palette).bind("plus", plus),
-                showcase.models().toArray());
-        var root = new Screen(
-                model,
-                actions,
-                inflater,
-                plus,
-                () -> {},
-                new AppMenu(
-                        actions,
-                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
-                        plus));
+        var root = scene.root(screen);
+        var sheets = scene.stylesheets(theme);
 
         // **Through the shipped `Offscreen`** (ADR-0284), which is the same
         // sequence this method used to spell out for itself: mount, lay out, feed
@@ -173,17 +118,6 @@ class GalleryGoldenTest {
         // one-font renderer, which ignores `font-family`, `font-size` and
         // `font-weight`. Handing over a book would be a typography change wearing
         // an infrastructure change's clothes.
-        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
-        // The optional module's rules, exactly as `Showcase.stylesheets()` adds
-        // them: the Panels wall holds a `markdown-view`, and a golden taken without
-        // these would be a picture of a document the application never draws
-        // (ADR-0295).
-        sheets.add(MarkdownStyles.stylesheet());
-        // And the module's other half, which the HTML screen is entirely made of
-        // (ADR-0298).
-        sheets.add(HtmlStyles.stylesheet());
-        sheets.add(MediaStyles.stylesheet());
-        sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         // The size and the scale are the harness's rather than captured here,
         // because a golden that matches is then re-rendered at 2x, 1.5x and 1.25x
@@ -220,7 +154,7 @@ class GalleryGoldenTest {
                 sweep,
                 (size, scale) -> withGpu(Offscreen.of(size).scale(scale), gpu)
                         .stylesheets(sheets)
-                        .font(font)
+                        .font(scene.font())
                         .render(root));
     }
 

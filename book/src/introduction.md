@@ -12,7 +12,7 @@ the optional GPU module is present. Linux, Windows and macOS are peer platforms
 behind one SDL3 backend.
 
 <div class="gb-shot">
-<img src="images/basic.webp" alt="The Goldberry showcase: buttons, toggles, radios, sliders, badges and chips on the dark Nord theme">
+<img class="gb-light" src="images/screen-basic-light.webp" alt="The Goldberry showcase: buttons, toggles, radios, sliders, badges and chips"><img class="gb-dark" src="images/screen-basic-dark.webp" alt="The Goldberry showcase: buttons, toggles, radios, sliders, badges and chips">
 <p>The showcase's Basic screen. Every control is drawn by the toolkit to the design system's metrics.</p>
 </div>
 

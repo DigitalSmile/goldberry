@@ -8,6 +8,10 @@ By the end of this chapter you can build a wall of cards that survives a window 
 
 A `masonry` deals its children into columns and places each one under the column that is currently shortest.
 
+<div class="gb-shot"><img class="gb-light" src="../images/masonry-light.webp" width="640" alt="Three cards in a wall: Leagues with a statistic, The Company, and Provisions"><img class="gb-dark" src="../images/masonry-dark.webp" width="640" alt="Three cards in a wall: Leagues with a statistic, The Company, and Provisions"><p>Cards in as many columns as fit.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 masonry id="wall" min-column-width=320 {
     card { text class="card-title" "Leagues"; statistic label="Walked" value="1,795" }
@@ -20,6 +24,8 @@ masonry id="wall" min-column-width=320 {
 var wall = new Masonry(List.of(leagues, company, provisions))
         .withAttributes(Attributes.NONE.id("wall"));
 ```
+
+</div>
 
 `new Masonry(List<Widget>)` is responsive at 320 points. `new Masonry(List<Widget>, int columns, Attributes)` is a fixed count. `columns(int)` and `minColumnWidth(int)` switch a masonry from one mode to the other, dropping the setting it had.
 

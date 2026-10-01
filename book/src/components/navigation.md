@@ -8,10 +8,16 @@ The application moves the index. None of them decides on its own where the
 user may go next
 ([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
 
+<div class="gb-shot"><img class="gb-light" src="../images/screen-navigation-light.webp" alt="The showcase's Navigation screen: breadcrumbs, rows of steps, a wizard on its second page, and a tab strip"><img class="gb-dark" src="../images/screen-navigation-dark.webp" alt="The showcase's Navigation screen: breadcrumbs, rows of steps, a wizard on its second page, and a tab strip"><p>The Navigation screen of the showcase.</p></div>
+
 ## `breadcrumbs`
 
 The path to here, as a row of crumbs with a chevron between each pair. The last
 crumb is where you are and does not press.
+
+<div class="gb-shot"><img class="gb-light" src="../images/breadcrumbs-light.webp" width="376" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><img class="gb-dark" src="../images/breadcrumbs-dark.webp" width="376" alt="A trail: a house icon with Home, then Library, Reference, and The Red Book in plain text"><p>Three links and the current page.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 breadcrumbs id="path" {
@@ -30,6 +36,8 @@ new Breadcrumbs(
         new Crumb("The Red Book")
 ).id("path");
 ```
+
+</div>
 
 The trail decides which crumb is current. It is always the last one written, so
 a document cannot mark one and a Java caller cannot either
@@ -71,6 +79,10 @@ Only a crumb that has a `press` and is not current is a Tab stop.
 
 One entry in a trail: a label, an optional icon, and what pressing it does.
 
+<div class="gb-shot"><img class="gb-light" src="../images/crumb-light.webp" width="87" alt="One crumb: a house icon and the word Home"><img class="gb-dark" src="../images/crumb-dark.webp" width="87" alt="One crumb: a house icon and the word Home"><p>An icon and a label.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 crumb icon="home" press="app.go-home" "Home"
 ```
@@ -79,6 +91,8 @@ crumb icon="home" press="app.go-home" "Home"
 new Crumb("Home", actions::goHome).withIcon(homeIcon);
 new Crumb("The Red Book");
 ```
+
+</div>
 
 **Attributes**
 
@@ -97,7 +111,9 @@ by an attribute.
 A row of numbered discs that says how far along a process is. On its own it is
 a picture. With `clickable`, a reachable step can be pressed.
 
-<div class="gb-shot"><img src="../images/steps-dark.png" alt="Four rows of steps: done steps with ticks, a current step filled with the accent, an error step with a cross, and a vertical list"><p>Done, current, upcoming and error, horizontal and vertical.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/steps-light.webp" width="640" alt="Three steps in a row: Account ticked with a description, Payment current in the accent, and Review upcoming"><img class="gb-dark" src="../images/steps-dark.webp" width="640" alt="Three steps in a row: Account ticked with a description, Payment current in the accent, and Review upcoming"><p>Done, current and upcoming.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 steps current=1 clickable=#true change="app.go-step" {
@@ -114,6 +130,8 @@ new Steps(1,
         new Step("Review"))
     .clickable(actions::goStep);
 ```
+
+</div>
 
 Every step before `current` is done. The step at `current` is current. The
 rest are upcoming, unless a step says `error`. The widget writes those four
@@ -168,6 +186,10 @@ takes no arrow keys.
 
 One step: a label, an optional description, and two flags the list reads.
 
+<div class="gb-shot"><img class="gb-light" src="../images/step-light.webp" width="129" alt="One step marked 1, Account, with Who you are under it"><img class="gb-dark" src="../images/step-dark.webp" width="129" alt="One step marked 1, Account, with Who you are under it"><p>A reachable step with a description.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 step reachable=#true "Account" description="Who you are"
 ```
@@ -176,6 +198,8 @@ step reachable=#true "Account" description="Who you are"
 new Step("Account", "Who you are").reachable(true);
 new Step("Verify").error(true);
 ```
+
+</div>
 
 **Attributes**
 
@@ -195,7 +219,9 @@ the list derives it from `current`.
 A `steps` indicator over one page at a time, with Back, Next and Finish under
 it. It owns no validation, no policy and no data.
 
-<div class="gb-shot"><img src="../images/wizard-dark.png" alt="A wizard on its Payment page: the indicator shows Account done and Review upcoming, a checkbox in the content, and Back and Next buttons at the bottom right"><p>The second of three pages.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/wizard-light.webp" width="640" alt="A wizard on its Payment page: the indicator shows Account done and Review upcoming, and the page reads Nothing to pay"><img class="gb-dark" src="../images/wizard-dark.webp" width="640" alt="A wizard on its Payment page: the indicator shows Account done and Review upcoming, and the page reads Nothing to pay"><p>The second of three pages, chosen by the bound step.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 wizard id="signup" bind="signup.step" back="signup.back" next="signup.next" finish="signup.finish" {
@@ -221,6 +247,8 @@ new Wizard(current,
     .onFinish(() -> goTo(0))
     .id("signup");
 ```
+
+</div>
 
 Back, Next and Finish only call their handlers. The application moves
 `current`, by rebuilding with a new index or by setting the bound value, and a
@@ -274,6 +302,10 @@ the indicator takes what [`steps`](#steps) takes when `go-to` is wired.
 One page of a wizard: a label for the indicator, and the content shown while it
 is current.
 
+<div class="gb-shot"><img class="gb-light" src="../images/page-light.webp" width="123" alt="A wizard page titled Payment reading Nothing to pay"><img class="gb-dark" src="../images/page-dark.webp" width="123" alt="A wizard page titled Payment reading Nothing to pay"><p>One page on its own.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 page "Payment" description="How you pay" reachable=#true {
   text "Nothing to pay."
@@ -285,6 +317,8 @@ new WizardPage("Payment", new Text("Nothing to pay."))
     .describe("How you pay")
     .reachable(true);
 ```
+
+</div>
 
 **Attributes**
 

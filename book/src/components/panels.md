@@ -8,10 +8,16 @@ two that keep state, `collapse` and `carousel`, keep it themselves and can be
 told what it is instead. Every rule below is `controls.css`'s, and an
 application styles the layout around them, not the widgets.
 
+<div class="gb-shot"><img class="gb-light" src="../images/screen-panels-light.webp" alt="The showcase's Panels screen: cards, a group box, a collapse, a carousel, skeletons, statistics with sparklines, tabs and a timeline in a wall"><img class="gb-dark" src="../images/screen-panels-dark.webp" alt="The showcase's Panels screen: cards, a group box, a collapse, a carousel, skeletons, statistics with sparklines, tabs and a timeline in a wall"><p>The Panels screen of the showcase.</p></div>
+
 ## `panel`
 
 The building block: a flat surface with the theme's border and radius, and no
 elevation.
+
+<div class="gb-shot"><img class="gb-light" src="../images/panel-light.webp" width="640" alt="A panel reading The map and Where the road goes next"><img class="gb-dark" src="../images/panel-dark.webp" width="640" alt="A panel reading The map and Where the road goes next"><p>A surface with two lines of text.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 panel class="side" {
@@ -26,6 +32,8 @@ new Panel(
         new Text("Where the road goes next.")
 ).styled("side");
 ```
+
+</div>
 
 **Attributes**
 
@@ -48,6 +56,10 @@ can restyle completely.
 A raised surface: a shadow and a stronger edge, level 1 of the design system's
 ladder, lifting to level 2 under the pointer when asked.
 
+<div class="gb-shot"><img class="gb-light" src="../images/card-light.webp" width="640" alt="A card titled Surfaces with a line of text under it"><img class="gb-dark" src="../images/card-dark.webp" width="640" alt="A card titled Surfaces with a line of text under it"><p>An interactive card at rest.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 card class="interactive" {
   text class="card-title" "Surfaces"
@@ -61,6 +73,8 @@ new Card(
         new Text("Point at it and the shadow rises.")
 ).styled("interactive");
 ```
+
+</div>
 
 The edge stays even though there is a shadow, because a card on another card
 casts onto the same colour and only the rim tells them apart
@@ -93,6 +107,10 @@ opt-in, because a card that lit up would promise it does something.
 A titled frame for a cluster of settings. The frame goes round both the title
 and the content.
 
+<div class="gb-shot"><img class="gb-light" src="../images/group-box-light.webp" width="640" alt="A box titled The Company with two rows: Ring-bearer, Frodo Baggins and Guide, Gandalf the Grey"><img class="gb-dark" src="../images/group-box-dark.webp" width="640" alt="A box titled The Company with two rows: Ring-bearer, Frodo Baggins and Guide, Gandalf the Grey"><p>A title and two rows.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 group-box title="The Company" {
   row { text "Ring-bearer"; spacer; text class="caption" "Frodo Baggins" }
@@ -105,6 +123,8 @@ new GroupBox("The Company",
         new Row(new Text("Ring-bearer"), new Spacer(), new Text("Frodo Baggins").styled("caption")),
         new Row(new Text("Guide"), new Spacer(), new Text("Gandalf the Grey").styled("caption")));
 ```
+
+</div>
 
 **Attributes**
 
@@ -130,6 +150,10 @@ cut through the border is not available
 A header and a body that folds away. The body is unmounted while closed, not
 hidden, so a shut section holds no subscriptions for content nobody can see.
 
+<div class="gb-shot"><img class="gb-light" src="../images/collapse-light.webp" width="620" alt="An open section titled The Council's terms with two rows, Bearers 1 and Companions 8"><img class="gb-dark" src="../images/collapse-dark.webp" width="620" alt="An open section titled The Council's terms with two rows, Bearers 1 and Companions 8"><p>Open, with its chevron turned.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 collapse title="The Council's terms" open=#true {
   row { text "Bearers"; spacer; text class="caption" "1" }
@@ -143,6 +167,8 @@ new Collapse("The Council's terms",
         new Row(new Text("Companions"), new Spacer(), new Text("8").styled("caption")));
 ```
 
+</div>
+
 A collapse keeps whether it is open. Name a `toggle` action and it stops
 keeping it: the header then raises `"true"` or `"false"` and the section is as
 open as `open` says. The Java form is
@@ -153,6 +179,8 @@ open as `open` says. The Java form is
 ([ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)). A
 section the application already controls is left alone, and from markup an
 accordion starts with every section shut.
+
+<div class="gb-tabs">
 
 ```kdl
 column accordion=#true {
@@ -169,6 +197,8 @@ new Accordion(
         new Collapse("Moria", new Text("Doors: Mellon."))
 );
 ```
+
+</div>
 
 **Attributes**
 
@@ -208,6 +238,10 @@ The header is the one Tab stop.
 One slide visible out of a list, with previous and next and a dot per slide.
 Only the current slide exists; the others are dropped when you leave them.
 
+<div class="gb-shot"><img class="gb-light" src="../images/carousel-light.webp" width="640" alt="A slide reading Stage 1 of 3: Bag End with three dots under it"><img class="gb-dark" src="../images/carousel-dark.webp" width="640" alt="A slide reading Stage 1 of 3: Bag End with three dots under it"><p>The first of three slides.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 carousel loop=#true interval=5000 {
   panel class="slide" { text "Stage 1 of 3: Bag End" }
@@ -224,6 +258,8 @@ var slides = List.of(
 );
 new Carousel(0, null, true, Duration.ofSeconds(5), slides, Attributes.NONE);
 ```
+
+</div>
 
 `new Carousel(Widget... slides)` is the short form: no loop, no rotation. Name
 a `change` action and the carousel becomes controlled, showing the slide
@@ -275,6 +311,10 @@ The strip is one Tab stop when it has two or more slides.
 The placeholder a widget shows while its data loads, sized from the typography
 token it stands in for so the layout does not jump when the content arrives.
 
+<div class="gb-shot"><img class="gb-light" src="../images/skeleton-light.webp" width="72" alt="A grey circle beside a grey title bar and two grey text lines"><img class="gb-dark" src="../images/skeleton-dark.webp" width="72" alt="A grey circle beside a grey title bar and two grey text lines"><p>Circle, title and two lines of text.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row {
   skeleton shape="circle"
@@ -294,6 +334,8 @@ new Row(
         )
 );
 ```
+
+</div>
 
 A shimmer is a loop, and the design system allows one decoration to loop. It is
 an opacity pulse between 0.45 and 1.0 over a second, held at its dimmest under
@@ -326,6 +368,10 @@ wide. Radius 4, or full for a circle.
 A labelled number: a value in the display size, a caption over it, and an
 optional unit, delta and sparkline.
 
+<div class="gb-shot"><img class="gb-light" src="../images/statistic-light.webp" width="306" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><img class="gb-dark" src="../images/statistic-dark.webp" width="306" alt="Three statistics: Leagues walked 1,795 up 42, Days from Rivendell 93 d down 2, and Companions lost 1 with Gandalf as the delta"><p>A label, a value, a unit and a delta.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row {
   statistic label="Leagues walked" value="1,795" delta="+42" direction="up"
@@ -341,6 +387,8 @@ new Row(
         new Statistic("Companions lost", "1").delta("Gandalf", Statistic.Direction.NONE)
 );
 ```
+
+</div>
 
 The value is a string. Formatting is the application's, because a number
 formatted inside the toolkit makes a golden image that depends on the
@@ -372,7 +420,9 @@ carries the class `up` or `down`.
 A strip of headers over one panel: pick a tab and its content is built, leave
 it and the content is dropped, unless the strip is told to keep it.
 
-<div class="gb-shot"><img src="../images/tabs-closable.png" alt="A tab strip with two closable tabs, Editor and Log, and a plus button that opens another"><p>Closable tabs and a <code>new</code> button.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/tabs-light.webp" width="640" alt="A tab strip with The map selected, The road with a footprints icon and a close cross, and Moria in red, and the page reading Where the road goes"><img class="gb-dark" src="../images/tabs-dark.webp" width="640" alt="A tab strip with The map selected, The road with a footprints icon and a close cross, and Moria in red, and the page reading Where the road goes"><p>Three tabs, one closable, one coloured.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 tabs value="map" change="app.pick-tab" close="app.close-tab" new="app.new-tab" {
@@ -397,6 +447,8 @@ new Tabs("map",
     .onClose(actions::closeTab)
     .onNew(actions::newTab);
 ```
+
+</div>
 
 The strip is a model, a header and a panel
 ([ADR-0107](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
@@ -462,6 +514,10 @@ The strip is one Tab stop.
 One tab: the value its strip reports, a label, and the content shown while it
 is selected.
 
+<div class="gb-shot"><img class="gb-light" src="../images/tab-light.webp" width="124" alt="One tab, The road, with a footprints icon and a close cross, over its page"><img class="gb-dark" src="../images/tab-dark.webp" width="124" alt="One tab, The road, with a footprints icon and a close cross, over its page"><p>A closable tab with an icon and a colour.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 tab value="road" icon="footprints" colour="#bf616a" closable=#true "The road" {
   text "How far it is."
@@ -474,6 +530,8 @@ new Tab("road", "The road", new Text("How far it is."))
         .colour(0xFFBF616A)
         .closable(true);
 ```
+
+</div>
 
 **Attributes**
 
@@ -495,7 +553,9 @@ new Tab("road", "The road", new Text("How far it is."))
 An ordered list of entries along an axis, each with a marker, a label, an
 optional time and optional body.
 
-<div class="gb-shot"><img src="../images/timeline-badges-dark.png" alt="A vertical timeline of three entries, the newest at the top with a badge for its marker"><p>Entries with a dot, a number and a badge for a marker.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/timeline-light.webp" width="199" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><img class="gb-dark" src="../images/timeline-dark.webp" width="199" alt="A vertical timeline: Drafted on Mon, Reviewed on Thu with a badge reading 3 as its marker, and Released on Fri with a tag icon"><p>A dot, a badge and an icon as markers, and a pending end.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 timeline pending=#true {
@@ -516,6 +576,8 @@ new Timeline(
         new Entry("Released", new Text("Tagged and published.")).at("Fri").withIcon(tag)
 ).pending(true);
 ```
+
+</div>
 
 The line goes on: `pending` draws a trailing unfilled marker after the last
 entry for what happens next, which is what tells a timeline from a list with
@@ -552,6 +614,10 @@ the `timeline-marker` and a `timeline-line`, beside a `timeline-side` holding
 One event: a label, an optional time, and a marker that is a dot, an icon, or
 any widget.
 
+<div class="gb-shot"><img class="gb-light" src="../images/entry-light.webp" width="152" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><img class="gb-dark" src="../images/entry-dark.webp" width="152" alt="One timeline entry: a tag icon in green, Reviewed on Thu, and Two approvals under it"><p>An entry with an icon, a colour and a body.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 entry time="Thu" icon="tag" colour="#a3be8c" "Reviewed" {
   text "Two approvals."
@@ -564,6 +630,8 @@ new Entry("Reviewed", new Text("Two approvals."))
         .withIcon(tag)
         .colour(0xFFA3BE8C);
 ```
+
+</div>
 
 **Attributes**
 
@@ -581,6 +649,8 @@ Two `marker` children are refused.
 
 The thing drawn on the axis instead of a dot: exactly one widget.
 
+<div class="gb-tabs">
+
 ```kdl
 marker { badge "v2" }
 ```
@@ -588,6 +658,8 @@ marker { badge "v2" }
 ```java
 new EntryMarker(new Badge("v2"));
 ```
+
+</div>
 
 It takes exactly one child and no attributes of its own. The child is drawn
 under `timeline-marker.widget`. In Java, `Entry.withMarker(Widget)` is the

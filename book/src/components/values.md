@@ -12,12 +12,14 @@ thumb moves when the bound value does
 ([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). The bound value
 is any `Number`. Anything else leaves the written `value` standing.
 
-<div class="gb-shot"><img src="../images/slider-light.png" alt="Five horizontal sliders on the light theme at 0, 25, 50, 75 and 100 percent, each a thin groove with a filled part and a white disc thumb"><p>A <code>slider</code> at five values. The thumb is placed by flex ratio, not by a transform.</p></div>
-
 ## `slider`
 
 A `slider` is a thumb on a track whose position is a number between `min` and
 `max`.
+
+<div class="gb-shot"><img class="gb-light" src="../images/slider-light.webp" width="640" alt="A horizontal slider at 62 percent with ticks, a vertical fader, and a disabled slider at 70"><img class="gb-dark" src="../images/slider-dark.webp" width="640" alt="A horizontal slider at 62 percent with ticks, a vertical fader, and a disabled slider at 70"><p>Horizontal, vertical, and disabled.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 column {
@@ -43,6 +45,8 @@ new Column(
         new Slider(0, 100, 70, 0, null).disabled(true)
 );
 ```
+
+</div>
 
 The control snaps and clamps so no application has to. Steps count from `min`,
 an arrow offers the next reachable value, and both ends are always reachable
@@ -125,7 +129,9 @@ left alone.
 A `knob` is a rotary control: a dial with a pointer, an arc that fills as the
 value rises, and a vertical drag as its gesture.
 
-<div class="gb-shot"><img src="../images/knob-light.png" alt="Five knobs on the light theme at increasing values, each a disc with a pointer line and a blue arc growing clockwise around it"><p>A <code>knob</code> at five values. The arc runs 270 degrees from the lower left.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/knob-light.webp" width="112" alt="Two knobs: a small one at 62 and a large one at a quarter turn"><img class="gb-dark" src="../images/knob-dark.webp" width="112" alt="Two knobs: a small one at 62 and a large one at a quarter turn"><p>A detented knob and a large circular one.</p></div>
+
+<div class="gb-tabs">
 
 ```kdl
 row {
@@ -144,6 +150,8 @@ new Row(
             .styled("large")
 );
 ```
+
+</div>
 
 Dragging up turns it up: 200 px of drag is the whole range, and `Shift` makes
 the drag ten times finer. The gesture is a rate from where the press started,
@@ -210,6 +218,10 @@ owns `Right` and focus does not leave it.
 A `progress` bar reports a value out of a maximum, or that something is
 happening and nobody can say how much is left.
 
+<div class="gb-shot"><img class="gb-light" src="../images/progress-light.webp" width="640" alt="Three bars: one at 40 percent, one at 62, and one indeterminate"><img class="gb-dark" src="../images/progress-dark.webp" width="640" alt="Three bars: one at 40 percent, one at 62, and one indeterminate"><p>A value, a bound value, and indeterminate.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column {
   progress value=0.4
@@ -227,6 +239,8 @@ new Column(
         Progress.sweeping()
 );
 ```
+
+</div>
 
 A determinate bar's fill is a plain width, the value divided by `max` and
 clamped to the track. An indeterminate bar sweeps by a `transform`, turns at
@@ -275,6 +289,10 @@ None. A progress bar takes nothing back.
 
 A `spinner` is a ring that turns, for a wait with no measure.
 
+<div class="gb-shot"><img class="gb-light" src="../images/spinner-light.webp" width="92" alt="Three spinners, small, regular and large"><img class="gb-dark" src="../images/spinner-dark.webp" width="92" alt="Three spinners, small, regular and large"><p>Three sizes.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row {
   spinner size="small"
@@ -293,6 +311,8 @@ new Row(
         new Spinner(SpinnerSize.LARGE)
 );
 ```
+
+</div>
 
 Small sits beside a line of text or inside a busy control, medium is the
 default, and large stands on its own for a region that is not ready. A full

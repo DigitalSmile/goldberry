@@ -1,5 +1,7 @@
 package dev.goldberry.golden;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -134,8 +136,38 @@ public final class GoldenImage {
         assertMatches(name, width, height, scale, tolerance, scene, false);
     }
 
+    /// [#assertMatchesAtOneScale(String, int, int, float, Scene)] against a
+    /// **reference file of the caller's choosing** rather than one under
+    /// `src/test/resources/golden`.
+    ///
+    /// For a picture that is committed somewhere other than a test's resources
+    /// because something other than a test reads it: the guide's pictures under
+    /// `book/src/images` are rendered from the guide's own samples and held to
+    /// what the code draws by exactly this comparison ([ADR-0513]). The format is
+    /// the file's extension: `.png` through the harness's own codec, `.webp`
+    /// through the toolkit's, which is lossless and a third of the size.
+    ///
+    /// One scale only, because such a picture is usually taken *at* 2&times;
+    /// already, which is the sweep's own first multiplier.
+    public static void assertMatchesAtOneScale(Path reference, int width, int height, float scale, Scene scene) {
+        assertMatches(
+                reference, reference.getFileName().toString(), width, height, scale, Tolerance.RASTER, scene, false);
+    }
+
     private static void assertMatches(
             String name, int width, int height, float scale, Tolerance tolerance, Scene scene, boolean sweep) {
+        assertMatches(GOLDEN_DIR.resolve(name + ".png"), name, width, height, scale, tolerance, scene, sweep);
+    }
+
+    private static void assertMatches(
+            Path goldenFile,
+            String name,
+            int width,
+            int height,
+            float scale,
+            Tolerance tolerance,
+            Scene scene,
+            boolean sweep) {
 
         // Through the shipped `Offscreen` rather than through a frame this
         // harness opens itself (ADR-0284). It owns the buffer, the frame and the
@@ -147,11 +179,11 @@ public final class GoldenImage {
         // repository is now a test of the API an application would use to take
         // the same picture: if `Offscreen` and a window ever disagree about how a
         // scene is drawn, a golden moves.
-        var actual = toImage(scene.render(new PhysicalSize(width, height), new DisplayScale(scale)));
-        var goldenFile = GOLDEN_DIR.resolve(name + ".png");
+        var rendered = scene.render(new PhysicalSize(width, height), new DisplayScale(scale));
+        var actual = toImage(rendered);
 
         if (Boolean.getBoolean(UPDATE_PROPERTY)) {
-            Png.write(goldenFile, actual);
+            write(goldenFile, rendered, actual);
             return;
         }
         if (!Files.exists(goldenFile)) {
@@ -163,7 +195,7 @@ public final class GoldenImage {
                     + "; re-run with -D" + UPDATE_PROPERTY + "=true to accept it.");
         }
 
-        var expected = Png.read(goldenFile);
+        var expected = read(goldenFile);
         var comparison = compare(expected, actual, tolerance);
         if (comparison.matches()) {
             // Only once the image is right: a scene whose golden has drifted
@@ -181,6 +213,30 @@ public final class GoldenImage {
         Png.write(FAILURE_DIR.resolve(name + "-diff.png"), comparison.diff());
         throw new AssertionFailedError("\"" + name + "\" does not match its golden: " + comparison.describe()
                 + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
+    }
+
+    /// Writes a reference in the format its name asks for: WebP through the
+    /// toolkit's lossless encoder, anything else as the harness's own PNG.
+    private static void write(Path file, dev.goldberry.image.Image rendered, Png.Image pixels) {
+        if (!isWebp(file)) {
+            Png.write(file, pixels);
+            return;
+        }
+        try {
+            Files.createDirectories(file.getParent());
+            Files.write(file, rendered.encodeWebp());
+        } catch (IOException e) {
+            throw new UncheckedIOException("could not write " + file, e);
+        }
+    }
+
+    /// Reads a reference the way [#write] wrote it.
+    private static Png.Image read(Path file) {
+        return isWebp(file) ? toImage(dev.goldberry.image.Image.decode(file)) : Png.read(file);
+    }
+
+    private static boolean isWebp(Path file) {
+        return file.getFileName().toString().endsWith(".webp");
     }
 
     /// A rendered image as the harness's own pixel record.

@@ -8,6 +8,10 @@ By the end of this chapter you can nest the two to build any arrangement flexbox
 
 A `row` lays its children out along the horizontal axis.
 
+<div class="gb-shot"><img class="gb-light" src="../images/row-light.webp" width="640" alt="A toolbar: Find on the left, New in the accent on the right"><img class="gb-dark" src="../images/row-dark.webp" width="640" alt="A toolbar: Find on the left, New in the accent on the right"><p>Two buttons with a spacer between.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row id="toolbar" {
     button press="find" "Find"
@@ -23,6 +27,8 @@ var toolbar = new Row(
         new Button("New", this::create).styled("primary")
 ).withAttributes(Attributes.NONE.id("toolbar"));
 ```
+
+</div>
 
 `new Row(Widget...)` takes the children. `new Row(List<Widget>, Attributes)` takes them with an id and classes, and `withAttributes` adds those to a row built the short way.
 
@@ -77,6 +83,10 @@ There are no variant classes. The classes a row carries are the ones a document 
 
 A `column` lays its children out along the vertical axis.
 
+<div class="gb-shot"><img class="gb-light" src="../images/column-light.webp" width="639" alt="A line reading Delete this file? with Cancel and Delete in red under it on the right"><img class="gb-dark" src="../images/column-dark.webp" width="639" alt="A line reading Delete this file? with Cancel and Delete in red under it on the right"><p>Text over a row of buttons.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 column id="confirm" {
     text "Delete this file?"
@@ -98,6 +108,8 @@ var confirm = new Column(
         )
 ).withAttributes(Attributes.NONE.id("confirm"));
 ```
+
+</div>
 
 `new Column(Widget...)` and `new Column(List<Widget>, Attributes)` are the two constructors, exactly as on `row`.
 

@@ -8,6 +8,10 @@ By the end of this chapter you can put a list beside a detail view, keep either 
 
 A `split-pane` lays out exactly two children along one axis with a draggable divider between them.
 
+<div class="gb-shot"><img class="gb-light" src="../images/split-pane-light.webp" width="640" alt="Two panels side by side, The map and The road, with a divider between them"><img class="gb-dark" src="../images/split-pane-dark.webp" width="640" alt="Two panels side by side, The map and The road, with a divider between them"><p>Two panels and a divider.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 split-pane id="demo-split" first-min=120 second-min=140 collapsible=#true {
     panel class="split-demo" {
@@ -24,6 +28,8 @@ split-pane id="demo-split" first-min=120 second-min=140 collapsible=#true {
 ```java
 var split = new SplitPane(map, road);
 ```
+
+</div>
 
 `new SplitPane(first, second)` is horizontal, starts in the middle, and keeps its own position. The controlled form takes the position from the application and reports a drag back to it.
 

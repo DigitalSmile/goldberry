@@ -2,7 +2,7 @@
 
 <p class="gb-lede">A list, a table and a tree: three widgets over a model the application owns, that select by id, report what the user chose, and never edit the data.</p>
 
-<div class="gb-shot"><img src="../images/collections.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, and a tree of the lands with cascading checkboxes"><p>The Collections screen of the showcase, Nord dark.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/screen-collections-light.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, and a tree of the lands with cascading checkboxes"><img class="gb-dark" src="../images/screen-collections-dark.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, and a tree of the lands with cascading checkboxes"><p>The Collections screen of the showcase.</p></div>
 
 Each of the three takes the application's own type and a few functions that
 describe it: how to identify an item, how to draw it, what to call it. The
@@ -20,6 +20,10 @@ holds and hands back in, and every change arrives as the whole new set
 
 A vertical list of rows, one per item, with a selection model and a keyboard.
 
+<div class="gb-shot"><img class="gb-light" src="../images/list-light.webp" width="640" alt="A list of six stops from Hobbiton to Lothlórien, Rivendell highlighted"><img class="gb-dark" src="../images/list-dark.webp" width="640" alt="A list of six stops from Hobbiton to Lothlórien, Rivendell highlighted"><p>Six rows, one selected.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 list bind="app.road" id="road" class="sidebar"
 ```
@@ -31,6 +35,8 @@ list bind="app.road" id="road" class="sidebar"
                 .selection(Selection.MULTIPLE)
                 .selected(chosen, this::choose);
 ```
+
+</div>
 
 `ListView.of(List<String>)` is the short form: the string is the id, the label
 and the type-ahead text. The general constructor takes the application's type
@@ -118,6 +124,10 @@ it is already selected
 A list with columns: one row per item, one cell per column, and a header that
 sorts by asking.
 
+<div class="gb-shot"><img class="gb-light" src="../images/table-light.webp" width="640" alt="A table with Name, Realm and Leagues columns and four rows of the Company"><img class="gb-dark" src="../images/table-dark.webp" width="640" alt="A table with Name, Realm and Leagues columns and four rows of the Company"><p>Three columns, the last a fixed width.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 table bind="app.company" id="company"
 ```
@@ -135,6 +145,8 @@ new Table<>(sorted, Walker::id, List.of(
     .selected(picked, this::pick)
     .id("company");
 ```
+
+</div>
 
 A `Column` has a key, a header, a cell function and a width. `Column.of`
 draws text, `Column.widget` draws any widget. `weight(double)` shares the
@@ -208,6 +220,10 @@ table has no type-to-select.
 A list that remembers what is open: nodes with children, a chevron on those
 that have or may have some, and the list's selection models.
 
+<div class="gb-shot"><img class="gb-light" src="../images/tree-light.webp" width="119" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><img class="gb-dark" src="../images/tree-dark.webp" width="119" alt="A tree with two closed branches, Eriador and Erebor, each with a checkbox"><p>Two roots with cascading checkboxes.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 tree bind="app.lands" id="lands"
 ```
@@ -227,7 +243,7 @@ new Tree(lands, selected, this::select)
         .id("lands");
 ```
 
-<div class="gb-shot"><img src="../images/tree-cascade-dark.png" alt="A tree with cascading checkboxes: Europe shows a mixed state because Norway is checked and the United Kingdom is not"><p><code>Checkable.CASCADE</code>: a parent's box shows what its children say.</p></div>
+</div>
 
 **The model is a `TreeNode`.** It has an id, a label and either a list of
 children or a supplier of them. `TreeNode.leaf` has none, `TreeNode.of` has

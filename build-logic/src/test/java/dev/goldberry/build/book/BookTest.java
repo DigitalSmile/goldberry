@@ -2,6 +2,7 @@ package dev.goldberry.build.book;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -197,6 +198,199 @@ class BookTest {
                     .toList();
             assertTrue(
                     faults.isEmpty(), () -> "a closing bracket that shares a line with the last argument: " + faults);
+        }
+    }
+
+    @Nested
+    @DisplayName("a picture")
+    class Pictures {
+
+        /**
+         * The pictures shown in one shade only, and why: each is a state no
+         * sample reaches on its own, taken by a test of its own at one scale
+         * (ADR-0513). Everything else is a light and a dark picture at 2x.
+         */
+        private static final Set<String> ONE_SHADE = Set.of(
+                "affix-pinned.png", // the showcase after seven lines of wheel
+                "gallery-canvas.png", // pinned at one scale: a decoded bitmap and a QR code
+                "gallery-gpu.png", // the GPU lane's picture
+                "media-player-subtitles.png", // a player mid-stream
+                "toast-dark.png"); // three toasts in flight
+
+        private List<Book.Shot> shots() {
+            return guide().stream().flatMap(chapter -> Book.shots(chapter.path()).stream()).toList();
+        }
+
+        @Test
+        @DisplayName("is a light and a dark picture, with the same alt text and the same width")
+        void comesInBothShades() {
+            var faults = shots().stream()
+                    .flatMap(shot -> {
+                        var light = shot.pictures().stream().filter(p -> p.cls().equals(Optional.of("gb-light"))).toList();
+                        var dark = shot.pictures().stream().filter(p -> p.cls().equals(Optional.of("gb-dark"))).toList();
+                        var plain = shot.pictures().stream().filter(p -> p.cls().isEmpty()).toList();
+                        var where = shot.chapter() + ":" + shot.line();
+                        var problems = new java.util.ArrayList<String>();
+                        if (light.size() != dark.size() || light.size() > 1) {
+                            problems.add(where + " has " + light.size() + " light and " + dark.size() + " dark pictures");
+                        } else if (light.size() == 1) {
+                            var l = light.getFirst();
+                            var d = dark.getFirst();
+                            if (!l.alt().equals(d.alt()) || !l.width().equals(d.width())) {
+                                problems.add(where + ": the two shades disagree on alt or width");
+                            }
+                            if (!l.file().orElse("").endsWith("-light.webp") || !d.file().orElse("").endsWith("-dark.webp")) {
+                                problems.add(where + ": a shade's file is not named for it");
+                            }
+                        }
+                        plain.stream()
+                                .filter(p -> !ONE_SHADE.contains(p.file().orElse("")))
+                                .forEach(p -> problems.add(where + ": " + p.src() + " is shown in one shade only"));
+                        if (shot.pictures().isEmpty()) {
+                            problems.add(where + " has no picture");
+                        }
+                        return problems.stream();
+                    })
+                    .toList();
+            assertTrue(faults.isEmpty(), () -> "shots that are not a pair: " + faults);
+        }
+
+        @Test
+        @DisplayName("names a file that exists, and every file is shown somewhere")
+        void filesAndShotsAgree() {
+            var files = Set.copyOf(Book.imageFiles());
+            var shown = shots().stream()
+                    .flatMap(shot -> shot.pictures().stream())
+                    .map(p -> p.file().orElse(p.src()))
+                    .collect(Collectors.toSet());
+            var missing = shown.stream().filter(file -> !files.contains(file)).sorted().toList();
+            var orphans = files.stream().filter(file -> !shown.contains(file)).sorted().toList();
+            assertAll(
+                    () -> assertTrue(missing.isEmpty(), () -> "pictures the guide shows that do not exist: " + missing),
+                    () -> assertTrue(orphans.isEmpty(), () -> "files under images/ no chapter shows: " + orphans));
+        }
+
+        @Test
+        @DisplayName("of a widget carries the logical width it was taken at, half the file's pixels, and sits under its heading")
+        void widthIsLogical() {
+            var faults = guide().stream()
+                    .flatMap(chapter -> Book.shots(chapter.path()).stream())
+                    .flatMap(shot -> shot.pictures().stream()
+                            .filter(p -> p.width().isPresent())
+                            .map(p -> {
+                                var file = p.file().orElseThrow();
+                                var expected = Book.webpWidth(file) / 2;
+                                return Integer.parseInt(p.width().orElseThrow()) == expected
+                                        ? null
+                                        : shot.chapter() + ":" + shot.line() + " " + file + " says width " + p.width().orElseThrow() + ", the file is " + expected * 2 + " px";
+                            })
+                            .filter(java.util.Objects::nonNull))
+                    .toList();
+            assertTrue(faults.isEmpty(), () -> "pictures whose width is not the logical one: " + faults);
+        }
+
+        @Test
+        @DisplayName("of a widget is shown under that widget's own heading")
+        void underItsHeading() {
+            var misplaced = guide().stream()
+                    .filter(chapter -> CATALOGUE.stream().anyMatch(part -> chapter.path().startsWith(part)))
+                    .flatMap(chapter -> {
+                        var lines = Book.text(chapter.path()).lines().toList();
+                        return Book.shots(chapter.path()).stream()
+                                .flatMap(shot -> shot.pictures().stream()
+                                        .filter(p -> p.cls().equals(Optional.of("gb-light")))
+                                        .map(p -> p.file().orElse("").replace("-light.webp", ""))
+                                        .filter(name -> !name.startsWith("screen-") && !name.startsWith("diagram-"))
+                                        .filter(name -> !headingAbove(lines, shot.line()).equals("`" + name + "`"))
+                                        .map(name -> shot.chapter() + ":" + shot.line() + " shows " + name + " under "
+                                                + headingAbove(lines, shot.line())));
+                    })
+                    .toList();
+            assertTrue(misplaced.isEmpty(), () -> "pictures under another widget's heading: " + misplaced);
+        }
+
+        private static String headingAbove(List<String> lines, int line) {
+            for (var k = line - 1; k >= 0; k--) {
+                var heading = lines.get(k);
+                if (heading.startsWith("#")) {
+                    return heading.replaceFirst("^#+\\s+", "").strip();
+                }
+            }
+            return "";
+        }
+    }
+
+    @Nested
+    @DisplayName("a tab group")
+    class Tabs {
+
+        private List<Book.TabGroup> groups() {
+            return guide().stream().flatMap(chapter -> Book.tabGroups(chapter.path()).stream()).toList();
+        }
+
+        @Test
+        @DisplayName("holds two or more samples in different languages and nothing else")
+        void holdsSamplesOnly() {
+            var faults = groups().stream()
+                    .filter(group -> group.samples().size() < 2
+                            || group.samples().stream().map(Book.Sample::language).distinct().count() < 2
+                            || !group.otherLines().isEmpty())
+                    .map(group -> group.chapter() + ":" + group.line())
+                    .toList();
+            assertTrue(faults.isEmpty(), () -> "tab groups that are not two or more samples: " + faults);
+        }
+
+        /**
+         * Where the rule holds: the catalogue, whose style is a markup sample
+         * and then the Java that builds the same tree, and the concept page that
+         * shows the pair first. A guide chapter may put a document beside the
+         * class that loads it, which is two things and not one said twice.
+         */
+        private static final Set<String> TABBED = Set.of("layout/", "components/", "overview/concept.md");
+
+        @Test
+        @DisplayName("is what a markup sample and the Java beside it are wrapped in, in the catalogue")
+        void everyPairIsTabbed() {
+            var loose = guide().stream()
+                    .filter(chapter -> TABBED.stream().anyMatch(part -> chapter.path().startsWith(part)))
+                    .flatMap(chapter -> {
+                        var samples = Book.samples(chapter.path());
+                        var lines = Book.text(chapter.path()).lines().toList();
+                        var tabbed = Book.tabGroups(chapter.path()).stream()
+                                .flatMap(group -> group.samples().stream())
+                                .map(Book.Sample::line)
+                                .collect(Collectors.toSet());
+                        var found = new java.util.ArrayList<String>();
+                        for (var i = 0; i + 1 < samples.size(); i++) {
+                            var first = samples.get(i);
+                            var second = samples.get(i + 1);
+                            if (!first.language().equals("kdl") || !second.language().equals("java")) {
+                                continue;
+                            }
+                            var end = first.line() + (int) first.text().lines().count() + 1;
+                            var between = lines.subList(end, second.line() - 1);
+                            if (between.stream().allMatch(String::isBlank) && !tabbed.contains(first.line())) {
+                                found.add(chapter.path() + ":" + first.line());
+                            }
+                        }
+                        return found.stream();
+                    })
+                    .toList();
+            assertTrue(loose.isEmpty(), () -> "a kdl sample and its Java not in a gb-tabs block: " + loose);
+        }
+
+        @Test
+        @DisplayName("is built by the theme's script, and the old side-by-side block is gone")
+        void theThemeBuildsIt() {
+            var pairs = guide().stream()
+                    .filter(chapter -> Book.text(chapter.path()).contains("gb-pair"))
+                    .map(Book.Chapter::path)
+                    .toList();
+            assertAll(
+                    () -> assertTrue(Repository.read("book/theme/goldberry.js").contains("gb-tabs")),
+                    () -> assertTrue(Repository.read("book/theme/goldberry.css").contains(".gb-tabs")),
+                    () -> assertTrue(Repository.read("book/theme/goldberry.css").contains("html.navy .gb-shot .gb-dark")),
+                    () -> assertTrue(pairs.isEmpty(), () -> "chapters still using gb-pair: " + pairs));
         }
     }
 

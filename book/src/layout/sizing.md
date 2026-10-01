@@ -47,6 +47,8 @@ A percentage width is of the parent's width, a percentage height of its height, 
 
 ## Direction and gap
 
+<div class="gb-tabs">
+
 ```kdl
 column id="form" {
     row class="field-row" { text "Name"; text-input }
@@ -59,9 +61,13 @@ column id="form" {
 .field-row { gap: 8px; align-items: center; }
 ```
 
+</div>
+
 `gap` is one length and applies between rows and between columns alike. A `row` and a `column` ignore `flex-direction`. On any other box, a `panel` or a `card`, the stylesheet chooses it.
 
 ## Padding and margin
+
+<div class="gb-tabs">
 
 ```kdl
 panel id="dialog" {
@@ -79,9 +85,13 @@ panel id="dialog" {
 .actions { gap: 8px; margin-top: 16px; }
 ```
 
+</div>
+
 The shorthand is CSS's: one value is every edge, two are vertical and horizontal, three add a bottom, and four go clockwise from the top. `margin: 0 auto` centres a box on the main axis of a container it does not control, which is the reason `margin` was wanted. `align-self: center` centres on the cross axis. Negative margins pull a box over its neighbour and are not clamped.
 
 ## Alignment
+
+<div class="gb-tabs">
 
 ```kdl
 row id="status" {
@@ -96,9 +106,13 @@ row id="status" {
 #status badge { align-self: flex-start; }
 ```
 
+</div>
+
 `justify-content` places children along the main axis and `align-items` across it. `align-self` is one child's answer to `align-items`, and `align-self: auto` is a real declaration that undoes a more general rule.
 
 ## Wrapping
+
+<div class="gb-tabs">
 
 ```kdl
 row id="tags" {
@@ -114,9 +128,13 @@ row id="tags" {
 #tags { flex-wrap: wrap; gap: 8px; align-content: flex-start; }
 ```
 
+</div>
+
 `flex-wrap: wrap` lets a row break into lines. `align-content` places the lines across the container. Wrapped lines share a cross axis, which is [ADR-0374](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0374-wrapped-lines-share-a-cross-axis.md).
 
 ## Growing, shrinking and the basis
+
+<div class="gb-tabs">
 
 ```kdl
 row id="editor" {
@@ -130,9 +148,13 @@ row id="editor" {
 #source { flex-grow: 1; flex-basis: 0; }
 ```
 
+</div>
+
 `flex-grow` shares out the space left after content. `flex-shrink` is 1 by default, which is CSS's rule and the reason every control in `controls.css` declares `flex-shrink: 0`. `flex-basis: 0` with `flex-grow: 1` is a fixed share of the row, counted after the gaps, which is how a masonry's columns are equal without anybody counting them. `flex-basis: auto` asks `width` or the content.
 
 ## Width, height and limits
+
+<div class="gb-tabs">
 
 ```kdl
 card id="note" {
@@ -144,9 +166,13 @@ card id="note" {
 #note { width: 50%; min-width: 320px; max-width: 640px; }
 ```
 
+</div>
+
 `width` and `height` are preferred sizes. A cramped row shrinks a box below its `width` unless `flex-shrink` is 0 or `min-width` holds it. The four limits arrived in [ADR-0181](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0181-a-box-may-say-how-small-and-how-large.md). "No limit" is undefined rather than zero, because a maximum of zero is a box that may not exist.
 
 ## Position, inset and overflow
+
+<div class="gb-tabs">
 
 ```kdl
 stack id="portrait" {
@@ -159,6 +185,8 @@ stack id="portrait" {
 #portrait badge { position: absolute; top: 4px; right: 4px; }
 .picture { overflow: hidden; }
 ```
+
+</div>
 
 An absolute child is placed against the nearest ancestor that is not `static`, from its border box. `inset` takes the same one-to-four shorthand as `padding`. `overflow: hidden` clips. `scroll` and `auto` size the same as `hidden` and differ only in whether a `scroll` viewport offers bars. A `stack` sets `position: absolute` on its later children itself.
 

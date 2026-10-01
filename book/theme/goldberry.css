@@ -478,20 +478,43 @@ body {
     font-size: 0.82em;
 }
 
-/* <div class="gb-shot"><img ...><p>caption</p></div> */
+/* <div class="gb-shot">
+     <img class="gb-light" src="../images/button-light.webp" width="640" alt="...">
+     <img class="gb-dark" src="../images/button-dark.webp" width="640" alt="...">
+     <p>caption</p>
+   </div>
+   Two pictures, one per theme, and the page shows the one that matches: mdBook
+   puts the theme's name on <html>, and `navy` is the dark one. A picture is
+   taken at 2x and carries its logical width, so it is drawn at the size the
+   widget has on screen and stays sharp on a dense display. A picture with no
+   width -- a whole screen -- fills the column. */
 .gb-shot {
     margin-block: 1.6em;
     border-radius: var(--gb-radius);
     overflow: hidden;
     border: 1px solid var(--gb-line);
-    background: #2E3440;
+    background: var(--bg);
     box-shadow: 0 30px 80px -40px rgba(31, 37, 48, 0.45);
 }
 .gb-shot img {
     display: block;
-    width: 100%;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
     border: 0;
     border-radius: 0;
+}
+.gb-shot img:not([width]) {
+    width: 100%;
+}
+.gb-shot .gb-dark {
+    display: none;
+}
+html.navy .gb-shot .gb-light {
+    display: none;
+}
+html.navy .gb-shot .gb-dark {
+    display: block;
 }
 .gb-shot p {
     margin: 0;
@@ -582,15 +605,71 @@ body {
     margin-top: 4px;
 }
 
-/* A two-column pair of samples: markup beside the Java that builds the same tree. */
-.gb-pair {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 14px;
-    align-items: start;
+/* <div class="gb-tabs">
+
+   ```kdl ... ```
+
+   ```java ... ```
+
+   </div>
+   The same thing said two or three ways, one way per tab. goldberry.js builds
+   the tab bar from the fences' languages, and remembers the last language a
+   reader picked across the whole book. Until the script has run, and without
+   it, every sample is shown in turn. */
+.gb-tabs {
+    margin-block: 1.4em;
+    border-radius: var(--gb-radius);
+    border: 1px solid var(--gb-line);
+    background: var(--gb-card);
+    overflow: hidden;
 }
-.gb-pair pre {
+.gb-tablist {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px 0;
+    border-bottom: 1px solid var(--gb-line);
+    background: var(--table-header-bg);
+}
+.gb-tablist button {
+    appearance: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: transparent;
+    color: var(--gb-muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+.gb-tablist button:hover {
+    color: var(--fg);
+}
+.gb-tablist button[aria-selected="true"] {
+    color: var(--fg);
+    border-bottom-color: var(--gb-gold);
+}
+.gb-tablist button:focus-visible {
+    outline: 2px solid var(--gb-water);
+    outline-offset: -2px;
+    border-radius: 6px;
+}
+.gb-tabs > pre {
     margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+.gb-tabs > pre + pre {
+    border-top: 1px solid var(--gb-line);
+}
+.gb-tabs.gb-ready > pre {
+    display: none;
+    border-top: 0;
+}
+.gb-tabs.gb-ready > pre.gb-active {
+    display: block;
 }
 
 @media (max-width: 1500px) {

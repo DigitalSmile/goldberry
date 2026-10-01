@@ -29,7 +29,7 @@ The same tree can be written as KDL markup, and every built-in widget exists
 three ways: a record, a node name and a CSS type
 ([ADR-0059](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)).
 
-<div class="gb-pair">
+<div class="gb-tabs">
 
 ```kdl
 row id="confirm" {

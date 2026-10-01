@@ -10,13 +10,16 @@ runbook, the style guide and the status of the documentation itself.
 | `book/src/SUMMARY.md` | The table of contents: the guide's six parts, then the reference |
 | `book/src/<part>/*.md` | The guide. One directory per part; the first chapter of a part is its `index.md` where the part has an overview |
 | `book/src/adr/` | The decision log. Not listed in `SUMMARY.md`, so not built: it is read on GitHub, and `adr/README.md` is its index (ADR-0512) |
-| `book/src/images/` | Pictures the guide shows. The six showcase screenshots are copies of `site/assets/shots/` |
+| `book/src/images/` | Pictures the guide shows: `<name>-light.webp` and `-dark.webp` per widget, `screen-<name>-*` per showcase screen, `diagram-<name>-*` per scheme, each at 2×. Taken by the tests below, not drawn by hand (ADR-0513, ADR-0515) |
+| `book/diagrams/` | The schemes: `diagrams.py` describes each as notes and arrows, `draw.py` renders both themes with Pillow |
+| `tools/book/visuals.py` | Places a widget's pictures under its heading and wraps a sample pair in `gb-tabs`; safe to run twice |
 | `book/theme/goldberry.css` | The landing page's tokens over mdBook's `light` and `navy` themes, the header, and the few HTML blocks the guide uses. Sizes are in px: mdBook scales the root to 10 px, so a `rem` here is a tenth of what it looks |
-| `book/theme/goldberry.js` | Builds the landing page's header into mdBook's menu bar at load: the leaf, the six parts, GitHub |
+| `book/theme/goldberry.js` | Builds the landing page's header into mdBook's menu bar at load: the leaf, the six parts, GitHub. Turns every `gb-tabs` block into tabs and remembers the reader's language (ADR-0514) |
 | `book/theme/favicon.{svg,png}` | The leaf mark |
 | `book/book.toml` | mdBook 0.5, which refuses an unknown key |
 | `build-logic/.../site/BookTest.java` | The drift guards, in `./gradlew :build-logic:test` |
 | `example/src/test/.../BookMarkupTest.java` | Every `kdl` sample in the guide inflates against the real catalogue |
+| `example/src/test/.../book/pictures/` | `BookPicturesTest` renders every widget's sample in both themes and holds the pictures to the code; `ScreenPicturesTest` does the same for nine showcase screens. `-Dgoldberry.golden.update=true` retakes them |
 
 ## Preview locally
 
@@ -129,15 +132,64 @@ because the log is not built into the book. `BookTest` resolves every chapter
 link, fragment included, refuses a relative link into `adr/`, and checks that a
 GitHub record link names a file that exists.
 
-**Pictures** go under `book/src/images/`, as `webp` or `png`, with alt text that
-says what the picture shows. A golden image from `widgets/src/test/resources/golden`
-may be copied there when it illustrates a chapter; the copy is a copy, not a
-link, because mdBook ships only what is under `src`.
+**Pictures** are pairs. Every widget's section shows the widget before its
+sample, as two files under `book/src/images/`, `<name>-light.webp` and
+`<name>-dark.webp`, in one block:
 
-**HTML blocks** are the five `goldberry.css` defines and no others:
-`gb-lede`, `gb-cards`/`gb-card`, `gb-shot`, `gb-pill`, `gb-stats`, `gb-steps`,
-`gb-pair`. Markdown inside an HTML block is not rendered, so a card's text is
-plain.
+```html
+<div class="gb-shot"><img class="gb-light" src="../images/button-light.webp" width="363" alt="Five buttons in a row: …"><img class="gb-dark" src="../images/button-dark.webp" width="363" alt="Five buttons in a row: …"><p>The five variants.</p></div>
+```
+
+The page shows the one that matches the theme. The pictures are renders of
+the section's own `kdl` sample at 2×, taken by `BookPicturesTest`
+(ADR-0513), and `width` is the logical width, half the file's pixels, so the
+widget is drawn at its own size. The alt text says what is in the picture,
+not that it is a picture; `tools/book/visuals.py` carries one per widget and
+writes the block. A whole screen has no `width` and fills the column. Five
+pictures stay in one theme at 1× because they are states no sample reaches;
+`BookTest` names them and refuses a sixth.
+
+To retake every picture after a change to a stylesheet or a sample:
+
+```bash
+./gradlew :example:test --tests '*PicturesTest*' -Dgoldberry.golden.update=true
+python3 tools/book/visuals.py        # places the pictures of any new widget
+```
+
+**Schemes are drawn pictures**, not box characters in a fence (ADR-0515).
+A scheme is a function in `book/diagrams/diagrams.py`, rendered in both
+themes by `python3 book/diagrams/draw.py` into `images/diagram-<name>-*.webp`
+and shown with the same block. A listing a reader copies, a directory tree or
+a timeline, stays in a fence.
+
+**A sample pair is a tab group** (ADR-0514). The `kdl` sample and the Java
+that builds the same tree, and the CSS that reaches it when there is one, are
+wrapped in a `gb-tabs` block with blank lines around each fence:
+
+````markdown
+<div class="gb-tabs">
+
+```kdl
+button "Save"
+```
+
+```java
+new Button("Save");
+```
+
+</div>
+````
+
+The script turns it into tabs and remembers the reader's language across the
+book. `BookTest` holds every adjacent `kdl` and `java` pair in the catalogue
+to it. A pair in the developer guide that is two things, a document beside
+the class that loads it, is not tabbed.
+
+**HTML blocks** are the ones `goldberry.css` defines and no others:
+`gb-lede`, `gb-cards`/`gb-card`, `gb-shot`, `gb-tabs`, `gb-pill`, `gb-stats`,
+`gb-steps`. Markdown inside an HTML block is not rendered, so a card's text is
+plain; a `gb-tabs` block is the exception, because blank lines close the HTML
+block before each fence.
 
 ## Found while writing
 
@@ -175,6 +227,11 @@ Code first, documents after.
 - Nothing focuses a tour when it opens, so its `Right`, `Left` and `Escape` may
   only work after a click inside the card. Worth a run.
 - `widgets/.../form/textarea/TextAreaBox.java.orig` is checked in beside the source.
+- `:example:blessGoldens` does not set `goldberry.native.library`, so it skips
+  every golden on a machine where `test` finds the library through
+  `hostLibrary`; `:example:test -Dgoldberry.golden.update=true` is what works.
+- The guide's samples name an icon `grid` that Lucide calls `layout-grid`, and
+  `home` that it calls `house`; `PreviewValues` maps both for the pictures.
 
 **Documents**
 
@@ -241,5 +298,8 @@ Code first, documents after.
 | `BookTest`: chapters, links, headings for every `@Markup` name | done 2026-10-01 |
 | `BookMarkupTest`: every `kdl` sample inflates | done 2026-10-01 |
 | `site/content.js` links point at the new chapters | done 2026-10-01 |
+| Pictures: every widget from its sample, both themes, 2×, held to the code | done 2026-10-01 (ADR-0513): 72 widgets, 9 screens; 8 headings not pictured, each with its reason in `BookPicturesTest` |
+| Sample pairs as tabs | done 2026-10-01 (ADR-0514): 91 groups, remembered per reader |
+| Schemes as drawn pictures | done 2026-10-01 (ADR-0515): the layers, the frame loop, the flow of values, the scroll nodes |
 | Compiled Java samples | not built. A sample is a fragment; compiling one means a harness that supplies its imports and its surrounding class, and the names in it are checked by reading, not by `javac` |
 | Links inside the book checked on the built site (`lychee`) | not built; `BookTest` checks the sources, which is the same set of links |

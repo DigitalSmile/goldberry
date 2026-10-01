@@ -8,6 +8,10 @@ By the end of this chapter you can push a button to the far end of a toolbar, ce
 
 A `spacer` is a box that grows into the free space of its container.
 
+<div class="gb-shot"><img class="gb-light" src="../images/spacer-light.webp" width="639" alt="A title bar: Goldberry on the left and a Theme button on the right"><img class="gb-dark" src="../images/spacer-dark.webp" width="639" alt="A title bar: Goldberry on the left and a Theme button on the right"><p>The spacer takes the room between.</p></div>
+
+<div class="gb-tabs">
+
 ```kdl
 row id="title-bar" {
     text "Goldberry"
@@ -23,6 +27,8 @@ var bar = new Row(
         new Button("Theme", this::theme)
 ).withAttributes(Attributes.NONE.id("title-bar"));
 ```
+
+</div>
 
 `new Spacer()` is the whole constructor. `new Spacer(Attributes)` gives it an id and classes.
 
