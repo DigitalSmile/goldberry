@@ -42,7 +42,9 @@ import dev.goldberry.widget.WidgetRenderer;
 /// through the same [dev.goldberry.frame.FrameSequence].
 ///
 /// A third terminal, [#strip(Widget)], mounts the tree and keeps it, so a caller
-/// can drive the clock and take a picture repeatedly.
+/// can drive the clock and take a picture repeatedly. A fourth,
+/// [#session(Widget)], does the same with a host under the tree and takes
+/// input: clicks, keys and text, routed as a window routes them.
 ///
 /// What it is for: a server-rendered preview, an OpenGraph card, an export, a
 /// thumbnail, and every golden picture a test compares against. The pieces —
@@ -521,6 +523,42 @@ public final class Offscreen {
             throw e;
         }
     }
+
+    /// Mounts `root` in a window that is not there, and hands back a session to
+    /// drive it with.
+    ///
+    /// The fourth terminal: a [Filmstrip] that takes input. The tree is mounted
+    /// under the overlay layer a window has, with a [dev.goldberry.Host] of its
+    /// own, so a dialog shown from it is drawn over the content and a press on
+    /// its button lands where it would in a window. See [Session].
+    ///
+    /// **[#settle(int)] does not apply**, for [#strip(Widget)]'s reason: the
+    /// clock starts at zero and moves when [Session#advance] says so.
+    ///
+    /// The session must be closed.
+    ///
+    /// @throws NullPointerException if `root` is null
+    /// @throws IllegalStateException if only a single font was named
+    public Session session(Widget root) {
+        Objects.requireNonNull(root, "root");
+        var ownFonts = opensItsOwnBook() ? Fonts.bundled(shippedFonts) : null;
+        try {
+            var clock = Clock.virtual();
+            // Never the studio's renderer, for the strip's reason.
+            var book = bookFor(ownFonts);
+            var renderer = new WidgetRenderer(stylesheets, book).clock(clock);
+            return new Session(new Surface(size, scale, FORMAT, background), ownFonts, book, renderer, clock, root);
+        } catch (RuntimeException e) {
+            if (ownFonts != null) {
+                ownFonts.close();
+            }
+            throw e;
+        }
+    }
+
+    /// What a session draws into: the four knobs on this builder that describe
+    /// the buffer rather than the tree.
+    record Surface(PhysicalSize size, DisplayScale scale, PixelFormat format, int background) {}
 
     /// The book a strip shapes against: the one opened for it, the caller's, or a
     /// studio's.

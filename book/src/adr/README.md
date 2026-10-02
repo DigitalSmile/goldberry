@@ -559,3 +559,5 @@ proposing to undo them.
 - [ADR-0521 Every natives jar carries the web view](0521-every-natives-jar-carries-the-web-view.md)
 - [ADR-0522 Each overlay is its own node](0522-each-overlay-is-its-own-node.md)
 - [ADR-0523 A dialog takes itself off the window](0523-a-dialog-takes-itself-off-the-window.md)
+- [ADR-0524 A test drives a session with a host under it](0524-a-test-drives-a-session-with-a-host-under-it.md)
+- [ADR-0525 Every subtree laid out is checked for overruns](0525-every-subtree-laid-out-is-checked-for-overruns.md)

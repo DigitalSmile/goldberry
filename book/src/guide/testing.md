@@ -4,8 +4,9 @@
 
 By the end of this chapter you can assert that your documents inflate against
 your models, photograph a screen in a JUnit test, step an animation to a
-known frame, click a button through the router, find a widget by id or role,
-and skip cleanly on a machine with no native library.
+known frame, click a button through the router, answer a dialog, find a
+widget by id or role, assert that nothing overruns its box, and skip cleanly
+on a machine with no native library.
 
 ```java
 @Test
@@ -26,7 +27,7 @@ backend, no SDL, no compositor
 
 | | Where | An application can use it |
 |---|---|---|
-| `Offscreen`, `Image`, `Clock.virtual()`, `ElementTree`, `WidgetRenderer`, `RenderTree`, `PointerRouter`, `HitTest`, `Frame.over`, `PixelBuffer.allocate` | `goldberry-core` | yes |
+| `Offscreen` and its `Session`, `Image`, `Clock.virtual()`, `ElementTree`, `WidgetRenderer`, `RenderTree`, `PointerRouter`, `HitTest`, `Frame.over`, `PixelBuffer.allocate` | `goldberry-core` | yes |
 | `Host` | `goldberry-core`, an interface | yes: implement or proxy it for a test |
 | `GoldenImage`, `Tolerance`, `ScaleInvariance`, `RendererRequirement`, `TestClock`, `TestFrames` | `core`'s test fixtures | no. The fixtures are shared inside this repository and are deliberately not published |
 | `TestHost`, `TestLoop`, `CatalogMarkup` | `widgets`' tests | no |
@@ -135,85 +136,121 @@ is then the exact frame at 50 ms, on every machine
 
 ## Driving input
 
-A widget test hands an event straight to the widget. A screen test goes
-through the router, against the frame it painted, which is the shipping
-path.
+A widget test hands an event straight to the widget. A screen test opens a
+session and drives it the way a user does: through the router, against the
+frame it laid out, which is the shipping path.
 
 ```java
-var fonts    = Fonts.bundled();
-var tree     = new ElementTree(new SettingsScreen(settings, actions));
-var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), fonts);
-var render   = RenderTree.create();
-var router   = new PointerRouter();
-var buffer   = PixelBuffer.allocate(PhysicalSize.of(800, 600), PixelFormat.BGRA32_PREMULTIPLIED);
-
-Runnable frame = () -> {
-    var surface = Frame.over(buffer, DisplayScale.ONE);
-    renderer.prepare(tree);
-    render.update(surface, renderer.render(tree));
-    render.paint(surface);
-    surface.end();
-    router.updateRegions(HitTest.capture(render));
-};
-
-frame.run();
-router.pointerMoved(120, 48);
-router.pointerPressed(120, 48, PointerEvent.Button.PRIMARY, 1);
-router.pointerReleased(120, 48, PointerEvent.Button.PRIMARY, 1);
-frame.run();
-
-assertEquals(1, settings.clicks());
+try (var session = Offscreen.of(800, 600)
+        .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
+        .session(new SettingsScreen(settings, actions))) {
+    session.click("apply");                       // by id
+    session.click(session.byRole(Role.BUTTON, "Reset").orElseThrow());
+    session.focus("name");
+    session.type("Deploy Orc");
+    session.key(Key.ENTER);
+    session.key("Ctrl+S");                        // as a menu prints it
+    assertEquals(1, settings.saves());
+}
 ```
 
-`pointerMoved`, `pointerPressed`, `pointerReleased` and `pointerWheel` take
-window coordinates. `keyPressed(Key.TAB, Modifiers.NONE, false)` and
-`keyReleased` move focus and fire accelerators; `textInput("a")` is committed
-text; `moveFocus(1)` is `Tab` without the key. The router remembers who is
-hovered, pressed and focused between calls, and `router.focused()`,
-`hovered()` and `pressed()` read it back.
+`Offscreen.session(root)` mounts the tree once, as `strip` does, and keeps
+it until `close()`. After every piece of input it builds, lays out and
+captures the regions, without painting, so the next event is answered
+against what the last one changed, as a window answers it between two
+frames. `frame()` is when there is a picture.
 
-A press on a disabled widget sets nothing, and a popup that a test opens
-through a `Host` of its own is a widget tree it can inflate again. The
-toolkit's own tests run with `-Dgoldberry.input.primary=ctrl` on every
-runner, so a test that presses `Ctrl+C` is the same test on macOS
+`click(id)` presses at the centre of what is visible of that node and
+**refuses** when something else would take the press: a dialog's scrim, a
+toast, a sibling drawn over it. The exception names what is on top. A click
+that a user could not make is never quietly delivered somewhere else.
+`click(x, y)` presses wherever it is told. `hover`, `wheel`, `type` (text
+committed in one piece) and `key` round it out. `router()` is there for a
+gesture the session does not spell out, such as a drag.
+
+Input does not move the clock. `advance(Duration)` does, and it stops at
+every timer on the way, so a dialog's closing animation ends, and its
+handler runs, at the moment it would in a window.
+
+A press on a disabled widget sets nothing. The toolkit's own tests run with
+`-Dgoldberry.input.primary=ctrl` on every runner, so a test that presses
+`Ctrl+C` is the same test on macOS
 ([ADR-0396](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)).
 Set the same property in your test task.
 
+The router underneath is public too. `pointerMoved`, `pointerPressed`,
+`pointerReleased` and `pointerWheel` take window coordinates;
+`keyPressed(Key.TAB, Modifiers.NONE, false)` and `keyReleased` move focus
+and fire accelerators; `textInput("a")` is committed text. A test of one
+widget with no window around it can drive a `PointerRouter` over its own
+`ElementTree`, calling `router.updateRegions(HitTest.capture(render))`
+after each layout.
+
 ### A host for a test
 
-`Host` is an interface, and `ElementTree(root, host)` takes one. A test
-implements the methods its widgets call and records what it was asked for.
-The showcase's `RecordingHost` is a `Proxy` over `Host` that keeps every
-widget handed to `fill`, which is how a test sees a dialog that is not in
-the tree that opened it. Answer `clock()` with `Clock.virtual()`, and
-`popup(...)` with `Optional.empty()`, which is the real answer under SDL's
-`dummy` driver.
+A session's tree is built with a host, so `BuildContext.host()` answers and
+an application's own `Dialogs.show(host, dialog)` works unchanged:
+
+```java
+session.click("delete");                          // the screen opens a dialog
+assertEquals(1, session.overlays().size());
+session.click(session.byRole(Role.BUTTON, "Delete").orElseThrow());
+session.advance(Duration.ofMillis(300));          // past the closing animation
+assertEquals("deleted", screen.answer());
+```
+
+`fill` and `overlay` put the widget on the overlay layer the window root
+draws, so the dialog is painted over the content, takes the pointer, and is
+taken off by its own handle. `after` is a timer on the session's virtual
+clock. Focus by id, accelerators and `isModal()` are the router's.
+There are no popup windows, which is the real answer under SDL's `dummy`
+driver, and no tray, web view, clipboard or file dialogs. `window()`
+throws. `session.host()` is the same host, for a test that opens something
+itself.
+
+A test of one widget can still implement `Host` and hand it to
+`ElementTree(root, host)`, recording what it was asked for. Answer `clock()`
+with `Clock.virtual()` and `popup(...)` with `Optional.empty()`.
+`OverlayLayer` is the list a `WindowRoot` draws and the door overlays go
+through, so such a host's `fill` can return an overlay whose `remove()`
+works.
 
 ## Finding a widget
 
-There is no query API. An element has `id()`, `type()`, `classes()`,
-`widget()` and `children()`, and a walk is a few lines:
-
 ```java
-static Optional<Element> byId(Element from, String id) {
-    if (id.equals(from.id())) return Optional.of(from);
-    for (var child : from.children()) {
-        var found = byId(child, id);
-        if (found.isPresent()) return found;
-    }
-    return Optional.empty();
-}
-
-static Stream<Element> byRole(Element from, Role role) {
-    var own = from.widget() instanceof Semantics s && s.role() == role ? Stream.of(from) : Stream.<Element>empty();
-    return Stream.concat(own, from.children().stream().flatMap(child -> byRole(child, role)));
-}
+session.byId("apply");                            // Optional<Element>, drawn or not
+session.byRole(Role.BUTTON);                      // every button, in tree order
+session.byRole(Role.BUTTON, "Apply");             // the one a reader calls Apply
+session.elementAt(120, 48);                       // the topmost node drawn there
+session.regions();                                // every rectangle, in paint order
+session.focused();                                // and hovered()
 ```
 
 Every focusable widget in the catalogue implements `Semantics` with a `Role`
-and an accessible name, so `byRole(root, Role.BUTTON)` and a match on
-`accessibleName()` finds "Apply" without a pixel. `type()` is the CSS type,
-which is also the markup name.
+and an accessible name, so `byRole(Role.BUTTON, "Apply")` finds the button
+without a pixel. The queries search the overlays as well as the content. An
+element has `id()`, `type()`, `classes()`, `widget()` and `children()`, and
+`type()` is the CSS type, which is also the markup name.
+
+## Overruns
+
+```java
+assertEquals(List.of(), session.overruns());
+```
+
+An overrun is a box laid out past the box it is in: a status line pushed out
+of a 600-pixel dialog, a button off the end of its row. The layout pass
+checks every subtree it lays out and logs each new shape once, as a
+warning, through `OverflowLog`. That log is process-wide and says each
+shape only once, so whether it is empty depends on every test before
+yours.
+
+`session.overruns()`, and `RenderTree.overruns()` under it, walk the whole
+tree as the last frame laid it out, log nothing, and give the same answer
+every time. An empty list is evidence. The exemptions are the log's: a box
+that clips on purpose (`overflow` other than `visible`), a child placed by
+insets, and a pixel or two of rounding
+([ADR-0525](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0525-every-subtree-laid-out-is-checked-for-overruns.md)).
 
 ## Running the launcher without a display
 
@@ -255,4 +292,6 @@ a library that is not in a jar on its path.
 - [ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md): the virtual clock
 - [ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md): `Offscreen`
 - [ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md): skipping without the library
+- [ADR-0524](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0524-a-test-drives-a-session-with-a-host-under-it.md): the session and its host
+- [ADR-0525](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0525-every-subtree-laid-out-is-checked-for-overruns.md): overruns
 - [Tests and gates](../contributing/testing.md): how this repository tests itself

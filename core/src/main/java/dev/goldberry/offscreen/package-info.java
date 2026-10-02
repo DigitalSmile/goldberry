@@ -1,5 +1,7 @@
 /// Rendering without a window: a painter or a widget tree into an
-/// [Image][dev.goldberry.image.Image].
+/// [Image][dev.goldberry.image.Image], a tree kept mounted and photographed
+/// as its clock moves, and a tree driven by clicks and keys through a
+/// [Session].
 ///
 /// **Its own package rather than part of `render`**, because the dependency would
 /// run the wrong way. `render` is the backend SPI — what a platform

@@ -1,9 +1,6 @@
 package dev.goldberry.render.event;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -70,17 +67,13 @@ public final class EventLoop implements AutoCloseable {
     /// continuous through a sampler it does not control.
     private static final Duration WEB_VIEW_TIMEOUT = Duration.ofMillis(8);
 
-    /// What [#after] has scheduled, in no particular order — there are never many,
-    /// and a heap would be machinery for a list that is usually empty and rarely
-    /// longer than one.
-    private final List<Timer> timers = new ArrayList<>();
-
     private final Backend backend;
     private final UiExecutor ui;
     private final ExecutorService background;
 
-    /// Where "now" comes from, in nanoseconds on an arbitrary origin — the same
-    /// contract as [System#nanoTime()], which is what it is.
+    /// What [#after] has scheduled, timed against a clock in nanoseconds on an
+    /// arbitrary origin — the same contract as [System#nanoTime()], which is
+    /// what it is.
     ///
     /// **A seam, and it exists for the suite.** Every delay in the toolkit that a
     /// widget can see goes through [#after]: a tooltip's dwell, a hover-hold, a
@@ -91,10 +84,10 @@ public final class EventLoop implements AutoCloseable {
     /// arrives in a millisecond of wall time rather than the second the widget
     /// asked for.
     ///
-    /// `nanoTime` in production, and the field is read nowhere else — `Duration`s
+    /// `nanoTime` in production, and the queue reads it nowhere else — `Duration`s
     /// are still `Duration`s and nothing in this class does arithmetic on a wall
     /// clock.
-    private final LongSupplier clock;
+    private final TimerQueue timers;
 
     private volatile boolean running;
     private boolean closed;
@@ -113,7 +106,7 @@ public final class EventLoop implements AutoCloseable {
     /// test reaches it.
     EventLoop(Backend backend, LongSupplier clock) {
         this.backend = Objects.requireNonNull(backend, "backend");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.timers = TimerQueue.nanos(clock);
         this.ui = new UiExecutor(backend::wakeup);
         this.background = Executors.newVirtualThreadPerTaskExecutor();
     }
@@ -193,8 +186,7 @@ public final class EventLoop implements AutoCloseable {
         ui.requireUiThread();
         Objects.requireNonNull(delay, "delay");
         Objects.requireNonNull(action, "action");
-        var timer = new Timer(clock.getAsLong() + Math.max(0L, delay.toNanos()), action);
-        timers.add(timer);
+        var timer = timers.after(delay, action);
         // The loop may be parked in `pumpEvents` with a timeout longer than this
         // delay -- which is the ordinary case, since the heartbeat is a second.
         backend.wakeup();
@@ -207,20 +199,11 @@ public final class EventLoop implements AutoCloseable {
     /// what the loop would wait for without running it. The web view cap below is
     /// the one thing in this class that changes a wait for a reason outside it.
     Duration nextTimeout() {
-        if (timers.isEmpty()) {
+        var next = timers.nextDueNanos();
+        if (next.isEmpty()) {
             return webViewCapped(IDLE_TIMEOUT);
         }
-        var now = clock.getAsLong();
-        var earliest = Long.MAX_VALUE;
-        for (var timer : timers) {
-            if (timer.isPending()) {
-                earliest = Math.min(earliest, timer.dueNanos);
-            }
-        }
-        if (earliest == Long.MAX_VALUE) {
-            return webViewCapped(IDLE_TIMEOUT);
-        }
-        var remaining = earliest - now;
+        var remaining = next.getAsLong() - timers.nowNanos();
         return remaining <= 0
                 ? Duration.ZERO
                 : webViewCapped(Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos())));
@@ -251,45 +234,10 @@ public final class EventLoop implements AutoCloseable {
         return timeout.compareTo(WEB_VIEW_TIMEOUT) <= 0 ? timeout : WEB_VIEW_TIMEOUT;
     }
 
-    /// Runs whatever is due, and drops it.
-    ///
-    /// Collected before running: a timer's action may schedule another, and a
-    /// tooltip's does — an action that added itself to the list being walked would
-    /// fire in the same iteration for ever.
-    ///
-    /// And sorted before running. The list is in the order timers were made, and
-    /// a pump that overslept — a loaded macOS runner did, by more than the gap
-    /// between a 5 ms and a 30 ms timer — hands this method both at once. Firing
-    /// them in list order then fires the later one first, which is the one
-    /// ordering a caller can never have meant.
+    /// Runs whatever is due, and drops it, in the order it was due — the
+    /// rules are [TimerQueue#fireDue()]'s.
     private void fireDueTimers() {
-        if (timers.isEmpty()) {
-            return;
-        }
-        var now = clock.getAsLong();
-        var due = new ArrayList<Timer>();
-        for (var iterator = timers.iterator(); iterator.hasNext(); ) {
-            var timer = iterator.next();
-            if (timer.state != Timer.State.PENDING) {
-                iterator.remove();
-            } else if (timer.dueNanos <= now) {
-                iterator.remove();
-                due.add(timer);
-            }
-        }
-        due.sort(Comparator.comparingLong(timer -> timer.dueNanos));
-        for (var timer : due) {
-            // Cancelled *by an earlier timer in this same batch* -- the reason
-            // this is re-read rather than assumed from the loop above.
-            if (timer.state != Timer.State.PENDING) {
-                continue;
-            }
-            // Marked before the action rather than after it, so a handler asking
-            // `isPending()` about its own timer is told the truth: it is firing,
-            // not waiting.
-            timer.state = Timer.State.FIRED;
-            timer.action.run();
-        }
+        timers.fireDue();
     }
 
     /// One pending [#after].
@@ -302,7 +250,7 @@ public final class EventLoop implements AutoCloseable {
         /// Pending, and then one of the two ways of being over.
         ///
         /// Three states rather than a `cancelled` flag, so a timer that has
-        /// *fired* does not answer "still going to fire": `fireDueTimers` removes
+        /// *fired* does not answer "still going to fire": `TimerQueue.fireDue` removes
         /// it from the list without telling it anything, which is why the timer
         /// has to know for itself.
         private enum State {
@@ -323,6 +271,24 @@ public final class EventLoop implements AutoCloseable {
         Timer(long dueNanos, Runnable action) {
             this.dueNanos = dueNanos;
             this.action = action;
+        }
+
+        long dueNanos() {
+            return dueNanos;
+        }
+
+        /// Runs the action if nothing has cancelled it, and says whether it did.
+        ///
+        /// Marked before the action rather than after it, so a handler asking
+        /// `isPending()` about its own timer is told the truth: it is firing,
+        /// not waiting.
+        boolean fire() {
+            if (state != State.PENDING) {
+                return false;
+            }
+            state = State.FIRED;
+            action.run();
+            return true;
         }
 
         /// Stops it firing. Idempotent, and harmless after it already has — a

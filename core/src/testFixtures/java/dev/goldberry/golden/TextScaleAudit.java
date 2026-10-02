@@ -95,14 +95,13 @@ import dev.goldberry.widget.WidgetRenderer;
 /// ## The other arm, and why it is not the whole answer
 ///
 /// A box that overruns its **container** — a 150% label inside a `height: 32px`
-/// button — is what the `OverflowWatch` inside
-/// [dev.goldberry.paint.tree.RenderTree]
-/// reports, and it runs inside every layout already, so
-/// [Result#overruns] carries whatever it said for free. That makes it half of
-/// what is asserted and it cannot be all of it: the walk is gated on the **root**
-/// node's `hadOverflow`, so it sees a window that ran out of room
-/// and stays silent about a button that did while the window had space to spare.
-/// Its noise is a fact; its silence is not evidence.
+/// button — is what
+/// [dev.goldberry.paint.tree.RenderTree#overruns()]
+/// answers, asked once after the last layout, so [Result#overruns] is the
+/// whole tree's answer rather than whatever the process-wide log had not
+/// already said. That makes it half of what is asserted and it cannot be all
+/// of it: a paragraph cut inside a box that kept its size is not an overrun of
+/// anything, and that is the arm above.
 ///
 /// ## A book, and not a choice
 ///
@@ -198,8 +197,7 @@ public final class TextScaleAudit {
     ///
     /// @param textScale what the renderer's [WidgetRenderer#textScale(double)] was
     /// @param cuts      every paragraph that did not fit, marked or not
-    /// @param overruns  what `OverflowWatch` said during the same layout, which is
-    ///                  nothing at all unless the **root** overflowed
+    /// @param overruns  every box laid out past its container in the same layout
     /// @param paragraphs how many text boxes were looked at, so a rule that
     ///                  silently inspected none is a rule that fails
     public record Result(double textScale, List<Cut> cuts, List<Overrun> overruns, int paragraphs) {
@@ -312,7 +310,7 @@ public final class TextScaleAudit {
             var tree = new ElementTree(root);
             var cuts = new ArrayList<Cut>();
             var paragraphs = new int[1];
-            OverflowLog.forget();
+            List<Overrun> overruns = List.of();
             try {
                 try (var render = RenderTree.create()) {
                     var router = new PointerRouter();
@@ -327,13 +325,14 @@ public final class TextScaleAudit {
                     build(renderer, tree);
                     render.update(target.frame(), renderer.render(tree));
                     render.forEachPlacedBox(placed -> paragraphs[0] += inspect(placed, cuts));
+                    overruns = render.overruns();
                 } finally {
                     target.end();
                 }
             } finally {
                 tree.unmount();
             }
-            return new Result(textScale, cuts, OverflowLog.reported(), paragraphs[0]);
+            return new Result(textScale, cuts, overruns, paragraphs[0]);
         } finally {
             if (ownFonts != null) {
                 ownFonts.close();

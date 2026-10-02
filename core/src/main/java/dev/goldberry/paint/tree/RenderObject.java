@@ -236,6 +236,10 @@ public final class RenderObject implements AutoCloseable {
             union = union.union(child.settle());
         }
         ink = union;
+        // Laid out again, so the children's rectangles against this one are
+        // news -- and they have all just been read. A subtree skipped above was
+        // asked when it was last laid out, and nothing in it has moved since.
+        OverflowWatch.inspect(this);
         return inParentSpace(union, layout);
     }
 

@@ -1487,6 +1487,8 @@ out of it is usually worth more than the fact that it is fixed.
   gallery does not survive 150% today** — the overruns are carried as a named
   ratchet, and the five the narrow Basic screen had are already gone, removed
   by `masonry`'s responsive columns rather than by anything aimed at them.
+  The root gate is gone since ADR-0525: every subtree laid out is checked, and
+  `RenderTree.overruns()` gives the audit a full answer that logs nothing.
 - ~~**`Measured` is a door every widget can now open and almost none should.**~~ A
   widget that sizes itself from last frame's measurement lags its own content,
   and one that does so in a way that changes the measurement never settles.

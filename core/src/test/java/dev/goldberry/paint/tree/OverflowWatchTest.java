@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.layout.FlexDirection;
+import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.layout.Position;
@@ -124,6 +125,125 @@ class OverflowWatchTest {
                             .size(Length.points(200), Length.points(100))
                             .children(fixed(), fixed(), fixed().position(Position.ABSOLUTE)));
             assertEquals(List.of(), OverflowLog.reported());
+        }
+    }
+
+    /// A 120pt row holding 240pt of children that may not shrink, inside a
+    /// window it fits: the shape of a fixed-width dialog with a long status in
+    /// it.
+    private static Box narrowRow() {
+        return Box.of()
+                .direction(FlexDirection.ROW)
+                .size(Length.points(120), Length.points(40))
+                .shrink(0)
+                .children(fixed(), fixed(), fixed());
+    }
+
+    @Nested
+    @DisplayName("inside a window that fits")
+    class InsideAWindowThatFits {
+
+        @Test
+        @DisplayName("an overrun inside a fixed-width box is reported, though the root's own line fits")
+        void insideAFixedBox() {
+            try (var tree = RenderTree.create()) {
+                tree.update(
+                        target.frame(),
+                        Box.of().size(Length.points(200), Length.points(200)).children(narrowRow()));
+                assertEquals(
+                        1, OverflowLog.reported().size(), OverflowLog.reported().toString());
+                // Two children are past the row's edge, by 40 and by 120; the log
+                // says the shape once and the tree answers both.
+                assertEquals(
+                        List.of(40f, 120f),
+                        tree.overruns().stream().map(Overrun::overrunX).toList());
+            }
+        }
+
+        @Test
+        @DisplayName("and so is one inside a box placed over the window, which is what a dialog is")
+        void insideAPlacedBox() {
+            // An overlay is absolutely positioned, so nothing inside it reaches the
+            // root's line. The placed box itself is exempt; what it holds is not.
+            try (var tree = RenderTree.create()) {
+                tree.update(
+                        target.frame(),
+                        Box.of()
+                                .size(Length.points(200), Length.points(200))
+                                .children(Box.of()
+                                        .position(Position.ABSOLUTE)
+                                        .inset(Insets.all(Length.points(10)))
+                                        .children(narrowRow())));
+                assertEquals(
+                        1, OverflowLog.reported().size(), OverflowLog.reported().toString());
+            }
+        }
+
+        @Test
+        @DisplayName("and an overrun that arrives on a later frame is reported on that frame")
+        void onALaterFrame() {
+            // The subtree that changed is the subtree laid out again, and that is
+            // the one walked: the first frame fits, the second does not.
+            try (var tree = RenderTree.create()) {
+                var fitting = Box.of()
+                        .direction(FlexDirection.ROW)
+                        .size(Length.points(120), Length.points(40))
+                        .shrink(0)
+                        .children(fixed());
+                tree.update(
+                        target.frame(),
+                        Box.of().size(Length.points(200), Length.points(200)).children(fitting));
+                assertEquals(List.of(), OverflowLog.reported());
+
+                tree.update(
+                        target.frame(),
+                        Box.of().size(Length.points(200), Length.points(200)).children(narrowRow()));
+                assertEquals(1, OverflowLog.reported().size());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("asked directly")
+    class AskedDirectly {
+
+        @Test
+        @DisplayName("answers every overrun in the tree, including one already said")
+        void answersWhatTheLogAlreadySaid() {
+            // The log says a shape once per process, so a test that asserts on it
+            // depends on every test before it. This does not.
+            try (var tree = RenderTree.create()) {
+                tree.update(target.frame(), tooWide());
+                tree.update(target.frame(), tooWide());
+                assertEquals(1, tree.overruns().size());
+                assertEquals(40, tree.overruns().getFirst().overrunX());
+            }
+        }
+
+        @Test
+        @DisplayName("and logs nothing of its own")
+        void logsNothing() {
+            try (var tree = RenderTree.create()) {
+                tree.update(target.frame(), tooWide());
+                OverflowLog.forget();
+                assertEquals(1, tree.overruns().size());
+                assertEquals(List.of(), OverflowLog.reported());
+            }
+        }
+
+        @Test
+        @DisplayName("and is empty before the first layout and for a tree that fits")
+        void emptyWhenNothingOverran() {
+            try (var tree = RenderTree.create()) {
+                assertEquals(List.of(), tree.overruns());
+                tree.update(
+                        target.frame(),
+                        Box.of()
+                                .direction(FlexDirection.ROW)
+                                .size(Length.points(200), Length.points(100))
+                                .children(fixed(), fixed()));
+                assertEquals(List.of(), tree.overruns());
+            }
         }
     }
 

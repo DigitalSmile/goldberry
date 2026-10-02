@@ -1,10 +1,13 @@
 package dev.goldberry.offscreen;
 
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.frame.FrameSequence;
 import dev.goldberry.image.Image;
 import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.hit.HitTest;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.tree.RenderTree;
@@ -99,6 +102,10 @@ public final class Filmstrip implements AutoCloseable {
 
     private boolean closed;
 
+    /// What the last pass captured — where everything was laid out, in paint
+    /// order.
+    private List<HitTest.Region> regions = List.of();
+
     /// Opens a strip over a mounted tree.
     ///
     /// Package-private: [Offscreen#strip(Widget)] is the door, because everything
@@ -115,6 +122,26 @@ public final class Filmstrip implements AutoCloseable {
             Clock.Virtual clock,
             Widget root) {
 
+        this(size, scale, format, background, ownFonts, renderer, clock, new PointerRouter(), new ElementTree(root));
+    }
+
+    /// Opens a strip over a tree the caller mounted, routed by a router the
+    /// caller made.
+    ///
+    /// What a [Session] is built on: its tree has a host, and the host answers
+    /// focus and modality from the router, so both exist before this does. The
+    /// strip owns them from here on and unmounts the tree when it closes.
+    Filmstrip(
+            PhysicalSize size,
+            DisplayScale scale,
+            PixelFormat format,
+            int background,
+            @Nullable Fonts ownFonts,
+            WidgetRenderer renderer,
+            Clock.Virtual clock,
+            PointerRouter router,
+            ElementTree tree) {
+
         this.size = size;
         this.scale = scale;
         this.format = format;
@@ -122,9 +149,9 @@ public final class Filmstrip implements AutoCloseable {
         this.ownFonts = ownFonts;
         this.renderer = renderer;
         this.clock = clock;
-        this.tree = new ElementTree(root);
+        this.tree = tree;
         this.render = RenderTree.create();
-        this.router = new PointerRouter();
+        this.router = router;
         this.sequence = FrameSequence.over(tree, render, router);
         try {
             mount();
@@ -152,11 +179,21 @@ public final class Filmstrip implements AutoCloseable {
     /// never fed them back would photograph the whole animation of a widget
     /// correcting a first guess it should never have been showing.
     private void mount() {
+        pass();
+    }
+
+    /// Builds, lays out and captures the regions, and paints nothing.
+    ///
+    /// The mount pass, and what a [Session] runs after each piece of input: a
+    /// window paints a frame between two events, and the second event is
+    /// answered against the rectangles that frame produced. The rectangles are
+    /// what is needed, and they come out of the layout.
+    void pass() {
         var buffer = PixelBuffer.allocate(size, format);
         var frame = Frame.over(buffer, scale);
         try {
             sequence.layOut(frame, renderer);
-            sequence.captureRegions(frame);
+            regions = sequence.captureRegions(frame);
         } finally {
             // Nothing was painted into it, and it is still a Blend2D context with
             // an image behind it.
@@ -190,7 +227,7 @@ public final class Filmstrip implements AutoCloseable {
         // regions describe is the frame that was drawn. A `Measured`
         // widget told about them here acts on the *next* frame, which is what makes
         // a strip's feedback arrive on the same schedule a window's does.
-        sequence.captureRegions(frame);
+        regions = sequence.captureRegions(frame);
         frames++;
         return Image.of(buffer);
     }
@@ -223,6 +260,31 @@ public final class Filmstrip implements AutoCloseable {
     /// How many pictures have been taken.
     public int frames() {
         return frames;
+    }
+
+    /// What the last pass captured.
+    List<HitTest.Region> regions() {
+        return regions;
+    }
+
+    ElementTree tree() {
+        return tree;
+    }
+
+    PointerRouter router() {
+        return router;
+    }
+
+    RenderTree render() {
+        return render;
+    }
+
+    Clock.Virtual clock() {
+        return clock;
+    }
+
+    boolean isClosed() {
+        return closed;
     }
 
     /// Whether anything in the tree is still moving.

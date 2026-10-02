@@ -1,5 +1,7 @@
 package dev.goldberry.paint.tree;
 
+import java.util.function.Consumer;
+
 import dev.goldberry.css.StyleElement;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.layout.Position;
@@ -7,21 +9,29 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.overflow.OverflowLog;
 import dev.goldberry.paint.overflow.Overrun;
 
-/// Finds the boxes that did not fit, and is asked only when one of them did not.
+/// Finds the boxes that did not fit.
 ///
-/// ## What it costs on a frame where everything fits
+/// ## Where it looks, and what that costs
 ///
-/// One foreign call. Yoga records `hadOverflow` on the **container** whose flex
-/// line ran past its own edge, and the container that matters is the root: a
-/// control pushed off the edge of a window is the window's line overflowing.
-/// So the frame loop asks the root that one question, and this walk only runs
-/// when the answer is yes.
+/// **Every subtree the layout pass laid out again**, and nothing else. A
+/// render tree already walks exactly those once per frame to read where Yoga
+/// put them ([RenderObject#settle()]), and skips a subtree whose boxes and
+/// rectangle both held. That walk asks [#inspect] about each node it
+/// enters, so a node is looked at when it is first laid out and whenever it
+/// moves or changes, and a static frame looks at nothing.
 ///
-/// On the frames after that the walk runs every time, and it is a tree walk with
-/// one foreign call per node. That is the deliberate trade: a window that is
-/// already too small for its content is not the frame budget's difficult case,
-/// and [OverflowLog] makes sure the *reporting* happens once however often the
-/// walk does.
+/// The question itself is arithmetic on rectangles that walk has already
+/// read: no foreign call, and no allocation unless something overran.
+///
+/// Asking the root's `hadOverflow` instead was the first design, and it missed
+/// the case that matters most: Yoga sets that flag on the container whose
+/// line ran over, and an overrun inside a fixed-width or absolutely placed
+/// box — a dialog — never reaches the root's line.
+///
+/// [OverflowLog] makes sure each shape is *said* once however often it is
+/// found. [#walk] is the other entry: the whole tree, unconditionally, into
+/// whatever the caller collects with, for a test that cannot depend on what
+/// the log has already said.
 ///
 /// ## What is not an overrun
 ///
@@ -38,29 +48,46 @@ import dev.goldberry.paint.overflow.Overrun;
 ///   outside its container, and a pixel or two.
 final class OverflowWatch {
 
+    /// The two names an overrun is first measured with, before it is known
+    /// whether there is one to name.
+    private static final String UNNAMED = "";
+
     private OverflowWatch() {}
 
-    /// Walks `node` and reports every child laid out past its container.
-    static void check(RenderObject node) {
+    /// Reports every child of `node` laid out past it, to the log.
+    ///
+    /// One level: the caller is the walk that settles the tree, and it reaches
+    /// the children itself.
+    static void inspect(RenderObject node) {
+        inspect(node, OverflowLog::report);
+    }
+
+    /// Hands every overrun in the subtree under `node` to `sink`, whether or
+    /// not it was laid out this pass and whether or not it was said before.
+    static void walk(RenderObject node, Consumer<Overrun> sink) {
+        inspect(node, sink);
+        for (var child : node.children()) {
+            walk(child, sink);
+        }
+    }
+
+    private static void inspect(RenderObject node, Consumer<Overrun> sink) {
         var box = node.box();
-        if (box == null) {
+        if (box == null || box.overflow() != Overflow.VISIBLE) {
             return;
         }
-        if (box.overflow() == Overflow.VISIBLE) {
-            var container = node.layout();
-            for (var child : node.children()) {
-                var childBox = child.box();
-                if (childBox == null || childBox.position() == Position.ABSOLUTE) {
-                    continue;
-                }
-                var overrun = Overrun.between(name(box), name(childBox), container, child.layout());
-                if (overrun != null) {
-                    OverflowLog.report(overrun);
-                }
-            }
-        }
+        var container = node.layout();
         for (var child : node.children()) {
-            check(child);
+            var childBox = child.box();
+            if (childBox == null || childBox.position() == Position.ABSOLUTE) {
+                continue;
+            }
+            // Measured unnamed first: a name is a string built per child, and
+            // nearly every child fits.
+            var overrun = Overrun.between(UNNAMED, UNNAMED, container, child.layout());
+            if (overrun != null) {
+                sink.accept(new Overrun(name(box), name(childBox), overrun.overrunX(), overrun.overrunY()));
+            }
         }
     }
 

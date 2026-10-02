@@ -1,5 +1,7 @@
 package dev.goldberry.paint.tree;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -16,6 +18,7 @@ import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.Clip;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.cull.BoxInk;
+import dev.goldberry.paint.overflow.Overrun;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalRect;
@@ -106,13 +109,37 @@ public final class RenderTree implements AutoCloseable {
         // Where Yoga put everything, and what each subtree draws -- read once,
         // here, rather than in each of the walks that follow. A frame painted
         // twice (a damage pass and a full one) settles once.
+        //
+        // The same walk is the overflow watch: every subtree it enters was laid
+        // out again, and each one is asked whether a child ran past it. On a
+        // static frame it enters nothing, and only the first overrun of each
+        // shape is ever said out loud.
         root.settle();
-        // One question per frame: did the root's own line run past the window?
-        // Only then is it worth walking the tree to find out what is off the
-        // edge, and only the first overrun of each shape is ever said out loud.
-        if (root.node().hadOverflow()) {
-            OverflowWatch.check(root);
+    }
+
+    /// Every box in the tree laid out past the box it is in, as of the last
+    /// layout.
+    ///
+    /// **The deterministic question**, for a test. The log says each shape of
+    /// overrun once per process, so asserting that `OverflowLog.reported()` is
+    /// empty depends on what every earlier test said. This walks the whole tree,
+    /// whatever was laid out this pass, and logs nothing.
+    ///
+    /// The same exemptions as the log: a box that clips on purpose, a child
+    /// placed by insets, and a pixel or two.
+    ///
+    /// Read more: [Overruns](https://goldberry.dev/docs/guide/testing.html#overruns).
+    ///
+    /// @return the overruns in tree order; empty before the first layout
+    public List<Overrun> overruns() {
+        requireUsable();
+        var current = root;
+        if (current == null) {
+            return List.of();
         }
+        var found = new ArrayList<Overrun>();
+        OverflowWatch.walk(current, found::add);
+        return List.copyOf(found);
     }
 
     /// Brings the retained tree in line with `box`, at `scale`. The half of
