@@ -66,10 +66,26 @@ jobs:
         # --config matters for the multi-config Visual Studio generator.
         run: cmake --build build/native --config Release --target install
 
+      # The web view library, which the superbuild makes here from the WebView2
+      # SDK headers it fetches itself -- "Goldberry web view: ON" in the
+      # configure log. It was built on every run and never uploaded, so no
+      # published Windows jar had web-view. A build without it is a lost file
+      # rather than a reduced build, and stops here.
+      - name: Check the web view library
+        run: |
+          lib=build/install/lib/goldberry-webview.dll
+          test -f "$lib" || { echo "::error::no $lib: the Windows natives jar would ship without web-view"; exit 1; }
+          ls -la "$lib"
+
+      # Both libraries, into one artifact: publish.yml copies the directory into
+      # the layout :natives packages, and the verify job below finds the web
+      # view beside goldberry.dll, where WebviewLibrary looks for it.
       - uses: actions/upload-artifact@v4
         with:
           name: native-windows-x64
-          path: build/install/lib/goldberry.dll
+          path: |
+            build/install/lib/goldberry.dll
+            build/install/lib/goldberry-webview.dll
           if-no-files-found: error
 
   # This is the job that earns its keep: Win64's C `long` is 4 bytes where every
@@ -98,10 +114,16 @@ jobs:
       # rather than build a rival one, and `goldberry.native.required` turns a
       # test that would have skipped for want of a library into a failure.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
+      #
+      # `goldberry.webview.required` likewise for the web view: the DLL was
+      # downloaded beside goldberry.dll, and WebviewBindingTest loads it, checks
+      # its ABI and binds every call. Loading needs only Windows' own DLLs --
+      # WebView2Loader is opened when a page is, not when the library is.
       - run: |
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
-            -Dgoldberry.native.required=true
+            -Dgoldberry.native.required=true \
+            -Dgoldberry.webview.required=true
 
       # The whole `:core`, `:widgets` and `:html` suites against the real library, not
       # just the golden images. Everything that needs a rasterizer skips in the
@@ -129,4 +151,3 @@ jobs:
             html/build/golden-failures
             emoji/build/golden-failures
           if-no-files-found: ignore
-

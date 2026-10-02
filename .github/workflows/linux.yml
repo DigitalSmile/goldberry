@@ -185,37 +185,11 @@ jobs:
           /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja
           echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
 
-      # The engine behind `web-view`, and the ONE optional dependency in this file.
-      #
-      # Deliberately its own step and deliberately non-fatal, which nothing else
-      # here is. Every package above is required because its absence is a library
-      # that silently cannot ask the desktop something; this one's absence is a
-      # build that produces one shared library instead of two and says so. A web
-      # view is a feature an application opts into by calling for it, so a
-      # release without it is a smaller release rather than a broken one.
-      #
-      # HEADERS only. No WebKit is compiled, vendored or shipped -- the 73 KB
-      # `libgoldberry-webview.so` this enables links dynamically against whatever
-      # WebKit is installed on the machine that eventually runs it.
-      #
-      # UNVERIFIED on this image, which is why it may not fail the job. This is
-      # manylinux_2_28 (AlmaLinux 8) and the toolkit's CMake searches for
-      # `webkitgtk-6.0` then `webkit2gtk-4.1`; EL8 is a GTK3 vintage and only
-      # gained `webkit2gtk4.1-devel` in a later minor, so it may have neither. If
-      # it does not, the configure prints "Goldberry web view: OFF", the artifact
-      # ships without the second library, and `Capability.WEB_VIEW` is absent for
-      # everyone using the published Linux jars.
-      #
-      # Read the configure log's "Goldberry web view:" line to find out which
-      # happened. If this image cannot provide it, the honest fix is a newer
-      # container for this leg rather than a quieter failure here -- and note
-      # that linking against 4.1 pins the artifact to `libwebkit2gtk-4.1.so.0`,
-      # so a user with only 6.0 installed gets no page either.
-      - name: Install the web view headers (optional)
-        continue-on-error: true
-        run: |
-          dnf install -y webkit2gtk4.1-devel \
-            || echo "no webkit2gtk4.1-devel on this image: the artifact will ship without web view support"
+      # No web view here. The engine's headers are WebKitGTK 4.1's, and this
+      # image (AlmaLinux 8) does not have them: `dnf install webkit2gtk4.1-devel`
+      # answered "No match" on every run, the configure printed "Goldberry web
+      # view: OFF", and no published Linux jar had web-view. The `webview` job
+      # below builds that one library on a system that has the headers.
 
       - name: Configure
         run: |
@@ -241,6 +215,88 @@ jobs:
           path: build/install/lib/libgoldberry.so
           if-no-files-found: error
 
+  # libgoldberry-webview, the engine behind `web-view`, built on its own.
+  #
+  # Not in the manylinux container above, which has no WebKitGTK 4.1 headers.
+  # Ubuntu 22.04 is the oldest mainstream release that has them, so its glibc
+  # sets this library's floor (GLIBC 2.34, GLIBCXX 3.4.21 as built) -- not
+  # libgoldberry's, which stays 2.28. That costs nothing real: the library links
+  # WebKitGTK 4.1 dynamically, and any system with `libwebkit2gtk-4.1.so.0` is
+  # newer than that floor anyway. HEADERS only; no WebKit is compiled, vendored
+  # or shipped.
+  #
+  # The whole superbuild configures, because the shim's CMake lives in it and
+  # pins the same webview release, but only the one target is built. Its
+  # artifact is `webview-<target>`, not `native-<target>`: publish.yml and the
+  # verify job below put it beside libgoldberry.so.
+  #
+  # Required, not optional. A Linux natives jar without the web view is the
+  # defect this job exists to end.
+  webview:
+    name: libgoldberry-webview (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runs-on: ubuntu-24.04
+          - target: linux-aarch64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    container: ubuntu:22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # The same packages showcase.yml installs for the whole superbuild, since
+      # SDL's configure runs too, and Python's cmake and ninja: 22.04's cmake is
+      # older than the 3.28 the superbuild requires.
+      - name: Install build tools
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git build-essential pkg-config python3-pip binutils \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev libxkbcommon-dev libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev libibus-1.0-dev \
+            libwebkit2gtk-4.1-dev
+          pip3 install cmake ninja
+
+      - name: Configure
+        run: |
+          set -o pipefail
+          cmake -S natives/src/main/cmake -B build/native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGOLDBERRY_TARGET_ID=${{ matrix.target }} \
+            | tee configure.log
+          grep -q "Goldberry web view: ON" configure.log \
+            || { echo "::error::the configure did not enable the web view"; exit 1; }
+
+      - name: Build
+        run: cmake --build build/native --target goldberry-webview
+
+      # What it exports, what it links and the floor it sets, said in the log
+      # the way the glibc floor is for libgoldberry.
+      - name: Check the web view library
+        run: |
+          lib=build/native/libgoldberry-webview.so
+          nm -D --defined-only "$lib" | grep -q ' goldberry_webview_create$' \
+            || { echo "::error::$lib does not export goldberry_webview_create"; exit 1; }
+          objdump -p "$lib" | grep -q 'NEEDED.*libwebkit2gtk-4.1.so.0' \
+            || { echo "::error::$lib does not link WebKitGTK 4.1"; exit 1; }
+          objdump -p "$lib" | grep NEEDED
+          objdump -T "$lib" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+          objdump -T "$lib" | grep -o 'GLIBCXX_[0-9.]*' | sort -uV | tail -1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webview-${{ matrix.target }}
+          path: build/native/libgoldberry-webview.so
+          if-no-files-found: error
+
   # Building an artifact is not the same as testing it. This is where the
   # hand-written struct layouts are actually checked against a compiled
   # libgoldberry -- the one downloaded from the natives job, which for Linux is
@@ -254,7 +310,7 @@ jobs:
   # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
   verify:
     name: Verify layouts (${{ matrix.target }})
-    needs: natives
+    needs: [natives, webview]
     # A matrix job fails if any leg does, so without this one broken target
     # skips verification of every other target's library -- including ones that
     # built fine. A leg whose artifact really is missing fails at the download
@@ -280,10 +336,29 @@ jobs:
         with:
           name: native-${{ matrix.target }}
           path: native-lib
+      # Beside libgoldberry.so, where WebviewLibrary looks for it, as it sits in
+      # the published jar.
+      - uses: actions/download-artifact@v4
+        with:
+          name: webview-${{ matrix.target }}
+          path: native-lib
+
+      # WebKitGTK 4.1 itself, which the web view library links and a user's
+      # desktop has. Without it the library does not load, and the test below
+      # would be failing over the runner rather than over the artifact.
+      - name: Install WebKitGTK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-0
+
+      # `goldberry.webview.required`: WebviewBindingTest loads the web view
+      # library, checks its ABI and binds every call, and fails rather than
+      # skips if it cannot.
       - run: |
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
-            -Dgoldberry.native.required=true
+            -Dgoldberry.native.required=true \
+            -Dgoldberry.webview.required=true
 
       # The whole `:core`, `:widgets` and `:html` suites against the real library, not
       # just the golden images. Everything that needs a rasterizer skips in the
@@ -370,4 +445,3 @@ jobs:
             emoji/build/golden-failures
             example/build/golden-failures
           if-no-files-found: ignore
-
